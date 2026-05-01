@@ -27,6 +27,73 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         await _intents.InsertOneAsync(session, MapIntent(intent), options: null, ct).ConfigureAwait(false);
     }
 
+    public async Task<ReplaceIntentTextOutcome> ReplaceTextAsync(
+        IntentId id,
+        int expectedVersion,
+        string oldText,
+        string newText,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(oldText);
+        ArgumentNullException.ThrowIfNull(newText);
+
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentRepository.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (document is null)
+        {
+            return new ReplaceIntentTextOutcome.NotFound();
+        }
+
+        if (document.CurrentVersion != expectedVersion)
+        {
+            return new ReplaceIntentTextOutcome.VersionConflict(document.CurrentVersion);
+        }
+
+        var intent = MapToDomain(document);
+        var newVersionId = Guid.NewGuid().ToString("N");
+        var domainResult = intent.ReplaceText(oldText, newText, newVersionId, now, TextVersionAuthor.Agent);
+
+        switch (domainResult)
+        {
+            case ReplaceTextResult.MatchNotFound matchNotFound:
+                return new ReplaceIntentTextOutcome.MatchNotFound(matchNotFound.QueryPreview);
+
+            case ReplaceTextResult.MatchAmbiguous matchAmbiguous:
+                return new ReplaceIntentTextOutcome.MatchAmbiguous(matchAmbiguous.MatchesCount, matchAmbiguous.MatchLines);
+
+            case ReplaceTextResult.Replaced replaced:
+                {
+                    var update = Builders<IntentDocument>.Update
+                        .Set(d => d.Text, intent.Text)
+                        .Set(d => d.CurrentVersion, intent.CurrentVersion)
+                        .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+
+                    var updateResult = await _intents.UpdateOneAsync(
+                        session,
+                        d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+                        update,
+                        options: null,
+                        ct).ConfigureAwait(false);
+
+                    if (updateResult.ModifiedCount == 0)
+                    {
+                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                        return new ReplaceIntentTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
+                    }
+
+                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct).ConfigureAwait(false);
+                    return new ReplaceIntentTextOutcome.Replaced(intent);
+                }
+
+            default:
+                throw new InvalidOperationException($"Unhandled domain result: {domainResult.GetType().Name}");
+        }
+    }
+
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;

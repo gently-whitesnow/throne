@@ -11,7 +11,8 @@ namespace Throne.Api.Mcp.Tools;
 public sealed class IntentTools(
     CreateIntentHandler create,
     GetIntentHandler get,
-    ReadIntentTextHandler read)
+    ReadIntentTextHandler read,
+    ReplaceIntentTextHandler replace)
 {
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
     [Description("Create a new Intent and seed v1 of its text. Returns the canonical Intent (id, current_version, text, tags, timestamps).")]
@@ -37,4 +38,14 @@ public sealed class IntentTools(
         [Description("Client-side max characters; capped to 64,000.")] int? max_chars,
         CancellationToken cancellationToken) =>
         read.HandleAsync(new ReadIntentTextQuery(intent_id, start_line, line_count, max_chars), cancellationToken);
+
+    [McpServerTool(Name = "replace_intent_text", UseStructuredContent = true)]
+    [Description("Replace a unique substring of Intent.text with optimistic concurrency. Errors: intent.version_conflict, intent.text.match_not_found, intent.text.match_ambiguous.")]
+    public Task<Intent> ReplaceIntentText(
+        [Description("Intent identifier.")] string intent_id,
+        [Description("Expected current_version of the Intent.")] int expected_version,
+        [Description("Exact byte-for-byte substring to replace. Must occur exactly once in Intent.text.")] string old_text,
+        [Description("Replacement text. May be empty (deletes the matched fragment).")] string new_text,
+        CancellationToken cancellationToken) =>
+        replace.HandleAsync(new ReplaceIntentTextCommand(intent_id, expected_version, old_text, new_text), cancellationToken);
 }
