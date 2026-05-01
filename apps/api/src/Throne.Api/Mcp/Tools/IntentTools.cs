@@ -40,10 +40,10 @@ public sealed class IntentTools(
     [Description("Read a slice of Intent.text. Server hard limit per response: 64,000 characters; use next_start_line to paginate.")]
     public Task<TextSlice> ReadIntentText(
         [Description("Intent identifier.")] string intent_id,
-        [Description("1-indexed first line to read. Default: 1.")] int? start_line,
-        [Description("Number of lines to read. Default: until end-of-document under max_chars.")] int? line_count,
-        [Description("Client-side max characters; capped to 64,000.")] int? max_chars,
-        CancellationToken cancellationToken) =>
+        [Description("1-indexed first line to read. Default: 1.")] int? start_line = null,
+        [Description("Number of lines to read. Default: until end-of-document under max_chars.")] int? line_count = null,
+        [Description("Client-side max characters; capped to 64,000.")] int? max_chars = null,
+        CancellationToken cancellationToken = default) =>
         read.HandleAsync(new ReadIntentTextQuery(intent_id, start_line, line_count, max_chars), cancellationToken);
 
     [McpServerTool(Name = "replace_intent_text", UseStructuredContent = true)]
@@ -71,9 +71,9 @@ public sealed class IntentTools(
     public Task<TextSearchResult> SearchIntentText(
         [Description("Intent identifier.")] string intent_id,
         [Description("Substring to find. Case-sensitive, byte-exact.")] string query,
-        [Description("Lines of context around each match. Default: 3.")] int? context_lines,
-        [Description("Max matches to return. Default: 10. Capped at 50.")] int? limit,
-        CancellationToken cancellationToken) =>
+        [Description("Lines of context around each match. Default: 3.")] int? context_lines = null,
+        [Description("Max matches to return. Default: 10. Capped at 50.")] int? limit = null,
+        CancellationToken cancellationToken = default) =>
         search.HandleAsync(new SearchIntentTextQuery(intent_id, query, context_lines, limit), cancellationToken);
 
     [McpServerTool(Name = "add_intent_qa", UseStructuredContent = true)]
