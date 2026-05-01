@@ -16,7 +16,7 @@ bash scripts/quality/verify.sh
 |---|---|
 | Архитектурные решения | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) |
 | Правила для агентов в этом проекте | [specs/AGENTS.local.md](specs/AGENTS.local.md) |
-| Универсальные конвенции кодинга | [AGENTS.md](AGENTS.md) |
+| Универсальные конвенции кодинга | [USER.md](USER.md) |
 
 ## Что не делать
 

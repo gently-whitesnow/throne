@@ -24,7 +24,9 @@ throne/
 │   └── AGENTS.local.md
 ├── scripts/quality/         # verify.sh + sub-scripts
 ├── .quality/                # quality.config.json
-└── AGENTS.md                # universal coding conventions
+├── AGENTS.md                # Codex/agent entrypoint
+├── CLAUDE.md                # Claude entrypoint
+└── USER.md                  # universal coding conventions
 ```
 
 `apps/web` появится в следующей итерации.
@@ -75,5 +77,6 @@ bash scripts/quality/verify.sh --fast   # без security audit
 |---|---|
 | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) | Реестр архитектурных решений |
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
-| [AGENTS.md](AGENTS.md) | Универсальные конвенции |
-| [CLAUDE.md](CLAUDE.md) | Точка входа для агента |
+| [USER.md](USER.md) | Универсальные конвенции |
+| [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов |
+| [CLAUDE.md](CLAUDE.md) | Точка входа для Claude |

@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Дополняет [AGENTS.md](../AGENTS.md) проектными правилами.
+Дополняет [USER.md](../USER.md) проектными правилами.
 
 ## Перед завершением хода
 

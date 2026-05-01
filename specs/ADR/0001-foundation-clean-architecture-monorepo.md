@@ -22,7 +22,7 @@ Accepted
 
 ## Decision
 
-1. **Монорепо** с layout `apps/api/` (.NET backend) и будущим `apps/web/` (фронтенд). На корне репозитория — `specs/`, `scripts/quality/`, `.quality/`, `AGENTS.md`.
+1. **Монорепо** с layout `apps/api/` (.NET backend) и будущим `apps/web/` (фронтенд). На корне репозитория — `specs/`, `scripts/quality/`, `.quality/`, `AGENTS.md`, `CLAUDE.md`, `USER.md`.
 2. **Clean Architecture** в `apps/api/`:
    - `Throne.Domain` — entities, value objects, domain rules. Без внешних зависимостей.
    - `Throne.Application` — use cases и порты репозиториев. Без знания о MongoDB и MCP.
