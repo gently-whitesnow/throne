@@ -1,0 +1,32 @@
+# .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+
+# Build artifacts
+*.binlog
+artifacts/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Node (future apps/web)
+node_modules/
+dist/
+.next/
+.turbo/

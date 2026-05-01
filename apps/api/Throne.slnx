@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Throne.Api/Throne.Api.csproj" />
+    <Project Path="src/Throne.Application/Throne.Application.csproj" />
+    <Project Path="src/Throne.Domain/Throne.Domain.csproj" />
+    <Project Path="src/Throne.Infrastructure/Throne.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Throne.Api.Tests/Throne.Api.Tests.csproj" />
+    <Project Path="tests/Throne.Application.Tests/Throne.Application.Tests.csproj" />
+    <Project Path="tests/Throne.Architecture.Tests/Throne.Architecture.Tests.csproj" />
+    <Project Path="tests/Throne.Domain.Tests/Throne.Domain.Tests.csproj" />
+    <Project Path="tests/Throne.Infrastructure.Tests/Throne.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

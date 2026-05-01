@@ -1,0 +1,39 @@
+{
+  "$schema": "https://example.invalid/throne-quality.schema.json",
+  "version": 1,
+  "solution": "apps/api/Throne.slnx",
+  "gates": {
+    "format": {
+      "enabled": true,
+      "script": "scripts/quality/dotnet-format-verify.sh"
+    },
+    "build": {
+      "enabled": true,
+      "script": "scripts/quality/dotnet-build-warnaserror.sh"
+    },
+    "test": {
+      "enabled": true,
+      "script": "scripts/quality/dotnet-test.sh"
+    },
+    "architecture": {
+      "enabled": true,
+      "description": "NetArchTest layer rules in Throne.Architecture.Tests; runs as part of test gate"
+    },
+    "maintainability": {
+      "enabled": false,
+      "description": "Profile=legacy. Baseline will be generated after first real domain code lands."
+    },
+    "security-audit": {
+      "enabled": true,
+      "script": "scripts/quality/package-audit.sh"
+    },
+    "coverage": {
+      "enabled": false,
+      "description": "Deferred until use cases are implemented"
+    },
+    "mutation": {
+      "enabled": false,
+      "description": "Opt-in for critical domain modules later"
+    }
+  }
+}

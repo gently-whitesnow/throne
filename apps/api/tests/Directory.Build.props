@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Tests use snake_case method names (idiomatic xUnit) -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!-- Test classes don't need XML docs -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>
