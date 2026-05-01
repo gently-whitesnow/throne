@@ -1,31 +1,71 @@
 {
   "$schema": "https://example.invalid/throne-quality.schema.json",
   "version": 1,
-  "solution": "apps/api/Throne.slnx",
+  "backend": {
+    "solution": "apps/api/Throne.slnx"
+  },
+  "frontend": {
+    "workspace": "apps/web",
+    "architecture": "FSD 2.0",
+    "packageManager": "pnpm",
+    "lockfile": "apps/web/pnpm-lock.yaml"
+  },
   "gates": {
-    "format": {
+    "backend-format": {
       "enabled": true,
       "script": "scripts/quality/dotnet-format-verify.sh"
     },
-    "build": {
+    "backend-build": {
       "enabled": true,
       "script": "scripts/quality/dotnet-build-warnaserror.sh"
     },
-    "test": {
+    "backend-test": {
       "enabled": true,
       "script": "scripts/quality/dotnet-test.sh"
     },
-    "architecture": {
+    "backend-architecture": {
       "enabled": true,
       "description": "NetArchTest layer rules in Throne.Architecture.Tests; runs as part of test gate"
+    },
+    "frontend-deps": {
+      "enabled": true,
+      "description": "pnpm install --frozen-lockfile"
+    },
+    "frontend-format": {
+      "enabled": true,
+      "description": "Prettier check for apps/web"
+    },
+    "frontend-lint": {
+      "enabled": true,
+      "description": "ESLint flat config for TypeScript and React"
+    },
+    "frontend-typecheck": {
+      "enabled": true,
+      "description": "TypeScript project references build"
+    },
+    "frontend-architecture": {
+      "enabled": true,
+      "description": "Steiger + @feature-sliced/steiger-plugin FSD rules; insignificant-slice is disabled for the initial scaffold"
+    },
+    "frontend-test": {
+      "enabled": true,
+      "description": "Vitest run"
+    },
+    "frontend-build": {
+      "enabled": true,
+      "description": "Vite production build"
     },
     "maintainability": {
       "enabled": false,
       "description": "Profile=legacy. Baseline will be generated after first real domain code lands."
     },
-    "security-audit": {
+    "backend-security-audit": {
       "enabled": true,
       "script": "scripts/quality/package-audit.sh"
+    },
+    "frontend-security-audit": {
+      "enabled": true,
+      "description": "pnpm audit --audit-level high"
     },
     "coverage": {
       "enabled": false,

@@ -7,7 +7,7 @@
 ```
 throne/
 ├── apps/
-│   └── api/                 # .NET 10 backend (MCP + future HTTP for web)
+│   ├── api/                 # .NET 10 backend (MCP + future HTTP for web)
 │       ├── src/
 │       │   ├── Throne.Domain/
 │       │   ├── Throne.Application/
@@ -19,6 +19,8 @@ throne/
 │           ├── Throne.Infrastructure.Tests/
 │           ├── Throne.Api.Tests/
 │           └── Throne.Architecture.Tests/
+│   └── web/                 # Vite + React + TypeScript frontend
+│       └── src/             # FSD 2.0: app/pages/widgets/features/entities/shared
 ├── specs/
 │   ├── ADR/                 # Architecture Decision Records
 │   └── AGENTS.local.md
@@ -29,8 +31,6 @@ throne/
 ├── DESIGN.md                # frontend design system
 └── USER.md                  # universal coding conventions
 ```
-
-`apps/web` появится в следующей итерации.
 
 ## Архитектура
 
@@ -46,6 +46,10 @@ Api → Infrastructure (только в DI)
 
 См. [ADR-0001](specs/ADR/0001-foundation-clean-architecture-monorepo.md).
 
+Frontend в `apps/web` строится по FSD 2.0. Структуру и imports защищает Steiger.
+
+См. [ADR-0005](specs/ADR/0005-frontend-foundation-fsd-quality-harness.md).
+
 ## Запуск
 
 ```bash
@@ -55,11 +59,22 @@ dotnet build
 dotnet test
 ```
 
+```bash
+cd apps/web
+pnpm install
+pnpm dev
+pnpm build
+```
+
 ## Quality gates
 
 ```bash
-bash scripts/quality/verify.sh          # все гейты
-bash scripts/quality/verify.sh --fast   # без security audit
+bash scripts/quality/verify.sh                     # backend + frontend
+bash scripts/quality/verify.sh --fast              # без security audit
+bash scripts/quality/verify.sh --scope backend     # только backend
+bash scripts/quality/verify.sh --scope frontend    # только frontend
+bash scripts/quality/verify-backend.sh             # backend-only
+bash scripts/quality/verify-frontend.sh            # frontend-only
 ```
 
 Запускается перед каждым коммитом и завершением хода агента.
@@ -68,6 +83,8 @@ bash scripts/quality/verify.sh --fast   # без security audit
 
 - .NET 10
 - MongoDB
+- Vite + React + TypeScript
+- FSD 2.0 + Steiger
 - [ModelContextProtocol](https://github.com/modelcontextprotocol/csharp-sdk) (official C# SDK)
 - xUnit + FluentAssertions + Testcontainers
 - Central Package Management (`Directory.Packages.props`)

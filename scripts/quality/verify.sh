@@ -1,44 +1,62 @@
 #!/usr/bin/env bash
 # Single entrypoint for quality verification.
 # Usage:
-#   scripts/quality/verify.sh           # all gates
-#   scripts/quality/verify.sh --fast    # skip security audit (network)
-#   scripts/quality/verify.sh --only build|test|format|audit
+#   scripts/quality/verify.sh                           # all gates
+#   scripts/quality/verify.sh --fast                    # skip security audits
+#   scripts/quality/verify.sh --scope backend|frontend  # selected app family
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
 FAST=0
-ONLY=""
-for arg in "$@"; do
-  case "$arg" in
-    --fast) FAST=1 ;;
-    --only) shift; ONLY="${1:-}" ;;
-    --only=*) ONLY="${arg#--only=}" ;;
+SCOPE="all"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --fast)
+      FAST=1
+      shift
+      ;;
+    --scope)
+      SCOPE="${2:-}"
+      shift 2
+      ;;
+    --scope=*)
+      SCOPE="${1#--scope=}"
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 2
+      ;;
   esac
 done
 
-run_gate() {
-  local name="$1"
-  local script="$2"
-  if [[ -n "$ONLY" && "$ONLY" != "$name" ]]; then
-    return 0
+run_verify() {
+  local script="$1"
+  if [[ "$FAST" -eq 1 ]]; then
+    bash "$script" --fast
+  else
+    bash "$script"
   fi
-  echo "▶ gate: $name"
-  bash "$script"
-  echo "✓ gate passed: $name"
 }
 
-run_gate "format" "scripts/quality/dotnet-format-verify.sh"
-run_gate "build"  "scripts/quality/dotnet-build-warnaserror.sh"
-run_gate "test"   "scripts/quality/dotnet-test.sh"
-
-if [[ "$FAST" -eq 0 ]]; then
-  run_gate "audit" "scripts/quality/package-audit.sh"
-else
-  echo "⏭  skipping audit (--fast)"
-fi
+case "$SCOPE" in
+  all)
+    run_verify scripts/quality/verify-backend.sh
+    run_verify scripts/quality/verify-frontend.sh
+    ;;
+  backend)
+    run_verify scripts/quality/verify-backend.sh
+    ;;
+  frontend)
+    run_verify scripts/quality/verify-frontend.sh
+    ;;
+  *)
+    echo "Unknown scope: $SCOPE" >&2
+    exit 2
+    ;;
+esac
 
 echo ""
 echo "ALL GATES PASSED"
