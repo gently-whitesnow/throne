@@ -15,8 +15,9 @@ public class CreateIntentHandlerTests
     public async Task CreateIntent_persists_intent_and_v1_snapshot()
     {
         var repo = Substitute.For<IIntentRepository>();
+        var uow = new PassthroughUnitOfWork();
         var clock = new FakeTimeProvider(Now);
-        var handler = new CreateIntentHandler(repo, clock);
+        var handler = new CreateIntentHandler(repo, uow, clock);
 
         var intent = await handler.HandleAsync(new CreateIntentCommand("hello world", ["throne"]), CancellationToken.None);
 
@@ -39,5 +40,12 @@ public class CreateIntentHandlerTests
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class PassthroughUnitOfWork : IUnitOfWork
+    {
+        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
+
+        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
     }
 }

@@ -26,6 +26,8 @@ public static class DependencyInjection
             return sp.GetRequiredService<IMongoClient>().GetDatabase(opts.Database);
         });
 
+        services.AddSingleton<MongoSessionAccessor>();
+        services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
@@ -41,6 +43,8 @@ public static class DependencyInjection
 
         services.AddSingleton(database);
         services.AddSingleton<IMongoClient>(database.Client);
+        services.AddSingleton<MongoSessionAccessor>();
+        services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();

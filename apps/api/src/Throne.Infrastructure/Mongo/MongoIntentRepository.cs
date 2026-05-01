@@ -6,7 +6,7 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentRepository(IMongoDatabase database) : IIntentRepository
+internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessionAccessor sessions) : IIntentRepository
 {
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
@@ -19,16 +19,20 @@ internal sealed class MongoIntentRepository(IMongoDatabase database) : IIntentRe
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(initialVersion);
 
-        await _textVersions.InsertOneAsync(MapVersion(initialVersion), options: null, ct).ConfigureAwait(false);
-        await _intents.InsertOneAsync(MapIntent(intent), options: null, ct).ConfigureAwait(false);
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct).ConfigureAwait(false);
+        await _intents.InsertOneAsync(session, MapIntent(intent), options: null, ct).ConfigureAwait(false);
     }
 
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
-        var document = await _intents
-            .Find(d => d.Id == id.Value)
-            .FirstOrDefaultAsync(ct)
-            .ConfigureAwait(false);
+        var session = sessions.Current;
+        var document = session is null
+            ? await _intents.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false)
+            : await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
 
         return document is null ? null : MapToDomain(document);
     }

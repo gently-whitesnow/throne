@@ -6,7 +6,10 @@ namespace Throne.Application.Intents;
 
 public sealed record CreateIntentCommand(string Text, IReadOnlyList<string>? Tags);
 
-public sealed class CreateIntentHandler(IIntentRepository repository, TimeProvider clock)
+public sealed class CreateIntentHandler(
+    IIntentRepository repository,
+    IUnitOfWork unitOfWork,
+    TimeProvider clock)
 {
     public async Task<Intent> HandleAsync(CreateIntentCommand command, CancellationToken ct)
     {
@@ -23,7 +26,9 @@ public sealed class CreateIntentHandler(IIntentRepository repository, TimeProvid
             changedAt: now,
             changedBy: TextVersionAuthor.Agent);
 
-        await repository.CreateAsync(intent, initialVersion, ct).ConfigureAwait(false);
+        await unitOfWork.ExecuteAsync(
+            inner => repository.CreateAsync(intent, initialVersion, inner),
+            ct).ConfigureAwait(false);
         return intent;
     }
 }

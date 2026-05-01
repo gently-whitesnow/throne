@@ -82,7 +82,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 ## Технологии
 
 - .NET 10
-- MongoDB
+- MongoDB (replica set обязателен — write-tools используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0&directConnection=true`)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
 - [ModelContextProtocol](https://github.com/modelcontextprotocol/csharp-sdk) (official C# SDK)

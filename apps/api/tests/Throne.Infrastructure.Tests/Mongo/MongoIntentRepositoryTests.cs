@@ -16,8 +16,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
     [Fact(DisplayName = "CreateAsync пишет Intent в intents и v1 snapshot в text_versions")]
     public async Task Create_persists_canonical_and_v1_snapshot()
     {
-        var db = await NewDatabaseAsync();
-        IIntentRepository repo = new MongoIntentRepository(db);
+        var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
         var intent = Intent.Create(id, "hello world", ["throne"], Now);
@@ -25,7 +24,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "hello world", Now, TextVersionAuthor.Agent);
 
-        await repo.CreateAsync(intent, version, CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
 
         var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
             .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
@@ -46,15 +45,14 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
     [Fact(DisplayName = "GetByIdAsync читает Intent из intents в доменной форме")]
     public async Task Get_returns_persisted_intent()
     {
-        var db = await NewDatabaseAsync();
-        IIntentRepository repo = new MongoIntentRepository(db);
+        var (_, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
         var intent = Intent.Create(id, "body", ["a", "b"], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
-        await repo.CreateAsync(intent, version, CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
 
         var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
 
@@ -67,21 +65,36 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
     [Fact(DisplayName = "GetByIdAsync возвращает null для несуществующего id")]
     public async Task Get_returns_null_when_missing()
     {
-        var db = await NewDatabaseAsync();
-        IIntentRepository repo = new MongoIntentRepository(db);
+        var (_, repo, _) = await NewScopeAsync();
 
         var fetched = await repo.GetByIdAsync(new IntentId("nope"), CancellationToken.None);
 
         fetched.Should().BeNull();
     }
 
-    private async Task<IMongoDatabase> NewDatabaseAsync()
+    [Fact(DisplayName = "CreateAsync вне UoW бросает InvalidOperationException")]
+    public async Task Create_without_uow_throws()
+    {
+        var (_, repo, _) = await NewScopeAsync();
+
+        var id = IntentId.New();
+        var intent = Intent.Create(id, "x", null, Now);
+        var version = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "x", Now, TextVersionAuthor.Agent);
+
+        var act = () => repo.CreateAsync(intent, version, CancellationToken.None);
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    private async Task<(IMongoDatabase Db, MongoIntentRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
     {
         var name = $"throne_test_{Guid.NewGuid():N}";
-        var db = fixture.Client.GetDatabase(name);
-        // ensure clean state
         await fixture.Client.DropDatabaseAsync(name);
-        return fixture.Client.GetDatabase(name);
+        var db = fixture.Client.GetDatabase(name);
+        var sessions = new MongoSessionAccessor();
+        var repo = new MongoIntentRepository(db, sessions);
+        var uow = new MongoUnitOfWork(fixture.Client, sessions);
+        return (db, repo, uow);
     }
 }
 
