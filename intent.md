@@ -310,7 +310,7 @@ light_work
 new_project
 ```
 
-Seed-инструкции нужны, чтобы агент сразу мог работать через `get_instruction_bundle(mode)`, даже если пользователь ещё не создал собственные инструкции.
+Seed-инструкции нужны, чтобы агент сразу мог работать через `get_instruction_bundle(mode, intent_id?)`, даже если пользователь ещё не создал собственные инструкции.
 
 Seed-инструкции должны быть короткими. Это не “большой system prompt”, а стартовый минимальный набор правил для dogfooding.
 
@@ -328,7 +328,7 @@ Instruction (collection: instructions)
 - updated_at
 ```
 
-Агент видит инструкции только через `get_instruction_bundle(mode)` — пакетом для текущего режима, целиком (см. §14 и ADR-0003 §7). Отдельных read-tools `get_instruction(id)` / `read_instruction_text` / `search_instruction_text` в MVP нет: bundle отдаёт seed-инструкции целиком, они короткие, range-read и поиск избыточны.
+Агент видит инструкции только через `get_instruction_bundle(mode, intent_id?)` — пакетом для текущего режима, целиком (см. §14 и ADR-0003 §7). Отдельных read-tools `get_instruction(id)` / `read_instruction_text` / `search_instruction_text` в MVP нет: bundle отдаёт seed-инструкции целиком, они короткие, range-read и поиск избыточны.
 
 История версий `Instruction.text` живёт в той же коллекции `text_versions` с `owner_kind = instruction` (см. §7.2).
 
@@ -554,7 +554,7 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 1. определить или создать Intent;
 2. добавить запись в `Intent.review`;
 3. при необходимости точечно обновить `Intent.text`, чтобы замечание стало частью постановки;
-4. перечитать релевантные инструкции через `get_instruction_bundle(light_work)`;
+4. перечитать релевантные инструкции через `get_instruction_bundle(light_work, intent_id)`;
 5. продолжить исправление в текущем репозитории/рабочей директории;
 6. не сохранять результат work в Intent.
 
@@ -608,7 +608,7 @@ MVP-набор — **9 tools**, ровно столько, сколько нуж
 get_intent(intent_id) -> IntentWithText
 read_intent_text(intent_id, start_line? = 1, line_count?, max_chars?) -> TextSlice
 search_intent_text(intent_id, query, context_lines? = 3, limit? = 10) -> TextSearchResult[]
-get_instruction_bundle(mode) -> InstructionWithText[]
+get_instruction_bundle(mode, intent_id?) -> InstructionBundle
 ```
 
 Запись Intent (5):
@@ -621,12 +621,15 @@ add_intent_qa(intent_id, expected_version, question, answer) -> Ack
 add_intent_review(intent_id, expected_version, note, reason) -> Ack
 ```
 
+`InstructionBundle = { mode, intent_id?, instructions[], missing_kinds[] }`, где `instructions[]`
+содержит `{ kind, instruction_id, current_version, text }`.
+
 `Ack = { intent_id, current_version, accepted: true }`. qa/review-документы агенту не возвращаются.
 
 Сознательно **не вводятся** в MVP:
 
 - `list_intents`, `list_instructions`, `list_*_versions` — ни один dogfooding-сценарий §13 их не задействует.
-- `get_instruction(id)`, `read_instruction_text`, `search_instruction_text` — агент берёт инструкции только пакетом через `get_instruction_bundle(mode)`.
+- `get_instruction(id)`, `read_instruction_text`, `search_instruction_text` — агент берёт инструкции только пакетом через `get_instruction_bundle(mode, intent_id?)`.
 - Все write-tools для Instruction (`create_instruction`, `replace_instruction_text`, `insert_instruction_text_after_line`) — инструкции в MVP правит пользователь напрямую (mongosh / будущий HTTP).
 - `*_from_interview` варианты edit-tools — связь qa ↔ правка организована через decoupled `add_intent_qa` (ADR-0003 §1, альтернатива №1).
 - `replace_by_line_range`, `full_replace` — оба разрушают контекст больших документов или провоцируют гонки на дрейфующих номерах строк.
@@ -678,17 +681,17 @@ Actionable error codes (единый реестр `Throne.Application.ErrorCodes
 Для инструкций отдельных read-tools нет — агент получает их пакетом:
 
 ```text
-get_instruction_bundle(interview)    -> [common, interview]
-get_instruction_bundle(light_work)   -> [common, light_work]
-get_instruction_bundle(new_project)  -> [common, new_project]
+get_instruction_bundle(interview, intent_id?)    -> [common, interview]
+get_instruction_bundle(light_work, intent_id?)   -> [common, light_work]
+get_instruction_bundle(new_project, intent_id?)  -> [common, new_project]
 
-/tinterview -> get_instruction_bundle(interview)
-/twork      -> get_instruction_bundle(light_work)
-/tnew       -> get_instruction_bundle(new_project)
-/treview    -> get_instruction_bundle(light_work)
+/tinterview -> get_instruction_bundle(interview, intent_id?)
+/twork      -> get_instruction_bundle(light_work, intent_id?)
+/tnew       -> get_instruction_bundle(new_project, intent_id?)
+/treview    -> get_instruction_bundle(light_work, intent_id?)
 ```
 
-Маппинг режимов жёстко зашит на сервере. Если для нужного `kind` нет ни одной инструкции (что не должно случаться благодаря seed bootstrap, §15.1), сервер возвращает то, что есть, и явный flag `missing_kinds[]`.
+Маппинг режимов жёстко зашит на сервере. `intent_id` опционален: до создания Intent агент может запросить bundle только по `mode`; после выбора/создания Intent агент передаёт `intent_id` для audit-связки “этот Intent работал под такими инструкциями таких-то версий”. Если для нужного `kind` нет ни одной инструкции (что не должно случаться благодаря seed bootstrap, §15.1), сервер возвращает то, что есть, и явный flag `missing_kinds[]`.
 
 Это снижает риск, что агент забудет `common`-инструкции или соберёт неправильный набор.
 
@@ -725,13 +728,13 @@ Seed-инструкции создаются idempotent bootstrap-логикой
 * `get_intent` всегда возвращает полный `text` с `current_version` и `tags`;
 * `read_intent_text` используется для чтения большого `text` диапазонами под серверным лимитом 64 000 символов;
 * `search_intent_text` возвращает компактные результаты с ограниченным контекстом;
-* `get_instruction_bundle(mode)` возвращает массив `InstructionWithText` целиком.
+* `get_instruction_bundle(mode, intent_id?)` возвращает `InstructionBundle` с `InstructionWithText` целиком.
 
 Это проще для агента и уменьшает количество режимов поведения tools.
 
 ### 15.4. MCP call audit log
 
-Каждый MCP-вызов попадает в append-only коллекцию `mcp_call_log` (`tool_name`, `arguments`, `intent_id`, `session_id`, `outcome`, `error_code`, `result_summary`, `duration_ms`, `server_version`). Запись делает middleware на границе `Throne.Api` через порт `IMcpCallLogSink` — best-effort, без блокировки tool-вызова при сбое sink. Покрытие гарантируется конструкцией: единый registration-helper, architecture-тест, startup fail-fast, параметризованный smoke integration-тест. Подробности — [ADR-0004](specs/ADR/0004-mcp-call-audit-log.md). Это обоснование центральной гипотезы §4 — без журнала «улучшение системы — следующая итерация» теряет материал.
+Каждый MCP-вызов попадает в append-only коллекцию `mcp_call_log` (`tool_name`, `arguments`, `intent_id`, `session_id`, `outcome`, `error_code`, `result_summary`, `duration_ms`, `server_version`). Для `get_instruction_bundle` поле `result_summary` хранит логическую проекцию `InstructionBundleUse`: `mode`, опциональный `intent_id`, `instructions[]` как `{ kind, instruction_id, version }`, `missing_kinds[]`. Запись делает middleware на границе `Throne.Api` через порт `IMcpCallLogSink` — best-effort, без блокировки tool-вызова при сбое sink. Покрытие гарантируется конструкцией: единый registration-helper, architecture-тест, startup fail-fast, параметризованный smoke integration-тест. Подробности — [ADR-0004](specs/ADR/0004-mcp-call-audit-log.md). Это обоснование центральной гипотезы §4 — без журнала «улучшение системы — следующая итерация» теряет материал.
 
 ## 16. Что отдавать агенту для реализации
 
@@ -747,7 +750,7 @@ Seed-инструкции создаются idempotent bootstrap-логикой
 6. реализовать file-like text editing semantics (`replace` / `insert_after_line`) с actionable error codes (см. §14.1);
 7. реализовать `mcp_call_log` middleware + best-effort `IMcpCallLogSink` (ADR-0004), с гарантией покрытия by construction;
 8. добавить тесты: версионирование, exact replace (match_not_found / match_ambiguous), conflict handling, seed bootstrap, audit log coverage (параметризованный по реестру tools);
-9. подготовить agent instruction для slash-команд `/tinterview`, `/twork`, `/tnew`, `/treview` с маппингом на `get_instruction_bundle(mode)`.
+9. подготовить agent instruction для slash-команд `/tinterview`, `/twork`, `/tnew`, `/treview` с маппингом на `get_instruction_bundle(mode, intent_id?)`.
 
 Вне рамок первой реализации:
 

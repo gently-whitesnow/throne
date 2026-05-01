@@ -19,11 +19,11 @@ Accepted (amended пять раз: (1) убраны `*_from_interview` write-too
 
 1. **Сцепить qa с каждой text-правкой через `*_from_interview` варианты (как было в первой редакции этого ADR).** Это вынуждает писать qa **на каждую** правку, что ломается на типичных interview-сценариях: один ответ → несколько правок (qa дублируется), один ответ → ноль правок (qa некуда записать), фикс опечатки без вопроса (фейковая пара). Отклонено в пользу decoupled-модели: отдельный `add_intent_qa` + обычные edit-tools без знания о режиме (см. §3).
 2. **Возвращать unified diff из `replace_*_text` ошибок.** Богаче, но требует от агента парсинга diff. Достаточно структурированного `error.detail` с полями `matches_count`, `near_lines[]`, `hint`. Отклонено в пользу простого actionable JSON.
-3. **Сборка bundle инструкций на стороне агента (агент сам зовёт `list_instructions(kind=common)` + `list_instructions(kind=interview)`).** Открывает риск, что агент забудет `common`. `intent.md` §14 явно требует серверный `get_instruction_bundle(mode)` — выбрано.
+3. **Сборка bundle инструкций на стороне агента (агент сам зовёт `list_instructions(kind=common)` + `list_instructions(kind=interview)`).** Открывает риск, что агент забудет `common`. `intent.md` §14 явно требует серверный `get_instruction_bundle(mode, intent_id?)` — выбрано.
 4. **Поддержать `replace_by_line_range` для удобства.** Номера строк дрейфуют между версиями, гонки сложнее воспроизводимы. Отклонено явно (см. `intent.md` §9.3 и §14.1).
 5. **Поддержать `full_replace` как обычный tool.** Слишком легко превращается в потерю контекста для больших документов. Отклонено как обычный tool; полная перезапись возможна только косвенно через `replace_*_text` с `old_text == текущий весь текст`, что само по себе требует от агента осознанности.
 
-6. **Объём tool surface — реализовать всё §14 intent.md или сузить до minimum для §13 dogfooding.** intent.md §14 перечисляет ~16 tools (включая `list_*`, `get_instruction(id)`, `read_instruction_text` / `search_instruction_text`, `include_text?` флаг). Прошёлся по 11 dogfooding-критериям §13: ни один из этих tools там не задействован. Браузить список intent'ов из агента — нет сценария (агент работает по `intentId` от пользователя). Читать одну инструкцию по id — нет сценария (агент берёт инструкции **только** через `get_instruction_bundle(mode)`). Range-read для инструкций — оверкилл, потому что seed-инструкции по §8 явно «короткие» и bundle отдаёт их целиком. История версий через MCP — нет сценария (читается ETL-скриптами). Выбрано: minimum для §13.
+6. **Объём tool surface — реализовать всё §14 intent.md или сузить до minimum для §13 dogfooding.** intent.md §14 перечисляет ~16 tools (включая `list_*`, `get_instruction(id)`, `read_instruction_text` / `search_instruction_text`, `include_text?` флаг). Прошёлся по 11 dogfooding-критериям §13: ни один из этих tools там не задействован. Браузить список intent'ов из агента — нет сценария (агент работает по `intentId` от пользователя). Читать одну инструкцию по id — нет сценария (агент берёт инструкции **только** через `get_instruction_bundle(mode, intent_id?)`). Range-read для инструкций — оверкилл, потому что seed-инструкции по §8 явно «короткие» и bundle отдаёт их целиком. История версий через MCP — нет сценария (читается ETL-скриптами). Выбрано: minimum для §13.
 
 7. **Агентское редактирование инструкций.** intent.md §5 разрешает «редактировать инструкции вручную или через агента». В MVP пользователь правит инструкции **напрямую** — через `mongosh` или будущий HTTP-эндпойнт в `Throne.Api`. Агентский edit инструкций (через MCP) сознательно не вводится: dogfooding-сценариев §13, в которых это нужно, нет; цена — три лишних tool'а (`create_instruction`, `replace_instruction_text`, `insert_instruction_text_after_line`) с дублирующими тестами и лишним surface для агентских ошибок. Когда придёт сценарий «агент должен сам подкручивать инструкции по ходу dogfooding» — отдельный ADR.
 
@@ -39,12 +39,12 @@ MVP-набор — 9 tools, ровно столько, сколько нужно
 get_intent(intent_id) -> IntentWithText
 read_intent_text(intent_id, start_line? = 1, line_count?, max_chars?) -> TextSlice
 search_intent_text(intent_id, query, context_lines? = 3, limit? = 10) -> TextSearchResult[]
-get_instruction_bundle(mode) -> InstructionWithText[]
+get_instruction_bundle(mode, intent_id?) -> InstructionBundle
 ```
 
 `get_intent` всегда возвращает `text` — у агента нет MVP-сценария, где Intent читается без него. Ни `get_intent`, ни `read_intent_text` qa/review не возвращают (см. ADR-0002 §5: они хранятся в `intent_qa` / `intent_review` исключительно как training-only данные).
 
-`get_instruction_bundle(mode)` — единственный путь работы агента с инструкциями. Возвращаемые `InstructionWithText` несут `kind`, `current_version`, `text`. `instruction_id` агенту не нужен — он не редактирует инструкции.
+`get_instruction_bundle(mode, intent_id?)` — единственный путь работы агента с инструкциями. Возвращаемые `InstructionWithText` несут `kind`, `instruction_id`, `current_version`, `text`. `intent_id` опционален и нужен для audit-связки `InstructionBundleUse`, когда Intent уже известен: какой Intent работал под какими instruction-версиями.
 
 Запись Intent (5):
 
@@ -157,7 +157,7 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 
 ### 7. Bundle инструкций
 
-`get_instruction_bundle(mode)` — единственный поддерживаемый способ получить набор инструкций для режима. Маппинг режимов жёстко зашит на сервере:
+`get_instruction_bundle(mode, intent_id?)` — единственный поддерживаемый способ получить набор инструкций для режима. Маппинг режимов жёстко зашит на сервере:
 
 ```text
 mode = interview     -> [common, interview]
@@ -165,15 +165,15 @@ mode = light_work    -> [common, light_work]
 mode = new_project   -> [common, new_project]
 ```
 
-Сервер возвращает массив `InstructionWithText` (с `text`, `current_version`, `kind`). Если для нужного `kind` нет ни одной инструкции (что не должно случаться благодаря seed bootstrap — будущий ADR-0005) — сервер возвращает то, что есть, и явный flag `missing_kinds[]` в ответе, чтобы агент мог сообщить пользователю.
+Сервер возвращает `InstructionBundle { mode, intent_id?, instructions, missing_kinds }`, где `instructions[]` содержит `InstructionWithText` (`kind`, `instruction_id`, `current_version`, `text`). Если для нужного `kind` нет ни одной инструкции (что не должно случаться благодаря seed bootstrap — будущий ADR-0005) — сервер возвращает то, что есть, и явный flag `missing_kinds[]` в ответе, чтобы агент мог сообщить пользователю.
 
 Slash-команды на стороне агента маппятся на режимы:
 
 ```text
-/tinterview -> get_instruction_bundle(interview)
-/twork      -> get_instruction_bundle(light_work)
-/tnew       -> get_instruction_bundle(new_project)
-/treview    -> get_instruction_bundle(light_work)
+/tinterview -> get_instruction_bundle(interview, intent_id?)
+/twork      -> get_instruction_bundle(light_work, intent_id?)
+/tnew       -> get_instruction_bundle(new_project, intent_id?)
+/treview    -> get_instruction_bundle(light_work, intent_id?)
 ```
 
 Этот маппинг — часть agent instruction, а не серверного API. Сервер не парсит slash-команды.
@@ -181,7 +181,7 @@ Slash-команды на стороне агента маппятся на ре
 ### 8. Политика возврата
 
 - `get_intent(intent_id)` всегда возвращает `IntentWithText { intent_id, current_version, tags, text, created_at, updated_at }`. Без флагов, без вариаций.
-- `get_instruction_bundle(mode)` возвращает массив `InstructionWithText { kind, current_version, text }`. Агент использует это только для подмешивания инструкций в свой контекст; редактировать инструкции через MCP он не может (см. §1).
+- `get_instruction_bundle(mode, intent_id?)` возвращает `InstructionBundle` с `InstructionWithText { kind, instruction_id, current_version, text }`. Агент использует это только для подмешивания инструкций в свой контекст; редактировать инструкции через MCP он не может (см. §1).
 - Большие Intent'ы агент читает диапазонами через `read_intent_text`. Серверный лимит ответа — 64 000 символов (см. §2).
 - qa, review, история версий **не выставляются через MCP**. Они хранятся в `intent_qa` / `intent_review` / `text_versions` и доступны только ETL-скриптам напрямую из Mongo (см. ADR-0002 §5 и §4).
 - list-tools (`list_intents`, `list_instructions`, `list_*_versions`) в MVP не вводятся: ни один MVP-сценарий из intent.md §13 их не требует. Когда понадобятся — отдельный ADR.
@@ -196,7 +196,7 @@ Slash-команды на стороне агента маппятся на ре
 - Edit-tools одинаковы для всех режимов (interview / light_work / new_project) — у сервера нет режимного состояния, и agent instruction остаётся единственным местом, где этот режим живёт.
 - Минимальный агентский surface: агент видит только `text` Intent/Instruction, не нагружается обучающим материалом (qa/review/версии). Меньше шума в контексте → меньше токенов → меньше сбоев на длинных сессиях.
 - Убран `reason?` из edit-tools → меньше параметров и одно правило: «зачем» уже есть в `mcp_call_log` и `intent_qa`, второй раз нет смысла.
-- Серверный `get_instruction_bundle(mode)` снимает класс ошибок «агент забыл подмешать common».
+- Серверный `get_instruction_bundle(mode, intent_id?)` снимает класс ошибок «агент забыл подмешать common».
 - `read_*_text` с `truncated` + `next_start_line` даёт агенту надёжный способ читать большие документы без угадывания лимитов.
 - Жёсткий запрет `replace_by_line_range` / `full_replace` ставит барьер на класс операций, разрушающих контекст больших документов.
 

@@ -79,6 +79,31 @@ public class AuditingMcpServerToolTests
         result.IsError.Should().BeFalse();
     }
 
+    [Fact(DisplayName = "InvokeAsync пишет InstructionBundleUse projection для get_instruction_bundle")]
+    public async Task Invoke_summarizes_instruction_bundle_use()
+    {
+        var sink = Substitute.For<IMcpCallLogSink>();
+        var inner = new StubTool("get_instruction_bundle", _ => new ValueTask<CallToolResult>(InstructionBundleResult()));
+        var tool = NewWrapper(inner, sink);
+
+        var ctx = NewCallContext("get_instruction_bundle", new Dictionary<string, JsonElement>
+        {
+            ["intent_id"] = JsonDocument.Parse("\"intent_123\"").RootElement,
+            ["mode"] = JsonDocument.Parse("\"light_work\"").RootElement,
+        });
+
+        var result = await tool.InvokeAsync(ctx, CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        await sink.Received(1).WriteAsync(
+            Arg.Is<McpCallLogEntry>(e =>
+                e.ToolName == "get_instruction_bundle" &&
+                e.IntentId == "intent_123" &&
+                e.ModeHint == "light_work" &&
+                HasInstructionRefs(e.ResultSummary)),
+            Arg.Any<CancellationToken>());
+    }
+
     private static AuditingMcpServerTool NewWrapper(McpServerTool inner, IMcpCallLogSink sink) =>
         new(
             inner,
@@ -92,6 +117,7 @@ public class AuditingMcpServerToolTests
         IReadOnlyDictionary<string, JsonElement> arguments)
     {
         var server = Substitute.For<IMcpServer>();
+        server.SessionId.Returns("session-1");
         return new RequestContext<CallToolRequestParams>(server)
         {
             Params = new CallToolRequestParams
@@ -108,6 +134,54 @@ public class AuditingMcpServerToolTests
         StructuredContent = new JsonObject { ["ok"] = true },
         IsError = false,
     };
+
+    private static CallToolResult InstructionBundleResult() => new()
+    {
+        Content = [new TextContentBlock { Text = "{\"ok\":true}" }],
+        StructuredContent = new JsonObject
+        {
+            ["intent_id"] = "intent_123",
+            ["mode"] = "light_work",
+            ["instructions"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["kind"] = "common",
+                    ["instruction_id"] = "instr_common_1",
+                    ["current_version"] = 2,
+                    ["text"] = "full common text",
+                },
+                new JsonObject
+                {
+                    ["kind"] = "light_work",
+                    ["instruction_id"] = "instr_light_1",
+                    ["current_version"] = 4,
+                    ["text"] = "full light text",
+                },
+            },
+            ["missing_kinds"] = new JsonArray(),
+        },
+        IsError = false,
+    };
+
+    private static bool HasInstructionRefs(IReadOnlyDictionary<string, object?>? summary)
+    {
+        if (summary is null ||
+            !summary.TryGetValue("instructions", out var instructions) ||
+            instructions is not List<Dictionary<string, object?>> refs)
+        {
+            return false;
+        }
+
+        refs.Should().HaveCount(2);
+        refs[0].Should().ContainKey("kind").WhoseValue.Should().Be("common");
+        refs[0].Should().ContainKey("instruction_id").WhoseValue.Should().Be("instr_common_1");
+        refs[0].Should().ContainKey("version").WhoseValue.Should().Be(2);
+        refs[0].Should().NotContainKey("text");
+        refs[1].Should().ContainKey("kind").WhoseValue.Should().Be("light_work");
+        refs[1].Should().ContainKey("version").WhoseValue.Should().Be(4);
+        return true;
+    }
 
     private sealed class StubTool(string name, Func<RequestContext<CallToolRequestParams>, ValueTask<CallToolResult>> handler) : McpServerTool
     {

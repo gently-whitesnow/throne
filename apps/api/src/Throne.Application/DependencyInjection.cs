@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Application.Instructions;
 using Throne.Application.Intents;
 
 namespace Throne.Application;
@@ -8,11 +9,13 @@ public static class DependencyInjection
     public static IServiceCollection AddThroneApplication(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
-        services.AddScoped<CreateIntentHandler>();
-        services.AddScoped<GetIntentHandler>();
-        services.AddScoped<ReadIntentTextHandler>();
-        services.AddScoped<ReplaceIntentTextHandler>();
-        services.AddScoped<ListIntentsHandler>();
+        services.AddSingleton<CreateIntentHandler>();
+        services.AddSingleton<GetIntentHandler>();
+        services.AddSingleton<ReadIntentTextHandler>();
+        services.AddSingleton<ReplaceIntentTextHandler>();
+        services.AddSingleton<ListIntentsHandler>();
+        services.AddSingleton<GetInstructionBundleHandler>();
+        services.AddSingleton<EnsureSeedInstructionsHandler>();
         return services;
     }
 }

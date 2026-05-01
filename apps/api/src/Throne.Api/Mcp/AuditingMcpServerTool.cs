@@ -25,6 +25,7 @@ internal sealed partial class AuditingMcpServerTool(
         var arguments = NormalizeArguments(request.Params?.Arguments);
         var intentId = ExtractIntentId(request.Params?.Arguments);
         var modeHint = ExtractModeHint(toolName, request.Params?.Arguments);
+        var sessionId = ExtractSessionId(request);
         var startedAt = clock.GetUtcNow();
         var stopwatch = Stopwatch.StartNew();
 
@@ -33,12 +34,12 @@ internal sealed partial class AuditingMcpServerTool(
             var result = await inner.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
             stopwatch.Stop();
 
-            var summary = SummarizeResult(result);
+            var summary = SummarizeResult(toolName, result);
             var outcome = result.IsError == true ? McpCallOutcome.Error : McpCallOutcome.Success;
             var errorCode = outcome == McpCallOutcome.Error ? TryReadErrorCode(result) : null;
 
             await TryWriteAuditAsync(
-                startedAt, toolName, arguments, intentId, modeHint,
+                startedAt, sessionId, toolName, arguments, intentId, modeHint,
                 outcome, errorCode, summary, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -48,7 +49,7 @@ internal sealed partial class AuditingMcpServerTool(
         {
             stopwatch.Stop();
             await TryWriteAuditAsync(
-                startedAt, toolName, arguments, intentId, modeHint,
+                startedAt, sessionId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, ex.Code, null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
                 .ConfigureAwait(false);
             throw;
@@ -57,7 +58,7 @@ internal sealed partial class AuditingMcpServerTool(
         {
             stopwatch.Stop();
             await TryWriteAuditAsync(
-                startedAt, toolName, arguments, intentId, modeHint,
+                startedAt, sessionId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, "internal_error", null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
                 .ConfigureAwait(false);
             LogToolFailure(logger, toolName, ex);
@@ -67,6 +68,7 @@ internal sealed partial class AuditingMcpServerTool(
 
     private async Task TryWriteAuditAsync(
         DateTimeOffset createdAt,
+        string? sessionId,
         string toolName,
         Dictionary<string, object?> arguments,
         string? intentId,
@@ -81,7 +83,7 @@ internal sealed partial class AuditingMcpServerTool(
         {
             var entry = new McpCallLogEntry(
                 createdAt,
-                SessionId: null,
+                sessionId,
                 toolName,
                 arguments,
                 intentId,
@@ -142,13 +144,21 @@ internal sealed partial class AuditingMcpServerTool(
             : null;
     }
 
+    private static string? ExtractSessionId(RequestContext<CallToolRequestParams> request) =>
+        request.Server.SessionId;
+
     private static readonly JsonSerializerOptions SummaryJsonOptions = new(JsonSerializerDefaults.Web);
 
-    private static Dictionary<string, object?>? SummarizeResult(CallToolResult result)
+    private static Dictionary<string, object?>? SummarizeResult(string toolName, CallToolResult result)
     {
         if (result.StructuredContent is null)
         {
             return null;
+        }
+
+        if (toolName == "get_instruction_bundle")
+        {
+            return SummarizeInstructionBundleResult(result);
         }
 
         try
@@ -161,6 +171,65 @@ internal sealed partial class AuditingMcpServerTool(
         {
             return null;
         }
+    }
+
+    private static Dictionary<string, object?>? SummarizeInstructionBundleResult(CallToolResult result)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(result.StructuredContent!.ToJsonString());
+            var root = doc.RootElement;
+            var instructions = new List<Dictionary<string, object?>>();
+
+            if (root.TryGetProperty("instructions", out var items) && items.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in items.EnumerateArray())
+                {
+                    instructions.Add(new Dictionary<string, object?>
+                    {
+                        ["kind"] = ReadString(item, "kind"),
+                        ["instruction_id"] = ReadString(item, "instruction_id"),
+                        ["version"] = ReadInt(item, "current_version") ?? ReadInt(item, "version"),
+                    });
+                }
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["intent_id"] = ReadString(root, "intent_id"),
+                ["mode"] = ReadString(root, "mode"),
+                ["instructions"] = instructions,
+                ["missing_kinds"] = ReadStringArray(root, "missing_kinds"),
+            };
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? ReadString(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static int? ReadInt(JsonElement element, string propertyName) =>
+        element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.Number &&
+        value.TryGetInt32(out var result)
+            ? result
+            : null;
+
+    private static string[] ReadStringArray(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return value.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => item.GetString()!)
+            .ToArray();
     }
 
     private static string? TryReadErrorCode(CallToolResult result)

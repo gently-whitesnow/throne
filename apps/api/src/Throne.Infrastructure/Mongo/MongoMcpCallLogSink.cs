@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Throne.Application.Ports;
@@ -38,7 +39,51 @@ internal sealed class MongoMcpCallLogSink(IMongoDatabase database) : IMcpCallLog
         var doc = new BsonDocument();
         foreach (var (key, value) in source)
         {
-            doc[key] = value is null ? BsonNull.Value : BsonValue.Create(value);
+            doc[key] = ToBsonValue(value);
+        }
+
+        return doc;
+    }
+
+    private static BsonValue ToBsonValue(object? value) => value switch
+    {
+        null => BsonNull.Value,
+        JsonElement element => JsonElementToBson(element),
+        IReadOnlyDictionary<string, object?> dict => ToBson(dict),
+        IDictionary<string, object?> dict => ToBsonDictionary(dict),
+        IEnumerable<object?> list when value is not string => new BsonArray(list.Select(ToBsonValue)),
+        _ => BsonValue.Create(value),
+    };
+
+    private static BsonDocument ToBsonDictionary(IDictionary<string, object?> source)
+    {
+        var doc = new BsonDocument();
+        foreach (var (key, value) in source)
+        {
+            doc[key] = ToBsonValue(value);
+        }
+
+        return doc;
+    }
+
+    private static BsonValue JsonElementToBson(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Object => JsonObjectToBson(element),
+        JsonValueKind.Array => new BsonArray(element.EnumerateArray().Select(JsonElementToBson)),
+        JsonValueKind.String => element.GetString(),
+        JsonValueKind.Number => element.TryGetInt64(out var i) ? new BsonInt64(i) : new BsonDouble(element.GetDouble()),
+        JsonValueKind.True => BsonBoolean.True,
+        JsonValueKind.False => BsonBoolean.False,
+        JsonValueKind.Null => BsonNull.Value,
+        _ => BsonNull.Value,
+    };
+
+    private static BsonDocument JsonObjectToBson(JsonElement element)
+    {
+        var doc = new BsonDocument();
+        foreach (var property in element.EnumerateObject())
+        {
+            doc[property.Name] = JsonElementToBson(property.Value);
         }
 
         return doc;

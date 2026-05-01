@@ -52,6 +52,22 @@ Frontend в `apps/web` строится по FSD 2.0. Структуру и impo
 
 ## Запуск
 
+### Docker Compose
+
+Только MongoDB (replica set `rs0`, порт `27017`):
+
+```bash
+docker compose --profile db up -d
+```
+
+База + API (`http://localhost:5008`) + веб (`http://localhost:8080`):
+
+```bash
+docker compose --profile full up --build
+```
+
+Локально без Docker — см. ниже.
+
 ```bash
 cd apps/api
 dotnet restore

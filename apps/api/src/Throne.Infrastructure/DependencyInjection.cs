@@ -29,8 +29,10 @@ public static class DependencyInjection
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
+        services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
+        services.AddHostedService<InstructionSeedHostedService>();
 
         return services;
     }
@@ -46,8 +48,10 @@ public static class DependencyInjection
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
+        services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
+        services.AddHostedService<InstructionSeedHostedService>();
         return services;
     }
 }

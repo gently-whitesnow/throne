@@ -6,7 +6,12 @@ namespace Throne.Infrastructure.Mongo;
 
 internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedService
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken) =>
+        ExecuteWhenPrimaryAsync(CreateIndexesAsync, cancellationToken);
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private async Task CreateIndexesAsync(CancellationToken cancellationToken)
     {
         var textVersions = database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
         await textVersions.Indexes.CreateOneAsync(
@@ -43,5 +48,22 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
             cancellationToken).ConfigureAwait(false);
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    private static async Task ExecuteWhenPrimaryAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken)
+    {
+        const int attempts = 10;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await operation(cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            catch (MongoNotPrimaryException) when (attempt < attempts)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
 }

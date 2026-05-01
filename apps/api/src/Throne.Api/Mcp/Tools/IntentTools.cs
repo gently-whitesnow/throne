@@ -2,6 +2,7 @@
 #pragma warning disable CA1707
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 
@@ -12,7 +13,8 @@ public sealed class IntentTools(
     CreateIntentHandler create,
     GetIntentHandler get,
     ReadIntentTextHandler read,
-    ReplaceIntentTextHandler replace)
+    ReplaceIntentTextHandler replace,
+    GetInstructionBundleHandler getInstructionBundle)
 {
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
     [Description("Create a new Intent and seed v1 of its text. Returns the canonical Intent (id, current_version, text, tags, timestamps).")]
@@ -48,4 +50,12 @@ public sealed class IntentTools(
         [Description("Replacement text. May be empty (deletes the matched fragment).")] string new_text,
         CancellationToken cancellationToken) =>
         replace.HandleAsync(new ReplaceIntentTextCommand(intent_id, expected_version, old_text, new_text), cancellationToken);
+
+    [McpServerTool(Name = "get_instruction_bundle", ReadOnly = true, UseStructuredContent = true)]
+    [Description("Read the instruction bundle for a work mode. Pass intent_id when an Intent is already known so audit can link instruction versions to it.")]
+    public Task<InstructionBundle> GetInstructionBundle(
+        [Description("Mode: interview, light_work, or new_project. /treview uses light_work.")] string mode,
+        [Description("Optional Intent identifier this bundle will be used for. Omit before the Intent is created.")] string? intent_id,
+        CancellationToken cancellationToken) =>
+        getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
 }

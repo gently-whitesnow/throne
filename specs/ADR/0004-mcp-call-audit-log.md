@@ -51,6 +51,7 @@ McpCallLog
 
 - `arguments` пишутся как есть. Solo-first MVP не имеет секретов в `Intent.text` или `Instruction.text` — те же данные уже хранятся в canonical-документах. PII-маскирование вернётся при появлении multi-user (см. Out of scope).
 - `result_summary` — **не** полный response: для `read_*_text` и `search_*_text` это раздуло бы коллекцию суммарным размером ответов, а для дообучения нужен только сигнал «что сервер вернул на верхнем уровне». Полный текст исторической версии уже воспроизводим через replay цепочки delta из `text_versions` (см. ADR-0002 §4).
+- Для `get_instruction_bundle` `result_summary` хранит логическую проекцию `InstructionBundleUse`: `mode`, опциональный `intent_id`, `instructions[]` как `{ kind, instruction_id, version }`, `missing_kinds[]`. Отдельная коллекция не нужна в MVP: факта в `mcp_call_log` достаточно, чтобы связать review/qa/outcome с версиями инструкций, активными в конкретной сессии.
 - `error_code` берётся из единого реестра `Throne.Application.ErrorCodes`, того же, что использует Problem Details writer — без расхождения.
 
 ### 3. Где живёт логирующий код
