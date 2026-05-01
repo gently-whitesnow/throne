@@ -3,7 +3,7 @@
 # Usage:
 #   scripts/quality/verify-backend.sh
 #   scripts/quality/verify-backend.sh --fast
-#   scripts/quality/verify-backend.sh --only format|build|test|audit
+#   scripts/quality/verify-backend.sh --only contracts|format|build|test|audit
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -43,6 +43,7 @@ run_gate() {
   echo "✓ backend gate passed: $name"
 }
 
+run_gate "contracts" "scripts/quality/openapi-verify-generated-clean.sh"
 run_gate "format" "scripts/quality/dotnet-format-verify.sh"
 run_gate "build" "scripts/quality/dotnet-build-warnaserror.sh"
 run_gate "test" "scripts/quality/dotnet-test.sh"

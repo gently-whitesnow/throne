@@ -11,6 +11,7 @@ public static class DependencyInjection
         services.AddScoped<CreateIntentHandler>();
         services.AddScoped<GetIntentHandler>();
         services.AddScoped<ReadIntentTextHandler>();
+        services.AddScoped<ListIntentsHandler>();
         return services;
     }
 }
