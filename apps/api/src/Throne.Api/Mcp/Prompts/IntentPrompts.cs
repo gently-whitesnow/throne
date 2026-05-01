@@ -11,29 +11,29 @@ public sealed class IntentPrompts
     [McpServerPrompt(Name = PromptNames.TInterview, Title = "Interview an Intent")]
     [Description("Slash command /tinterview: create or continue an Intent interview, load get_instruction_bundle(interview, ...), ask one question at a time, save qa, and refine Intent.text.")]
     public string TInterview(
-        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id,
-        [Description("Optional raw user intent text from the slash command. Used to create a new Intent when no active Intent exists.")] string? text)
+        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id = null,
+        [Description("Optional raw user intent text from the slash command. Used to create a new Intent when no active Intent exists.")] string? text = null)
         => Render(PromptNames.TInterview, ModeMap[PromptNames.TInterview], InterviewPlaybook, intent_id, text);
 
     [McpServerPrompt(Name = PromptNames.TWork, Title = "Light work on an Intent")]
     [Description("Slash command /twork: resolve an Intent, load get_instruction_bundle(light_work, ...), and perform a small task in the current working context.")]
     public string TWork(
-        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id,
-        [Description("Optional raw task text. Used to create a new Intent when no active Intent exists.")] string? text)
+        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id = null,
+        [Description("Optional raw task text. Used to create a new Intent when no active Intent exists.")] string? text = null)
         => Render(PromptNames.TWork, ModeMap[PromptNames.TWork], WorkPlaybook, intent_id, text);
 
     [McpServerPrompt(Name = PromptNames.TNew, Title = "New project work on an Intent")]
     [Description("Slash command /tnew: resolve an Intent, load get_instruction_bundle(new_project, ...), and create or evolve a minimal project skeleton.")]
     public string TNew(
-        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id,
-        [Description("Optional raw project intent text. Used to create a new Intent when no active Intent exists.")] string? text)
+        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id = null,
+        [Description("Optional raw project intent text. Used to create a new Intent when no active Intent exists.")] string? text = null)
         => Render(PromptNames.TNew, ModeMap[PromptNames.TNew], NewProjectPlaybook, intent_id, text);
 
     [McpServerPrompt(Name = PromptNames.TReview, Title = "Review and continue work")]
     [Description("Slash command /treview: save a review note for an Intent, optionally refine Intent.text, load light_work instructions, and continue the fix.")]
     public string TReview(
-        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id,
-        [Description("Review note from the user. If no active Intent exists, derive a repair Intent from this text.")] string? text)
+        [Description("Optional existing Intent id. When supplied, make it the active Intent for this session.")] string? intent_id = null,
+        [Description("Review note from the user. If no active Intent exists, derive a repair Intent from this text.")] string? text = null)
         => Render(PromptNames.TReview, ModeMap[PromptNames.TReview], ReviewPlaybook, intent_id, text);
 
     public static IReadOnlyDictionary<string, string> ModeMap { get; } = new Dictionary<string, string>(StringComparer.Ordinal)

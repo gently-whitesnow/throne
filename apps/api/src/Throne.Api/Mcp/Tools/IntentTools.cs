@@ -25,8 +25,8 @@ public sealed class IntentTools(
     [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one.")]
     public Task<Intent> CreateIntent(
         [Description("Initial canonical Intent.text. Must be non-empty and contain the user's actual intent, not a summary of tool usage.")] string text,
-        [Description("Optional search/grouping tags. Prefer the current repo/project name first when known; pass an empty array when no tag is reliable.")] IReadOnlyList<string>? tags,
-        CancellationToken cancellationToken) =>
+        [Description("Optional search/grouping tags. Prefer the current repo/project name first when known; pass an empty array when no tag is reliable.")] IReadOnlyList<string>? tags = null,
+        CancellationToken cancellationToken = default) =>
         create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
 
     [McpServerTool(Name = "get_intent", ReadOnly = true, UseStructuredContent = true)]
@@ -100,7 +100,7 @@ public sealed class IntentTools(
     [Description("Read the complete instruction bundle for a runtime mode. Call before interview/work and pass intent_id once known for audit linkage.")]
     public Task<InstructionBundle> GetInstructionBundle(
         [Description("Runtime mode: interview, light_work, or new_project. Use light_work for /treview continuation.")] string mode,
-        [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id,
-        CancellationToken cancellationToken) =>
+        [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
+        CancellationToken cancellationToken = default) =>
         getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
 }
