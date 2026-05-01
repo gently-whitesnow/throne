@@ -47,6 +47,23 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions/{id}", Name = "getInstruction")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<InstructionDetailDto>> GetInstruction([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
+        /// <summary>
+        /// Replace a unique substring of Instruction.text (user-driven).
+        /// </summary>
+        /// <remarks>
+        /// Instruction kinds are seeded by the business and cannot be created or deleted via API. Only the text body is editable. Optimistic concurrency via expected_version. ChangedBy=user.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions/{id}/replace-text", Name = "replaceInstructionText")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<InstructionDetailDto>> ReplaceInstructionText([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] ReplaceTextRequest body);
+
+        /// <summary>
+        /// List the text-version history of an Instruction.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions/{id}/versions", Name = "listInstructionVersions")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListInstructionVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
     }
 
     

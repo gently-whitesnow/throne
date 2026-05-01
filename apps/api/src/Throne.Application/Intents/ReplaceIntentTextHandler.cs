@@ -1,6 +1,7 @@
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.TextVersions;
 
 namespace Throne.Application.Intents;
 
@@ -8,7 +9,8 @@ public sealed record ReplaceIntentTextCommand(
     string IntentId,
     int ExpectedVersion,
     string OldText,
-    string NewText);
+    string NewText,
+    TextVersionAuthor Author);
 
 public sealed class ReplaceIntentTextHandler(
     IIntentRepository repository,
@@ -32,7 +34,7 @@ public sealed class ReplaceIntentTextHandler(
         var now = clock.GetUtcNow();
 
         var outcome = await unitOfWork.ExecuteAsync(
-            inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, now, inner),
+            inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, command.Author, now, inner),
             ct).ConfigureAwait(false);
 
         return outcome switch

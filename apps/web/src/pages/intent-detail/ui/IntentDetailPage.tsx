@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import type { IntentDetail } from "@/entities/intent";
+import { TextVersionList } from "@/entities/text-version";
+import { DeleteIntentButton } from "@/features/delete-intent";
+import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { Button } from "@/shared/ui";
 
 type LoadState =
   | { kind: "loading" }
@@ -11,7 +15,10 @@ type LoadState =
 
 export function IntentDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [editing, setEditing] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -60,8 +67,48 @@ export function IntentDetailPage() {
                 ? ` · #${state.intent.tags.join(" #")}`
                 : null}
             </p>
+            <div className="detail__actions">
+              {!editing && (
+                <Button
+                  onClick={() => {
+                    setEditing(true);
+                  }}
+                >
+                  Редактировать
+                </Button>
+              )}
+              <DeleteIntentButton
+                intentId={state.intent.id}
+                onDeleted={() => {
+                  void navigate("/");
+                }}
+              />
+            </div>
           </header>
-          <pre className="detail__text">{state.intent.text}</pre>
+
+          {editing ? (
+            <ReplaceIntentTextForm
+              intent={state.intent}
+              onSaved={(next) => {
+                setState({ kind: "ready", intent: next });
+                setEditing(false);
+                setHistoryKey((k) => k + 1);
+              }}
+              onCancel={() => {
+                setEditing(false);
+              }}
+            />
+          ) : (
+            <pre className="detail__text">{state.intent.text}</pre>
+          )}
+
+          <section className="detail__history">
+            <h2 className="detail__history-title">История</h2>
+            <TextVersionList
+              endpoint={intentsEndpoints.listIntentVersions(state.intent.id)}
+              reloadKey={historyKey}
+            />
+          </section>
         </>
       )}
     </main>

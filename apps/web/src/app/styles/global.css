@@ -281,3 +281,119 @@ select {
     flex-direction: column;
   }
 }
+
+.detail__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.detail__history {
+  margin-top: 32px;
+}
+
+.detail__history-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.edit-text-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-text-form__textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgb(224, 226, 232);
+  font-family: "Noto Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.edit-text-form__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.edit-text-form__error {
+  color: #b00020;
+  margin: 0;
+}
+
+.create-intent-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: rgb(224, 226, 232) 0 0 0 1px;
+}
+
+.create-intent-form__textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgb(224, 226, 232);
+  font-family: "Noto Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  resize: vertical;
+}
+
+.create-intent-form__tags {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgb(224, 226, 232);
+}
+
+.text-version-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.text-version-list__item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: rgb(224, 226, 232) 0 0 0 1px;
+}
+
+.text-version-list__header {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.text-version-list__diff {
+  margin: 0;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-family: "Noto Sans Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.text-version-list__diff del {
+  background: #fee2e2;
+  text-decoration: line-through;
+}
+
+.text-version-list__diff ins {
+  background: #dcfce7;
+  text-decoration: none;
+}

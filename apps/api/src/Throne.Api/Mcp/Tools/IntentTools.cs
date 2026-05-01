@@ -5,6 +5,7 @@ using ModelContextProtocol.Server;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
+using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Mcp.Tools;
 
@@ -22,7 +23,7 @@ public sealed class IntentTools(
         [Description("Initial text of the Intent. Must not be empty.")] string text,
         [Description("Optional tags for filtering Intents.")] IReadOnlyList<string>? tags,
         CancellationToken cancellationToken) =>
-        create.HandleAsync(new CreateIntentCommand(text, tags), cancellationToken);
+        create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
 
     [McpServerTool(Name = "get_intent", ReadOnly = true, UseStructuredContent = true)]
     [Description("Read an Intent by id. Always returns the full text along with current_version and tags.")]
@@ -49,7 +50,7 @@ public sealed class IntentTools(
         [Description("Exact byte-for-byte substring to replace. Must occur exactly once in Intent.text.")] string old_text,
         [Description("Replacement text. May be empty (deletes the matched fragment).")] string new_text,
         CancellationToken cancellationToken) =>
-        replace.HandleAsync(new ReplaceIntentTextCommand(intent_id, expected_version, old_text, new_text), cancellationToken);
+        replace.HandleAsync(new ReplaceIntentTextCommand(intent_id, expected_version, old_text, new_text, TextVersionAuthor.Agent), cancellationToken);
 
     [McpServerTool(Name = "get_instruction_bundle", ReadOnly = true, UseStructuredContent = true)]
     [Description("Read the instruction bundle for a work mode. Pass intent_id when an Intent is already known so audit can link instruction versions to it.")]

@@ -29,3 +29,57 @@ components:
             type: array
             items:
               type: string
+    ReplaceTextRequest:
+      type: object
+      required:
+        - expected_version
+        - old_text
+        - new_text
+      properties:
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Caller's expected current_version. Server rejects with 409 if it differs.
+        old_text:
+          type: string
+          minLength: 1
+          description: Exact byte-for-byte substring to replace. Must occur exactly once.
+        new_text:
+          type: string
+          description: Replacement text. May be empty (deletes the matched fragment).
+    TextVersionDto:
+      type: object
+      required:
+        - version
+        - kind
+        - changed_at
+        - changed_by
+      properties:
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        kind:
+          type: string
+          enum: [create, replace, insert]
+        changed_at:
+          type: string
+          format: date-time
+        changed_by:
+          type: string
+          enum: [user, agent, system]
+        snapshot:
+          type: string
+          description: Full text snapshot. Present for kind=create (v1).
+        old_text:
+          type: string
+          description: Replaced fragment. Present for kind=replace.
+        new_text:
+          type: string
+          description: New fragment. Present for kind=replace.
+        after_line:
+          type: integer
+          format: int32
+        insert_text:
+          type: string

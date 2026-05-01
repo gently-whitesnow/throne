@@ -21,6 +21,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/IntentListItemDto'
+    post:
+      operationId: createIntent
+      tags: [Intents]
+      summary: Create a new Intent (user-driven).
+      description: Creates an Intent and seeds v1 of its text. ChangedBy=user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntentRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
   /api/v1/intents/{id}:
     get:
       operationId: getIntent
@@ -47,8 +65,112 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    delete:
+      operationId: deleteIntent
+      tags: [Intents]
+      summary: Delete an Intent and cascade its text_versions.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/replace-text:
+    post:
+      operationId: replaceIntentText
+      tags: [Intents]
+      summary: Replace a unique substring of Intent.text (user-driven).
+      description: >
+        User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version.
+        ChangedBy=user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../shared.yaml#/components/schemas/ReplaceTextRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Match not found or ambiguous
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/versions:
+    get:
+      operationId: listIntentVersions
+      tags: [Intents]
+      summary: List the text-version history of an Intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../shared.yaml#/components/schemas/TextVersionDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
+    CreateIntentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          description: Initial text of the Intent.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Optional tags for filtering.
     IntentListItemDto:
       type: object
       required:

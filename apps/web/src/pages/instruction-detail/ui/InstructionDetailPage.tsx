@@ -5,7 +5,10 @@ import {
   instructionKindLabel,
   type InstructionDetail
 } from "@/entities/instruction";
+import { TextVersionList } from "@/entities/text-version";
+import { ReplaceInstructionTextForm } from "@/features/replace-instruction-text";
 import { HttpError, httpGet, instructionsEndpoints } from "@/shared/api";
+import { Button } from "@/shared/ui";
 
 type LoadState =
   | { kind: "loading" }
@@ -15,6 +18,8 @@ type LoadState =
 export function InstructionDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [editing, setEditing] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -65,8 +70,44 @@ export function InstructionDetailPage() {
             <p className="home-page__lead">
               {state.instruction.kind} · v{state.instruction.current_version}
             </p>
+            <div className="detail__actions">
+              {!editing && (
+                <Button
+                  onClick={() => {
+                    setEditing(true);
+                  }}
+                >
+                  Редактировать
+                </Button>
+              )}
+            </div>
           </header>
-          <pre className="detail__text">{state.instruction.text}</pre>
+
+          {editing ? (
+            <ReplaceInstructionTextForm
+              instruction={state.instruction}
+              onSaved={(next) => {
+                setState({ kind: "ready", instruction: next });
+                setEditing(false);
+                setHistoryKey((k) => k + 1);
+              }}
+              onCancel={() => {
+                setEditing(false);
+              }}
+            />
+          ) : (
+            <pre className="detail__text">{state.instruction.text}</pre>
+          )}
+
+          <section className="detail__history">
+            <h2 className="detail__history-title">История</h2>
+            <TextVersionList
+              endpoint={instructionsEndpoints.listInstructionVersions(
+                state.instruction.id
+              )}
+              reloadKey={historyKey}
+            />
+          </section>
         </>
       )}
     </main>

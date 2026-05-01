@@ -82,6 +82,74 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         return doc is null ? null : MapToDomain(doc);
     }
 
+    public async Task<ReplaceInstructionTextOutcome> ReplaceTextAsync(
+        InstructionId id,
+        int expectedVersion,
+        string oldText,
+        string newText,
+        TextVersionAuthor changedBy,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(oldText);
+        ArgumentNullException.ThrowIfNull(newText);
+
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoInstructionRepository.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var document = await _instructions.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (document is null)
+        {
+            return new ReplaceInstructionTextOutcome.NotFound();
+        }
+
+        if (document.CurrentVersion != expectedVersion)
+        {
+            return new ReplaceInstructionTextOutcome.VersionConflict(document.CurrentVersion);
+        }
+
+        var instruction = MapToDomain(document);
+        var newVersionId = Guid.NewGuid().ToString("N");
+        var domainResult = instruction.ReplaceText(oldText, newText, newVersionId, now, changedBy);
+
+        switch (domainResult)
+        {
+            case ReplaceInstructionTextResult.MatchNotFound matchNotFound:
+                return new ReplaceInstructionTextOutcome.MatchNotFound(matchNotFound.QueryPreview);
+
+            case ReplaceInstructionTextResult.MatchAmbiguous matchAmbiguous:
+                return new ReplaceInstructionTextOutcome.MatchAmbiguous(matchAmbiguous.MatchesCount, matchAmbiguous.MatchLines);
+
+            case ReplaceInstructionTextResult.Replaced replaced:
+                {
+                    var update = Builders<InstructionDocument>.Update
+                        .Set(d => d.Text, instruction.Text)
+                        .Set(d => d.CurrentVersion, instruction.CurrentVersion)
+                        .Set(d => d.UpdatedAt, instruction.UpdatedAt.UtcDateTime);
+
+                    var updateResult = await _instructions.UpdateOneAsync(
+                        session,
+                        d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+                        update,
+                        options: null,
+                        ct).ConfigureAwait(false);
+
+                    if (updateResult.ModifiedCount == 0)
+                    {
+                        var fresh = await _instructions.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                        return new ReplaceInstructionTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
+                    }
+
+                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct).ConfigureAwait(false);
+                    return new ReplaceInstructionTextOutcome.Replaced(instruction);
+                }
+
+            default:
+                throw new InvalidOperationException($"Unhandled domain result: {domainResult.GetType().Name}");
+        }
+    }
+
     private static InstructionDocument MapInstruction(Instruction instruction) => new()
     {
         Id = instruction.Id.Value,

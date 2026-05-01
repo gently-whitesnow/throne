@@ -152,6 +152,135 @@ namespace Throne.Instructions.Contracts.Generated
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReplaceTextRequest
+    {
+
+        /// <summary>
+        /// Caller's expected current_version. Server rejects with 409 if it differs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Expected_version { get; set; }
+
+        /// <summary>
+        /// Exact byte-for-byte substring to replace. Must occur exactly once.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("old_text")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Old_text { get; set; }
+
+        /// <summary>
+        /// Replacement text. May be empty (deletes the matched fragment).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("new_text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string New_text { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TextVersionDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Version { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TextVersionDtoKind>))]
+        public TextVersionDtoKind Kind { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("changed_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Changed_at { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("changed_by")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TextVersionDtoChanged_by>))]
+        public TextVersionDtoChanged_by Changed_by { get; set; }
+
+        /// <summary>
+        /// Full text snapshot. Present for kind=create (v1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("snapshot")]
+        public string Snapshot { get; set; }
+
+        /// <summary>
+        /// Replaced fragment. Present for kind=replace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("old_text")]
+        public string Old_text { get; set; }
+
+        /// <summary>
+        /// New fragment. Present for kind=replace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("new_text")]
+        public string New_text { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("after_line")]
+        public int After_line { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("insert_text")]
+        public string Insert_text { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TextVersionDtoKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"create")]
+        [System.Runtime.Serialization.EnumMember(Value = @"create")]
+        Create = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"replace")]
+        [System.Runtime.Serialization.EnumMember(Value = @"replace")]
+        Replace = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"insert")]
+        [System.Runtime.Serialization.EnumMember(Value = @"insert")]
+        Insert = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TextVersionDtoChanged_by
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"user")]
+        [System.Runtime.Serialization.EnumMember(Value = @"user")]
+        User = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"agent")]
+        [System.Runtime.Serialization.EnumMember(Value = @"agent")]
+        Agent = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"system")]
+        [System.Runtime.Serialization.EnumMember(Value = @"system")]
+        System = 2,
+
+    }
+
 
 }
 

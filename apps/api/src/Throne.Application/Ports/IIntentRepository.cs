@@ -14,8 +14,11 @@ public interface IIntentRepository
         int expectedVersion,
         string oldText,
         string newText,
+        TextVersionAuthor changedBy,
         DateTimeOffset now,
         CancellationToken ct);
 
     Task<IReadOnlyList<Intent>> ListAsync(CancellationToken ct);
+
+    Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct);
 }

@@ -6,4 +6,6 @@
 export const instructionsEndpoints = {
   listInstructions: () => "/instructions",
   getInstruction: (id: string) => `/instructions/${id}`,
+  replaceInstructionText: (id: string) => `/instructions/${id}/replace-text`,
+  listInstructionVersions: (id: string) => `/instructions/${id}/versions`,
 } as const;

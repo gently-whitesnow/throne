@@ -19,7 +19,7 @@ public class CreateIntentHandlerTests
         var clock = new FakeTimeProvider(Now);
         var handler = new CreateIntentHandler(repo, uow, clock);
 
-        var intent = await handler.HandleAsync(new CreateIntentCommand("hello world", ["throne"]), CancellationToken.None);
+        var intent = await handler.HandleAsync(new CreateIntentCommand("hello world", ["throne"], TextVersionAuthor.Agent), CancellationToken.None);
 
         intent.Text.Should().Be("hello world");
         intent.CurrentVersion.Should().Be(1);

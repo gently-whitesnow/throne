@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
+using Throne.Application.TextVersions;
 
 namespace Throne.Application;
 
@@ -13,11 +14,15 @@ public static class DependencyInjection
         services.AddSingleton<GetIntentHandler>();
         services.AddSingleton<ReadIntentTextHandler>();
         services.AddSingleton<ReplaceIntentTextHandler>();
+        services.AddSingleton<DeleteIntentHandler>();
         services.AddSingleton<ListIntentsHandler>();
+        services.AddSingleton<ListIntentVersionsHandler>();
         services.AddSingleton<GetInstructionBundleHandler>();
         services.AddSingleton<EnsureSeedInstructionsHandler>();
         services.AddSingleton<ListInstructionsHandler>();
         services.AddSingleton<GetInstructionHandler>();
+        services.AddSingleton<ReplaceInstructionTextHandler>();
+        services.AddSingleton<ListInstructionVersionsHandler>();
         return services;
     }
 }

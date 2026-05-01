@@ -40,6 +40,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentListItemDto>>> ListIntents();
 
         /// <summary>
+        /// Create a new Intent (user-driven).
+        /// </summary>
+        /// <remarks>
+        /// Creates an Intent and seeds v1 of its text. ChangedBy=user.
+        /// </remarks>
+        /// <returns>Created</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents", Name = "createIntent")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> CreateIntent([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CreateIntentRequest body);
+
+        /// <summary>
         /// Get a single intent (full text).
         /// </summary>
         /// <remarks>
@@ -49,6 +59,30 @@ namespace Throne.Api.Generated
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}", Name = "getIntent")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> GetIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
+        /// Delete an Intent and cascade its text_versions.
+        /// </summary>
+        /// <returns>Deleted</returns>
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}", Name = "deleteIntent")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
+        /// Replace a unique substring of Intent.text (user-driven).
+        /// </summary>
+        /// <remarks>
+        /// User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version. ChangedBy=user.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/replace-text", Name = "replaceIntentText")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> ReplaceIntentText([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] ReplaceTextRequest body);
+
+        /// <summary>
+        /// List the text-version history of an Intent.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/versions", Name = "listIntentVersions")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListIntentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
     }
 

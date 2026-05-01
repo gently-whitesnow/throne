@@ -4,7 +4,10 @@ using Throne.Domain.TextVersions;
 
 namespace Throne.Application.Intents;
 
-public sealed record CreateIntentCommand(string Text, IReadOnlyList<string>? Tags);
+public sealed record CreateIntentCommand(
+    string Text,
+    IReadOnlyList<string>? Tags,
+    TextVersionAuthor Author);
 
 public sealed class CreateIntentHandler(
     IIntentRepository repository,
@@ -24,7 +27,7 @@ public sealed class CreateIntentHandler(
             ownerId: id.Value,
             snapshot: intent.Text,
             changedAt: now,
-            changedBy: TextVersionAuthor.Agent);
+            changedBy: command.Author);
 
         await unitOfWork.ExecuteAsync(
             inner => repository.CreateAsync(intent, initialVersion, inner),

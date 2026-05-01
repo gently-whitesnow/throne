@@ -32,6 +32,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         int expectedVersion,
         string oldText,
         string newText,
+        TextVersionAuthor changedBy,
         DateTimeOffset now,
         CancellationToken ct)
     {
@@ -55,7 +56,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
         var intent = MapToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = intent.ReplaceText(oldText, newText, newVersionId, now, TextVersionAuthor.Agent);
+        var domainResult = intent.ReplaceText(oldText, newText, newVersionId, now, changedBy);
 
         switch (domainResult)
         {
@@ -111,6 +112,28 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             result.Add(MapToDomain(doc));
         }
         return result;
+    }
+
+    public async Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct)
+    {
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentRepository.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var deleteIntent = await _intents.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct).ConfigureAwait(false);
+        if (deleteIntent.DeletedCount == 0)
+        {
+            return new DeleteIntentOutcome.NotFound();
+        }
+
+        var ownerKindWire = TextVersionOwnerKind.Intent.ToWire();
+        await _textVersions.DeleteManyAsync(
+            session,
+            v => v.OwnerKind == ownerKindWire && v.OwnerId == id.Value,
+            options: null,
+            ct).ConfigureAwait(false);
+
+        return new DeleteIntentOutcome.Deleted();
     }
 
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)

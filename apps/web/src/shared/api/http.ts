@@ -5,14 +5,47 @@ const baseUrl = (
 ).replace(/\/$/, "");
 
 export class HttpError extends Error {
+  public readonly code?: string;
+  public readonly extensions: Record<string, unknown>;
+
   constructor(
     public readonly status: number,
     public readonly url: string,
-    message: string
+    message: string,
+    body?: Record<string, unknown>
   ) {
     super(message);
     this.name = "HttpError";
+    this.extensions = body ?? {};
+    if (typeof body?.code === "string") {
+      this.code = body.code;
+    }
   }
+}
+
+async function parseError(
+  url: string,
+  response: Response,
+  method: string
+): Promise<HttpError> {
+  let body: Record<string, unknown> | undefined;
+  let text = "";
+  try {
+    text = await response.text();
+    body = text ? (JSON.parse(text) as Record<string, unknown>) : undefined;
+  } catch {
+    body = undefined;
+  }
+  const detail =
+    (body && typeof body.detail === "string" ? body.detail : "") ||
+    text ||
+    response.statusText;
+  return new HttpError(
+    response.status,
+    url,
+    `${method} ${url} failed (${String(response.status)}): ${detail}`,
+    body
+  );
 }
 
 export async function httpGet<T>(
@@ -27,13 +60,51 @@ export async function httpGet<T>(
   });
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new HttpError(
-      response.status,
-      url,
-      `GET ${url} failed (${String(response.status)}): ${detail || response.statusText}`
-    );
+    throw await parseError(url, response, "GET");
   }
 
   return (await response.json()) as T;
+}
+
+export async function httpPost<TResponse>(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal
+): Promise<TResponse> {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+    signal
+  });
+
+  if (!response.ok) {
+    throw await parseError(url, response, "POST");
+  }
+
+  if (response.status === 204) {
+    return undefined as TResponse;
+  }
+
+  return (await response.json()) as TResponse;
+}
+
+export async function httpDelete(
+  path: string,
+  signal?: AbortSignal
+): Promise<void> {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: { Accept: "application/json" },
+    signal
+  });
+
+  if (!response.ok) {
+    throw await parseError(url, response, "DELETE");
+  }
 }

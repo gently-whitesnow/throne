@@ -5,5 +5,9 @@
 
 export const intentsEndpoints = {
   listIntents: () => "/intents",
+  createIntent: () => "/intents",
   getIntent: (id: string) => `/intents/${id}`,
+  deleteIntent: (id: string) => `/intents/${id}`,
+  replaceIntentText: (id: string) => `/intents/${id}/replace-text`,
+  listIntentVersions: (id: string) => `/intents/${id}/versions`,
 } as const;

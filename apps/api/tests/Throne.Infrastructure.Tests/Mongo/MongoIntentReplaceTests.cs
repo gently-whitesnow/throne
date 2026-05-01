@@ -20,7 +20,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var (db, repo, uow, id) = await SeedAsync("hello world");
 
         var outcome = await uow.ExecuteAsync(
-            ct => repo.ReplaceTextAsync(id, expectedVersion: 1, "world", "there", Edited, ct),
+            ct => repo.ReplaceTextAsync(id, expectedVersion: 1, "world", "there", TextVersionAuthor.Agent, Edited, ct),
             CancellationToken.None);
 
         outcome.Should().BeOfType<ReplaceIntentTextOutcome.Replaced>();
@@ -50,7 +50,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var (db, repo, uow, id) = await SeedAsync("hello world");
 
         var outcome = await uow.ExecuteAsync(
-            ct => repo.ReplaceTextAsync(id, expectedVersion: 99, "world", "there", Edited, ct),
+            ct => repo.ReplaceTextAsync(id, expectedVersion: 99, "world", "there", TextVersionAuthor.Agent, Edited, ct),
             CancellationToken.None);
 
         var conflict = outcome.Should().BeOfType<ReplaceIntentTextOutcome.VersionConflict>().Subject;
@@ -72,7 +72,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var (db, repo, uow, id) = await SeedAsync("hello world");
 
         var outcome = await uow.ExecuteAsync(
-            ct => repo.ReplaceTextAsync(id, expectedVersion: 1, "missing", "x", Edited, ct),
+            ct => repo.ReplaceTextAsync(id, expectedVersion: 1, "missing", "x", TextVersionAuthor.Agent, Edited, ct),
             CancellationToken.None);
 
         outcome.Should().BeOfType<ReplaceIntentTextOutcome.MatchNotFound>();
@@ -91,7 +91,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var (db, repo, uow, id) = await SeedAsync("foo\nfoo\nfoo");
 
         var outcome = await uow.ExecuteAsync(
-            ct => repo.ReplaceTextAsync(id, expectedVersion: 1, "foo", "bar", Edited, ct),
+            ct => repo.ReplaceTextAsync(id, expectedVersion: 1, "foo", "bar", TextVersionAuthor.Agent, Edited, ct),
             CancellationToken.None);
 
         var ambiguous = outcome.Should().BeOfType<ReplaceIntentTextOutcome.MatchAmbiguous>().Subject;
@@ -112,7 +112,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var (_, repo, uow, _) = await SeedAsync("seed");
 
         var outcome = await uow.ExecuteAsync(
-            ct => repo.ReplaceTextAsync(new IntentId("nope"), 1, "x", "y", Edited, ct),
+            ct => repo.ReplaceTextAsync(new IntentId("nope"), 1, "x", "y", TextVersionAuthor.Agent, Edited, ct),
             CancellationToken.None);
 
         outcome.Should().BeOfType<ReplaceIntentTextOutcome.NotFound>();
@@ -123,7 +123,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
     {
         var (_, repo, _, id) = await SeedAsync("hello");
 
-        var act = () => repo.ReplaceTextAsync(id, 1, "hello", "world", Edited, CancellationToken.None);
+        var act = () => repo.ReplaceTextAsync(id, 1, "hello", "world", TextVersionAuthor.Agent, Edited, CancellationToken.None);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -135,7 +135,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
 
         var act = async () => await uow.ExecuteAsync(async ct =>
         {
-            await repo.ReplaceTextAsync(id, 1, "world", "there", Edited, ct);
+            await repo.ReplaceTextAsync(id, 1, "world", "there", TextVersionAuthor.Agent, Edited, ct);
             throw new InvalidOperationException("boom");
         }, CancellationToken.None);
 

@@ -12,4 +12,13 @@ public interface IInstructionRepository
     Task<IReadOnlyList<Instruction>> ListAsync(CancellationToken ct);
 
     Task<Instruction?> GetByIdAsync(InstructionId id, CancellationToken ct);
+
+    Task<ReplaceInstructionTextOutcome> ReplaceTextAsync(
+        InstructionId id,
+        int expectedVersion,
+        string oldText,
+        string newText,
+        TextVersionAuthor changedBy,
+        DateTimeOffset now,
+        CancellationToken ct);
 }

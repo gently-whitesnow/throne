@@ -12,6 +12,7 @@ type LoadState =
 
 export function IntentBoard() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -30,7 +31,11 @@ export function IntentBoard() {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [reloadKey]);
+
+  const reload = () => {
+    setReloadKey((v) => v + 1);
+  };
 
   return (
     <section className="intent-board" aria-labelledby="intent-board-title">
@@ -38,12 +43,12 @@ export function IntentBoard() {
         <h2 className="intent-board__title" id="intent-board-title">
           Intent cloud
         </h2>
-        <CreateIntentButton />
+        <CreateIntentButton onCreated={reload} />
       </div>
       {state.kind === "loading" && <p>Загрузка…</p>}
       {state.kind === "error" && <p role="alert">{state.message}</p>}
       {state.kind === "ready" && state.items.length === 0 && (
-        <p>Нет intents. Создайте первый через MCP.</p>
+        <p>Нет intents. Создайте первый.</p>
       )}
       {state.kind === "ready" && state.items.length > 0 && (
         <div className="intent-board__grid">

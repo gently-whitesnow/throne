@@ -41,6 +41,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/instructions/{id}/replace-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace a unique substring of Instruction.text (user-driven).
+         * @description Instruction kinds are seeded by the business and cannot be created or deleted via API. Only the text body is editable. Optimistic concurrency via expected_version. ChangedBy=user.
+         */
+        post: operations["replaceInstructionText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/instructions/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the text-version history of an Instruction. */
+        get: operations["listInstructionVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -81,6 +118,36 @@ export interface components {
             errors?: {
                 [key: string]: string[];
             };
+        };
+        ReplaceTextRequest: {
+            /**
+             * Format: int32
+             * @description Caller's expected current_version. Server rejects with 409 if it differs.
+             */
+            expected_version: number;
+            /** @description Exact byte-for-byte substring to replace. Must occur exactly once. */
+            old_text: string;
+            /** @description Replacement text. May be empty (deletes the matched fragment). */
+            new_text: string;
+        };
+        TextVersionDto: {
+            /** Format: int32 */
+            version: number;
+            /** @enum {string} */
+            kind: "create" | "replace" | "insert";
+            /** Format: date-time */
+            changed_at: string;
+            /** @enum {string} */
+            changed_by: "user" | "agent" | "system";
+            /** @description Full text snapshot. Present for kind=create (v1). */
+            snapshot?: string;
+            /** @description Replaced fragment. Present for kind=replace. */
+            old_text?: string;
+            /** @description New fragment. Present for kind=replace. */
+            new_text?: string;
+            /** Format: int32 */
+            after_line?: number;
+            insert_text?: string;
         };
     };
     responses: never;
@@ -130,6 +197,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstructionDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    replaceInstructionText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceTextRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstructionDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Version conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Match not found or ambiguous */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listInstructionVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextVersionDto"][];
                 };
             };
             /** @description Not found */

@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
+        services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
         services.AddHostedService<InstructionSeedHostedService>();
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
+        services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
         services.AddHostedService<InstructionSeedHostedService>();

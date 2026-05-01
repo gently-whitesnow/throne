@@ -18,6 +18,36 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        ReplaceTextRequest: {
+            /**
+             * Format: int32
+             * @description Caller's expected current_version. Server rejects with 409 if it differs.
+             */
+            expected_version: number;
+            /** @description Exact byte-for-byte substring to replace. Must occur exactly once. */
+            old_text: string;
+            /** @description Replacement text. May be empty (deletes the matched fragment). */
+            new_text: string;
+        };
+        TextVersionDto: {
+            /** Format: int32 */
+            version: number;
+            /** @enum {string} */
+            kind: "create" | "replace" | "insert";
+            /** Format: date-time */
+            changed_at: string;
+            /** @enum {string} */
+            changed_by: "user" | "agent" | "system";
+            /** @description Full text snapshot. Present for kind=create (v1). */
+            snapshot?: string;
+            /** @description Replaced fragment. Present for kind=replace. */
+            old_text?: string;
+            /** @description New fragment. Present for kind=replace. */
+            new_text?: string;
+            /** Format: int32 */
+            after_line?: number;
+            insert_text?: string;
+        };
     };
     responses: never;
     parameters: never;

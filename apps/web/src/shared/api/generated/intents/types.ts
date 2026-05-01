@@ -17,7 +17,11 @@ export interface paths {
          */
         get: operations["listIntents"];
         put?: never;
-        post?: never;
+        /**
+         * Create a new Intent (user-driven).
+         * @description Creates an Intent and seeds v1 of its text. ChangedBy=user.
+         */
+        post: operations["createIntent"];
         delete?: never;
         options?: never;
         head?: never;
@@ -38,6 +42,44 @@ export interface paths {
         get: operations["getIntent"];
         put?: never;
         post?: never;
+        /** Delete an Intent and cascade its text_versions. */
+        delete: operations["deleteIntent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{id}/replace-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace a unique substring of Intent.text (user-driven).
+         * @description User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version. ChangedBy=user.
+         */
+        post: operations["replaceIntentText"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the text-version history of an Intent. */
+        get: operations["listIntentVersions"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -48,6 +90,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CreateIntentRequest: {
+            /** @description Initial text of the Intent. */
+            text: string;
+            /** @description Optional tags for filtering. */
+            tags?: string[];
+        };
         IntentListItemDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
             id: string;
@@ -89,6 +137,36 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        ReplaceTextRequest: {
+            /**
+             * Format: int32
+             * @description Caller's expected current_version. Server rejects with 409 if it differs.
+             */
+            expected_version: number;
+            /** @description Exact byte-for-byte substring to replace. Must occur exactly once. */
+            old_text: string;
+            /** @description Replacement text. May be empty (deletes the matched fragment). */
+            new_text: string;
+        };
+        TextVersionDto: {
+            /** Format: int32 */
+            version: number;
+            /** @enum {string} */
+            kind: "create" | "replace" | "insert";
+            /** Format: date-time */
+            changed_at: string;
+            /** @enum {string} */
+            changed_by: "user" | "agent" | "system";
+            /** @description Full text snapshot. Present for kind=create (v1). */
+            snapshot?: string;
+            /** @description Replaced fragment. Present for kind=replace. */
+            old_text?: string;
+            /** @description New fragment. Present for kind=replace. */
+            new_text?: string;
+            /** Format: int32 */
+            after_line?: number;
+            insert_text?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -118,6 +196,30 @@ export interface operations {
             };
         };
     };
+    createIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateIntentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+        };
+    };
     getIntent: {
         parameters: {
             query?: never;
@@ -137,6 +239,119 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    deleteIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    replaceIntentText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceTextRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Version conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Match not found or ambiguous */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listIntentVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextVersionDto"][];
                 };
             };
             /** @description Not found */

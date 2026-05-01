@@ -4,6 +4,7 @@ using Throne.Application.Errors;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.TextVersions;
 
 namespace Throne.Application.Tests.Intents;
 
@@ -20,11 +21,11 @@ public class ReplaceIntentTextHandlerTests
         var handler = NewHandler(out var repo);
         repo.ReplaceTextAsync(
                 Arg.Any<IntentId>(), Arg.Any<int>(), Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+                Arg.Any<TextVersionAuthor>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(new ReplaceIntentTextOutcome.Replaced(existing));
 
         var result = await handler.HandleAsync(
-            new ReplaceIntentTextCommand(IntentIdValue, ExpectedVersion: 1, OldText: "world", NewText: "there"),
+            new ReplaceIntentTextCommand(IntentIdValue, ExpectedVersion: 1, OldText: "world", NewText: "there", Author: TextVersionAuthor.Agent),
             CancellationToken.None);
 
         result.Should().BeSameAs(existing);
@@ -34,11 +35,11 @@ public class ReplaceIntentTextHandlerTests
     public async Task NotFound_throws_intent_not_found()
     {
         var handler = NewHandler(out var repo);
-        repo.ReplaceTextAsync(default, default, default!, default!, default, default)
+        repo.ReplaceTextAsync(default, default, default!, default!, default, default, default)
             .ReturnsForAnyArgs(new ReplaceIntentTextOutcome.NotFound());
 
         var act = () => handler.HandleAsync(
-            new ReplaceIntentTextCommand(IntentIdValue, 1, "world", "there"),
+            new ReplaceIntentTextCommand(IntentIdValue, 1, "world", "there", TextVersionAuthor.Agent),
             CancellationToken.None);
 
         var ex = (await act.Should().ThrowAsync<ApiException>()).Which;
@@ -50,11 +51,11 @@ public class ReplaceIntentTextHandlerTests
     public async Task VersionConflict_throws_with_version_extensions()
     {
         var handler = NewHandler(out var repo);
-        repo.ReplaceTextAsync(default, default, default!, default!, default, default)
+        repo.ReplaceTextAsync(default, default, default!, default!, default, default, default)
             .ReturnsForAnyArgs(new ReplaceIntentTextOutcome.VersionConflict(CurrentVersion: 5));
 
         var act = () => handler.HandleAsync(
-            new ReplaceIntentTextCommand(IntentIdValue, 3, "world", "there"),
+            new ReplaceIntentTextCommand(IntentIdValue, 3, "world", "there", TextVersionAuthor.Agent),
             CancellationToken.None);
 
         var ex = (await act.Should().ThrowAsync<ApiException>()).Which;
@@ -67,11 +68,11 @@ public class ReplaceIntentTextHandlerTests
     public async Task MatchNotFound_throws_with_preview()
     {
         var handler = NewHandler(out var repo);
-        repo.ReplaceTextAsync(default, default, default!, default!, default, default)
+        repo.ReplaceTextAsync(default, default, default!, default!, default, default, default)
             .ReturnsForAnyArgs(new ReplaceIntentTextOutcome.MatchNotFound("xyz"));
 
         var act = () => handler.HandleAsync(
-            new ReplaceIntentTextCommand(IntentIdValue, 1, "xyz", "abc"),
+            new ReplaceIntentTextCommand(IntentIdValue, 1, "xyz", "abc", TextVersionAuthor.Agent),
             CancellationToken.None);
 
         var ex = (await act.Should().ThrowAsync<ApiException>()).Which;
@@ -84,11 +85,11 @@ public class ReplaceIntentTextHandlerTests
     public async Task MatchAmbiguous_throws_with_matches_info()
     {
         var handler = NewHandler(out var repo);
-        repo.ReplaceTextAsync(default, default, default!, default!, default, default)
+        repo.ReplaceTextAsync(default, default, default!, default!, default, default, default)
             .ReturnsForAnyArgs(new ReplaceIntentTextOutcome.MatchAmbiguous(3, [1, 3, 4]));
 
         var act = () => handler.HandleAsync(
-            new ReplaceIntentTextCommand(IntentIdValue, 1, "foo", "bar"),
+            new ReplaceIntentTextCommand(IntentIdValue, 1, "foo", "bar", TextVersionAuthor.Agent),
             CancellationToken.None);
 
         var ex = (await act.Should().ThrowAsync<ApiException>()).Which;
@@ -104,7 +105,7 @@ public class ReplaceIntentTextHandlerTests
         var handler = NewHandler(out _);
 
         var act = () => handler.HandleAsync(
-            new ReplaceIntentTextCommand(IntentIdValue, 1, "", "x"),
+            new ReplaceIntentTextCommand(IntentIdValue, 1, "", "x", TextVersionAuthor.Agent),
             CancellationToken.None);
 
         var ex = (await act.Should().ThrowAsync<ApiException>()).Which;
