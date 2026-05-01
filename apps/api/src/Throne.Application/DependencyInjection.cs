@@ -15,6 +15,10 @@ public static class DependencyInjection
         services.AddSingleton<ReadIntentTextHandler>();
         services.AddSingleton<ReplaceIntentTextHandler>();
         services.AddSingleton<DeleteIntentHandler>();
+        services.AddSingleton<SearchIntentTextHandler>();
+        services.AddSingleton<InsertIntentTextAfterLineHandler>();
+        services.AddSingleton<AddIntentQaHandler>();
+        services.AddSingleton<AddIntentReviewHandler>();
         services.AddSingleton<ListIntentsHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();
         services.AddSingleton<GetInstructionBundleHandler>();

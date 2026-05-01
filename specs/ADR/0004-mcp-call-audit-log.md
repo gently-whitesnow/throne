@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (amended: добавлена секция §4 «Гарантия покрытия» — четырёхслойная защита от того, что новый MCP tool окажется без логирования; стало fitness function + startup fail-fast + параметризованный smoke-тест)
+Accepted (amended дважды: (1) добавлена секция §4 «Гарантия покрытия» — четырёхслойная защита от того, что новый MCP tool окажется без логирования; стало fitness function + startup fail-fast + параметризованный smoke-тест; (2) покрытие распространено на MCP prompts (`prompts/get`) — `tool_name = "prompts/get:<promptName>"`, симметричный `AuditingMcpServerPrompt` decorator + `AddThronePrompt<T>` helper)
 
 ## Context
 
@@ -132,3 +132,23 @@ McpCallLog
 - `arguments` без маскирования — допустимо для solo-first MVP, но станет блокером в момент перехода на multi-user. Переход потребует миграции (back-fill маскирования или отказ от исторических записей).
 - Коллекция растёт линейно с активностью агента. На горизонте dogfooding-объёмов это безопасно; на горизонте «продукт с многими пользователями» потребуется retention policy. Сигнал на отдельный ADR — не сейчас.
 - Журнал — Mongo-only. Если когда-то storage сменится, журнал переезжает вместе со всей системой; абстракция `IMcpCallLogSink` это покрывает, но риск vendor-lock на Mongo в части аналитики выше, чем для основного state.
+
+## Amendment — coverage of MCP prompts
+
+ADR-0003 amendment ввёл MCP prompts (`tinterview`/`twork`/`tnew`/`treview`) как surface для slash-команд. Чтобы dogfooding-телеметрия не оставалась слепой к тому, какие slash-команды агент действительно использует, `mcp_call_log` фиксирует и `prompts/get`. Поля и правила:
+
+- `tool_name` ← `prompts/get:<promptName>` (например, `prompts/get:tinterview`). Префикс гарантирует, что аналитика по `tool_name` не путает tools и prompts.
+- `arguments` ← raw arguments prompt'а (`{ intent_id?, text? }`).
+- `intent_id` ← извлекается из `arguments.intent_id`, если есть.
+- `mode_hint` ← статический маппинг команды на mode (`tinterview→interview`, `twork→light_work`, `tnew→new_project`, `treview→light_work`).
+- `result_summary` ← `{ messages_count, user_chars, assistant_chars }`. Полный текст ответа prompt'а в журнал не пишем: он детерминирован от `server_version` + `arguments` + текущей версии prompt-кода.
+- Остальные поля (`outcome`, `error_code`, `duration_ms`, `server_version`, `created_at`, `session_id`) — без изменений.
+
+Гарантия покрытия (§4) распространяется на prompts симметрично:
+
+1. Единая точка регистрации `AddThronePrompt<TPrompt>()` в `Throne.Api.Mcp.ThroneToolRegistration` — оборачивает каждый `McpServerPrompt` в `AuditingMcpServerPrompt` (на базе `DelegatingMcpServerPrompt` из SDK). Прямая регистрация prompts мимо helper'а запрещена.
+2. Architecture-тест `McpToolRegistrationRulesTests` дополнительно запрещает в `Throne.Api` вызовы `WithPrompts` / `WithPromptsFromAssembly` и `McpServerPrompt.Create` вне `ThroneToolRegistration`.
+3. Startup fail-fast (`ThroneStartup.AssertToolsRegistered`) проверяет, что каждый зарегистрированный `McpServerPrompt` обёрнут в `AuditingMcpServerPrompt` — иначе приложение не поднимается.
+4. Unit-тесты на `AuditingMcpServerPrompt` параметризованы по 4 prompt-именам и проверяют корректную запись `mode_hint`. Smoke integration-тест (когда понадобится) параметризуется тем же реестром prompts по образцу tools — добавление нового prompt'а автоматически добавляет тест-кейс.
+
+Транзакционность и best-effort семантика sink (§5) — те же, что и для tools.

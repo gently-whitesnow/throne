@@ -1,4 +1,5 @@
 using Throne.Application.Ports;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Infrastructure.Mongo;
@@ -25,6 +26,14 @@ internal static class MongoEnumNames
         TextVersionAuthor.User => "user",
         TextVersionAuthor.Agent => "agent",
         TextVersionAuthor.System => "system",
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+    };
+
+    public static string ToWire(this IntentTrainingAuthor value) => value switch
+    {
+        IntentTrainingAuthor.Agent => "agent",
+        IntentTrainingAuthor.User => "user",
+        IntentTrainingAuthor.System => "system",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
     };
 

@@ -207,3 +207,17 @@ Slash-команды на стороне агента маппятся на ре
 - Жёсткий байт-точный матч `old_text` чувствителен к whitespace и BOM. Агенту придётся аккуратно копировать фрагменты, иначе будут `match_not_found`. Альтернативы (нормализация whitespace) отвергнуты, потому что они приводят к скрытым «не такая правка применилась».
 - `add_intent_qa` / `add_intent_review` с `expected_version` могут вынудить агента перечитывать Intent чаще, чем хочется, если параллельно идёт правка. Для MVP solo-first риск низкий; пересмотрим, если станет проблемой.
 - Серверный лимит чтения 64 000 символов — эвристика. Может оказаться мал для очень больших Intent'ов или велик для маленьких моделей. Будет уточнён по dogfooding-данным; формального обязательства держать его именно таким нет.
+
+## Amendment — slash-command surface через MCP prompts
+
+`intent.md` §5 фиксирует, что slash-команды — «договорённость в agent instruction/prompt» и backend «не обязан парсить slash-команды». В MVP эта договорённость приземляется на встроенный в MCP примитив **prompts** (`prompts/list` + `prompts/get`) того же сервера `Throne.Api`, а не на копируемый markdown в чужой агент. Это даёт три выгоды: атомарное обновление prompts вместе с tools, рендеринг аргументов клиентом (Claude Code, Cursor) как нативных slash-команд `/mcp__throne__<name>`, и audit-видимость (см. amendment к ADR-0004).
+
+Контракт MVP:
+
+- 4 prompts: `tinterview`, `twork`, `tnew`, `treview`. Имена соответствуют intent.md §5.
+- Аргументы у каждого: `intent_id?: string`, `text?: string` (snake_case как у tools, по тому же `pragma CA1707`).
+- Mode mapping для `get_instruction_bundle` зашит в каждом prompt'е и не настраивается клиентом: `tinterview→interview`, `twork→light_work`, `tnew→new_project`, `treview→light_work`.
+- Prompts-методы возвращают строку (один user-`PromptMessage`): общий блок правил (active-resolution, optimistic concurrency, edit discipline, error catalogue, запреты) + per-command playbook + подстановка переданных аргументов.
+- Реализация — `Throne.Api.Mcp.Prompts.IntentPrompts` с `[McpServerPromptType]` / `[McpServerPrompt]`, регистрация через симметричный `AddThronePrompt<T>()` helper рядом с `AddThroneTool<T>()`.
+
+Зависимостей модели и tools'ов это не меняет: 9 MVP-tools §1 остаются единственным write-API.

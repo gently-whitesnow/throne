@@ -111,6 +111,70 @@ public sealed class Intent
         return new ReplaceTextResult.Replaced(version);
     }
 
+    public InsertTextResult InsertAfterLine(
+        int afterLine,
+        string insertText,
+        string newVersionId,
+        DateTimeOffset now,
+        TextVersionAuthor changedBy)
+    {
+        ArgumentNullException.ThrowIfNull(insertText);
+        ArgumentException.ThrowIfNullOrEmpty(newVersionId);
+
+        var totalLines = Text.Length == 0 ? 0 : 1;
+        for (var i = 0; i < Text.Length; i++)
+        {
+            if (Text[i] == '\n')
+            {
+                totalLines++;
+            }
+        }
+
+        if (afterLine < 0 || afterLine > totalLines)
+        {
+            return new InsertTextResult.LineOutOfRange(totalLines, afterLine);
+        }
+
+        var insertIndex = afterLine == 0 ? 0 : FindLineEndOffset(Text, afterLine);
+        Text = string.Concat(Text.AsSpan(0, insertIndex), insertText, Text.AsSpan(insertIndex));
+        CurrentVersion += 1;
+        UpdatedAt = now;
+
+        var version = new TextVersion(
+            Id: newVersionId,
+            OwnerKind: TextVersionOwnerKind.Intent,
+            OwnerId: Id.Value,
+            Version: CurrentVersion,
+            Kind: TextVersionKind.Insert,
+            Snapshot: null,
+            OldText: null,
+            NewText: null,
+            AfterLine: afterLine,
+            InsertText: insertText,
+            ChangedAt: now,
+            ChangedBy: changedBy);
+
+        return new InsertTextResult.Inserted(version);
+    }
+
+    private static int FindLineEndOffset(string text, int line1Indexed)
+    {
+        var seen = 0;
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '\n')
+            {
+                seen++;
+                if (seen == line1Indexed)
+                {
+                    return i + 1;
+                }
+            }
+        }
+
+        return text.Length;
+    }
+
     private static List<int> FindAllIndices(string haystack, string needle)
     {
         var result = new List<int>();

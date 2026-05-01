@@ -17,13 +17,30 @@ public static class ThroneStartup
                 "No MCP tools registered. Did you call AddThroneTools()?");
         }
 
-        var unwrapped = tools.Where(t => t is not AuditingMcpServerTool).ToArray();
-        if (unwrapped.Length > 0)
+        var unwrappedTools = tools.Where(t => t is not AuditingMcpServerTool).ToArray();
+        if (unwrappedTools.Length > 0)
         {
-            var names = string.Join(", ", unwrapped.Select(t => t.ProtocolTool.Name));
+            var names = string.Join(", ", unwrappedTools.Select(t => t.ProtocolTool.Name));
             throw new InvalidOperationException(
-                $"Found {unwrapped.Length} MCP tool(s) registered without audit decorator: {names}. " +
+                $"Found {unwrappedTools.Length} MCP tool(s) registered without audit decorator: {names}. " +
                 "All tools must be registered via AddThroneTool<T>().");
+        }
+
+        var prompts = services.GetServices<McpServerPrompt>().ToArray();
+
+        if (prompts.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "No MCP prompts registered. Did you call AddThronePrompt<T>()?");
+        }
+
+        var unwrappedPrompts = prompts.Where(p => p is not AuditingMcpServerPrompt).ToArray();
+        if (unwrappedPrompts.Length > 0)
+        {
+            var names = string.Join(", ", unwrappedPrompts.Select(p => p.ProtocolPrompt.Name));
+            throw new InvalidOperationException(
+                $"Found {unwrappedPrompts.Length} MCP prompt(s) registered without audit decorator: {names}. " +
+                "All prompts must be registered via AddThronePrompt<T>().");
         }
     }
 }
