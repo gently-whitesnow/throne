@@ -127,12 +127,13 @@ Backend/MCP-сервер не обязан парсить slash-команды. 
 Система должна предоставлять агенту инструменты, через которые он может:
 
 * создавать `Intent`;
-* читать `Intent`;
-* редактировать `Intent.text`;
-* добавлять вопросы и ответы в `Intent.qa`;
-* добавлять review-замечания в `Intent.review`;
-* читать инструкции из облака;
-* редактировать инструкции вручную или через агента.
+* читать `Intent` (canonical `text` — без qa/review/истории версий);
+* редактировать `Intent.text` через file-like операции (точная замена, вставка после строки);
+* добавлять пары вопрос/ответ как отдельную операцию (не сцепляя с правкой `text`);
+* добавлять review-замечания;
+* читать инструкции из облака пакетом для текущего режима.
+
+Инструкции в MVP редактируются пользователем напрямую (mongosh, в будущем — HTTP-эндпойнт `Throne.Api`). Агентского write-API для инструкций нет (см. ADR-0003 §1).
 
 UI в первом MVP не продумывается.
 
@@ -154,19 +155,21 @@ MongoDB является основным canonical storage.
 
 ## 7. Модель Intent
 
+Canonical-документ компактен: только `text`, `current_version`, `tags`, timestamps. `qa[]` и `review[]` физически живут в отдельных коллекциях (`intent_qa`, `intent_review`) как training-only данные и **не** возвращаются агенту ни в одной read-операции (см. ADR-0002 §2/§5).
+
 ```text
-Intent
+Intent (collection: intents — canonical state)
 - id
-- text                // главный редактируемый текст intent'а
-- current_version     // текущая версия text для optimistic concurrency
-- qa[]                // вопросы и ответы interview
-- review[]            // замечания пользователя после work/review
-- tags[]              // проекты/темы, к которым относится intent
+- text                // главный редактируемый документ
+- current_version     // optimistic concurrency, ≥ 1
+- tags[]              // проекты/темы
 - created_at
 - updated_at
 ```
 
-Версии `Intent.text` не возвращаются вместе с `Intent` по умолчанию. История читается отдельным MCP tool. Полный `Intent.text` также не обязан возвращаться по умолчанию: для больших документов агент должен использовать `read_intent_text`.
+История версий `Intent.text` живёт в единой коллекции `text_versions` (общая для Intent и Instruction, см. §7.2 и ADR-0002 §4) и через MCP агенту не выставляется — её читают только ETL-скрипты для будущего обучения системы.
+
+`get_intent(intent_id)` всегда возвращает полный `text` вместе с `current_version` и `tags`. Для больших документов агент использует `read_intent_text` диапазонами; серверный лимит ответа — 64 000 символов (ADR-0003 §2).
 
 ### 7.1. Intent.text
 
@@ -188,69 +191,66 @@ Intent
 
 Агент не должен пересылать весь большой документ при каждом небольшом изменении, если достаточно точечной правки.
 
-### 7.2. Intent.text_versions
+### 7.2. text_versions (единая коллекция)
 
-Каждое изменение `Intent.text` должно сохранять новую версию.
-
-Минимальная структура версии:
+История `Intent.text` и `Instruction.text` хранится в **единой** коллекции `text_versions` с дискриминатором `owner_kind ∈ { intent | instruction }`. Формат — delta-only после v1: первая версия хранит полный текст, последующие — только параметры конкретной правки. Это даёт ~140× экономию хранилища относительно full-snapshot формата на типичной dogfooding-сессии (см. ADR-0002 §4).
 
 ```text
-IntentTextVersion
-- version
-- text
+TextVersion (collection: text_versions)
+- id
+- owner_kind         // intent | instruction
+- owner_id
+- version            // ≥ 1
+- kind               // create | replace | insert
+- snapshot           // только для kind = create
+- old_text           // только для kind = replace
+- new_text           // только для kind = replace
+- after_line         // только для kind = insert
+- insert_text        // только для kind = insert
 - changed_at
-- changed_by          // user | agent | system
-- reason              // optional
+- changed_by         // user | agent | system
 ```
 
-Версия должна фиксировать факт изменения текста, но не обязана всегда хранить полную копию большого документа.
+Полей `previous_version` и `reason` нет: порядок восстанавливается по `version`, «зачем сделана правка» выводится из `mcp_call_log` (ADR-0004) и `intent_qa` для interview-сессий.
 
-Для MVP допустимы два режима записи версии:
+Правила записи:
 
-```text
-full_snapshot  // полная копия текста, удобно для первой версии и простых изменений
-patch          // точечное изменение: что было заменено и на что
-```
+- `create_intent` → `version = 1`, `kind = create`, `snapshot = <начальный текст>`.
+- Каждая успешная `replace_intent_text` → новая версия `kind = replace` с `old_text` / `new_text` ровно как пришли в tool.
+- Каждая успешная `insert_intent_text_after_line` → новая версия `kind = insert` с `after_line` / `insert_text`.
+- Запись версии — серверная операция, агент в `text_versions` не пишет напрямую.
+- Запись версии и инкремент `current_version` атомарны (детали транзакционности — storage ADR следующего шага, см. ADR-0002 §6).
 
-Минимально важно хранить:
+Восстановление произвольной версии — O(N) replay (v1 snapshot + последовательное применение delta) и в MVP MCP read API **не** выставляется. Это материал для аудита и ETL.
 
-```text
-IntentTextVersion
-- version
-- previous_version
-- edit_type           // full_snapshot | exact_replace
-- text_snapshot       // optional, для full_snapshot
-- old_text            // optional, для exact_replace
-- new_text            // optional, для exact_replace
-- changed_at
-- changed_by          // user | agent | system
-- reason              // optional
-```
+Canonical current state остаётся в `Intent.text` / `Instruction.text` основного документа.
 
-Canonical current state остаётся в `Intent.text`. История нужна для аудита и понимания изменений, а не обязательно для сложного восстановления любой версии в MVP.
+Ручное изменение `Intent.text` не порождает запись в `intent_qa`. Запись в `intent_qa` создаётся только отдельным tool `add_intent_qa` (см. §7.3 и §9.3).
 
-Ручное изменение `Intent.text` не добавляет запись в `qa[]`. Оно только обновляет `text` и добавляет новую запись в историю версий. `qa[]` остаётся чисто interview-следом.
+### 7.3. intent_qa (отдельная коллекция, training-only)
 
-### 7.3. Intent.qa
-
-`qa` хранит вопросы и ответы, появившиеся во время interview.
-
-Когда агент правит Intent в рамках interview, он должен передавать в MCP-запросе:
-
-1. как поправить документ;
-2. какой был вопрос;
-3. какой был ответ.
-
-Минимальная структура:
+`intent_qa` хранит вопросы и ответы, появившиеся во время interview. Это материал для будущего обучения системы; агенту он в рантайме не нужен и через MCP read API **не** возвращается (ADR-0002 §5, ADR-0003 §1).
 
 ```text
-IntentQA
+IntentQa (collection: intent_qa)
+- id
+- intent_id
+- intent_version_at_write    // current_version Intent в момент записи
 - question
 - answer
 - created_at
+- created_by                 // обычно agent
 ```
 
-Назначение `qa`: сохранить данные о том, чего AI изначально не понял и что пришлось уточнять у пользователя.
+Запись создаётся только отдельным tool:
+
+```text
+add_intent_qa(intent_id, expected_version, question, answer) -> Ack
+```
+
+`add_intent_qa` **не** инкрементирует `current_version` (qa — не правка text), но проверяет `expected_version`, чтобы запись прикреплялась к известному состоянию текста. `intent_version_at_write` фиксируется сервером.
+
+Связь qa ↔ конкретная правка text **не** хранится явной ссылкой и восстанавливается по timestamp при анализе. Это сознательное упрощение MVP: см. ADR-0003 §5 и альтернативу №1 там же — отвергнутые `*_from_interview` варианты ломались на сценариях «1 ответ → N правок» и «1 ответ → 0 правок».
 
 ### 7.4. Intent.tags
 
@@ -272,26 +272,34 @@ tags: ["throne"]
 
 Если агент не может уверенно определить репозиторий/проект, `tags[]` может быть пустым.
 
-### 7.5. Intent.review
+### 7.5. intent_review (отдельная коллекция, training-only)
 
-`review` хранит замечания пользователя после выполнения work.
-
-Минимальная структура:
+`intent_review` хранит замечания пользователя после выполнения work. Как и `intent_qa`, это training-only данные: через MCP read API агенту не выставляются.
 
 ```text
-IntentReviewItem
-- note       // замечание
-- reason     // причина, почему это важно / что AI понял неправильно
+IntentReview (collection: intent_review)
+- id
+- intent_id
+- intent_version_at_write
+- note                  // замечание
+- reason                // контент: почему это важно / что AI понял неправильно
 - created_at
+- created_by            // обычно agent от имени пользователя
 ```
 
-Назначение `review`: сохранить данные о том, где AI сделал не то, не так понял задачу или нарушил предпочтения пользователя.
+Запись создаётся отдельным tool:
 
-В MVP review не порождает отдельную автоматическую память и не улучшает инструкции автоматически. Это материал для следующей итерации продукта.
+```text
+add_intent_review(intent_id, expected_version, note, reason) -> Ack
+```
+
+Запись review **не** инкрементирует `current_version`, но `expected_version` обязателен (ADR-0002 §6).
+
+Назначение: сохранить данные о том, где AI сделал не то, не так понял задачу или нарушил предпочтения пользователя. В MVP review не порождает автоматическую память и не улучшает инструкции автоматически — это материал для следующей итерации продукта.
 
 ## 8. Модель Instruction
 
-`Instruction` — отдельный объект облака.
+`Instruction` — отдельный объект облака. В MVP редактируется **только** пользователем напрямую (mongosh / будущий HTTP-эндпойнт). Агентского write-API через MCP нет (см. ADR-0003 §1, альтернатива №7).
 
 При первом запуске система должна создать минимальные seed-инструкции по умолчанию для каждого `kind`:
 
@@ -311,16 +319,18 @@ Seed-инструкции должны быть короткими. Это не 
 Минимальная структура:
 
 ```text
-Instruction
+Instruction (collection: instructions)
 - id
 - kind                // common | interview | light_work | new_project
 - text
-- current_version     // текущая версия text для optimistic concurrency
+- current_version     // optimistic concurrency, ≥ 1
 - created_at
 - updated_at
 ```
 
-Версии `Instruction.text` не возвращаются вместе с `Instruction` по умолчанию. История читается отдельным MCP tool. Полный `Instruction.text` также не обязан возвращаться по умолчанию: для больших документов агент должен использовать `read_instruction_text`.
+Агент видит инструкции только через `get_instruction_bundle(mode)` — пакетом для текущего режима, целиком (см. §14 и ADR-0003 §7). Отдельных read-tools `get_instruction(id)` / `read_instruction_text` / `search_instruction_text` в MVP нет: bundle отдаёт seed-инструкции целиком, они короткие, range-read и поиск избыточны.
+
+История версий `Instruction.text` живёт в той же коллекции `text_versions` с `owner_kind = instruction` (см. §7.2).
 
 ### 8.1. Instruction.kind
 
@@ -347,22 +357,13 @@ interview:   common + interview
 
 ### 8.2. Instruction.text
 
-`Instruction.text` можно редактировать руками и через агента.
+`Instruction.text` редактируется в MVP **только** пользователем напрямую (mongosh / будущий HTTP). Через MCP агент инструкции не правит.
 
-Как и `Intent.text`, он должен версионироваться.
+Версионируется по тем же правилам, что и `Intent.text` (см. §7.2): записи живут в общей коллекции `text_versions` с `owner_kind = instruction`, формат delta-only после v1.
 
 ### 8.3. Instruction.text_versions
 
-Минимальная структура версии:
-
-```text
-InstructionTextVersion
-- version
-- text
-- changed_at
-- changed_by          // user | agent | system
-- reason              // optional
-```
+Отдельной коллекции под Instruction-версии нет — используется общая `text_versions` (см. §7.2). Поля те же; `owner_kind = instruction`, `owner_id = <instruction_id>`.
 
 ### 8.4. Seed-инструкции
 
@@ -420,45 +421,27 @@ Instruction(kind: new_project)
 
 ### 9.3. MCP edit во время interview
 
-При изменении Intent агент должен отправлять в MCP не новый полный текст, а file-like правку.
+При изменении Intent агент отправляет в MCP не новый полный текст, а file-like правку: `replace_intent_text` (точная замена) либо `insert_intent_text_after_line` (вставка после строки). Edit-tools одинаковы для всех режимов и о режиме (interview / light_work / new_project) не знают — режим существует только в agent instruction.
 
-Для MVP принимается str_replace-based модель редактирования:
+Запись пары вопрос/ответ — отдельный decoupled tool `add_intent_qa(intent_id, expected_version, question, answer)`. Этот выбор покрывает три реальных interview-сценария: «1 ответ → N правок», «1 ответ → 0 правок», «0 ответов → 1 правка» (см. ADR-0003 §1, альтернатива №1; от прежних `*_from_interview` сцепок отказались).
 
-```text
-replace_intent_text_from_interview
-- intent_id
-- expected_version
-- old_text
-- new_text
-- question
-- answer
-- reason              // optional
-```
+В рамках одного interview-шага агент по seed-инструкции `Instruction(kind: interview)` сначала вызывает `add_intent_qa`, затем выполняет одну или несколько правок `Intent.text`. Серверной валидации «правка только при свежем qa» нет — режим серверу неизвестен (ADR-0003 §5). Соблюдение порядка — задача agent instruction; контроль — через dogfooding-телеметрию `mcp_call_log` (ADR-0004 §8).
 
-MCP-сервер должен:
+`replace_intent_text(intent_id, expected_version, old_text, new_text) -> Intent`:
 
-1. проверить `expected_version`, чтобы агент не редактировал устаревший текст;
-2. проверить, что `old_text` найден ровно один раз;
-3. заменить `old_text` на `new_text`;
-4. добавить новую запись в историю версий;
-5. добавить новую запись в `Intent.qa`.
+1. проверяет `expected_version == current_version`;
+2. требует, чтобы `old_text` встречался в текущем `text` ровно один раз (byte-exact: whitespace, переносы, BOM значимы);
+3. атомарно обновляет `text`, инкрементирует `current_version`, пишет delta-запись в `text_versions` (`kind = replace`).
 
-Если `old_text` не найден или найден несколько раз, сервер должен вернуть actionable error: почему правка не применена и что агенту сделать дальше. Например: перечитать диапазон строк, расширить `old_text` соседним контекстом или использовать `search_intent_text`.
+`insert_intent_text_after_line(intent_id, expected_version, after_line, insert_text) -> Intent`:
 
-Для добавления нового блока используется отдельный insert-tool:
+- `after_line = 0` — вставка в начало документа;
+- `after_line` валиден на диапазоне `0 .. total_lines` текущей версии;
+- атомарно обновляет `text`, инкрементирует `current_version`, пишет delta-запись `kind = insert`.
 
-```text
-insert_intent_text_after_line_from_interview
-- intent_id
-- expected_version
-- after_line           // 0 = вставка в начало документа
-- insert_text
-- question
-- answer
-- reason               // optional
-```
+При нарушениях сервер возвращает typed `ApiException` с actionable detail (`intent.version_conflict`, `intent.text.match_not_found`, `intent.text.match_ambiguous`, `intent.text.line_out_of_range`). Контракт ошибок и поля detail — в ADR-0003 §3/§4.
 
-`replace_by_line_range` в MVP не добавляется. Line-range используется для чтения, но не для записи: номера строк могут дрейфовать, а точная замена по строке безопаснее и ближе к агентскому редактированию локальных файлов.
+`replace_by_line_range` и `full_replace` в MVP не вводятся. Line-range используется для чтения, но не для записи: номера строк дрейфуют между версиями, а точная замена по `old_text` безопаснее и ближе к агентскому редактированию локальных файлов. Полная перезапись большого документа возможна только косвенно — через `replace_intent_text` с `old_text == текущий весь текст`.
 
 ## 10. Work
 
@@ -557,11 +540,10 @@ insert_intent_text_after_line_from_interview
 ### 11.2. MCP tool для review
 
 ```text
-AddIntentReview
-- intent_id
-- note
-- reason
+add_intent_review(intent_id, expected_version, note, reason) -> Ack
 ```
+
+`expected_version` обязателен (ADR-0002 §6). Запись review **не** инкрементирует `current_version`, но проверяет его, чтобы review прикреплялся к известному состоянию `text`. Сервер фиксирует `intent_version_at_write` в `intent_review`. `Ack` = `{ intent_id, current_version, accepted: true }`.
 
 В MVP review — это не отдельный workflow approval. Это способ сохранить места, где AI не понял пользователя или задачу.
 
@@ -583,16 +565,17 @@ AddIntentReview
 Система считается достаточно готовой для первого dogfooding, если пользователь может:
 
 1. Создать `Intent` через MCP.
-2. Запустить `/interview <text>`.
+2. Запустить `/tinterview <text>`.
 3. Во время interview получить обновления `Intent.text`.
-4. Сохранить вопросы и ответы в `Intent.qa`.
-5. Продолжить interview через `/interview <intentId>`.
+4. Сохранить вопросы и ответы в `intent_qa` через `add_intent_qa`.
+5. Продолжить interview через `/tinterview <intentId>`.
 6. Запустить `/twork [intentId?]` или `/tnew [intentId?]` без отдельного approval/status шага.
 7. Получить результат работы в репозитории, без сохранения результата work внутри `Intent`.
-8. После review добавить замечания в `Intent.review` через `/treview [intentId?] <замечание>`.
-9. Редактировать `Intent.text` вручную или через агента.
-10. Редактировать `Instruction.text` вручную или через агента.
-11. Видеть историю версий `Intent.text` и `Instruction.text` через отдельные tools.
+8. После review добавить замечания в `intent_review` через `/treview [intentId?] <замечание>`.
+9. Редактировать `Intent.text` через агента (file-like edit-tools) или вручную (mongosh).
+10. Редактировать `Instruction.text` вручную (mongosh / будущий HTTP). Агентского write-API для инструкций в MVP нет.
+
+История версий `Intent.text` / `Instruction.text` пишется в `text_versions` (см. §7.2), но через MCP агенту не выставляется — это материал для аудита и ETL.
 
 ## 13. Принципы MVP
 
@@ -606,9 +589,10 @@ AddIntentReview
 * Результат `work` не хранится в `Intent`; источник результата — репозиторий.
 * Целевой репозиторий/рабочая директория определяется текущим контекстом агента, а не моделью `Intent`.
 * `Intent.text` — главный редактируемый документ.
-* `Intent.qa` фиксирует непонимание на interview.
-* `Intent.review` фиксирует непонимание на work/review.
-* `Intent.text` и `Instruction.text` версионируются.
+* `intent_qa` фиксирует непонимание на interview (training-only, агенту невидим).
+* `intent_review` фиксирует непонимание на work/review (training-only, агенту невидим).
+* `Intent.text` и `Instruction.text` версионируются в общей коллекции `text_versions`, формат delta-only после v1.
+* Каждый MCP-вызов попадает в append-only `mcp_call_log` (ADR-0004) — основа dogfooding-телеметрии.
 * Улучшение системы — следующая итерация, MVP только собирает данные.
 * Dogfooding важнее полноты.
 * Система должна быть объяснима и быстро пересоздаваема.
@@ -616,109 +600,87 @@ AddIntentReview
 
 ## 14. Минимальный набор MCP tools
 
-Предварительно необходимы следующие MCP tools:
+MVP-набор — **9 tools**, ровно столько, сколько нужно для slash-команд `/tinterview`, `/twork`, `/tnew`, `/treview` и dogfooding-критериев §13. Финальный контракт зафиксирован в [ADR-0003 §1](specs/ADR/0003-mcp-text-editing-semantics.md).
+
+Чтение (4):
+
+```text
+get_intent(intent_id) -> IntentWithText
+read_intent_text(intent_id, start_line? = 1, line_count?, max_chars?) -> TextSlice
+search_intent_text(intent_id, query, context_lines? = 3, limit? = 10) -> TextSearchResult[]
+get_instruction_bundle(mode) -> InstructionWithText[]
+```
+
+Запись Intent (5):
 
 ```text
 create_intent(text, tags?) -> Intent
-get_intent(intent_id, include_text?) -> Intent
-read_intent_text(intent_id, start_line?, line_count?, max_chars?) -> TextSlice
-search_intent_text(intent_id, query, context_lines?, limit?) -> TextSearchResult[]
-list_intent_versions(intent_id, limit?, cursor?) -> IntentTextVersion[]
-replace_intent_text(intent_id, expected_version, old_text, new_text, reason?) -> Intent
-insert_intent_text_after_line(intent_id, expected_version, after_line, insert_text, reason?) -> Intent
-replace_intent_text_from_interview(intent_id, expected_version, old_text, new_text, question, answer, reason?) -> Intent
-insert_intent_text_after_line_from_interview(intent_id, expected_version, after_line, insert_text, question, answer, reason?) -> Intent
-add_intent_review(intent_id, note, reason) -> Intent
-list_intents(tags?, limit?, cursor?) -> Intent[]
-
-create_instruction(kind, text) -> Instruction
-get_instruction(instruction_id, include_text?) -> Instruction
-read_instruction_text(instruction_id, start_line?, line_count?, max_chars?) -> TextSlice
-search_instruction_text(instruction_id, query, context_lines?, limit?) -> TextSearchResult[]
-list_instruction_versions(instruction_id, limit?, cursor?) -> InstructionTextVersion[]
-replace_instruction_text(instruction_id, expected_version, old_text, new_text, reason?) -> Instruction
-insert_instruction_text_after_line(instruction_id, expected_version, after_line, insert_text, reason?) -> Instruction
-list_instructions(kind?, limit?, cursor?) -> Instruction[]
-get_instruction_bundle(mode) -> Instruction[]
+replace_intent_text(intent_id, expected_version, old_text, new_text) -> Intent
+insert_intent_text_after_line(intent_id, expected_version, after_line, insert_text) -> Intent
+add_intent_qa(intent_id, expected_version, question, answer) -> Ack
+add_intent_review(intent_id, expected_version, note, reason) -> Ack
 ```
 
-### 14.1. Text editing tools
+`Ack = { intent_id, current_version, accepted: true }`. qa/review-документы агенту не возвращаются.
 
-`Intent.text` и `Instruction.text` редактируются через file-like интерфейс.
+Сознательно **не вводятся** в MVP:
 
-Решение MVP: не делать универсальный `patch` tool. Вместо этого дать агенту минимальный набор, похожий на работу с локальными файлами:
+- `list_intents`, `list_instructions`, `list_*_versions` — ни один dogfooding-сценарий §13 их не задействует.
+- `get_instruction(id)`, `read_instruction_text`, `search_instruction_text` — агент берёт инструкции только пакетом через `get_instruction_bundle(mode)`.
+- Все write-tools для Instruction (`create_instruction`, `replace_instruction_text`, `insert_instruction_text_after_line`) — инструкции в MVP правит пользователь напрямую (mongosh / будущий HTTP).
+- `*_from_interview` варианты edit-tools — связь qa ↔ правка организована через decoupled `add_intent_qa` (ADR-0003 §1, альтернатива №1).
+- `replace_by_line_range`, `full_replace` — оба разрушают контекст больших документов или провоцируют гонки на дрейфующих номерах строк.
+- Параметр `include_text?` у `get_intent` — `get_intent` всегда возвращает полный `text`.
+- Параметр `reason?` у edit-tools — «зачем» уже есть в `mcp_call_log` и `intent_qa`; `reason` остаётся только в `add_intent_review` как контентное поле.
+- Параметр `response_format` (см. §15.3).
 
-```text
-read/view range
-search
-exact string replace
-insert after line
-```
+Когда любой из этих tools понадобится — отдельный ADR.
 
-Чтение:
+### 14.1. Text editing semantics
 
-```text
-read_*_text(id, start_line?, line_count?, max_chars?)
-```
+Агент работает с `Intent.text` через file-like интерфейс: read range, search, exact string replace, insert after line. Универсального `patch` tool нет.
 
-Правила чтения:
+`read_intent_text(intent_id, start_line?, line_count?, max_chars?)`:
 
-* line numbers — 1-indexed;
-* `start_line` по умолчанию = 1;
-* если `line_count` не передан, сервер может вернуть весь документ, но обязан применить `max_chars`/дефолтную защиту от слишком большого ответа;
-* ответ должен содержать `current_version`, `start_line`, `end_line`, `total_lines`, `content`, `truncated`.
+- line numbers 1-indexed; `start_line` по умолчанию = 1;
+- если `line_count` не передан — сервер возвращает с конца документа `total_lines - start_line + 1` строк под серверным лимитом;
+- серверный жёсткий лимит ответа = **64 000 символов** (ADR-0003 §2). `max_chars` — клиентский потолок, не выше серверного;
+- ответ:
+  ```text
+  TextSlice
+  - current_version
+  - start_line
+  - end_line
+  - total_lines
+  - content
+  - truncated         // true если ответ обрезан по max_chars
+  - next_start_line   // подсказка для пагинации, если truncated
+  ```
 
-Поиск:
+`search_intent_text(intent_id, query, context_lines? = 3, limit? = 10)`:
 
-```text
-search_*_text(id, query, context_lines?, limit?)
-```
+- поиск case-sensitive, по подстроке (regex в MVP не вводится);
+- серверный max `limit` = 50;
+- ответ — массив `TextSearchResult { match_line, match_column, context, context_start_line }`;
+- если общее число совпадений > `limit`, в ответе поле `total_matches_estimate` и hint «уточни запрос».
 
-Правила поиска:
+`replace_intent_text(intent_id, expected_version, old_text, new_text)` и `insert_intent_text_after_line(intent_id, expected_version, after_line, insert_text)` — контракт см. в §9.3 и ADR-0003 §3/§4.
 
-* возвращать найденные фрагменты с номерами строк и соседним контекстом;
-* дефолт `context_lines = 3`;
-* дефолт `limit = 10`;
-* если совпадений слишком много, вернуть первые результаты и подсказку сузить запрос.
+Actionable error codes (единый реестр `Throne.Application.ErrorCodes`, отдаются через Problem Details writer):
 
-Редактирование точной заменой:
+| Код | Когда |
+|---|---|
+| `intent.version_conflict` | `expected_version != current_version` |
+| `intent.text.match_not_found` | `old_text` не найден |
+| `intent.text.match_ambiguous` | `old_text` найден >1 раза |
+| `intent.text.line_out_of_range` | `after_line` вне `0..total_lines` |
 
-```text
-replace_*_text(id, expected_version, old_text, new_text, reason?)
-```
-
-Правила `replace`:
-
-* `expected_version` обязателен;
-* `old_text` должен совпасть ровно один раз;
-* whitespace и переносы строк значимы;
-* если совпадение не найдено или найдено несколько раз, правка не применяется;
-* ошибка должна быть actionable: предложить `search`/`read range` и объяснить, как уточнить `old_text`.
-
-Редактирование вставкой:
-
-```text
-insert_*_text_after_line(id, expected_version, after_line, insert_text, reason?)
-```
-
-Правила `insert`:
-
-* `after_line = 0` означает вставку в начало документа;
-* `after_line` должен быть валидным для текущей версии документа;
-* вставка создаёт новую версию текста.
-
-`replace_by_line_range` в MVP не добавляется. Номера строк используются для навигации и вставки, но не для замены диапазона. Для замены блока агент должен сначала прочитать диапазон, затем использовать `replace_*_text` с точным `old_text`.
-
-`full_replace` как обычный tool не добавляется. Полная перезапись слишком легко превращается в потерю контекста и хуже подходит для dogfooding больших документов.
-
-Инструкции выбираются по `kind`.
-
-Для каждого режима агент должен использовать `get_instruction_bundle(mode)`, чтобы не собирать bundle вручную.
+Для инструкций отдельных read-tools нет — агент получает их пакетом:
 
 ```text
-get_instruction_bundle(interview)    -> common + interview
-get_instruction_bundle(light_work)   -> common + light_work
-get_instruction_bundle(new_project)  -> common + new_project
+get_instruction_bundle(interview)    -> [common, interview]
+get_instruction_bundle(light_work)   -> [common, light_work]
+get_instruction_bundle(new_project)  -> [common, new_project]
 
 /tinterview -> get_instruction_bundle(interview)
 /twork      -> get_instruction_bundle(light_work)
@@ -726,7 +688,9 @@ get_instruction_bundle(new_project)  -> common + new_project
 /treview    -> get_instruction_bundle(light_work)
 ```
 
-Это снижает риск, что агент забудет `common`-инструкции или выберет неправильный набор.
+Маппинг режимов жёстко зашит на сервере. Если для нужного `kind` нет ни одной инструкции (что не должно случаться благодаря seed bootstrap, §15.1), сервер возвращает то, что есть, и явный flag `missing_kinds[]`.
+
+Это снижает риск, что агент забудет `common`-инструкции или соберёт неправильный набор.
 
 ## 15. Закрытые технические решения
 
@@ -743,67 +707,47 @@ Seed-инструкции создаются idempotent bootstrap-логикой
 
 ### 15.2. current_version
 
-`Intent` и `Instruction` должны хранить отдельное поле `current_version`.
-
-Причина: агент должен быстро получать версию для optimistic concurrency, не вычисляя её по истории.
-
-Обновлённые структуры:
-
-```text
-Intent
-- id
-- text
-- current_version
-- qa[]
-- review[]
-- tags[]
-- created_at
-- updated_at
-```
-
-```text
-Instruction
-- id
-- kind
-- text
-- current_version
-- created_at
-- updated_at
-```
+`Intent` и `Instruction` хранят отдельное поле `current_version` в основном документе. Канонические структуры — в §7 (Intent) и §8 (Instruction).
 
 Правило:
 
 * при создании объекта `current_version = 1`;
-* при каждой успешной правке текста `current_version += 1`;
-* edit tools требуют `expected_version`;
-* если `expected_version != current_version`, сервер возвращает conflict error и просит агента перечитать документ.
+* при каждой успешной правке `text` `current_version += 1`;
+* `replace_intent_text` / `insert_intent_text_after_line` / `add_intent_qa` / `add_intent_review` требуют `expected_version`;
+* `add_intent_qa` / `add_intent_review` проверяют `expected_version`, но **не** инкрементируют `current_version` (qa/review — не правка text);
+* инкремент `current_version`, обновление `text` и запись delta в `text_versions` атомарны;
+* при `expected_version != current_version` сервер возвращает typed `ApiException` с кодом `intent.version_conflict` и detail-полями, чтобы агент мог перечитать документ и повторить.
 
-### 15.3. response_format для list/search
+### 15.3. response_format
 
-Отдельный параметр `response_format: concise | detailed` в MVP не добавляется.
+Отдельный параметр `response_format: concise | detailed` в MVP не добавляется. Вместо этого фиксированное поведение:
 
-Вместо этого используется фиксированное поведение:
-
-* `list_*` возвращает компактные summary-объекты без полного текста;
-* `get_*` возвращает метаданные и полный текст только при `include_text = true`;
-* `read_*_text` используется для чтения текста;
-* `search_*_text` возвращает компактные результаты с ограниченным контекстом.
+* `get_intent` всегда возвращает полный `text` с `current_version` и `tags`;
+* `read_intent_text` используется для чтения большого `text` диапазонами под серверным лимитом 64 000 символов;
+* `search_intent_text` возвращает компактные результаты с ограниченным контекстом;
+* `get_instruction_bundle(mode)` возвращает массив `InstructionWithText` целиком.
 
 Это проще для агента и уменьшает количество режимов поведения tools.
 
+### 15.4. MCP call audit log
+
+Каждый MCP-вызов попадает в append-only коллекцию `mcp_call_log` (`tool_name`, `arguments`, `intent_id`, `session_id`, `outcome`, `error_code`, `result_summary`, `duration_ms`, `server_version`). Запись делает middleware на границе `Throne.Api` через порт `IMcpCallLogSink` — best-effort, без блокировки tool-вызова при сбое sink. Покрытие гарантируется конструкцией: единый registration-helper, architecture-тест, startup fail-fast, параметризованный smoke integration-тест. Подробности — [ADR-0004](specs/ADR/0004-mcp-call-audit-log.md). Это обоснование центральной гипотезы §4 — без журнала «улучшение системы — следующая итерация» теряет материал.
+
 ## 16. Что отдавать агенту для реализации
 
-Документ считается достаточным для первой реализации MVP.
+Документ считается достаточным для первой реализации MVP в связке с ADR-0001..0004 ([REGISTRY](specs/ADR/REGISTRY.md)). Архитектурные решения — там, продуктовая постановка — здесь.
 
 Следующий шаг — превратить его в implementation prompt для coding agent:
 
-1. создать backend с MongoDB;
-2. реализовать модели `Intent`, `Instruction`, `IntentTextVersion`, `InstructionTextVersion`;
-3. реализовать idempotent bootstrap seed-инструкций;
-4. реализовать MCP tools из раздела 14;
-5. реализовать file-like text editing semantics;
-6. добавить тесты на версионирование, exact replace, conflict handling и seed bootstrap;
-7. подготовить agent instruction для slash-команд `/tinterview`, `/twork`, `/tnew`, `/treview`.
+1. поднять backend на .NET 10 + MongoDB в существующем `apps/api` (clean architecture, см. ADR-0001);
+2. реализовать доменные модели `Intent`, `Instruction` и единую `TextVersion` (`owner_kind` + delta-only после v1, см. ADR-0002);
+3. реализовать коллекции `intent_qa`, `intent_review` (training-only, без MCP read API);
+4. реализовать idempotent bootstrap seed-инструкций при старте;
+5. реализовать 9 MCP tools из §14 через единый registration-helper (см. ADR-0003 и ADR-0004 §4);
+6. реализовать file-like text editing semantics (`replace` / `insert_after_line`) с actionable error codes (см. §14.1);
+7. реализовать `mcp_call_log` middleware + best-effort `IMcpCallLogSink` (ADR-0004), с гарантией покрытия by construction;
+8. добавить тесты: версионирование, exact replace (match_not_found / match_ambiguous), conflict handling, seed bootstrap, audit log coverage (параметризованный по реестру tools);
+9. подготовить agent instruction для slash-команд `/tinterview`, `/twork`, `/tnew`, `/treview` с маппингом на `get_instruction_bundle(mode)`.
 
 Вне рамок первой реализации:
 
@@ -814,4 +758,7 @@ Instruction
 * автоматическое обучение;
 * удаление/архивация;
 * retrieval/semantic search;
-* сложная permission model.
+* сложная permission model;
+* MCP write-tools для Instruction;
+* MCP read-tools для истории версий, qa, review, audit log;
+* PII-маскирование в `mcp_call_log.arguments`.
