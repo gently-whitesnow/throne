@@ -46,4 +46,43 @@ public static class ThroneToolRegistration
 
         return services;
     }
+
+    public static IServiceCollection AddThronePrompt<TPrompt>(this IServiceCollection services)
+        where TPrompt : class
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddSingleton<TPrompt>();
+
+        var promptMethods = typeof(TPrompt)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.GetCustomAttribute<McpServerPromptAttribute>() is not null)
+            .ToArray();
+
+        if (promptMethods.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Type '{typeof(TPrompt).FullName}' has no methods marked with [McpServerPrompt].");
+        }
+
+        foreach (var method in promptMethods)
+        {
+            services.AddSingleton<McpServerPrompt>(sp =>
+            {
+                var inner = McpServerPrompt.Create(
+                    method,
+                    sp.GetRequiredService<TPrompt>(),
+                    new McpServerPromptCreateOptions { Services = sp });
+
+                return new AuditingMcpServerPrompt(
+                    inner,
+                    sp.GetRequiredService<IMcpCallLogSink>(),
+                    sp.GetRequiredService<TimeProvider>(),
+                    sp.GetRequiredService<ILogger<AuditingMcpServerPrompt>>(),
+                    sp.GetRequiredService<ServerVersion>());
+            });
+        }
+
+        return services;
+    }
 }
