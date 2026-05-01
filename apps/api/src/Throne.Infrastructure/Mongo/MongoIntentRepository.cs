@@ -94,6 +94,69 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         }
     }
 
+    public async Task<InsertIntentTextAfterLineOutcome> InsertTextAfterLineAsync(
+        IntentId id,
+        int expectedVersion,
+        int afterLine,
+        string insertText,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(insertText);
+
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentRepository.InsertTextAfterLineAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (document is null)
+        {
+            return new InsertIntentTextAfterLineOutcome.NotFound();
+        }
+
+        if (document.CurrentVersion != expectedVersion)
+        {
+            return new InsertIntentTextAfterLineOutcome.VersionConflict(document.CurrentVersion);
+        }
+
+        var intent = MapToDomain(document);
+        var newVersionId = Guid.NewGuid().ToString("N");
+        var domainResult = intent.InsertAfterLine(afterLine, insertText, newVersionId, now, TextVersionAuthor.Agent);
+
+        switch (domainResult)
+        {
+            case InsertTextResult.LineOutOfRange outOfRange:
+                return new InsertIntentTextAfterLineOutcome.LineOutOfRange(outOfRange.TotalLines, outOfRange.RequestedAfterLine);
+
+            case InsertTextResult.Inserted inserted:
+                {
+                    var update = Builders<IntentDocument>.Update
+                        .Set(d => d.Text, intent.Text)
+                        .Set(d => d.CurrentVersion, intent.CurrentVersion)
+                        .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+
+                    var updateResult = await _intents.UpdateOneAsync(
+                        session,
+                        d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+                        update,
+                        options: null,
+                        ct).ConfigureAwait(false);
+
+                    if (updateResult.ModifiedCount == 0)
+                    {
+                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                        return new InsertIntentTextAfterLineOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
+                    }
+
+                    await _textVersions.InsertOneAsync(session, MapVersion(inserted.Version), options: null, ct).ConfigureAwait(false);
+                    return new InsertIntentTextAfterLineOutcome.Inserted(intent);
+                }
+
+            default:
+                throw new InvalidOperationException($"Unhandled domain result: {domainResult.GetType().Name}");
+        }
+    }
+
     public async Task<IReadOnlyList<Intent>> ListAsync(CancellationToken ct)
     {
         var session = sessions.Current;

@@ -23,6 +23,24 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                 new CreateIndexOptions { Unique = true, Name = "owner_version_unique" }),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
+        var qa = database.GetCollection<IntentQaDocument>(MongoCollectionNames.IntentQa);
+        await qa.Indexes.CreateOneAsync(
+            new CreateIndexModel<IntentQaDocument>(
+                Builders<IntentQaDocument>.IndexKeys
+                    .Ascending(x => x.IntentId)
+                    .Ascending(x => x.CreatedAt),
+                new CreateIndexOptions { Name = "intent_created" }),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        var reviews = database.GetCollection<IntentReviewDocument>(MongoCollectionNames.IntentReview);
+        await reviews.Indexes.CreateOneAsync(
+            new CreateIndexModel<IntentReviewDocument>(
+                Builders<IntentReviewDocument>.IndexKeys
+                    .Ascending(x => x.IntentId)
+                    .Ascending(x => x.CreatedAt),
+                new CreateIndexOptions { Name = "intent_created" }),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(
             [

@@ -6,4 +6,6 @@ public static class MongoCollectionNames
     public const string Instructions = "instructions";
     public const string TextVersions = "text_versions";
     public const string McpCallLog = "mcp_call_log";
+    public const string IntentQa = "intent_qa";
+    public const string IntentReview = "intent_review";
 }
