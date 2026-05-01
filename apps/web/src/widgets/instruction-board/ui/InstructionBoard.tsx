@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { IntentApiCard, type IntentListItem } from "@/entities/intent";
-import { CreateIntentButton } from "@/features/create-intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import {
+  InstructionCard,
+  type InstructionListItem
+} from "@/entities/instruction";
+import { HttpError, httpGet, instructionsEndpoints } from "@/shared/api";
 
 type LoadState =
   | { kind: "loading" }
-  | { kind: "ready"; items: IntentListItem[] }
+  | { kind: "ready"; items: InstructionListItem[] }
   | { kind: "error"; message: string };
 
-export function IntentBoard() {
+export function InstructionBoard() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
     const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
+    httpGet<InstructionListItem[]>(
+      instructionsEndpoints.listInstructions(),
+      controller.signal
+    )
       .then((items) => {
         setState({ kind: "ready", items });
       })
@@ -23,8 +28,8 @@ export function IntentBoard() {
         if (controller.signal.aborted) return;
         const message =
           err instanceof HttpError
-            ? `Не удалось загрузить intents (${String(err.status)}).`
-            : "Не удалось загрузить intents.";
+            ? `Не удалось загрузить instructions (${String(err.status)}).`
+            : "Не удалось загрузить instructions.";
         setState({ kind: "error", message });
       });
     return () => {
@@ -33,27 +38,26 @@ export function IntentBoard() {
   }, []);
 
   return (
-    <section className="intent-board" aria-labelledby="intent-board-title">
+    <section className="intent-board" aria-labelledby="instruction-board-title">
       <div className="intent-board__toolbar">
-        <h2 className="intent-board__title" id="intent-board-title">
-          Intent cloud
+        <h2 className="intent-board__title" id="instruction-board-title">
+          Instruction cloud
         </h2>
-        <CreateIntentButton />
       </div>
       {state.kind === "loading" && <p>Загрузка…</p>}
       {state.kind === "error" && <p role="alert">{state.message}</p>}
       {state.kind === "ready" && state.items.length === 0 && (
-        <p>Нет intents. Создайте первый через MCP.</p>
+        <p>Инструкции отсутствуют — seed bootstrap не отработал.</p>
       )}
       {state.kind === "ready" && state.items.length > 0 && (
         <div className="intent-board__grid">
-          {state.items.map((intent) => (
+          {state.items.map((instruction) => (
             <Link
-              key={intent.id}
-              to={`/intents/${intent.id}`}
+              key={instruction.id}
+              to={`/instructions/${instruction.id}`}
               className="intent-board__link"
             >
-              <IntentApiCard intent={intent} />
+              <InstructionCard instruction={instruction} />
             </Link>
           ))}
         </div>

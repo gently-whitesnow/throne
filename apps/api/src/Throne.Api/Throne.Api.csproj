@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Throne.Application\Throne.Application.csproj" />
     <ProjectReference Include="..\Throne.Infrastructure\Throne.Infrastructure.csproj" />
     <ProjectReference Include="..\Throne.Intents.Contracts\Throne.Intents.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Instructions.Contracts\Throne.Instructions.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

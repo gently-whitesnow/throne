@@ -16,6 +16,8 @@ public static class DependencyInjection
         services.AddSingleton<ListIntentsHandler>();
         services.AddSingleton<GetInstructionBundleHandler>();
         services.AddSingleton<EnsureSeedInstructionsHandler>();
+        services.AddSingleton<ListInstructionsHandler>();
+        services.AddSingleton<GetInstructionHandler>();
         return services;
     }
 }

@@ -52,6 +52,36 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         return result;
     }
 
+    public async Task<IReadOnlyList<Instruction>> ListAsync(CancellationToken ct)
+    {
+        var filter = Builders<InstructionDocument>.Filter.Empty;
+        var session = sessions.Current;
+        var documents = session is null
+            ? await _instructions.Find(filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
+                .ToListAsync(ct).ConfigureAwait(false)
+            : await _instructions.Find(session, filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+        var result = new List<Instruction>(documents.Count);
+        foreach (var doc in documents)
+        {
+            result.Add(MapToDomain(doc));
+        }
+
+        return result;
+    }
+
+    public async Task<Instruction?> GetByIdAsync(InstructionId id, CancellationToken ct)
+    {
+        var filter = Builders<InstructionDocument>.Filter.Eq(x => x.Id, id.Value);
+        var session = sessions.Current;
+        var doc = session is null
+            ? await _instructions.Find(filter).FirstOrDefaultAsync(ct).ConfigureAwait(false)
+            : await _instructions.Find(session, filter).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+
+        return doc is null ? null : MapToDomain(doc);
+    }
+
     private static InstructionDocument MapInstruction(Instruction instruction) => new()
     {
         Id = instruction.Id.Value,

@@ -1,3 +1,9 @@
+import type { IntentsComponents } from "@/shared/api";
+
+export type IntentListItem = IntentsComponents["schemas"]["IntentListItemDto"];
+
+export type IntentDetail = IntentsComponents["schemas"]["IntentDetailDto"];
+
 export type IntentStatus = "draft" | "active" | "review";
 
 export interface IntentPreview {

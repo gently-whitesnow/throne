@@ -5,4 +5,5 @@
 
 export const intentsEndpoints = {
   listIntents: () => "/intents",
+  getIntent: (id: string) => `/intents/${id}`,
 } as const;

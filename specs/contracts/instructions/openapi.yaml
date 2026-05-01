@@ -1,17 +1,17 @@
 openapi: "3.1.0"
 info:
-  title: Throne Intents
+  title: Throne Instructions
   version: "1.0.0"
-  x-csharp-namespace: Throne.Intents.Contracts.Generated
+  x-csharp-namespace: Throne.Instructions.Contracts.Generated
 paths:
-  /api/v1/intents:
+  /api/v1/instructions:
     get:
-      operationId: listIntents
-      tags: [Intents]
-      summary: List intents (metadata + short text preview).
+      operationId: listInstructions
+      tags: [Instructions]
+      summary: List instructions (metadata + short text preview).
       description: >
-        Returns intent metadata (id, current_version, tags, timestamps) and a short text preview.
-        Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint.
+        Returns instruction metadata (id, kind, current_version, timestamps) and a short text preview.
+        Full text must be fetched via getInstruction.
       responses:
         '200':
           description: OK
@@ -20,27 +20,26 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/IntentListItemDto'
-  /api/v1/intents/{id}:
+                  $ref: '#/components/schemas/InstructionListItemDto'
+  /api/v1/instructions/{id}:
     get:
-      operationId: getIntent
-      tags: [Intents]
-      summary: Get a single intent (full text).
-      description: Returns the full intent including canonical text, tags and version.
+      operationId: getInstruction
+      tags: [Instructions]
+      summary: Get a single instruction (full text).
       parameters:
         - in: path
           name: id
           required: true
           schema:
             type: string
-          description: Intent identifier (24 hex chars, ObjectId-shaped).
+          description: Instruction identifier (24 hex chars, ObjectId-shaped).
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IntentDetailDto'
+                $ref: '#/components/schemas/InstructionDetailDto'
         '404':
           description: Not found
           content:
@@ -49,63 +48,57 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
-    IntentListItemDto:
+    InstructionListItemDto:
       type: object
       required:
         - id
+        - kind
         - current_version
-        - tags
         - text_short
         - created_at
         - updated_at
       properties:
         id:
           type: string
-          description: Intent identifier (24 hex chars, ObjectId-shaped).
+          description: Instruction identifier (24 hex chars, ObjectId-shaped).
+        kind:
+          type: string
+          description: Instruction kind (common | interview | light_work | new_project).
         current_version:
           type: integer
           format: int32
           minimum: 1
-          description: Current text version of the intent.
-        tags:
-          type: array
-          items:
-            type: string
-          description: Normalized list of tags (deduplicated, trimmed).
         text_short:
           type: string
           maxLength: 140
-          description: First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
+          description: First 140 characters of Instruction.Text (no ellipsis).
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
-    IntentDetailDto:
+    InstructionDetailDto:
       type: object
       required:
         - id
+        - kind
         - current_version
-        - tags
         - text
         - created_at
         - updated_at
       properties:
         id:
           type: string
-          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        kind:
+          type: string
         current_version:
           type: integer
           format: int32
           minimum: 1
-        tags:
-          type: array
-          items:
-            type: string
         text:
           type: string
-          description: Full canonical Intent.Text.
+          description: Full canonical Instruction.Text.
         created_at:
           type: string
           format: date-time

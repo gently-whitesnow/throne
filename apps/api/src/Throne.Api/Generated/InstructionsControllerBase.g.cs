@@ -4,7 +4,7 @@
 // </auto-generated>
 //----------------------
 
-using Throne.Intents.Contracts.Generated;
+using Throne.Instructions.Contracts.Generated;
 
 #pragma warning disable 108 // Disable "CS0108 '{derivedDto}.ToJson()' hides inherited member '{dtoBase}.ToJson()'. Use the new keyword if hiding was intended."
 #pragma warning disable 114 // Disable "CS0114 '{derivedDto}.RaisePropertyChanged(String)' hides inherited member 'dtoBase.RaisePropertyChanged(String)'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword."
@@ -27,28 +27,25 @@ namespace Throne.Api.Generated
     using System = global::System;
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public abstract class IntentsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
+    public abstract class InstructionsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
-        /// List intents (metadata + short text preview).
+        /// List instructions (metadata + short text preview).
         /// </summary>
         /// <remarks>
-        /// Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint.
+        /// Returns instruction metadata (id, kind, current_version, timestamps) and a short text preview. Full text must be fetched via getInstruction.
         /// </remarks>
         /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents", Name = "listIntents")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentListItemDto>>> ListIntents();
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions", Name = "listInstructions")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<InstructionListItemDto>>> ListInstructions();
 
         /// <summary>
-        /// Get a single intent (full text).
+        /// Get a single instruction (full text).
         /// </summary>
-        /// <remarks>
-        /// Returns the full intent including canonical text, tags and version.
-        /// </remarks>
-        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <param name="id">Instruction identifier (24 hex chars, ObjectId-shaped).</param>
         /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}", Name = "getIntent")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> GetIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions/{id}", Name = "getInstruction")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<InstructionDetailDto>> GetInstruction([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
     }
 

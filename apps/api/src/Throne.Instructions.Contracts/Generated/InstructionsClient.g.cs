@@ -20,39 +20,36 @@
 #pragma warning disable 8625 // Disable "CS8625 Cannot convert null literal to non-nullable reference type"
 #pragma warning disable 8765 // Disable "CS8765 Nullability of type of parameter doesn't match overridden member (possibly because of nullability attributes)."
 
-namespace Throne.Intents.Contracts.Generated
+namespace Throne.Instructions.Contracts.Generated
 {
     using System = global::System;
 
     
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class IntentListItemDto
+    public partial class InstructionListItemDto
     {
 
         /// <summary>
-        /// Intent identifier (24 hex chars, ObjectId-shaped).
+        /// Instruction identifier (24 hex chars, ObjectId-shaped).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Id { get; set; }
 
         /// <summary>
-        /// Current text version of the intent.
+        /// Instruction kind (common | interview | light_work | new_project).
         /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Kind { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("current_version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
         public int Current_version { get; set; }
 
         /// <summary>
-        /// Normalized list of tags (deduplicated, trimmed).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("tags")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
-
-        /// <summary>
-        /// First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
+        /// First 140 characters of Instruction.Text (no ellipsis).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("text_short")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -79,26 +76,23 @@ namespace Throne.Intents.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class IntentDetailDto
+    public partial class InstructionDetailDto
     {
 
-        /// <summary>
-        /// Intent identifier (24 hex chars, ObjectId-shaped).
-        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Kind { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("current_version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
         public int Current_version { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("tags")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
-
         /// <summary>
-        /// Full canonical Intent.Text.
+        /// Full canonical Instruction.Text.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

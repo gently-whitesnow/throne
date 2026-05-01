@@ -8,4 +8,5 @@ public static class ErrorCodes
     public const string IntentTextMatchAmbiguous = "intent.text.match_ambiguous";
     public const string IntentTextLineOutOfRange = "intent.text.line_out_of_range";
     public const string ValidationFailed = "validation.failed";
+    public const string InstructionNotFound = "instruction.not_found";
 }
