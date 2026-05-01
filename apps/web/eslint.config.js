@@ -5,7 +5,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist"]
+    ignores: ["dist", "src/shared/api/generated/**"]
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,

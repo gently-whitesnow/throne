@@ -16,4 +16,6 @@ public interface IIntentRepository
         string newText,
         DateTimeOffset now,
         CancellationToken ct);
+
+    Task<IReadOnlyList<Intent>> ListAsync(CancellationToken ct);
 }

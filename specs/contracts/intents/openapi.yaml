@@ -1,0 +1,58 @@
+openapi: "3.1.0"
+info:
+  title: Throne Intents
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Intents.Contracts.Generated
+paths:
+  /api/v1/intents:
+    get:
+      operationId: listIntents
+      tags: [Intents]
+      summary: List intents (metadata + short text preview).
+      description: >
+        Returns intent metadata (id, current_version, tags, timestamps) and a short text preview.
+        Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentListItemDto'
+components:
+  schemas:
+    IntentListItemDto:
+      type: object
+      required:
+        - id
+        - current_version
+        - tags
+        - text_short
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Current text version of the intent.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Normalized list of tags (deduplicated, trimmed).
+        text_short:
+          type: string
+          maxLength: 140
+          description: First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

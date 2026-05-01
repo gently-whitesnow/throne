@@ -13,7 +13,8 @@
     "lint": "eslint src vite.config.ts",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
-    "architecture": "env CHOKIDAR_USEPOLLING=1 steiger ./src"
+    "architecture": "env CHOKIDAR_USEPOLLING=1 steiger ./src",
+    "codegen": "node scripts/codegen-contracts.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -32,12 +33,14 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.0",
     "jsdom": "^25.0.0",
+    "openapi-typescript": "^7.4.0",
     "prettier": "^3.0.0",
     "steiger": "^0.5.7",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.0.0",
     "vite": "^7.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "yaml": "^2.6.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -1,0 +1,31 @@
+openapi: "3.1.0"
+info:
+  title: Throne Shared Contracts
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Contracts.Shared
+components:
+  schemas:
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string

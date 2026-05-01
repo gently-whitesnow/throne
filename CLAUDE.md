@@ -16,6 +16,7 @@ bash scripts/quality/verify.sh
 |---|---|
 | Архитектурные решения | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) |
 | Правила для агентов в этом проекте | [specs/AGENTS.local.md](specs/AGENTS.local.md) |
+| HTTP API контракты (OpenAPI source of truth) | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) |
 | Универсальные конвенции кодинга | [USER.md](USER.md) |
 | Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
 
