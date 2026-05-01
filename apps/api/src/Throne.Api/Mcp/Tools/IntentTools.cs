@@ -1,9 +1,13 @@
 // MCP wire-format requires snake_case parameter names; tools are an API boundary.
 #pragma warning disable CA1707
 using System.ComponentModel;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
+using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.TextVersions;
 
@@ -19,8 +23,11 @@ public sealed class IntentTools(
     SearchIntentTextHandler search,
     AddIntentQaHandler addQa,
     AddIntentReviewHandler addReview,
-    GetInstructionBundleHandler getInstructionBundle)
+    GetInstructionBundleHandler getInstructionBundle,
+    IIntentAttachmentRepository attachments)
 {
+    private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web);
+
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
     [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one.")]
     public Task<Intent> CreateIntent(
@@ -29,12 +36,73 @@ public sealed class IntentTools(
         CancellationToken cancellationToken = default) =>
         create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
 
-    [McpServerTool(Name = "get_intent", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Read canonical Intent state by id, including full Intent.text, current_version, tags, and timestamps. Does not return qa, reviews, or version history.")]
-    public Task<Intent> GetIntent(
+    [McpServerTool(Name = "get_intent", ReadOnly = true)]
+    [Description("Read canonical Intent state by id, including full text and attachments. Image attachments are returned as MCP image content blocks so agents can inspect them.")]
+    public async Task<CallToolResult> GetIntent(
         [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
-        CancellationToken cancellationToken) =>
-        get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        var intent = await get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken).ConfigureAwait(false);
+        var attachmentList = await attachments
+            .ListByIntentAsync(intent.Id, cancellationToken)
+            .ConfigureAwait(false);
+
+        var content = new List<ContentBlock>();
+        var imageReturned = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var attachment in attachmentList)
+        {
+            if (!attachment.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var opened = await attachments
+                .OpenContentAsync(intent.Id, attachment.Id, cancellationToken)
+                .ConfigureAwait(false);
+            if (opened is null)
+            {
+                continue;
+            }
+
+            await using var stream = opened.Content;
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory, cancellationToken).ConfigureAwait(false);
+            content.Add(new ImageContentBlock
+            {
+                Data = Convert.ToBase64String(memory.ToArray()),
+                MimeType = opened.Attachment.ContentType,
+            });
+            imageReturned.Add(attachment.Id);
+        }
+
+        var result = new McpIntentReadResult(
+            intent.Id.Value,
+            intent.Text,
+            intent.CurrentVersion,
+            intent.Tags,
+            intent.CreatedAt,
+            intent.UpdatedAt,
+            attachmentList
+                .Select(a => new McpIntentAttachmentReadResult(
+                    a.Id,
+                    a.IntentId,
+                    a.FileName,
+                    a.ContentType,
+                    a.SizeBytes,
+                    a.CreatedAt,
+                    imageReturned.Contains(a.Id)))
+                .ToArray(),
+            imageReturned.Count);
+
+        content.Insert(0, new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) });
+
+        return new CallToolResult
+        {
+            Content = content,
+            StructuredContent = JsonSerializer.SerializeToNode(result, ToolJsonOptions)?.AsObject(),
+            IsError = false,
+        };
+    }
 
     [McpServerTool(Name = "read_intent_text", ReadOnly = true, UseStructuredContent = true)]
     [Description("Read a line range from Intent.text. Use for large documents or before line-based insertions. Server caps each response at 64,000 characters; paginate with next_start_line.")]
