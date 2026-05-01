@@ -6,7 +6,8 @@ public sealed record GetInstructionBundleQuery(string Mode, string? IntentId);
 
 public sealed record InstructionBundle(
     [property: JsonPropertyName("mode")] string Mode,
-    [property: JsonPropertyName("intent_id")] string? IntentId,
+    [property: JsonPropertyName("intent_id"), JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    string? IntentId,
     [property: JsonPropertyName("instructions")] IReadOnlyList<InstructionWithText> Instructions,
     [property: JsonPropertyName("missing_kinds")] IReadOnlyList<string> MissingKinds);
 

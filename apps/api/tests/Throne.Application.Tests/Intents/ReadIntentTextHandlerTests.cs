@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Intents;
@@ -9,6 +11,11 @@ namespace Throne.Application.Tests.Intents;
 public class ReadIntentTextHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
+
+    private static readonly JsonSerializerOptions OmitNullJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     [Fact(DisplayName = "ReadIntentText возвращает диапазон строк с правильным end_line")]
     public async Task Read_returns_range()
@@ -45,5 +52,13 @@ public class ReadIntentTextHandlerTests
         slice.EndLine.Should().Be(1);
         slice.Truncated.Should().BeTrue();
         slice.NextStartLine.Should().Be(2);
+    }
+
+    [Fact(DisplayName = "TextSlice сериализует nextStartLine=null при omit null (MCP output schema)")]
+    public void TextSlice_json_includes_null_next_start_line()
+    {
+        var slice = new TextSlice(1, 1, 1, 3, "a", Truncated: false, NextStartLine: null);
+        var json = JsonSerializer.Serialize(slice, OmitNullJsonOptions);
+        json.Should().Contain("\"nextStartLine\":null");
     }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
@@ -11,6 +13,11 @@ public class SearchIntentTextHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
     private const string IntentIdValue = "00000000000000000000000000000001";
+
+    private static readonly JsonSerializerOptions OmitNullJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     [Fact(DisplayName = "Search возвращает совпадения и не выставляет TotalMatchesEstimate, если все влезли")]
     public async Task Returns_matches_without_estimate_when_under_limit()
@@ -67,6 +74,14 @@ public class SearchIntentTextHandlerTests
 
         var ex = (await act.Should().ThrowAsync<ApiException>()).Which;
         ex.Code.Should().Be(ErrorCodes.ValidationFailed);
+    }
+
+    [Fact(DisplayName = "TextSearchResult сериализует totalMatchesEstimate=null при omit null (MCP output schema)")]
+    public void TextSearchResult_json_includes_null_total_matches_estimate()
+    {
+        var result = new TextSearchResult(Matches: [], TotalMatchesEstimate: null);
+        var json = JsonSerializer.Serialize(result, OmitNullJsonOptions);
+        json.Should().Contain("\"totalMatchesEstimate\":null");
     }
 
     private static SearchIntentTextHandler NewHandler(out IIntentRepository repo)

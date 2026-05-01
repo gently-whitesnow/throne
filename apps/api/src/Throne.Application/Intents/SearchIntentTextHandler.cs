@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -8,7 +9,7 @@ public sealed record SearchIntentTextQuery(string IntentId, string Query, int? C
 
 public sealed record TextSearchResult(
     IReadOnlyList<TextSearchMatch> Matches,
-    int? TotalMatchesEstimate);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] int? TotalMatchesEstimate);
 
 public sealed class SearchIntentTextHandler(IIntentRepository repository)
 {

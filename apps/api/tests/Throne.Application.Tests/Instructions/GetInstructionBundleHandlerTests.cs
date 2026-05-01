@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
@@ -10,6 +12,11 @@ namespace Throne.Application.Tests.Instructions;
 public class GetInstructionBundleHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
+
+    private static readonly JsonSerializerOptions OmitNullJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     [Fact(DisplayName = "GetInstructionBundle возвращает common и mode-specific инструкции с id и version")]
     public async Task Bundle_returns_required_instructions()
@@ -77,5 +84,19 @@ public class GetInstructionBundleHandlerTests
 
         bundle.IntentId.Should().BeNull();
         bundle.Mode.Should().Be(InstructionBundleModeNames.Interview);
+    }
+
+    [Fact(DisplayName = "InstructionBundle сериализует intent_id даже когда null (MCP output schema)")]
+    public void Bundle_json_includes_null_intent_id_when_omitting_nulls()
+    {
+        var bundle = new InstructionBundle(
+            InstructionBundleModeNames.Interview,
+            IntentId: null,
+            Instructions: [],
+            MissingKinds: []);
+
+        var json = JsonSerializer.Serialize(bundle, OmitNullJsonOptions);
+
+        json.Should().Contain("\"intent_id\":null");
     }
 }

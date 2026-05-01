@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -13,7 +14,7 @@ public sealed record TextSlice(
     int TotalLines,
     string Content,
     bool Truncated,
-    int? NextStartLine);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)] int? NextStartLine);
 
 public sealed class ReadIntentTextHandler(IIntentRepository repository)
 {

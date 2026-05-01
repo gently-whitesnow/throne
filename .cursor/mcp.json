@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "throne": {
+      "command": "${workspaceFolder}/apps/api/src/Throne.Mcp.Stdio/bin/Release/net10.0/Throne.Mcp.Stdio",
+      "args": [],
+      "env": {
+        "Mongo__ConnectionString": "mongodb://localhost:27017/?replicaSet=rs0&directConnection=true",
+        "Mongo__Database": "throne"
+      }
+    }
+  }
+}
