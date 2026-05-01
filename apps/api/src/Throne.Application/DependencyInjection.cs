@@ -10,6 +10,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<CreateIntentHandler>();
         services.AddScoped<GetIntentHandler>();
+        services.AddScoped<ReadIntentTextHandler>();
         services.AddScoped<ReplaceIntentTextHandler>();
         services.AddScoped<ListIntentsHandler>();
         return services;
