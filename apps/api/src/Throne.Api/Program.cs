@@ -19,7 +19,7 @@ var app = builder.Build();
 ThroneStartup.AssertToolsRegistered(app.Services);
 
 app.MapControllers();
-app.MapMcp();
+app.MapMcp("/mcp");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
