@@ -762,3 +762,88 @@ Seed-инструкции создаются idempotent bootstrap-логикой
 * MCP write-tools для Instruction;
 * MCP read-tools для истории версий, qa, review, audit log;
 * PII-маскирование в `mcp_call_log.arguments`.
+
+## 17. Backlog для следующего агента
+
+После первого вертикального среза (см. §16) реализованы 3 MCP tools — `create_intent`, `get_intent`, `read_intent_text` — через `[McpServerTool]`-классы + `AuditingMcpServerTool` decorator + `AddThroneTool<T>` registration-helper (ADR-0003 + ADR-0004). Дальше — два независимых задания. Можно брать любое; задание B логически опирается на A, но если A не сделано, в задании B можно временно обойтись sequential writes без транзакции и пометить TODO.
+
+### 17.1. Шаг A — Mongo replica set + multi-document transactions
+
+**Цель.** Закрыть требование ADR-0002 §6: «инкремент `current_version` + update `text` + insert в `text_versions` атомарны». Сейчас `MongoIntentRepository.CreateAsync` делает два последовательных `InsertOne` без транзакции (это безопасно только потому, что у `create_intent` нет concurrency). Любая будущая write-операция (`replace_intent_text`, `insert_intent_text_after_line`, `add_intent_qa`, `add_intent_review`) требует настоящей транзакции — иначе сбой между двумя `InsertOne` оставит canonical state в несогласованном виде.
+
+**Что делать.**
+
+1. Поднять Mongo replica set в Testcontainers.
+   - `Testcontainers.MongoDb 4.1.0` поддерживает `MongoDbBuilder().WithReplicaSet()` — использовать его в `MongoFixture`.
+   - Проверить, что существующие интеграционные тесты (`MongoIntentRepositoryTests`, `MongoMcpCallLogSinkTests`) продолжают проходить.
+2. В `Throne.Infrastructure` ввести абстракцию для работы с транзакциями:
+   - Порт `IMongoUnitOfWork` (или `ITransactionScope`) в `Throne.Application/Ports`, реализация `MongoUnitOfWork` в `Throne.Infrastructure/Mongo`. Интерфейс должен скрывать `IClientSessionHandle` от Application слоя (он не должен знать про MongoDB.Driver).
+   - Альтернатива: passthrough через `Func<CancellationToken, Task>` лямбду — `await uow.ExecuteAsync(async ct => { ... }, ct)`. Внутри `MongoUnitOfWork.ExecuteAsync` стартует session, открывает transaction, проходит лямбду, коммитит / откатывает.
+3. Переписать `MongoIntentRepository.CreateAsync` через UoW: оба `InsertOne` идут с `IClientSessionHandle` в одной транзакции.
+4. Документировать в production setup, что Mongo должен быть replica set (не standalone). Для локальной разработки — либо docker-compose с `--replSet`, либо `mongod --replSet rs0` + `rs.initiate()`. Записать в `apps/api/README.md` или в `MongoOptions` xml-doc.
+5. Если транзакции стоят дорого / усложняют локальный setup, рассмотреть альтернативу: денормализовать current_version и last text version-id в самом Intent-документе (single-document update — атомарен в Mongo by default). Тогда `text_versions` пишется ВТОРЫМ; если этот write упадёт, последующая read-операция увидит canonical state с current_version=N, но в `text_versions` будет дырка. История перестаёт быть strong-consistent. Это нарушает ADR-0002 §4 — закрыть отдельным amendment к ADR-0002 или **не выбирать этот путь**.
+
+**Acceptance criteria.**
+
+- `bash scripts/quality/verify.sh` зелёный.
+- Новый интеграционный тест: эмулировать сбой между двумя записями (например, infrastructure-тест, который оборачивает `IIntentRepository` в repo, бросающий после первого `InsertOne`) — проверить, что после rollback ни `intents`, ни `text_versions` не содержат частичных данных.
+- `MongoIntentRepository.CreateAsync` использует только UoW; прямые вызовы `InsertOneAsync(doc, options: null, ct)` без session — запрещены (можно проверить через architecture-тест или review).
+
+**Файлы (ориентир, не догма).**
+
+- `apps/api/src/Throne.Application/Ports/IMongoUnitOfWork.cs` (новый).
+- `apps/api/src/Throne.Infrastructure/Mongo/MongoUnitOfWork.cs` (новый).
+- `apps/api/src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs` (правка `CreateAsync`).
+- `apps/api/src/Throne.Infrastructure/DependencyInjection.cs` (регистрация UoW).
+- `apps/api/tests/Throne.Infrastructure.Tests/MongoFixture.cs` (replica set).
+- `apps/api/tests/Throne.Infrastructure.Tests/Mongo/TransactionRollbackTests.cs` (новый).
+
+### 17.2. Шаг B — `replace_intent_text` MCP tool
+
+**Цель.** Закрыть основной write-сценарий `interview` / `light_work`: точечная замена куска `Intent.text` с optimistic concurrency. Контракт зафиксирован в ADR-0003 §3 и intent.md §9.3 + §14.1.
+
+**Что делать.**
+
+1. Расширить `Throne.Domain/Intents/Intent.cs`:
+   - Метод `ReplaceText(string oldText, string newText, DateTimeOffset now)` — ищет ровно одно вхождение `oldText` в `Text`, заменяет на `newText`, инкрементирует `CurrentVersion`, обновляет `UpdatedAt`. Возвращает либо новую `TextVersion` (kind=replace, owner_kind=intent, version=N+1, old_text/new_text как пришли), либо результат с дискриминатором ошибки (`MatchNotFound` / `MatchAmbiguous`). Решение «exception vs Result»: в Domain бросать `DomainException` с типом ошибки, в Application мэппить в `ApiException(intent.text.match_not_found)` / `intent.text.match_ambiguous`. Альтернатива — Result tuple, см. USER.md «Старайся в нагруженных частях возвращать кортеж». Выбор за исполнителем; согласовать стиль с уже существующим `Intent.Create`.
+2. Расширить `IIntentRepository`:
+   - Добавить метод `ReplaceTextAsync(IntentId id, int expectedVersion, string oldText, string newText, DateTimeOffset now, CancellationToken ct)` ИЛИ обобщить через `UpdateAsync(Intent intent, TextVersion newVersion, CancellationToken ct)` с оптимистичной проверкой `current_version` в Mongo-уровне (UpdateOneAsync с фильтром `_id == id && current_version == expected`).
+   - Возвращаемое значение: типизированный outcome (`Replaced` / `VersionConflict { current }` / `MatchNotFound` / `MatchAmbiguous`). Применить тот же паттерн, что в Domain.
+3. Реализовать в Mongo (`MongoIntentRepository`):
+   - Проверка `expected_version == current_version` через filter в `UpdateOneAsync` ИЛИ через явный read-modify-write внутри транзакции из шага A.
+   - При успехе атомарно: update `intents` (новый `text`, `current_version + 1`, `updated_at`) + insert в `text_versions` (kind=replace, owner_kind=intent, version=N+1, old_text/new_text). Атомарность — через UoW из шага A. Если шаг A ещё не сделан, временно сделать sequential writes и пометить TODO.
+   - Edge case: пустая строка `new_text` — допустима (удаление фрагмента).
+4. Application use case `ReplaceIntentTextHandler`:
+   - Команда: `ReplaceIntentTextCommand(intent_id, expected_version, old_text, new_text)`.
+   - Возвращает обновлённый `Intent`.
+   - Маппит outcome из repo в `ApiException` с правильным кодом (`intent.version_conflict` / `intent.text.match_not_found` / `intent.text.match_ambiguous`) и detail-полями из ADR-0003 §3.
+5. MCP tool в `IntentTools`:
+   - Метод `ReplaceIntentText(string intent_id, int expected_version, string old_text, string new_text, CancellationToken ct)` с `[McpServerTool(Name = "replace_intent_text", UseStructuredContent = true)]`.
+   - Возвращает `Intent` (как `create_intent` / `get_intent`).
+6. Audit log:
+   - Decorator `AuditingMcpServerTool` уже знает про tool name и аргументы. Дополнительная работа не требуется — всё бесплатно.
+
+**Acceptance criteria.**
+
+- `bash scripts/quality/verify.sh` зелёный.
+- Domain unit-тест: `ReplaceText` корректно работает на ровном вхождении; `MatchNotFound` / `MatchAmbiguous` возвращаются точно по ADR-0003 §3.
+- Application unit-тест: маппинг outcome → ApiException + detail-поля.
+- Infrastructure integration-тест: вторая запись (`text_versions`) появляется атомарно с обновлением `intents`; `expected_version` mismatch → `intent.version_conflict`; concurrent replace на одном Intent — один выигрывает, другой получает version_conflict.
+- API integration-тест (или unit на уровне `IntentTools` через DI): tool в DI обёрнут в `AuditingMcpServerTool`, audit-запись с `tool_name = replace_intent_text` и `intent_id` появляется.
+- Architecture-инвариант: ничего нового не нужно — `AddThroneTool<IntentTools>` уже автоматически подхватит новый метод по `[McpServerTool]`.
+
+**Файлы (ориентир).**
+
+- `apps/api/src/Throne.Domain/Intents/Intent.cs` (метод `ReplaceText`).
+- `apps/api/src/Throne.Application/Ports/IIntentRepository.cs` (новый метод).
+- `apps/api/src/Throne.Application/Intents/ReplaceIntentTextHandler.cs` (новый).
+- `apps/api/src/Throne.Application/DependencyInjection.cs` (регистрация handler).
+- `apps/api/src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs` (реализация).
+- `apps/api/src/Throne.Api/Mcp/Tools/IntentTools.cs` (новый метод с `[McpServerTool]`).
+- Тесты: `Throne.Domain.Tests/Intents/IntentReplaceTextTests.cs`, `Throne.Application.Tests/Intents/ReplaceIntentTextHandlerTests.cs`, `Throne.Infrastructure.Tests/Mongo/MongoIntentReplaceTests.cs`.
+
+**Что вне scope этого шага.**
+
+- `insert_intent_text_after_line` — отдельный, аналогичный по структуре tool. Сделать тем же паттерном после `replace_intent_text` (или сразу пакетом, если время позволяет).
+- `add_intent_qa` / `add_intent_review` — те же optimistic concurrency правила, но не инкрементируют `current_version` (см. ADR-0002 §6). Отдельный шаг.
+- Search (`search_intent_text`) — read-only, без транзакций; отдельный шаг.

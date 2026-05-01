@@ -14,7 +14,7 @@ public class LayerDependencyRulesTests
     public void Domain_should_not_depend_on_any_other_layer()
     {
         var result = Types
-            .InAssembly(typeof(Throne.Domain.DomainAssemblyMarker).Assembly)
+            .InAssembly(typeof(Throne.Domain.Intents.Intent).Assembly)
             .Should()
             .NotHaveDependencyOnAny(ApplicationAssembly, InfrastructureAssembly, ApiAssembly)
             .GetResult();
