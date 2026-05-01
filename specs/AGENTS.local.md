@@ -27,6 +27,10 @@ Api ──► Infrastructure (только в Program.cs / DI wiring)
 
 Нарушение направления зависимостей провалит `Throne.Architecture.Tests`.
 
+## Frontend / UI
+
+При работе над `apps/web` или UI-компонентами используй [DESIGN.md](../DESIGN.md) как источник проектной дизайн-системы.
+
 ## Изменения, требующие ADR
 
 - Смена архитектурного стиля или layout слоёв.

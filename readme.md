@@ -26,6 +26,7 @@ throne/
 ├── .quality/                # quality.config.json
 ├── AGENTS.md                # Codex/agent entrypoint
 ├── CLAUDE.md                # Claude entrypoint
+├── DESIGN.md                # frontend design system
 └── USER.md                  # universal coding conventions
 ```
 
@@ -78,5 +79,6 @@ bash scripts/quality/verify.sh --fast   # без security audit
 | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) | Реестр архитектурных решений |
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
 | [USER.md](USER.md) | Универсальные конвенции |
+| [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |
 | [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов |
 | [CLAUDE.md](CLAUDE.md) | Точка входа для Claude |

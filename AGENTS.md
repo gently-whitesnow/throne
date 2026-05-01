@@ -17,6 +17,11 @@ bash scripts/quality/verify.sh
 | Архитектурные решения | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) |
 | Правила для агентов в этом проекте | [specs/AGENTS.local.md](specs/AGENTS.local.md) |
 | Универсальные конвенции кодинга | [USER.md](USER.md) |
+| Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
+
+## Frontend / UI
+
+Перед любой разработкой `apps/web` или UI-компонентов прочитай [DESIGN.md](DESIGN.md) и используй его как проектную дизайн-систему.
 
 ## Что не делать
 
