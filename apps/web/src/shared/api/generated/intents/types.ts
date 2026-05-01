@@ -93,13 +93,48 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List file attachments for an intent. */
+        get: operations["listIntentAttachments"];
         put?: never;
         /**
          * Upload one file attachment for an intent.
          * @description Multipart upload of a single file. Separate from create/update intent text. Server enforces at most 10 attachments per intent and 10 MiB per file.
          */
         post: operations["uploadIntentAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{id}/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one file attachment from an intent. */
+        delete: operations["deleteIntentAttachment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{id}/attachments/{attachment_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download one file attachment from an intent. */
+        get: operations["downloadIntentAttachment"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -402,6 +437,38 @@ export interface operations {
             };
         };
     };
+    listIntentAttachments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentAttachmentDto"][];
+                };
+            };
+            /** @description Intent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     uploadIntentAttachment: {
         parameters: {
             query?: never;
@@ -453,6 +520,72 @@ export interface operations {
             };
             /** @description Too many attachments for this intent */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    deleteIntentAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
+                id: string;
+                /** @description Attachment identifier. */
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Intent or attachment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    downloadIntentAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
+                id: string;
+                /** @description Attachment identifier. */
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description File bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Intent or attachment not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

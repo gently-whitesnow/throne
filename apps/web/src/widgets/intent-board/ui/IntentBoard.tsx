@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import type { IntentListItem } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
@@ -12,6 +13,7 @@ type LoadState =
   | { kind: "error"; message: string };
 
 export function IntentBoard() {
+  const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
@@ -72,7 +74,12 @@ export function IntentBoard() {
     <section className="master-pane" aria-label="Список Intents">
       <div className="master-pane__header">
         <h2 className="master-pane__title">Intents</h2>
-        <CreateIntentButton onCreated={reload} />
+        <CreateIntentButton
+          onCreated={(intent) => {
+            reload();
+            void navigate(`/intents/${intent.id}`);
+          }}
+        />
       </div>
       <div className="master-pane__search">
         <Search aria-hidden size={14} strokeWidth={2} />

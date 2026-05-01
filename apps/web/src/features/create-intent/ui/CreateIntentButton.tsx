@@ -1,9 +1,18 @@
-import { Plus } from "lucide-react";
+import { ImagePlus, Plus, X } from "lucide-react";
 import { useState } from "react";
 
-import type { IntentDetail } from "@/entities/intent";
-import { HttpError, httpPost, intentsEndpoints } from "@/shared/api";
+import type { IntentAttachment, IntentDetail } from "@/entities/intent";
+import {
+  HttpError,
+  INTENT_ATTACHMENTS_CHANGED_EVENT,
+  httpPost,
+  httpPostForm,
+  intentsEndpoints
+} from "@/shared/api";
 import { Button } from "@/shared/ui";
+
+const MAX_ATTACHMENTS = 10;
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 interface CreateIntentButtonProps {
   onCreated?: (intent: IntentDetail) => void;
@@ -13,13 +22,53 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [tags, setTags] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reset = () => {
     setText("");
     setTags("");
+    setFiles([]);
     setError(null);
+  };
+
+  const addFiles = (nextFiles: Iterable<File> | null) => {
+    if (!nextFiles) return;
+
+    const accepted = [...files];
+    const problems: string[] = [];
+    for (const file of nextFiles) {
+      if (accepted.length >= MAX_ATTACHMENTS) {
+        problems.push(
+          `Можно приложить максимум ${String(MAX_ATTACHMENTS)} файлов.`
+        );
+        break;
+      }
+      if (!file.type.startsWith("image/")) {
+        problems.push(`${file.name}: сейчас принимаем только изображения.`);
+        continue;
+      }
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        problems.push(`${file.name}: файл больше 10 МБ.`);
+        continue;
+      }
+      accepted.push(file);
+    }
+
+    setFiles(accepted);
+    setError(problems.length > 0 ? unique(problems).join(" ") : null);
+  };
+
+  const pasteImages = (clipboard: DataTransfer) => {
+    const pastedFiles = filesFromClipboard(clipboard);
+    if (pastedFiles.length === 0) return;
+
+    addFiles(pastedFiles);
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((current) => current.filter((_, i) => i !== index));
   };
 
   const submit = async () => {
@@ -27,6 +76,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
     setBusy(true);
     setError(null);
     try {
+      const filesToUpload = files;
       const tagList = tags
         .split(",")
         .map((t) => t.trim())
@@ -41,6 +91,9 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
       reset();
       setOpen(false);
       onCreated?.(created);
+      if (filesToUpload.length > 0) {
+        void uploadAttachments(created.id, filesToUpload);
+      }
     } catch (err: unknown) {
       const message =
         err instanceof HttpError
@@ -82,6 +135,9 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
         onChange={(e) => {
           setText(e.target.value);
         }}
+        onPaste={(e) => {
+          pasteImages(e.clipboardData);
+        }}
         rows={6}
         aria-label="Текст intent"
         autoFocus
@@ -95,6 +151,50 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
         }}
         aria-label="Теги intent"
       />
+      <label className="create-intent-form__file-picker">
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => {
+            addFiles(e.currentTarget.files);
+            e.currentTarget.value = "";
+          }}
+        />
+        <span className="create-intent-form__file-picker-label">
+          <ImagePlus aria-hidden size={16} strokeWidth={2} />
+          Приложить изображения
+        </span>
+        <span className="create-intent-form__file-picker-hint">
+          до 10 файлов, каждый до 10 МБ; можно вставить картинку из буфера
+        </span>
+      </label>
+      {files.length > 0 ? (
+        <ul className="create-intent-form__files" aria-label="Выбранные файлы">
+          {files.map((file, index) => (
+            <li
+              key={`${file.name}-${String(file.lastModified)}-${String(index)}`}
+              className="create-intent-form__file"
+            >
+              <span className="create-intent-form__file-name">{file.name}</span>
+              <span className="create-intent-form__file-size">
+                {formatBytes(file.size)}
+              </span>
+              <button
+                type="button"
+                className="create-intent-form__file-remove"
+                onClick={() => {
+                  removeFile(index);
+                }}
+                aria-label={`Убрать ${file.name}`}
+                disabled={busy}
+              >
+                <X aria-hidden size={14} strokeWidth={2} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {error ? (
         <p role="alert" className="edit-text-form__error">
           {error}
@@ -121,4 +221,66 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
       </div>
     </form>
   );
+}
+
+async function uploadAttachments(intentId: string, files: File[]) {
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    try {
+      await httpPostForm<IntentAttachment>(
+        intentsEndpoints.uploadIntentAttachment(intentId),
+        form
+      );
+      window.dispatchEvent(
+        new CustomEvent(INTENT_ATTACHMENTS_CHANGED_EVENT, {
+          detail: { intentId }
+        })
+      );
+    } catch (err) {
+      const message =
+        err instanceof HttpError
+          ? `Не удалось загрузить ${file.name} (${String(err.status)}).`
+          : `Не удалось загрузить ${file.name}.`;
+      window.dispatchEvent(
+        new CustomEvent(INTENT_ATTACHMENTS_CHANGED_EVENT, {
+          detail: { intentId, error: message }
+        })
+      );
+    }
+  }
+}
+
+function filesFromClipboard(clipboard: DataTransfer): File[] {
+  const result: File[] = [];
+  const fallbackName = "clipboard-image.png";
+
+  for (const item of Array.from(clipboard.items)) {
+    if (item.kind !== "file" || !item.type.startsWith("image/")) continue;
+
+    const file = item.getAsFile();
+    if (!file) continue;
+
+    result.push(
+      file.name
+        ? file
+        : new File([file], fallbackName, {
+            type: file.type,
+            lastModified: file.lastModified
+          })
+    );
+  }
+
+  return result;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${String(bytes)} Б`;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(mb >= 10 ? 0 : 1)} МБ`;
+  return `${(bytes / 1024).toFixed(0)} КБ`;
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
 }

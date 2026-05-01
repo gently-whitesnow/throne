@@ -85,6 +85,14 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListIntentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
         /// <summary>
+        /// List file attachments for an intent.
+        /// </summary>
+        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/attachments", Name = "listIntentAttachments")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentAttachmentDto>>> ListIntentAttachments([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
         /// Upload one file attachment for an intent.
         /// </summary>
         /// <remarks>
@@ -95,6 +103,24 @@ namespace Throne.Api.Generated
         /// <returns>Created</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/attachments", Name = "uploadIntentAttachment")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentAttachmentDto>> UploadIntentAttachment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, FileParameter file = null);
+
+        /// <summary>
+        /// Delete one file attachment from an intent.
+        /// </summary>
+        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <param name="attachment_id">Attachment identifier.</param>
+        /// <returns>Deleted</returns>
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/attachments/{attachment_id}", Name = "deleteIntentAttachment")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntentAttachment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string attachment_id);
+
+        /// <summary>
+        /// Download one file attachment from an intent.
+        /// </summary>
+        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <param name="attachment_id">Attachment identifier.</param>
+        /// <returns>File bytes</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/attachments/{attachment_id}/content", Name = "downloadIntentAttachment")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DownloadIntentAttachment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string attachment_id);
 
     }
 
@@ -126,6 +152,43 @@ namespace Throne.Api.Generated
 
         public string ContentType { get; private set; }
     }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FileResponse : System.IDisposable
+    {
+        private System.IDisposable _client;
+        private System.IDisposable _response;
+
+        public int StatusCode { get; private set; }
+
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> Headers { get; private set; }
+
+        public System.IO.Stream Stream { get; private set; }
+
+        public bool IsPartial
+        {
+            get { return StatusCode == 206; }
+        }
+
+        public FileResponse(int statusCode, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.IO.Stream stream, System.IDisposable client, System.IDisposable response)
+        {
+            StatusCode = statusCode;
+            Headers = headers;
+            Stream = stream;
+            _client = client;
+            _response = response;
+        }
+
+        public void Dispose()
+        {
+            Stream.Dispose();
+            if (_response != null)
+                _response.Dispose();
+            if (_client != null)
+                _client.Dispose();
+        }
+    }
+
 
 
 }

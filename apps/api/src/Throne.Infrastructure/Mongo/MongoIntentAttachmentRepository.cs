@@ -24,6 +24,18 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
         return count > int.MaxValue ? int.MaxValue : (int)count;
     }
 
+    public async Task<IReadOnlyList<IntentAttachment>> ListByIntentAsync(IntentId intentId, CancellationToken ct)
+    {
+        var filter = Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value);
+        var docs = await _attachments
+            .Find(filter)
+            .SortByDescending(x => x.CreatedAt)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return docs.Select(ToDomain).ToArray();
+    }
+
     public async Task<IntentAttachment> AddAsync(
         IntentId intentId,
         Stream content,
@@ -81,6 +93,52 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
             new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc), TimeSpan.Zero));
     }
 
+    public async Task<IntentAttachmentContent?> OpenContentAsync(IntentId intentId, string attachmentId, CancellationToken ct)
+    {
+        var doc = await FindByIntentAndAttachmentAsync(intentId, attachmentId, ct).ConfigureAwait(false);
+        if (doc is null || !ObjectId.TryParse(doc.GridFsId, out var oid))
+        {
+            return null;
+        }
+
+        try
+        {
+            var stream = await Bucket.OpenDownloadStreamAsync(oid, cancellationToken: ct).ConfigureAwait(false);
+            return new IntentAttachmentContent(ToDomain(doc), stream);
+        }
+        catch (GridFSFileNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(IntentId intentId, string attachmentId, CancellationToken ct)
+    {
+        var doc = await FindByIntentAndAttachmentAsync(intentId, attachmentId, ct).ConfigureAwait(false);
+        if (doc is null)
+        {
+            return false;
+        }
+
+        if (ObjectId.TryParse(doc.GridFsId, out var oid))
+        {
+            try
+            {
+                await Bucket.DeleteAsync(oid, ct).ConfigureAwait(false);
+            }
+            catch (GridFSFileNotFoundException)
+            {
+                // Keep deleting metadata if the blob was already removed.
+            }
+        }
+
+        var filter = Builders<IntentAttachmentDocument>.Filter.And(
+            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value),
+            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
+        var result = await _attachments.DeleteOneAsync(filter, ct).ConfigureAwait(false);
+        return result.DeletedCount > 0;
+    }
+
     public async Task DeleteAllForIntentAsync(IntentId intentId, CancellationToken ct)
     {
         var filter = Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value);
@@ -104,4 +162,24 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
 
         await _attachments.DeleteManyAsync(filter, ct).ConfigureAwait(false);
     }
+
+    private async Task<IntentAttachmentDocument?> FindByIntentAndAttachmentAsync(
+        IntentId intentId,
+        string attachmentId,
+        CancellationToken ct)
+    {
+        var filter = Builders<IntentAttachmentDocument>.Filter.And(
+            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value),
+            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
+        return await _attachments.Find(filter).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+    }
+
+    private static IntentAttachment ToDomain(IntentAttachmentDocument doc) =>
+        new(
+            doc.Id,
+            doc.IntentId,
+            doc.FileName,
+            doc.ContentType,
+            doc.SizeBytes,
+            new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc), TimeSpan.Zero));
 }

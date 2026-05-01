@@ -10,5 +10,8 @@ export const intentsEndpoints = {
   deleteIntent: (id: string) => `/intents/${id}`,
   replaceIntentText: (id: string) => `/intents/${id}/replace-text`,
   listIntentVersions: (id: string) => `/intents/${id}/versions`,
+  listIntentAttachments: (id: string) => `/intents/${id}/attachments`,
   uploadIntentAttachment: (id: string) => `/intents/${id}/attachments`,
+  deleteIntentAttachment: (id: string, attachment_id: string) => `/intents/${id}/attachments/${attachment_id}`,
+  downloadIntentAttachment: (id: string, attachment_id: string) => `/intents/${id}/attachments/${attachment_id}/content`,
 } as const;

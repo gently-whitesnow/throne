@@ -4,6 +4,9 @@ export type IntentListItem = IntentsComponents["schemas"]["IntentListItemDto"];
 
 export type IntentDetail = IntentsComponents["schemas"]["IntentDetailDto"];
 
+export type IntentAttachment =
+  IntentsComponents["schemas"]["IntentAttachmentDto"];
+
 export type IntentStatus = "draft" | "active" | "review";
 
 export interface IntentPreview {

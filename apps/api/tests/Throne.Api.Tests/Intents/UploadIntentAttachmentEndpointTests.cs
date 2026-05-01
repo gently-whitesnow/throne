@@ -79,18 +79,10 @@ public sealed class UploadIntentAttachmentEndpointTests : IAsyncLifetime
     {
         var intentId = await SeedIntentAsync("intent with files");
 
-        using var multipart = new MultipartFormDataContent();
         var bytes = "hello"u8.ToArray();
-        var fileContent = new ByteArrayContent(bytes);
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
-        multipart.Add(fileContent, "file", "screenshot.png");
-
-        var response = await _client.PostAsync(
-            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative),
-            multipart);
+        var (response, dto) = await UploadAsync(intentId, bytes, "screenshot.png", "image/png");
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var dto = await response.Content.ReadFromJsonAsync<IntentAttachmentView>();
         dto.Should().NotBeNull();
         dto!.IntentId.Should().Be(intentId);
         dto.FileName.Should().Be("screenshot.png");
@@ -99,6 +91,38 @@ public sealed class UploadIntentAttachmentEndpointTests : IAsyncLifetime
         dto.Id.Should().NotBeNullOrWhiteSpace();
         response.Headers.Location.Should().NotBeNull();
         response.Headers.Location!.ToString().Should().Contain(intentId).And.Contain(dto.Id);
+    }
+
+    [Fact(DisplayName = "GET/DELETE attachment позволяют смотреть список, скачать и удалить файл")]
+    public async Task Can_list_download_and_delete_attachment()
+    {
+        var intentId = await SeedIntentAsync("intent with preview");
+        var bytes = "image bytes"u8.ToArray();
+        var (_, uploaded) = await UploadAsync(intentId, bytes, "preview.png", "image/png");
+        uploaded.Should().NotBeNull();
+        var attachment = uploaded!;
+
+        var list = await _client.GetFromJsonAsync<List<IntentAttachmentView>>(
+            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative));
+        list.Should().ContainSingle(x => x.Id == attachment.Id);
+
+        var download = await _client.GetAsync(
+            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}/content", UriKind.Relative));
+        download.StatusCode.Should().Be(HttpStatusCode.OK);
+        download.Content.Headers.ContentType!.MediaType.Should().Be("image/png");
+        (await download.Content.ReadAsByteArrayAsync()).Should().Equal(bytes);
+
+        var deleted = await _client.DeleteAsync(
+            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}", UriKind.Relative));
+        deleted.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var empty = await _client.GetFromJsonAsync<List<IntentAttachmentView>>(
+            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative));
+        empty.Should().BeEmpty();
+
+        var missing = await _client.GetAsync(
+            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}/content", UriKind.Relative));
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact(DisplayName = "POST /api/v1/intents/{id}/attachments отклоняет 11-й файл (422)")]
@@ -142,6 +166,24 @@ public sealed class UploadIntentAttachmentEndpointTests : IAsyncLifetime
 
         await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
         return intent.Id.Value;
+    }
+
+    private async Task<(HttpResponseMessage Response, IntentAttachmentView? Attachment)> UploadAsync(
+        string intentId,
+        byte[] bytes,
+        string fileName,
+        string contentType)
+    {
+        using var multipart = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(bytes);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        multipart.Add(fileContent, "file", fileName);
+
+        var response = await _client.PostAsync(
+            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative),
+            multipart);
+        var dto = await response.Content.ReadFromJsonAsync<IntentAttachmentView>();
+        return (response, dto);
     }
 
     private sealed class IntentAttachmentView

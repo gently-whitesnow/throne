@@ -16,6 +16,9 @@ public static class DependencyInjection
         services.AddSingleton<ReplaceIntentTextHandler>();
         services.AddSingleton<DeleteIntentHandler>();
         services.AddSingleton<UploadIntentAttachmentHandler>();
+        services.AddSingleton<ListIntentAttachmentsHandler>();
+        services.AddSingleton<DownloadIntentAttachmentHandler>();
+        services.AddSingleton<DeleteIntentAttachmentHandler>();
         services.AddSingleton<SearchIntentTextHandler>();
         services.AddSingleton<InsertIntentTextAfterLineHandler>();
         services.AddSingleton<AddIntentQaHandler>();

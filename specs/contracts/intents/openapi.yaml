@@ -156,6 +156,32 @@ paths:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/attachments:
+    get:
+      operationId: listIntentAttachments
+      tags: [Intents]
+      summary: List file attachments for an intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentAttachmentDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
     post:
       operationId: uploadIntentAttachment
       tags: [Intents]
@@ -204,6 +230,65 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
         '422':
           description: Too many attachments for this intent
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/attachments/{attachment_id}:
+    delete:
+      operationId: deleteIntentAttachment
+      tags: [Intents]
+      summary: Delete one file attachment from an intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        - in: path
+          name: attachment_id
+          required: true
+          schema:
+            type: string
+          description: Attachment identifier.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Intent or attachment not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/attachments/{attachment_id}/content:
+    get:
+      operationId: downloadIntentAttachment
+      tags: [Intents]
+      summary: Download one file attachment from an intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        - in: path
+          name: attachment_id
+          required: true
+          schema:
+            type: string
+          description: Attachment identifier.
+      responses:
+        '200':
+          description: File bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Intent or attachment not found
           content:
             application/problem+json:
               schema:

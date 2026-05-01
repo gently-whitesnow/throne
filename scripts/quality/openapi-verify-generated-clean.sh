@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Regenerate backend + frontend artefacts and fail if anything drifted from specs/contracts/.
-# Compares working tree to git index for the generated paths.
+# Regenerate backend + frontend artefacts and fail if codegen changes generated files.
+# This compares a filesystem snapshot before/after codegen, not the working tree against git index:
+# generated files may be intentionally modified but not staged yet.
 # Usage: scripts/quality/openapi-verify-generated-clean.sh
 set -euo pipefail
 
@@ -15,12 +16,51 @@ GENERATED_PATHS=(
   "apps/web/src/shared/api/generated/"
 )
 
+SNAPSHOT_DIR="$(mktemp -d)"
+cleanup() {
+  rm -rf "$SNAPSHOT_DIR"
+}
+trap cleanup EXIT
+
+snapshot_path() {
+  local path="$1"
+  local dst="$SNAPSHOT_DIR/$path"
+
+  mkdir -p "$(dirname "$dst")"
+  if [[ -d "$path" ]]; then
+    mkdir -p "$dst"
+    cp -a "$path/." "$dst/"
+  elif [[ -e "$path" ]]; then
+    cp -a "$path" "$dst"
+  fi
+}
+
+for path in "${GENERATED_PATHS[@]}"; do
+  snapshot_path "$path"
+done
+
 bash "$SCRIPTS_DIR/openapi-generate.sh"
 bash "$SCRIPTS_DIR/codegen-frontend.sh"
 
 echo "==> Checking OpenAPI generated artefacts for drift"
 
-if ! git diff --exit-code -- "${GENERATED_PATHS[@]}"; then
+DRIFT=0
+for path in "${GENERATED_PATHS[@]}"; do
+  before="$SNAPSHOT_DIR/$path"
+  if [[ -e "$before" && -e "$path" ]]; then
+    if ! diff -qr "$before" "$path" >/dev/null; then
+      echo "Generated path changed after codegen: $path" >&2
+      diff -ru "$before" "$path" || true
+      DRIFT=1
+    fi
+  elif [[ -e "$before" || -e "$path" ]]; then
+    echo "Generated path presence changed after codegen: $path" >&2
+    diff -ru "$before" "$path" || true
+    DRIFT=1
+  fi
+done
+
+if [[ "$DRIFT" -ne 0 ]]; then
   cat >&2 <<EOF
 
 ERROR: OpenAPI generated files drifted from specs/contracts/ source.

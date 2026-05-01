@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import type { IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
+import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { Button } from "@/shared/ui";
@@ -127,6 +128,7 @@ export function IntentDetailPage() {
         ) : (
           <pre className="detail__text">{intent.text}</pre>
         )}
+        <IntentAttachmentsPanel intentId={intent.id} />
       </div>
 
       <VersionsDrawer

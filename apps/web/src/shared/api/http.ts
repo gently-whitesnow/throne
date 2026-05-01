@@ -4,6 +4,10 @@ const baseUrl = (
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? DEFAULT_BASE_URL
 ).replace(/\/$/, "");
 
+export function apiUrl(path: string): string {
+  return `${baseUrl}${path}`;
+}
+
 export class HttpError extends Error {
   public readonly code?: string;
   public readonly extensions: Record<string, unknown>;
@@ -91,6 +95,43 @@ export async function httpPost<TResponse>(
   }
 
   return (await response.json()) as TResponse;
+}
+
+export async function httpPostForm<TResponse>(
+  path: string,
+  body: FormData,
+  signal?: AbortSignal
+): Promise<TResponse> {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+    body,
+    signal
+  });
+
+  if (!response.ok) {
+    throw await parseError(url, response, "POST");
+  }
+
+  return (await response.json()) as TResponse;
+}
+
+export async function httpGetBlob(
+  path: string,
+  signal?: AbortSignal
+): Promise<Blob> {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "GET",
+    signal
+  });
+
+  if (!response.ok) {
+    throw await parseError(url, response, "GET");
+  }
+
+  return await response.blob();
 }
 
 export async function httpDelete(

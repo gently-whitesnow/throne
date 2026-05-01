@@ -7,3 +7,5 @@ public sealed record IntentAttachment(
     string ContentType,
     long SizeBytes,
     DateTimeOffset CreatedAt);
+
+public sealed record IntentAttachmentContent(IntentAttachment Attachment, Stream Content);

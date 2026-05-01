@@ -3,5 +3,6 @@ export type {
   IntentPreview,
   IntentStatus,
   IntentListItem,
-  IntentDetail
+  IntentDetail,
+  IntentAttachment
 } from "./model/types";

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using FileParameter = Throne.Api.Generated.FileParameter;
 using Throne.Api.Generated;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
@@ -7,6 +6,7 @@ using Throne.Application.TextVersions;
 using Throne.Domain.Intents;
 using Throne.Domain.TextVersions;
 using Throne.Intents.Contracts.Generated;
+using FileParameter = Throne.Api.Generated.FileParameter;
 
 namespace Throne.Api.Intents;
 
@@ -17,7 +17,10 @@ public sealed class IntentsController(
     ReplaceIntentTextHandler replaceHandler,
     DeleteIntentHandler deleteHandler,
     ListIntentVersionsHandler listVersionsHandler,
-    UploadIntentAttachmentHandler uploadAttachmentHandler) : IntentsControllerBase
+    UploadIntentAttachmentHandler uploadAttachmentHandler,
+    ListIntentAttachmentsHandler listAttachmentsHandler,
+    DownloadIntentAttachmentHandler downloadAttachmentHandler,
+    DeleteIntentAttachmentHandler deleteAttachmentHandler) : IntentsControllerBase
 {
     private const int TextShortMaxLength = 140;
 
@@ -111,6 +114,27 @@ public sealed class IntentsController(
         }
     }
 
+    public override async Task<ActionResult<ICollection<IntentAttachmentDto>>> ListIntentAttachments(string id)
+    {
+        try
+        {
+            var attachments = await listAttachmentsHandler.HandleAsync(
+                new ListIntentAttachmentsQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+
+            var dtos = new List<IntentAttachmentDto>(attachments.Count);
+            foreach (var attachment in attachments)
+            {
+                dtos.Add(ToAttachmentDto(attachment));
+            }
+
+            return Ok(dtos);
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
+        {
+            return NotFound(NotFoundProblem("Intent not found", ex.Detail));
+        }
+    }
+
     [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
     public override async Task<ActionResult<IntentAttachmentDto>> UploadIntentAttachment(string id, FileParameter file = default!)
     {
@@ -167,6 +191,42 @@ public sealed class IntentsController(
                     BuildProblem(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
                 _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
             };
+        }
+    }
+
+    public override async Task<IActionResult> DownloadIntentAttachment(string id, string attachment_id)
+    {
+        try
+        {
+            var attachment = await downloadAttachmentHandler.HandleAsync(
+                new DownloadIntentAttachmentQuery(id, attachment_id), HttpContext.RequestAborted).ConfigureAwait(false);
+            return File(attachment.Content, attachment.Attachment.ContentType, attachment.Attachment.FileName);
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
+        {
+            return NotFound(NotFoundProblem("Intent not found", ex.Detail));
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentAttachmentNotFound)
+        {
+            return NotFound(NotFoundProblem("Attachment not found", ex.Detail));
+        }
+    }
+
+    public override async Task<IActionResult> DeleteIntentAttachment(string id, string attachment_id)
+    {
+        try
+        {
+            await deleteAttachmentHandler.HandleAsync(
+                new DeleteIntentAttachmentCommand(id, attachment_id), HttpContext.RequestAborted).ConfigureAwait(false);
+            return NoContent();
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
+        {
+            return NotFound(NotFoundProblem("Intent not found", ex.Detail));
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentAttachmentNotFound)
+        {
+            return NotFound(NotFoundProblem("Attachment not found", ex.Detail));
         }
     }
 
