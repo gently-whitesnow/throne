@@ -1,12 +1,8 @@
 using Throne.Api.Mcp;
-using Throne.Application;
-using Throne.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddThroneApplication();
-builder.Services.AddThroneInfrastructure(builder.Configuration);
-builder.Services.AddThroneTools();
+builder.Services.AddThroneMcpCore(builder.Configuration);
 
 builder.Services.AddControllers();
 

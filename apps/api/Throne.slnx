@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Throne.Mcp.Stdio/Throne.Mcp.Stdio.csproj" />
     <Project Path="src/Throne.Api/Throne.Api.csproj" />
     <Project Path="src/Throne.Application/Throne.Application.csproj" />
     <Project Path="src/Throne.Domain/Throne.Domain.csproj" />

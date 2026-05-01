@@ -33,7 +33,7 @@ public static class ThroneToolRegistration
                 var inner = McpServerTool.Create(
                     method,
                     sp.GetRequiredService<TTool>(),
-                    new McpServerToolCreateOptions { Services = sp });
+                    ThroneMcpToolSchemaOptions.ToolCreateOptions(sp));
 
                 return new AuditingMcpServerTool(
                     inner,
