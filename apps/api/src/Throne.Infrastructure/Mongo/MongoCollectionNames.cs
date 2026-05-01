@@ -8,4 +8,5 @@ public static class MongoCollectionNames
     public const string McpCallLog = "mcp_call_log";
     public const string IntentQa = "intent_qa";
     public const string IntentReview = "intent_review";
+    public const string IntentAttachments = "intent_attachments";
 }

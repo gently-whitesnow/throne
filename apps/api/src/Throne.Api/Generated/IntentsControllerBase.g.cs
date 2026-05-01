@@ -84,9 +84,48 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/versions", Name = "listIntentVersions")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListIntentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
+        /// <summary>
+        /// Upload one file attachment for an intent.
+        /// </summary>
+        /// <remarks>
+        /// Multipart upload of a single file. Separate from create/update intent text. Server enforces at most 10 attachments per intent and 10 MiB per file.
+        /// </remarks>
+        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <param name="file">File bytes (any content type; images are the primary use case).</param>
+        /// <returns>Created</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/attachments", Name = "uploadIntentAttachment")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentAttachmentDto>> UploadIntentAttachment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, FileParameter file = null);
+
     }
 
     
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FileParameter
+    {
+        public FileParameter(System.IO.Stream data)
+            : this (data, null, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string fileName)
+            : this (data, fileName, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string fileName, string contentType)
+        {
+            Data = data;
+            FileName = fileName;
+            ContentType = contentType;
+        }
+
+        public System.IO.Stream Data { get; private set; }
+
+        public string FileName { get; private set; }
+
+        public string ContentType { get; private set; }
+    }
 
 
 }

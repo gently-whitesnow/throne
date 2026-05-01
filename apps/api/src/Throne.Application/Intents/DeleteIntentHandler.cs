@@ -8,6 +8,7 @@ public sealed record DeleteIntentCommand(string IntentId);
 
 public sealed class DeleteIntentHandler(
     IIntentRepository repository,
+    IIntentAttachmentRepository attachments,
     IUnitOfWork unitOfWork)
 {
     public async Task HandleAsync(DeleteIntentCommand command, CancellationToken ct)
@@ -15,6 +16,8 @@ public sealed class DeleteIntentHandler(
         ArgumentNullException.ThrowIfNull(command);
 
         var id = new IntentId(command.IntentId);
+
+        await attachments.DeleteAllForIntentAsync(id, ct).ConfigureAwait(false);
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.DeleteAsync(id, inner),

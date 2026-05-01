@@ -152,6 +152,60 @@ namespace Throne.Intents.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentAttachmentDto
+    {
+
+        /// <summary>
+        /// Attachment identifier (24 hex chars, ObjectId-shaped).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Owning intent id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Intent_id { get; set; }
+
+        /// <summary>
+        /// Original file name from the upload.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("file_name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string File_name { get; set; }
+
+        /// <summary>
+        /// Declared MIME type of the uploaded file.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("content_type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Content_type { get; set; }
+
+        /// <summary>
+        /// Stored size in bytes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("size_bytes")]
+        [System.ComponentModel.DataAnnotations.Range(1L, long.MaxValue)]
+        public long Size_bytes { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created_at { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProblemDetails
     {
 
@@ -313,6 +367,33 @@ namespace Throne.Intents.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"system")]
         System = 2,
 
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FileParameter
+    {
+        public FileParameter(System.IO.Stream data)
+            : this (data, null, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string fileName)
+            : this (data, fileName, null)
+        {
+        }
+
+        public FileParameter(System.IO.Stream data, string fileName, string contentType)
+        {
+            Data = data;
+            FileName = fileName;
+            ContentType = contentType;
+        }
+
+        public System.IO.Stream Data { get; private set; }
+
+        public string FileName { get; private set; }
+
+        public string ContentType { get; private set; }
     }
 
 

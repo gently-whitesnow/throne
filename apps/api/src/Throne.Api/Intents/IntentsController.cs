@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using FileParameter = Throne.Api.Generated.FileParameter;
 using Throne.Api.Generated;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
@@ -15,7 +16,8 @@ public sealed class IntentsController(
     CreateIntentHandler createHandler,
     ReplaceIntentTextHandler replaceHandler,
     DeleteIntentHandler deleteHandler,
-    ListIntentVersionsHandler listVersionsHandler) : IntentsControllerBase
+    ListIntentVersionsHandler listVersionsHandler,
+    UploadIntentAttachmentHandler uploadAttachmentHandler) : IntentsControllerBase
 {
     private const int TextShortMaxLength = 140;
 
@@ -109,6 +111,65 @@ public sealed class IntentsController(
         }
     }
 
+    [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
+    public override async Task<ActionResult<IntentAttachmentDto>> UploadIntentAttachment(string id, FileParameter file = default!)
+    {
+        _ = file;
+        if (!Request.HasFormContentType)
+        {
+            return UnprocessableEntity(BuildProblem(
+                StatusCodes.Status422UnprocessableEntity,
+                "Validation failed",
+                new ApiException(
+                    ErrorCodes.ValidationFailed,
+                    "Request must be multipart/form-data.",
+                    new Dictionary<string, object?> { ["content_type"] = Request.ContentType ?? string.Empty })));
+        }
+
+        var formFile = Request.Form.Files.GetFile("file");
+        if (formFile is null || formFile.Length < 1)
+        {
+            return UnprocessableEntity(BuildProblem(
+                StatusCodes.Status422UnprocessableEntity,
+                "Validation failed",
+                new ApiException(
+                    ErrorCodes.ValidationFailed,
+                    "Multipart field \"file\" is required and must be non-empty.",
+                    new Dictionary<string, object?> { ["field"] = "file" })));
+        }
+
+        try
+        {
+            await using var stream = formFile.OpenReadStream();
+            var attachment = await uploadAttachmentHandler.HandleAsync(
+                new UploadIntentAttachmentCommand(
+                    id,
+                    stream,
+                    formFile.FileName,
+                    formFile.ContentType ?? "application/octet-stream",
+                    formFile.Length),
+                HttpContext.RequestAborted).ConfigureAwait(false);
+
+            var location = $"/api/v1/intents/{Uri.EscapeDataString(id)}/attachments/{Uri.EscapeDataString(attachment.Id)}";
+            return Created(location, ToAttachmentDto(attachment));
+        }
+        catch (ApiException ex)
+        {
+            return ex.Code switch
+            {
+                ErrorCodes.IntentNotFound => NotFound(NotFoundProblem("Intent not found", ex.Detail)),
+                ErrorCodes.IntentAttachmentTooLarge => StatusCode(
+                    StatusCodes.Status413PayloadTooLarge,
+                    BuildProblem(StatusCodes.Status413PayloadTooLarge, "File too large", ex)),
+                ErrorCodes.IntentAttachmentLimitExceeded => UnprocessableEntity(
+                    BuildProblem(StatusCodes.Status422UnprocessableEntity, "Too many attachments", ex)),
+                ErrorCodes.ValidationFailed => UnprocessableEntity(
+                    BuildProblem(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+                _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+            };
+        }
+    }
+
     private ActionResult<IntentDetailDto> MapReplaceError(ApiException ex) =>
         ex.Code switch
         {
@@ -155,6 +216,16 @@ public sealed class IntentsController(
         Text_short = TextShort(intent.Text),
         Created_at = intent.CreatedAt,
         Updated_at = intent.UpdatedAt,
+    };
+
+    private static IntentAttachmentDto ToAttachmentDto(IntentAttachment attachment) => new()
+    {
+        Id = attachment.Id,
+        Intent_id = attachment.IntentId,
+        File_name = attachment.FileName,
+        Content_type = attachment.ContentType,
+        Size_bytes = attachment.SizeBytes,
+        Created_at = attachment.CreatedAt,
     };
 
     private static IntentDetailDto ToDetailDto(Intent intent) => new()

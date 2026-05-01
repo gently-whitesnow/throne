@@ -155,6 +155,59 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/attachments:
+    post:
+      operationId: uploadIntentAttachment
+      tags: [Intents]
+      summary: Upload one file attachment for an intent.
+      description: >
+        Multipart upload of a single file. Separate from create/update intent text.
+        Server enforces at most 10 attachments per intent and 10 MiB per file.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File bytes (any content type; images are the primary use case).
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentAttachmentDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '413':
+          description: File exceeds maximum size
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Too many attachments for this intent
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     CreateIntentRequest:
@@ -232,5 +285,35 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+    IntentAttachmentDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - file_name
+        - content_type
+        - size_bytes
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Attachment identifier (24 hex chars, ObjectId-shaped).
+        intent_id:
+          type: string
+          description: Owning intent id.
+        file_name:
+          type: string
+          description: Original file name from the upload.
+        content_type:
+          type: string
+          description: Declared MIME type of the uploaded file.
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Stored size in bytes.
+        created_at:
           type: string
           format: date-time

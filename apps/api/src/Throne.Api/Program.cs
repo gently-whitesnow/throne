@@ -1,10 +1,11 @@
+using Throne.Api.Intents;
 using Throne.Api.Mcp;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddThroneMcpCore(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(o => o.ModelBinderProviders.Insert(0, new FileParameterModelBinderProvider()));
 
 builder.Services
     .AddMcpServer()

@@ -86,6 +86,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload one file attachment for an intent.
+         * @description Multipart upload of a single file. Separate from create/update intent text. Server enforces at most 10 attachments per intent and 10 MiB per file.
+         */
+        post: operations["uploadIntentAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -125,6 +145,23 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        IntentAttachmentDto: {
+            /** @description Attachment identifier (24 hex chars, ObjectId-shaped). */
+            id: string;
+            /** @description Owning intent id. */
+            intent_id: string;
+            /** @description Original file name from the upload. */
+            file_name: string;
+            /** @description Declared MIME type of the uploaded file. */
+            content_type: string;
+            /**
+             * Format: int64
+             * @description Stored size in bytes.
+             */
+            size_bytes: number;
+            /** Format: date-time */
+            created_at: string;
         };
         ProblemDetails: {
             type: string;
@@ -356,6 +393,66 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    uploadIntentAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description File bytes (any content type; images are the primary use case).
+                     */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentAttachmentDto"];
+                };
+            };
+            /** @description Intent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description File exceeds maximum size */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too many attachments for this intent */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

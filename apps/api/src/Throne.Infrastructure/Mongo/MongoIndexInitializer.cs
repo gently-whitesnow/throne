@@ -41,6 +41,13 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                 new CreateIndexOptions { Name = "intent_created" }),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
+        var intentAttachments = database.GetCollection<IntentAttachmentDocument>(MongoCollectionNames.IntentAttachments);
+        await intentAttachments.Indexes.CreateOneAsync(
+            new CreateIndexModel<IntentAttachmentDocument>(
+                Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.IntentId),
+                new CreateIndexOptions { Name = "intent_id" }),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(
             [

@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
+        services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
         services.AddSingleton<IIntentTrainingRepository, MongoIntentTrainingRepository>();
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
@@ -50,6 +51,7 @@ public static class DependencyInjection
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
+        services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
         services.AddSingleton<IIntentTrainingRepository, MongoIntentTrainingRepository>();
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
