@@ -6,18 +6,18 @@ Accepted (amended дважды: (1) qa/review вынесены в отдельн
 
 ## Context
 
-[ADR-0001](0001-foundation-clean-architecture-monorepo.md) зафиксировал слои и tech stack, но оставил доменную модель и контракт версионирования открытыми. `intent.md` (продуктовая постановка MVP) задаёт жёсткие требования к Intent/Instruction, к версионированию `text` и к optimistic concurrency, и эти решения нужно зафиксировать **до** Mongo-схемы и до MCP tools — иначе любой первый vertical slice их закопает в коде без явного обоснования.
+[ADR-0001](0001-foundation-clean-architecture-monorepo.md) зафиксировал слои и tech stack, но оставил доменную модель и контракт версионирования открытыми. [readme.md](../../readme.md) задаёт миссию и границы MVP: Intent/Instruction, версионирование `text`, training-only следы и dogfooding-телеметрию. Эти решения нужно зафиксировать **до** Mongo-схемы и до MCP tools — иначе любой первый vertical slice их закопает в коде без явного обоснования.
 
-Throne MVP — single bounded context: `Intent` и `Instruction` тесно связаны через MCP-агента и solo-first сценарий. Правила modular-monolith из `USER.md` пока не активируются (нет второго bounded context).
+Throne MVP — single bounded context: `Intent` и `Instruction` тесно связаны через MCP-агента и solo-first сценарий. Modular-monolith правила из common seed-инструкции пока не активируются (нет второго bounded context).
 
 Открытые на этом шаге вопросы и рассмотренные альтернативы:
 
 1. **Где хранить qa/review.** Альтернативы: (a) embedded массивы в `Intent`, (b) отдельные коллекции `intent_qa` / `intent_review`, (c) единая коллекция `intent_feedback` с дискриминатором. Embedded раздувает canonical-документ и заставляет каждый `get_intent` тащить обучающий материал, который агенту не нужен (агент работает только с `text`). Единая коллекция — компромисс с nullable-полями. Выбрано (b): qa и review семантически разные сущности, общая схема стоит дороже, чем дублирование коллекции. Агент qa/review не читает вообще — только пишет.
 2. **Где хранить text-версии.** Альтернативы: (a) embedded массив внутри Intent, (b) две параллельные коллекции `intent_text_versions` / `instruction_text_versions`, (c) одна коллекция `text_versions` с дискриминатором `owner_kind`. Embedded ограничивает 16 MB BSON и заставляет читать всю историю при каждом get. Между (b) и (c): логика версионирования у Intent и Instruction идентична («был такой текст в такой-то момент») — параллельные коллекции дублируют код без выгоды. Выбрано (c).
-3. **Гранулярность version-документа.** Альтернативы: (a) delta-only после v1 snapshot, (b) full snapshot на каждую версию, (c) не хранить `text_versions` совсем, опираться только на `mcp_call_log`. Вариант (b) даёт O(1) restore, но при dogfooding объёме (текст ~100 KB × 200 правок ≈ **20 MB на Intent**) хранилище раздувается на порядки относительно ценности данных. Вариант (c) убирает дублирование, но конвертирует strong-consistent историю в best-effort (`mcp_call_log` пишется вне доменной транзакции — см. ADR-0004 §5), что для центральных обучающих данных Throne — регрессия. Выбран (a): v1 хранит полный текст, v2+ — только параметры конкретной правки (`old_text`/`new_text` или `after_line`/`insert_text`) с дискриминатором `kind`. Замер на той же сессии: 100 KB initial + ~200 байт × 200 правок ≈ **140 KB на Intent**, ~140× меньше. Restore O(N) допустим: история нужна для аудита, не для горячих сценариев (см. §7.2 intent.md). Бага «снапшот ⊥ дельта» нет по построению — снапшот один на v1, дальше только дельты, replay детерминирован.
-4. **Формат конкурентного конфликта.** Альтернативы: thrown `ConflictException` vs typed `ApiException(code = "intent.version_conflict")`. `USER.md` требует единый `ApiException` + реестр кодов и единый writer Problem Details. Выбран `ApiException`.
-5. **Восстановимость произвольной версии.** Альтернативы: гарантировать восстановление любой версии vs история «для аудита, не для восстановления» в MVP. Постановка (§7.2) явно разрешает второе. С delta-форматом из альтернативы #3 восстановление возможно через O(N) replay (v1 snapshot + последовательное применение delta 2..N), но это не обязательство — gap'ы в истории при сбое допустимы.
-6. **Метаданные `reason` на write-операциях.** Альтернативы: (a) принимать `reason?` в edit-tools и хранить в version-документе, (b) не принимать. «Зачем агент это сделал» уже выводимо из `mcp_call_log` (session_id + tool_name + arguments по timestamp) и из `intent_qa` (q/a над тем же intent в interview). Выбрано (b): дублировать незачем. `reason` как **контентное** поле остаётся только в `IntentReviewItem.reason` — там оно описывает суть замечания, а не зачем оно записано (см. `intent.md` §7.5).
+3. **Гранулярность version-документа.** Альтернативы: (a) delta-only после v1 snapshot, (b) full snapshot на каждую версию, (c) не хранить `text_versions` совсем, опираться только на `mcp_call_log`. Вариант (b) даёт O(1) restore, но при dogfooding объёме (текст ~100 KB × 200 правок ≈ **20 MB на Intent**) хранилище раздувается на порядки относительно ценности данных. Вариант (c) убирает дублирование, но конвертирует strong-consistent историю в best-effort (`mcp_call_log` пишется вне доменной транзакции — см. ADR-0004 §5), что для центральных обучающих данных Throne — регрессия. Выбран (a): v1 хранит полный текст, v2+ — только параметры конкретной правки (`old_text`/`new_text` или `after_line`/`insert_text`) с дискриминатором `kind`. Замер на той же сессии: 100 KB initial + ~200 байт × 200 правок ≈ **140 KB на Intent**, ~140× меньше. Restore O(N) допустим: история нужна для аудита и ETL, не для горячих сценариев. Бага «снапшот ⊥ дельта» нет по построению — снапшот один на v1, дальше только дельты, replay детерминирован.
+4. **Формат конкурентного конфликта.** Альтернативы: thrown `ConflictException` vs typed `ApiException(code = "intent.version_conflict")`. Common seed-инструкция требует единый `ApiException` + реестр кодов и единый writer Problem Details. Выбран `ApiException`.
+5. **Восстановимость произвольной версии.** Альтернативы: гарантировать восстановление любой версии vs история «для аудита, не для восстановления» в MVP. Границы MVP в readme фиксируют историю как материал для анализа, а не runtime read API. С delta-форматом из альтернативы #3 восстановление возможно через O(N) replay (v1 snapshot + последовательное применение delta 2..N), но это не обязательство — gap'ы в истории при сбое допустимы.
+6. **Метаданные `reason` на write-операциях.** Альтернативы: (a) принимать `reason?` в edit-tools и хранить в version-документе, (b) не принимать. «Зачем агент это сделал» уже выводимо из `mcp_call_log` (session_id + tool_name + arguments по timestamp) и из `intent_qa` (q/a над тем же intent в interview). Выбрано (b): дублировать незачем. `reason` как **контентное** поле остаётся только в `IntentReviewItem.reason` — там оно описывает суть замечания, а не зачем оно записано.
 
 7. **Periodic snapshot в delta-схеме.** Альтернативы: (a) только v1 snapshot, дальше всегда delta; (b) каждые K правок писать полный snapshot для O(K) restore. Вариант (b) ограничивает worst-case restore, но усложняет write-логику и schema. История читается редко (аудит, ETL для обучения), O(N) restore при N≈200 — это сотни мс на чтение, не пользовательский путь. Выбрано (a). Если dogfooding покажет, что N стабильно > 1000 на горячих Intent'ах — отдельный ADR введёт периодический checkpoint; сейчас это premature.
 
@@ -43,7 +43,7 @@ Intent (canonical document, collection: intents)
 
 `qa[]` и `review[]` — **не** embedded. Они живут в отдельных коллекциях и **не** возвращаются агенту в read-операциях (см. §5). Это обучающий материал, агенту он не нужен; canonical-документ остаётся компактным и не смешивает «текущее состояние» с «материалом для будущего обучения».
 
-`tags[]` — простые строки. `source` поля нет (см. §7.4 intent.md).
+`tags[]` — простые строки. `source` поля нет: все Intent'ы MVP создаются через slash-команды/агента.
 
 ### 3. Поля `Instruction`
 
@@ -57,7 +57,7 @@ Instruction (canonical document, collection: instructions)
 - updated_at      : timestamp (UTC)
 ```
 
-`kind` хранится строкой в snake_case (см. USER.md, «В API не отдавать enum, на wire — строки»).
+`kind` хранится строкой в snake_case (см. common seed-инструкцию: enum-like значения на wire передаются строками в одном формате).
 
 ### 4. Версионирование текста
 
@@ -120,7 +120,7 @@ IntentReview (collection: intent_review)
 - intent_id           : string
 - intent_version_at_write : int
 - note                : string
-- reason              : string                            // контент: «почему это важно / что AI понял неправильно» (intent.md §7.5)
+- reason              : string                            // контент: «почему это важно / что AI понял неправильно»
 - created_at          : timestamp (UTC)
 - created_by          : enum { user | agent | system }   // обычно agent от имени пользователя
 ```
@@ -141,7 +141,7 @@ Read API для qa/review в MVP отсутствует. Чтение — нап
 - Транзакционность для text-правки: «инкремент current_version + update text + insert в text_versions» обеспечивается единой Mongo-операцией. Конкретный механизм (multi-document transaction vs single-document update) — деталь storage ADR следующего шага, домен от него не зависит.
 - Транзакционность для qa/review: `expected_version`-проверка + insert в `intent_qa` / `intent_review` с `intent_version_at_write = current_version`.
 
-Ошибки нормализуются через единый `ApiException` + реестр кодов в `Throne.Application` (см. `USER.md`, разделы Cross-cutting и Async/Domain events).
+Ошибки нормализуются через единый `ApiException` + реестр кодов в `Throne.Application` (см. common seed-инструкцию).
 
 ### 7. Канонический current state
 
@@ -158,7 +158,7 @@ Read API для qa/review в MVP отсутствует. Чтение — нап
 - Replay детерминирован и доказуемо консистентен: каждая delta была валидна против известного состояния в момент записи, snapshot ⊥ delta-багов нет по построению (snapshot ровно один — на v1).
 - qa/review в отдельных коллекциях с `intent_version_at_write` — обучающий материал точно привязан к состоянию text и легко выгружается ETL-скриптами без чтения canonical-документов.
 - `expected_version` как обязательный параметр write-tools закрывает класс гонок «два агента одновременно правят один Intent» и одновременно гарантирует, что qa/review не приклеиваются к устаревшему состоянию.
-- Контракт ошибок через `ApiException` + Problem Details согласован с `USER.md` с первого реального write-эндпойнта.
+- Контракт ошибок через `ApiException` + Problem Details согласован с common seed-инструкцией с первого реального write-эндпойнта.
 
 ### Negative / Risks
 

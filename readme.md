@@ -2,6 +2,18 @@
 
 Облако рабочих единиц пользователя (`Intent`, `Instruction`) с MCP-интерфейсом и MongoDB как canonical storage.
 
+## Миссия
+
+Throne хранит работу пользователя как поток `Intent`'ов: минимальных формализованных намерений, из которых агент может уточнять задачу, выполнять работу и сохранять следы непонимания.
+
+Главная цель MVP — догфудить сам процесс работы с AI и начать собирать данные для следующей итерации улучшения interview/work. В первой версии система не «обучается» автоматически; она аккуратно сохраняет материал, на котором это можно будет построить позже:
+
+- какие вопросы агент задавал;
+- какие ответы дал пользователь;
+- как после этого изменился `Intent.text`;
+- где агент ошибся во время work;
+- какие review-замечания оставил пользователь.
+
 ## Структура
 
 ```
@@ -28,8 +40,7 @@ throne/
 ├── .quality/                # quality.config.json
 ├── AGENTS.md                # Codex/agent entrypoint
 ├── CLAUDE.md                # Claude entrypoint
-├── DESIGN.md                # frontend design system
-└── USER.md                  # universal coding conventions
+└── DESIGN.md                # frontend design system
 ```
 
 ## Архитектура
@@ -111,7 +122,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 |---|---|
 | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) | Реестр архитектурных решений |
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
-| [USER.md](USER.md) | Универсальные конвенции |
+| [apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs](apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs) | Seed-инструкции Throne |
 | [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |
 | [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов |
 | [CLAUDE.md](CLAUDE.md) | Точка входа для Claude |

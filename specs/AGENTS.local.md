@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Дополняет [USER.md](../USER.md) проектными правилами.
+Проектные правила для агентов. Переносимые coding conventions сидируются как `Instruction(kind: common)` в [EnsureSeedInstructionsHandler.cs](../apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs).
 
 ## Перед завершением хода
 

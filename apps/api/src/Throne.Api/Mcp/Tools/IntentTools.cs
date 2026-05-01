@@ -22,85 +22,85 @@ public sealed class IntentTools(
     GetInstructionBundleHandler getInstructionBundle)
 {
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
-    [Description("Create a new Intent and seed v1 of its text. Returns the canonical Intent (id, current_version, text, tags, timestamps).")]
+    [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one.")]
     public Task<Intent> CreateIntent(
-        [Description("Initial text of the Intent. Must not be empty.")] string text,
-        [Description("Optional tags for filtering Intents.")] IReadOnlyList<string>? tags,
+        [Description("Initial canonical Intent.text. Must be non-empty and contain the user's actual intent, not a summary of tool usage.")] string text,
+        [Description("Optional search/grouping tags. Prefer the current repo/project name first when known; pass an empty array when no tag is reliable.")] IReadOnlyList<string>? tags,
         CancellationToken cancellationToken) =>
         create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
 
     [McpServerTool(Name = "get_intent", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Read an Intent by id. Always returns the full text along with current_version and tags.")]
+    [Description("Read canonical Intent state by id, including full Intent.text, current_version, tags, and timestamps. Does not return qa, reviews, or version history.")]
     public Task<Intent> GetIntent(
-        [Description("Intent identifier.")] string intent_id,
+        [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
         CancellationToken cancellationToken) =>
         get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken);
 
     [McpServerTool(Name = "read_intent_text", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Read a slice of Intent.text. Server hard limit per response: 64,000 characters; use next_start_line to paginate.")]
+    [Description("Read a line range from Intent.text. Use for large documents or before line-based insertions. Server caps each response at 64,000 characters; paginate with next_start_line.")]
     public Task<TextSlice> ReadIntentText(
-        [Description("Intent identifier.")] string intent_id,
-        [Description("1-indexed first line to read. Default: 1.")] int? start_line = null,
-        [Description("Number of lines to read. Default: until end-of-document under max_chars.")] int? line_count = null,
-        [Description("Client-side max characters; capped to 64,000.")] int? max_chars = null,
+        [Description("Intent id to read.")] string intent_id,
+        [Description("1-based first line to read. Defaults to 1.")] int? start_line = null,
+        [Description("Maximum number of lines to read. Omit to read until end-of-document or max_chars.")] int? line_count = null,
+        [Description("Client-requested character budget. The server may return fewer characters and never more than 64,000.")] int? max_chars = null,
         CancellationToken cancellationToken = default) =>
         read.HandleAsync(new ReadIntentTextQuery(intent_id, start_line, line_count, max_chars), cancellationToken);
 
     [McpServerTool(Name = "replace_intent_text", UseStructuredContent = true)]
-    [Description("Replace a unique substring of Intent.text with optimistic concurrency. Errors: intent.version_conflict, intent.text.match_not_found, intent.text.match_ambiguous.")]
+    [Description("Replace one unique byte-exact substring in Intent.text using optimistic concurrency. Prefer this for precise edits; never use it as a casual full-document rewrite.")]
     public Task<Intent> ReplaceIntentText(
-        [Description("Intent identifier.")] string intent_id,
-        [Description("Expected current_version of the Intent.")] int expected_version,
-        [Description("Exact byte-for-byte substring to replace. Must occur exactly once in Intent.text.")] string old_text,
-        [Description("Replacement text. May be empty (deletes the matched fragment).")] string new_text,
+        [Description("Intent id to mutate.")] string intent_id,
+        [Description("current_version observed from the latest get_intent, read_intent_text, or write result.")] int expected_version,
+        [Description("Exact substring to replace. Whitespace and newlines are significant, and the substring must occur exactly once.")] string old_text,
+        [Description("Replacement text. Use an empty string only when intentionally deleting the matched fragment.")] string new_text,
         CancellationToken cancellationToken) =>
         replace.HandleAsync(new ReplaceIntentTextCommand(intent_id, expected_version, old_text, new_text, TextVersionAuthor.Agent), cancellationToken);
 
     [McpServerTool(Name = "insert_intent_text_after_line", UseStructuredContent = true)]
-    [Description("Insert text after a given 1-indexed line in Intent.text. after_line=0 prepends; after_line=total_lines appends. Errors: intent.version_conflict, intent.text.line_out_of_range.")]
+    [Description("Insert text after a line in Intent.text using optimistic concurrency. Use after_line=0 to prepend and after_line=total_lines to append.")]
     public Task<Intent> InsertIntentTextAfterLine(
-        [Description("Intent identifier.")] string intent_id,
-        [Description("Expected current_version of the Intent.")] int expected_version,
-        [Description("Line index (0..total_lines) to insert after. 0 = prepend; total_lines = append.")] int after_line,
-        [Description("Text to insert. May span multiple lines. No automatic newline is added.")] string insert_text,
+        [Description("Intent id to mutate.")] string intent_id,
+        [Description("current_version observed from the latest get_intent, read_intent_text, or write result.")] int expected_version,
+        [Description("Line number to insert after, in the inclusive range 0..total_lines.")] int after_line,
+        [Description("Text to insert. May span multiple lines; include any required leading/trailing newline yourself.")] string insert_text,
         CancellationToken cancellationToken) =>
         insertAfterLine.HandleAsync(new InsertIntentTextAfterLineCommand(intent_id, expected_version, after_line, insert_text), cancellationToken);
 
     [McpServerTool(Name = "search_intent_text", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Case-sensitive substring search over Intent.text. Returns up to limit matches with context_lines around each. Server hard cap on limit: 50. If total matches exceed limit, total_matches_estimate hints to refine the query.")]
+    [Description("Search Intent.text for a case-sensitive byte-exact substring. Use before replace_intent_text when you need unique context for a safe edit.")]
     public Task<TextSearchResult> SearchIntentText(
-        [Description("Intent identifier.")] string intent_id,
-        [Description("Substring to find. Case-sensitive, byte-exact.")] string query,
-        [Description("Lines of context around each match. Default: 3.")] int? context_lines = null,
-        [Description("Max matches to return. Default: 10. Capped at 50.")] int? limit = null,
+        [Description("Intent id to search.")] string intent_id,
+        [Description("Case-sensitive byte-exact substring to find.")] string query,
+        [Description("Number of surrounding lines to include for each match. Defaults to 3.")] int? context_lines = null,
+        [Description("Maximum matches to return. Defaults to 10 and is capped at 50.")] int? limit = null,
         CancellationToken cancellationToken = default) =>
         search.HandleAsync(new SearchIntentTextQuery(intent_id, query, context_lines, limit), cancellationToken);
 
     [McpServerTool(Name = "add_intent_qa", UseStructuredContent = true)]
-    [Description("Append a question/answer pair to Intent training data (intent_qa). Does NOT increment current_version, but expected_version must match. Errors: intent.version_conflict, intent.not_found.")]
+    [Description("Append one interview question/answer pair to training-only intent_qa. Does not change Intent.text or increment current_version.")]
     public Task<Ack> AddIntentQa(
-        [Description("Intent identifier.")] string intent_id,
-        [Description("Expected current_version of the Intent.")] int expected_version,
-        [Description("Question asked during interview.")] string question,
-        [Description("User-provided answer.")] string answer,
+        [Description("Intent id the interview step belongs to.")] string intent_id,
+        [Description("current_version observed before recording this qa pair. Must still match the Intent.")] int expected_version,
+        [Description("The exact useful question the agent asked the user.")] string question,
+        [Description("The user's answer, preserving the substance needed for future training.")] string answer,
         CancellationToken cancellationToken) =>
         addQa.HandleAsync(new AddIntentQaCommand(intent_id, expected_version, question, answer), cancellationToken);
 
     [McpServerTool(Name = "add_intent_review", UseStructuredContent = true)]
-    [Description("Append a review note to Intent training data (intent_review). Does NOT increment current_version, but expected_version must match. Errors: intent.version_conflict, intent.not_found.")]
+    [Description("Append one post-work review note to training-only intent_review. Use before continuing fixes from /treview. Does not increment current_version.")]
     public Task<Ack> AddIntentReview(
-        [Description("Intent identifier.")] string intent_id,
-        [Description("Expected current_version of the Intent.")] int expected_version,
-        [Description("Review note: what the user wants corrected.")] string note,
-        [Description("Reason: why this matters / what AI misunderstood.")] string reason,
+        [Description("Intent id the review belongs to.")] string intent_id,
+        [Description("current_version observed before recording this review. Must still match the Intent.")] int expected_version,
+        [Description("The user's concrete correction or complaint.")] string note,
+        [Description("Why the correction matters, or what the agent misunderstood. Keep it concise and diagnostic.")] string reason,
         CancellationToken cancellationToken) =>
         addReview.HandleAsync(new AddIntentReviewCommand(intent_id, expected_version, note, reason), cancellationToken);
 
     [McpServerTool(Name = "get_instruction_bundle", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Read the instruction bundle for a work mode. Pass intent_id when an Intent is already known so audit can link instruction versions to it.")]
+    [Description("Read the complete instruction bundle for a runtime mode. Call before interview/work and pass intent_id once known for audit linkage.")]
     public Task<InstructionBundle> GetInstructionBundle(
-        [Description("Mode: interview, light_work, or new_project. /treview uses light_work.")] string mode,
-        [Description("Optional Intent identifier this bundle will be used for. Omit before the Intent is created.")] string? intent_id,
+        [Description("Runtime mode: interview, light_work, or new_project. Use light_work for /treview continuation.")] string mode,
+        [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id,
         CancellationToken cancellationToken) =>
         getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
 }
