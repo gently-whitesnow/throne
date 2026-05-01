@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import { IntentApiCard, type IntentListItem } from "@/entities/intent";
+import type { IntentListItem } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { EntityList, type EntityListRow } from "@/shared/ui";
 
 type LoadState =
   | { kind: "loading" }
@@ -13,6 +14,8 @@ type LoadState =
 export function IntentBoard() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
+  const [query, setQuery] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,32 +40,95 @@ export function IntentBoard() {
     setReloadKey((v) => v + 1);
   };
 
+  const allTags = useMemo(() => {
+    if (state.kind !== "ready") return [] as string[];
+    const set = new Set<string>();
+    for (const i of state.items) for (const t of i.tags) set.add(t);
+    return [...set].sort();
+  }, [state]);
+
+  const rows = useMemo<EntityListRow[]>(() => {
+    if (state.kind !== "ready") return [];
+    const q = query.trim().toLowerCase();
+    return state.items
+      .filter((i) => {
+        if (activeTag && !i.tags.includes(activeTag)) return false;
+        if (!q) return true;
+        return (
+          i.text_short.toLowerCase().includes(q) ||
+          i.tags.some((t) => t.toLowerCase().includes(q))
+        );
+      })
+      .map((i) => ({
+        id: i.id,
+        title: firstLine(i.text_short) || i.id,
+        subtitle: i.tags.length > 0 ? `#${i.tags.join(" #")}` : undefined,
+        meta: `v${String(i.current_version)}`,
+        href: `/intents/${i.id}`
+      }));
+  }, [state, query, activeTag]);
+
   return (
-    <section className="intent-board" aria-labelledby="intent-board-title">
-      <div className="intent-board__toolbar">
-        <h2 className="intent-board__title" id="intent-board-title">
-          Intent cloud
-        </h2>
+    <section className="master-pane" aria-label="Список Intents">
+      <div className="master-pane__header">
+        <h2 className="master-pane__title">Intents</h2>
         <CreateIntentButton onCreated={reload} />
       </div>
-      {state.kind === "loading" && <p>Загрузка…</p>}
-      {state.kind === "error" && <p role="alert">{state.message}</p>}
-      {state.kind === "ready" && state.items.length === 0 && (
-        <p>Нет intents. Создайте первый.</p>
-      )}
-      {state.kind === "ready" && state.items.length > 0 && (
-        <div className="intent-board__grid">
-          {state.items.map((intent) => (
-            <Link
-              key={intent.id}
-              to={`/intents/${intent.id}`}
-              className="intent-board__link"
-            >
-              <IntentApiCard intent={intent} />
-            </Link>
-          ))}
+      <div className="master-pane__search">
+        <Search aria-hidden size={14} strokeWidth={2} />
+        <input
+          type="search"
+          placeholder="Поиск по тексту и тегам"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+          }}
+          aria-label="Поиск intents"
+        />
+      </div>
+      {allTags.length > 0 && (
+        <div
+          className="master-pane__tags"
+          role="group"
+          aria-label="Фильтр по тегам"
+        >
+          {allTags.map((tag) => {
+            const active = activeTag === tag;
+            return (
+              <button
+                key={tag}
+                type="button"
+                className={`tag-chip${active ? " tag-chip--active" : ""}`}
+                onClick={() => {
+                  setActiveTag(active ? null : tag);
+                }}
+              >
+                #{tag}
+              </button>
+            );
+          })}
         </div>
       )}
+      <div className="master-pane__body">
+        {state.kind === "loading" && (
+          <p className="master-pane__hint">Загрузка…</p>
+        )}
+        {state.kind === "error" && (
+          <p role="alert" className="master-pane__hint">
+            {state.message}
+          </p>
+        )}
+        {state.kind === "ready" && (
+          <EntityList
+            items={rows}
+            emptyMessage="Нет intents. Создайте первый."
+          />
+        )}
+      </div>
     </section>
   );
+}
+
+function firstLine(text: string): string {
+  return text.split(/\r?\n/, 1)[0] ?? "";
 }

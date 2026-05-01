@@ -1,14 +1,15 @@
+import { History } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import {
   instructionKindLabel,
   type InstructionDetail
 } from "@/entities/instruction";
-import { TextVersionList } from "@/entities/text-version";
 import { ReplaceInstructionTextForm } from "@/features/replace-instruction-text";
 import { HttpError, httpGet, instructionsEndpoints } from "@/shared/api";
 import { Button } from "@/shared/ui";
+import { VersionsDrawer } from "@/widgets/versions-drawer";
 
 type LoadState =
   | { kind: "loading" }
@@ -20,11 +21,14 @@ export function InstructionDetailPage() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const [versionsOpen, setVersionsOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
     setState({ kind: "loading" });
+    setEditing(false);
+    setVersionsOpen(false);
     httpGet<InstructionDetail>(
       instructionsEndpoints.getInstruction(id),
       controller.signal
@@ -52,64 +56,83 @@ export function InstructionDetailPage() {
     };
   }, [id]);
 
-  return (
-    <main className="page-shell home-page">
-      <p className="home-page__eyebrow">
-        <Link to="/" className="home-page__back">
-          ← Главная
-        </Link>
+  if (state.kind === "loading") {
+    return <p className="detail__hint">Загрузка…</p>;
+  }
+  if (state.kind === "error") {
+    return (
+      <p role="alert" className="detail__hint">
+        {state.message}
       </p>
-      {state.kind === "loading" && <p>Загрузка…</p>}
-      {state.kind === "error" && <p role="alert">{state.message}</p>}
-      {state.kind === "ready" && (
-        <>
-          <header className="home-page__header">
-            <h1 className="home-page__title">
-              {instructionKindLabel(state.instruction.kind).label}
-            </h1>
-            <p className="home-page__lead">
-              {state.instruction.kind} · v{state.instruction.current_version}
-            </p>
-            <div className="detail__actions">
-              {!editing && (
-                <Button
-                  onClick={() => {
-                    setEditing(true);
-                  }}
-                >
-                  Редактировать
-                </Button>
-              )}
-            </div>
-          </header>
+    );
+  }
 
-          {editing ? (
-            <ReplaceInstructionTextForm
-              instruction={state.instruction}
-              onSaved={(next) => {
-                setState({ kind: "ready", instruction: next });
-                setEditing(false);
-                setHistoryKey((k) => k + 1);
+  const instruction = state.instruction;
+  const meta = instructionKindLabel(instruction.kind);
+
+  return (
+    <>
+      <header className="detail__header">
+        <div className="detail__heading">
+          <h1 className="detail__title">{meta.label}</h1>
+          <div className="detail__meta">
+            <span className="detail__meta-item">{instruction.kind}</span>
+            <span className="detail__meta-item">
+              v{instruction.current_version}
+            </span>
+            <span className="detail__meta-item detail__meta-item--muted">
+              {new Date(instruction.updated_at).toLocaleString()}
+            </span>
+          </div>
+        </div>
+        <div className="detail__actions">
+          <Button
+            icon={<History aria-hidden size={14} strokeWidth={2} />}
+            onClick={() => {
+              setVersionsOpen(true);
+            }}
+          >
+            История
+          </Button>
+          {!editing && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditing(true);
               }}
-              onCancel={() => {
-                setEditing(false);
-              }}
-            />
-          ) : (
-            <pre className="detail__text">{state.instruction.text}</pre>
+            >
+              Редактировать
+            </Button>
           )}
+        </div>
+      </header>
 
-          <section className="detail__history">
-            <h2 className="detail__history-title">История</h2>
-            <TextVersionList
-              endpoint={instructionsEndpoints.listInstructionVersions(
-                state.instruction.id
-              )}
-              reloadKey={historyKey}
-            />
-          </section>
-        </>
-      )}
-    </main>
+      <div className="detail__body">
+        {editing ? (
+          <ReplaceInstructionTextForm
+            instruction={instruction}
+            onSaved={(next) => {
+              setState({ kind: "ready", instruction: next });
+              setEditing(false);
+              setHistoryKey((k) => k + 1);
+            }}
+            onCancel={() => {
+              setEditing(false);
+            }}
+          />
+        ) : (
+          <pre className="detail__text">{instruction.text}</pre>
+        )}
+      </div>
+
+      <VersionsDrawer
+        open={versionsOpen}
+        endpoint={instructionsEndpoints.listInstructionVersions(instruction.id)}
+        reloadKey={historyKey}
+        onClose={() => {
+          setVersionsOpen(false);
+        }}
+      />
+    </>
   );
 }

@@ -2,15 +2,24 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { HomePage } from "@/pages/home";
 import { IntentDetailPage } from "@/pages/intent-detail";
+import { IntentsSectionPage } from "@/pages/intents-section";
 import { InstructionDetailPage } from "@/pages/instruction-detail";
+import { InstructionsSectionPage } from "@/pages/instructions-section";
+import { AppShell } from "@/widgets/app-shell";
 
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/intents/:id" element={<IntentDetailPage />} />
-        <Route path="/instructions/:id" element={<InstructionDetailPage />} />
+        <Route element={<AppShell />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/intents" element={<IntentsSectionPage />}>
+            <Route path=":id" element={<IntentDetailPage />} />
+          </Route>
+          <Route path="/instructions" element={<InstructionsSectionPage />}>
+            <Route path=":id" element={<InstructionDetailPage />} />
+          </Route>
+        </Route>
       </Routes>
     </BrowserRouter>
   );

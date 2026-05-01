@@ -1,12 +1,13 @@
+import { History } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import type { IntentDetail } from "@/entities/intent";
-import { TextVersionList } from "@/entities/text-version";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { Button } from "@/shared/ui";
+import { VersionsDrawer } from "@/widgets/versions-drawer";
 
 type LoadState =
   | { kind: "loading" }
@@ -19,11 +20,14 @@ export function IntentDetailPage() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
+  const [versionsOpen, setVersionsOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
     setState({ kind: "loading" });
+    setEditing(false);
+    setVersionsOpen(false);
     httpGet<IntentDetail>(intentsEndpoints.getIntent(id), controller.signal)
       .then((intent) => {
         setState({ kind: "ready", intent });
@@ -48,69 +52,96 @@ export function IntentDetailPage() {
     };
   }, [id]);
 
-  return (
-    <main className="page-shell home-page">
-      <p className="home-page__eyebrow">
-        <Link to="/" className="home-page__back">
-          ← Главная
-        </Link>
+  if (state.kind === "loading") {
+    return <p className="detail__hint">Загрузка…</p>;
+  }
+  if (state.kind === "error") {
+    return (
+      <p role="alert" className="detail__hint">
+        {state.message}
       </p>
-      {state.kind === "loading" && <p>Загрузка…</p>}
-      {state.kind === "error" && <p role="alert">{state.message}</p>}
-      {state.kind === "ready" && (
-        <>
-          <header className="home-page__header">
-            <h1 className="home-page__title">Intent {state.intent.id}</h1>
-            <p className="home-page__lead">
-              Версия v{state.intent.current_version}
-              {state.intent.tags.length > 0
-                ? ` · #${state.intent.tags.join(" #")}`
-                : null}
-            </p>
-            <div className="detail__actions">
-              {!editing && (
-                <Button
-                  onClick={() => {
-                    setEditing(true);
-                  }}
-                >
-                  Редактировать
-                </Button>
-              )}
-              <DeleteIntentButton
-                intentId={state.intent.id}
-                onDeleted={() => {
-                  void navigate("/");
-                }}
-              />
-            </div>
-          </header>
+    );
+  }
 
-          {editing ? (
-            <ReplaceIntentTextForm
-              intent={state.intent}
-              onSaved={(next) => {
-                setState({ kind: "ready", intent: next });
-                setEditing(false);
-                setHistoryKey((k) => k + 1);
+  const intent = state.intent;
+  const title = firstLine(intent.text) || intent.id;
+
+  return (
+    <>
+      <header className="detail__header">
+        <div className="detail__heading">
+          <h1 className="detail__title">{title}</h1>
+          <div className="detail__meta">
+            <span className="detail__meta-item">v{intent.current_version}</span>
+            {intent.tags.length > 0 ? (
+              <span className="detail__meta-item">
+                #{intent.tags.join(" #")}
+              </span>
+            ) : null}
+            <span className="detail__meta-item detail__meta-item--muted">
+              {new Date(intent.updated_at).toLocaleString()}
+            </span>
+          </div>
+        </div>
+        <div className="detail__actions">
+          <Button
+            icon={<History aria-hidden size={14} strokeWidth={2} />}
+            onClick={() => {
+              setVersionsOpen(true);
+            }}
+          >
+            История
+          </Button>
+          {!editing && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditing(true);
               }}
-              onCancel={() => {
-                setEditing(false);
-              }}
-            />
-          ) : (
-            <pre className="detail__text">{state.intent.text}</pre>
+            >
+              Редактировать
+            </Button>
           )}
+          <DeleteIntentButton
+            intentId={intent.id}
+            onDeleted={() => {
+              void navigate("/intents");
+            }}
+          />
+        </div>
+      </header>
 
-          <section className="detail__history">
-            <h2 className="detail__history-title">История</h2>
-            <TextVersionList
-              endpoint={intentsEndpoints.listIntentVersions(state.intent.id)}
-              reloadKey={historyKey}
-            />
-          </section>
-        </>
-      )}
-    </main>
+      <div className="detail__body">
+        {editing ? (
+          <ReplaceIntentTextForm
+            intent={intent}
+            onSaved={(next) => {
+              setState({ kind: "ready", intent: next });
+              setEditing(false);
+              setHistoryKey((k) => k + 1);
+            }}
+            onCancel={() => {
+              setEditing(false);
+            }}
+          />
+        ) : (
+          <pre className="detail__text">{intent.text}</pre>
+        )}
+      </div>
+
+      <VersionsDrawer
+        open={versionsOpen}
+        endpoint={intentsEndpoints.listIntentVersions(intent.id)}
+        reloadKey={historyKey}
+        onClose={() => {
+          setVersionsOpen(false);
+        }}
+      />
+    </>
   );
+}
+
+function firstLine(text: string): string {
+  const line = text.split(/\r?\n/, 1)[0] ?? "";
+  return line.length > 80 ? `${line.slice(0, 80)}…` : line;
 }

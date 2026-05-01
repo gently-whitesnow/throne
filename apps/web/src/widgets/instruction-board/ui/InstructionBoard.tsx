@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
-  InstructionCard,
+  instructionKindLabel,
   type InstructionListItem
 } from "@/entities/instruction";
 import { HttpError, httpGet, instructionsEndpoints } from "@/shared/api";
+import { EntityList, type EntityListRow } from "@/shared/ui";
 
 type LoadState =
   | { kind: "loading" }
@@ -14,6 +15,7 @@ type LoadState =
 
 export function InstructionBoard() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,31 +39,68 @@ export function InstructionBoard() {
     };
   }, []);
 
+  const rows = useMemo<EntityListRow[]>(() => {
+    if (state.kind !== "ready") return [];
+    const q = query.trim().toLowerCase();
+    return state.items
+      .filter((i) => {
+        if (!q) return true;
+        return (
+          i.kind.toLowerCase().includes(q) ||
+          i.text_short.toLowerCase().includes(q)
+        );
+      })
+      .map((i) => {
+        const meta = instructionKindLabel(i.kind);
+        return {
+          id: i.id,
+          title: meta.label,
+          subtitle: firstLine(i.text_short),
+          meta: `v${String(i.current_version)}`,
+          badge: i.kind,
+          badgeColor: meta.surface,
+          href: `/instructions/${i.id}`
+        };
+      });
+  }, [state, query]);
+
   return (
-    <section className="intent-board" aria-labelledby="instruction-board-title">
-      <div className="intent-board__toolbar">
-        <h2 className="intent-board__title" id="instruction-board-title">
-          Instruction cloud
-        </h2>
+    <section className="master-pane" aria-label="Список Instructions">
+      <div className="master-pane__header">
+        <h2 className="master-pane__title">Instructions</h2>
       </div>
-      {state.kind === "loading" && <p>Загрузка…</p>}
-      {state.kind === "error" && <p role="alert">{state.message}</p>}
-      {state.kind === "ready" && state.items.length === 0 && (
-        <p>Инструкции отсутствуют — seed bootstrap не отработал.</p>
-      )}
-      {state.kind === "ready" && state.items.length > 0 && (
-        <div className="intent-board__grid">
-          {state.items.map((instruction) => (
-            <Link
-              key={instruction.id}
-              to={`/instructions/${instruction.id}`}
-              className="intent-board__link"
-            >
-              <InstructionCard instruction={instruction} />
-            </Link>
-          ))}
-        </div>
-      )}
+      <div className="master-pane__search">
+        <Search aria-hidden size={14} strokeWidth={2} />
+        <input
+          type="search"
+          placeholder="Поиск по kind и тексту"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+          }}
+          aria-label="Поиск instructions"
+        />
+      </div>
+      <div className="master-pane__body">
+        {state.kind === "loading" && (
+          <p className="master-pane__hint">Загрузка…</p>
+        )}
+        {state.kind === "error" && (
+          <p role="alert" className="master-pane__hint">
+            {state.message}
+          </p>
+        )}
+        {state.kind === "ready" && (
+          <EntityList
+            items={rows}
+            emptyMessage="Инструкции отсутствуют — seed bootstrap не отработал."
+          />
+        )}
+      </div>
     </section>
   );
+}
+
+function firstLine(text: string): string {
+  return text.split(/\r?\n/, 1)[0] ?? "";
 }
