@@ -17,7 +17,6 @@ bash scripts/quality/verify.sh
 | Архитектурные решения | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) |
 | Правила для агентов в этом проекте | [specs/AGENTS.local.md](specs/AGENTS.local.md) |
 | Системные инструкции Throne (in code) | [apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) |
-| Bootstrap user-инструкций (mongosh) | [scripts/seed/seed-mvp-user-instructions.js](scripts/seed/seed-mvp-user-instructions.js) |
 | Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
 
 ## Frontend / UI

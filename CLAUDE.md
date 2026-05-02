@@ -19,7 +19,6 @@ bash scripts/quality/verify.sh
 | HTTP API контракты (OpenAPI source of truth) | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) |
 | Realtime server→client события (yaml source of truth) | [specs/contracts/realtime/events.yaml](specs/contracts/realtime/events.yaml) + [ADR-0008](specs/ADR/0008-realtime-contract-first-events.md) |
 | Системные инструкции Throne (in code) | [apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) |
-| Bootstrap user-инструкций (mongosh) | [scripts/seed/seed-mvp-user-instructions.js](scripts/seed/seed-mvp-user-instructions.js) |
 | Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
 | Vendor launchers (Claude/Codex/Cursor) | [specs/ADR/0007-vendor-skill-launchers.md](specs/ADR/0007-vendor-skill-launchers.md) |
 

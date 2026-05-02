@@ -63,7 +63,7 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 ## Update 2026-05-02 — system/user split + work/fix kinds
 
 - Сидинг через `EnsureSeedInstructionsHandler` упразднён. System-инструкции живут в коде как `SystemInstructionCatalog` ([apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](../../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs)) и версионируются вместе с релизом `Throne.Api`. Mongo collection `instructions` теперь хранит только `scope=user` записи.
-- Документ `instructions` обогащён полями `scope` и `user_id`. MVP-пользователь — `mvp-user`. User-инструкции бутстрапятся отдельным mongosh-скриптом [scripts/seed/seed-mvp-user-instructions.js](../../scripts/seed/seed-mvp-user-instructions.js) (идемпотентный); скрипт же переименовывает legacy `kind=light_work → work` и удаляет legacy system-документы.
+- Документ `instructions` обогащён полями `scope` и `user_id`. MVP-пользователь — `mvp-user`.
 - Kinds: `common | interview | work | new_project | dream | fix`. Kind `light_work` переименован в `work` (launcher `twork`). Введён kind `fix` для launcher `tfix` — отдельный режим продолжения работы после review (раньше делил bundle с `light_work`).
 - Bundle resolver (`GetInstructionBundleHandler`) собирает `[system:common, system:<mode>]` из catalog и `user:*` инструкции `mvp-user` для тех же kinds. Антагонист в user создаётся под каждый system kind: для `common`, `work`, `new_project` — с реальным текстом, для `interview`, `dream`, `fix` — пустые редактируемые записи.
 - `Instruction.Validate` ослаблен: пустой `Text` для user-инструкций легален, чтобы пустые антагонисты были корректным состоянием.

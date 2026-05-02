@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Проектные правила для агентов. Системные инструкции Throne живут как in-code [SystemInstructionCatalog](../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) (scope=`system`, версионируется с релизом). Per-project tech-stack правила и пользовательские предпочтения хранятся как `scope=user` записи в Mongo collection `instructions` для `user_id="mvp-user"` — бутстрапятся mongosh-скриптом [scripts/seed/seed-mvp-user-instructions.js](../scripts/seed/seed-mvp-user-instructions.js). Пустые user-антагонисты (`interview`/`dream`/`fix`) допустимы и редактируются пользователем напрямую через mongosh, у агента write-surface для Instruction нет (см. ADR-0003).
+Проектные правила для агентов. Системные инструкции Throne живут как in-code [SystemInstructionCatalog](../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) (scope=`system`, версионируется с релизом).
 
 ## Перед завершением хода
 
