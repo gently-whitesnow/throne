@@ -26,7 +26,7 @@ public sealed class RealtimeController : ControllerBase
 
     private readonly IRealtimeEventBroker _broker;
 
-    internal RealtimeController(IRealtimeEventBroker broker)
+    public RealtimeController(IRealtimeEventBroker broker)
     {
         _broker = broker;
     }

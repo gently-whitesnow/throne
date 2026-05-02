@@ -8,7 +8,7 @@ namespace Throne.Api.Realtime;
 /// <see cref="RealtimeDomainEventHandler"/>, which receives domain events from the
 /// dispatching <see cref="Throne.Application.Ports.IUnitOfWork"/> decorator.
 /// </summary>
-internal interface IRealtimeEventBroker
+public interface IRealtimeEventBroker
 {
     /// <summary>
     /// Subscribe a new SSE connection. The returned subscription owns a bounded queue;
@@ -20,7 +20,7 @@ internal interface IRealtimeEventBroker
     ValueTask PublishAsync(RealtimeEventEnvelope envelope, CancellationToken ct);
 }
 
-internal interface IRealtimeEventSubscription : IDisposable
+public interface IRealtimeEventSubscription : IDisposable
 {
     IAsyncEnumerable<RealtimeEventEnvelope> ReadAllAsync(CancellationToken ct);
 }
