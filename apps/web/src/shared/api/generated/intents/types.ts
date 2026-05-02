@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * List intents (metadata + short text preview).
-         * @description Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint.
+         * @description Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint. Optional `status` query parameter narrows the result to intents in the specified statuses; repeat the parameter for multiple values (e.g. `?status=interview&status=work`).
          */
         get: operations["listIntents"];
         put?: never;
@@ -385,7 +385,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     listIntents: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filter by one or more workflow statuses. Omit to return all intents. */
+                status?: components["schemas"]["IntentStatus"][];
+            };
             header?: never;
             path?: never;
             cookie?: never;

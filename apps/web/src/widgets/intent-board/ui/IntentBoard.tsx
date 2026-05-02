@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 import {
   intentStatusMeta,
-  intentStatusOrder,
   type IntentListItem,
   type IntentStatus
 } from "@/entities/intent";
@@ -18,17 +17,34 @@ type LoadState =
   | { kind: "ready"; items: IntentListItem[] }
   | { kind: "error"; message: string };
 
+type ScopeKey = "active" | "archive";
+
+const scopeStatuses: Record<ScopeKey, IntentStatus[]> = {
+  active: ["draft", "interview", "ready_for_work", "work", "ready_for_review"],
+  archive: ["done", "reject"]
+};
+
+const scopeLabels: Record<ScopeKey, string> = {
+  active: "Активные",
+  archive: "Архив"
+};
+
 export function IntentBoard() {
   const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [activeStatus, setActiveStatus] = useState<IntentStatus | null>(null);
+  const [scope, setScope] = useState<ScopeKey>("active");
 
   useEffect(() => {
     const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
+    const params = new URLSearchParams();
+    for (const status of scopeStatuses[scope]) {
+      params.append("status", status);
+    }
+    const url = `${intentsEndpoints.listIntents()}?${params.toString()}`;
+    httpGet<IntentListItem[]>(url, controller.signal)
       .then((items) => {
         setState({ kind: "ready", items });
       })
@@ -43,7 +59,7 @@ export function IntentBoard() {
     return () => {
       controller.abort();
     };
-  }, [reloadKey]);
+  }, [reloadKey, scope]);
 
   const reload = useCallback(() => {
     setReloadKey((v) => v + 1);
@@ -53,6 +69,7 @@ export function IntentBoard() {
   useRealtimeEvent("intent.deleted", reload);
   useRealtimeEvent("intent.text_changed", reload);
   useRealtimeEvent("intent.status_changed", reload);
+  useRealtimeEvent("intent.tags_changed", reload);
 
   const allTags = useMemo(() => {
     if (state.kind !== "ready") return [] as string[];
@@ -68,7 +85,6 @@ export function IntentBoard() {
       .filter((i) => {
         if (activeTag && !i.tags.some((t) => t.name === activeTag))
           return false;
-        if (activeStatus && i.status !== activeStatus) return false;
         if (!q) return true;
         return (
           i.text_short.toLowerCase().includes(q) ||
@@ -89,9 +105,7 @@ export function IntentBoard() {
           href: `/intents/${i.id}`
         };
       });
-  }, [state, query, activeTag, activeStatus]);
-
-  useRealtimeEvent("intent.tags_changed", reload);
+  }, [state, query, activeTag]);
 
   return (
     <section
@@ -108,6 +122,29 @@ export function IntentBoard() {
             void navigate(`/intents/${intent.id}`);
           }}
         />
+      </div>
+      <div
+        className="flex gap-1 border-b border-base-300 px-3.5 py-2"
+        role="tablist"
+        aria-label="Область видимости intents"
+      >
+        {(["active", "archive"] as const).map((key) => {
+          const active = scope === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={tabClass(active)}
+              onClick={() => {
+                setScope(key);
+              }}
+            >
+              {scopeLabels[key]}
+            </button>
+          );
+        })}
       </div>
       <div className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60">
         <Search aria-hidden size={14} strokeWidth={2} />
@@ -145,27 +182,6 @@ export function IntentBoard() {
           })}
         </div>
       )}
-      <div
-        className="flex flex-wrap gap-1 border-b border-base-300 px-3.5 py-2"
-        role="group"
-        aria-label="Фильтр по статусу"
-      >
-        {intentStatusOrder.map((status) => {
-          const active = activeStatus === status;
-          return (
-            <button
-              key={status}
-              type="button"
-              className={chipClass(active)}
-              onClick={() => {
-                setActiveStatus(active ? null : status);
-              }}
-            >
-              {intentStatusMeta[status].label}
-            </button>
-          );
-        })}
-      </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {state.kind === "loading" && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
@@ -183,7 +199,11 @@ export function IntentBoard() {
         {state.kind === "ready" && (
           <EntityList
             items={rows}
-            emptyMessage="Нет intents. Создайте первый."
+            emptyMessage={
+              scope === "active"
+                ? "Нет активных intents. Создайте первый."
+                : "В архиве пусто."
+            }
           />
         )}
       </div>
@@ -197,6 +217,14 @@ function chipClass(active: boolean): string {
   return active
     ? `${base} border-primary bg-primary/10 text-primary`
     : `${base} border-base-300 bg-base-100 text-base-content/70 hover:bg-base-200 hover:text-base-content`;
+}
+
+function tabClass(active: boolean): string {
+  const base =
+    "inline-flex h-7 flex-1 items-center justify-center rounded-md px-3 text-[12px] font-medium transition-colors cursor-pointer";
+  return active
+    ? `${base} bg-primary/10 text-primary`
+    : `${base} text-base-content/70 hover:bg-base-200 hover:text-base-content`;
 }
 
 function firstLine(text: string): string {

@@ -33,7 +33,7 @@ public interface IIntentRepository
         DateTimeOffset now,
         CancellationToken ct);
 
-    Task<IReadOnlyList<Intent>> ListAsync(CancellationToken ct);
+    Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct);
 
     Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct);
 

@@ -33,11 +33,12 @@ namespace Throne.Api.Generated
         /// List intents (metadata + short text preview).
         /// </summary>
         /// <remarks>
-        /// Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint.
+        /// Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint. Optional `status` query parameter narrows the result to intents in the specified statuses; repeat the parameter for multiple values (e.g. `?status=interview&amp;status=work`).
         /// </remarks>
+        /// <param name="status">Filter by one or more workflow statuses. Omit to return all intents.</param>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents", Name = "listIntents")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentListItemDto>>> ListIntents();
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentListItemDto>>> ListIntents([Microsoft.AspNetCore.Mvc.FromQuery] System.Collections.Generic.IEnumerable<IntentStatus> status = null);
 
         /// <summary>
         /// Create a new Intent (user-driven).

@@ -12,6 +12,19 @@ paths:
       description: >
         Returns intent metadata (id, current_version, tags, timestamps) and a short text preview.
         Does not include qa or reviews. Full text must be fetched via a dedicated read endpoint.
+        Optional `status` query parameter narrows the result to intents in the specified statuses;
+        repeat the parameter for multiple values (e.g. `?status=interview&status=work`).
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/IntentStatus'
+          style: form
+          explode: true
+          description: Filter by one or more workflow statuses. Omit to return all intents.
       responses:
         '200':
           description: OK

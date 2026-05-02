@@ -33,10 +33,16 @@ public sealed class IntentsController(
 {
     private const int TextShortMaxLength = 140;
 
-    public override async Task<ActionResult<ICollection<IntentListItemDto>>> ListIntents()
+    public override async Task<ActionResult<ICollection<IntentListItemDto>>> ListIntents(IEnumerable<IntentStatus> status = null!)
     {
-        var intents = await listHandler.HandleAsync(new ListIntentsQuery(), HttpContext.RequestAborted)
-            ;
+        var statuses = status?
+            .Select(ToDomainStatus)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        var intents = await listHandler.HandleAsync(
+            new ListIntentsQuery(statuses is { Length: > 0 } ? statuses : null),
+            HttpContext.RequestAborted);
 
         var tagMap = await BuildTagMapAsync(intents.SelectMany(i => i.TagIds), HttpContext.RequestAborted);
         var dtos = new List<IntentListItemDto>(intents.Count);

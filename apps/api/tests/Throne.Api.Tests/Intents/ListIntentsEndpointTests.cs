@@ -112,6 +112,50 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
         longItem.TextShort.Should().HaveLength(140).And.Be(new string('x', 140));
     }
 
+    [Fact(DisplayName = "GET /api/v1/intents?status=... возвращает только intents в указанных статусах")]
+    public async Task Returns_intents_filtered_by_status()
+    {
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+            await SeedAsync(repo, uow, "draft-text");
+            var work = await SeedAsync(repo, uow, "work-text");
+            var done = await SeedAsync(repo, uow, "done-text");
+            var rejected = await SeedAsync(repo, uow, "reject-text");
+
+            await uow.ExecuteAsync(
+                ct => repo.SetStatusAsync(work.Id, "work", null, IntentTrainingAuthor.User, "test", Now, ct),
+                CancellationToken.None);
+            await uow.ExecuteAsync(
+                ct => repo.SetStatusAsync(done.Id, "done", null, IntentTrainingAuthor.User, "test", Now, ct),
+                CancellationToken.None);
+            await uow.ExecuteAsync(
+                ct => repo.SetStatusAsync(rejected.Id, "reject", "rejected", IntentTrainingAuthor.User, "test", Now, ct),
+                CancellationToken.None);
+        }
+
+        var response = await _client.GetAsync(new Uri("/api/v1/intents?status=done&status=reject", UriKind.Relative));
+        response.EnsureSuccessStatusCode();
+
+        var items = await response.Content.ReadFromJsonAsync<List<IntentListItemView>>();
+        items.Should().NotBeNull();
+        items!.Select(i => i.Status).Should().BeEquivalentTo(["done", "reject"]);
+    }
+
+    private static async Task<Intent> SeedAsync(IIntentRepository repo, IUnitOfWork uow, string text)
+    {
+        var intent = Intent.Create(IntentId.New(), text, [Throne.Domain.Tags.TagId.New()], Now);
+        var version = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, intent.Id.Value,
+            intent.Text, Now, TextVersionAuthor.Agent);
+        await uow.ExecuteAsync(
+            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
+            CancellationToken.None);
+        return intent;
+    }
+
     private static IntentStatusChange InitialStatusChange(Intent intent) =>
         IntentStatusChange.Create(
             Guid.NewGuid().ToString("N"),

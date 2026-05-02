@@ -174,14 +174,17 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         }
     }
 
-    public async Task<IReadOnlyList<Intent>> ListAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct)
     {
         var session = sessions.Current;
+        var filter = statuses is { Count: > 0 }
+            ? Builders<IntentDocument>.Filter.In(d => d.Status, statuses)
+            : FilterDefinition<IntentDocument>.Empty;
         var documents = session is null
-            ? await _intents.Find(FilterDefinition<IntentDocument>.Empty)
+            ? await _intents.Find(filter)
                 .SortBy(d => d.CreatedAt)
                 .ToListAsync(ct)
-            : await _intents.Find(session, FilterDefinition<IntentDocument>.Empty)
+            : await _intents.Find(session, filter)
                 .SortBy(d => d.CreatedAt)
                 .ToListAsync(ct);
 

@@ -14,4 +14,6 @@
 ## Module-scoped (affect one bounded context)
 <!-- Decisions scoped to specific modules -->
 
+- [ADR-0009](0009-cross-process-realtime-fanout.md) — Cross-process realtime fanout: `Throne.Mcp.Stdio` становится тонким STDIO→HTTP MCP прокси к `Throne.Api /mcp`, чтобы все мутации, domain events и SSE-фанаут жили в одном процессе. Снимает ограничение ADR-0008 для self-hosted single-instance; multi-instance fanout остаётся открытым ADR.
+
 - [ADR-0007](0007-vendor-skill-launchers.md) — Vendor skill launchers вместо MCP prompts: UX-вход в Throne — тонкие skill-файлы в `.agents/skills/` (Codex+Cursor) и `.claude/skills/` (Claude Code), делегирующие в `get_instruction_bundle(mode)`. Live playbook живёт в `instructions` collection и эволюционирует данными, не релизами `Throne.Api`. Имена launcher'ов: `tnew, twork, tinterview, tfix, tdream`. Введён instruction kind `dream` для proposals по улучшению инструкций (без auto-activation). MCP prompts (`IntentPrompts`) удалены; tool surface не изменён.

@@ -6,25 +6,15 @@
     <RootNamespace>Throne.Mcp.Stdio</RootNamespace>
   </PropertyGroup>
 
+  <!--
+    Thin STDIO→HTTP MCP proxy for Throne.Api. No Application/Infrastructure/Mongo
+    dependencies on purpose: this process must not be able to mutate state directly
+    (otherwise domain events fire in this process and the web UI never sees them).
+    See ADR-0009.
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\Throne.Api\Throne.Api.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="..\Throne.Api\appsettings.json" Link="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="..\Throne.Api\appsettings.Development.json" Link="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <!--
-      Mirror the skill manifest into Mcp.Stdio output too: the stdio binary loads
-      ISkillManifestProvider via the same AddThroneInfrastructure path as the HTTP host.
-    -->
-    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-skills.yaml"
-             Link="specs/manifest/throne-skills.yaml"
-             CopyToOutputDirectory="PreserveNewest"
-             CopyToPublishDirectory="Always" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
 </Project>
