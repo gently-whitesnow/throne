@@ -23,33 +23,33 @@ export interface InstructionKindMeta {
 export const instructionKindMeta: Record<string, InstructionKindMeta> = {
   common: {
     label: "Common",
-    ink: "#187574",
-    surface: "#c3faf5"
+    ink: "#1F9D88",
+    surface: "#E7F5ED"
   },
   interview: {
     label: "Interview",
-    ink: "#600000",
-    surface: "#ffc6c6"
+    ink: "#3C78F2",
+    surface: "#E8F0FF"
   },
   work: {
     label: "Work",
-    ink: "#746019",
-    surface: "#ffe6cd"
+    ink: "#A87900",
+    surface: "#FFF3D6"
   },
   new_project: {
     label: "New project",
-    ink: "#2a41b6",
-    surface: "#dbe4ff"
+    ink: "#274DC6",
+    surface: "#E8F0FF"
   },
   dream: {
     label: "Dream",
-    ink: "#5a1a8c",
-    surface: "#ecdcfb"
+    ink: "#5C49C7",
+    surface: "#EEE9FF"
   },
   fix: {
     label: "Fix",
-    ink: "#7a1c4d",
-    surface: "#ffd3e3"
+    ink: "#CF4D4D",
+    surface: "#FDEAEA"
   }
 };
 
@@ -57,8 +57,8 @@ export function instructionKindLabel(kind: string): InstructionKindMeta {
   return (
     instructionKindMeta[kind] ?? {
       label: kind,
-      ink: "#1c1c1e",
-      surface: "#eceff5"
+      ink: "#202531",
+      surface: "#F6F7FB"
     }
   );
 }

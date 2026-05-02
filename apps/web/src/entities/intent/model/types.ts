@@ -37,37 +37,37 @@ export const intentStatusOrder: IntentStatus[] = [
 export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
   draft: {
     label: "Черновик",
-    ink: "#600000",
-    surface: "#ffc6c6"
+    ink: "#4C5567",
+    surface: "#F6F7FB"
   },
   interview: {
     label: "Интервью",
-    ink: "#7b4e00",
-    surface: "#ffe6cd"
+    ink: "#3C78F2",
+    surface: "#E8F0FF"
   },
   ready_for_work: {
     label: "Готов к работе",
-    ink: "#1f3d8a",
-    surface: "#d6e3ff"
+    ink: "#274DC6",
+    surface: "#E8F0FF"
   },
   work: {
     label: "В работе",
-    ink: "#187574",
-    surface: "#c3faf5"
+    ink: "#1F9D88",
+    surface: "#E7F5ED"
   },
   ready_for_review: {
     label: "Нужно внимание",
-    ink: "#746019",
-    surface: "#f8efb8"
+    ink: "#A87900",
+    surface: "#FFF3D6"
   },
   done: {
     label: "Готово",
-    ink: "#0f5a2f",
-    surface: "#d8f5e8"
+    ink: "#1F8F5F",
+    surface: "#E7F5ED"
   },
   reject: {
     label: "Отклонено",
-    ink: "#7a1123",
-    surface: "#fbd4d4"
+    ink: "#CF4D4D",
+    surface: "#FDEAEA"
   }
 };

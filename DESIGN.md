@@ -1,108 +1,206 @@
-# Design System Inspired by Miro
+---
+version: alpha
+name: Throne
+description: Spec-driven AI engineering control plane for PRD, TECHSPEC, intents, instructions, runs, and review workflows.
+colors:
+  primary: "#3563F6"
+  primary-strong: "#274DC6"
+  secondary: "#5C49C7"
+  accent: "#1F9D88"
+  accent-strong: "#167565"
+  neutral: "#474B57"
+  neutral-soft: "#F6F7FB"
+  canvas: "#FFFFFF"
+  surface: "#FBFCFE"
+  border: "#E2E6EC"
+  text: "#202531"
+  text-muted: "#4C5567"
+  text-subtle: "#7B8394"
+  info: "#3C78F2"
+  info-soft: "#E8F0FF"
+  success: "#1F8F5F"
+  success-soft: "#E7F5ED"
+  warning: "#A87900"
+  warning-soft: "#FFF3D6"
+  error: "#CF4D4D"
+  error-soft: "#FDEAEA"
+typography:
+  page-title:
+    fontFamily: Mona Sans
+    fontSize: 1.5rem
+    fontWeight: 700
+    lineHeight: 1.25
+  section-title:
+    fontFamily: Mona Sans
+    fontSize: 1.25rem
+    fontWeight: 600
+    lineHeight: 1.3
+  subsection:
+    fontFamily: Mona Sans
+    fontSize: 1.125rem
+    fontWeight: 500
+    lineHeight: 1.4
+  body:
+    fontFamily: Mona Sans
+    fontSize: 0.875rem
+    fontWeight: 400
+    lineHeight: 1.5
+  meta:
+    fontFamily: Mona Sans
+    fontSize: 0.75rem
+    fontWeight: 400
+    lineHeight: 1.5
+  code:
+    fontFamily: Monaspace Neon
+    fontSize: 0.75rem
+    fontWeight: 400
+    lineHeight: 1.4
+rounded:
+  sm: 6px
+  md: 8px
+  lg: 12px
+  pill: 999px
+spacing:
+  1: 4px
+  2: 8px
+  3: 12px
+  4: 16px
+  5: 20px
+  6: 24px
+  8: 32px
+components:
+  shell-sidebar:
+    backgroundColor: "{colors.neutral-soft}"
+    textColor: "{colors.text-muted}"
+    rounded: "{rounded.md}"
+  nav-item-active:
+    backgroundColor: "{colors.info-soft}"
+    textColor: "{colors.primary-strong}"
+    rounded: "{rounded.sm}"
+  card:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: "{spacing.4}"
+  modal:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.lg}"
+    padding: "{spacing.6}"
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.canvas}"
+    rounded: "{rounded.sm}"
+    padding: 8px 16px
+  button-secondary:
+    backgroundColor: "{colors.canvas}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.sm}"
+    padding: 8px 16px
+  badge-success:
+    backgroundColor: "{colors.success-soft}"
+    textColor: "{colors.success}"
+    rounded: "{rounded.pill}"
+  badge-warning:
+    backgroundColor: "{colors.warning-soft}"
+    textColor: "{colors.warning}"
+    rounded: "{rounded.pill}"
+  badge-error:
+    backgroundColor: "{colors.error-soft}"
+    textColor: "{colors.error}"
+    rounded: "{rounded.pill}"
+---
 
-## 1. Visual Theme & Atmosphere
+## Overview
 
-Miro's website is a clean, collaborative-tool-forward platform that communicates "visual thinking" through generous whitespace, pastel accent colors, and a confident geometric font. The design uses a predominantly white canvas with near-black text (`#1c1c1e`) and a distinctive pastel color palette — coral, rose, teal, orange, yellow, moss — each representing different collaboration contexts.
+Throne is not a marketing site and not a playful productivity app. It is a command center for spec-driven AI engineering: calm, dense, trustworthy, and operationally clear.
 
-The typography uses Roobert PRO Medium as the primary display font with OpenType character variants (`"blwf", "cv03", "cv04", "cv09", "cv11"`) and negative letter-spacing (-1.68px at 56px). Noto Sans handles body text with its own stylistic set (`"liga" 0, "ss01", "ss04", "ss05"`). The design is built with Framer, giving it smooth animations and modern component patterns.
+The interface should feel precise and intentional. Normal state stays quiet; only actionable changes surface stronger emphasis. The system is light-first, dark-capable later, and optimized for long sessions spent reading specs, scanning status, and making decisions.
 
-**Key Characteristics:**
-- White canvas with near-black (`#1c1c1e`) text
-- Roobert PRO Medium with multiple OpenType character variants
-- Pastel accent palette: coral, rose, teal, orange, yellow, moss (light + dark pairs)
-- Blue 450 (`#5b76fe`) as primary interactive color
-- Success green (`#00b473`) for positive states
-- Generous border-radius: 8px–50px range
-- Framer-built with smooth motion patterns
-- Ring shadow border: `rgb(224,226,232) 0px 0px 0px 1px`
+## Colors
 
-## 2. Color Palette & Roles
+The palette is semantic before decorative.
 
-### Primary
-- **Near Black** (`#1c1c1e`): Primary text
-- **White** (`#ffffff`): `--tw-color-white`, primary surface
-- **Blue 450** (`#5b76fe`): `--tw-color-blue-450`, primary interactive
-- **Actionable Pressed** (`#2a41b6`): `--tw-color-actionable-pressed`
+- `primary` and `primary-strong` are reserved for the main action path, active navigation, focused controls, and decision-forward UI.
+- `accent` is for relations, enrichment, and supporting structure rather than primary calls to action.
+- `neutral-soft`, `surface`, `canvas`, and `border` create a layered shell with very subtle separation and almost no visual noise.
+- `success`, `warning`, `error`, and `info` always communicate real state, never decoration.
+- Soft semantic backgrounds (`*-soft`) are preferred for badges, inline callouts, and diff/context chips.
 
-### Pastel Accents (Light/Dark pairs)
-- **Coral**: Light `#ffc6c6` / Dark `#600000`
-- **Rose**: Light `#ffd8f4` / Dark (implied)
-- **Teal**: Light `#c3faf5` / Dark `#187574`
-- **Orange**: Light `#ffe6cd`
-- **Yellow**: Dark `#746019`
-- **Moss**: Dark `#187574`
-- **Pink** (`#fde0f0`): Soft pink surface
-- **Red** (`#fbd4d4`): Light red surface
-- **Dark Red** (`#e3c5c5`): Muted red
+Avoid pastel hero gradients, candy-colored surfaces, or color usage that looks illustrative rather than operational.
 
-### Semantic
-- **Success** (`#00b473`): `--tw-color-success-accent`
+## Typography
 
-### Neutral
-- **Slate** (`#555a6a`): Secondary text
-- **Input Placeholder** (`#a5a8b5`): `--tw-color-input-placeholder`
-- **Border** (`#c7cad5`): Button borders
-- **Ring** (`rgb(224,226,232)`): Shadow-as-border
+Use `Mona Sans` as the default UI family and `Monaspace Neon` for code, diffs, IDs, and markdown-like machine text.
 
-## 3. Typography Rules
+- Body copy is compact by default: 14px equivalent.
+- Meta text can drop to 12px, but only for timestamps, IDs, and secondary annotations.
+- In-app headings should stay restrained. `page-title` is the maximum scale for application chrome.
+- Monospace text should feel editorial and crisp, not terminal-heavy.
 
-### Font Families
-- **Display**: `Roobert PRO Medium`, fallback: Placeholder — `"blwf", "cv03", "cv04", "cv09", "cv11"`
-- **Display Variants**: `Roobert PRO SemiBold`, `Roobert PRO SemiBold Italic`, `Roobert PRO`
-- **Body**: `Noto Sans` — `"liga" 0, "ss01", "ss04", "ss05"`
+The UI should never depend on giant display typography. Throne communicates authority through structure and clarity, not oversized headlines.
 
-### Hierarchy
+## Layout
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing |
-|------|------|------|--------|-------------|----------------|
-| Display Hero | Roobert PRO Medium | 56px | 400 | 1.15 | -1.68px |
-| Section Heading | Roobert PRO Medium | 48px | 400 | 1.15 | -1.44px |
-| Card Title | Roobert PRO Medium | 24px | 400 | 1.15 | -0.72px |
-| Sub-heading | Noto Sans | 22px | 400 | 1.35 | -0.44px |
-| Feature | Roobert PRO Medium | 18px | 600 | 1.35 | normal |
-| Body | Noto Sans | 18px | 400 | 1.45 | normal |
-| Body Standard | Noto Sans | 16px | 400–600 | 1.50 | -0.16px |
-| Button | Roobert PRO Medium | 17.5px | 700 | 1.29 | 0.175px |
-| Caption | Roobert PRO Medium | 14px | 400 | 1.71 | normal |
-| Small | Roobert PRO Medium | 12px | 400 | 1.15 | -0.36px |
-| Micro Uppercase | Roobert PRO | 10.5px | 400 | 0.90 | uppercase |
+Use a 4px base spacing system with generous separation between sections.
 
-## 4. Component Stylings
+- App shell remains pinned and structured.
+- Lists and panes can be information-dense, but each major region needs enough air to stay scannable.
+- Standard card padding is 16px.
+- Section gaps are typically 24px.
+- Sidebar and supporting rails should read as secondary surfaces, not as ornamental panels.
 
-### Buttons
-- Outlined: transparent bg, `1px solid #c7cad5`, 8px radius, 7px 12px padding
-- White circle: 50% radius, white bg with shadow
-- Blue primary (implied from interactive color)
+Layouts should prioritize operational scanning: titles, status, metadata, and next actions should be easy to pick out in one pass.
 
-### Cards: 12px–24px radius, pastel backgrounds
-### Inputs: white bg, `1px solid #e9eaef`, 8px radius, 16px padding
+## Elevation & Depth
 
-## 5. Layout Principles
-- Spacing: 1–24px base scale
-- Radius: 8px (buttons), 10px–12px (cards), 20px–24px (panels), 40px–50px (large containers)
-- Ring shadow: `rgb(224,226,232) 0px 0px 0px 1px`
+Elevation is subtle and functional.
 
-## 6. Depth & Elevation
-Minimal — ring shadow + pastel surface contrast
+- Cards use a light border and minimal shadow.
+- Dropdowns and overlays can step up one level.
+- Modals and drawers are the highest layer, but still avoid heavy blur, glossy effects, or theatrical lighting.
 
-## 7. Do's and Don'ts
-### Do
-- Use pastel light/dark pairs for feature sections
-- Apply Roobert PRO with OpenType character variants
-- Use Blue 450 (#5b76fe) for interactive elements
-### Don't
-- Don't use heavy shadows
-- Don't mix more than 2 pastel accents per section
+Depth exists to explain stacking order, not to create spectacle.
 
-## 8. Responsive Behavior
-Breakpoints: 425px, 576px, 768px, 896px, 1024px, 1200px, 1280px, 1366px, 1700px, 1920px
+## Shapes
 
-## 9. Agent Prompt Guide
-### Quick Color Reference
-- Text: Near Black (`#1c1c1e`)
-- Background: White (`#ffffff`)
-- Interactive: Blue 450 (`#5b76fe`)
-- Success: `#00b473`
-- Border: `#c7cad5`
-### Example Component Prompts
-- "Create hero: white background. Roobert PRO Medium 56px, line-height 1.15, letter-spacing -1.68px. Blue CTA (#5b76fe). Outlined secondary (1px solid #c7cad5, 8px radius)."
+Corners stay professional and controlled.
+
+- Buttons and inputs use `6px`.
+- Cards and panels use `8px`.
+- Modals use `12px`.
+- Pills and status badges can be fully rounded.
+
+Avoid oversized radii that make the product feel playful or consumer-social.
+
+## Components
+
+Component behavior should reinforce the control-plane feel.
+
+- Navigation items are compact, precise, and visibly stateful.
+- Cards are plain, readable containers with minimal ornament.
+- Primary buttons are confident blue actions.
+- Secondary buttons are quiet outlined controls.
+- Semantic badges use soft fills plus strong text color.
+- Modals are neutral surfaces with clean borders, measured spacing, and no gradient wash.
+- File pickers, inspectors, and diff surfaces should look like tooling, not marketing cards.
+
+When a component needs emphasis, prefer stronger hierarchy, tighter copy, or clearer status over decorative treatment.
+
+## Do's and Don'ts
+
+Do:
+
+- Use color semantically and pair it with text or icon meaning.
+- Keep the shell light, crisp, and slightly cool.
+- Let spacing create calm around dense information.
+- Use monospace selectively for machine-originated or reference-like content.
+- Preserve a clear visual hierarchy between chrome, content, and overlays.
+
+Don't:
+
+- Reintroduce Miro-like gradients, glossy panels, or oversized rounded modals.
+- Use flashy hover transforms or motion that feels promotional.
+- Make every badge or card colorful by default.
+- Treat the app like a landing page.
+- Use color as the only indicator of status.

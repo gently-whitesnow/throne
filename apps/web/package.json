@@ -17,6 +17,8 @@
     "codegen": "node scripts/codegen-contracts.mjs && node scripts/codegen-realtime.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/mona-sans": "^5.2.8",
+    "@fontsource/monaspace-neon": "^5.2.5",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
