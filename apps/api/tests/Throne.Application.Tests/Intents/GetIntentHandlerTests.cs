@@ -17,7 +17,7 @@ public class GetIntentHandlerTests
         var repo = Substitute.For<IIntentRepository>();
         var id = IntentId.New();
         repo.GetByIdAsync(Arg.Is<IntentId>(x => x.Value == id.Value), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(id, "body", currentVersion: 3, ["throne"], Now, Now));
+            .Returns(Intent.Restore(id, "body", IntentStatusNames.Draft, currentVersion: 3, ["throne"], Now, Now));
 
         var handler = new GetIntentHandler(repo);
 

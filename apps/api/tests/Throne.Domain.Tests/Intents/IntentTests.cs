@@ -12,6 +12,7 @@ public class IntentTests
     {
         var intent = Intent.Create(IntentId.New(), "hello", tags: null, Now);
 
+        intent.Status.Should().Be(IntentStatusNames.Draft);
         intent.CurrentVersion.Should().Be(1);
         intent.CreatedAt.Should().Be(Now);
         intent.UpdatedAt.Should().Be(Now);
@@ -37,8 +38,28 @@ public class IntentTests
     [Fact(DisplayName = "Restore требует current_version >= 1")]
     public void Restore_rejects_zero_version()
     {
-        var act = () => Intent.Restore(IntentId.New(), "x", currentVersion: 0, [], Now, Now);
+        var act = () => Intent.Restore(
+            IntentId.New(),
+            "x",
+            IntentStatusNames.Draft,
+            currentVersion: 0,
+            [],
+            Now,
+            Now);
 
         act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact(DisplayName = "SetStatus меняет статус и updated_at")]
+    public void SetStatus_updates_status_and_timestamp()
+    {
+        var intent = Intent.Create(IntentId.New(), "hello", tags: null, Now);
+        var later = Now.AddMinutes(5);
+
+        var changed = intent.SetStatus(IntentStatusNames.Work, later);
+
+        changed.Should().BeTrue();
+        intent.Status.Should().Be(IntentStatusNames.Work);
+        intent.UpdatedAt.Should().Be(later);
     }
 }

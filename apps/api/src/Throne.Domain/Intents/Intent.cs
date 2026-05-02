@@ -9,6 +9,7 @@ public sealed class Intent
     private Intent(
         IntentId id,
         string text,
+        string status,
         int currentVersion,
         IReadOnlyList<string> tags,
         DateTimeOffset createdAt,
@@ -16,6 +17,7 @@ public sealed class Intent
     {
         Id = id;
         Text = text;
+        Status = status;
         CurrentVersion = currentVersion;
         _tags = [.. tags];
         CreatedAt = createdAt;
@@ -24,6 +26,7 @@ public sealed class Intent
 
     public IntentId Id { get; }
     public string Text { get; private set; }
+    public string Status { get; private set; }
     public int CurrentVersion { get; private set; }
     public IReadOnlyList<string> Tags => _tags;
     public DateTimeOffset CreatedAt { get; }
@@ -42,23 +45,38 @@ public sealed class Intent
         }
 
         var normalizedTags = NormalizeTags(tags);
-        return new Intent(id, text, currentVersion: 1, normalizedTags, now, now);
+        return new Intent(id, text, IntentStatusNames.Draft, currentVersion: 1, normalizedTags, now, now);
     }
 
     public static Intent Restore(
         IntentId id,
         string text,
+        string status,
         int currentVersion,
         IReadOnlyList<string> tags,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
     {
+        ValidateStatus(status, nameof(status));
         if (currentVersion < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(currentVersion), "current_version must be >= 1.");
         }
 
-        return new Intent(id, text, currentVersion, tags, createdAt, updatedAt);
+        return new Intent(id, text, status, currentVersion, tags, createdAt, updatedAt);
+    }
+
+    public bool SetStatus(string status, DateTimeOffset now)
+    {
+        ValidateStatus(status, nameof(status));
+        if (string.Equals(Status, status, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        Status = status;
+        UpdatedAt = now;
+        return true;
     }
 
     public ReplaceTextResult ReplaceText(
@@ -157,6 +175,24 @@ public sealed class Intent
         return new InsertTextResult.Inserted(version);
     }
 
+    public InsertTextResult AppendText(
+        string insertText,
+        string newVersionId,
+        DateTimeOffset now,
+        TextVersionAuthor changedBy)
+    {
+        var totalLines = Text.Length == 0 ? 0 : 1;
+        for (var i = 0; i < Text.Length; i++)
+        {
+            if (Text[i] == '\n')
+            {
+                totalLines++;
+            }
+        }
+
+        return InsertAfterLine(totalLines, insertText, newVersionId, now, changedBy);
+    }
+
     private static int FindLineEndOffset(string text, int line1Indexed)
     {
         var seen = 0;
@@ -253,5 +289,14 @@ public sealed class Intent
         }
 
         return result;
+    }
+
+    private static void ValidateStatus(string status, string paramName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        if (!IntentStatusNames.IsKnown(status))
+        {
+            throw new ArgumentOutOfRangeException(paramName, $"Unknown intent status: {status}.");
+        }
     }
 }

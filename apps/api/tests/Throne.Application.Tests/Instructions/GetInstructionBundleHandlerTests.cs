@@ -6,6 +6,8 @@ using Throne.Application.Errors;
 using Throne.Application.Instructions;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
+using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 
 namespace Throne.Application.Tests.Instructions;
 
@@ -22,11 +24,12 @@ public class GetInstructionBundleHandlerTests
     public async Task Bundle_returns_required_instructions()
     {
         var repo = Substitute.For<IInstructionRepository>();
+        var intents = StubIntentRepository();
         var common = Instruction.Create(InstructionId.New(), InstructionKindNames.Common, "common text", Now);
         var light = Instruction.Create(InstructionId.New(), InstructionKindNames.LightWork, "light text", Now);
         repo.GetByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([light, common]);
-        var handler = new GetInstructionBundleHandler(repo);
+        var handler = NewHandler(repo, intents);
 
         var bundle = await handler.HandleAsync(
             new GetInstructionBundleQuery(InstructionBundleModeNames.LightWork, "intent_1"),
@@ -40,33 +43,51 @@ public class GetInstructionBundleHandlerTests
             InstructionKindNames.LightWork);
         bundle.Instructions[0].InstructionId.Should().Be(common.Id.Value);
         bundle.Instructions[0].CurrentVersion.Should().Be(1);
+        await intents.Received(1).SetStatusAsync(
+            Arg.Any<IntentId>(),
+            IntentStatusNames.Work,
+            null,
+            IntentTrainingAuthor.System,
+            "get_instruction_bundle:light_work",
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "GetInstructionBundle возвращает missing_kinds когда seed-инструкции отсутствуют")]
     public async Task Bundle_reports_missing_kinds()
     {
         var repo = Substitute.For<IInstructionRepository>();
+        var intents = StubIntentRepository();
         var common = Instruction.Create(InstructionId.New(), InstructionKindNames.Common, "common text", Now);
         repo.GetByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([common]);
-        var handler = new GetInstructionBundleHandler(repo);
+        var handler = NewHandler(repo, intents);
 
         var bundle = await handler.HandleAsync(
             new GetInstructionBundleQuery(InstructionBundleModeNames.Interview, "intent_1"),
             CancellationToken.None);
 
         bundle.MissingKinds.Should().Equal(InstructionKindNames.Interview);
+        await intents.Received(1).SetStatusAsync(
+            Arg.Any<IntentId>(),
+            IntentStatusNames.Interview,
+            null,
+            IntentTrainingAuthor.System,
+            "get_instruction_bundle:interview",
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "GetInstructionBundle для dream возвращает common и dream")]
     public async Task Bundle_returns_dream_kinds()
     {
         var repo = Substitute.For<IInstructionRepository>();
+        var intents = StubIntentRepository();
         var common = Instruction.Create(InstructionId.New(), InstructionKindNames.Common, "common text", Now);
         var dream = Instruction.Create(InstructionId.New(), InstructionKindNames.Dream, "dream text", Now);
         repo.GetByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([dream, common]);
-        var handler = new GetInstructionBundleHandler(repo);
+        var handler = NewHandler(repo, intents);
 
         var bundle = await handler.HandleAsync(
             new GetInstructionBundleQuery(InstructionBundleModeNames.Dream, IntentId: null),
@@ -77,12 +98,20 @@ public class GetInstructionBundleHandlerTests
         bundle.Instructions.Select(x => x.Kind).Should().Equal(
             InstructionKindNames.Common,
             InstructionKindNames.Dream);
+        await intents.DidNotReceiveWithAnyArgs().SetStatusAsync(
+            default!,
+            default!,
+            default,
+            default,
+            default!,
+            default,
+            default);
     }
 
     [Fact(DisplayName = "GetInstructionBundle отклоняет неизвестный mode")]
     public async Task Bundle_rejects_unknown_mode()
     {
-        var handler = new GetInstructionBundleHandler(Substitute.For<IInstructionRepository>());
+        var handler = NewHandler(Substitute.For<IInstructionRepository>(), StubIntentRepository());
 
         var act = () => handler.HandleAsync(new GetInstructionBundleQuery("bad", "intent_1"), CancellationToken.None);
 
@@ -95,9 +124,10 @@ public class GetInstructionBundleHandlerTests
     public async Task Bundle_allows_missing_intent_id()
     {
         var repo = Substitute.For<IInstructionRepository>();
+        var intents = StubIntentRepository();
         repo.GetByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
-        var handler = new GetInstructionBundleHandler(repo);
+        var handler = NewHandler(repo, intents);
 
         var bundle = await handler.HandleAsync(
             new GetInstructionBundleQuery(InstructionBundleModeNames.Interview, IntentId: null),
@@ -105,6 +135,14 @@ public class GetInstructionBundleHandlerTests
 
         bundle.IntentId.Should().BeNull();
         bundle.Mode.Should().Be(InstructionBundleModeNames.Interview);
+        await intents.DidNotReceiveWithAnyArgs().SetStatusAsync(
+            default!,
+            default!,
+            default,
+            default,
+            default!,
+            default,
+            default);
     }
 
     [Fact(DisplayName = "InstructionBundle сериализует intent_id даже когда null (MCP output schema)")]
@@ -119,5 +157,46 @@ public class GetInstructionBundleHandlerTests
         var json = JsonSerializer.Serialize(bundle, OmitNullJsonOptions);
 
         json.Should().Contain("\"intent_id\":null");
+    }
+
+    private static GetInstructionBundleHandler NewHandler(
+        IInstructionRepository instructions,
+        IIntentRepository intents) =>
+        new(instructions, intents, new PassThroughUnitOfWork(), FakeTimeProvider());
+
+    private static IIntentRepository StubIntentRepository()
+    {
+        var repo = Substitute.For<IIntentRepository>();
+        repo.SetStatusAsync(
+                Arg.Any<IntentId>(),
+                Arg.Any<string>(),
+                Arg.Any<string?>(),
+                Arg.Any<IntentTrainingAuthor>(),
+                Arg.Any<string>(),
+                Arg.Any<DateTimeOffset>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                var intentId = ci.ArgAt<IntentId>(0);
+                var status = ci.ArgAt<string>(1);
+                return new SetIntentStatusOutcome.Updated(
+                    Intent.Restore(intentId, "x", status, 1, [], Now, Now));
+            });
+
+        return repo;
+    }
+
+    private static TimeProvider FakeTimeProvider() => new FixedTimeProvider(Now);
+
+    private sealed class PassThroughUnitOfWork : IUnitOfWork
+    {
+        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
+
+        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 }

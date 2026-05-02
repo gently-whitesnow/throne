@@ -5,9 +5,12 @@ import { intentStatusMeta } from "./types";
 describe("intentStatusMeta", () => {
   it("covers every supported status", () => {
     expect(Object.keys(intentStatusMeta).sort()).toEqual([
-      "active",
+      "done",
       "draft",
-      "review"
+      "interview",
+      "ready_for_review",
+      "reject",
+      "work"
     ]);
   });
 });

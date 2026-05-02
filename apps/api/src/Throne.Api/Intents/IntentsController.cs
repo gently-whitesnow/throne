@@ -4,6 +4,7 @@ using Throne.Application.Errors;
 using Throne.Application.Intents;
 using Throne.Application.TextVersions;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 using Throne.Intents.Contracts.Generated;
 using FileParameter = Throne.Api.Generated.FileParameter;
@@ -14,6 +15,7 @@ public sealed class IntentsController(
     ListIntentsHandler listHandler,
     GetIntentHandler getHandler,
     CreateIntentHandler createHandler,
+    SetIntentStatusHandler setStatusHandler,
     ReplaceIntentTextHandler replaceHandler,
     DeleteIntentHandler deleteHandler,
     ListIntentVersionsHandler listVersionsHandler,
@@ -77,6 +79,37 @@ public sealed class IntentsController(
         catch (ApiException ex)
         {
             return MapReplaceError(ex);
+        }
+    }
+
+    public override async Task<ActionResult<IntentDetailDto>> SetIntentStatus(string id, SetIntentStatusRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        try
+        {
+            var intent = await setStatusHandler.HandleAsync(
+                new SetIntentStatusCommand(
+                    id,
+                    ToDomainStatus(body.Status),
+                    body.Reject_reason,
+                    IntentTrainingAuthor.User,
+                    "http:set_intent_status"),
+                HttpContext.RequestAborted).ConfigureAwait(false);
+
+            return Ok(ToDetailDto(intent));
+        }
+        catch (ApiException ex)
+        {
+            return ex.Code switch
+            {
+                ErrorCodes.IntentNotFound => NotFound(NotFoundProblem("Intent not found", ex.Detail)),
+                ErrorCodes.IntentVersionConflict => Conflict(BuildProblem(
+                    StatusCodes.Status409Conflict, "Intent state conflict", ex)),
+                ErrorCodes.ValidationFailed => UnprocessableEntity(BuildProblem(
+                    StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+                _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+            };
         }
     }
 
@@ -271,6 +304,7 @@ public sealed class IntentsController(
     private static IntentListItemDto ToListDto(Intent intent) => new()
     {
         Id = intent.Id.Value,
+        Status = ToContractStatus(intent.Status),
         Current_version = intent.CurrentVersion,
         Tags = [.. intent.Tags],
         Text_short = TextShort(intent.Text),
@@ -291,6 +325,7 @@ public sealed class IntentsController(
     private static IntentDetailDto ToDetailDto(Intent intent) => new()
     {
         Id = intent.Id.Value,
+        Status = ToContractStatus(intent.Status),
         Current_version = intent.CurrentVersion,
         Tags = [.. intent.Tags],
         Text = intent.Text,
@@ -325,4 +360,26 @@ public sealed class IntentsController(
 
     private static string TextShort(string text) =>
         text.Length <= TextShortMaxLength ? text : text[..TextShortMaxLength];
+
+    private static string ToDomainStatus(IntentStatus status) => status switch
+    {
+        IntentStatus.Draft => IntentStatusNames.Draft,
+        IntentStatus.Interview => IntentStatusNames.Interview,
+        IntentStatus.Work => IntentStatusNames.Work,
+        IntentStatus.Ready_for_review => IntentStatusNames.ReadyForReview,
+        IntentStatus.Done => IntentStatusNames.Done,
+        IntentStatus.Reject => IntentStatusNames.Reject,
+        _ => throw new InvalidOperationException($"Unknown contract status: {status}"),
+    };
+
+    private static IntentStatus ToContractStatus(string status) => status switch
+    {
+        IntentStatusNames.Draft => IntentStatus.Draft,
+        IntentStatusNames.Interview => IntentStatus.Interview,
+        IntentStatusNames.Work => IntentStatus.Work,
+        IntentStatusNames.ReadyForReview => IntentStatus.Ready_for_review,
+        IntentStatusNames.Done => IntentStatus.Done,
+        IntentStatusNames.Reject => IntentStatus.Reject,
+        _ => throw new InvalidOperationException($"Unknown domain status: {status}"),
+    };
 }

@@ -2,10 +2,11 @@ import { History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import type { IntentDetail } from "@/entities/intent";
+import { intentStatusMeta, type IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
+import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { Button } from "@/shared/ui";
 import { VersionsDrawer } from "@/widgets/versions-drawer";
@@ -66,6 +67,7 @@ export function IntentDetailPage() {
 
   const intent = state.intent;
   const title = firstLine(intent.text) || intent.id;
+  const status = intentStatusMeta[intent.status];
 
   return (
     <>
@@ -73,6 +75,12 @@ export function IntentDetailPage() {
         <div className="detail__heading">
           <h1 className="detail__title">{title}</h1>
           <div className="detail__meta">
+            <span
+              className="detail__status"
+              style={{ background: status.surface, color: status.ink }}
+            >
+              {status.label}
+            </span>
             <span className="detail__meta-item">v{intent.current_version}</span>
             {intent.tags.length > 0 ? (
               <span className="detail__meta-item">
@@ -113,6 +121,13 @@ export function IntentDetailPage() {
       </header>
 
       <div className="detail__body">
+        <SetIntentStatusForm
+          intent={intent}
+          onSaved={(next) => {
+            setState({ kind: "ready", intent: next });
+            setHistoryKey((k) => k + 1);
+          }}
+        />
         {editing ? (
           <ReplaceIntentTextForm
             intent={intent}

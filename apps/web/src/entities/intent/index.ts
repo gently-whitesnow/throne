@@ -1,4 +1,4 @@
-export { intentStatusMeta } from "./model/types";
+export { intentStatusMeta, intentStatusOrder } from "./model/types";
 export type {
   IntentPreview,
   IntentStatus,

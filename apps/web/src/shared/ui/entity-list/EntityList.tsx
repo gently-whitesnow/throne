@@ -7,6 +7,7 @@ export interface EntityListRow {
   meta?: string;
   badge?: string;
   badgeColor?: string;
+  badgeTextColor?: string;
   href: string;
 }
 
@@ -36,7 +37,12 @@ export function EntityList({ items, emptyMessage }: EntityListProps) {
               <span
                 className="entity-list__badge"
                 style={
-                  row.badgeColor ? { background: row.badgeColor } : undefined
+                  row.badgeColor || row.badgeTextColor
+                    ? {
+                        background: row.badgeColor,
+                        color: row.badgeTextColor
+                      }
+                    : undefined
                 }
               >
                 {row.badge}

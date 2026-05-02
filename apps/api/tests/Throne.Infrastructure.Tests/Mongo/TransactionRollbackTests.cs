@@ -2,6 +2,7 @@ using FluentAssertions;
 using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Mongo.Documents;
@@ -22,7 +23,9 @@ public class TransactionRollbackTests(MongoFixture fixture)
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "ok", Now, TextVersionAuthor.Agent);
 
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
+        await uow.ExecuteAsync(
+            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct),
+            CancellationToken.None);
 
         (await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
             .Find(x => x.Id == id.Value).AnyAsync()).Should().BeTrue();
@@ -41,7 +44,7 @@ public class TransactionRollbackTests(MongoFixture fixture)
 
         var act = async () => await uow.ExecuteAsync(async ct =>
         {
-            await repo.CreateAsync(intent, version, ct);
+            await repo.CreateAsync(intent, version, InitialStatusChange(intent), ct);
             throw new InvalidOperationException("boom");
         }, CancellationToken.None);
 
@@ -63,4 +66,15 @@ public class TransactionRollbackTests(MongoFixture fixture)
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
         return (db, repo, uow);
     }
+
+    private static IntentStatusChange InitialStatusChange(Intent intent) =>
+        IntentStatusChange.Create(
+            Guid.NewGuid().ToString("N"),
+            intent.Id,
+            intent.CurrentVersion,
+            intent.Status,
+            intent.Status,
+            "test:create",
+            Now,
+            IntentTrainingAuthor.Agent);
 }

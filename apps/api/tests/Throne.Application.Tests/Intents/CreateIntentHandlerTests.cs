@@ -3,6 +3,7 @@ using NSubstitute;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Application.Tests.Intents;
@@ -22,18 +23,26 @@ public class CreateIntentHandlerTests
         var intent = await handler.HandleAsync(new CreateIntentCommand("hello world", ["throne"], TextVersionAuthor.Agent), CancellationToken.None);
 
         intent.Text.Should().Be("hello world");
+        intent.Status.Should().Be(IntentStatusNames.Draft);
         intent.CurrentVersion.Should().Be(1);
         intent.Tags.Should().Equal("throne");
         intent.CreatedAt.Should().Be(Now);
         intent.UpdatedAt.Should().Be(Now);
 
         await repo.Received(1).CreateAsync(
-            Arg.Is<Intent>(i => i.Text == "hello world" && i.CurrentVersion == 1),
+            Arg.Is<Intent>(i =>
+                i.Text == "hello world" &&
+                i.Status == IntentStatusNames.Draft &&
+                i.CurrentVersion == 1),
             Arg.Is<TextVersion>(v =>
                 v.Version == 1 &&
                 v.Kind == TextVersionKind.Create &&
                 v.OwnerKind == TextVersionOwnerKind.Intent &&
                 v.Snapshot == "hello world"),
+            Arg.Is<IntentStatusChange>(c =>
+                c.FromStatus == IntentStatusNames.Draft &&
+                c.ToStatus == IntentStatusNames.Draft &&
+                c.CreatedBy == IntentTrainingAuthor.Agent),
             Arg.Any<CancellationToken>());
     }
 

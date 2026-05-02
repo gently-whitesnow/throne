@@ -49,6 +49,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set intent status (user-driven).
+         * @description User-driven status change for an intent. Allows any supported status. When status=reject, reject_reason is required and appended to the end of Intent.text.
+         */
+        post: operations["setIntentStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}/replace-text": {
         parameters: {
             query?: never;
@@ -151,9 +171,20 @@ export interface components {
             /** @description Optional tags for filtering. */
             tags?: string[];
         };
+        /**
+         * @description Current workflow status of the intent.
+         * @enum {string}
+         */
+        IntentStatus: "draft" | "interview" | "work" | "ready_for_review" | "done" | "reject";
+        SetIntentStatusRequest: {
+            status: components["schemas"]["IntentStatus"];
+            /** @description Required when status=reject. Appended to the end of Intent.text. */
+            reject_reason?: string;
+        };
         IntentListItemDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
             id: string;
+            status: components["schemas"]["IntentStatus"];
             /**
              * Format: int32
              * @description Current text version of the intent.
@@ -171,6 +202,7 @@ export interface components {
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
             id: string;
+            status: components["schemas"]["IntentStatus"];
             /** Format: int32 */
             current_version: number;
             tags: string[];
@@ -344,6 +376,60 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    setIntentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetIntentStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

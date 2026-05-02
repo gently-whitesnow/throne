@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddSingleton<AddIntentQaHandler>();
         services.AddSingleton<AddIntentReviewHandler>();
         services.AddSingleton<ListIntentsHandler>();
+        services.AddSingleton<SetIntentStatusHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();
         services.AddSingleton<GetInstructionBundleHandler>();
         services.AddSingleton<EnsureSeedInstructionsHandler>();

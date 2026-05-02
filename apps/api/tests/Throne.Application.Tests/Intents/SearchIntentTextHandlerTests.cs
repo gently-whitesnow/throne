@@ -22,7 +22,14 @@ public class SearchIntentTextHandlerTests
     [Fact(DisplayName = "Search возвращает совпадения и не выставляет TotalMatchesEstimate, если все влезли")]
     public async Task Returns_matches_without_estimate_when_under_limit()
     {
-        var intent = Intent.Restore(new IntentId(IntentIdValue), "alpha\nbeta\ngamma", currentVersion: 1, [], Now, Now);
+        var intent = Intent.Restore(
+            new IntentId(IntentIdValue),
+            "alpha\nbeta\ngamma",
+            IntentStatusNames.Draft,
+            currentVersion: 1,
+            [],
+            Now,
+            Now);
         var handler = NewHandler(out var repo);
         repo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>()).Returns(intent);
 
@@ -37,7 +44,14 @@ public class SearchIntentTextHandlerTests
     [Fact(DisplayName = "Search выставляет TotalMatchesEstimate, если число совпадений > limit")]
     public async Task Sets_estimate_when_total_exceeds_limit()
     {
-        var intent = Intent.Restore(new IntentId(IntentIdValue), "x\nx\nx\nx\nx", currentVersion: 1, [], Now, Now);
+        var intent = Intent.Restore(
+            new IntentId(IntentIdValue),
+            "x\nx\nx\nx\nx",
+            IntentStatusNames.Draft,
+            currentVersion: 1,
+            [],
+            Now,
+            Now);
         var handler = NewHandler(out var repo);
         repo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>()).Returns(intent);
 

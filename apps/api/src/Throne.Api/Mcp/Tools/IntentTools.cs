@@ -9,6 +9,7 @@ using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Mcp.Tools;
@@ -23,6 +24,7 @@ public sealed class IntentTools(
     SearchIntentTextHandler search,
     AddIntentQaHandler addQa,
     AddIntentReviewHandler addReview,
+    SetIntentStatusHandler setStatus,
     GetInstructionBundleHandler getInstructionBundle,
     IIntentAttachmentRepository attachments)
 {
@@ -78,6 +80,7 @@ public sealed class IntentTools(
         var result = new McpIntentReadResult(
             intent.Id.Value,
             intent.Text,
+            intent.Status,
             intent.CurrentVersion,
             intent.Tags,
             intent.CreatedAt,
@@ -164,11 +167,25 @@ public sealed class IntentTools(
         CancellationToken cancellationToken) =>
         addReview.HandleAsync(new AddIntentReviewCommand(intent_id, expected_version, note, reason), cancellationToken);
 
-    [McpServerTool(Name = "get_instruction_bundle", ReadOnly = true, UseStructuredContent = true)]
+    [McpServerTool(Name = "get_instruction_bundle", UseStructuredContent = true)]
     [Description("Read the complete instruction bundle for a runtime mode. Call before interview/work and pass intent_id once known for audit linkage.")]
     public Task<InstructionBundle> GetInstructionBundle(
         [Description("Runtime mode: interview, light_work, new_project, or dream. Use light_work for /tfix continuation.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default) =>
         getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
+
+    [McpServerTool(Name = "mark_ready_for_review", UseStructuredContent = true)]
+    [Description("Mark an Intent as ready_for_review after the agent completes a meaningful work pass and needs user attention.")]
+    public Task<Intent> MarkReadyForReview(
+        [Description("Intent id to move into ready_for_review.")] string intent_id,
+        CancellationToken cancellationToken = default) =>
+        setStatus.HandleAsync(
+            new SetIntentStatusCommand(
+                intent_id,
+                IntentStatusNames.ReadyForReview,
+                RejectReason: null,
+                IntentTrainingAuthor.Agent,
+                Source: "mark_ready_for_review"),
+            cancellationToken);
 }

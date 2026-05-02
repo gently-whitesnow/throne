@@ -8,6 +8,7 @@ export const intentsEndpoints = {
   createIntent: () => "/intents",
   getIntent: (id: string) => `/intents/${id}`,
   deleteIntent: (id: string) => `/intents/${id}`,
+  setIntentStatus: (id: string) => `/intents/${id}/status`,
   replaceIntentText: (id: string) => `/intents/${id}/replace-text`,
   listIntentVersions: (id: string) => `/intents/${id}/versions`,
   listIntentAttachments: (id: string) => `/intents/${id}/attachments`,

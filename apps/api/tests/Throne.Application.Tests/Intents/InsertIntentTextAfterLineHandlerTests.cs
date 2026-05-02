@@ -15,7 +15,14 @@ public class InsertIntentTextAfterLineHandlerTests
     [Fact(DisplayName = "Inserted → возвращает Intent")]
     public async Task Inserted_returns_intent()
     {
-        var intent = Intent.Restore(new IntentId(IntentIdValue), "a\nX\nb", currentVersion: 2, [], Now, Now);
+        var intent = Intent.Restore(
+            new IntentId(IntentIdValue),
+            "a\nX\nb",
+            IntentStatusNames.Work,
+            currentVersion: 2,
+            [],
+            Now,
+            Now);
         var handler = NewHandler(out var repo);
         repo.InsertTextAfterLineAsync(default, default, default, default!, default, default)
             .ReturnsForAnyArgs(new InsertIntentTextAfterLineOutcome.Inserted(intent));

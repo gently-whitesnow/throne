@@ -369,6 +369,17 @@ select {
   color: var(--ink-muted);
 }
 
+.detail__status {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .detail__meta-item {
   font-variant-numeric: tabular-nums;
 }
@@ -398,6 +409,90 @@ select {
   color: var(--ink);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.intent-status-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border: 1px solid rgb(224, 226, 232);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 216, 244, 0.28), transparent 22%),
+    linear-gradient(180deg, #ffffff 0%, #f9faff 100%);
+}
+
+.intent-status-panel__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.intent-status-panel__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.intent-status-panel__hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.intent-status-panel__controls {
+  display: grid;
+  gap: 12px;
+}
+
+.intent-status-panel__field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.intent-status-panel__field span {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.intent-status-panel__field textarea {
+  width: 100%;
+  min-height: 112px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #e9eaef;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.intent-status-panel__field select:focus,
+.intent-status-panel__field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+.intent-status-panel__actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.intent-status-panel__error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
 }
 
 /* === Buttons === */

@@ -10,6 +10,7 @@ using MongoDB.Driver;
 using Testcontainers.MongoDb;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Tests.Intents;
@@ -88,8 +89,12 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
                 Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, longIntent.Id.Value,
                 longText, Now, TextVersionAuthor.Agent);
 
-            await uow.ExecuteAsync(ct => repo.CreateAsync(shortIntent, shortVersion, ct), CancellationToken.None);
-            await uow.ExecuteAsync(ct => repo.CreateAsync(longIntent, longVersion, ct), CancellationToken.None);
+            await uow.ExecuteAsync(
+                ct => repo.CreateAsync(shortIntent, shortVersion, InitialStatusChange(shortIntent), ct),
+                CancellationToken.None);
+            await uow.ExecuteAsync(
+                ct => repo.CreateAsync(longIntent, longVersion, InitialStatusChange(longIntent), ct),
+                CancellationToken.None);
         }
 
         var response = await _client.GetAsync(new Uri("/api/v1/intents", UriKind.Relative));
@@ -101,11 +106,23 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
 
         var shortItem = items.Single(i => i.Tags.Contains("a"));
         shortItem.TextShort.Should().Be("short text");
+        shortItem.Status.Should().Be("draft");
         shortItem.CurrentVersion.Should().Be(1);
 
         var longItem = items.Single(i => i.Tags.Contains("b"));
         longItem.TextShort.Should().HaveLength(140).And.Be(new string('x', 140));
     }
+
+    private static IntentStatusChange InitialStatusChange(Intent intent) =>
+        IntentStatusChange.Create(
+            Guid.NewGuid().ToString("N"),
+            intent.Id,
+            intent.CurrentVersion,
+            intent.Status,
+            intent.Status,
+            "test:create",
+            Now,
+            IntentTrainingAuthor.Agent);
 
     private sealed class IntentListItemView
     {
@@ -114,6 +131,9 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
 
         [JsonPropertyName("current_version")]
         public int CurrentVersion { get; init; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; init; } = string.Empty;
 
         [JsonPropertyName("tags")]
         public IReadOnlyList<string> Tags { get; init; } = [];

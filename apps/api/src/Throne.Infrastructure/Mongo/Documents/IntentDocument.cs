@@ -10,6 +10,9 @@ internal sealed class IntentDocument
     [BsonElement("text")]
     public string Text { get; set; } = string.Empty;
 
+    [BsonElement("status")]
+    public string Status { get; set; } = string.Empty;
+
     [BsonElement("current_version")]
     public int CurrentVersion { get; set; }
 

@@ -2,6 +2,7 @@ using FluentAssertions;
 using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Mongo.Documents;
@@ -24,12 +25,13 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "hello world", Now, TextVersionAuthor.Agent);
 
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct), CancellationToken.None);
 
         var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
             .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
         stored.Should().NotBeNull();
         stored!.Text.Should().Be("hello world");
+        stored.Status.Should().Be(IntentStatusNames.Draft);
         stored.CurrentVersion.Should().Be(1);
         stored.Tags.Should().Equal("throne");
 
@@ -52,12 +54,13 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct), CancellationToken.None);
 
         var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
 
         fetched.Should().NotBeNull();
         fetched!.Text.Should().Be("body");
+        fetched.Status.Should().Be(IntentStatusNames.Draft);
         fetched.CurrentVersion.Should().Be(1);
         fetched.Tags.Should().Equal("a", "b");
     }
@@ -72,6 +75,49 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         fetched.Should().BeNull();
     }
 
+    [Fact(DisplayName = "SetStatusAsync обновляет статус и пишет status-change log")]
+    public async Task SetStatus_updates_status_and_writes_log()
+    {
+        var (db, repo, uow) = await NewScopeAsync();
+
+        var id = IntentId.New();
+        var intent = Intent.Create(id, "body", ["a"], Now);
+        var version = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
+            "body", Now, TextVersionAuthor.Agent);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct), CancellationToken.None);
+
+        var outcome = await uow.ExecuteAsync(
+            ct => repo.SetStatusAsync(
+                id,
+                IntentStatusNames.Work,
+                appendText: null,
+                IntentTrainingAuthor.System,
+                "get_instruction_bundle:light_work",
+                Now.AddMinutes(5),
+                ct),
+            CancellationToken.None);
+
+        var updated = outcome.Should().BeOfType<SetIntentStatusOutcome.Updated>().Subject.Intent;
+        updated.Status.Should().Be(IntentStatusNames.Work);
+        updated.CurrentVersion.Should().Be(1);
+
+        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
+            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        stored.Should().NotBeNull();
+        stored!.Status.Should().Be(IntentStatusNames.Work);
+
+        var changes = await db.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges)
+            .Find(x => x.IntentId == id.Value)
+            .SortBy(x => x.CreatedAt)
+            .ToListAsync();
+        changes.Should().HaveCount(2);
+        changes[1].FromStatus.Should().Be(IntentStatusNames.Draft);
+        changes[1].ToStatus.Should().Be(IntentStatusNames.Work);
+        changes[1].Source.Should().Be("get_instruction_bundle:light_work");
+        changes[1].CreatedBy.Should().Be("system");
+    }
+
     [Fact(DisplayName = "CreateAsync вне UoW бросает InvalidOperationException")]
     public async Task Create_without_uow_throws()
     {
@@ -82,7 +128,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "x", Now, TextVersionAuthor.Agent);
 
-        var act = () => repo.CreateAsync(intent, version, CancellationToken.None);
+        var act = () => repo.CreateAsync(intent, version, InitialStatusChange(intent), CancellationToken.None);
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
@@ -96,6 +142,17 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
         return (db, repo, uow);
     }
+
+    private static IntentStatusChange InitialStatusChange(Intent intent) =>
+        IntentStatusChange.Create(
+            Guid.NewGuid().ToString("N"),
+            intent.Id,
+            intent.CurrentVersion,
+            intent.Status,
+            intent.Status,
+            "test:create",
+            Now,
+            IntentTrainingAuthor.Agent);
 }
 
 [CollectionDefinition(nameof(MongoIntegrationFixture))]

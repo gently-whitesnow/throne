@@ -13,6 +13,7 @@ using Testcontainers.MongoDb;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Tests.Intents;
@@ -164,9 +165,22 @@ public sealed class UploadIntentAttachmentEndpointTests : IAsyncLifetime
             Now,
             TextVersionAuthor.User);
 
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, ct), CancellationToken.None);
+        await uow.ExecuteAsync(
+            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct),
+            CancellationToken.None);
         return intent.Id.Value;
     }
+
+    private static IntentStatusChange InitialStatusChange(Intent intent) =>
+        IntentStatusChange.Create(
+            Guid.NewGuid().ToString("N"),
+            intent.Id,
+            intent.CurrentVersion,
+            intent.Status,
+            intent.Status,
+            "test:create",
+            Now,
+            IntentTrainingAuthor.User);
 
     private async Task<(HttpResponseMessage Response, IntentAttachmentView? Attachment)> UploadAsync(
         string intentId,

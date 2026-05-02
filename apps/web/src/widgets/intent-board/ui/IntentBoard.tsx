@@ -2,7 +2,12 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import type { IntentListItem } from "@/entities/intent";
+import {
+  intentStatusMeta,
+  intentStatusOrder,
+  type IntentListItem,
+  type IntentStatus
+} from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { EntityList, type EntityListRow } from "@/shared/ui";
@@ -18,6 +23,7 @@ export function IntentBoard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeStatus, setActiveStatus] = useState<IntentStatus | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,20 +61,27 @@ export function IntentBoard() {
     return state.items
       .filter((i) => {
         if (activeTag && !i.tags.includes(activeTag)) return false;
+        if (activeStatus && i.status !== activeStatus) return false;
         if (!q) return true;
         return (
           i.text_short.toLowerCase().includes(q) ||
           i.tags.some((t) => t.toLowerCase().includes(q))
         );
       })
-      .map((i) => ({
-        id: i.id,
-        title: firstLine(i.text_short) || i.id,
-        subtitle: i.tags.length > 0 ? `#${i.tags.join(" #")}` : undefined,
-        meta: `v${String(i.current_version)}`,
-        href: `/intents/${i.id}`
-      }));
-  }, [state, query, activeTag]);
+      .map((i) => {
+        const status = intentStatusMeta[i.status];
+        return {
+          id: i.id,
+          title: firstLine(i.text_short) || i.id,
+          subtitle: i.tags.length > 0 ? `#${i.tags.join(" #")}` : undefined,
+          meta: `v${String(i.current_version)}`,
+          badge: status.label,
+          badgeColor: status.surface,
+          badgeTextColor: status.ink,
+          href: `/intents/${i.id}`
+        };
+      });
+  }, [state, query, activeTag, activeStatus]);
 
   return (
     <section className="master-pane" aria-label="Список Intents">
@@ -116,6 +129,27 @@ export function IntentBoard() {
           })}
         </div>
       )}
+      <div
+        className="master-pane__tags master-pane__tags--statuses"
+        role="group"
+        aria-label="Фильтр по статусу"
+      >
+        {intentStatusOrder.map((status) => {
+          const active = activeStatus === status;
+          return (
+            <button
+              key={status}
+              type="button"
+              className={`tag-chip${active ? " tag-chip--active" : ""}`}
+              onClick={() => {
+                setActiveStatus(active ? null : status);
+              }}
+            >
+              {intentStatusMeta[status].label}
+            </button>
+          );
+        })}
+      </div>
       <div className="master-pane__body">
         {state.kind === "loading" && (
           <p className="master-pane__hint">Загрузка…</p>

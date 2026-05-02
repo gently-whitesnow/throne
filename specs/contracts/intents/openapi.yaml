@@ -84,6 +84,52 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/status:
+    post:
+      operationId: setIntentStatus
+      tags: [Intents]
+      summary: Set intent status (user-driven).
+      description: >
+        User-driven status change for an intent. Allows any supported status.
+        When status=reject, reject_reason is required and appended to the end of Intent.text.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetIntentStatusRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: State conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/replace-text:
     post:
       operationId: replaceIntentText
@@ -309,10 +355,32 @@ components:
           items:
             type: string
           description: Optional tags for filtering.
+    IntentStatus:
+      type: string
+      enum:
+        - draft
+        - interview
+        - work
+        - ready_for_review
+        - done
+        - reject
+      description: Current workflow status of the intent.
+    SetIntentStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/IntentStatus'
+        reject_reason:
+          type: string
+          minLength: 1
+          description: Required when status=reject. Appended to the end of Intent.text.
     IntentListItemDto:
       type: object
       required:
         - id
+        - status
         - current_version
         - tags
         - text_short
@@ -322,6 +390,8 @@ components:
         id:
           type: string
           description: Intent identifier (24 hex chars, ObjectId-shaped).
+        status:
+          $ref: '#/components/schemas/IntentStatus'
         current_version:
           type: integer
           format: int32
@@ -346,6 +416,7 @@ components:
       type: object
       required:
         - id
+        - status
         - current_version
         - tags
         - text
@@ -355,6 +426,8 @@ components:
         id:
           type: string
           description: Intent identifier (24 hex chars, ObjectId-shaped).
+        status:
+          $ref: '#/components/schemas/IntentStatus'
         current_version:
           type: integer
           format: int32

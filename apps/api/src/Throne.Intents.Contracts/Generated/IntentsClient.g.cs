@@ -54,6 +54,66 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Current workflow status of the intent.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IntentStatus
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"draft")]
+        [System.Runtime.Serialization.EnumMember(Value = @"draft")]
+        Draft = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"interview")]
+        [System.Runtime.Serialization.EnumMember(Value = @"interview")]
+        Interview = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"work")]
+        [System.Runtime.Serialization.EnumMember(Value = @"work")]
+        Work = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready_for_review")]
+        [System.Runtime.Serialization.EnumMember(Value = @"ready_for_review")]
+        Ready_for_review = 3,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"done")]
+        [System.Runtime.Serialization.EnumMember(Value = @"done")]
+        Done = 4,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"reject")]
+        [System.Runtime.Serialization.EnumMember(Value = @"reject")]
+        Reject = 5,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetIntentStatusRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentStatus>))]
+        public IntentStatus Status { get; set; }
+
+        /// <summary>
+        /// Required when status=reject. Appended to the end of Intent.text.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reject_reason")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Reject_reason { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentListItemDto
     {
@@ -64,6 +124,11 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentStatus>))]
+        public IntentStatus Status { get; set; }
 
         /// <summary>
         /// Current text version of the intent.
@@ -116,6 +181,11 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentStatus>))]
+        public IntentStatus Status { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("current_version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]

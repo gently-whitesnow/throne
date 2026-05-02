@@ -1,6 +1,7 @@
 using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo.Documents;
 
@@ -14,10 +15,18 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
     private readonly IMongoCollection<TextVersionDocument> _textVersions =
         database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
 
-    public async Task CreateAsync(Intent intent, TextVersion initialVersion, CancellationToken ct)
+    private readonly IMongoCollection<IntentStatusChangeDocument> _statusChanges =
+        database.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges);
+
+    public async Task CreateAsync(
+        Intent intent,
+        TextVersion initialVersion,
+        IntentStatusChange initialStatusChange,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(initialVersion);
+        ArgumentNullException.ThrowIfNull(initialStatusChange);
 
         var session = sessions.Current
             ?? throw new InvalidOperationException(
@@ -25,6 +34,8 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
         await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct).ConfigureAwait(false);
         await _intents.InsertOneAsync(session, MapIntent(intent), options: null, ct).ConfigureAwait(false);
+        await _statusChanges.InsertOneAsync(session, MapStatusChange(initialStatusChange), options: null, ct)
+            .ConfigureAwait(false);
     }
 
     public async Task<ReplaceIntentTextOutcome> ReplaceTextAsync(
@@ -199,6 +210,104 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         return new DeleteIntentOutcome.Deleted();
     }
 
+    public async Task<SetIntentStatusOutcome> SetStatusAsync(
+        IntentId id,
+        string status,
+        string? appendText,
+        IntentTrainingAuthor changedBy,
+        string source,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentRepository.SetStatusAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (document is null)
+        {
+            return new SetIntentStatusOutcome.NotFound();
+        }
+
+        var intent = MapToDomain(document);
+        var originalVersion = intent.CurrentVersion;
+        var originalStatus = intent.Status;
+
+        TextVersion? textVersion = null;
+        if (!string.IsNullOrEmpty(appendText))
+        {
+            var appendResult = intent.AppendText(
+                appendText,
+                Guid.NewGuid().ToString("N"),
+                now,
+                ToTextVersionAuthor(changedBy));
+
+            if (appendResult is not InsertTextResult.Inserted inserted)
+            {
+                throw new InvalidOperationException($"Unexpected append result: {appendResult.GetType().Name}");
+            }
+
+            textVersion = inserted.Version;
+        }
+
+        var statusChanged = intent.SetStatus(status, now);
+        var shouldUpdate = statusChanged || textVersion is not null;
+        if (!shouldUpdate)
+        {
+            return new SetIntentStatusOutcome.Updated(intent);
+        }
+
+        var update = Builders<IntentDocument>.Update
+            .Set(d => d.Text, intent.Text)
+            .Set(d => d.Status, intent.Status)
+            .Set(d => d.CurrentVersion, intent.CurrentVersion)
+            .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+
+        var updateResult = await _intents.UpdateOneAsync(
+            session,
+            d => d.Id == id.Value && d.CurrentVersion == originalVersion && d.Status == originalStatus,
+            update,
+            options: null,
+            ct).ConfigureAwait(false);
+
+        if (updateResult.ModifiedCount == 0)
+        {
+            var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+            if (fresh is null)
+            {
+                return new SetIntentStatusOutcome.NotFound();
+            }
+
+            return new SetIntentStatusOutcome.Conflict(fresh.CurrentVersion, fresh.Status);
+        }
+
+        if (textVersion is not null)
+        {
+            await _textVersions.InsertOneAsync(session, MapVersion(textVersion), options: null, ct).ConfigureAwait(false);
+        }
+
+        if (statusChanged)
+        {
+            var statusChange = IntentStatusChange.Create(
+                id: Guid.NewGuid().ToString("N"),
+                intentId: id,
+                intentVersionAtWrite: intent.CurrentVersion,
+                fromStatus: originalStatus,
+                toStatus: intent.Status,
+                source: source,
+                createdAt: now,
+                createdBy: changedBy);
+
+            await _statusChanges.InsertOneAsync(session, MapStatusChange(statusChange), options: null, ct)
+                .ConfigureAwait(false);
+        }
+
+        return new SetIntentStatusOutcome.Updated(intent);
+    }
+
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
@@ -213,6 +322,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
     {
         Id = intent.Id.Value,
         Text = intent.Text,
+        Status = intent.Status,
         CurrentVersion = intent.CurrentVersion,
         Tags = [.. intent.Tags],
         CreatedAt = intent.CreatedAt.UtcDateTime,
@@ -235,11 +345,32 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         ChangedBy = v.ChangedBy.ToWire(),
     };
 
+    private static IntentStatusChangeDocument MapStatusChange(IntentStatusChange change) => new()
+    {
+        Id = change.Id,
+        IntentId = change.IntentId.Value,
+        IntentVersionAtWrite = change.IntentVersionAtWrite,
+        FromStatus = change.FromStatus,
+        ToStatus = change.ToStatus,
+        Source = change.Source,
+        CreatedAt = change.CreatedAt.UtcDateTime,
+        CreatedBy = change.CreatedBy.ToWire(),
+    };
+
     private static Intent MapToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
         text: doc.Text,
+        status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,
         tags: doc.Tags,
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
         updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
+
+    private static TextVersionAuthor ToTextVersionAuthor(IntentTrainingAuthor author) => author switch
+    {
+        IntentTrainingAuthor.User => TextVersionAuthor.User,
+        IntentTrainingAuthor.Agent => TextVersionAuthor.Agent,
+        IntentTrainingAuthor.System => TextVersionAuthor.System,
+        _ => throw new InvalidOperationException($"Unknown training author: {author}."),
+    };
 }

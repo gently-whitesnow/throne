@@ -68,6 +68,17 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
         /// <summary>
+        /// Set intent status (user-driven).
+        /// </summary>
+        /// <remarks>
+        /// User-driven status change for an intent. Allows any supported status. When status=reject, reject_reason is required and appended to the end of Intent.text.
+        /// </remarks>
+        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/status", Name = "setIntentStatus")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> SetIntentStatus([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetIntentStatusRequest body);
+
+        /// <summary>
         /// Replace a unique substring of Intent.text (user-driven).
         /// </summary>
         /// <remarks>

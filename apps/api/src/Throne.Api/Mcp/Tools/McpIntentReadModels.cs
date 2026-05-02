@@ -5,6 +5,7 @@ namespace Throne.Api.Mcp.Tools;
 public sealed record McpIntentReadResult(
     [property: Description("Intent identifier.")] string Id,
     [property: Description("Full canonical Intent.text.")] string Text,
+    [property: Description("Current intent status.")] string Status,
     [property: Description("Current text version.")] int CurrentVersion,
     [property: Description("Normalized tags.")] IReadOnlyList<string> Tags,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
