@@ -106,6 +106,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/qa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Q/A pairs collected during interview for an Intent. */
+        get: operations["listIntentQa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List review notes attached to an Intent. */
+        get: operations["listIntentReviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}/attachments": {
         parameters: {
             query?: never;
@@ -212,6 +246,42 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        /**
+         * @description Who recorded this training entry.
+         * @enum {string}
+         */
+        IntentTrainingAuthor: "user" | "agent" | "system";
+        IntentQaDto: {
+            /** @description QA record identifier. */
+            id: string;
+            /** @description Owning intent id. */
+            intent_id: string;
+            /**
+             * Format: int32
+             * @description Intent.current_version observed when this Q/A was recorded.
+             */
+            intent_version_at_write: number;
+            question: string;
+            answer: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by: components["schemas"]["IntentTrainingAuthor"];
+        };
+        IntentReviewDto: {
+            /** @description Review record identifier. */
+            id: string;
+            /** @description Owning intent id. */
+            intent_id: string;
+            /** Format: int32 */
+            intent_version_at_write: number;
+            /** @description Reviewer note text. */
+            note: string;
+            /** @description Short reason / rationale tag. */
+            reason: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by: components["schemas"]["IntentTrainingAuthor"];
         };
         IntentAttachmentDto: {
             /** @description Attachment identifier (24 hex chars, ObjectId-shaped). */
@@ -510,6 +580,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TextVersionDto"][];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listIntentQa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentQaDto"][];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listIntentReviews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentReviewDto"][];
                 };
             };
             /** @description Not found */

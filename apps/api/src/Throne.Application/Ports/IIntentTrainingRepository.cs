@@ -18,4 +18,8 @@ public interface IIntentTrainingRepository
         IntentReview review,
         DateTimeOffset now,
         CancellationToken ct);
+
+    Task<IReadOnlyList<IntentQa>> ListQaByIntentAsync(IntentId id, CancellationToken ct);
+
+    Task<IReadOnlyList<IntentReview>> ListReviewsByIntentAsync(IntentId id, CancellationToken ct);
 }

@@ -96,6 +96,20 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListIntentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
         /// <summary>
+        /// List Q/A pairs collected during interview for an Intent.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/qa", Name = "listIntentQa")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentQaDto>>> ListIntentQa([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
+        /// List review notes attached to an Intent.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/reviews", Name = "listIntentReviews")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentReviewDto>>> ListIntentReviews([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
         /// List file attachments for an intent.
         /// </summary>
         /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>

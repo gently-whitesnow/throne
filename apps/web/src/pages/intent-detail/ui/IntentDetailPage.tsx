@@ -1,4 +1,3 @@
-import { History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -9,7 +8,7 @@ import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { Button } from "@/shared/ui";
-import { VersionsDrawer } from "@/widgets/versions-drawer";
+import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 
 type LoadState =
   | { kind: "loading" }
@@ -21,15 +20,13 @@ export function IntentDetailPage() {
   const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState(false);
-  const [historyKey, setHistoryKey] = useState(0);
-  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [activityKey, setActivityKey] = useState(0);
 
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
     setState({ kind: "loading" });
     setEditing(false);
-    setVersionsOpen(false);
     httpGet<IntentDetail>(intentsEndpoints.getIntent(id), controller.signal)
       .then((intent) => {
         setState({ kind: "ready", intent });
@@ -93,14 +90,6 @@ export function IntentDetailPage() {
           </div>
         </div>
         <div className="detail__actions">
-          <Button
-            icon={<History aria-hidden size={14} strokeWidth={2} />}
-            onClick={() => {
-              setVersionsOpen(true);
-            }}
-          >
-            История
-          </Button>
           {!editing && (
             <Button
               variant="primary"
@@ -125,7 +114,7 @@ export function IntentDetailPage() {
           intent={intent}
           onSaved={(next) => {
             setState({ kind: "ready", intent: next });
-            setHistoryKey((k) => k + 1);
+            setActivityKey((k) => k + 1);
           }}
         />
         {editing ? (
@@ -134,7 +123,7 @@ export function IntentDetailPage() {
             onSaved={(next) => {
               setState({ kind: "ready", intent: next });
               setEditing(false);
-              setHistoryKey((k) => k + 1);
+              setActivityKey((k) => k + 1);
             }}
             onCancel={() => {
               setEditing(false);
@@ -144,16 +133,14 @@ export function IntentDetailPage() {
           <pre className="detail__text">{intent.text}</pre>
         )}
         <IntentAttachmentsPanel intentId={intent.id} />
+        <section className="detail__activity">
+          <h2 className="detail__section-title">Активность</h2>
+          <IntentActivityTimeline
+            intentId={intent.id}
+            reloadKey={activityKey}
+          />
+        </section>
       </div>
-
-      <VersionsDrawer
-        open={versionsOpen}
-        endpoint={intentsEndpoints.listIntentVersions(intent.id)}
-        reloadKey={historyKey}
-        onClose={() => {
-          setVersionsOpen(false);
-        }}
-      />
     </>
   );
 }

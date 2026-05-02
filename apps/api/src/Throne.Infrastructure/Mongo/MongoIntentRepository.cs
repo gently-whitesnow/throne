@@ -268,7 +268,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
         var updateResult = await _intents.UpdateOneAsync(
             session,
-            d => d.Id == id.Value && d.CurrentVersion == originalVersion && d.Status == originalStatus,
+            BuildStatusUpdateFilter(id.Value, originalVersion, originalStatus),
             update,
             options: null,
             ct).ConfigureAwait(false);
@@ -373,4 +373,22 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         IntentTrainingAuthor.System => TextVersionAuthor.System,
         _ => throw new InvalidOperationException($"Unknown training author: {author}."),
     };
+
+    private static FilterDefinition<IntentDocument> BuildStatusUpdateFilter(
+        string id,
+        int currentVersion,
+        string originalStatus)
+    {
+        var filter = Builders<IntentDocument>.Filter;
+        var statusFilter = filter.Eq(d => d.Status, originalStatus);
+        if (string.Equals(originalStatus, IntentStatusNames.Draft, StringComparison.Ordinal))
+        {
+            statusFilter = filter.Or(statusFilter, filter.Eq(d => d.Status, string.Empty));
+        }
+
+        return filter.And(
+            filter.Eq(d => d.Id, id),
+            filter.Eq(d => d.CurrentVersion, currentVersion),
+            statusFilter);
+    }
 }

@@ -7,6 +7,8 @@ using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 using Throne.Intents.Contracts.Generated;
+using ContractTrainingAuthor = Throne.Intents.Contracts.Generated.IntentTrainingAuthor;
+using DomainTrainingAuthor = Throne.Domain.Intents.Training.IntentTrainingAuthor;
 using FileParameter = Throne.Api.Generated.FileParameter;
 
 namespace Throne.Api.Intents;
@@ -19,6 +21,8 @@ public sealed class IntentsController(
     ReplaceIntentTextHandler replaceHandler,
     DeleteIntentHandler deleteHandler,
     ListIntentVersionsHandler listVersionsHandler,
+    ListIntentQaHandler listQaHandler,
+    ListIntentReviewsHandler listReviewsHandler,
     UploadIntentAttachmentHandler uploadAttachmentHandler,
     ListIntentAttachmentsHandler listAttachmentsHandler,
     DownloadIntentAttachmentHandler downloadAttachmentHandler,
@@ -93,7 +97,7 @@ public sealed class IntentsController(
                     id,
                     ToDomainStatus(body.Status),
                     body.Reject_reason,
-                    IntentTrainingAuthor.User,
+                    DomainTrainingAuthor.User,
                     "http:set_intent_status"),
                 HttpContext.RequestAborted).ConfigureAwait(false);
 
@@ -138,6 +142,46 @@ public sealed class IntentsController(
             foreach (var v in versions)
             {
                 dtos.Add(ToVersionDto(v));
+            }
+            return Ok(dtos);
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
+        {
+            return NotFound(NotFoundProblem("Intent not found", ex.Detail));
+        }
+    }
+
+    public override async Task<ActionResult<ICollection<IntentQaDto>>> ListIntentQa(string id)
+    {
+        try
+        {
+            var items = await listQaHandler.HandleAsync(
+                new ListIntentQaQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+
+            var dtos = new List<IntentQaDto>(items.Count);
+            foreach (var qa in items)
+            {
+                dtos.Add(ToQaDto(qa));
+            }
+            return Ok(dtos);
+        }
+        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
+        {
+            return NotFound(NotFoundProblem("Intent not found", ex.Detail));
+        }
+    }
+
+    public override async Task<ActionResult<ICollection<IntentReviewDto>>> ListIntentReviews(string id)
+    {
+        try
+        {
+            var items = await listReviewsHandler.HandleAsync(
+                new ListIntentReviewsQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+
+            var dtos = new List<IntentReviewDto>(items.Count);
+            foreach (var review in items)
+            {
+                dtos.Add(ToReviewDto(review));
             }
             return Ok(dtos);
         }
@@ -331,6 +375,36 @@ public sealed class IntentsController(
         Text = intent.Text,
         Created_at = intent.CreatedAt,
         Updated_at = intent.UpdatedAt,
+    };
+
+    private static IntentQaDto ToQaDto(IntentQa qa) => new()
+    {
+        Id = qa.Id,
+        Intent_id = qa.IntentId.Value,
+        Intent_version_at_write = qa.IntentVersionAtWrite,
+        Question = qa.Question,
+        Answer = qa.Answer,
+        Created_at = qa.CreatedAt,
+        Created_by = ToContractTrainingAuthor(qa.CreatedBy),
+    };
+
+    private static IntentReviewDto ToReviewDto(IntentReview r) => new()
+    {
+        Id = r.Id,
+        Intent_id = r.IntentId.Value,
+        Intent_version_at_write = r.IntentVersionAtWrite,
+        Note = r.Note,
+        Reason = r.Reason,
+        Created_at = r.CreatedAt,
+        Created_by = ToContractTrainingAuthor(r.CreatedBy),
+    };
+
+    private static ContractTrainingAuthor ToContractTrainingAuthor(DomainTrainingAuthor author) => author switch
+    {
+        DomainTrainingAuthor.User => ContractTrainingAuthor.User,
+        DomainTrainingAuthor.Agent => ContractTrainingAuthor.Agent,
+        DomainTrainingAuthor.System => ContractTrainingAuthor.System,
+        _ => throw new InvalidOperationException($"Unknown training author: {author}"),
     };
 
     private static TextVersionDto ToVersionDto(TextVersion v) => new()

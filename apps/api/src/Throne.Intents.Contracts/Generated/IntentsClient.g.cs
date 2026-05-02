@@ -221,6 +221,136 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Who recorded this training entry.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IntentTrainingAuthor
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"user")]
+        [System.Runtime.Serialization.EnumMember(Value = @"user")]
+        User = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"agent")]
+        [System.Runtime.Serialization.EnumMember(Value = @"agent")]
+        Agent = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"system")]
+        [System.Runtime.Serialization.EnumMember(Value = @"system")]
+        System = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentQaDto
+    {
+
+        /// <summary>
+        /// QA record identifier.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Owning intent id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Intent_id { get; set; }
+
+        /// <summary>
+        /// Intent.current_version observed when this Q/A was recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_version_at_write")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Intent_version_at_write { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("question")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Question { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("answer")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Answer { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created_at { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_by")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentTrainingAuthor>))]
+        public IntentTrainingAuthor Created_by { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentReviewDto
+    {
+
+        /// <summary>
+        /// Review record identifier.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Owning intent id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Intent_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("intent_version_at_write")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Intent_version_at_write { get; set; }
+
+        /// <summary>
+        /// Reviewer note text.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("note")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Note { get; set; }
+
+        /// <summary>
+        /// Short reason / rationale tag.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Reason { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created_at { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_by")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentTrainingAuthor>))]
+        public IntentTrainingAuthor Created_by { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentAttachmentDto
     {

@@ -1103,6 +1103,141 @@ select {
   text-decoration: none;
 }
 
+/* === Activity timeline (Intent detail) === */
+
+.detail__activity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+
+.activity-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activity-timeline__hint {
+  margin: 0;
+  color: var(--ink-mute2);
+  font-size: 12px;
+}
+
+.activity-timeline__item {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--bg);
+}
+
+.activity-timeline__header {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 11px;
+  color: var(--ink-mute2);
+  margin-bottom: 6px;
+}
+
+.activity-timeline__primary {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.activity-timeline__time {
+  margin-left: auto;
+}
+
+.activity-timeline__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  background: var(--bg-subtle);
+}
+
+.activity-timeline__badge--version {
+  color: var(--accent-strong);
+  background: var(--bg-active);
+  border-color: var(--bg-active);
+}
+
+.activity-timeline__badge--qa {
+  color: #1f6f43;
+  background: #e6f6ec;
+  border-color: #c9ead4;
+}
+
+.activity-timeline__badge--review {
+  color: #a35d00;
+  background: #fff1d6;
+  border-color: #f5dca0;
+}
+
+.activity-timeline__diff {
+  margin: 0;
+  padding: 8px;
+  background: var(--bg-subtle);
+  border-radius: 4px;
+  font-family: "Noto Sans Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.activity-timeline__diff del {
+  background: #fee2e2;
+  text-decoration: line-through;
+}
+
+.activity-timeline__diff ins {
+  background: #dcfce7;
+  text-decoration: none;
+}
+
+.activity-timeline__qa {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.activity-timeline__qa dt {
+  color: var(--ink-mute2);
+  font-weight: 600;
+}
+
+.activity-timeline__qa dd {
+  margin: 0;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+.activity-timeline__note {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
 /* === Mobile === */
 
 @media (max-width: 768px) {

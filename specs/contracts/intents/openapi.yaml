@@ -201,6 +201,58 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/qa:
+    get:
+      operationId: listIntentQa
+      tags: [Intents]
+      summary: List Q/A pairs collected during interview for an Intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentQaDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/reviews:
+    get:
+      operationId: listIntentReviews
+      tags: [Intents]
+      summary: List review notes attached to an Intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentReviewDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/attachments:
     get:
       operationId: listIntentAttachments
@@ -445,6 +497,73 @@ components:
         updated_at:
           type: string
           format: date-time
+    IntentTrainingAuthor:
+      type: string
+      enum: [user, agent, system]
+      description: Who recorded this training entry.
+    IntentQaDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - intent_version_at_write
+        - question
+        - answer
+        - created_at
+        - created_by
+      properties:
+        id:
+          type: string
+          description: QA record identifier.
+        intent_id:
+          type: string
+          description: Owning intent id.
+        intent_version_at_write:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Intent.current_version observed when this Q/A was recorded.
+        question:
+          type: string
+        answer:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          $ref: '#/components/schemas/IntentTrainingAuthor'
+    IntentReviewDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - intent_version_at_write
+        - note
+        - reason
+        - created_at
+        - created_by
+      properties:
+        id:
+          type: string
+          description: Review record identifier.
+        intent_id:
+          type: string
+          description: Owning intent id.
+        intent_version_at_write:
+          type: integer
+          format: int32
+          minimum: 1
+        note:
+          type: string
+          description: Reviewer note text.
+        reason:
+          type: string
+          description: Short reason / rationale tag.
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          $ref: '#/components/schemas/IntentTrainingAuthor'
     IntentAttachmentDto:
       type: object
       required:

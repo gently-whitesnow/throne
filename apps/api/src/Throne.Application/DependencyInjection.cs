@@ -23,6 +23,8 @@ public static class DependencyInjection
         services.AddSingleton<InsertIntentTextAfterLineHandler>();
         services.AddSingleton<AddIntentQaHandler>();
         services.AddSingleton<AddIntentReviewHandler>();
+        services.AddSingleton<ListIntentQaHandler>();
+        services.AddSingleton<ListIntentReviewsHandler>();
         services.AddSingleton<ListIntentsHandler>();
         services.AddSingleton<SetIntentStatusHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();

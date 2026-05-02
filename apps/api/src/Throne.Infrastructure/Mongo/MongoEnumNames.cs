@@ -37,6 +37,14 @@ internal static class MongoEnumNames
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
     };
 
+    public static IntentTrainingAuthor ParseIntentTrainingAuthor(string wire) => wire switch
+    {
+        "agent" => IntentTrainingAuthor.Agent,
+        "user" => IntentTrainingAuthor.User,
+        "system" => IntentTrainingAuthor.System,
+        _ => throw new ArgumentOutOfRangeException(nameof(wire), wire, "Unknown intent training author."),
+    };
+
     public static string ToWire(this McpCallOutcome value) => value switch
     {
         McpCallOutcome.Success => "success",

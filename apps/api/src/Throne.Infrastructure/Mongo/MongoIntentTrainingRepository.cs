@@ -60,6 +60,40 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
         return appended;
     }
 
+    public async Task<IReadOnlyList<IntentQa>> ListQaByIntentAsync(IntentId id, CancellationToken ct)
+    {
+        var session = sessions.Current;
+        var filter = Builders<IntentQaDocument>.Filter.Eq(d => d.IntentId, id.Value);
+
+        var documents = session is null
+            ? await _qa.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false)
+            : await _qa.Find(session, filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false);
+
+        var result = new List<IntentQa>(documents.Count);
+        foreach (var doc in documents)
+        {
+            result.Add(MapQaToDomain(doc));
+        }
+        return result;
+    }
+
+    public async Task<IReadOnlyList<IntentReview>> ListReviewsByIntentAsync(IntentId id, CancellationToken ct)
+    {
+        var session = sessions.Current;
+        var filter = Builders<IntentReviewDocument>.Filter.Eq(d => d.IntentId, id.Value);
+
+        var documents = session is null
+            ? await _reviews.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false)
+            : await _reviews.Find(session, filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false);
+
+        var result = new List<IntentReview>(documents.Count);
+        foreach (var doc in documents)
+        {
+            result.Add(MapReviewToDomain(doc));
+        }
+        return result;
+    }
+
     private MongoDB.Driver.IClientSessionHandle RequireSession(string method) =>
         sessions.Current
         ?? throw new InvalidOperationException(
@@ -115,4 +149,22 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
         CreatedAt = r.CreatedAt.UtcDateTime,
         CreatedBy = r.CreatedBy.ToWire(),
     };
+
+    private static IntentQa MapQaToDomain(IntentQaDocument doc) => new(
+        Id: doc.Id,
+        IntentId: new IntentId(doc.IntentId),
+        IntentVersionAtWrite: doc.IntentVersionAtWrite,
+        Question: doc.Question,
+        Answer: doc.Answer,
+        CreatedAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
+        CreatedBy: MongoEnumNames.ParseIntentTrainingAuthor(doc.CreatedBy));
+
+    private static IntentReview MapReviewToDomain(IntentReviewDocument doc) => new(
+        Id: doc.Id,
+        IntentId: new IntentId(doc.IntentId),
+        IntentVersionAtWrite: doc.IntentVersionAtWrite,
+        Note: doc.Note,
+        Reason: doc.Reason,
+        CreatedAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
+        CreatedBy: MongoEnumNames.ParseIntentTrainingAuthor(doc.CreatedBy));
 }
