@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Throne.Api.Mcp.Prompts;
 using Throne.Api.Mcp.Tools;
 
 namespace Throne.Api.Mcp;
@@ -14,7 +13,6 @@ public static class ThroneToolsBootstrap
             typeof(ThroneToolsBootstrap).Assembly.GetName().Version?.ToString() ?? "0.0.0"));
 
         services.AddThroneTool<IntentTools>();
-        services.AddThronePrompt<IntentPrompts>();
 
         return services;
     }

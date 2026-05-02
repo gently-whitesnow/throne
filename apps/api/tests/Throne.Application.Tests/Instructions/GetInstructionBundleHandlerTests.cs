@@ -58,6 +58,27 @@ public class GetInstructionBundleHandlerTests
         bundle.MissingKinds.Should().Equal(InstructionKindNames.Interview);
     }
 
+    [Fact(DisplayName = "GetInstructionBundle для dream возвращает common и dream")]
+    public async Task Bundle_returns_dream_kinds()
+    {
+        var repo = Substitute.For<IInstructionRepository>();
+        var common = Instruction.Create(InstructionId.New(), InstructionKindNames.Common, "common text", Now);
+        var dream = Instruction.Create(InstructionId.New(), InstructionKindNames.Dream, "dream text", Now);
+        repo.GetByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns([dream, common]);
+        var handler = new GetInstructionBundleHandler(repo);
+
+        var bundle = await handler.HandleAsync(
+            new GetInstructionBundleQuery(InstructionBundleModeNames.Dream, IntentId: null),
+            CancellationToken.None);
+
+        bundle.Mode.Should().Be(InstructionBundleModeNames.Dream);
+        bundle.MissingKinds.Should().BeEmpty();
+        bundle.Instructions.Select(x => x.Kind).Should().Equal(
+            InstructionKindNames.Common,
+            InstructionKindNames.Dream);
+    }
+
     [Fact(DisplayName = "GetInstructionBundle отклоняет неизвестный mode")]
     public async Task Bundle_rejects_unknown_mode()
     {

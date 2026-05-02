@@ -47,7 +47,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         versions[0].Snapshot.Should().Be("light text");
     }
 
-    [Fact(DisplayName = "EnsureSeedInstructions idempotently создаёт четыре seed-инструкции")]
+    [Fact(DisplayName = "EnsureSeedInstructions idempotently создаёт пять seed-инструкций")]
     public async Task Seed_bootstrap_is_idempotent()
     {
         var (db, repo, uow) = await NewScopeAsync();
@@ -58,12 +58,12 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
 
         var instructions = await db.GetCollection<InstructionDocument>(MongoCollectionNames.Instructions)
             .Find(_ => true).ToListAsync();
-        instructions.Should().HaveCount(4);
+        instructions.Should().HaveCount(5);
         instructions.Select(x => x.Kind).Should().BeEquivalentTo(InstructionKindNames.All);
 
         var versions = await db.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions)
             .Find(x => x.OwnerKind == "instruction").ToListAsync();
-        versions.Should().HaveCount(4);
+        versions.Should().HaveCount(5);
     }
 
     private async Task<(IMongoDatabase Db, MongoInstructionRepository Repo, MongoUnitOfWork Uow)> NewScopeAsync()

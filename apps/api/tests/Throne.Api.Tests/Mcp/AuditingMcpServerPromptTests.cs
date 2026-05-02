@@ -33,37 +33,10 @@ public class AuditingMcpServerPromptTests
             Arg.Is<McpCallLogEntry>(e =>
                 e.ToolName == "prompts/get:tinterview" &&
                 e.IntentId == "intent_42" &&
-                e.ModeHint == "interview" &&
+                e.ModeHint == null &&
                 e.Outcome == McpCallOutcome.Success &&
                 e.ErrorCode == null),
             Arg.Any<CancellationToken>());
-    }
-
-    [Fact(DisplayName = "GetAsync пишет mode_hint по статическому маппингу для всех 4 команд")]
-    public async Task Get_writes_mode_hint_per_command()
-    {
-        var cases = new[]
-        {
-            ("tinterview", "interview"),
-            ("twork", "light_work"),
-            ("tnew", "new_project"),
-            ("treview", "light_work"),
-        };
-
-        foreach (var (name, expectedMode) in cases)
-        {
-            var sink = Substitute.For<IMcpCallLogSink>();
-            var inner = new StubPrompt(name, _ => new ValueTask<GetPromptResult>(SuccessResult("ok")));
-            var prompt = NewWrapper(inner, sink);
-
-            await prompt.GetAsync(NewContext(name, new Dictionary<string, JsonElement>()), CancellationToken.None);
-
-            await sink.Received(1).WriteAsync(
-                Arg.Is<McpCallLogEntry>(e =>
-                    e.ToolName == $"prompts/get:{name}" &&
-                    e.ModeHint == expectedMode),
-                Arg.Any<CancellationToken>());
-        }
     }
 
     [Fact(DisplayName = "GetAsync пишет error и пробрасывает ApiException")]

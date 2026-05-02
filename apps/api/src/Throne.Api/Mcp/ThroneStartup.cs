@@ -28,12 +28,6 @@ public static class ThroneStartup
 
         var prompts = services.GetServices<McpServerPrompt>().ToArray();
 
-        if (prompts.Length == 0)
-        {
-            throw new InvalidOperationException(
-                "No MCP prompts registered. Did you call AddThronePrompt<T>()?");
-        }
-
         var unwrappedPrompts = prompts.Where(p => p is not AuditingMcpServerPrompt).ToArray();
         if (unwrappedPrompts.Length > 0)
         {

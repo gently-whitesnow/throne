@@ -3,7 +3,6 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Throne.Api.Mcp.Prompts;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 
@@ -24,7 +23,7 @@ internal sealed partial class AuditingMcpServerPrompt(
         var auditToolName = $"prompts/get:{promptName}";
         var arguments = NormalizeArguments(request.Params?.Arguments);
         var intentId = ExtractIntentId(request.Params?.Arguments);
-        var modeHint = IntentPrompts.ModeMap.TryGetValue(promptName, out var mode) ? mode : null;
+        string? modeHint = null;
         var sessionId = request.Server.SessionId;
         var startedAt = clock.GetUtcNow();
         var stopwatch = Stopwatch.StartNew();

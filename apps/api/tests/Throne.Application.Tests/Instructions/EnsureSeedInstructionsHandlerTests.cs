@@ -23,7 +23,7 @@ public class EnsureSeedInstructionsHandlerTests
 
         await handler.HandleAsync(CancellationToken.None);
 
-        await repo.Received(3).CreateAsync(
+        await repo.Received(4).CreateAsync(
             Arg.Is<Instruction>(i => i.Kind != InstructionKindNames.Common && i.CurrentVersion == 1),
             Arg.Is<TextVersion>(v =>
                 v.OwnerKind == TextVersionOwnerKind.Instruction &&

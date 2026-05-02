@@ -19,6 +19,7 @@ bash scripts/quality/verify.sh
 | HTTP API контракты (OpenAPI source of truth) | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) |
 | Seed-инструкции Throne | [apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs](apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs) |
 | Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
+| Vendor launchers (Claude/Codex/Cursor) | [specs/ADR/0007-vendor-skill-launchers.md](specs/ADR/0007-vendor-skill-launchers.md) |
 
 ## Frontend / UI
 

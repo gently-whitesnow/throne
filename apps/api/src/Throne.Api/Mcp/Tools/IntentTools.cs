@@ -155,7 +155,7 @@ public sealed class IntentTools(
         addQa.HandleAsync(new AddIntentQaCommand(intent_id, expected_version, question, answer), cancellationToken);
 
     [McpServerTool(Name = "add_intent_review", UseStructuredContent = true)]
-    [Description("Append one post-work review note to training-only intent_review. Use before continuing fixes from /treview. Does not increment current_version.")]
+    [Description("Append one post-work review note to training-only intent_review. Use before continuing fixes from /tfix. Does not increment current_version.")]
     public Task<Ack> AddIntentReview(
         [Description("Intent id the review belongs to.")] string intent_id,
         [Description("current_version observed before recording this review. Must still match the Intent.")] int expected_version,
@@ -167,7 +167,7 @@ public sealed class IntentTools(
     [McpServerTool(Name = "get_instruction_bundle", ReadOnly = true, UseStructuredContent = true)]
     [Description("Read the complete instruction bundle for a runtime mode. Call before interview/work and pass intent_id once known for audit linkage.")]
     public Task<InstructionBundle> GetInstructionBundle(
-        [Description("Runtime mode: interview, light_work, or new_project. Use light_work for /treview continuation.")] string mode,
+        [Description("Runtime mode: interview, light_work, new_project, or dream. Use light_work for /tfix continuation.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default) =>
         getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
