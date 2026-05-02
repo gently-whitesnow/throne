@@ -9,8 +9,10 @@ export type InstructionDetail =
 export type InstructionKind =
   | "common"
   | "interview"
-  | "light_work"
-  | "new_project";
+  | "work"
+  | "new_project"
+  | "dream"
+  | "fix";
 
 export interface InstructionKindMeta {
   label: string;
@@ -29,8 +31,8 @@ export const instructionKindMeta: Record<string, InstructionKindMeta> = {
     ink: "#600000",
     surface: "#ffc6c6"
   },
-  light_work: {
-    label: "Light work",
+  work: {
+    label: "Work",
     ink: "#746019",
     surface: "#ffe6cd"
   },
@@ -38,6 +40,16 @@ export const instructionKindMeta: Record<string, InstructionKindMeta> = {
     label: "New project",
     ink: "#2a41b6",
     surface: "#dbe4ff"
+  },
+  dream: {
+    label: "Dream",
+    ink: "#5a1a8c",
+    surface: "#ecdcfb"
+  },
+  fix: {
+    label: "Fix",
+    ink: "#7a1c4d",
+    surface: "#ffd3e3"
   }
 };
 

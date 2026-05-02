@@ -122,7 +122,8 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 |---|---|
 | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) | Реестр архитектурных решений |
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
-| [apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs](apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs) | Seed-инструкции Throne |
+| [apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) | Системные инструкции Throne (in code) |
+| [scripts/seed/seed-mvp-user-instructions.js](scripts/seed/seed-mvp-user-instructions.js) | Bootstrap user-инструкций (mongosh) — запустить один раз на новой Mongo |
 | [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |
 | [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов |
 | [CLAUDE.md](CLAUDE.md) | Точка входа для Claude |

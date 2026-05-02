@@ -30,8 +30,8 @@ public static class DependencyInjection
         services.AddSingleton<ListIntentsHandler>();
         services.AddSingleton<SetIntentStatusHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();
+        services.AddSingleton<SystemInstructionCatalog>();
         services.AddSingleton<GetInstructionBundleHandler>();
-        services.AddSingleton<EnsureSeedInstructionsHandler>();
         services.AddSingleton<ListInstructionsHandler>();
         services.AddSingleton<GetInstructionHandler>();
         services.AddSingleton<ReplaceInstructionTextHandler>();

@@ -134,7 +134,7 @@ components:
           description: Instruction identifier (24 hex chars, ObjectId-shaped).
         kind:
           type: string
-          description: Instruction kind (common | interview | light_work | new_project).
+          description: Instruction kind (common | interview | work | new_project | dream | fix).
         current_version:
           type: integer
           format: int32

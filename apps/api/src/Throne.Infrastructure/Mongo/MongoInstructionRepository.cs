@@ -27,15 +27,23 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         await _instructions.InsertOneAsync(session, MapInstruction(instruction), options: null, ct).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<Instruction>> GetByKindsAsync(IReadOnlyList<string> kinds, CancellationToken ct)
+    public async Task<IReadOnlyList<Instruction>> GetUserInstructionsByKindsAsync(
+        string userId,
+        IReadOnlyList<string> kinds,
+        CancellationToken ct)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentNullException.ThrowIfNull(kinds);
         if (kinds.Count == 0)
         {
             return [];
         }
 
-        var filter = Builders<InstructionDocument>.Filter.In(x => x.Kind, kinds);
+        var filter = Builders<InstructionDocument>.Filter.And(
+            Builders<InstructionDocument>.Filter.Eq(x => x.Scope, InstructionScopeNames.User),
+            Builders<InstructionDocument>.Filter.Eq(x => x.UserId, userId),
+            Builders<InstructionDocument>.Filter.In(x => x.Kind, kinds));
+
         var session = sessions.Current;
         var documents = session is null
             ? await _instructions.Find(filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
@@ -54,7 +62,7 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
 
     public async Task<IReadOnlyList<Instruction>> ListAsync(CancellationToken ct)
     {
-        var filter = Builders<InstructionDocument>.Filter.Empty;
+        var filter = Builders<InstructionDocument>.Filter.Eq(x => x.Scope, InstructionScopeNames.User);
         var session = sessions.Current;
         var documents = session is null
             ? await _instructions.Find(filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
@@ -153,6 +161,8 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
     private static InstructionDocument MapInstruction(Instruction instruction) => new()
     {
         Id = instruction.Id.Value,
+        Scope = instruction.Scope,
+        UserId = instruction.UserId,
         Kind = instruction.Kind,
         Text = instruction.Text,
         CurrentVersion = instruction.CurrentVersion,
@@ -176,11 +186,19 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         ChangedBy = v.ChangedBy.ToWire(),
     };
 
-    private static Instruction MapToDomain(InstructionDocument doc) => Instruction.Restore(
-        id: new InstructionId(doc.Id),
-        kind: doc.Kind,
-        text: doc.Text,
-        currentVersion: doc.CurrentVersion,
-        createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
-        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
+    private static Instruction MapToDomain(InstructionDocument doc)
+    {
+        var scope = string.IsNullOrEmpty(doc.Scope)
+            ? (doc.UserId is null ? InstructionScopeNames.System : InstructionScopeNames.User)
+            : doc.Scope;
+        return Instruction.Restore(
+            id: new InstructionId(doc.Id),
+            scope: scope,
+            userId: doc.UserId,
+            kind: doc.Kind,
+            text: doc.Text,
+            currentVersion: doc.CurrentVersion,
+            createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
+            updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
+    }
 }

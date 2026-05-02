@@ -38,7 +38,7 @@ namespace Throne.Instructions.Contracts.Generated
         public string Id { get; set; }
 
         /// <summary>
-        /// Instruction kind (common | interview | light_work | new_project).
+        /// Instruction kind (common | interview | work | new_project | dream | fix).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

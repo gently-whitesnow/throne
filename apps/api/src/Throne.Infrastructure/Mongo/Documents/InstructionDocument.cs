@@ -7,6 +7,13 @@ internal sealed class InstructionDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
+    [BsonElement("scope")]
+    public string Scope { get; set; } = string.Empty;
+
+    [BsonElement("user_id")]
+    [BsonIgnoreIfNull]
+    public string? UserId { get; set; }
+
     [BsonElement("kind")]
     public string Kind { get; set; } = string.Empty;
 

@@ -42,12 +42,12 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
    | Launcher | Bundle mode | Назначение |
    |---|---|---|
    | `tnew` | `new_project` | Создать или продолжить intent для нового проекта |
-   | `twork` | `light_work` | Точечная работа по текущему intent в репо |
+   | `twork` | `work` | Точечная работа по текущему intent в репо |
    | `tinterview` | `interview` | Уточнить постановку, по одному вопросу за шаг |
-   | `tfix` | `light_work` | Зафиксировать review через `add_intent_review` и продолжить работу. Заменяет `treview`. |
+   | `tfix` | `fix` | Зафиксировать review через `add_intent_review` и продолжить работу. Заменяет `treview`. |
    | `tdream` | `dream` | Свести накопленный фидбэк, оформить proposals; никакой автоактивации |
 
-5. **Backend для `tdream`.** Введён instruction kind `dream`, bundle mode `dream → [common, dream]`, seed-текст в `EnsureSeedInstructionsHandler`. Без новых tools: dream-агент пишет proposals как `add_intent_review` на соответствующих Instruction Intent'ах с `reason="instruction_patch_proposal"`. Прямого write-surface для Instruction-документов у агента не появляется (см. [ADR-0003](0003-mcp-text-editing-semantics.md)).
+5. **Backend для `tdream`.** Введён instruction kind `dream`, bundle mode `dream → [common, dream]`. Системный текст хранится в `SystemInstructionCatalog` (см. update 2026-05-02 ниже). Без новых tools: dream-агент пишет proposals как `add_intent_review` на соответствующих Instruction Intent'ах с `reason="instruction_patch_proposal"`. Прямого write-surface для Instruction-документов у агента не появляется (см. [ADR-0003](0003-mcp-text-editing-semantics.md)).
 6. **Traceability InstructionBundleUse.** Отдельная сущность не вводится. Каждый вызов `get_instruction_bundle` уже логируется через [ADR-0004](0004-mcp-call-audit-log.md) (`mcp_call_log`: `tool_name + arguments(mode, intent_id) + session_id + outcome + duration + server_version`). Если этого окажется мало для аналитики (нужны конкретные `current_version` снапшоты используемых instructions), вводится отдельный tool `record_instruction_bundle_use(...)` — но не сейчас.
 7. **Контракт «launcher тонкий».** Файл launcher >120 строк рассматривается как смелл: значит серверная логика снова потекла локально. Лечится переносом в соответствующий instruction kind на сервере, не правкой launcher'а.
 8. **Будущий installer.** Установщик Throne в чужой проект генерирует `.agents/skills/` и `.claude/skills/` из этих эталонных файлов. Launcher'ы практически не меняются — только при vendor format breaks или добавлении/удалении launcher-имени.
@@ -58,5 +58,12 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 - Playbook эволюционирует данными в `instructions`, а не релизами `Throne.Api`. Это согласуется с принципом «Throne строится для других проектов; сам Throne — на manual SDD».
 - Старая команда `treview` исчезает как видимое имя (заменена на `tfix`); инфраструктурные tool description'ы обновлены. Backward-compat для имени `treview` не вводим осознанно — UX был сломан и для старого имени.
 - Появляется два каталога вендорных файлов в репо (`.agents/skills/`, `.claude/skills/`). Цена принимается: они тонкие, инсталлер в будущем сгенерирует их в чужие проекты по тем же шаблонам.
-- Mongo seed теперь содержит 5 kinds вместо 4; соответствующие тесты (`MongoInstructionRepositoryTests`, `EnsureSeedInstructionsHandlerTests`) обновлены.
 - Если объём `tdream` вырастет, добавляются точечные MCP tools — namely `list_unprocessed_instruction_feedback`, `propose_instruction_patch`, `mark_instruction_feedback_processed`, опционально `record_instruction_bundle_use`. До тех пор launcher остаётся тонким.
+
+## Update 2026-05-02 — system/user split + work/fix kinds
+
+- Сидинг через `EnsureSeedInstructionsHandler` упразднён. System-инструкции живут в коде как `SystemInstructionCatalog` ([apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](../../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs)) и версионируются вместе с релизом `Throne.Api`. Mongo collection `instructions` теперь хранит только `scope=user` записи.
+- Документ `instructions` обогащён полями `scope` и `user_id`. MVP-пользователь — `mvp-user`. User-инструкции бутстрапятся отдельным mongosh-скриптом [scripts/seed/seed-mvp-user-instructions.js](../../scripts/seed/seed-mvp-user-instructions.js) (идемпотентный); скрипт же переименовывает legacy `kind=light_work → work` и удаляет legacy system-документы.
+- Kinds: `common | interview | work | new_project | dream | fix`. Kind `light_work` переименован в `work` (launcher `twork`). Введён kind `fix` для launcher `tfix` — отдельный режим продолжения работы после review (раньше делил bundle с `light_work`).
+- Bundle resolver (`GetInstructionBundleHandler`) собирает `[system:common, system:<mode>]` из catalog и `user:*` инструкции `mvp-user` для тех же kinds. Антагонист в user создаётся под каждый system kind: для `common`, `work`, `new_project` — с реальным текстом, для `interview`, `dream`, `fix` — пустые редактируемые записи.
+- `Instruction.Validate` ослаблен: пустой `Text` для user-инструкций легален, чтобы пустые антагонисты были корректным состоянием.

@@ -50,8 +50,10 @@ Intent (canonical document, collection: intents)
 ```text
 Instruction (canonical document, collection: instructions)
 - id              : string
-- kind            : enum { common | interview | light_work | new_project }
-- text            : string
+- scope           : enum { user }   ; system-инструкции живут в коде, не в Mongo (см. ADR-0007 update 2026-05-02)
+- user_id         : string?         ; обязателен для scope=user, MVP — "mvp-user"
+- kind            : enum { common | interview | work | new_project | dream | fix }
+- text            : string          ; пустая строка допустима для незаполненных user-антагонистов
 - current_version : int ≥ 1
 - created_at      : timestamp (UTC)
 - updated_at      : timestamp (UTC)

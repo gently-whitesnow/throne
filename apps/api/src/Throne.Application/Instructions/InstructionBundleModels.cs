@@ -12,6 +12,7 @@ public sealed record InstructionBundle(
     [property: JsonPropertyName("missing_kinds")] IReadOnlyList<string> MissingKinds);
 
 public sealed record InstructionWithText(
+    [property: JsonPropertyName("scope")] string Scope,
     [property: JsonPropertyName("kind")] string Kind,
     [property: JsonPropertyName("instruction_id")] string InstructionId,
     [property: JsonPropertyName("current_version")] int CurrentVersion,

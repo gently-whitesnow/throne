@@ -58,7 +58,7 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 
 `Ack` — компактный ответ `{ intent_id, current_version, accepted: true }`. qa/review не возвращаются назад агенту.
 
-`add_intent_qa` — отдельный tool, не флаг и не часть edit-операций. Edit-tools о режиме работы (interview / light_work / new_project) ничего не знают и в `intent_qa` не пишут. Подробности связи qa ↔ правки — §5.
+`add_intent_qa` — отдельный tool, не флаг и не часть edit-операций. Edit-tools о режиме работы (interview / work / new_project) ничего не знают и в `intent_qa` не пишут. Подробности связи qa ↔ правки — §5.
 
 Параметра `reason?` на edit-tools нет: «зачем агент это сделал» уже выводимо из `mcp_call_log` (session_id + tool_name + arguments по timestamp) и из `intent_qa` для interview-сессий. Поле `reason` остаётся только в `add_intent_review` как контентное (см. §6).
 
@@ -143,7 +143,7 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 1. `Instruction(kind: interview)` явно предписывает: после каждого ответа пользователя — сначала `add_intent_qa`, затем правка `Intent.text`. Это часть seed-инструкций (см. ADR-0005).
 2. Серверная телеметрия из ADR-0004 («MCP call audit log») позволяет в dogfooding посчитать долю text-правок без сопряжённого `add_intent_qa` за окно ±N секунд в interview-сессиях. Это сигнал для улучшения инструкций, а не runtime-валидация.
 
-Жёсткую серверную проверку «нельзя править без свежего qa» сознательно не вводим: режим работы (interview vs light_work vs new_project) серверу неизвестен, и такая проверка наложила бы runtime-ограничение поверх семантики, которая существует только на уровне agent instruction.
+Жёсткую серверную проверку «нельзя править без свежего qa» сознательно не вводим: режим работы (interview vs work vs new_project) серверу неизвестен, и такая проверка наложила бы runtime-ограничение поверх семантики, которая существует только на уровне agent instruction.
 
 ### 6. Review
 
@@ -161,8 +161,10 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 
 ```text
 mode = interview     -> [common, interview]
-mode = light_work    -> [common, light_work]
+mode = work          -> [common, work]
 mode = new_project   -> [common, new_project]
+mode = dream         -> [common, dream]
+mode = fix           -> [common, fix]
 ```
 
 Сервер возвращает `InstructionBundle { mode, intent_id?, instructions, missing_kinds }`, где `instructions[]` содержит `InstructionWithText` (`kind`, `instruction_id`, `current_version`, `text`). Если для нужного `kind` нет ни одной инструкции (что не должно случаться благодаря seed bootstrap — будущий ADR-0005) — сервер возвращает то, что есть, и явный flag `missing_kinds[]` в ответе, чтобы агент мог сообщить пользователю.
@@ -171,9 +173,9 @@ Slash-команды на стороне агента маппятся на ре
 
 ```text
 /tinterview -> get_instruction_bundle(interview, intent_id?)
-/twork      -> get_instruction_bundle(light_work, intent_id?)
+/twork      -> get_instruction_bundle(work, intent_id?)
 /tnew       -> get_instruction_bundle(new_project, intent_id?)
-/treview    -> get_instruction_bundle(light_work, intent_id?)
+/tfix       -> get_instruction_bundle(fix, intent_id?)
 ```
 
 Этот маппинг — часть agent instruction, а не серверного API. Сервер не парсит slash-команды.
@@ -193,7 +195,7 @@ Slash-команды на стороне агента маппятся на ре
 
 - Контракт ошибок achievable в 3 кодах на каждый агрегат: достаточно для actionable retry-логики агента, без переусложнения.
 - Decoupled `add_intent_qa` корректно покрывает три реальных interview-сценария (`1 ответ → N правок`, `1 ответ → 0 правок`, `0 ответов → 1 правка`), которые first-cut вариант с `*_from_interview` покрывал криво.
-- Edit-tools одинаковы для всех режимов (interview / light_work / new_project) — у сервера нет режимного состояния, и agent instruction остаётся единственным местом, где этот режим живёт.
+- Edit-tools одинаковы для всех режимов (interview / work / new_project) — у сервера нет режимного состояния, и agent instruction остаётся единственным местом, где этот режим живёт.
 - Минимальный агентский surface: агент видит только `text` Intent/Instruction, не нагружается обучающим материалом (qa/review/версии). Меньше шума в контексте → меньше токенов → меньше сбоев на длинных сессиях.
 - Убран `reason?` из edit-tools → меньше параметров и одно правило: «зачем» уже есть в `mcp_call_log` и `intent_qa`, второй раз нет смысла.
 - Серверный `get_instruction_bundle(mode, intent_id?)` снимает класс ошибок «агент забыл подмешать common».
@@ -216,7 +218,7 @@ Slash-команды — договорённость в agent instruction/promp
 
 - 4 prompts: `tinterview`, `twork`, `tnew`, `treview`.
 - Аргументы у каждого: `intent_id?: string`, `text?: string` (snake_case как у tools, по тому же `pragma CA1707`).
-- Mode mapping для `get_instruction_bundle` зашит в каждом prompt'е и не настраивается клиентом: `tinterview→interview`, `twork→light_work`, `tnew→new_project`, `treview→light_work`.
+- Mode mapping для `get_instruction_bundle` зашит в каждом prompt'е и не настраивается клиентом: `tinterview→interview`, `twork→work`, `tnew→new_project`, `treview→work`.
 - Prompts-методы возвращают строку (один user-`PromptMessage`): общий блок правил (active-resolution, optimistic concurrency, edit discipline, error catalogue, запреты) + per-command playbook + подстановка переданных аргументов.
 - Реализация — `Throne.Api.Mcp.Prompts.IntentPrompts` с `[McpServerPromptType]` / `[McpServerPrompt]`, регистрация через симметричный `AddThronePrompt<T>()` helper рядом с `AddThroneTool<T>()`.
 

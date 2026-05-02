@@ -59,9 +59,9 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
             ToolName: "get_instruction_bundle",
-            Arguments: new Dictionary<string, object?> { ["intent_id"] = "intent_123", ["mode"] = "light_work" },
+            Arguments: new Dictionary<string, object?> { ["intent_id"] = "intent_123", ["mode"] = "work" },
             IntentId: "intent_123",
-            ModeHint: "light_work",
+            ModeHint: "work",
             Outcome: McpCallOutcome.Success,
             ErrorCode: null,
             ResultSummary: new Dictionary<string, object?>
@@ -70,7 +70,7 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
                 {
                     new()
                     {
-                        ["kind"] = "light_work",
+                        ["kind"] = "work",
                         ["instruction_id"] = "instr_light_1",
                         ["version"] = 4,
                     },

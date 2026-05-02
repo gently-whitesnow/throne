@@ -39,7 +39,6 @@ public static class DependencyInjection
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
-        services.AddHostedService<InstructionSeedHostedService>();
 
         return services;
     }
@@ -64,7 +63,6 @@ public static class DependencyInjection
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddHostedService<MongoIndexInitializer>();
-        services.AddHostedService<InstructionSeedHostedService>();
         return services;
     }
 }

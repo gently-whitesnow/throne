@@ -89,7 +89,7 @@ public class AuditingMcpServerToolTests
         var ctx = NewCallContext("get_instruction_bundle", new Dictionary<string, JsonElement>
         {
             ["intent_id"] = JsonDocument.Parse("\"intent_123\"").RootElement,
-            ["mode"] = JsonDocument.Parse("\"light_work\"").RootElement,
+            ["mode"] = JsonDocument.Parse("\"work\"").RootElement,
         });
 
         var result = await tool.InvokeAsync(ctx, CancellationToken.None);
@@ -99,7 +99,7 @@ public class AuditingMcpServerToolTests
             Arg.Is<McpCallLogEntry>(e =>
                 e.ToolName == "get_instruction_bundle" &&
                 e.IntentId == "intent_123" &&
-                e.ModeHint == "light_work" &&
+                e.ModeHint == "work" &&
                 HasInstructionRefs(e.ResultSummary)),
             Arg.Any<CancellationToken>());
     }
@@ -141,7 +141,7 @@ public class AuditingMcpServerToolTests
         StructuredContent = new JsonObject
         {
             ["intent_id"] = "intent_123",
-            ["mode"] = "light_work",
+            ["mode"] = "work",
             ["instructions"] = new JsonArray
             {
                 new JsonObject
@@ -153,7 +153,7 @@ public class AuditingMcpServerToolTests
                 },
                 new JsonObject
                 {
-                    ["kind"] = "light_work",
+                    ["kind"] = "work",
                     ["instruction_id"] = "instr_light_1",
                     ["current_version"] = 4,
                     ["text"] = "full light text",
@@ -178,7 +178,7 @@ public class AuditingMcpServerToolTests
         refs[0].Should().ContainKey("instruction_id").WhoseValue.Should().Be("instr_common_1");
         refs[0].Should().ContainKey("version").WhoseValue.Should().Be(2);
         refs[0].Should().NotContainKey("text");
-        refs[1].Should().ContainKey("kind").WhoseValue.Should().Be("light_work");
+        refs[1].Should().ContainKey("kind").WhoseValue.Should().Be("work");
         refs[1].Should().ContainKey("version").WhoseValue.Should().Be(4);
         return true;
     }

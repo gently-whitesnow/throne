@@ -85,7 +85,7 @@ export interface components {
         InstructionListItemDto: {
             /** @description Instruction identifier (24 hex chars, ObjectId-shaped). */
             id: string;
-            /** @description Instruction kind (common | interview | light_work | new_project). */
+            /** @description Instruction kind (common | interview | work | new_project | dream | fix). */
             kind: string;
             /** Format: int32 */
             current_version: number;

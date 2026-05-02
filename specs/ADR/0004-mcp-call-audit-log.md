@@ -140,7 +140,7 @@ ADR-0003 amendment ввёл MCP prompts (`tinterview`/`twork`/`tnew`/`treview`) 
 - `tool_name` ← `prompts/get:<promptName>` (например, `prompts/get:tinterview`). Префикс гарантирует, что аналитика по `tool_name` не путает tools и prompts.
 - `arguments` ← raw arguments prompt'а (`{ intent_id?, text? }`).
 - `intent_id` ← извлекается из `arguments.intent_id`, если есть.
-- `mode_hint` ← статический маппинг команды на mode (`tinterview→interview`, `twork→light_work`, `tnew→new_project`, `treview→light_work`).
+- `mode_hint` ← статический маппинг команды на mode (`tinterview→interview`, `twork→work`, `tnew→new_project`, `tfix→fix`).
 - `result_summary` ← `{ messages_count, user_chars, assistant_chars }`. Полный текст ответа prompt'а в журнал не пишем: он детерминирован от `server_version` + `arguments` + текущей версии prompt-кода.
 - Остальные поля (`outcome`, `error_code`, `duration_ms`, `server_version`, `created_at`, `session_id`) — без изменений.
 
