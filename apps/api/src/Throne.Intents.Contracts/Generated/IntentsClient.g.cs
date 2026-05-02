@@ -69,21 +69,25 @@ namespace Throne.Intents.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"interview")]
         Interview = 1,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready_for_work")]
+        [System.Runtime.Serialization.EnumMember(Value = @"ready_for_work")]
+        Ready_for_work = 2,
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"work")]
         [System.Runtime.Serialization.EnumMember(Value = @"work")]
-        Work = 2,
+        Work = 3,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready_for_review")]
         [System.Runtime.Serialization.EnumMember(Value = @"ready_for_review")]
-        Ready_for_review = 3,
+        Ready_for_review = 4,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"done")]
         [System.Runtime.Serialization.EnumMember(Value = @"done")]
-        Done = 4,
+        Done = 5,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"reject")]
         [System.Runtime.Serialization.EnumMember(Value = @"reject")]
-        Reject = 5,
+        Reject = 6,
 
     }
 

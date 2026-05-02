@@ -412,6 +412,7 @@ components:
       enum:
         - draft
         - interview
+        - ready_for_work
         - work
         - ready_for_review
         - done

@@ -439,6 +439,7 @@ public sealed class IntentsController(
     {
         IntentStatus.Draft => IntentStatusNames.Draft,
         IntentStatus.Interview => IntentStatusNames.Interview,
+        IntentStatus.Ready_for_work => IntentStatusNames.ReadyForWork,
         IntentStatus.Work => IntentStatusNames.Work,
         IntentStatus.Ready_for_review => IntentStatusNames.ReadyForReview,
         IntentStatus.Done => IntentStatusNames.Done,
@@ -450,6 +451,7 @@ public sealed class IntentsController(
     {
         IntentStatusNames.Draft => IntentStatus.Draft,
         IntentStatusNames.Interview => IntentStatus.Interview,
+        IntentStatusNames.ReadyForWork => IntentStatus.Ready_for_work,
         IntentStatusNames.Work => IntentStatus.Work,
         IntentStatusNames.ReadyForReview => IntentStatus.Ready_for_review,
         IntentStatusNames.Done => IntentStatus.Done,

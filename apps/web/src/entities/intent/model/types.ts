@@ -27,6 +27,7 @@ export interface IntentStatusMeta {
 export const intentStatusOrder: IntentStatus[] = [
   "draft",
   "interview",
+  "ready_for_work",
   "work",
   "ready_for_review",
   "done",
@@ -43,6 +44,11 @@ export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
     label: "Интервью",
     ink: "#7b4e00",
     surface: "#ffe6cd"
+  },
+  ready_for_work: {
+    label: "Готов к работе",
+    ink: "#1f3d8a",
+    surface: "#d6e3ff"
   },
   work: {
     label: "В работе",

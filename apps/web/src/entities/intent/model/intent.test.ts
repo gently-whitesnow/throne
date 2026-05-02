@@ -9,6 +9,7 @@ describe("intentStatusMeta", () => {
       "draft",
       "interview",
       "ready_for_review",
+      "ready_for_work",
       "reject",
       "work"
     ]);

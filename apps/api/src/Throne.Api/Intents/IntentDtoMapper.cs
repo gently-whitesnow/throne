@@ -56,6 +56,7 @@ internal static class IntentDtoMapper
     {
         IntentStatusNames.Draft => IntentStatus.Draft,
         IntentStatusNames.Interview => IntentStatus.Interview,
+        IntentStatusNames.ReadyForWork => IntentStatus.Ready_for_work,
         IntentStatusNames.Work => IntentStatus.Work,
         IntentStatusNames.ReadyForReview => IntentStatus.Ready_for_review,
         IntentStatusNames.Done => IntentStatus.Done,

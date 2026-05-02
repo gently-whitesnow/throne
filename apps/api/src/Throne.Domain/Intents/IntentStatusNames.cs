@@ -4,6 +4,7 @@ public static class IntentStatusNames
 {
     public const string Draft = "draft";
     public const string Interview = "interview";
+    public const string ReadyForWork = "ready_for_work";
     public const string Work = "work";
     public const string ReadyForReview = "ready_for_review";
     public const string Done = "done";
@@ -13,6 +14,7 @@ public static class IntentStatusNames
     [
         Draft,
         Interview,
+        ReadyForWork,
         Work,
         ReadyForReview,
         Done,

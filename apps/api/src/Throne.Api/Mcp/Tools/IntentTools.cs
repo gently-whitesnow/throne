@@ -188,4 +188,18 @@ public sealed class IntentTools(
                 IntentTrainingAuthor.Agent,
                 Source: "mark_ready_for_review"),
             cancellationToken);
+
+    [McpServerTool(Name = "mark_ready_for_work", UseStructuredContent = true)]
+    [Description("Mark an Intent as ready_for_work after interview when the brief is clear enough to be picked up for execution.")]
+    public Task<Intent> MarkReadyForWork(
+        [Description("Intent id to move into ready_for_work.")] string intent_id,
+        CancellationToken cancellationToken = default) =>
+        setStatus.HandleAsync(
+            new SetIntentStatusCommand(
+                intent_id,
+                IntentStatusNames.ReadyForWork,
+                RejectReason: null,
+                IntentTrainingAuthor.Agent,
+                Source: "mark_ready_for_work"),
+            cancellationToken);
 }

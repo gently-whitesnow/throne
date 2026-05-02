@@ -209,7 +209,7 @@ export interface components {
          * @description Current workflow status of the intent.
          * @enum {string}
          */
-        IntentStatus: "draft" | "interview" | "work" | "ready_for_review" | "done" | "reject";
+        IntentStatus: "draft" | "interview" | "ready_for_work" | "work" | "ready_for_review" | "done" | "reject";
         SetIntentStatusRequest: {
             status: components["schemas"]["IntentStatus"];
             /** @description Required when status=reject. Appended to the end of Intent.text. */
