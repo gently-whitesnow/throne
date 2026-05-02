@@ -485,43 +485,59 @@ select {
 .create-intent-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-subtle);
+  gap: 14px;
 }
 
 .create-intent-form__textarea {
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  font-size: 13px;
+  min-height: 220px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid #e9eaef;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.5;
   resize: vertical;
 }
 
 .create-intent-form__tags {
   width: 100%;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  font-size: 13px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid #e9eaef;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.create-intent-form__textarea:focus,
+.create-intent-form__tags:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: transparent;
 }
 
 .create-intent-form__file-picker {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  background: var(--bg);
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px dashed #c7cad5;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f8fa 100%);
   cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
 }
 
 .create-intent-form__file-picker:hover {
   border-color: var(--accent);
-  background: var(--bg-active);
+  background: #eef2ff;
+  transform: translateY(-1px);
 }
 
 .create-intent-form__file-picker input {
@@ -538,13 +554,14 @@ select {
   align-items: center;
   gap: 6px;
   color: var(--accent-strong);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .create-intent-form__file-picker-hint {
   color: var(--ink-mute2);
-  font-size: 11px;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .create-intent-form__files {
@@ -554,6 +571,8 @@ select {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
 }
 
 .create-intent-form__file {
@@ -561,11 +580,11 @@ select {
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  font-size: 12px;
+  padding: 10px 12px;
+  border: 1px solid #eceef5;
+  border-radius: 14px;
+  background: #ffffff;
+  font-size: 13px;
 }
 
 .create-intent-form__file-name {
@@ -596,6 +615,108 @@ select {
 .create-intent-form__file-remove:hover {
   background: var(--bg-hover);
   color: var(--danger);
+}
+
+.create-intent-form__actions {
+  justify-content: flex-end;
+}
+
+.create-intent-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(91, 118, 254, 0.16), transparent 32%),
+    rgba(28, 28, 30, 0.22);
+  backdrop-filter: blur(8px);
+}
+
+.create-intent-modal__dialog {
+  width: min(720px, 100%);
+  max-height: min(820px, calc(100vh - 48px));
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid rgb(224, 226, 232);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 216, 244, 0.45), transparent 26%),
+    linear-gradient(180deg, #ffffff 0%, #f9faff 100%);
+  box-shadow:
+    rgb(224, 226, 232) 0 0 0 1px,
+    0 28px 80px rgba(28, 28, 30, 0.14);
+}
+
+.create-intent-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.create-intent-modal__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-intent-modal__eyebrow {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.create-intent-modal__title {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Roobert PRO Medium", "Noto Sans", sans-serif;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.create-intent-modal__description {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.create-intent-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 1px solid #d9dce6;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.create-intent-modal__close:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  transform: translateY(-1px);
+}
+
+.create-intent-modal__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* === Attachments === */
@@ -927,5 +1048,37 @@ select {
 
   .entity-list__row {
     min-height: 44px;
+  }
+
+  .create-intent-modal {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .create-intent-modal__dialog {
+    max-height: min(100vh - 24px, 760px);
+    padding: 20px;
+    border-radius: 24px 24px 20px 20px;
+  }
+
+  .create-intent-modal__header {
+    margin-bottom: 16px;
+  }
+
+  .create-intent-modal__title {
+    font-size: 26px;
+  }
+
+  .create-intent-form__textarea {
+    min-height: 180px;
+  }
+
+  .create-intent-form__actions {
+    flex-direction: column-reverse;
+  }
+
+  .create-intent-form__actions .button {
+    width: 100%;
+    justify-content: center;
   }
 }

@@ -1,5 +1,6 @@
 import { ImagePlus, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useEffectEvent, useId, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { IntentAttachment, IntentDetail } from "@/entities/intent";
 import {
@@ -25,6 +26,8 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   const reset = () => {
     setText("");
@@ -32,6 +35,32 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
     setFiles([]);
     setError(null);
   };
+
+  const close = useEffectEvent(() => {
+    if (busy) return;
+    reset();
+    setOpen(false);
+  });
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+      }
+    };
+
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = overflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [close, open]);
 
   const addFiles = (nextFiles: Iterable<File> | null) => {
     if (!nextFiles) return;
@@ -120,106 +149,151 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
     );
   }
 
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
+  return createPortal(
+    <div
+      className="create-intent-modal"
+      onClick={() => {
+        close();
       }}
-      className="create-intent-form"
     >
-      <textarea
-        className="create-intent-form__textarea"
-        placeholder="Текст нового Intent"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
+      <div
+        className="create-intent-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        onClick={(event) => {
+          event.stopPropagation();
         }}
-        onPaste={(e) => {
-          pasteImages(e.clipboardData);
-        }}
-        rows={6}
-        aria-label="Текст intent"
-        autoFocus
-      />
-      <input
-        className="create-intent-form__tags"
-        placeholder="Теги через запятую (опционально)"
-        value={tags}
-        onChange={(e) => {
-          setTags(e.target.value);
-        }}
-        aria-label="Теги intent"
-      />
-      <label className="create-intent-form__file-picker">
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => {
-            addFiles(e.currentTarget.files);
-            e.currentTarget.value = "";
+      >
+        <div className="create-intent-modal__header">
+          <div className="create-intent-modal__title-block">
+            <p className="create-intent-modal__eyebrow">Новый intent</p>
+            <h3 id={titleId} className="create-intent-modal__title">
+              Сформулируйте задачу в одном окне
+            </h3>
+            <p id={descriptionId} className="create-intent-modal__description">
+              Добавьте текст, теги и изображения. Клик вне окна закроет форму.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="create-intent-modal__close"
+            onClick={() => {
+              close();
+            }}
+            aria-label="Закрыть форму создания intent"
+            disabled={busy}
+          >
+            <X aria-hidden size={16} strokeWidth={2} />
+          </button>
+        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
           }}
-        />
-        <span className="create-intent-form__file-picker-label">
-          <ImagePlus aria-hidden size={16} strokeWidth={2} />
-          Приложить изображения
-        </span>
-        <span className="create-intent-form__file-picker-hint">
-          до 10 файлов, каждый до 10 МБ; можно вставить картинку из буфера
-        </span>
-      </label>
-      {files.length > 0 ? (
-        <ul className="create-intent-form__files" aria-label="Выбранные файлы">
-          {files.map((file, index) => (
-            <li
-              key={`${file.name}-${String(file.lastModified)}-${String(index)}`}
-              className="create-intent-form__file"
+          className="create-intent-form"
+        >
+          <textarea
+            className="create-intent-form__textarea"
+            placeholder="Кратко опишите intent"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+            }}
+            onPaste={(e) => {
+              pasteImages(e.clipboardData);
+            }}
+            rows={8}
+            aria-label="Текст intent"
+            autoFocus
+          />
+          <input
+            className="create-intent-form__tags"
+            placeholder="Теги через запятую (опционально)"
+            value={tags}
+            onChange={(e) => {
+              setTags(e.target.value);
+            }}
+            aria-label="Теги intent"
+          />
+          <label className="create-intent-form__file-picker">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                addFiles(e.currentTarget.files);
+                e.currentTarget.value = "";
+              }}
+            />
+            <span className="create-intent-form__file-picker-label">
+              <ImagePlus aria-hidden size={16} strokeWidth={2} />
+              Приложить изображения
+            </span>
+            <span className="create-intent-form__file-picker-hint">
+              До 10 файлов, каждый до 10 МБ. Можно вставить картинку из буфера.
+            </span>
+          </label>
+          {files.length > 0 ? (
+            <ul
+              className="create-intent-form__files"
+              aria-label="Выбранные файлы"
             >
-              <span className="create-intent-form__file-name">{file.name}</span>
-              <span className="create-intent-form__file-size">
-                {formatBytes(file.size)}
-              </span>
-              <button
-                type="button"
-                className="create-intent-form__file-remove"
-                onClick={() => {
-                  removeFile(index);
-                }}
-                aria-label={`Убрать ${file.name}`}
-                disabled={busy}
-              >
-                <X aria-hidden size={14} strokeWidth={2} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {error ? (
-        <p role="alert" className="edit-text-form__error">
-          {error}
-        </p>
-      ) : null}
-      <div className="edit-text-form__actions">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={busy || text.trim().length === 0}
-        >
-          {busy ? "Создаём…" : "Создать"}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => {
-            reset();
-            setOpen(false);
-          }}
-          disabled={busy}
-        >
-          Отмена
-        </Button>
+              {files.map((file, index) => (
+                <li
+                  key={`${file.name}-${String(file.lastModified)}-${String(index)}`}
+                  className="create-intent-form__file"
+                >
+                  <span className="create-intent-form__file-name">
+                    {file.name}
+                  </span>
+                  <span className="create-intent-form__file-size">
+                    {formatBytes(file.size)}
+                  </span>
+                  <button
+                    type="button"
+                    className="create-intent-form__file-remove"
+                    onClick={() => {
+                      removeFile(index);
+                    }}
+                    aria-label={`Убрать ${file.name}`}
+                    disabled={busy}
+                  >
+                    <X aria-hidden size={14} strokeWidth={2} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {error ? (
+            <p role="alert" className="edit-text-form__error">
+              {error}
+            </p>
+          ) : null}
+          <div className="edit-text-form__actions create-intent-form__actions">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={busy || text.trim().length === 0}
+            >
+              {busy ? "Создаём…" : "Создать intent"}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                close();
+              }}
+              disabled={busy}
+            >
+              Отмена
+            </Button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>,
+    document.body
   );
 }
 
