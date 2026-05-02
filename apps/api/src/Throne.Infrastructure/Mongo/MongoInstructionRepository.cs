@@ -186,19 +186,13 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         ChangedBy = v.ChangedBy.ToWire(),
     };
 
-    private static Instruction MapToDomain(InstructionDocument doc)
-    {
-        var scope = string.IsNullOrEmpty(doc.Scope)
-            ? (doc.UserId is null ? InstructionScopeNames.System : InstructionScopeNames.User)
-            : doc.Scope;
-        return Instruction.Restore(
-            id: new InstructionId(doc.Id),
-            scope: scope,
-            userId: doc.UserId,
-            kind: doc.Kind,
-            text: doc.Text,
-            currentVersion: doc.CurrentVersion,
-            createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
-            updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
-    }
+    private static Instruction MapToDomain(InstructionDocument doc) => Instruction.Restore(
+        id: new InstructionId(doc.Id),
+        scope: doc.Scope,
+        userId: doc.UserId,
+        kind: doc.Kind,
+        text: doc.Text,
+        currentVersion: doc.CurrentVersion,
+        createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
+        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
 }

@@ -55,22 +55,6 @@ function objectIdHex() {
 
 print(`==> Seeding user instructions for ${USER_ID}`);
 
-// 1. Rename legacy kind=light_work into kind=work.
-const renamed = db.instructions.updateMany(
-  { kind: "light_work" },
-  { $set: { kind: "work" } }
-);
-if (renamed.modifiedCount > 0) {
-  print(`  renamed ${renamed.modifiedCount} legacy kind=light_work to kind=work`);
-}
-
-// 2. Drop legacy system seed documents (no `scope` field).
-const droppedLegacy = db.instructions.deleteMany({ scope: { $exists: false } });
-if (droppedLegacy.deletedCount > 0) {
-  print(`  dropped ${droppedLegacy.deletedCount} legacy system seed documents`);
-}
-
-// 3. Upsert user instructions.
 const now = new Date();
 let inserted = 0;
 let skipped = 0;
