@@ -39,7 +39,7 @@ export function NodeDetailDialog({
 
   return createPortal(
     <div
-      className="skills-tree-modal"
+      className="modal modal-open"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -49,25 +49,28 @@ export function NodeDetailDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="skills-tree-modal__dialog"
+        className="modal-box flex max-h-[min(880px,calc(100vh-48px))] w-full max-w-3xl flex-col border border-base-300 bg-base-100"
       >
-        <header className="skills-tree-modal__header">
+        <header className="mb-4 flex justify-between gap-4">
           <div>
-            <p className="skills-tree-modal__eyebrow">
+            <p className="m-0 mb-1 text-[11px] font-bold uppercase tracking-wider text-primary">
               {selectionEyebrow(selection)}
             </p>
-            <h2 id={titleId} className="skills-tree-modal__title">
+            <h2
+              id={titleId}
+              className="m-0 font-mono text-xl font-bold tracking-tight"
+            >
               {selectionTitle(selection)}
             </h2>
             {selectionSubtitle(selection) ? (
-              <p className="skills-tree-modal__subtitle">
+              <p className="m-0 mt-1.5 text-[13px] text-base-content/70">
                 {selectionSubtitle(selection)}
               </p>
             ) : null}
           </div>
           <button
             type="button"
-            className="skills-tree-modal__close"
+            className="btn btn-sm btn-circle btn-ghost"
             onClick={onClose}
             aria-label="Закрыть"
           >
@@ -75,7 +78,7 @@ export function NodeDetailDialog({
           </button>
         </header>
 
-        <div className="skills-tree-modal__body">
+        <div className="flex flex-col gap-4 overflow-y-auto">
           {selection.kind === "skill" ? (
             <SkillBody skill={selection.skill} />
           ) : null}
@@ -117,26 +120,23 @@ function SkillBody({ skill }: { skill: SkillNode }) {
 function BundleBody({ skill }: { skill: SkillNode }) {
   return (
     <>
-      <p className="skills-tree-modal__paragraph">
+      <p className="m-0 text-[13px] leading-relaxed text-base-content/70 [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1.5 [&_code]:py-px [&_code]:font-mono [&_code]:text-xs">
         При вызове <code>/{skill.name}</code> агент дёргает{" "}
         <code>get_instruction_bundle(mode="{skill.bundle.mode}")</code> и
         получает следующие инструкции в этом порядке:
       </p>
-      <ol className="skills-tree-modal__include-list">
+      <ol className="m-0 flex list-decimal flex-col gap-1 pl-5 text-[13px] [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1.5 [&_code]:py-px [&_code]:font-mono [&_code]:text-xs">
         {skill.bundle.includes.map((entry, index) => (
           <li key={`${entry.scope}:${entry.kind}:${String(index)}`}>
             <code>{entry.scope}</code>
             <span> · </span>
             <code>{entry.kind}</code>
             <span> · </span>
-            <span className="skills-tree-modal__include-status">
+            <span className="text-base-content/70">
               {entry.editable ? "user (editable)" : "system (read-only)"}
             </span>
             {!entry.present ? (
-              <span className="skills-tree-modal__include-warn">
-                {" "}
-                — не создана
-              </span>
+              <span className="text-warning"> — не создана</span>
             ) : null}
           </li>
         ))}
@@ -167,7 +167,7 @@ function EntryBody({ entry, onSaved, onCancel }: EntryBodyProps) {
 
   if (!entry.present) {
     return (
-      <p className="skills-tree-modal__paragraph">
+      <p className="m-0 text-[13px] leading-relaxed text-base-content/70">
         У этого user-kind ещё нет записи в Mongo. Создание user-инструкций из UI
         пока не поддерживается — это runtime-данные (см. ADR-0007), они
         появляются автоматически при инициализации.
@@ -201,8 +201,11 @@ function EntryBody({ entry, onSaved, onCancel }: EntryBodyProps) {
 
   return (
     <>
-      <pre className="skills-tree-modal__text">{entry.text}</pre>
-      <div className="skills-tree-modal__actions">
+      <pre className="m-0 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-200 px-4 py-3.5 font-mono text-xs leading-relaxed">
+        {entry.text}
+      </pre>
+      <div className="flex justify-end gap-2">
+        <Button onClick={onCancel}>Закрыть</Button>
         <Button
           variant="primary"
           onClick={() => {
@@ -211,7 +214,6 @@ function EntryBody({ entry, onSaved, onCancel }: EntryBodyProps) {
         >
           Редактировать
         </Button>
-        <Button onClick={onCancel}>Закрыть</Button>
       </div>
     </>
   );
@@ -228,19 +230,17 @@ function ReadOnlySection({
   hint?: string;
   monospace?: boolean;
 }) {
+  const proseClass =
+    "m-0 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-200 px-4 py-3.5 text-sm leading-relaxed";
+  const monoClass =
+    "m-0 whitespace-pre-wrap break-words rounded-md border border-base-300 bg-base-200 px-4 py-3.5 font-mono text-xs leading-relaxed";
   return (
-    <section className="skills-tree-modal__section">
-      <h3 className="skills-tree-modal__section-title">{title}</h3>
-      {hint ? <p className="skills-tree-modal__section-hint">{hint}</p> : null}
-      <pre
-        className={
-          monospace
-            ? "skills-tree-modal__text"
-            : "skills-tree-modal__text skills-tree-modal__text--prose"
-        }
-      >
-        {body}
-      </pre>
+    <section className="flex flex-col gap-1.5">
+      <h3 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/70">
+        {title}
+      </h3>
+      {hint ? <p className="m-0 text-xs text-base-content/60">{hint}</p> : null}
+      <pre className={monospace ? monoClass : proseClass}>{body}</pre>
     </section>
   );
 }

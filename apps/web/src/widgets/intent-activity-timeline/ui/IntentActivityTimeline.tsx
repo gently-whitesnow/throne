@@ -78,34 +78,38 @@ export function IntentActivityTimeline({
   }, [intentId, reloadKey]);
 
   if (state.kind === "loading") {
-    return <p className="activity-timeline__hint">Активность загружается…</p>;
+    return (
+      <p className="m-0 text-xs text-base-content/60">
+        Активность загружается…
+      </p>
+    );
   }
   if (state.kind === "error") {
     return (
-      <p role="alert" className="activity-timeline__hint">
+      <p role="alert" className="m-0 text-xs text-error">
         {state.message}
       </p>
     );
   }
   if (state.events.length === 0) {
-    return <p className="activity-timeline__hint">Активности пока нет.</p>;
+    return (
+      <p className="m-0 text-xs text-base-content/60">Активности пока нет.</p>
+    );
   }
 
   return (
-    <ul className="activity-timeline">
+    <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
       {state.events.map((event) => (
         <li
-          className={`activity-timeline__item activity-timeline__item--${event.kind}`}
+          className="rounded-md border border-base-300 bg-base-100 px-3 py-2.5"
           key={eventKey(event)}
         >
-          <header className="activity-timeline__header">
-            <span
-              className={`activity-timeline__badge activity-timeline__badge--${event.kind}`}
-            >
+          <header className="mb-1.5 flex flex-wrap items-center gap-2.5 text-[11px] text-base-content/60">
+            <span className={badgeClass(event.kind)}>
               {eventTypeLabel[event.kind]}
             </span>
             <EventMeta event={event} />
-            <time className="activity-timeline__time" dateTime={event.at}>
+            <time className="ml-auto" dateTime={event.at}>
               {new Date(event.at).toLocaleString()}
             </time>
           </header>
@@ -116,11 +120,23 @@ export function IntentActivityTimeline({
   );
 }
 
+function badgeClass(kind: ActivityEvent["kind"]): string {
+  const base =
+    "inline-flex items-center rounded-full border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide";
+  if (kind === "version") {
+    return `${base} border-primary/20 bg-primary/10 text-primary`;
+  }
+  if (kind === "qa") {
+    return `${base} border-success/20 bg-success/10 text-success`;
+  }
+  return `${base} border-warning/20 bg-warning/10 text-warning`;
+}
+
 function EventMeta({ event }: { event: ActivityEvent }) {
   if (event.kind === "version") {
     return (
       <>
-        <strong className="activity-timeline__primary">
+        <strong className="font-semibold text-base-content">
           v{event.version.version}
         </strong>
         <span>{versionKindLabel[event.version.kind]}</span>
@@ -131,7 +147,7 @@ function EventMeta({ event }: { event: ActivityEvent }) {
   if (event.kind === "qa") {
     return (
       <>
-        <span className="activity-timeline__primary">
+        <span className="font-semibold text-base-content">
           v{event.qa.intent_version_at_write}
         </span>
         <span>{authorLabel[event.qa.created_by]}</span>
@@ -140,7 +156,7 @@ function EventMeta({ event }: { event: ActivityEvent }) {
   }
   return (
     <>
-      <span className="activity-timeline__primary">
+      <span className="font-semibold text-base-content">
         v{event.review.intent_version_at_write}
       </span>
       <span>{event.review.reason}</span>
@@ -149,23 +165,26 @@ function EventMeta({ event }: { event: ActivityEvent }) {
   );
 }
 
+const diffClass =
+  "m-0 whitespace-pre-wrap break-words rounded bg-base-200 p-2 font-mono text-xs";
+
 function EventBody({ event }: { event: ActivityEvent }) {
   if (event.kind === "version") {
     const v = event.version;
     if (v.kind === "create" && v.snapshot) {
-      return <pre className="activity-timeline__diff">{v.snapshot}</pre>;
+      return <pre className={diffClass}>{v.snapshot}</pre>;
     }
     if (v.kind === "replace") {
       return (
-        <div className="activity-timeline__diff">
+        <div className={diffClass}>
           {v.old_text ? (
-            <pre>
-              <del>{v.old_text}</del>
+            <pre className="m-0">
+              <del className="bg-error/10 line-through">{v.old_text}</del>
             </pre>
           ) : null}
           {v.new_text ? (
-            <pre>
-              <ins>{v.new_text}</ins>
+            <pre className="m-0">
+              <ins className="bg-success/10 no-underline">{v.new_text}</ins>
             </pre>
           ) : null}
         </div>
@@ -173,8 +192,8 @@ function EventBody({ event }: { event: ActivityEvent }) {
     }
     if (v.kind === "insert" && v.insert_text) {
       return (
-        <pre className="activity-timeline__diff">
-          <ins>{v.insert_text}</ins>
+        <pre className={diffClass}>
+          <ins className="bg-success/10 no-underline">{v.insert_text}</ins>
         </pre>
       );
     }
@@ -182,15 +201,23 @@ function EventBody({ event }: { event: ActivityEvent }) {
   }
   if (event.kind === "qa") {
     return (
-      <dl className="activity-timeline__qa">
-        <dt>Вопрос</dt>
-        <dd>{event.qa.question}</dd>
-        <dt>Ответ</dt>
-        <dd>{event.qa.answer}</dd>
+      <dl className="m-0 grid grid-cols-[80px_1fr] gap-x-3 gap-y-1 text-[13px]">
+        <dt className="font-semibold text-base-content/60">Вопрос</dt>
+        <dd className="m-0 whitespace-pre-wrap text-base-content">
+          {event.qa.question}
+        </dd>
+        <dt className="font-semibold text-base-content/60">Ответ</dt>
+        <dd className="m-0 whitespace-pre-wrap text-base-content">
+          {event.qa.answer}
+        </dd>
       </dl>
     );
   }
-  return <p className="activity-timeline__note">{event.review.note}</p>;
+  return (
+    <p className="m-0 whitespace-pre-wrap text-[13px] text-base-content">
+      {event.review.note}
+    </p>
+  );
 }
 
 function eventKey(event: ActivityEvent): string {

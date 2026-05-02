@@ -15,16 +15,12 @@ export function Button({
   type = "button",
   ...props
 }: ButtonProps) {
-  const classes = ["button", variant === "primary" ? "button--primary" : ""]
-    .filter(Boolean)
-    .join(" ");
+  const base =
+    variant === "primary" ? "btn btn-sm btn-primary" : "btn btn-sm btn-soft";
+  const merged = className ? `${base} ${className}` : base;
 
   return (
-    <button
-      className={className === undefined ? classes : `${classes} ${className}`}
-      type={type}
-      {...props}
-    >
+    <button className={merged} type={type} {...props}>
       {icon}
       {children}
     </button>

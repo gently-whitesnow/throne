@@ -201,31 +201,38 @@ export function IntentAttachmentsPanel({
     uploadingCount === 0;
 
   return (
-    <section className="attachments-panel" aria-labelledby="attachments-title">
-      <div className="attachments-panel__header">
+    <section
+      className="mt-5 border-t border-base-300 pt-4"
+      aria-labelledby="attachments-title"
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 id="attachments-title" className="attachments-panel__title">
+          <h2
+            id="attachments-title"
+            className="m-0 text-base font-bold text-base-content"
+          >
             Вложения
           </h2>
-          <p className="attachments-panel__hint">
+          <p className="mt-1 text-xs text-base-content/60">
             Можно приложить до 10 файлов по 10 МБ; изображения показываются
             превью.
           </p>
         </div>
-        <div className="attachments-panel__actions">
+        <div className="flex flex-shrink-0 items-center gap-2">
           {state.kind === "ready" ? (
-            <span className="attachments-panel__count">
+            <span className="badge badge-sm bg-primary/10 text-primary">
               {String(state.attachments.length)}/10
             </span>
           ) : null}
           <label
-            className={`attachments-panel__upload${
-              canUpload ? "" : " attachments-panel__upload--disabled"
+            className={`btn btn-sm btn-soft gap-1.5 ${
+              canUpload ? "" : "btn-disabled"
             }`}
           >
             <input
               type="file"
               multiple
+              className="sr-only"
               disabled={!canUpload}
               onChange={(e) => {
                 void uploadFiles(e.currentTarget.files);
@@ -239,23 +246,26 @@ export function IntentAttachmentsPanel({
       </div>
 
       {state.kind === "loading" ? (
-        <p className="attachments-panel__empty">Загружаем вложения…</p>
+        <p className="m-0 text-sm text-base-content/60">Загружаем вложения…</p>
       ) : null}
       {state.kind === "error" ? (
-        <p role="alert" className="edit-text-form__error">
+        <p role="alert" className="m-0 text-sm text-error">
           {state.message}
         </p>
       ) : null}
       {actionError ? (
-        <p role="alert" className="edit-text-form__error">
+        <p role="alert" className="m-0 text-sm text-error">
           {actionError}
         </p>
       ) : null}
       {state.kind === "ready" && state.attachments.length === 0 ? (
-        <p className="attachments-panel__empty">Пока нет вложений.</p>
+        <p className="m-0 text-sm text-base-content/60">Пока нет вложений.</p>
       ) : null}
       {state.kind === "ready" && state.attachments.length > 0 ? (
-        <ul className="attachments-grid" aria-label="Вложения intent">
+        <ul
+          className="m-0 grid list-none gap-3 p-0 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]"
+          aria-label="Вложения intent"
+        >
           {state.attachments.map((attachment) => {
             const preview = previews[attachment.id];
             const contentUrl =
@@ -267,27 +277,34 @@ export function IntentAttachmentsPanel({
                 )
               );
             return (
-              <li key={attachment.id} className="attachments-grid__item">
+              <li
+                key={attachment.id}
+                className="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-100 p-2.5"
+              >
                 <a
-                  className="attachments-grid__preview"
+                  className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md bg-base-200 text-base-content/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                   href={contentUrl}
                   target="_blank"
                   rel="noreferrer"
                   aria-label={`Открыть ${attachment.file_name}`}
                 >
                   {preview ? (
-                    <img src={preview} alt={attachment.file_name} />
+                    <img
+                      src={preview}
+                      alt={attachment.file_name}
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
-                    <span className="attachments-grid__placeholder">
+                    <span className="inline-flex items-center justify-center">
                       <Image aria-hidden size={24} strokeWidth={1.8} />
                     </span>
                   )}
                 </a>
-                <div className="attachments-grid__meta">
-                  <span className="attachments-grid__name">
+                <div className="flex min-w-0 flex-col gap-px">
+                  <span className="truncate text-[13px] font-semibold">
                     {attachment.file_name}
                   </span>
-                  <span className="attachments-grid__size">
+                  <span className="text-[11px] tabular-nums text-base-content/60">
                     {formatBytes(attachment.size_bytes)}
                   </span>
                 </div>

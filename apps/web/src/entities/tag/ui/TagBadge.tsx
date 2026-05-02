@@ -3,5 +3,9 @@ interface TagBadgeProps {
 }
 
 export function TagBadge({ name }: TagBadgeProps) {
-  return <span className="tag-chip">#{name}</span>;
+  return (
+    <span className="badge badge-sm badge-outline border-base-300 text-base-content/80">
+      #{name}
+    </span>
+  );
 }

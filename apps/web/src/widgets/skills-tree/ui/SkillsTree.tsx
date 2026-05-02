@@ -77,31 +77,38 @@ export function SkillsTree() {
   );
 
   return (
-    <section className="skills-tree" aria-label="Дерево скиллов">
-      <header className="skills-tree__header">
-        <h2 className="skills-tree__title">Skills</h2>
-        <p className="skills-tree__hint">
+    <section
+      className="mx-auto flex max-w-5xl flex-col gap-4"
+      aria-label="Дерево скиллов"
+    >
+      <header className="flex flex-col gap-1.5">
+        <h2 className="m-0 text-xl font-bold tracking-tight">Skills</h2>
+        <p className="m-0 text-sm leading-relaxed text-base-content/70">
           Точное содержимое, которое попадает агенту при вызове команды.
-          Источник правды — <code>specs/manifest/throne-skills.yaml</code>.
+          Источник правды —{" "}
+          <code className="rounded bg-base-200 px-1.5 py-px font-mono text-xs">
+            specs/manifest/throne-skills.yaml
+          </code>
+          .
         </p>
       </header>
 
-      <div className="skills-tree__body">
+      <div className="rounded-lg border border-base-300 bg-base-100 p-2">
         {state.kind === "loading" && (
-          <p className="skills-tree__placeholder">Загрузка…</p>
+          <p className="m-0 p-4 text-[13px] text-base-content/60">Загрузка…</p>
         )}
         {state.kind === "error" && (
-          <p role="alert" className="skills-tree__placeholder">
+          <p role="alert" className="m-0 p-4 text-[13px] text-base-content/60">
             {state.message}
           </p>
         )}
         {state.kind === "ready" && skills.length === 0 && (
-          <p className="skills-tree__placeholder">
+          <p className="m-0 p-4 text-[13px] text-base-content/60">
             В манифесте нет ни одного скилла.
           </p>
         )}
         {state.kind === "ready" && skills.length > 0 && (
-          <ul className="skills-tree__list" role="tree">
+          <ul className="m-0 list-none p-0" role="tree">
             {skills.map((skill) => (
               <SkillRow
                 key={skill.name}
@@ -142,13 +149,8 @@ function SkillRow({ skill, expanded, onToggle, onOpen }: SkillRowProps) {
   const bundleOpen = expanded[bundleKey(skill)] ?? true;
 
   return (
-    <li
-      className="skills-tree__skill"
-      role="treeitem"
-      aria-expanded={skillOpen}
-    >
+    <li className="mt-1 first:mt-0" role="treeitem" aria-expanded={skillOpen}>
       <NodeRow
-        depth={0}
         expandable
         expanded={skillOpen}
         onExpand={() => {
@@ -162,10 +164,12 @@ function SkillRow({ skill, expanded, onToggle, onOpen }: SkillRowProps) {
         }}
       />
       {skillOpen ? (
-        <ul className="skills-tree__children" role="group">
+        <ul
+          className="m-0 ml-4 list-none border-l border-dashed border-base-300 p-0"
+          role="group"
+        >
           <li role="treeitem" aria-expanded={bundleOpen}>
             <NodeRow
-              depth={1}
               expandable
               expanded={bundleOpen}
               onExpand={() => {
@@ -179,7 +183,10 @@ function SkillRow({ skill, expanded, onToggle, onOpen }: SkillRowProps) {
               }}
             />
             {bundleOpen ? (
-              <ul className="skills-tree__children" role="group">
+              <ul
+                className="m-0 ml-4 list-none border-l border-dashed border-base-300 p-0"
+                role="group"
+              >
                 {skill.bundle.includes.map((entry, index) => (
                   <EntryRow
                     key={`${entry.scope}:${entry.kind}:${String(index)}`}
@@ -215,28 +222,27 @@ function EntryRow({ entry, onOpen }: EntryRowProps) {
   return (
     <li role="treeitem">
       <NodeRow
-        depth={2}
         icon={<FileText aria-hidden size={14} strokeWidth={2} />}
         label={
-          <span className="skills-tree__entry-label">
+          <span className="inline-flex items-center gap-2 font-semibold">
             <span
-              className="skills-tree__badge"
+              className="inline-flex h-[18px] items-center rounded-full px-2 text-[10px] font-bold uppercase tracking-wide"
               style={{ background: meta.surface, color: meta.ink }}
             >
               {entry.scope}
             </span>
-            <span className="skills-tree__entry-kind">{entry.kind}</span>
+            <span className="font-mono text-[13px] text-base-content">
+              {entry.kind}
+            </span>
           </span>
         }
         meta={
-          <span className="skills-tree__entry-meta">
+          <span className="inline-flex items-center gap-1.5">
             {scopeIcon}
             <span>
               {entry.editable ? "user / редактируется" : "system / read-only"}
             </span>
-            {status ? (
-              <span className="skills-tree__entry-warn">— {status}</span>
-            ) : null}
+            {status ? <span className="text-warning">— {status}</span> : null}
           </span>
         }
         onOpen={onOpen}
@@ -246,7 +252,6 @@ function EntryRow({ entry, onOpen }: EntryRowProps) {
 }
 
 interface NodeRowProps {
-  depth: 0 | 1 | 2;
   icon: React.ReactNode;
   label: React.ReactNode;
   meta?: React.ReactNode;
@@ -257,7 +262,6 @@ interface NodeRowProps {
 }
 
 function NodeRow({
-  depth,
   icon,
   label,
   meta,
@@ -267,13 +271,11 @@ function NodeRow({
   onOpen
 }: NodeRowProps) {
   return (
-    <div
-      className={`skills-tree__row skills-tree__row--depth-${String(depth)}`}
-    >
+    <div className="flex items-center gap-1 rounded-md p-1 hover:bg-base-200">
       {expandable ? (
         <button
           type="button"
-          className="skills-tree__chevron"
+          className="inline-flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded text-base-content/60 hover:bg-base-300 hover:text-base-content"
           onClick={onExpand}
           aria-label={expanded ? "Свернуть" : "Развернуть"}
         >
@@ -284,16 +286,22 @@ function NodeRow({
           )}
         </button>
       ) : (
-        <span className="skills-tree__chevron skills-tree__chevron--placeholder" />
+        <span className="inline-block h-[22px] w-[22px] flex-shrink-0" />
       )}
       <button
         type="button"
-        className="skills-tree__row-button"
+        className="flex flex-1 items-center gap-2.5 rounded-md px-2 py-1 text-left text-base-content focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
         onClick={onOpen}
       >
-        <span className="skills-tree__row-icon">{icon}</span>
-        <span className="skills-tree__row-label">{label}</span>
-        {meta ? <span className="skills-tree__row-meta">{meta}</span> : null}
+        <span className="inline-flex flex-shrink-0 items-center text-base-content/60">
+          {icon}
+        </span>
+        <span className="text-sm font-semibold text-base-content">{label}</span>
+        {meta ? (
+          <span className="ml-auto inline-flex items-center gap-1.5 text-right text-xs font-normal text-base-content/60">
+            {meta}
+          </span>
+        ) : null}
       </button>
     </div>
   );

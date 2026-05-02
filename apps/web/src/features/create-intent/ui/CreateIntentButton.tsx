@@ -151,13 +151,14 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
 
   return createPortal(
     <div
-      className="create-intent-modal"
+      className="modal modal-open modal-bottom sm:modal-middle"
+      role="presentation"
       onClick={() => {
         close();
       }}
     >
       <div
-        className="create-intent-modal__dialog"
+        className="modal-box max-h-[min(820px,calc(100vh-48px))] w-full max-w-2xl border border-base-300 bg-base-100"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -166,19 +167,27 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
           event.stopPropagation();
         }}
       >
-        <div className="create-intent-modal__header">
-          <div className="create-intent-modal__title-block">
-            <p className="create-intent-modal__eyebrow">Новый intent</p>
-            <h3 id={titleId} className="create-intent-modal__title">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
+              Новый intent
+            </p>
+            <h3
+              id={titleId}
+              className="m-0 text-xl font-semibold leading-tight"
+            >
               Сформулируйте задачу в одном окне
             </h3>
-            <p id={descriptionId} className="create-intent-modal__description">
+            <p
+              id={descriptionId}
+              className="m-0 max-w-[46ch] text-sm leading-relaxed text-base-content/70"
+            >
               Добавьте текст, теги и изображения. Клик вне окна закроет форму.
             </p>
           </div>
           <button
             type="button"
-            className="create-intent-modal__close"
+            className="btn btn-sm btn-circle btn-ghost"
             onClick={() => {
               close();
             }}
@@ -193,10 +202,10 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
             e.preventDefault();
             void submit();
           }}
-          className="create-intent-form"
+          className="flex flex-col gap-3.5"
         >
           <textarea
-            className="create-intent-form__textarea"
+            className="textarea textarea-bordered min-h-[220px] w-full text-base"
             placeholder="Кратко опишите intent"
             value={text}
             onChange={(e) => {
@@ -210,7 +219,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
             autoFocus
           />
           <input
-            className="create-intent-form__tags"
+            className="input input-bordered w-full"
             placeholder="Теги через запятую (опционально)"
             value={tags}
             onChange={(e) => {
@@ -218,43 +227,42 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
             }}
             aria-label="Теги intent"
           />
-          <label className="create-intent-form__file-picker">
+          <label className="flex cursor-pointer flex-col gap-1.5 rounded-md border border-dashed border-base-300 bg-base-200 px-4 py-3 transition-colors hover:border-primary hover:bg-primary/5">
             <input
               type="file"
               accept="image/*"
               multiple
+              className="sr-only"
               onChange={(e) => {
                 addFiles(e.currentTarget.files);
                 e.currentTarget.value = "";
               }}
             />
-            <span className="create-intent-form__file-picker-label">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
               <ImagePlus aria-hidden size={16} strokeWidth={2} />
               Приложить изображения
             </span>
-            <span className="create-intent-form__file-picker-hint">
+            <span className="text-xs leading-relaxed text-base-content/60">
               До 10 файлов, каждый до 10 МБ. Можно вставить картинку из буфера.
             </span>
           </label>
           {files.length > 0 ? (
             <ul
-              className="create-intent-form__files"
+              className="m-0 flex max-h-44 list-none flex-col gap-1.5 overflow-y-auto p-0"
               aria-label="Выбранные файлы"
             >
               {files.map((file, index) => (
                 <li
                   key={`${file.name}-${String(file.lastModified)}-${String(index)}`}
-                  className="create-intent-form__file"
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 text-[13px]"
                 >
-                  <span className="create-intent-form__file-name">
-                    {file.name}
-                  </span>
-                  <span className="create-intent-form__file-size">
+                  <span className="min-w-0 truncate">{file.name}</span>
+                  <span className="tabular-nums text-base-content/60">
                     {formatBytes(file.size)}
                   </span>
                   <button
                     type="button"
-                    className="create-intent-form__file-remove"
+                    className="btn btn-xs btn-ghost btn-circle"
                     onClick={() => {
                       removeFile(index);
                     }}
@@ -268,18 +276,11 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
             </ul>
           ) : null}
           {error ? (
-            <p role="alert" className="edit-text-form__error">
+            <p role="alert" className="m-0 text-sm text-error">
               {error}
             </p>
           ) : null}
-          <div className="edit-text-form__actions create-intent-form__actions">
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={busy || text.trim().length === 0}
-            >
-              {busy ? "Создаём…" : "Создать intent"}
-            </Button>
+          <div className="flex justify-end gap-2 max-sm:flex-col-reverse [&>*]:max-sm:w-full">
             <Button
               type="button"
               onClick={() => {
@@ -288,6 +289,13 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
               disabled={busy}
             >
               Отмена
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={busy || text.trim().length === 0}
+            >
+              {busy ? "Создаём…" : "Создать intent"}
             </Button>
           </div>
         </form>

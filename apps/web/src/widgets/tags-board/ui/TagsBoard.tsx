@@ -106,11 +106,19 @@ export function TagsBoard() {
   };
 
   return (
-    <section className="master-pane" aria-label="Список тегов">
-      <div className="master-pane__header">
-        <h2 className="master-pane__title">Tags</h2>
+    <section
+      className="flex min-w-0 flex-col border-base-300 bg-base-100 max-md:border-b md:border-r"
+      aria-label="Список тегов"
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-base-300 px-3.5 py-3">
+        <h2 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/60">
+          Tags
+        </h2>
       </div>
-      <form className="master-pane__search" onSubmit={handleCreate}>
+      <form
+        className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60"
+        onSubmit={handleCreate}
+      >
         <Plus aria-hidden size={14} strokeWidth={2} />
         <input
           type="text"
@@ -120,37 +128,50 @@ export function TagsBoard() {
             setNewName(e.target.value);
           }}
           aria-label="Имя нового тега"
+          className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-base-content placeholder:text-base-content/50 focus:outline-none"
         />
         <Button type="submit" variant="primary" disabled={!newName.trim()}>
           Создать
         </Button>
       </form>
       {createError && (
-        <p role="alert" className="master-pane__hint">
+        <p role="alert" className="m-0 px-3.5 py-3 text-[13px] text-error">
           {createError}
         </p>
       )}
-      <div className="master-pane__body">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {state.kind === "loading" && (
-          <p className="master-pane__hint">Загрузка…</p>
+          <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
+            Загрузка…
+          </p>
         )}
         {state.kind === "error" && (
-          <p role="alert" className="master-pane__hint">
+          <p
+            role="alert"
+            className="m-0 px-3.5 py-4 text-[13px] text-base-content/60"
+          >
             {state.message}
           </p>
         )}
         {state.kind === "ready" && state.items.length === 0 && (
-          <p className="master-pane__hint">Нет тегов.</p>
+          <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
+            Нет тегов.
+          </p>
         )}
         {state.kind === "ready" && state.items.length > 0 && (
-          <ul className="tag-list">
+          <ul className="m-0 flex list-none flex-col p-0">
             {state.items.map((tag) => (
-              <li key={tag.id} className="tag-list__row">
-                <span className="tag-chip">#{tag.name}</span>
-                <span className="tag-list__meta">
+              <li
+                key={tag.id}
+                className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 last:border-b-0"
+              >
+                <span className="badge badge-sm badge-outline border-base-300 text-base-content/80">
+                  #{tag.name}
+                </span>
+                <span className="text-[11px] tabular-nums text-base-content/60">
                   v{String(tag.current_version)}
                 </span>
-                <div className="tag-list__actions">
+                <div className="ml-auto flex gap-1">
                   <Button
                     variant="default"
                     onClick={() => void handleRename(tag)}

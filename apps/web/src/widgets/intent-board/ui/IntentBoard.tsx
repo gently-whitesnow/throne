@@ -94,9 +94,14 @@ export function IntentBoard() {
   useRealtimeEvent("intent.tags_changed", reload);
 
   return (
-    <section className="master-pane" aria-label="Список Intents">
-      <div className="master-pane__header">
-        <h2 className="master-pane__title">Intents</h2>
+    <section
+      className="flex min-w-0 flex-col border-base-300 bg-base-100 max-md:border-b md:border-r"
+      aria-label="Список Intents"
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-base-300 px-3.5 py-3">
+        <h2 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/60">
+          Intents
+        </h2>
         <CreateIntentButton
           onCreated={(intent) => {
             reload();
@@ -104,7 +109,7 @@ export function IntentBoard() {
           }}
         />
       </div>
-      <div className="master-pane__search">
+      <div className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60">
         <Search aria-hidden size={14} strokeWidth={2} />
         <input
           type="search"
@@ -114,11 +119,12 @@ export function IntentBoard() {
             setQuery(e.target.value);
           }}
           aria-label="Поиск intents"
+          className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-base-content placeholder:text-base-content/50 focus:outline-none"
         />
       </div>
       {allTags.length > 0 && (
         <div
-          className="master-pane__tags"
+          className="flex flex-wrap gap-1 border-b border-base-300 px-3.5 py-2"
           role="group"
           aria-label="Фильтр по тегам"
         >
@@ -128,7 +134,7 @@ export function IntentBoard() {
               <button
                 key={tag}
                 type="button"
-                className={`tag-chip${active ? " tag-chip--active" : ""}`}
+                className={chipClass(active)}
                 onClick={() => {
                   setActiveTag(active ? null : tag);
                 }}
@@ -140,7 +146,7 @@ export function IntentBoard() {
         </div>
       )}
       <div
-        className="master-pane__tags master-pane__tags--statuses"
+        className="flex flex-wrap gap-1 border-b border-base-300 px-3.5 py-2"
         role="group"
         aria-label="Фильтр по статусу"
       >
@@ -150,7 +156,7 @@ export function IntentBoard() {
             <button
               key={status}
               type="button"
-              className={`tag-chip${active ? " tag-chip--active" : ""}`}
+              className={chipClass(active)}
               onClick={() => {
                 setActiveStatus(active ? null : status);
               }}
@@ -160,12 +166,17 @@ export function IntentBoard() {
           );
         })}
       </div>
-      <div className="master-pane__body">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {state.kind === "loading" && (
-          <p className="master-pane__hint">Загрузка…</p>
+          <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
+            Загрузка…
+          </p>
         )}
         {state.kind === "error" && (
-          <p role="alert" className="master-pane__hint">
+          <p
+            role="alert"
+            className="m-0 px-3.5 py-4 text-[13px] text-base-content/60"
+          >
             {state.message}
           </p>
         )}
@@ -178,6 +189,14 @@ export function IntentBoard() {
       </div>
     </section>
   );
+}
+
+function chipClass(active: boolean): string {
+  const base =
+    "inline-flex h-[22px] items-center rounded-full border px-2 text-[11px] font-medium transition-colors cursor-pointer";
+  return active
+    ? `${base} border-primary bg-primary/10 text-primary`
+    : `${base} border-base-300 bg-base-100 text-base-content/70 hover:bg-base-200 hover:text-base-content`;
 }
 
 function firstLine(text: string): string {

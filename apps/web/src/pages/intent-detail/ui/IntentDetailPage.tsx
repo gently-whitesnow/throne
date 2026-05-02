@@ -84,11 +84,13 @@ export function IntentDetailPage() {
   });
 
   if (state.kind === "loading") {
-    return <p className="detail__hint">Загрузка…</p>;
+    return (
+      <p className="px-6 py-4 text-[13px] text-base-content/60">Загрузка…</p>
+    );
   }
   if (state.kind === "error") {
     return (
-      <p role="alert" className="detail__hint">
+      <p role="alert" className="px-6 py-4 text-[13px] text-error">
         {state.message}
       </p>
     );
@@ -100,28 +102,30 @@ export function IntentDetailPage() {
 
   return (
     <>
-      <header className="detail__header">
-        <div className="detail__heading">
-          <h1 className="detail__title">{title}</h1>
-          <div className="detail__meta">
+      <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-base-300 px-6 py-3.5">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="m-0 break-words text-lg font-semibold leading-snug text-base-content">
+            {title}
+          </h1>
+          <div className="flex flex-wrap gap-2.5 text-xs text-base-content/70">
             <span
-              className="detail__status"
+              className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold tracking-wide"
               style={{ background: status.surface, color: status.ink }}
             >
               {status.label}
             </span>
-            <span className="detail__meta-item">v{intent.current_version}</span>
+            <span className="tabular-nums">v{intent.current_version}</span>
             {intent.tags.length > 0 ? (
-              <span className="detail__meta-item">
+              <span className="tabular-nums">
                 #{intent.tags.map((t) => t.name).join(" #")}
               </span>
             ) : null}
-            <span className="detail__meta-item detail__meta-item--muted">
+            <span className="tabular-nums text-base-content/60">
               {new Date(intent.updated_at).toLocaleString()}
             </span>
           </div>
         </div>
-        <div className="detail__actions">
+        <div className="flex flex-shrink-0 gap-2">
           {!editing && (
             <>
               <Button
@@ -144,7 +148,7 @@ export function IntentDetailPage() {
         </div>
       </header>
 
-      <div className="detail__body">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4">
         <SetIntentStatusForm
           intent={intent}
           onSaved={(next) => {
@@ -165,11 +169,15 @@ export function IntentDetailPage() {
             }}
           />
         ) : (
-          <pre className="detail__text">{intent.text}</pre>
+          <pre className="m-0 whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-base-content">
+            {intent.text}
+          </pre>
         )}
         <IntentAttachmentsPanel intentId={intent.id} />
-        <section className="detail__activity">
-          <h2 className="detail__section-title">Активность</h2>
+        <section className="mt-6 flex flex-col gap-2">
+          <h2 className="m-0 text-sm font-semibold text-base-content">
+            Активность
+          </h2>
           <IntentActivityTimeline
             intentId={intent.id}
             reloadKey={activityKey}

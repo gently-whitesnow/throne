@@ -46,7 +46,7 @@ describe("CreateIntentButton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Создать intent" }));
 
-    const overlay = document.querySelector(".create-intent-modal");
+    const overlay = document.querySelector(".modal");
     if (!overlay) {
       throw new Error("Expected modal overlay to exist");
     }

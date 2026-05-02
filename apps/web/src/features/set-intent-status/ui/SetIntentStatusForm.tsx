@@ -57,23 +57,27 @@ export function SetIntentStatusForm({
   const currentMeta = intentStatusMeta[intent.status];
 
   return (
-    <section className="intent-status-panel" aria-label="Статус intent">
-      <div className="intent-status-panel__summary">
+    <section
+      className="card mb-4 grid gap-3.5 rounded-lg border border-base-300 bg-base-100 px-5 py-4 shadow-sm"
+      aria-label="Статус intent"
+    >
+      <div className="flex flex-wrap items-center gap-2.5">
         <span
-          className="intent-status-panel__badge"
+          className="inline-flex h-7 items-center rounded-full px-3 text-xs font-bold"
           style={{ background: currentMeta.surface, color: currentMeta.ink }}
         >
           {currentMeta.label}
         </span>
-        <p className="intent-status-panel__hint">
+        <p className="m-0 text-sm leading-snug text-base-content/70">
           Статус влияет на фильтрацию и на то, что агент видит в текущем intent.
         </p>
       </div>
 
-      <div className="intent-status-panel__controls">
-        <label className="intent-status-panel__field">
-          <span>Новый статус</span>
+      <div className="grid gap-3">
+        <label className="grid gap-1.5 text-sm text-base-content/70">
+          <span className="font-semibold text-base-content">Новый статус</span>
           <select
+            className="select select-sm select-bordered w-full max-w-sm"
             value={status}
             onChange={(e) => {
               setStatus(e.target.value as IntentStatus);
@@ -90,9 +94,12 @@ export function SetIntentStatusForm({
         </label>
 
         {needsRejectReason && (
-          <label className="intent-status-panel__field">
-            <span>Причина отклонения</span>
+          <label className="grid gap-1.5 text-sm text-base-content/70">
+            <span className="font-semibold text-base-content">
+              Причина отклонения
+            </span>
             <textarea
+              className="textarea textarea-bordered w-full"
               value={rejectReason}
               onChange={(e) => {
                 setRejectReason(e.target.value);
@@ -105,7 +112,7 @@ export function SetIntentStatusForm({
           </label>
         )}
 
-        <div className="intent-status-panel__actions">
+        <div className="flex">
           <Button
             variant="primary"
             onClick={() => {
@@ -118,7 +125,7 @@ export function SetIntentStatusForm({
         </div>
 
         {error ? (
-          <p role="alert" className="intent-status-panel__error">
+          <p role="alert" className="m-0 text-sm text-error">
             {error}
           </p>
         ) : null}

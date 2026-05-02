@@ -44,7 +44,7 @@ export function DeleteIntentButton({
         {busy ? "Удаляем…" : "Удалить"}
       </Button>
       {error ? (
-        <p role="alert" className="edit-text-form__error">
+        <p role="alert" className="m-0 text-sm text-error">
           {error}
         </p>
       ) : null}

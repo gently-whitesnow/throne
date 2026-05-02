@@ -32,27 +32,31 @@ export function VersionsDrawer({
   return (
     <>
       <div
-        className={`drawer-scrim${open ? " drawer-scrim--open" : ""}`}
+        className={`fixed inset-0 z-40 bg-neutral/40 transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
         onClick={onClose}
         aria-hidden
       />
       <aside
-        className={`drawer${open ? " drawer--open" : ""}`}
+        className={`fixed inset-y-0 right-0 z-50 flex w-[min(480px,100vw)] flex-col border-l border-base-300 bg-base-100 transition-transform duration-200 ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
         aria-hidden={!open}
         aria-label={title}
       >
-        <header className="drawer__header">
-          <h3 className="drawer__title">{title}</h3>
+        <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-base-300 px-4 py-3">
+          <h3 className="m-0 text-sm font-semibold">{title}</h3>
           <button
             type="button"
-            className="drawer__close"
+            className="btn btn-sm btn-circle btn-ghost"
             onClick={onClose}
             aria-label="Закрыть"
           >
             <X aria-hidden size={16} strokeWidth={2} />
           </button>
         </header>
-        <div className="drawer__body">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {open ? (
             <TextVersionList endpoint={endpoint} reloadKey={reloadKey} />
           ) : null}

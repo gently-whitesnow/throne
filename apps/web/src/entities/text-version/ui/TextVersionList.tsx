@@ -54,21 +54,28 @@ export function TextVersionList({
   }, [endpoint, reloadKey]);
 
   if (state.kind === "loading") {
-    return <p>История загружается…</p>;
+    return <p className="text-sm text-base-content/60">История загружается…</p>;
   }
   if (state.kind === "error") {
-    return <p role="alert">{state.message}</p>;
+    return (
+      <p role="alert" className="text-sm text-error">
+        {state.message}
+      </p>
+    );
   }
   if (state.items.length === 0) {
-    return <p>Истории пока нет.</p>;
+    return <p className="text-sm text-base-content/60">Истории пока нет.</p>;
   }
 
   return (
-    <ul className="text-version-list">
+    <ul className="flex flex-col gap-2.5">
       {state.items.map((v) => (
-        <li className="text-version-list__item" key={v.version}>
-          <header className="text-version-list__header">
-            <strong>v{v.version}</strong>
+        <li
+          className="rounded-md border border-base-300 px-3 py-2.5"
+          key={v.version}
+        >
+          <header className="mb-1.5 flex flex-wrap gap-2.5 text-[11px] text-base-content/60">
+            <strong className="text-base-content">v{v.version}</strong>
             <span>{kindLabel[v.kind]}</span>
             <span>{authorLabel[v.changed_by]}</span>
             <time dateTime={v.changed_at}>
@@ -76,18 +83,20 @@ export function TextVersionList({
             </time>
           </header>
           {v.kind === "create" && v.snapshot ? (
-            <pre className="text-version-list__diff">{v.snapshot}</pre>
+            <pre className="m-0 whitespace-pre-wrap break-words rounded bg-base-200 p-2 font-mono text-xs">
+              {v.snapshot}
+            </pre>
           ) : null}
           {v.kind === "replace" ? (
-            <div className="text-version-list__diff">
+            <div className="m-0 whitespace-pre-wrap break-words rounded bg-base-200 p-2 font-mono text-xs">
               {v.old_text ? (
-                <pre>
-                  <del>{v.old_text}</del>
+                <pre className="m-0">
+                  <del className="bg-error/10 line-through">{v.old_text}</del>
                 </pre>
               ) : null}
               {v.new_text ? (
-                <pre>
-                  <ins>{v.new_text}</ins>
+                <pre className="m-0">
+                  <ins className="bg-success/10 no-underline">{v.new_text}</ins>
                 </pre>
               ) : null}
             </div>

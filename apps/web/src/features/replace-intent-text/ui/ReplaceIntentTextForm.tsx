@@ -54,10 +54,10 @@ export function ReplaceIntentTextForm({
         e.preventDefault();
         void submit();
       }}
-      className="edit-text-form"
+      className="flex flex-col gap-3"
     >
       <textarea
-        className="edit-text-form__textarea"
+        className="textarea textarea-bordered min-h-80 w-full font-mono text-[13px] leading-relaxed"
         value={draft}
         onChange={(e) => {
           setDraft(e.target.value);
@@ -66,11 +66,11 @@ export function ReplaceIntentTextForm({
         aria-label="Текст intent"
       />
       {error ? (
-        <p role="alert" className="edit-text-form__error">
+        <p role="alert" className="m-0 text-sm text-error">
           {error}
         </p>
       ) : null}
-      <div className="edit-text-form__actions">
+      <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={busy}>
           {busy ? "Сохраняем…" : "Сохранить"}
         </Button>
