@@ -18,7 +18,11 @@ public static class RealtimeEventNames
     public const string IntentQaAdded = "intent.qa_added";
     public const string IntentReviewAdded = "intent.review_added";
     public const string IntentStatusChanged = "intent.status_changed";
+    public const string IntentTagsChanged = "intent.tags_changed";
     public const string IntentTextChanged = "intent.text_changed";
+    public const string TagCreated = "tag.created";
+    public const string TagDeleted = "tag.deleted";
+    public const string TagUpdated = "tag.updated";
 
     public static readonly System.Collections.Generic.IReadOnlyList<string> All = new[]
     {
@@ -29,6 +33,10 @@ public static class RealtimeEventNames
         IntentQaAdded,
         IntentReviewAdded,
         IntentStatusChanged,
+        IntentTagsChanged,
         IntentTextChanged,
+        TagCreated,
+        TagDeleted,
+        TagUpdated,
     };
 }

@@ -24,7 +24,7 @@ public class TransactionRollbackTests(MongoFixture fixture)
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "ok", Now, TextVersionAuthor.Agent);
 
         await uow.ExecuteAsync(
-            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct),
+            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
             CancellationToken.None);
 
         (await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
@@ -44,7 +44,7 @@ public class TransactionRollbackTests(MongoFixture fixture)
 
         var act = async () => await uow.ExecuteAsync(async ct =>
         {
-            await repo.CreateAsync(intent, version, InitialStatusChange(intent), ct);
+            await repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct);
             throw new InvalidOperationException("boom");
         }, CancellationToken.None);
 

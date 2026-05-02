@@ -25,18 +25,53 @@ public sealed class IntentTools(
     AddIntentQaHandler addQa,
     AddIntentReviewHandler addReview,
     SetIntentStatusHandler setStatus,
+    SetIntentTagsHandler setTagsHandler,
     GetInstructionBundleHandler getInstructionBundle,
-    IIntentAttachmentRepository attachments)
+    IIntentAttachmentRepository attachments,
+    ITagRepository tagRepository)
 {
     private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web);
+
+    private async Task<IReadOnlyList<McpTagRef>> BuildTagRefsAsync(IReadOnlyList<Throne.Domain.Tags.TagId> tagIds, CancellationToken ct)
+    {
+        if (tagIds.Count == 0)
+        {
+            return [];
+        }
+
+        var idSet = tagIds.Select(t => t.Value).ToHashSet(StringComparer.Ordinal);
+        var all = await tagRepository.ListAllAsync(ct);
+        var refs = new List<McpTagRef>(tagIds.Count);
+        foreach (var id in tagIds)
+        {
+            var tag = all.FirstOrDefault(t => t.Id.Value == id.Value);
+            if (tag is null)
+            {
+                continue;
+            }
+            refs.Add(new McpTagRef(tag.Id.Value, tag.Name));
+        }
+        return refs;
+    }
 
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
     [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one.")]
     public Task<Intent> CreateIntent(
         [Description("Initial canonical Intent.text. Must be non-empty and contain the user's actual intent, not a summary of tool usage.")] string text,
-        [Description("Optional search/grouping tags. Prefer the current repo/project name first when known; pass an empty array when no tag is reliable.")] IReadOnlyList<string>? tags = null,
+        [Description("Tag names to attach. Pass exactly one entry — the normalized name of the current repository/project (e.g. 'throne'). The server upserts tags by name (existing tag → reused id, new tag → created and linked). Do not pass thematic / technological / feature tags.")] IReadOnlyList<string>? tags = null,
         CancellationToken cancellationToken = default) =>
         create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
+
+    [McpServerTool(Name = "set_intent_tags", UseStructuredContent = true)]
+    [Description("Replace the set of tags attached to an Intent using upsert-by-name. Pass tag names; existing tags are reused, missing tags are created.")]
+    public Task<Intent> SetIntentTags(
+        [Description("Intent id to mutate.")] string intent_id,
+        [Description("current_version observed from the latest get_intent. Tag changes do not bump current_version but the value must still match.")] int expected_version,
+        [Description("Tag names to attach (slug-style). Pass an empty array to detach all tags.")] IReadOnlyList<string> tags,
+        CancellationToken cancellationToken = default) =>
+        setTagsHandler.HandleAsync(
+            new SetIntentTagsCommand(intent_id, expected_version, TagIds: null, TagNames: tags),
+            cancellationToken);
 
     [McpServerTool(Name = "get_intent", ReadOnly = true)]
     [Description("Read canonical Intent state by id, including full text and attachments. Image attachments are returned as MCP image content blocks so agents can inspect them.")]
@@ -44,10 +79,10 @@ public sealed class IntentTools(
         [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
         CancellationToken cancellationToken)
     {
-        var intent = await get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken).ConfigureAwait(false);
+        var intent = await get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken);
         var attachmentList = await attachments
             .ListByIntentAsync(intent.Id, cancellationToken)
-            .ConfigureAwait(false);
+            ;
 
         var content = new List<ContentBlock>();
         var imageReturned = new HashSet<string>(StringComparer.Ordinal);
@@ -60,7 +95,7 @@ public sealed class IntentTools(
 
             var opened = await attachments
                 .OpenContentAsync(intent.Id, attachment.Id, cancellationToken)
-                .ConfigureAwait(false);
+                ;
             if (opened is null)
             {
                 continue;
@@ -68,7 +103,7 @@ public sealed class IntentTools(
 
             await using var stream = opened.Content;
             using var memory = new MemoryStream();
-            await stream.CopyToAsync(memory, cancellationToken).ConfigureAwait(false);
+            await stream.CopyToAsync(memory, cancellationToken);
             content.Add(new ImageContentBlock
             {
                 Data = Convert.ToBase64String(memory.ToArray()),
@@ -77,12 +112,14 @@ public sealed class IntentTools(
             imageReturned.Add(attachment.Id);
         }
 
+        var tagRefs = await BuildTagRefsAsync(intent.TagIds, cancellationToken);
+
         var result = new McpIntentReadResult(
             intent.Id.Value,
             intent.Text,
             intent.Status,
             intent.CurrentVersion,
-            intent.Tags,
+            tagRefs,
             intent.CreatedAt,
             intent.UpdatedAt,
             attachmentList

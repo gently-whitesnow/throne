@@ -1,6 +1,7 @@
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
 using Throne.Intents.Contracts.Generated;
 using ContractTrainingAuthor = Throne.Intents.Contracts.Generated.IntentTrainingAuthor;
 using DomainTrainingAuthor = Throne.Domain.Intents.Training.IntentTrainingAuthor;
@@ -9,13 +10,24 @@ namespace Throne.Api.Intents;
 
 internal static class IntentDtoMapper
 {
-    public static IntentDetailDto ToDetailDto(Intent intent) => new()
+    public static IntentDetailDto ToDetailDto(Intent intent, IReadOnlyDictionary<string, Tag> tagsById) => new()
     {
         Id = intent.Id.Value,
         Status = ToContractStatus(intent.Status),
         Current_version = intent.CurrentVersion,
-        Tags = [.. intent.Tags],
+        Tags = ToTagRefs(intent.TagIds, tagsById),
         Text = intent.Text,
+        Created_at = intent.CreatedAt,
+        Updated_at = intent.UpdatedAt,
+    };
+
+    public static IntentListItemDto ToListDto(Intent intent, IReadOnlyDictionary<string, Tag> tagsById, int textShortMaxLength) => new()
+    {
+        Id = intent.Id.Value,
+        Status = ToContractStatus(intent.Status),
+        Current_version = intent.CurrentVersion,
+        Tags = ToTagRefs(intent.TagIds, tagsById),
+        Text_short = TextShort(intent.Text, textShortMaxLength),
         Created_at = intent.CreatedAt,
         Updated_at = intent.UpdatedAt,
     };
@@ -71,4 +83,22 @@ internal static class IntentDtoMapper
         DomainTrainingAuthor.System => ContractTrainingAuthor.System,
         _ => throw new InvalidOperationException($"Unknown training author: {author}"),
     };
+
+    private static List<TagRefDto> ToTagRefs(IReadOnlyList<TagId> tagIds, IReadOnlyDictionary<string, Tag> tagsById)
+    {
+        var refs = new List<TagRefDto>(tagIds.Count);
+        foreach (var id in tagIds)
+        {
+            if (!tagsById.TryGetValue(id.Value, out var tag))
+            {
+                continue;
+            }
+
+            refs.Add(new TagRefDto { Id = tag.Id.Value, Name = tag.Name });
+        }
+        return refs;
+    }
+
+    private static string TextShort(string text, int max) =>
+        text.Length <= max ? text : text[..max];
 }

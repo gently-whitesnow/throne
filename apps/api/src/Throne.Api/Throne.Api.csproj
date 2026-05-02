@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Throne.Intents.Contracts\Throne.Intents.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Instructions.Contracts\Throne.Instructions.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Realtime.Contracts\Throne.Realtime.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Tags.Contracts\Throne.Tags.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -114,7 +114,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
         intentsEndpoints.createIntent(),
         {
           text,
-          tags: tagList.length > 0 ? tagList : undefined
+          tag_names: tagList.length > 0 ? tagList : undefined
         }
       );
       reset();

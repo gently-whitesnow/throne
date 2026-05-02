@@ -8,6 +8,7 @@
     <Project Path="src/Throne.Intents.Contracts/Throne.Intents.Contracts.csproj" />
     <Project Path="src/Throne.Instructions.Contracts/Throne.Instructions.Contracts.csproj" />
     <Project Path="src/Throne.Realtime.Contracts/Throne.Realtime.Contracts.csproj" />
+    <Project Path="src/Throne.Tags.Contracts/Throne.Tags.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Throne.Api.Tests/Throne.Api.Tests.csproj" />

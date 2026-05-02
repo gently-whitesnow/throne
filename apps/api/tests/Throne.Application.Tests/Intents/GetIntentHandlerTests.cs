@@ -4,6 +4,7 @@ using Throne.Application.Errors;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Tags;
 
 namespace Throne.Application.Tests.Intents;
 
@@ -16,8 +17,9 @@ public class GetIntentHandlerTests
     {
         var repo = Substitute.For<IIntentRepository>();
         var id = IntentId.New();
+        var tagId = TagId.New();
         repo.GetByIdAsync(Arg.Is<IntentId>(x => x.Value == id.Value), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(id, "body", IntentStatusNames.Draft, currentVersion: 3, ["throne"], Now, Now));
+            .Returns(Intent.Restore(id, "body", IntentStatusNames.Draft, currentVersion: 3, [tagId], Now, Now));
 
         var handler = new GetIntentHandler(repo);
 
@@ -26,7 +28,7 @@ public class GetIntentHandlerTests
         intent.Id.Value.Should().Be(id.Value);
         intent.Text.Should().Be("body");
         intent.CurrentVersion.Should().Be(3);
-        intent.Tags.Should().Equal("throne");
+        intent.TagIds.Should().Equal(tagId);
     }
 
     [Fact(DisplayName = "GetIntent кидает intent.not_found если документа нет")]

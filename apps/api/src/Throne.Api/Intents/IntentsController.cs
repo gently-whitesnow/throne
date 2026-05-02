@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
+using Throne.Application.Ports;
 using Throne.Application.TextVersions;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
 using Throne.Intents.Contracts.Generated;
-using ContractTrainingAuthor = Throne.Intents.Contracts.Generated.IntentTrainingAuthor;
 using DomainTrainingAuthor = Throne.Domain.Intents.Training.IntentTrainingAuthor;
 using FileParameter = Throne.Api.Generated.FileParameter;
 
@@ -18,6 +19,7 @@ public sealed class IntentsController(
     GetIntentHandler getHandler,
     CreateIntentHandler createHandler,
     SetIntentStatusHandler setStatusHandler,
+    SetIntentTagsHandler setTagsHandler,
     ReplaceIntentTextHandler replaceHandler,
     DeleteIntentHandler deleteHandler,
     ListIntentVersionsHandler listVersionsHandler,
@@ -26,19 +28,21 @@ public sealed class IntentsController(
     UploadIntentAttachmentHandler uploadAttachmentHandler,
     ListIntentAttachmentsHandler listAttachmentsHandler,
     DownloadIntentAttachmentHandler downloadAttachmentHandler,
-    DeleteIntentAttachmentHandler deleteAttachmentHandler) : IntentsControllerBase
+    DeleteIntentAttachmentHandler deleteAttachmentHandler,
+    ITagRepository tags) : IntentsControllerBase
 {
     private const int TextShortMaxLength = 140;
 
     public override async Task<ActionResult<ICollection<IntentListItemDto>>> ListIntents()
     {
         var intents = await listHandler.HandleAsync(new ListIntentsQuery(), HttpContext.RequestAborted)
-            .ConfigureAwait(false);
+            ;
 
+        var tagMap = await BuildTagMapAsync(intents.SelectMany(i => i.TagIds), HttpContext.RequestAborted);
         var dtos = new List<IntentListItemDto>(intents.Count);
         foreach (var intent in intents)
         {
-            dtos.Add(ToListDto(intent));
+            dtos.Add(IntentDtoMapper.ToListDto(intent, tagMap, TextShortMaxLength));
         }
         return Ok(dtos);
     }
@@ -48,8 +52,9 @@ public sealed class IntentsController(
         try
         {
             var intent = await getHandler.HandleAsync(new GetIntentQuery(id), HttpContext.RequestAborted)
-                .ConfigureAwait(false);
-            return Ok(ToDetailDto(intent));
+                ;
+            var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
         {
@@ -62,11 +67,37 @@ public sealed class IntentsController(
         ArgumentNullException.ThrowIfNull(body);
 
         var intent = await createHandler.HandleAsync(
-            new CreateIntentCommand(body.Text, body.Tags?.ToList(), TextVersionAuthor.User),
-            HttpContext.RequestAborted).ConfigureAwait(false);
+            new CreateIntentCommand(body.Text, body.Tag_names?.ToList(), TextVersionAuthor.User),
+            HttpContext.RequestAborted);
 
-        var dto = ToDetailDto(intent);
+        var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
+        var dto = IntentDtoMapper.ToDetailDto(intent, tagMap);
         return CreatedAtAction(nameof(GetIntent), new { id = intent.Id.Value }, dto);
+    }
+
+    public override async Task<ActionResult<IntentDetailDto>> SetIntentTags(string id, SetIntentTagsRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        try
+        {
+            var intent = await setTagsHandler.HandleAsync(
+                new SetIntentTagsCommand(id, body.Expected_version, TagIds: null, body.Tag_names?.ToList()),
+                HttpContext.RequestAborted);
+            var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
+        }
+        catch (ApiException ex)
+        {
+            return ex.Code switch
+            {
+                ErrorCodes.IntentNotFound => NotFound(NotFoundProblem("Intent not found", ex.Detail)),
+                ErrorCodes.IntentVersionConflict => Conflict(BuildProblem(
+                    StatusCodes.Status409Conflict, "Intent version conflict", ex)),
+                ErrorCodes.TagNameInvalid => UnprocessableEntity(BuildProblem(
+                    StatusCodes.Status422UnprocessableEntity, "Invalid tag name", ex)),
+                _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+            };
+        }
     }
 
     public override async Task<ActionResult<IntentDetailDto>> ReplaceIntentText(string id, ReplaceTextRequest body)
@@ -77,8 +108,9 @@ public sealed class IntentsController(
         {
             var intent = await replaceHandler.HandleAsync(
                 new ReplaceIntentTextCommand(id, body.Expected_version, body.Old_text, body.New_text, TextVersionAuthor.User),
-                HttpContext.RequestAborted).ConfigureAwait(false);
-            return Ok(ToDetailDto(intent));
+                HttpContext.RequestAborted);
+            var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
         }
         catch (ApiException ex)
         {
@@ -99,9 +131,10 @@ public sealed class IntentsController(
                     body.Reject_reason,
                     DomainTrainingAuthor.User,
                     "http:set_intent_status"),
-                HttpContext.RequestAborted).ConfigureAwait(false);
+                HttpContext.RequestAborted);
 
-            return Ok(ToDetailDto(intent));
+            var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
         }
         catch (ApiException ex)
         {
@@ -122,7 +155,7 @@ public sealed class IntentsController(
         try
         {
             await deleteHandler.HandleAsync(new DeleteIntentCommand(id), HttpContext.RequestAborted)
-                .ConfigureAwait(false);
+                ;
             return NoContent();
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
@@ -136,7 +169,7 @@ public sealed class IntentsController(
         try
         {
             var versions = await listVersionsHandler.HandleAsync(
-                new ListIntentVersionsQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new ListIntentVersionsQuery(id), HttpContext.RequestAborted);
 
             var dtos = new List<TextVersionDto>(versions.Count);
             foreach (var v in versions)
@@ -156,12 +189,12 @@ public sealed class IntentsController(
         try
         {
             var items = await listQaHandler.HandleAsync(
-                new ListIntentQaQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new ListIntentQaQuery(id), HttpContext.RequestAborted);
 
             var dtos = new List<IntentQaDto>(items.Count);
             foreach (var qa in items)
             {
-                dtos.Add(ToQaDto(qa));
+                dtos.Add(IntentDtoMapper.ToQaDto(qa));
             }
             return Ok(dtos);
         }
@@ -176,12 +209,12 @@ public sealed class IntentsController(
         try
         {
             var items = await listReviewsHandler.HandleAsync(
-                new ListIntentReviewsQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new ListIntentReviewsQuery(id), HttpContext.RequestAborted);
 
             var dtos = new List<IntentReviewDto>(items.Count);
             foreach (var review in items)
             {
-                dtos.Add(ToReviewDto(review));
+                dtos.Add(IntentDtoMapper.ToReviewDto(review));
             }
             return Ok(dtos);
         }
@@ -196,12 +229,12 @@ public sealed class IntentsController(
         try
         {
             var attachments = await listAttachmentsHandler.HandleAsync(
-                new ListIntentAttachmentsQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new ListIntentAttachmentsQuery(id), HttpContext.RequestAborted);
 
             var dtos = new List<IntentAttachmentDto>(attachments.Count);
             foreach (var attachment in attachments)
             {
-                dtos.Add(ToAttachmentDto(attachment));
+                dtos.Add(IntentDtoMapper.ToAttachmentDto(attachment));
             }
 
             return Ok(dtos);
@@ -249,10 +282,10 @@ public sealed class IntentsController(
                     formFile.FileName,
                     formFile.ContentType ?? "application/octet-stream",
                     formFile.Length),
-                HttpContext.RequestAborted).ConfigureAwait(false);
+                HttpContext.RequestAborted);
 
             var location = $"/api/v1/intents/{Uri.EscapeDataString(id)}/attachments/{Uri.EscapeDataString(attachment.Id)}";
-            return Created(location, ToAttachmentDto(attachment));
+            return Created(location, IntentDtoMapper.ToAttachmentDto(attachment));
         }
         catch (ApiException ex)
         {
@@ -276,7 +309,7 @@ public sealed class IntentsController(
         try
         {
             var attachment = await downloadAttachmentHandler.HandleAsync(
-                new DownloadIntentAttachmentQuery(id, attachment_id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new DownloadIntentAttachmentQuery(id, attachment_id), HttpContext.RequestAborted);
             return File(attachment.Content, attachment.Attachment.ContentType, attachment.Attachment.FileName);
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
@@ -294,7 +327,8 @@ public sealed class IntentsController(
         try
         {
             await deleteAttachmentHandler.HandleAsync(
-                new DeleteIntentAttachmentCommand(id, attachment_id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new DeleteIntentAttachmentCommand(id, attachment_id), HttpContext.RequestAborted)
+                ;
             return NoContent();
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
@@ -305,6 +339,28 @@ public sealed class IntentsController(
         {
             return NotFound(NotFoundProblem("Attachment not found", ex.Detail));
         }
+    }
+
+    private async Task<IReadOnlyDictionary<string, Tag>> BuildTagMapAsync(
+        IEnumerable<TagId> tagIds,
+        CancellationToken ct)
+    {
+        var ids = tagIds.Select(t => t.Value).Distinct(StringComparer.Ordinal).ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<string, Tag>(StringComparer.Ordinal);
+        }
+
+        var all = await tags.ListAllAsync(ct);
+        var map = new Dictionary<string, Tag>(StringComparer.Ordinal);
+        foreach (var t in all)
+        {
+            if (ids.Contains(t.Id.Value))
+            {
+                map[t.Id.Value] = t;
+            }
+        }
+        return map;
     }
 
     private ActionResult<IntentDetailDto> MapReplaceError(ApiException ex) =>
@@ -345,68 +401,6 @@ public sealed class IntentsController(
         return problem;
     }
 
-    private static IntentListItemDto ToListDto(Intent intent) => new()
-    {
-        Id = intent.Id.Value,
-        Status = ToContractStatus(intent.Status),
-        Current_version = intent.CurrentVersion,
-        Tags = [.. intent.Tags],
-        Text_short = TextShort(intent.Text),
-        Created_at = intent.CreatedAt,
-        Updated_at = intent.UpdatedAt,
-    };
-
-    private static IntentAttachmentDto ToAttachmentDto(IntentAttachment attachment) => new()
-    {
-        Id = attachment.Id,
-        Intent_id = attachment.IntentId,
-        File_name = attachment.FileName,
-        Content_type = attachment.ContentType,
-        Size_bytes = attachment.SizeBytes,
-        Created_at = attachment.CreatedAt,
-    };
-
-    private static IntentDetailDto ToDetailDto(Intent intent) => new()
-    {
-        Id = intent.Id.Value,
-        Status = ToContractStatus(intent.Status),
-        Current_version = intent.CurrentVersion,
-        Tags = [.. intent.Tags],
-        Text = intent.Text,
-        Created_at = intent.CreatedAt,
-        Updated_at = intent.UpdatedAt,
-    };
-
-    private static IntentQaDto ToQaDto(IntentQa qa) => new()
-    {
-        Id = qa.Id,
-        Intent_id = qa.IntentId.Value,
-        Intent_version_at_write = qa.IntentVersionAtWrite,
-        Question = qa.Question,
-        Answer = qa.Answer,
-        Created_at = qa.CreatedAt,
-        Created_by = ToContractTrainingAuthor(qa.CreatedBy),
-    };
-
-    private static IntentReviewDto ToReviewDto(IntentReview r) => new()
-    {
-        Id = r.Id,
-        Intent_id = r.IntentId.Value,
-        Intent_version_at_write = r.IntentVersionAtWrite,
-        Note = r.Note,
-        Reason = r.Reason,
-        Created_at = r.CreatedAt,
-        Created_by = ToContractTrainingAuthor(r.CreatedBy),
-    };
-
-    private static ContractTrainingAuthor ToContractTrainingAuthor(DomainTrainingAuthor author) => author switch
-    {
-        DomainTrainingAuthor.User => ContractTrainingAuthor.User,
-        DomainTrainingAuthor.Agent => ContractTrainingAuthor.Agent,
-        DomainTrainingAuthor.System => ContractTrainingAuthor.System,
-        _ => throw new InvalidOperationException($"Unknown training author: {author}"),
-    };
-
     private static TextVersionDto ToVersionDto(TextVersion v) => new()
     {
         Version = v.Version,
@@ -432,9 +426,6 @@ public sealed class IntentsController(
         Insert_text = v.InsertText,
     };
 
-    private static string TextShort(string text) =>
-        text.Length <= TextShortMaxLength ? text : text[..TextShortMaxLength];
-
     private static string ToDomainStatus(IntentStatus status) => status switch
     {
         IntentStatus.Draft => IntentStatusNames.Draft,
@@ -445,17 +436,5 @@ public sealed class IntentsController(
         IntentStatus.Done => IntentStatusNames.Done,
         IntentStatus.Reject => IntentStatusNames.Reject,
         _ => throw new InvalidOperationException($"Unknown contract status: {status}"),
-    };
-
-    private static IntentStatus ToContractStatus(string status) => status switch
-    {
-        IntentStatusNames.Draft => IntentStatus.Draft,
-        IntentStatusNames.Interview => IntentStatus.Interview,
-        IntentStatusNames.ReadyForWork => IntentStatus.Ready_for_work,
-        IntentStatusNames.Work => IntentStatus.Work,
-        IntentStatusNames.ReadyForReview => IntentStatus.Ready_for_review,
-        IntentStatusNames.Done => IntentStatus.Done,
-        IntentStatusNames.Reject => IntentStatus.Reject,
-        _ => throw new InvalidOperationException($"Unknown domain status: {status}"),
     };
 }

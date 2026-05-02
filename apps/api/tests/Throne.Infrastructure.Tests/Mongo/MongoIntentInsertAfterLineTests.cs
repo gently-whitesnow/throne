@@ -97,7 +97,7 @@ public class MongoIntentInsertAfterLineTests(MongoFixture fixture)
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(
-            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct),
+            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
             CancellationToken.None);
         return (db, repo, uow, id);
     }

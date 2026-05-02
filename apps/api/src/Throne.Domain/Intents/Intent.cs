@@ -1,17 +1,18 @@
+using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Domain.Intents;
 
 public sealed class Intent
 {
-    private readonly List<string> _tags;
+    private readonly List<TagId> _tagIds;
 
     private Intent(
         IntentId id,
         string text,
         string status,
         int currentVersion,
-        IReadOnlyList<string> tags,
+        IReadOnlyList<TagId> tagIds,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
     {
@@ -19,7 +20,7 @@ public sealed class Intent
         Text = text;
         Status = status;
         CurrentVersion = currentVersion;
-        _tags = [.. tags];
+        _tagIds = [.. tagIds];
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
     }
@@ -28,14 +29,14 @@ public sealed class Intent
     public string Text { get; private set; }
     public string Status { get; private set; }
     public int CurrentVersion { get; private set; }
-    public IReadOnlyList<string> Tags => _tags;
+    public IReadOnlyList<TagId> TagIds => _tagIds;
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public static Intent Create(
         IntentId id,
         string text,
-        IReadOnlyList<string>? tags,
+        IReadOnlyList<TagId>? tagIds,
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -44,8 +45,8 @@ public sealed class Intent
             throw new ArgumentException("Intent text must not be empty.", nameof(text));
         }
 
-        var normalizedTags = NormalizeTags(tags);
-        return new Intent(id, text, IntentStatusNames.Draft, currentVersion: 1, normalizedTags, now, now);
+        var normalized = NormalizeTagIds(tagIds);
+        return new Intent(id, text, IntentStatusNames.Draft, currentVersion: 1, normalized, now, now);
     }
 
     public static Intent Restore(
@@ -53,7 +54,7 @@ public sealed class Intent
         string text,
         string status,
         int currentVersion,
-        IReadOnlyList<string> tags,
+        IReadOnlyList<TagId> tagIds,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
     {
@@ -63,7 +64,22 @@ public sealed class Intent
             throw new ArgumentOutOfRangeException(nameof(currentVersion), "current_version must be >= 1.");
         }
 
-        return new Intent(id, text, status, currentVersion, tags, createdAt, updatedAt);
+        return new Intent(id, text, status, currentVersion, tagIds, createdAt, updatedAt);
+    }
+
+    public bool SetTagIds(IReadOnlyList<TagId> tagIds, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(tagIds);
+        var normalized = NormalizeTagIds(tagIds);
+        if (TagIdListsEqual(_tagIds, normalized))
+        {
+            return false;
+        }
+
+        _tagIds.Clear();
+        _tagIds.AddRange(normalized);
+        UpdatedAt = now;
+        return true;
     }
 
     public bool SetStatus(string status, DateTimeOffset now)
@@ -265,30 +281,47 @@ public sealed class Intent
         return line;
     }
 
-    private static List<string> NormalizeTags(IReadOnlyList<string>? tags)
+    private static List<TagId> NormalizeTagIds(IReadOnlyList<TagId>? tagIds)
     {
-        if (tags is null || tags.Count == 0)
+        if (tagIds is null || tagIds.Count == 0)
         {
             return [];
         }
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var result = new List<string>(tags.Count);
-        foreach (var raw in tags)
+        var result = new List<TagId>(tagIds.Count);
+        foreach (var id in tagIds)
         {
-            if (string.IsNullOrWhiteSpace(raw))
+            if (string.IsNullOrWhiteSpace(id.Value))
             {
                 continue;
             }
 
-            var trimmed = raw.Trim();
-            if (seen.Add(trimmed))
+            if (seen.Add(id.Value))
             {
-                result.Add(trimmed);
+                result.Add(id);
             }
         }
 
         return result;
+    }
+
+    private static bool TagIdListsEqual(List<TagId> left, List<TagId> right)
+    {
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (!string.Equals(left[i].Value, right[i].Value, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void ValidateStatus(string status, string paramName)

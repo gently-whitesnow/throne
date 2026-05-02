@@ -5,6 +5,7 @@ import { IntentDetailPage } from "@/pages/intent-detail";
 import { IntentsSectionPage } from "@/pages/intents-section";
 import { InstructionDetailPage } from "@/pages/instruction-detail";
 import { InstructionsSectionPage } from "@/pages/instructions-section";
+import { TagsSectionPage } from "@/pages/tags-section";
 import { AppShell } from "@/widgets/app-shell";
 
 export function App() {
@@ -16,6 +17,7 @@ export function App() {
           <Route path="/intents" element={<IntentsSectionPage />}>
             <Route path=":id" element={<IntentDetailPage />} />
           </Route>
+          <Route path="/tags" element={<TagsSectionPage />} />
           <Route path="/instructions" element={<InstructionsSectionPage />}>
             <Route path=":id" element={<InstructionDetailPage />} />
           </Route>

@@ -166,7 +166,7 @@ public sealed class UploadIntentAttachmentEndpointTests : IAsyncLifetime
             TextVersionAuthor.User);
 
         await uow.ExecuteAsync(
-            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct),
+            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
             CancellationToken.None);
         return intent.Id.Value;
     }

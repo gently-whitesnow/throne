@@ -7,13 +7,17 @@ public sealed record McpIntentReadResult(
     [property: Description("Full canonical Intent.text.")] string Text,
     [property: Description("Current intent status.")] string Status,
     [property: Description("Current text version.")] int CurrentVersion,
-    [property: Description("Normalized tags.")] IReadOnlyList<string> Tags,
+    [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
     [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt,
     [property: Description("Attachment metadata. Image bytes are returned as MCP image content blocks, not inline JSON.")]
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments,
     [property: Description("Number of image content blocks included in the MCP tool response.")]
     int ImageContentBlocksReturned);
+
+public sealed record McpTagRef(
+    [property: Description("Tag identifier.")] string Id,
+    [property: Description("Normalized hashtag-shaped slug.")] string Name);
 
 public sealed record McpIntentAttachmentReadResult(
     [property: Description("Attachment identifier.")] string Id,

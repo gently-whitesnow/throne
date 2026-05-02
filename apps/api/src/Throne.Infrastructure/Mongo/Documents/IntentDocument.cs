@@ -2,6 +2,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Throne.Infrastructure.Mongo.Documents;
 
+[BsonIgnoreExtraElements]
 internal sealed class IntentDocument
 {
     [BsonId]
@@ -16,8 +17,8 @@ internal sealed class IntentDocument
     [BsonElement("current_version")]
     public int CurrentVersion { get; set; }
 
-    [BsonElement("tags")]
-    public List<string> Tags { get; set; } = [];
+    [BsonElement("tag_ids")]
+    public List<string> TagIds { get; set; } = [];
 
     [BsonElement("created_at")]
     public DateTime CreatedAt { get; set; }

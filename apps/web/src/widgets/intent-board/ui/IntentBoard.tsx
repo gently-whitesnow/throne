@@ -57,7 +57,7 @@ export function IntentBoard() {
   const allTags = useMemo(() => {
     if (state.kind !== "ready") return [] as string[];
     const set = new Set<string>();
-    for (const i of state.items) for (const t of i.tags) set.add(t);
+    for (const i of state.items) for (const t of i.tags) set.add(t.name);
     return [...set].sort();
   }, [state]);
 
@@ -66,20 +66,22 @@ export function IntentBoard() {
     const q = query.trim().toLowerCase();
     return state.items
       .filter((i) => {
-        if (activeTag && !i.tags.includes(activeTag)) return false;
+        if (activeTag && !i.tags.some((t) => t.name === activeTag))
+          return false;
         if (activeStatus && i.status !== activeStatus) return false;
         if (!q) return true;
         return (
           i.text_short.toLowerCase().includes(q) ||
-          i.tags.some((t) => t.toLowerCase().includes(q))
+          i.tags.some((t) => t.name.toLowerCase().includes(q))
         );
       })
       .map((i) => {
         const status = intentStatusMeta[i.status];
+        const tagNames = i.tags.map((t) => t.name);
         return {
           id: i.id,
           title: firstLine(i.text_short) || i.id,
-          subtitle: i.tags.length > 0 ? `#${i.tags.join(" #")}` : undefined,
+          subtitle: tagNames.length > 0 ? `#${tagNames.join(" #")}` : undefined,
           meta: `v${String(i.current_version)}`,
           badge: status.label,
           badgeColor: status.surface,
@@ -88,6 +90,8 @@ export function IntentBoard() {
         };
       });
   }, [state, query, activeTag, activeStatus]);
+
+  useRealtimeEvent("intent.tags_changed", reload);
 
   return (
     <section className="master-pane" aria-label="Список Intents">

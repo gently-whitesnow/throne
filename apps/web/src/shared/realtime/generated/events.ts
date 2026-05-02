@@ -4,6 +4,7 @@
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
 import type { components as IntentsComponents } from "@/shared/api/generated/intents/types";
+import type { components as TagsComponents } from "@/shared/api/generated/tags/types";
 
 
 /** Discriminated payload type for each realtime event name. */
@@ -15,7 +16,11 @@ export interface RealtimeEventMap {
   "intent.qa_added": IntentsComponents["schemas"]["IntentQaDto"];
   "intent.review_added": IntentsComponents["schemas"]["IntentReviewDto"];
   "intent.status_changed": IntentsComponents["schemas"]["IntentDetailDto"];
+  "intent.tags_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.text_changed": IntentsComponents["schemas"]["IntentDetailDto"];
+  "tag.created": TagsComponents["schemas"]["TagDto"];
+  "tag.deleted": { tag_id: string };
+  "tag.updated": TagsComponents["schemas"]["TagDto"];
 }
 
 export type RealtimeEventName = keyof RealtimeEventMap;
@@ -28,7 +33,11 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "intent.qa_added",
   "intent.review_added",
   "intent.status_changed",
+  "intent.tags_changed",
   "intent.text_changed",
+  "tag.created",
+  "tag.deleted",
+  "tag.updated",
 ] as const;
 
 /** Strongly-typed envelope as delivered over SSE. */

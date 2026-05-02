@@ -1,5 +1,9 @@
 using Throne.Api.Intents;
+using Throne.Api.Tags;
 using Throne.Application.Events;
+using Throne.Application.Ports;
+using Throne.Domain.Intents;
+using Throne.Domain.Tags;
 using Throne.Realtime.Contracts;
 using Throne.Realtime.Contracts.Generated;
 
@@ -20,18 +24,33 @@ namespace Throne.Api.Realtime;
 /// The realtime quality gate (scripts/quality/realtime-verify-coverage.sh)
 /// fails until all five are present.
 /// </summary>
-internal sealed class RealtimeDomainEventHandler(IRealtimeEventBroker broker) : IDomainEventHandler
+internal sealed class RealtimeDomainEventHandler(
+    IRealtimeEventBroker broker,
+    ITagRepository tags) : IDomainEventHandler
 {
-    private static RealtimeEventEnvelope? ToEnvelope(IDomainEvent evt) => evt switch
+    public async Task HandleAsync(IDomainEvent evt, CancellationToken ct)
+    {
+        var envelope = await ToEnvelopeAsync(evt, ct);
+        if (envelope is null)
+        {
+            return;
+        }
+
+        await broker.PublishAsync(envelope, ct);
+    }
+
+    private async Task<RealtimeEventEnvelope?> ToEnvelopeAsync(IDomainEvent evt, CancellationToken ct) => evt switch
     {
         IntentCreated created => new RealtimeEventEnvelope(
-            RealtimeEventNames.IntentCreated, IntentDtoMapper.ToDetailDto(created.Intent)),
+            RealtimeEventNames.IntentCreated, IntentDtoMapper.ToDetailDto(created.Intent, await ResolveTagMapAsync(created.Intent, ct))),
         IntentDeleted deleted => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentDeleted, new { intent_id = deleted.IntentId }),
         IntentTextChanged text => new RealtimeEventEnvelope(
-            RealtimeEventNames.IntentTextChanged, IntentDtoMapper.ToDetailDto(text.Intent)),
+            RealtimeEventNames.IntentTextChanged, IntentDtoMapper.ToDetailDto(text.Intent, await ResolveTagMapAsync(text.Intent, ct))),
         IntentStatusChanged status => new RealtimeEventEnvelope(
-            RealtimeEventNames.IntentStatusChanged, IntentDtoMapper.ToDetailDto(status.Intent)),
+            RealtimeEventNames.IntentStatusChanged, IntentDtoMapper.ToDetailDto(status.Intent, await ResolveTagMapAsync(status.Intent, ct))),
+        IntentTagsChanged tagsChanged => new RealtimeEventEnvelope(
+            RealtimeEventNames.IntentTagsChanged, IntentDtoMapper.ToDetailDto(tagsChanged.Intent, await ResolveTagMapAsync(tagsChanged.Intent, ct))),
         IntentQaAdded qa => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentQaAdded, IntentDtoMapper.ToQaDto(qa.Qa)),
         IntentReviewAdded review => new RealtimeEventEnvelope(
@@ -41,17 +60,32 @@ internal sealed class RealtimeDomainEventHandler(IRealtimeEventBroker broker) : 
         IntentAttachmentDeleted deleted => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentAttachmentDeleted,
             new { intent_id = deleted.IntentId, attachment_id = deleted.AttachmentId }),
+        TagCreated created => new RealtimeEventEnvelope(
+            RealtimeEventNames.TagCreated, TagDtoMapper.ToDto(created.Tag)),
+        TagUpdated updated => new RealtimeEventEnvelope(
+            RealtimeEventNames.TagUpdated, TagDtoMapper.ToDto(updated.Tag)),
+        TagDeleted deleted => new RealtimeEventEnvelope(
+            RealtimeEventNames.TagDeleted, new { tag_id = deleted.TagId }),
         _ => null,
     };
 
-    public async Task HandleAsync(IDomainEvent evt, CancellationToken ct)
+    private async Task<IReadOnlyDictionary<string, Tag>> ResolveTagMapAsync(Intent intent, CancellationToken ct)
     {
-        var envelope = ToEnvelope(evt);
-        if (envelope is null)
+        if (intent.TagIds.Count == 0)
         {
-            return;
+            return new Dictionary<string, Tag>(StringComparer.Ordinal);
         }
 
-        await broker.PublishAsync(envelope, ct).ConfigureAwait(false);
+        var ids = intent.TagIds.Select(t => t.Value).ToHashSet(StringComparer.Ordinal);
+        var all = await tags.ListAllAsync(ct);
+        var map = new Dictionary<string, Tag>(StringComparer.Ordinal);
+        foreach (var t in all)
+        {
+            if (ids.Contains(t.Id.Value))
+            {
+                map[t.Id.Value] = t;
+            }
+        }
+        return map;
     }
 }

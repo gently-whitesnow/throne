@@ -6,6 +6,7 @@ import { DeleteIntentButton } from "@/features/delete-intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
+import { SetIntentTagsButton } from "@/features/set-intent-tags";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
@@ -67,6 +68,9 @@ export function IntentDetailPage() {
   useRealtimeEvent("intent.status_changed", (payload) => {
     refreshIfMatch(payload.id);
   });
+  useRealtimeEvent("intent.tags_changed", (payload) => {
+    refreshIfMatch(payload.id);
+  });
   useRealtimeEvent("intent.qa_added", (payload) => {
     if (payload.intent_id === id) setActivityKey((k) => k + 1);
   });
@@ -109,7 +113,7 @@ export function IntentDetailPage() {
             <span className="detail__meta-item">v{intent.current_version}</span>
             {intent.tags.length > 0 ? (
               <span className="detail__meta-item">
-                #{intent.tags.join(" #")}
+                #{intent.tags.map((t) => t.name).join(" #")}
               </span>
             ) : null}
             <span className="detail__meta-item detail__meta-item--muted">
@@ -119,14 +123,17 @@ export function IntentDetailPage() {
         </div>
         <div className="detail__actions">
           {!editing && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditing(true);
-              }}
-            >
-              Редактировать
-            </Button>
+            <>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setEditing(true);
+                }}
+              >
+                Редактировать
+              </Button>
+              <SetIntentTagsButton intent={intent} />
+            </>
           )}
           <DeleteIntentButton
             intentId={intent.id}

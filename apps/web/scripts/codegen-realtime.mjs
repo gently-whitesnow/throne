@@ -75,29 +75,51 @@ function csBanner() {
   ].join("\n");
 }
 
+function moduleAlias(moduleName) {
+  // intents -> IntentsComponents
+  return (
+    moduleName.charAt(0).toUpperCase() + moduleName.slice(1) + "Components"
+  );
+}
+
 function generateTs(events) {
   const lines = [tsBanner()];
-  lines.push(
-    `import type { components as IntentsComponents } from "@/shared/api/generated/intents/types";\n`
-  );
-  lines.push("");
-  lines.push("/** Discriminated payload type for each realtime event name. */");
-  lines.push("export interface RealtimeEventMap {");
+
+  const refModules = new Set();
+  const payloadEntries = [];
   for (const [name, entry] of events) {
     let payloadType;
     if (entry.payload_ref) {
-      // Only intents schemas are supported for now.
-      const m = /^intents#\/components\/schemas\/(.+)$/.exec(entry.payload_ref);
+      const m = /^([a-z][a-z0-9_-]*)#\/components\/schemas\/(.+)$/.exec(
+        entry.payload_ref
+      );
       if (!m) {
         throw new Error(
           `Unsupported payload_ref for ${name}: ${entry.payload_ref}`
         );
       }
-      payloadType = `IntentsComponents["schemas"]["${m[1]}"]`;
+      const [, mod, schema] = m;
+      refModules.add(mod);
+      payloadType = `${moduleAlias(mod)}["schemas"]["${schema}"]`;
     } else {
-      // inline payload — emit a structural type
       payloadType = inlineTsType(entry.payload);
     }
+    payloadEntries.push([name, payloadType]);
+  }
+
+  for (const mod of [...refModules].sort()) {
+    lines.push(
+      `import type { components as ${moduleAlias(mod)} } from "@/shared/api/generated/${mod}/types";`
+    );
+  }
+  if (refModules.size > 0) {
+    lines.push("");
+  }
+
+  lines.push("");
+  lines.push("/** Discriminated payload type for each realtime event name. */");
+  lines.push("export interface RealtimeEventMap {");
+  for (const [name, payloadType] of payloadEntries) {
     lines.push(`  "${name}": ${payloadType};`);
   }
   lines.push("}");

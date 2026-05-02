@@ -15,4 +15,9 @@ public static class ErrorCodes
     public const string InstructionVersionConflict = "instruction.version_conflict";
     public const string InstructionTextMatchNotFound = "instruction.text.match_not_found";
     public const string InstructionTextMatchAmbiguous = "instruction.text.match_ambiguous";
+    public const string TagNotFound = "tag.not_found";
+    public const string TagVersionConflict = "tag.version_conflict";
+    public const string TagNameTaken = "tag.name_taken";
+    public const string TagNameInvalid = "tag.name_invalid";
+    public const string TagInUse = "tag.in_use";
 }

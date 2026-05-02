@@ -3,9 +3,11 @@ using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Mongo.Documents;
+using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
@@ -20,12 +22,13 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "hello world", ["throne"], Now);
+        var tagId = TagId.New();
+        var intent = Intent.Create(id, "hello world", [tagId], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "hello world", Now, TextVersionAuthor.Agent);
 
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
 
         var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
             .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
@@ -33,7 +36,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         stored!.Text.Should().Be("hello world");
         stored.Status.Should().Be(IntentStatusNames.Draft);
         stored.CurrentVersion.Should().Be(1);
-        stored.Tags.Should().Equal("throne");
+        stored.TagIds.Should().Equal(tagId.Value);
 
         var versions = await db.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions)
             .Find(x => x.OwnerId == id.Value).ToListAsync();
@@ -50,11 +53,13 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (_, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "body", ["a", "b"], Now);
+        var a = TagId.New();
+        var b = TagId.New();
+        var intent = Intent.Create(id, "body", [a, b], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
 
         var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
 
@@ -62,7 +67,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         fetched!.Text.Should().Be("body");
         fetched.Status.Should().Be(IntentStatusNames.Draft);
         fetched.CurrentVersion.Should().Be(1);
-        fetched.Tags.Should().Equal("a", "b");
+        fetched.TagIds.Should().Equal(a, b);
     }
 
     [Fact(DisplayName = "GetByIdAsync возвращает null для несуществующего id")]
@@ -81,11 +86,11 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "body", ["a"], Now);
+        var intent = Intent.Create(id, "body", [TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
 
         var outcome = await uow.ExecuteAsync(
             ct => repo.SetStatusAsync(
@@ -128,7 +133,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "x", Now, TextVersionAuthor.Agent);
 
-        var act = () => repo.CreateAsync(intent, version, InitialStatusChange(intent), CancellationToken.None);
+        var act = () => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), CancellationToken.None);
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 

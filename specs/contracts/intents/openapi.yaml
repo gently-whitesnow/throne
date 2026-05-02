@@ -130,6 +130,42 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/tags:
+    put:
+      operationId: setIntentTags
+      tags: [Intents]
+      summary: Replace the set of tags attached to an Intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetIntentTagsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent or tag not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/replace-text:
     post:
       operationId: replaceIntentText
@@ -402,11 +438,39 @@ components:
           type: string
           minLength: 1
           description: Initial text of the Intent.
-        tags:
+        tag_names:
           type: array
           items:
             type: string
-          description: Optional tags for filtering.
+          description: Optional tag names (slug-style). Server upserts by name — existing names are reused, new names create tags.
+    SetIntentTagsRequest:
+      type: object
+      required:
+        - tag_names
+        - expected_version
+      properties:
+        tag_names:
+          type: array
+          items:
+            type: string
+          description: Replacement set of tag names; pass an empty array to detach all tags. Server upserts by name.
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: current_version observed before this update; tag changes do not bump the value but it must still match.
+    TagRefDto:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Tag identifier.
+        name:
+          type: string
+          description: Normalized hashtag-shaped slug.
     IntentStatus:
       type: string
       enum:
@@ -453,8 +517,8 @@ components:
         tags:
           type: array
           items:
-            type: string
-          description: Normalized list of tags (deduplicated, trimmed).
+            $ref: '#/components/schemas/TagRefDto'
+          description: Tags currently attached to the intent (id + display name).
         text_short:
           type: string
           maxLength: 140
@@ -488,7 +552,8 @@ components:
         tags:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/TagRefDto'
+          description: Tags currently attached to the intent (id + display name).
         text:
           type: string
           description: Full canonical Intent.Text.

@@ -1,5 +1,6 @@
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Application.Ports;
@@ -10,6 +11,7 @@ public interface IIntentRepository
         Intent intent,
         TextVersion initialVersion,
         IntentStatusChange initialStatusChange,
+        IReadOnlyList<Tag> upsertedTags,
         CancellationToken ct);
 
     Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct);
@@ -41,6 +43,13 @@ public interface IIntentRepository
         string? appendText,
         IntentTrainingAuthor changedBy,
         string source,
+        DateTimeOffset now,
+        CancellationToken ct);
+
+    Task<SetIntentTagsOutcome> SetTagsAsync(
+        IntentId id,
+        int expectedVersion,
+        IReadOnlyList<TagId> tagIds,
         DateTimeOffset now,
         CancellationToken ct);
 }

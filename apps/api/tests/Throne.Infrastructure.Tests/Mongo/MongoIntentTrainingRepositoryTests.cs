@@ -118,7 +118,7 @@ public class MongoIntentTrainingRepositoryTests(MongoFixture fixture)
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "seed", Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(
-            ct => intentRepo.CreateAsync(intent, version, InitialStatusChange(intent), ct),
+            ct => intentRepo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
             CancellationToken.None);
         return (db, trainingRepo, uow, id);
     }

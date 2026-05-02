@@ -1,8 +1,9 @@
-import { FileText, Sparkles } from "lucide-react";
+import { FileText, Hash, Sparkles } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
+  { to: "/tags", label: "Tags", icon: Hash },
   { to: "/instructions", label: "Instructions", icon: FileText }
 ] as const;
 

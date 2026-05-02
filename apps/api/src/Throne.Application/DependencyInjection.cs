@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Events;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
+using Throne.Application.Tags;
 using Throne.Application.TextVersions;
 
 namespace Throne.Application;
@@ -29,6 +30,12 @@ public static class DependencyInjection
         services.AddSingleton<ListIntentReviewsHandler>();
         services.AddSingleton<ListIntentsHandler>();
         services.AddSingleton<SetIntentStatusHandler>();
+        services.AddSingleton<SetIntentTagsHandler>();
+        services.AddSingleton<ListTagsHandler>();
+        services.AddSingleton<CreateTagHandler>();
+        services.AddSingleton<RenameTagHandler>();
+        services.AddSingleton<DeleteTagHandler>();
+        services.AddSingleton<GetTagUsageHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();
         services.AddSingleton<SystemInstructionCatalog>();
         services.AddSingleton<GetInstructionBundleHandler>();

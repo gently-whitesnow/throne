@@ -38,10 +38,68 @@ namespace Throne.Intents.Contracts.Generated
         public string Text { get; set; }
 
         /// <summary>
-        /// Optional tags for filtering.
+        /// Optional tag names (slug-style). Server upserts by name — existing names are reused, new names create tags.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("tags")]
-        public System.Collections.Generic.ICollection<string> Tags { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("tag_names")]
+        public System.Collections.Generic.ICollection<string> Tag_names { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetIntentTagsRequest
+    {
+
+        /// <summary>
+        /// Replacement set of tag names; pass an empty array to detach all tags. Server upserts by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tag_names")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Tag_names { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// current_version observed before this update; tag changes do not bump the value but it must still match.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Expected_version { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TagRefDto
+    {
+
+        /// <summary>
+        /// Tag identifier.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Normalized hashtag-shaped slug.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -142,11 +200,11 @@ namespace Throne.Intents.Contracts.Generated
         public int Current_version { get; set; }
 
         /// <summary>
-        /// Normalized list of tags (deduplicated, trimmed).
+        /// Tags currently attached to the intent (id + display name).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<TagRefDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<TagRefDto>();
 
         /// <summary>
         /// First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
@@ -195,9 +253,12 @@ namespace Throne.Intents.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
         public int Current_version { get; set; }
 
+        /// <summary>
+        /// Tags currently attached to the intent (id + display name).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Tags { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<TagRefDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<TagRefDto>();
 
         /// <summary>
         /// Full canonical Intent.Text.

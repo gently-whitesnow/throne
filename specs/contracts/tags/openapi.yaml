@@ -1,0 +1,227 @@
+openapi: "3.1.0"
+info:
+  title: Throne Tags
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Tags.Contracts.Generated
+paths:
+  /api/v1/tags:
+    get:
+      operationId: listTags
+      tags: [Tags]
+      summary: List all tags ordered by name.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagDto'
+    post:
+      operationId: createTag
+      tags: [Tags]
+      summary: Create a new tag (user-driven).
+      description: Normalizes the name (trim, lowercase, strip leading hashes). Returns 409 if a tag with the same normalized name already exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDto'
+        '409':
+          description: Tag with the same name already exists
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid tag name
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/tags/{id}:
+    patch:
+      operationId: renameTag
+      tags: [Tags]
+      summary: Rename a tag.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameTagRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict or name taken
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid tag name
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    delete:
+      operationId: deleteTag
+      tags: [Tags]
+      summary: Delete a tag.
+      description: When detach=true the server removes this tag from every intent currently using it before deleting the tag itself. Without detach=true the call is rejected with 409 if the tag is still attached to any intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: detach
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Detach the tag from all intents before deleting.
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteTagResponse'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Tag still attached to intents and detach was not confirmed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/tags/{id}/usage:
+    get:
+      operationId: getTagUsage
+      tags: [Tags]
+      summary: Count of intents currently referencing the tag.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagUsageDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    TagDto:
+      type: object
+      required:
+        - id
+        - name
+        - current_version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Tag identifier (32 hex chars).
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: Normalized hashtag-shaped slug (a-z, 0-9, '-', '_').
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateTagRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+    RenameTagRequest:
+      type: object
+      required:
+        - name
+        - expected_version
+      properties:
+        name:
+          type: string
+          minLength: 1
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 1
+    TagUsageDto:
+      type: object
+      required:
+        - tag_id
+        - intents_count
+      properties:
+        tag_id:
+          type: string
+        intents_count:
+          type: integer
+          format: int32
+          minimum: 0
+    DeleteTagResponse:
+      type: object
+      required:
+        - tag_id
+        - intents_detached
+      properties:
+        tag_id:
+          type: string
+        intents_detached:
+          type: integer
+          format: int32
+          minimum: 0

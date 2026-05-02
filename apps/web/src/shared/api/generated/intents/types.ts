@@ -69,6 +69,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the set of tags attached to an Intent. */
+        put: operations["setIntentTags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}/replace-text": {
         parameters: {
             query?: never;
@@ -202,8 +219,23 @@ export interface components {
         CreateIntentRequest: {
             /** @description Initial text of the Intent. */
             text: string;
-            /** @description Optional tags for filtering. */
-            tags?: string[];
+            /** @description Optional tag names (slug-style). Server upserts by name — existing names are reused, new names create tags. */
+            tag_names?: string[];
+        };
+        SetIntentTagsRequest: {
+            /** @description Replacement set of tag names; pass an empty array to detach all tags. Server upserts by name. */
+            tag_names: string[];
+            /**
+             * Format: int32
+             * @description current_version observed before this update; tag changes do not bump the value but it must still match.
+             */
+            expected_version: number;
+        };
+        TagRefDto: {
+            /** @description Tag identifier. */
+            id: string;
+            /** @description Normalized hashtag-shaped slug. */
+            name: string;
         };
         /**
          * @description Current workflow status of the intent.
@@ -224,8 +256,8 @@ export interface components {
              * @description Current text version of the intent.
              */
             current_version: number;
-            /** @description Normalized list of tags (deduplicated, trimmed). */
-            tags: string[];
+            /** @description Tags currently attached to the intent (id + display name). */
+            tags: components["schemas"]["TagRefDto"][];
             /** @description First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint. */
             text_short: string;
             /** Format: date-time */
@@ -239,7 +271,8 @@ export interface components {
             status: components["schemas"]["IntentStatus"];
             /** Format: int32 */
             current_version: number;
-            tags: string[];
+            /** @description Tags currently attached to the intent (id + display name). */
+            tags: components["schemas"]["TagRefDto"][];
             /** @description Full canonical Intent.Text. */
             text: string;
             /** Format: date-time */
@@ -500,6 +533,50 @@ export interface operations {
             };
             /** @description Validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    setIntentTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetIntentTagsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Intent or tag not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Version conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

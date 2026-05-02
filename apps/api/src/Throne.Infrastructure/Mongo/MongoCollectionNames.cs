@@ -10,4 +10,5 @@ public static class MongoCollectionNames
     public const string IntentReview = "intent_review";
     public const string IntentStatusChanges = "intent_status_changes";
     public const string IntentAttachments = "intent_attachments";
+    public const string Tags = "tags";
 }

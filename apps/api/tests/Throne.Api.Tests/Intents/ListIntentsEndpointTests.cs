@@ -78,22 +78,22 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
             var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-            var shortIntent = Intent.Create(IntentId.New(), "short text", ["a"], Now);
+            var shortIntent = Intent.Create(IntentId.New(), "short text", [Throne.Domain.Tags.TagId.New()], Now);
             var shortVersion = TextVersion.CreateSnapshot(
                 Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, shortIntent.Id.Value,
                 shortIntent.Text, Now, TextVersionAuthor.Agent);
 
             var longText = new string('x', 200);
-            var longIntent = Intent.Create(IntentId.New(), longText, ["b", "c"], Now);
+            var longIntent = Intent.Create(IntentId.New(), longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
             var longVersion = TextVersion.CreateSnapshot(
                 Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, longIntent.Id.Value,
                 longText, Now, TextVersionAuthor.Agent);
 
             await uow.ExecuteAsync(
-                ct => repo.CreateAsync(shortIntent, shortVersion, InitialStatusChange(shortIntent), ct),
+                ct => repo.CreateAsync(shortIntent, shortVersion, InitialStatusChange(shortIntent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
                 CancellationToken.None);
             await uow.ExecuteAsync(
-                ct => repo.CreateAsync(longIntent, longVersion, InitialStatusChange(longIntent), ct),
+                ct => repo.CreateAsync(longIntent, longVersion, InitialStatusChange(longIntent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
                 CancellationToken.None);
         }
 
@@ -104,12 +104,11 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
         raw.Should().NotBeNull().And.HaveCount(2);
         var items = raw!;
 
-        var shortItem = items.Single(i => i.Tags.Contains("a"));
-        shortItem.TextShort.Should().Be("short text");
+        var shortItem = items.Single(i => i.TextShort == "short text");
         shortItem.Status.Should().Be("draft");
         shortItem.CurrentVersion.Should().Be(1);
 
-        var longItem = items.Single(i => i.Tags.Contains("b"));
+        var longItem = items.Single(i => i.TextShort.StartsWith('x'));
         longItem.TextShort.Should().HaveLength(140).And.Be(new string('x', 140));
     }
 
@@ -136,7 +135,7 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
         public string Status { get; init; } = string.Empty;
 
         [JsonPropertyName("tags")]
-        public IReadOnlyList<string> Tags { get; init; } = [];
+        public IReadOnlyList<TagRefView> Tags { get; init; } = [];
 
         [JsonPropertyName("text_short")]
         public string TextShort { get; init; } = string.Empty;
@@ -146,5 +145,14 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
 
         [JsonPropertyName("updated_at")]
         public DateTimeOffset UpdatedAt { get; init; }
+    }
+
+    private sealed class TagRefView
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; init; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; init; } = string.Empty;
     }
 }

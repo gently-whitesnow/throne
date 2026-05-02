@@ -2,8 +2,10 @@ using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo.Documents;
+using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Mongo;
 
@@ -22,21 +24,23 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         Intent intent,
         TextVersion initialVersion,
         IntentStatusChange initialStatusChange,
+        IReadOnlyList<Tag> upsertedTags,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(intent);
         ArgumentNullException.ThrowIfNull(initialVersion);
         ArgumentNullException.ThrowIfNull(initialStatusChange);
+        ArgumentNullException.ThrowIfNull(upsertedTags);
 
         var session = sessions.Current
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct).ConfigureAwait(false);
-        await _intents.InsertOneAsync(session, MapIntent(intent), options: null, ct).ConfigureAwait(false);
+        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct);
+        await _intents.InsertOneAsync(session, MapIntent(intent), options: null, ct);
         await _statusChanges.InsertOneAsync(session, MapStatusChange(initialStatusChange), options: null, ct)
-            .ConfigureAwait(false);
-        return new CreateIntentOutcome(intent);
+            ;
+        return new CreateIntentOutcome(intent, upsertedTags);
     }
 
     public async Task<ReplaceIntentTextOutcome> ReplaceTextAsync(
@@ -55,7 +59,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new ReplaceIntentTextOutcome.NotFound();
@@ -90,15 +94,15 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
                         d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
                         update,
                         options: null,
-                        ct).ConfigureAwait(false);
+                        ct);
 
                     if (updateResult.ModifiedCount == 0)
                     {
-                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
                         return new ReplaceIntentTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
                     }
 
-                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct).ConfigureAwait(false);
+                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct);
                     return new ReplaceIntentTextOutcome.Replaced(intent);
                 }
 
@@ -121,7 +125,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.InsertTextAfterLineAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new InsertIntentTextAfterLineOutcome.NotFound();
@@ -153,15 +157,15 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
                         d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
                         update,
                         options: null,
-                        ct).ConfigureAwait(false);
+                        ct);
 
                     if (updateResult.ModifiedCount == 0)
                     {
-                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
                         return new InsertIntentTextAfterLineOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
                     }
 
-                    await _textVersions.InsertOneAsync(session, MapVersion(inserted.Version), options: null, ct).ConfigureAwait(false);
+                    await _textVersions.InsertOneAsync(session, MapVersion(inserted.Version), options: null, ct);
                     return new InsertIntentTextAfterLineOutcome.Inserted(intent);
                 }
 
@@ -176,10 +180,10 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         var documents = session is null
             ? await _intents.Find(FilterDefinition<IntentDocument>.Empty)
                 .SortBy(d => d.CreatedAt)
-                .ToListAsync(ct).ConfigureAwait(false)
+                .ToListAsync(ct)
             : await _intents.Find(session, FilterDefinition<IntentDocument>.Empty)
                 .SortBy(d => d.CreatedAt)
-                .ToListAsync(ct).ConfigureAwait(false);
+                .ToListAsync(ct);
 
         var result = new List<Intent>(documents.Count);
         foreach (var doc in documents)
@@ -195,7 +199,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var deleteIntent = await _intents.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct).ConfigureAwait(false);
+        var deleteIntent = await _intents.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct);
         if (deleteIntent.DeletedCount == 0)
         {
             return new DeleteIntentOutcome.NotFound();
@@ -206,7 +210,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             session,
             v => v.OwnerKind == ownerKindWire && v.OwnerId == id.Value,
             options: null,
-            ct).ConfigureAwait(false);
+            ct);
 
         return new DeleteIntentOutcome.Deleted(id.Value);
     }
@@ -227,7 +231,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.SetStatusAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new SetIntentStatusOutcome.NotFound();
@@ -272,11 +276,11 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             BuildStatusUpdateFilter(id.Value, originalVersion, originalStatus),
             update,
             options: null,
-            ct).ConfigureAwait(false);
+            ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+            var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
             if (fresh is null)
             {
                 return new SetIntentStatusOutcome.NotFound();
@@ -287,7 +291,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
         if (textVersion is not null)
         {
-            await _textVersions.InsertOneAsync(session, MapVersion(textVersion), options: null, ct).ConfigureAwait(false);
+            await _textVersions.InsertOneAsync(session, MapVersion(textVersion), options: null, ct);
         }
 
         if (statusChanged)
@@ -303,18 +307,72 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
                 createdBy: changedBy);
 
             await _statusChanges.InsertOneAsync(session, MapStatusChange(statusChange), options: null, ct)
-                .ConfigureAwait(false);
+                ;
         }
 
         return new SetIntentStatusOutcome.Updated(intent);
+    }
+
+    public async Task<SetIntentTagsOutcome> SetTagsAsync(
+        IntentId id,
+        int expectedVersion,
+        IReadOnlyList<TagId> tagIds,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(tagIds);
+
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentRepository.SetTagsAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        if (document is null)
+        {
+            return new SetIntentTagsOutcome.NotFound();
+        }
+
+        if (document.CurrentVersion != expectedVersion)
+        {
+            return new SetIntentTagsOutcome.VersionConflict(document.CurrentVersion);
+        }
+
+        var intent = MapToDomain(document);
+        var changed = intent.SetTagIds(tagIds, now);
+        if (!changed)
+        {
+            return new SetIntentTagsOutcome.Updated(intent, Changed: false);
+        }
+
+        var newTagIdValues = intent.TagIds.Select(t => t.Value).ToList();
+        var update = Builders<IntentDocument>.Update
+            .Set(d => d.TagIds, newTagIdValues)
+            .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+
+        var updateResult = await _intents.UpdateOneAsync(
+            session,
+            d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+            update,
+            options: null,
+            ct);
+
+        if (updateResult.ModifiedCount == 0)
+        {
+            var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            return fresh is null
+                ? new SetIntentTagsOutcome.NotFound()
+                : new SetIntentTagsOutcome.VersionConflict(fresh.CurrentVersion);
+        }
+
+        return new SetIntentTagsOutcome.Updated(intent, Changed: true);
     }
 
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
         var document = session is null
-            ? await _intents.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false)
-            : await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+            ? await _intents.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct)
+            : await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
 
         return document is null ? null : MapToDomain(document);
     }
@@ -325,7 +383,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         Text = intent.Text,
         Status = intent.Status,
         CurrentVersion = intent.CurrentVersion,
-        Tags = [.. intent.Tags],
+        TagIds = intent.TagIds.Select(t => t.Value).ToList(),
         CreatedAt = intent.CreatedAt.UtcDateTime,
         UpdatedAt = intent.UpdatedAt.UtcDateTime,
     };
@@ -363,7 +421,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,
-        tags: doc.Tags,
+        tagIds: doc.TagIds.Select(v => new TagId(v)).ToList(),
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
         updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
 
