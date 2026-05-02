@@ -6,7 +6,7 @@ namespace Throne.Application.Ports;
 
 public interface IIntentRepository
 {
-    Task CreateAsync(
+    Task<CreateIntentOutcome> CreateAsync(
         Intent intent,
         TextVersion initialVersion,
         IntentStatusChange initialStatusChange,

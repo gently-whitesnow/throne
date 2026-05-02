@@ -44,6 +44,7 @@ run_gate() {
 }
 
 run_gate "contracts" "scripts/quality/openapi-verify-generated-clean.sh"
+run_gate "realtime" "scripts/quality/realtime-verify-coverage.sh"
 run_gate "format" "scripts/quality/dotnet-format-verify.sh"
 run_gate "build" "scripts/quality/dotnet-build-warnaserror.sh"
 run_gate "test" "scripts/quality/dotnet-test.sh"

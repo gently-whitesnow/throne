@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useRealtimeEvent } from "@/shared/realtime";
 import { EntityList, type EntityListRow } from "@/shared/ui";
 
 type LoadState =
@@ -44,9 +45,14 @@ export function IntentBoard() {
     };
   }, [reloadKey]);
 
-  const reload = () => {
+  const reload = useCallback(() => {
     setReloadKey((v) => v + 1);
-  };
+  }, []);
+
+  useRealtimeEvent("intent.created", reload);
+  useRealtimeEvent("intent.deleted", reload);
+  useRealtimeEvent("intent.text_changed", reload);
+  useRealtimeEvent("intent.status_changed", reload);
 
   const allTags = useMemo(() => {
     if (state.kind !== "ready") return [] as string[];

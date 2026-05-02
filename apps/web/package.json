@@ -14,7 +14,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "architecture": "env CHOKIDAR_USEPOLLING=1 steiger ./src",
-    "codegen": "node scripts/codegen-contracts.mjs"
+    "codegen": "node scripts/codegen-contracts.mjs && node scripts/codegen-realtime.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

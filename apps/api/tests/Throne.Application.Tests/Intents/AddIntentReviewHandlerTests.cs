@@ -1,8 +1,10 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
+using Throne.Application.Events;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
+using Throne.Domain.Intents.Training;
 
 namespace Throne.Application.Tests.Intents;
 
@@ -16,7 +18,7 @@ public class AddIntentReviewHandlerTests
     {
         var handler = NewHandler(out var repo);
         repo.AddReviewAsync(default, default, default!, default, default)
-            .ReturnsForAnyArgs(new AppendTrainingOutcome.Appended(5));
+            .ReturnsForAnyArgs(call => new AppendTrainingOutcome.Appended(5, new IntentReviewAdded(call.Arg<IntentReview>())));
 
         var ack = await handler.HandleAsync(
             new AddIntentReviewCommand(IntentIdValue, ExpectedVersion: 5, Note: "n", Reason: "r"),
@@ -71,5 +73,7 @@ public class AddIntentReviewHandlerTests
         public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
 
         public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+
+        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
     }
 }

@@ -49,4 +49,10 @@ internal sealed class MongoUnitOfWork(IMongoClient client, MongoSessionAccessor 
         await session.CommitTransactionAsync(ct).ConfigureAwait(false);
         return result;
     }
+
+    public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(work);
+        return work(ct);
+    }
 }

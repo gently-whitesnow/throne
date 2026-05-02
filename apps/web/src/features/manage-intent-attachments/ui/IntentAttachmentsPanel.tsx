@@ -1,5 +1,5 @@
 import { Image, ImagePlus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { IntentAttachment } from "@/entities/intent";
 import {
@@ -12,6 +12,7 @@ import {
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
+import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 
 const MAX_ATTACHMENTS = 10;
@@ -107,6 +108,18 @@ export function IntentAttachmentsPanel({
       window.removeEventListener(INTENT_ATTACHMENTS_CHANGED_EVENT, listener);
     };
   }, [intentId]);
+
+  const onAttachmentChanged = useCallback(
+    (payload: { intent_id: string }) => {
+      if (payload.intent_id === intentId) {
+        setReloadKey((key) => key + 1);
+      }
+    },
+    [intentId]
+  );
+
+  useRealtimeEvent("intent.attachment_added", onAttachmentChanged);
+  useRealtimeEvent("intent.attachment_deleted", onAttachmentChanged);
 
   const deleteAttachment = async (attachment: IntentAttachment) => {
     if (!window.confirm(`Удалить вложение «${attachment.file_name}»?`)) {

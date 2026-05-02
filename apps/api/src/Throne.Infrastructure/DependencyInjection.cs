@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Infrastructure.Mongo;
 
@@ -27,7 +28,10 @@ public static class DependencyInjection
         });
 
         services.AddSingleton<MongoSessionAccessor>();
-        services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
+        services.AddSingleton<MongoUnitOfWork>();
+        services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(
+            sp.GetRequiredService<MongoUnitOfWork>(),
+            sp.GetRequiredService<IDomainEventDispatcher>()));
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
         services.AddSingleton<IIntentTrainingRepository, MongoIntentTrainingRepository>();
@@ -49,7 +53,10 @@ public static class DependencyInjection
         services.AddSingleton(database);
         services.AddSingleton<IMongoClient>(database.Client);
         services.AddSingleton<MongoSessionAccessor>();
-        services.AddSingleton<IUnitOfWork, MongoUnitOfWork>();
+        services.AddSingleton<MongoUnitOfWork>();
+        services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(
+            sp.GetRequiredService<MongoUnitOfWork>(),
+            sp.GetRequiredService<IDomainEventDispatcher>()));
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
         services.AddSingleton<IIntentTrainingRepository, MongoIntentTrainingRepository>();

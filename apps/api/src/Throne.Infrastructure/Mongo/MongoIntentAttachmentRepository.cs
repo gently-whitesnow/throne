@@ -36,7 +36,7 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
         return docs.Select(ToDomain).ToArray();
     }
 
-    public async Task<IntentAttachment> AddAsync(
+    public async Task<UploadIntentAttachmentOutcome> AddAsync(
         IntentId intentId,
         Stream content,
         string fileName,
@@ -84,13 +84,14 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
 
         await _attachments.InsertOneAsync(doc, cancellationToken: ct).ConfigureAwait(false);
 
-        return new IntentAttachment(
+        var attachment = new IntentAttachment(
             doc.Id,
             doc.IntentId,
             doc.FileName,
             doc.ContentType,
             doc.SizeBytes,
             new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc), TimeSpan.Zero));
+        return new UploadIntentAttachmentOutcome(attachment);
     }
 
     public async Task<IntentAttachmentContent?> OpenContentAsync(IntentId intentId, string attachmentId, CancellationToken ct)
@@ -112,12 +113,12 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
         }
     }
 
-    public async Task<bool> DeleteAsync(IntentId intentId, string attachmentId, CancellationToken ct)
+    public async Task<DeleteIntentAttachmentOutcome> DeleteAsync(IntentId intentId, string attachmentId, CancellationToken ct)
     {
         var doc = await FindByIntentAndAttachmentAsync(intentId, attachmentId, ct).ConfigureAwait(false);
         if (doc is null)
         {
-            return false;
+            return new DeleteIntentAttachmentOutcome.NotFound();
         }
 
         if (ObjectId.TryParse(doc.GridFsId, out var oid))
@@ -136,7 +137,12 @@ internal sealed class MongoIntentAttachmentRepository(IMongoDatabase database) :
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value),
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
         var result = await _attachments.DeleteOneAsync(filter, ct).ConfigureAwait(false);
-        return result.DeletedCount > 0;
+        if (result.DeletedCount == 0)
+        {
+            return new DeleteIntentAttachmentOutcome.NotFound();
+        }
+
+        return new DeleteIntentAttachmentOutcome.Deleted(intentId.Value, attachmentId);
     }
 
     public async Task DeleteAllForIntentAsync(IntentId intentId, CancellationToken ct)

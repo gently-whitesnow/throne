@@ -39,10 +39,10 @@ public sealed class CreateIntentHandler(
             createdAt: now,
             createdBy: ToTrainingAuthor(command.Author));
 
-        await unitOfWork.ExecuteAsync(
+        var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.CreateAsync(intent, initialVersion, initialStatusChange, inner),
             ct).ConfigureAwait(false);
-        return intent;
+        return outcome.Intent;
     }
 
     private static IntentTrainingAuthor ToTrainingAuthor(TextVersionAuthor author) => author switch

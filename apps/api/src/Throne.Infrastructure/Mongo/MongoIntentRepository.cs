@@ -18,7 +18,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
     private readonly IMongoCollection<IntentStatusChangeDocument> _statusChanges =
         database.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges);
 
-    public async Task CreateAsync(
+    public async Task<CreateIntentOutcome> CreateAsync(
         Intent intent,
         TextVersion initialVersion,
         IntentStatusChange initialStatusChange,
@@ -36,6 +36,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
         await _intents.InsertOneAsync(session, MapIntent(intent), options: null, ct).ConfigureAwait(false);
         await _statusChanges.InsertOneAsync(session, MapStatusChange(initialStatusChange), options: null, ct)
             .ConfigureAwait(false);
+        return new CreateIntentOutcome(intent);
     }
 
     public async Task<ReplaceIntentTextOutcome> ReplaceTextAsync(
@@ -207,7 +208,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             options: null,
             ct).ConfigureAwait(false);
 
-        return new DeleteIntentOutcome.Deleted();
+        return new DeleteIntentOutcome.Deleted(id.Value);
     }
 
     public async Task<SetIntentStatusOutcome> SetStatusAsync(

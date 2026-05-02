@@ -9,7 +9,7 @@ public interface IIntentAttachmentRepository
 
     Task<IReadOnlyList<IntentAttachment>> ListByIntentAsync(IntentId intentId, CancellationToken ct);
 
-    Task<IntentAttachment> AddAsync(
+    Task<UploadIntentAttachmentOutcome> AddAsync(
         IntentId intentId,
         Stream content,
         string fileName,
@@ -18,7 +18,7 @@ public interface IIntentAttachmentRepository
 
     Task<IntentAttachmentContent?> OpenContentAsync(IntentId intentId, string attachmentId, CancellationToken ct);
 
-    Task<bool> DeleteAsync(IntentId intentId, string attachmentId, CancellationToken ct);
+    Task<DeleteIntentAttachmentOutcome> DeleteAsync(IntentId intentId, string attachmentId, CancellationToken ct);
 
     Task DeleteAllForIntentAsync(IntentId intentId, CancellationToken ct);
 }

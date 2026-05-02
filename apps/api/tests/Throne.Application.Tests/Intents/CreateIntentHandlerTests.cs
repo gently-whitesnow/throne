@@ -16,6 +16,8 @@ public class CreateIntentHandlerTests
     public async Task CreateIntent_persists_intent_and_v1_snapshot()
     {
         var repo = Substitute.For<IIntentRepository>();
+        repo.CreateAsync(Arg.Any<Intent>(), Arg.Any<TextVersion>(), Arg.Any<IntentStatusChange>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(new CreateIntentOutcome(call.Arg<Intent>())));
         var uow = new PassthroughUnitOfWork();
         var clock = new FakeTimeProvider(Now);
         var handler = new CreateIntentHandler(repo, uow, clock);
@@ -56,5 +58,7 @@ public class CreateIntentHandlerTests
         public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
 
         public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+
+        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
     }
 }

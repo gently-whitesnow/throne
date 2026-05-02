@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Api.Realtime;
 using Throne.Application;
 using Throne.Infrastructure;
 
@@ -17,6 +18,7 @@ public static class ThroneMcpCoreServices
 
         services.AddThroneApplication();
         services.AddThroneInfrastructure(configuration);
+        services.AddThroneRealtime();
         services.AddThroneTools();
         services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 12 * 1024 * 1024);
         return services;

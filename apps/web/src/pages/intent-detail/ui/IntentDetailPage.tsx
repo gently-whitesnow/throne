@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { intentStatusMeta, type IntentDetail } from "@/entities/intent";
@@ -7,6 +7,7 @@ import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 
@@ -21,6 +22,8 @@ export function IntentDetailPage() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState(false);
   const [activityKey, setActivityKey] = useState(0);
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -49,7 +52,32 @@ export function IntentDetailPage() {
     return () => {
       controller.abort();
     };
-  }, [id]);
+  }, [id, refreshKey]);
+
+  const refreshIfMatch = useCallback(
+    (intentId: string) => {
+      if (intentId === id) setRefreshKey((k) => k + 1);
+    },
+    [id]
+  );
+
+  useRealtimeEvent("intent.text_changed", (payload) => {
+    refreshIfMatch(payload.id);
+  });
+  useRealtimeEvent("intent.status_changed", (payload) => {
+    refreshIfMatch(payload.id);
+  });
+  useRealtimeEvent("intent.qa_added", (payload) => {
+    if (payload.intent_id === id) setActivityKey((k) => k + 1);
+  });
+  useRealtimeEvent("intent.review_added", (payload) => {
+    if (payload.intent_id === id) setActivityKey((k) => k + 1);
+  });
+  useRealtimeEvent("intent.deleted", (payload) => {
+    if (payload.intent_id === id) {
+      void navigate("/intents");
+    }
+  });
 
   if (state.kind === "loading") {
     return <p className="detail__hint">Загрузка…</p>;

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
+using Throne.Application.Events;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -18,7 +19,7 @@ public class AddIntentQaHandlerTests
     {
         var handler = NewHandler(out var repo);
         repo.AddQaAsync(default, default, default!, default, default)
-            .ReturnsForAnyArgs(new AppendTrainingOutcome.Appended(2));
+            .ReturnsForAnyArgs(call => new AppendTrainingOutcome.Appended(2, new IntentQaAdded(call.Arg<IntentQa>())));
 
         var ack = await handler.HandleAsync(
             new AddIntentQaCommand(IntentIdValue, ExpectedVersion: 2, Question: "q?", Answer: "a"),
@@ -90,5 +91,7 @@ public class AddIntentQaHandlerTests
         public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
 
         public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+
+        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
     }
 }

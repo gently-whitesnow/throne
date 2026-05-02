@@ -17,6 +17,7 @@ bash scripts/quality/verify.sh
 | Архитектурные решения | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) |
 | Правила для агентов в этом проекте | [specs/AGENTS.local.md](specs/AGENTS.local.md) |
 | HTTP API контракты (OpenAPI source of truth) | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) |
+| Realtime server→client события (yaml source of truth) | [specs/contracts/realtime/events.yaml](specs/contracts/realtime/events.yaml) + [ADR-0008](specs/ADR/0008-realtime-contract-first-events.md) |
 | Seed-инструкции Throne | [apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs](apps/api/src/Throne.Application/Instructions/EnsureSeedInstructionsHandler.cs) |
 | Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
 | Vendor launchers (Claude/Codex/Cursor) | [specs/ADR/0007-vendor-skill-launchers.md](specs/ADR/0007-vendor-skill-launchers.md) |

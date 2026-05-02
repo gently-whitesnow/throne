@@ -1,0 +1,50 @@
+version: 1
+# Source of truth for server-to-client realtime events.
+# Adding an event here is the FIRST step. The realtime gate fails until:
+#   - a domain-event record exists in Throne.Application/Events/IntentEvents.cs,
+#   - the repository raises that event by carrying it on its outcome,
+#   - RealtimeDomainEventHandler maps it to RealtimeEventNames.<PascalName>,
+#   - the frontend subscribes via useRealtimeEvent('<name>') in at least one place.
+#
+# The dispatching IUnitOfWork decorator fans out events automatically — handlers
+# never publish realtime events themselves. See ADR-0008 for rationale.
+#
+# Transport: Server-Sent Events at GET /api/v1/realtime/stream.
+
+events:
+  intent.created:
+    description: A new Intent was created.
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.deleted:
+    description: An Intent was deleted.
+    payload:
+      type: object
+      required: [intent_id]
+      properties:
+        intent_id:
+          type: string
+  intent.text_changed:
+    description: Intent.text was edited (replace or insert).
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.status_changed:
+    description: Intent status transitioned.
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.qa_added:
+    description: A Q/A pair was appended to an Intent's training log.
+    payload_ref: intents#/components/schemas/IntentQaDto
+  intent.review_added:
+    description: A review note was appended to an Intent's training log.
+    payload_ref: intents#/components/schemas/IntentReviewDto
+  intent.attachment_added:
+    description: A file attachment was uploaded for an Intent.
+    payload_ref: intents#/components/schemas/IntentAttachmentDto
+  intent.attachment_deleted:
+    description: A file attachment was removed from an Intent.
+    payload:
+      type: object
+      required: [intent_id, attachment_id]
+      properties:
+        intent_id:
+          type: string
+        attachment_id:
+          type: string

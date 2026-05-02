@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Application.Events;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.TextVersions;
@@ -10,6 +11,7 @@ public static class DependencyInjection
     public static IServiceCollection AddThroneApplication(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddSingleton<CreateIntentHandler>();
         services.AddSingleton<GetIntentHandler>();
         services.AddSingleton<ReadIntentTextHandler>();

@@ -43,5 +43,7 @@ public class EnsureSeedInstructionsHandlerTests
         public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
 
         public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+
+        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
     }
 }

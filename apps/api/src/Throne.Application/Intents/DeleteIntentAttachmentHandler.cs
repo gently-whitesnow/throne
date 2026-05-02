@@ -8,7 +8,8 @@ public sealed record DeleteIntentAttachmentCommand(string IntentId, string Attac
 
 public sealed class DeleteIntentAttachmentHandler(
     IIntentRepository intents,
-    IIntentAttachmentRepository attachments)
+    IIntentAttachmentRepository attachments,
+    IUnitOfWork unitOfWork)
 {
     public async Task HandleAsync(DeleteIntentAttachmentCommand command, CancellationToken ct)
     {
@@ -23,7 +24,11 @@ public sealed class DeleteIntentAttachmentHandler(
                 new Dictionary<string, object?> { ["intent_id"] = command.IntentId });
         }
 
-        if (!await attachments.DeleteAsync(intentId, command.AttachmentId, ct).ConfigureAwait(false))
+        var outcome = await unitOfWork.ExecuteOutsideTransactionAsync(
+            inner => attachments.DeleteAsync(intentId, command.AttachmentId, inner),
+            ct).ConfigureAwait(false);
+
+        if (outcome is DeleteIntentAttachmentOutcome.NotFound)
         {
             throw new ApiException(
                 ErrorCodes.IntentAttachmentNotFound,

@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -29,7 +30,8 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
 
         var session = RequireSession(nameof(AddQaAsync));
 
-        var bumpOutcome = await CheckVersionAndBumpUpdatedAtAsync(session, id, expectedVersion, now, ct).ConfigureAwait(false);
+        var bumpOutcome = await CheckVersionAndBumpUpdatedAtAsync(
+            session, id, expectedVersion, now, () => new IntentQaAdded(qa), ct).ConfigureAwait(false);
         if (bumpOutcome is not AppendTrainingOutcome.Appended appended)
         {
             return bumpOutcome;
@@ -50,7 +52,8 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
 
         var session = RequireSession(nameof(AddReviewAsync));
 
-        var bumpOutcome = await CheckVersionAndBumpUpdatedAtAsync(session, id, expectedVersion, now, ct).ConfigureAwait(false);
+        var bumpOutcome = await CheckVersionAndBumpUpdatedAtAsync(
+            session, id, expectedVersion, now, () => new IntentReviewAdded(review), ct).ConfigureAwait(false);
         if (bumpOutcome is not AppendTrainingOutcome.Appended appended)
         {
             return bumpOutcome;
@@ -104,6 +107,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
         IntentId id,
         int expectedVersion,
         DateTimeOffset now,
+        Func<IDomainEvent> eventFactory,
         CancellationToken ct)
     {
         var update = Builders<IntentDocument>.Update.Set(d => d.UpdatedAt, now.UtcDateTime);
@@ -116,7 +120,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
 
         if (updateResult.ModifiedCount > 0 || updateResult.MatchedCount > 0)
         {
-            return new AppendTrainingOutcome.Appended(expectedVersion);
+            return new AppendTrainingOutcome.Appended(expectedVersion, eventFactory());
         }
 
         var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);

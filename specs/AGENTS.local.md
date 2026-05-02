@@ -31,6 +31,26 @@ Api ──► Infrastructure (только в Program.cs / DI wiring)
 
 При работе над `apps/web` или UI-компонентами используй [DESIGN.md](../DESIGN.md) как источник проектной дизайн-системы.
 
+## Realtime события (domain events + auto-dispatch)
+
+Server-to-client события описаны в [specs/contracts/realtime/events.yaml](contracts/realtime/events.yaml). Транспорт — SSE на `GET /api/v1/realtime/stream`. См. [ADR-0008](ADR/0008-realtime-contract-first-events.md).
+
+**Handlers Application НЕ публикуют realtime сами.** Repository outcome реализует `IDomainEventCarrier`; декоратор `DomainEventDispatchingUnitOfWork` после `unitOfWork.ExecuteAsync(...)` автоматически фанаутит events через `IDomainEventDispatcher` → `RealtimeDomainEventHandler` → SSE-broker.
+
+Добавление нового realtime-события (gate `realtime` падает при «половинной» интеграции):
+
+1. Расширь [events.yaml](contracts/realtime/events.yaml): имя, описание, `payload` или `payload_ref`.
+2. Регенерация: `bash scripts/quality/codegen-frontend.sh` обновит `Throne.Realtime.Contracts/Generated` и `apps/web/src/shared/realtime/generated`.
+3. Добавь record в [Throne.Application/Events/IntentEvents.cs](../apps/api/src/Throne.Application/Events/IntentEvents.cs) (имя — PascalCase от `<event.name>`, например `intent.text_changed` → `IntentTextChanged`).
+4. Сделай так, чтобы соответствующий **outcome** (или новый wrapper-outcome) возвращал этот event на success-ветке через `Events`.
+5. Mongo-репо положит event в outcome — никаких publish-вызовов писать не нужно.
+6. Добавь case в [RealtimeDomainEventHandler.cs](../apps/api/src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs), маппя domain event → `RealtimeEventNames.<PascalName>` + DTO.
+7. Подпишись через `useRealtimeEvent("<name>", handler)` хотя бы в одном месте `apps/web/src/`.
+
+Для не-транзакционных операций (GridFS upload/delete) используй `unitOfWork.ExecuteOutsideTransactionAsync(...)` — декоратор работает и для неё.
+
+Будущие подписчики на тот же поток (внешний брокер, история, denormalized read-models) подключаются как ещё один `IDomainEventHandler` в DI — handlers Application не меняются.
+
 ## Изменения, требующие ADR
 
 - Смена архитектурного стиля или layout слоёв.

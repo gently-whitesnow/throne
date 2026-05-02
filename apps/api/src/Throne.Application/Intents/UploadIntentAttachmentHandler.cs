@@ -6,7 +6,8 @@ namespace Throne.Application.Intents;
 
 public sealed class UploadIntentAttachmentHandler(
     IIntentRepository intents,
-    IIntentAttachmentRepository attachments)
+    IIntentAttachmentRepository attachments,
+    IUnitOfWork unitOfWork)
 {
     public async Task<IntentAttachment> HandleAsync(UploadIntentAttachmentCommand command, CancellationToken ct)
     {
@@ -56,8 +57,9 @@ public sealed class UploadIntentAttachmentHandler(
                 });
         }
 
-        return await attachments
-            .AddAsync(intentId, command.Content, command.FileName, command.ContentType, ct)
-            .ConfigureAwait(false);
+        var outcome = await unitOfWork.ExecuteOutsideTransactionAsync(
+            inner => attachments.AddAsync(intentId, command.Content, command.FileName, command.ContentType, inner),
+            ct).ConfigureAwait(false);
+        return outcome.Attachment;
     }
 }
