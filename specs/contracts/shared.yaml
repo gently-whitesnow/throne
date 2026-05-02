@@ -43,8 +43,9 @@ components:
           description: Caller's expected current_version. Server rejects with 409 if it differs.
         old_text:
           type: string
-          minLength: 1
-          description: Exact byte-for-byte substring to replace. Must occur exactly once.
+          description: >
+            Exact byte-for-byte substring to replace. Must occur exactly once in the current text.
+            May be empty only when the current text is also empty (initial fill of an empty document).
         new_text:
           type: string
           description: Replacement text. May be empty (deletes the matched fragment).

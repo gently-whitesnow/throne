@@ -164,10 +164,11 @@ namespace Throne.Instructions.Contracts.Generated
         public int Expected_version { get; set; }
 
         /// <summary>
-        /// Exact byte-for-byte substring to replace. Must occur exactly once.
+        /// Exact byte-for-byte substring to replace. Must occur exactly once in the current text. May be empty only when the current text is also empty (initial fill of an empty document).
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("old_text")]
-        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Old_text { get; set; }
 
         /// <summary>

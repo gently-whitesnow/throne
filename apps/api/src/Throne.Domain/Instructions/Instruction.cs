@@ -74,9 +74,14 @@ public sealed class Instruction
         ArgumentNullException.ThrowIfNull(oldText);
         ArgumentNullException.ThrowIfNull(newText);
         ArgumentException.ThrowIfNullOrEmpty(newVersionId);
-        if (oldText.Length == 0)
+
+        // Initial-fill для пустых user-антагонистов: old_text="" разрешён только когда текущий Text тоже пуст.
+        // На непустом Text пустой old_text матчится в каждой позиции и ломает «exactly once» инвариант.
+        if (oldText.Length == 0 && Text.Length != 0)
         {
-            throw new ArgumentException("old_text must not be empty.", nameof(oldText));
+            throw new ArgumentException(
+                "old_text may be empty only when current text is empty (initial fill).",
+                nameof(oldText));
         }
 
         var indices = FindAllIndices(Text, oldText);

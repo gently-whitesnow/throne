@@ -22,20 +22,32 @@ public sealed class ReplaceInstructionTextHandler(
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(command.OldText);
         ArgumentNullException.ThrowIfNull(command.NewText);
-        if (command.OldText.Length == 0)
-        {
-            throw new ApiException(
-                ErrorCodes.ValidationFailed,
-                "old_text must not be empty.",
-                new Dictionary<string, object?> { ["field"] = "old_text" });
-        }
+
+        // old_text="" допустимо только при пустом текущем Text (initial fill для user-антагонистов).
+        // Соответствующая валидация живёт в домене Instruction.ReplaceText.
 
         var id = new InstructionId(command.InstructionId);
         var now = clock.GetUtcNow();
 
-        var outcome = await unitOfWork.ExecuteAsync(
-            inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, command.Author, now, inner),
-            ct).ConfigureAwait(false);
+        ReplaceInstructionTextOutcome outcome;
+        try
+        {
+            outcome = await unitOfWork.ExecuteAsync(
+                inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, command.Author, now, inner),
+                ct).ConfigureAwait(false);
+        }
+        catch (ArgumentException ex) when (ex.ParamName == "oldText")
+        {
+            // Domain-side guard: old_text="" разрешён только когда current Text="".
+            throw new ApiException(
+                ErrorCodes.ValidationFailed,
+                ex.Message,
+                new Dictionary<string, object?>
+                {
+                    ["field"] = "old_text",
+                    ["instruction_id"] = command.InstructionId,
+                });
+        }
 
         return outcome switch
         {

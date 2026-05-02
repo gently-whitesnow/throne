@@ -317,7 +317,7 @@ export interface components {
              * @description Caller's expected current_version. Server rejects with 409 if it differs.
              */
             expected_version: number;
-            /** @description Exact byte-for-byte substring to replace. Must occur exactly once. */
+            /** @description Exact byte-for-byte substring to replace. Must occur exactly once in the current text. May be empty only when the current text is also empty (initial fill of an empty document). */
             old_text: string;
             /** @description Replacement text. May be empty (deletes the matched fragment). */
             new_text: string;
