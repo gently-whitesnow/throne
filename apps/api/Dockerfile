@@ -1,10 +1,14 @@
 # syntax=docker/dockerfile:1
+# Build context is the repository root (see docker-compose.yml).
+# We need access to specs/manifest/* outside apps/api.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Directory.Build.props Directory.Packages.props ./
-COPY src ./src
+COPY apps/api/Directory.Build.props apps/api/Directory.Packages.props ./apps/api/
+COPY apps/api/src ./apps/api/src
+COPY specs/manifest ./specs/manifest
 
+WORKDIR /src/apps/api
 RUN dotnet restore src/Throne.Api/Throne.Api.csproj
 RUN dotnet publish src/Throne.Api/Throne.Api.csproj -c Release -o /app --no-restore
 

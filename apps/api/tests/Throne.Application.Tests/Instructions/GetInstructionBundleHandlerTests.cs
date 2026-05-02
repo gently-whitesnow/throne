@@ -170,7 +170,7 @@ public class GetInstructionBundleHandlerTests
     private static GetInstructionBundleHandler NewHandler(
         IInstructionRepository instructions,
         IIntentRepository intents) =>
-        new(instructions, new SystemInstructionCatalog(), intents, new PassThroughUnitOfWork(), FakeTimeProvider());
+        new(instructions, SkillManifestFixtures.Provider(), intents, new PassThroughUnitOfWork(), FakeTimeProvider());
 
     private static IIntentRepository StubIntentRepository()
     {

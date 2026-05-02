@@ -1,4 +1,5 @@
 using Throne.Application.Errors;
+using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
 using Throne.Domain.Intents;
@@ -8,7 +9,7 @@ namespace Throne.Application.Instructions;
 
 public sealed class GetInstructionBundleHandler(
     IInstructionRepository repository,
-    SystemInstructionCatalog systemCatalog,
+    ISkillManifestProvider manifestProvider,
     IIntentRepository intents,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
@@ -17,22 +18,16 @@ public sealed class GetInstructionBundleHandler(
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        IReadOnlyList<string> requiredKinds;
-        try
-        {
-            requiredKinds = InstructionBundleModeNames.RequiredKindsFor(query.Mode);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            throw new ApiException(
+        var manifest = manifestProvider.Current;
+        var bundle = manifest.Bundles.FirstOrDefault(b => string.Equals(b.Mode, query.Mode, StringComparison.Ordinal))
+            ?? throw new ApiException(
                 ErrorCodes.ValidationFailed,
                 "Unknown instruction bundle mode.",
                 new Dictionary<string, object?>
                 {
                     ["mode"] = query.Mode,
-                    ["allowed_modes"] = InstructionBundleModeNames.All.ToArray(),
+                    ["allowed_modes"] = manifest.Bundles.Select(b => b.Mode).ToArray(),
                 });
-        }
 
         var intentId = string.IsNullOrWhiteSpace(query.IntentId) ? null : query.IntentId;
         if (intentId is not null)
@@ -57,39 +52,48 @@ public sealed class GetInstructionBundleHandler(
                         $"get_instruction_bundle:{query.Mode}",
                         now,
                         inner),
-                    ct).ConfigureAwait(false);
+                    ct);
             }
         }
 
-        var systemEntries = new List<InstructionWithText>(requiredKinds.Count);
+        var systemSlots = bundle.Includes
+            .Where(i => string.Equals(i.Scope, InstructionScopeNames.System, StringComparison.Ordinal))
+            .ToArray();
+        var userSlots = bundle.Includes
+            .Where(i => string.Equals(i.Scope, InstructionScopeNames.User, StringComparison.Ordinal))
+            .ToArray();
+
+        var systemEntries = new List<InstructionWithText>(systemSlots.Length);
         var missing = new List<string>();
-        foreach (var kind in requiredKinds)
+        foreach (var slot in systemSlots)
         {
-            if (systemCatalog.TryGetText(kind, out var text))
+            var systemEntry = manifest.SystemInstructions
+                .FirstOrDefault(s => string.Equals(s.Kind, slot.Kind, StringComparison.Ordinal));
+            if (systemEntry is null)
             {
-                systemEntries.Add(new InstructionWithText(
-                    Scope: InstructionScopeNames.System,
-                    Kind: kind,
-                    InstructionId: SystemInstructionCatalog.SyntheticInstructionId(kind),
-                    CurrentVersion: 1,
-                    Text: text));
+                missing.Add(slot.Kind);
+                continue;
             }
-            else
-            {
-                missing.Add(kind);
-            }
+
+            systemEntries.Add(new InstructionWithText(
+                Scope: InstructionScopeNames.System,
+                Kind: slot.Kind,
+                InstructionId: SyntheticSystemInstructionId(slot.Kind),
+                CurrentVersion: 1,
+                Text: systemEntry.Text));
         }
 
-        var userInstructions = await repository
-            .GetUserInstructionsByKindsAsync(MvpUser.Id, requiredKinds, ct)
-            .ConfigureAwait(false);
+        var userKinds = userSlots.Select(s => s.Kind).ToArray();
+        var userInstructions = userKinds.Length == 0
+            ? Array.Empty<Domain.Instructions.Instruction>()
+            : await repository.GetUserInstructionsByKindsAsync(MvpUser.Id, userKinds, ct);
 
-        var kindOrder = requiredKinds
-            .Select((kind, index) => new { kind, index })
-            .ToDictionary(x => x.kind, x => x.index, StringComparer.Ordinal);
+        var userKindOrder = userSlots
+            .Select((slot, idx) => (slot.Kind, idx))
+            .ToDictionary(x => x.Kind, x => x.idx, StringComparer.Ordinal);
 
         var userEntries = userInstructions
-            .OrderBy(i => kindOrder.TryGetValue(i.Kind, out var idx) ? idx : int.MaxValue)
+            .OrderBy(i => userKindOrder.TryGetValue(i.Kind, out var idx) ? idx : int.MaxValue)
             .ThenBy(i => i.CreatedAt)
             .Select(i => new InstructionWithText(
                 Scope: InstructionScopeNames.User,
@@ -103,4 +107,6 @@ public sealed class GetInstructionBundleHandler(
 
         return new InstructionBundle(query.Mode, intentId, ordered, missing);
     }
+
+    public static string SyntheticSystemInstructionId(string kind) => $"system:{kind}";
 }

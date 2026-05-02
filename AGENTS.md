@@ -16,7 +16,7 @@ bash scripts/quality/verify.sh
 |---|---|
 | Архитектурные решения | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) |
 | Правила для агентов в этом проекте | [specs/AGENTS.local.md](specs/AGENTS.local.md) |
-| Системные инструкции Throne (in code) | [apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) |
+| Skill / bundle / system instruction манифест (источник правды) | [specs/manifest/throne-skills.yaml](specs/manifest/throne-skills.yaml) |
 | Дизайн-система фронтенда | [DESIGN.md](DESIGN.md) |
 
 ## Frontend / UI

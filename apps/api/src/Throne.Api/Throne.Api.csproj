@@ -13,4 +13,18 @@
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Skill manifest is the runtime source of truth (see ADR-0007). It must travel
+      with the published binary, otherwise the API fails to boot in environments
+      where the repo tree is not available next to /app (Docker, CI artefacts).
+      Link= preserves the directory layout so the provider's existing path lookup
+      under AppContext.BaseDirectory keeps working unchanged.
+    -->
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-skills.yaml"
+             Link="specs/manifest/throne-skills.yaml"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
+  </ItemGroup>
+
 </Project>

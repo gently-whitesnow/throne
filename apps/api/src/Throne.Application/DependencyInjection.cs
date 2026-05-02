@@ -37,8 +37,8 @@ public static class DependencyInjection
         services.AddSingleton<DeleteTagHandler>();
         services.AddSingleton<GetTagUsageHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();
-        services.AddSingleton<SystemInstructionCatalog>();
         services.AddSingleton<GetInstructionBundleHandler>();
+        services.AddSingleton<GetSkillsTreeHandler>();
         services.AddSingleton<ListInstructionsHandler>();
         services.AddSingleton<GetInstructionHandler>();
         services.AddSingleton<ReplaceInstructionTextHandler>();

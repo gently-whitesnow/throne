@@ -61,6 +61,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/instructions/skills-tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Precomputed skill → bundle → instructions tree.
+         * @description Returns the runtime composition that the agent receives when invoking each skill. Source of truth is the declarative skill manifest (specs/manifest/throne-skills.yaml). For every skill in the manifest the response includes the bundle mode, its ordered includes (system + user instructions), and full text payload of each entry. User-scope entries carry editable=true; system entries are read-only synthetic ids.
+         */
+        get: operations["getSkillsTree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/instructions/{id}/versions": {
         parameters: {
             query?: never;
@@ -95,6 +115,42 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+        };
+        SkillsTreeDto: {
+            skills: components["schemas"]["SkillNodeDto"][];
+        };
+        SkillNodeDto: {
+            /** @description Skill identifier (slug, e.g. tinterview/twork/tnew/tfix/tdream). */
+            name: string;
+            /** @description Short skill description (matches launcher frontmatter). */
+            description: string;
+            /** @description Full body of the launcher file (read-only — projection of manifest). */
+            launcher_body: string;
+            bundle: components["schemas"]["BundleNodeDto"];
+        };
+        BundleNodeDto: {
+            /** @description Bundle mode (interview | work | new_project | dream | fix). */
+            mode: string;
+            includes: components["schemas"]["BundleEntryNodeDto"][];
+        };
+        BundleEntryNodeDto: {
+            /** @description system | user. */
+            scope: string;
+            /** @description Instruction kind (common | interview | work | new_project | dream | fix). */
+            kind: string;
+            /** @description Instruction id. For system entries — synthetic 'system:<kind>'. Null when a user entry is missing. */
+            instruction_id?: string | null;
+            /**
+             * Format: int32
+             * @description 1 for system. For user — Mongo current_version, or 0 if no user record exists yet.
+             */
+            current_version: number;
+            /** @description Full text of the instruction (empty string when a user entry is missing). */
+            text: string;
+            /** @description True only for user-scope entries. */
+            editable: boolean;
+            /** @description False when a user-scope record does not yet exist in Mongo. */
+            present: boolean;
         };
         InstructionDetailDto: {
             id: string;
@@ -259,6 +315,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getSkillsTree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillsTreeDto"];
                 };
             };
         };

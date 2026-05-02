@@ -40,8 +40,8 @@ services:
   api:
     profiles: ["full"]
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/api/Dockerfile
     ports:
       - "5008:5008"
     environment:

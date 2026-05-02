@@ -58,6 +58,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<InstructionDetailDto>> ReplaceInstructionText([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] ReplaceTextRequest body);
 
         /// <summary>
+        /// Precomputed skill → bundle → instructions tree.
+        /// </summary>
+        /// <remarks>
+        /// Returns the runtime composition that the agent receives when invoking each skill. Source of truth is the declarative skill manifest (specs/manifest/throne-skills.yaml). For every skill in the manifest the response includes the bundle mode, its ordered includes (system + user instructions), and full text payload of each entry. User-scope entries carry editable=true; system entries are read-only synthetic ids.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions/skills-tree", Name = "getSkillsTree")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<SkillsTreeDto>> GetSkillsTree();
+
+        /// <summary>
         /// List the text-version history of an Instruction.
         /// </summary>
         /// <returns>OK</returns>

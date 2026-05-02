@@ -60,6 +60,18 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 - Появляется два каталога вендорных файлов в репо (`.agents/skills/`, `.claude/skills/`). Цена принимается: они тонкие, инсталлер в будущем сгенерирует их в чужие проекты по тем же шаблонам.
 - Если объём `tdream` вырастет, добавляются точечные MCP tools — namely `list_unprocessed_instruction_feedback`, `propose_instruction_patch`, `mark_instruction_feedback_processed`, опционально `record_instruction_bundle_use`. До тех пор launcher остаётся тонким.
 
+## Update 2026-05-02 — manifest as single source of truth
+
+- Введён декларативный YAML-манифест [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml). Это единственный источник правды для:
+  - текстов system-инструкций (раньше `SystemInstructionCatalog` в коде, теперь удалён);
+  - маппинга `mode → required kinds` для bundle (раньше switch в `InstructionBundleModeNames.RequiredKindsFor`, удалён);
+  - метаданных skill-launcher файлов (`name`, `description`, `launcher_body`).
+- Backend runtime читает манифест через `ISkillManifestProvider` ([apps/api/src/Throne.Application/Instructions/Manifest/](../../apps/api/src/Throne.Application/Instructions/Manifest/)), реализация — `YamlFileSkillManifestProvider` в Throne.Infrastructure (Singleton, кэш на старте). Конфиг: `Throne:SkillManifest:Path` (default `specs/manifest/throne-skills.yaml`, ищется относительно ContentRoot и поднимаясь по дереву от AppContext.BaseDirectory).
+- `GetInstructionBundleHandler` теперь резолвит и `kinds`, и `system text` через `ISkillManifestProvider`. Поведение и форма ответа `get_instruction_bundle` не изменились — изменился только источник данных.
+- Добавлен use-case `GetSkillsTreeHandler` и HTTP endpoint `GET /api/v1/instructions/skills-tree`, отдающий precomputed дерево skill → bundle → instruction для всех skill-ов из манифеста. На каждой entry: для `system` — текст из манифеста и синтетический `instruction_id=system:<kind>`, для `user` — реальная запись из Mongo (по `MvpUser.Id`) либо `present=false` если её ещё нет. Это бэкенд под страницу `/instructions`, которая теперь рендерит дерево вместо плоского списка.
+- Skill-launcher файлы `.claude/skills/<name>/SKILL.md` и `.agents/skills/<name>/SKILL.md` остаются на диске (vendor parity сохранена), но рассматриваются как **проекция** манифеста. Drift защищён `SkillLauncherParityTests` в `Throne.Architecture.Tests`: тест парсит манифест и сверяет каждое поле скилла с обоими наборами файлов. Будущий installer (см. п.8 в Decision) будет генерировать эти файлы в чужие репо из того же манифеста — отсюда строгая парность сейчас.
+- User-инструкции остаются runtime-данными в Mongo: манифест декларирует только факт участия `scope: user` в bundle, тексты не хранит. Создание user-антагонистов вне scope этой итерации.
+
 ## Update 2026-05-02 — system/user split + work/fix kinds
 
 - Сидинг через `EnsureSeedInstructionsHandler` упразднён. System-инструкции живут в коде как `SystemInstructionCatalog` ([apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](../../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs)) и версионируются вместе с релизом `Throne.Api`. Mongo collection `instructions` теперь хранит только `scope=user` записи.

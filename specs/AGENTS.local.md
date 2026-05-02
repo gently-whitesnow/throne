@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Проектные правила для агентов. Системные инструкции Throne живут как in-code [SystemInstructionCatalog](../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs) (scope=`system`, версионируется с релизом).
+Проектные правила для агентов. Skill-ы, bundle-маппинг `mode → kinds` и тексты system-инструкций (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это единственный источник правды для backend runtime, frontend `/instructions` дерева и будущего installer-а skill-файлов.
 
 ## Перед завершением хода
 

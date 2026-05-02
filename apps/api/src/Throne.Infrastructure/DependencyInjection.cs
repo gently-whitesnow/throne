@@ -4,7 +4,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Throne.Application.Events;
+using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
+using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
 
 namespace Throne.Infrastructure;
@@ -17,6 +19,10 @@ public static class DependencyInjection
     {
         services.AddOptions<MongoOptions>()
             .Bind(configuration.GetSection(MongoOptions.SectionName));
+
+        services.AddOptions<SkillManifestOptions>()
+            .Bind(configuration.GetSection(SkillManifestOptions.SectionName));
+        services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
 
         services.AddSingleton<IMongoClient>(sp =>
             new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
@@ -52,6 +58,8 @@ public static class DependencyInjection
 
         services.AddSingleton(database);
         services.AddSingleton<IMongoClient>(database.Client);
+        services.AddOptions<SkillManifestOptions>();
+        services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<MongoUnitOfWork>();
         services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(

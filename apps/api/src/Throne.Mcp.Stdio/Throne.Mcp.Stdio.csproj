@@ -17,6 +17,14 @@
     <Content Include="..\Throne.Api\appsettings.Development.json" Link="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!--
+      Mirror the skill manifest into Mcp.Stdio output too: the stdio binary loads
+      ISkillManifestProvider via the same AddThroneInfrastructure path as the HTTP host.
+    -->
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-skills.yaml"
+             Link="specs/manifest/throne-skills.yaml"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
   </ItemGroup>
 
 </Project>

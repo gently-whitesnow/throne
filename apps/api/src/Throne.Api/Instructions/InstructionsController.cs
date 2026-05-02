@@ -13,9 +13,16 @@ public sealed class InstructionsController(
     ListInstructionsHandler listHandler,
     GetInstructionHandler getHandler,
     ReplaceInstructionTextHandler replaceHandler,
-    ListInstructionVersionsHandler listVersionsHandler) : InstructionsControllerBase
+    ListInstructionVersionsHandler listVersionsHandler,
+    GetSkillsTreeHandler skillsTreeHandler) : InstructionsControllerBase
 {
     private const int TextShortMaxLength = 140;
+
+    public override async Task<ActionResult<SkillsTreeDto>> GetSkillsTree()
+    {
+        var tree = await skillsTreeHandler.HandleAsync(new GetSkillsTreeQuery(), HttpContext.RequestAborted);
+        return Ok(ToDto(tree));
+    }
 
     public override async Task<ActionResult<ICollection<InstructionListItemDto>>> ListInstructions()
     {
@@ -166,4 +173,35 @@ public sealed class InstructionsController(
 
     private static string TextShort(string text) =>
         text.Length <= TextShortMaxLength ? text : text[..TextShortMaxLength];
+
+    private static SkillsTreeDto ToDto(SkillsTree tree)
+    {
+        var dto = new SkillsTreeDto();
+        foreach (var skill in tree.Skills)
+        {
+            var bundle = new BundleNodeDto { Mode = skill.Bundle.Mode };
+            foreach (var entry in skill.Bundle.Includes)
+            {
+                bundle.Includes.Add(new BundleEntryNodeDto
+                {
+                    Scope = entry.Scope,
+                    Kind = entry.Kind,
+                    Instruction_id = entry.InstructionId,
+                    Current_version = entry.CurrentVersion,
+                    Text = entry.Text,
+                    Editable = entry.Editable,
+                    Present = entry.Present,
+                });
+            }
+
+            dto.Skills.Add(new SkillNodeDto
+            {
+                Name = skill.Name,
+                Description = skill.Description,
+                Launcher_body = skill.LauncherBody,
+                Bundle = bundle,
+            });
+        }
+        return dto;
+    }
 }

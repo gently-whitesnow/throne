@@ -76,6 +76,152 @@ namespace Throne.Instructions.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkillsTreeDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("skills")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SkillNodeDto> Skills { get; set; } = new System.Collections.ObjectModel.Collection<SkillNodeDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkillNodeDto
+    {
+
+        /// <summary>
+        /// Skill identifier (slug, e.g. tinterview/twork/tnew/tfix/tdream).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Short skill description (matches launcher frontmatter).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Description { get; set; }
+
+        /// <summary>
+        /// Full body of the launcher file (read-only — projection of manifest).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("launcher_body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Launcher_body { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("bundle")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public BundleNodeDto Bundle { get; set; } = new BundleNodeDto();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BundleNodeDto
+    {
+
+        /// <summary>
+        /// Bundle mode (interview | work | new_project | dream | fix).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Mode { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("includes")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<BundleEntryNodeDto> Includes { get; set; } = new System.Collections.ObjectModel.Collection<BundleEntryNodeDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BundleEntryNodeDto
+    {
+
+        /// <summary>
+        /// system | user.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Scope { get; set; }
+
+        /// <summary>
+        /// Instruction kind (common | interview | work | new_project | dream | fix).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Kind { get; set; }
+
+        /// <summary>
+        /// Instruction id. For system entries — synthetic 'system:&lt;kind&gt;'. Null when a user entry is missing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("instruction_id")]
+        public string Instruction_id { get; set; }
+
+        /// <summary>
+        /// 1 for system. For user — Mongo current_version, or 0 if no user record exists yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("current_version")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Current_version { get; set; }
+
+        /// <summary>
+        /// Full text of the instruction (empty string when a user entry is missing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Text { get; set; }
+
+        /// <summary>
+        /// True only for user-scope entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editable")]
+        public bool Editable { get; set; }
+
+        /// <summary>
+        /// False when a user-scope record does not yet exist in Mongo.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("present")]
+        public bool Present { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class InstructionDetailDto
     {
 
