@@ -79,3 +79,9 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 - Kinds: `common | interview | work | new_project | dream | fix`. Kind `light_work` переименован в `work` (launcher `twork`). Введён kind `fix` для launcher `tfix` — отдельный режим продолжения работы после review (раньше делил bundle с `light_work`).
 - Bundle resolver (`GetInstructionBundleHandler`) собирает `[system:common, system:<mode>]` из catalog и `user:*` инструкции `mvp-user` для тех же kinds. Антагонист в user создаётся под каждый system kind: для `common`, `work`, `new_project` — с реальным текстом, для `interview`, `dream`, `fix` — пустые редактируемые записи.
 - `Instruction.Validate` ослаблен: пустой `Text` для user-инструкций легален, чтобы пустые антагонисты были корректным состоянием.
+
+## Update 2026-05-03 — internal skills flag
+
+- На уровне `skills[]` манифеста [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) добавлено опциональное поле `internal: bool` (default `false`). Семантика и обоснование — в [ADR-0010](0010-internal-skills-flag.md).
+- Уточнение к §8 этого ADR: будущий vendor installer при генерации `.agents/skills/` и `.claude/skills/` в чужие репо **пропускает** скиллы с `internal: true`. Throne-репо продолжает держать соответствующие launcher-файлы локально для self-dogfooding, поэтому `SkillLauncherParityTests` остаются без изменений.
+- Backend (`ISkillManifestProvider`, `GetSkillsTreeHandler`, `/api/v1/instructions/skills-tree`) пока не фильтрует по `internal` — флаг нужен только installer'у. Скрытие в UI — отдельный шаг поверх ADR-0010.

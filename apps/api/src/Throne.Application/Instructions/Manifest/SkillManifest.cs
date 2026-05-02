@@ -12,4 +12,9 @@ public sealed record BundleDefinition(string Mode, IReadOnlyList<BundleInclude> 
 
 public sealed record BundleInclude(string Scope, string Kind);
 
-public sealed record SkillDefinition(string Name, string Description, string BundleMode, string LauncherBody);
+public sealed record SkillDefinition(
+    string Name,
+    string Description,
+    string BundleMode,
+    string LauncherBody,
+    bool Internal = false);

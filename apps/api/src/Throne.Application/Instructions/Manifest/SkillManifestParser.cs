@@ -35,7 +35,8 @@ public static class SkillManifestParser
                     Name: s.Name ?? "",
                     Description: s.Description ?? "",
                     BundleMode: s.BundleMode ?? "",
-                    LauncherBody: NormalizeBody(s.LauncherBody)))
+                    LauncherBody: NormalizeBody(s.LauncherBody),
+                    Internal: s.Internal ?? false))
                 .ToArray());
 
         Validate(manifest);
@@ -166,6 +167,7 @@ public static class SkillManifestParser
         public string? Description { get; set; }
         public string? BundleMode { get; set; }
         public string? LauncherBody { get; set; }
+        public bool? Internal { get; set; }
     }
 }
 

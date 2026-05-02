@@ -9,6 +9,13 @@
 # and `.agents/skills/<name>/SKILL.md` for target repos. Until then, an architecture
 # fitness test asserts on-disk launcher files match this manifest byte-for-byte.
 #
+# Optional skill field `internal: bool` (default `false`, see ADR-0010) marks
+# meta-tooling that lives only inside Throne self-dogfooding. The future installer
+# (ADR-0007 §8) skips entries with `internal: true` when generating `.claude/skills/`
+# and `.agents/skills/` for target repos. Throne-repo keeps the launcher files
+# locally so internal skills work here. Backend runtime and `/api/v1/instructions/skills-tree`
+# do not filter by this flag yet.
+#
 # User-scope instructions are runtime data in Mongo (see ADR-0007). They are not
 # stored here — only the fact that the corresponding kind participates in a bundle
 # (via `bundles[].includes` with `scope: user`).
