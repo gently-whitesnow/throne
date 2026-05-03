@@ -1,13 +1,17 @@
-import { FileText, Hash, Sparkles } from "lucide-react";
+import { FileText, Hash, Sparkles, Sprout } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
+
+import { useDreamPendingCount } from "../model/use-dream-pending-count";
 
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
   { to: "/tags", label: "Tags", icon: Hash },
-  { to: "/instructions", label: "Instructions", icon: FileText }
+  { to: "/instructions", label: "Instructions", icon: FileText },
+  { to: "/dream", label: "Dream", icon: Sprout }
 ] as const;
 
 export function AppShell() {
+  const dreamPending = useDreamPendingCount();
   return (
     <div className="grid min-h-screen grid-rows-[auto_1fr] md:grid-cols-[200px_1fr] md:grid-rows-1">
       <aside
@@ -22,6 +26,14 @@ export function AppShell() {
             <NavLink key={to} to={to} className={navItemClass}>
               <Icon aria-hidden size={16} strokeWidth={2} />
               <span>{label}</span>
+              {to === "/dream" && dreamPending > 0 ? (
+                <span
+                  aria-label={`${String(dreamPending)} pending dream proposals`}
+                  className="ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-error px-1.5 text-[10px] font-bold leading-none text-error-content"
+                >
+                  {String(dreamPending)}
+                </span>
+              ) : null}
             </NavLink>
           ))}
         </nav>

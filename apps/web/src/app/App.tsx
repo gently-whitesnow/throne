@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { DreamSectionPage } from "@/pages/dream-section";
 import { HomePage } from "@/pages/home";
 import { IntentDetailPage } from "@/pages/intent-detail";
 import { IntentsSectionPage } from "@/pages/intents-section";
@@ -18,6 +19,7 @@ export function App() {
           </Route>
           <Route path="/tags" element={<TagsSectionPage />} />
           <Route path="/instructions" element={<InstructionsSectionPage />} />
+          <Route path="/dream" element={<DreamSectionPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
