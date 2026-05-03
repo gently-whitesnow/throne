@@ -112,6 +112,10 @@ system_instructions:
       - НЕ вызывает get_user_instruction, list_intent_reviews, query_mcp_call_log — всё нужное в run.evidence_summary.
       - Возвращает короткий отчёт: статус (created|existing_pending|not_enough_context|empty_closed), количество proposals, затронутые kinds, ссылка пользователю на /pages/dream.
 
+  - kind: throne
+    text: |
+      Цель throne — meta-инструмент команды Throne для эволюции самого продукта (system-инструкции, скиллы, метрики). Подробный playbook будет введён отдельно (см. Intent 8 серии self-learning). До тех пор работай по минимальному правилу: предлагай улучшения только через создание новых Intent с тегом `throne`. Не правь YAML-манифест, ADR и код напрямую; не активируй ничего без участия пользователя.
+
   - kind: fix
     text: |
       Цель fix — учесть свежий review пользователя и продолжить работу по существующему Intent.
@@ -154,6 +158,10 @@ bundles:
       - { scope: system, kind: fix }
       - { scope: user,   kind: common }
       - { scope: user,   kind: fix }
+  - mode: throne
+    includes:
+      - { scope: system, kind: common }
+      - { scope: system, kind: throne }
 
 skills:
   - name: tinterview
@@ -253,3 +261,21 @@ skills:
       6. Return a short status: run status (created|existing_pending|not_enough_context|empty_closed), number of proposals, affected target_kinds, link the user to /pages/dream.
 
       Mode: dream.
+
+  - name: throne
+    description: Self-improvement loop for Throne system itself (internal — process optimization for instructions, skills, metrics proposals).
+    bundle_mode: throne
+    internal: true
+    launcher_body: |
+      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
+
+      Steps:
+
+      1. No intent context is required. Do not create a new intent for the throne session itself.
+      2. Call `mcp__throne__get_instruction_bundle(mode="throne")`.
+      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file.
+      4. For each substantial proposal, create a new Intent via `mcp__throne__create_intent(text=..., tags=["throne"])`. Do NOT modify YAML manifest, ADR, or codebase directly.
+      5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
+      6. Return: list of created intent ids with one-line titles, affected areas (system_instructions / skills / metrics), and an explicit note that nothing was activated, only proposed.
+
+      Mode: throne.

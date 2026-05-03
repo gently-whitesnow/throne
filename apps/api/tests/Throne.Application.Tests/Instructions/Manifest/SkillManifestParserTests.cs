@@ -6,7 +6,7 @@ namespace Throne.Application.Tests.Instructions.Manifest;
 public class SkillManifestParserTests
 {
     private static readonly string[] ExpectedSkillNames =
-        ["tinterview", "twork", "tnew", "tfix", "tdream"];
+        ["tinterview", "twork", "tnew", "tfix", "tdream", "throne"];
 
     private const string ValidYaml = """
         version: 1
@@ -169,8 +169,8 @@ public class SkillManifestParserTests
         var manifest = SkillManifestParser.Parse(yaml);
 
         manifest.Skills.Select(s => s.Name).Should().BeEquivalentTo(ExpectedSkillNames);
-        manifest.SystemInstructions.Should().HaveCount(6);
-        manifest.Bundles.Should().HaveCount(5);
+        manifest.SystemInstructions.Should().HaveCount(7);
+        manifest.Bundles.Should().HaveCount(6);
     }
 
     private static string ResolveManifestPath()

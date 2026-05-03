@@ -86,6 +86,14 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 - Уточнение к §8 этого ADR: будущий vendor installer при генерации `.agents/skills/` и `.claude/skills/` в чужие репо **пропускает** скиллы с `internal: true`. Throne-репо продолжает держать соответствующие launcher-файлы локально для self-dogfooding, поэтому `SkillLauncherParityTests` остаются без изменений.
 - Backend (`ISkillManifestProvider`, `GetSkillsTreeHandler`, `/api/v1/instructions/skills-tree`) пока не фильтрует по `internal` — флаг нужен только installer'у. Скрытие в UI — отдельный шаг поверх ADR-0010.
 
+## Update 2026-05-03 — internal skill `throne` (meta-tooling)
+
+- В манифест добавлен скилл `throne` с `internal: true` ([ADR-0010](0010-internal-skills-flag.md)). Имя без префикса `t` подчёркивает meta-роль: это не workflow по конкретному Intent, а самосовершенствование самого Throne (system-инструкции, скиллы, метрики).
+- Bundle: новый `mode: throne → [system:common, system:throne]`. User-scope в MVP не вводится — playbook не персонализируется per-user.
+- Системный текст для `kind: throne` — placeholder; полноценный playbook вводится отдельно (см. Intent 8 серии self-learning). Launcher ограничивает агента: предложения оформляются только как новые Intent с тегом `throne`, никаких прямых правок YAML/ADR/кода и никакой автоактивации.
+- Vendor launcher файлы созданы локально для self-dogfooding ([.claude/skills/throne/SKILL.md](../../.claude/skills/throne/SKILL.md), [.agents/skills/throne/SKILL.md](../../.agents/skills/throne/SKILL.md)). Будущий installer (§8) пропускает их при генерации в чужие репо благодаря `internal: true`.
+- Backend: `ISkillManifestProvider` поддерживает новый kind/mode без изменений в C#-коде; добавлены только константы `InstructionKindNames.Throne` и `InstructionBundleModeNames.Throne` (`InstructionKindNames.All` участвует в валидации манифеста). `SkillLauncherParityTests` остаются без правок.
+
 ## Update 2026-05-03 — tdream final shape (server-managed, DreamRun aggregate)
 
 - Раздел п.5 «Backend для `tdream`» уточнён: вместо `add_intent_review` с `reason="instruction_patch_proposal"` агент теперь работает строго через server-managed surface, описанный в [ADR-0011](0011-dream-run-model.md):

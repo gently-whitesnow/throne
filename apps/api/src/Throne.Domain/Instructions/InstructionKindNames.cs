@@ -8,6 +8,7 @@ public static class InstructionKindNames
     public const string NewProject = "new_project";
     public const string Dream = "dream";
     public const string Fix = "fix";
+    public const string Throne = "throne";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -17,6 +18,7 @@ public static class InstructionKindNames
         NewProject,
         Dream,
         Fix,
+        Throne,
     ];
 
     public static bool IsKnown(string kind) => All.Contains(kind, StringComparer.Ordinal);

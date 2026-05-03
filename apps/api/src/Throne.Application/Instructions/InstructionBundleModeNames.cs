@@ -14,4 +14,5 @@ public static class InstructionBundleModeNames
     public const string NewProject = "new_project";
     public const string Dream = "dream";
     public const string Fix = "fix";
+    public const string Throne = "throne";
 }
