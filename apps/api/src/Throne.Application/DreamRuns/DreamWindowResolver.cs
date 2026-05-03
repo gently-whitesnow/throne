@@ -1,15 +1,17 @@
 using Throne.Application.Ports;
-using Throne.Domain.DreamRuns;
 
 namespace Throne.Application.DreamRuns;
 
 /// <summary>
-/// Computes the safe window (ADR-0011 §D) and assembles the <see cref="EvidenceWindow"/>
-/// snapshot from raw evidence sources, filtering already-processed and locked refs.
+/// Computes the safe window (ADR-0011 v2) and assembles the <see cref="IntentWindow"/>
+/// snapshot from intents whose qa/review activity falls into the window. Splits intents
+/// into the «available» bucket and the «locked-by-pending-runs» bucket, and tokenises
+/// both via <see cref="ContextTokenCounter"/>.
 /// </summary>
 public sealed class DreamWindowResolver(
     IDreamRunRepository runs,
-    IEvidenceQueries evidence,
+    IIntentWindowQueries intentWindow,
+    ContextTokenCounter tokenCounter,
     DreamOptions options,
     TimeProvider clock)
 {
@@ -20,7 +22,6 @@ public sealed class DreamWindowResolver(
         var maxWindow = TimeSpan.FromDays(options.MaxWindowDays);
 
         var windowEnd = now - safetyLag;
-        var sessionCutoff = now - safetyLag;
         var floor = now - maxWindow;
 
         var lastClosed = await runs.GetMostRecentClosedAsync(ct);
@@ -29,43 +30,60 @@ public sealed class DreamWindowResolver(
         {
             // Окно пустое (например, safety_lag > интервал между запусками); вернём
             // пустой snapshot, но с корректными границами для UI.
-            return new DreamWindowAssembly(
-                new EvidenceWindow(windowStart, windowEnd, []),
-                LockedScore: 0);
+            var emptyWindow = new IntentWindow(windowStart, windowEnd, []);
+            return new DreamWindowAssembly(emptyWindow, emptyWindow, AvailableTokens: 0, LockedTokens: 0, []);
         }
 
-        var raw = await evidence.CollectAsync(windowStart, windowEnd, sessionCutoff, ct);
-        var processed = await runs.GetProcessedEvidenceAsync(ct);
-        var locked = await runs.GetLockedEvidenceAsync(ct);
-        var processedSet = new HashSet<(string, string)>(
-            processed.Select(p => (p.Kind, p.Id)));
-        var lockedSet = new HashSet<(string, string)>(
-            locked.Select(l => (l.Kind, l.Id)));
+        var raw = await intentWindow.CollectIntentActivityAsync(windowStart, windowEnd, ct);
+        var processed = await runs.GetProcessedIntentIdsAsync(ct);
+        var locked = await runs.GetLockedIntentIdsAsync(ct);
+        var processedSet = new HashSet<string>(processed, StringComparer.Ordinal);
+        var lockedSet = new HashSet<string>(locked, StringComparer.Ordinal);
 
-        var available = new List<EvidenceItem>(raw.Count);
-        var lockedItems = new List<EvidenceItem>();
-        foreach (var item in raw)
+        var available = new List<IntentInWindow>(raw.Count);
+        var lockedItems = new List<IntentInWindow>();
+        foreach (var intent in raw)
         {
-            var key = (item.Kind, item.Id);
-            if (processedSet.Contains(key))
+            if (processedSet.Contains(intent.IntentId))
             {
                 continue;
             }
-            var mapped = new EvidenceItem(item.Kind, item.Id, item.CreatedAt, item.SessionId, item.HighSeverity);
-            if (lockedSet.Contains(key))
+            if (lockedSet.Contains(intent.IntentId))
             {
-                lockedItems.Add(mapped);
+                lockedItems.Add(intent);
             }
             else
             {
-                available.Add(mapped);
+                available.Add(intent);
             }
         }
 
-        var window = new EvidenceWindow(windowStart, windowEnd, available);
-        var lockedScore = new ReadinessCalculator(options).ScoreFor(lockedItems);
-        return new DreamWindowAssembly(window, lockedScore);
+        // Stable order: most-recently-updated first, then by intent id.
+        var sortedAvailable = available
+            .OrderByDescending(i => i.UpdatedAt)
+            .ThenBy(i => i.IntentId, StringComparer.Ordinal)
+            .ToList();
+        var sortedLocked = lockedItems
+            .OrderByDescending(i => i.UpdatedAt)
+            .ThenBy(i => i.IntentId, StringComparer.Ordinal)
+            .ToList();
+
+        var availableWindow = new IntentWindow(windowStart, windowEnd, sortedAvailable);
+        var lockedWindow = new IntentWindow(windowStart, windowEnd, sortedLocked);
+        var availableTokens = tokenCounter.Count(availableWindow);
+        var lockedTokens = tokenCounter.Count(lockedWindow);
+        return new DreamWindowAssembly(
+            availableWindow,
+            lockedWindow,
+            availableTokens.TotalTokens,
+            lockedTokens.TotalTokens,
+            availableTokens.PerIntent);
     }
 }
 
-public sealed record DreamWindowAssembly(EvidenceWindow Window, int LockedScore);
+public sealed record DreamWindowAssembly(
+    IntentWindow Available,
+    IntentWindow Locked,
+    int AvailableTokens,
+    int LockedTokens,
+    IReadOnlyList<IntentTokenBreakdown> AvailableBreakdown);

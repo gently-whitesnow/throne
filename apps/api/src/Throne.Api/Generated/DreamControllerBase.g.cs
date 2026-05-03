@@ -33,7 +33,7 @@ namespace Throne.Api.Generated
         /// Readiness snapshot for the «dream» pipeline.
         /// </summary>
         /// <remarks>
-        /// Returns the «fuel meter» (available_score / locked_score / threshold), evidence breakdown, the safe time window the server is currently considering, and a suggested next action (Run /tdream | Wait | Review pending).
+        /// Returns the «fuel meter» — count of unique-content tokens that would be passed to /dream, count of intents in the safe window, the safe window the server is currently considering, and an informational suggested action (Run /dream | Wait | Review pending). The status is informational and does NOT block /dream.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/dream-runs/readiness", Name = "getDreamReadiness")]

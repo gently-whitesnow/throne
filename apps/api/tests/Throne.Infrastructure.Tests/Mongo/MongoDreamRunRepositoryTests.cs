@@ -12,8 +12,8 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "CreateAsync пишет DreamRun + индекс evidence_refs позволяет lookup")]
-    public async Task Create_persists_run_and_evidence_refs()
+    [Fact(DisplayName = "CreateAsync пишет DreamRun с intent_refs и token_count")]
+    public async Task Create_persists_run_and_intent_refs()
     {
         var (db, repo, uow) = await NewScopeAsync();
         var run = NewRun();
@@ -23,8 +23,10 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
             .Find(d => d.Id == run.Id.Value).FirstOrDefaultAsync();
         stored.Should().NotBeNull();
         stored!.Status.Should().Be(DreamRunStatusNames.Pending);
-        stored.EvidenceRefs.Should().HaveCount(1);
-        stored.EvidenceRefs[0].Kind.Should().Be(EvidenceKindNames.Review);
+        stored.IntentRefs.Should().HaveCount(1);
+        stored.IntentRefs[0].IntentId.Should().Be("intent-1");
+        stored.IntentRefs[0].TokenCount.Should().Be(120);
+        stored.TokenCount.Should().Be(120);
     }
 
     [Fact(DisplayName = "Apply последнего proposal: status=closed, EvidenceProcessed=true")]
@@ -47,28 +49,28 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
         applied.Proposal.AppliedInstructionVersion.Should().Be(9);
     }
 
-    [Fact(DisplayName = "Pending proposal другого run попадает в LockedEvidence; processed после close")]
-    public async Task Locked_then_processed_evidence_lookup()
+    [Fact(DisplayName = "Pending run попадает в LockedIntentIds; processed после close")]
+    public async Task Locked_then_processed_intent_lookup()
     {
         var (_, repo, uow) = await NewScopeAsync();
         var run = NewRun();
         await uow.ExecuteAsync(ct => repo.CreateAsync(run, ct), CancellationToken.None);
 
-        var locked = await repo.GetLockedEvidenceAsync(CancellationToken.None);
-        locked.Should().Contain((EvidenceKindNames.Review, "rev-1"));
+        var locked = await repo.GetLockedIntentIdsAsync(CancellationToken.None);
+        locked.Should().Contain("intent-1");
 
         await uow.ExecuteAsync(
             ct => repo.CloseAsync(run.Id, releaseEvidenceOverride: false, Now.AddMinutes(2), ct),
             CancellationToken.None);
 
-        var processed = await repo.GetProcessedEvidenceAsync(CancellationToken.None);
-        processed.Should().Contain((EvidenceKindNames.Review, "rev-1"));
+        var processed = await repo.GetProcessedIntentIdsAsync(CancellationToken.None);
+        processed.Should().Contain("intent-1");
     }
 
-    [Fact(DisplayName = "Manual close пустого run с release_evidence=true → evidence не processed")]
-    public async Task Empty_run_close_releases_evidence()
+    [Fact(DisplayName = "Manual close пустого run с release_evidence=null → intents не processed и сняты")]
+    public async Task Empty_run_close_releases_intents()
     {
-        var (_, repo, uow) = await NewScopeAsync();
+        var (db, repo, uow) = await NewScopeAsync();
         var run = NewRun();
         await uow.ExecuteAsync(ct => repo.CreateAsync(run, ct), CancellationToken.None);
 
@@ -76,8 +78,12 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
             ct => repo.CloseAsync(run.Id, releaseEvidenceOverride: null, Now.AddMinutes(2), ct),
             CancellationToken.None);
 
-        var processed = await repo.GetProcessedEvidenceAsync(CancellationToken.None);
+        var processed = await repo.GetProcessedIntentIdsAsync(CancellationToken.None);
         processed.Should().BeEmpty();
+
+        var stored = await db.GetCollection<DreamRunDocument>(MongoCollectionNames.DreamRuns)
+            .Find(d => d.Id == run.Id.Value).FirstOrDefaultAsync();
+        stored!.IntentRefs.Should().BeEmpty();
     }
 
     private async Task<(IMongoDatabase Db, MongoDreamRunRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
@@ -95,10 +101,8 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
         DreamRunId.New(),
         Now.AddDays(-7),
         Now.AddMinutes(-30),
-        readinessScore: 12,
-        new EvidenceCounts(1, 0, 0, 0, 0, 0, 0),
-        [EvidenceRef.Create(EvidenceKindNames.Review, "rev-1")],
-        OmittedEvidenceCounts.Zero,
+        tokenCount: 120,
+        [IntentRef.Create("intent-1", 120, Now)],
         Now);
 
     private static DreamProposal NewProposal() => DreamProposal.Create(
@@ -107,8 +111,8 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
         targetKind: "work",
         baseInstructionVersion: 5,
         proposedRule: "Не делай unrelated refactor.",
-        evidenceSummary: "Reviews указывают на расширение скоупа.",
-        evidenceRefs: [EvidenceRef.Create(EvidenceKindNames.Review, "rev-1")],
+        evidenceSummary: "intents:1,tokens:120",
+        intentRefs: [IntentRef.Create("intent-1", 120, Now)],
         rationale: "См. связанные reviews.",
         severity: DreamProposalSeverityNames.High);
 }

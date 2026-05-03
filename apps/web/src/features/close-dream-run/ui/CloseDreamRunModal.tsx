@@ -77,8 +77,8 @@ export function CloseDreamRunModal({ run, onClosed, onCancel }: Props) {
           <span>
             <span className="font-semibold">Release evidence</span>
             <span className="block text-xs text-base-content/60">
-              Если включено, evidence_refs run-а вернутся в пул unprocessed и
-              смогут попасть в следующий /tdream.
+              Если включено, intent_refs run-а вернутся в пул unprocessed и
+              смогут попасть в следующий /dream.
               {empty ? " По умолчанию для пустых run-ов." : ""}
             </span>
           </span>

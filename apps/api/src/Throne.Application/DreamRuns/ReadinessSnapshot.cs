@@ -1,19 +1,15 @@
-using Throne.Domain.DreamRuns;
-
 namespace Throne.Application.DreamRuns;
 
 /// <summary>
-/// Result of a readiness query: total available «fuel», what's locked behind a
-/// pending DreamRun, and the human-actionable status served to UI / MCP.
+/// Readiness snapshot for the «dream» pipeline. Token-counter model (ADR-0011 v2).
+/// <see cref="Status"/> is informational and never blocks /dream — the user always
+/// decides whether to run.
 /// </summary>
 public sealed record ReadinessSnapshot(
     string Status,
-    int AvailableScore,
-    int LockedScore,
-    int Threshold,
-    EvidenceCounts EvidenceCounts,
-    DateTimeOffset? OldestUnprocessedAt,
-    DateTimeOffset? NewestSafeEvidenceAt,
+    int AvailableTokens,
+    int LockedTokens,
+    int IntentCount,
     DateTimeOffset SafeWindowStart,
     DateTimeOffset SafeWindowEnd,
     int PendingProposalsCount,
@@ -23,24 +19,17 @@ public sealed record ReadinessSnapshot(
 public static class ReadinessStatusNames
 {
     public const string Empty = "empty";
-    public const string WarmingUp = "warming_up";
-    public const string Ready = "ready";
-    public const string Rich = "rich";
+    public const string HasContent = "has_content";
     public const string PendingReview = "pending_review";
 
-    public static readonly IReadOnlyList<string> All =
-    [
-        Empty,
-        WarmingUp,
-        Ready,
-        Rich,
-        PendingReview,
-    ];
+    public static readonly IReadOnlyList<string> All = [Empty, HasContent, PendingReview];
+
+    public static bool IsKnown(string value) => All.Contains(value, StringComparer.Ordinal);
 }
 
 public static class ReadinessSuggestedActions
 {
     public const string Wait = "Wait for more signals";
-    public const string Run = "Run /tdream";
+    public const string Run = "Run /dream";
     public const string Review = "Review pending dream proposals";
 }

@@ -79,7 +79,7 @@ internal sealed class RealtimeDomainEventHandler(
             RealtimeEventNames.DreamRunClosed, DreamDtoMapper.ToRunDto(closed.Run)),
         DreamFuelChanged fuel => new RealtimeEventEnvelope(
             RealtimeEventNames.DreamFuelChanged,
-            new { available_score = fuel.AvailableScore, status = fuel.Status }),
+            new { available_tokens = fuel.AvailableTokens, status = fuel.Status }),
         _ => null,
     };
 

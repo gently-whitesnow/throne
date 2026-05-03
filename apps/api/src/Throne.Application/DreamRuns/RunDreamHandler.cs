@@ -25,9 +25,8 @@ public static class RunDreamResultStatuses
 }
 
 /// <summary>
-/// Result of <see cref="RunDreamHandler"/>. Server-managed: the agent never
-/// chooses its own evidence window or context size. <see cref="Status"/> selects
-/// which optional payload is meaningful (Intent 4 §run_dream).
+/// Result of <see cref="RunDreamHandler"/>. Server-managed: the agent never chooses
+/// its own intent window or context size.
 /// </summary>
 public sealed record RunDreamResult(
     string Status,
@@ -38,21 +37,17 @@ public sealed record RunDreamResult(
 public sealed record DreamRunPayload(
     DreamRun Run,
     DreamEvidenceSummary EvidenceSummary,
-    IReadOnlyList<EvidenceRef> EvidenceRefs);
+    IReadOnlyList<IntentRef> IntentRefs);
 
 public sealed record DreamEvidenceSummary(
-    EvidenceCounts Counts,
-    IReadOnlyList<DreamEvidencePattern> Patterns,
-    IReadOnlyList<string> SuggestedTargetKinds,
+    int IntentCount,
+    int TokenCount,
     IReadOnlyDictionary<string, IReadOnlyList<LearnedRule>> ExistingLearnedRulesByKind);
-
-public sealed record DreamEvidencePattern(string Kind, int Count, bool HighSeverity);
 
 public sealed class RunDreamHandler(
     IDreamRunRepository runs,
     IInstructionRepository instructions,
     DreamWindowResolver windows,
-    DreamOptions options,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -66,8 +61,6 @@ public sealed class RunDreamHandler(
     ];
 
     private static readonly TimeSpan IdempotencyWindow = TimeSpan.FromHours(24);
-
-    private static readonly DreamContextBudget Budget = DreamContextBudget.Default;
 
     public async Task<RunDreamResult> HandleAsync(RunDreamCommand command, CancellationToken ct)
     {
@@ -84,12 +77,7 @@ public sealed class RunDreamHandler(
         var assembly = await windows.AssembleAsync(ct);
         var pendingRuns = await runs.ListPendingAsync(ct);
         var pendingProposals = pendingRuns.Sum(r => r.PendingCount);
-        var calculator = new ReadinessCalculator(options);
-        var readiness = calculator.Calculate(
-            assembly.Window,
-            pendingProposals,
-            pendingRuns.Count,
-            assembly.LockedScore);
+        var readiness = ReadinessProjector.Project(assembly, pendingProposals, pendingRuns.Count);
 
         var idempotent = FindIdempotentRun(pendingRuns);
         if (idempotent is not null)
@@ -98,31 +86,30 @@ public sealed class RunDreamHandler(
             return new RunDreamResult(
                 RunDreamResultStatuses.ExistingPending,
                 readiness,
-                new DreamRunPayload(idempotent, summary, idempotent.EvidenceRefs),
+                new DreamRunPayload(idempotent, summary, idempotent.IntentRefs),
                 Reason: null);
         }
 
-        if (readiness.Status is ReadinessStatusNames.Empty or ReadinessStatusNames.WarmingUp)
+        if (assembly.Available.Items.Count == 0)
         {
             return new RunDreamResult(
                 RunDreamResultStatuses.NotEnoughContext,
                 readiness,
                 DreamRun: null,
-                Reason: $"Only {readiness.EvidenceCounts.Total} items in safe window, threshold={readiness.Threshold}");
+                Reason: "No intents with qa or review activity in the safe window.");
         }
 
-        var prioritized = EvidencePrioritizer.Prioritize(assembly.Window.Items);
-        var pack = DreamContextBudgetApplier.Apply(prioritized, Budget);
-        var score = calculator.ScoreFor(assembly.Window.Items);
         var now = clock.GetUtcNow();
+        var intentRefs = assembly.AvailableBreakdown
+            .Select(b => IntentRef.Create(b.IntentId, b.TokenCount, now))
+            .ToList();
+
         var run = DreamRun.Create(
             DreamRunId.New(),
-            assembly.Window.WindowStart,
-            assembly.Window.WindowEnd,
-            score,
-            pack.Counts,
-            pack.EvidenceRefs,
-            pack.Omitted,
+            assembly.Available.WindowStart,
+            assembly.Available.WindowEnd,
+            assembly.AvailableTokens,
+            intentRefs,
             now);
 
         await unitOfWork.ExecuteAsync(
@@ -133,7 +120,7 @@ public sealed class RunDreamHandler(
         return new RunDreamResult(
             RunDreamResultStatuses.Created,
             readiness,
-            new DreamRunPayload(run, evidenceSummary, run.EvidenceRefs),
+            new DreamRunPayload(run, evidenceSummary, run.IntentRefs),
             Reason: null);
     }
 
@@ -152,59 +139,8 @@ public sealed class RunDreamHandler(
 
     private async Task<DreamEvidenceSummary> BuildEvidenceSummaryAsync(DreamRun run, CancellationToken ct)
     {
-        var patterns = BuildPatterns(run.EvidenceRefs, run.EvidenceCounts);
-        var suggestedKinds = SuggestTargetKinds(run.EvidenceCounts, patterns);
         var existing = await CollectExistingRulesAsync(ct);
-        return new DreamEvidenceSummary(run.EvidenceCounts, patterns, suggestedKinds, existing);
-    }
-
-    private static DreamEvidencePattern[] BuildPatterns(
-        IReadOnlyList<EvidenceRef> refs,
-        EvidenceCounts counts)
-    {
-        var patterns = new List<DreamEvidencePattern>();
-        AddIfPresent(patterns, EvidenceKindNames.ManualCorrection, counts.ManualCorrections);
-        AddIfPresent(patterns, EvidenceKindNames.Review, counts.Reviews);
-        AddIfPresent(patterns, EvidenceKindNames.Verification, counts.VerificationFailures);
-        AddIfPresent(patterns, EvidenceKindNames.McpCall, counts.McpErrors);
-        AddIfPresent(patterns, EvidenceKindNames.Qa, counts.Qa);
-        AddIfPresent(patterns, EvidenceKindNames.Outcome, counts.AcceptedOutcomes);
-
-        return patterns
-            .Take(Budget.MaxPatterns)
-            .ToArray();
-    }
-
-    private static void AddIfPresent(List<DreamEvidencePattern> sink, string kind, int count)
-    {
-        if (count > 0)
-        {
-            sink.Add(new DreamEvidencePattern(kind, count, HighSeverity: false));
-        }
-    }
-
-    private static string[] SuggestTargetKinds(
-        EvidenceCounts counts,
-        DreamEvidencePattern[] patterns)
-    {
-        var suggestions = new List<string>();
-        if (counts.Reviews > 0 || counts.VerificationFailures > 0)
-        {
-            suggestions.Add(InstructionKindNames.Work);
-        }
-        if (counts.Qa > 0)
-        {
-            suggestions.Add(InstructionKindNames.Interview);
-        }
-        if (counts.ManualCorrections > 0)
-        {
-            suggestions.Add(InstructionKindNames.Common);
-        }
-        if (suggestions.Count == 0 && patterns.Length > 0)
-        {
-            suggestions.Add(InstructionKindNames.Common);
-        }
-        return suggestions.Distinct(StringComparer.Ordinal).ToArray();
+        return new DreamEvidenceSummary(run.IntentRefs.Count, run.TokenCount, existing);
     }
 
     private async Task<IReadOnlyDictionary<string, IReadOnlyList<LearnedRule>>> CollectExistingRulesAsync(

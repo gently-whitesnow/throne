@@ -6,11 +6,7 @@ import {
   DreamProposalDecisionBadge,
   DreamProposalSeverityBadge
 } from "@/entities/dream-proposal";
-import {
-  type DreamEvidenceRef,
-  type DreamRun,
-  evidenceKindLabel
-} from "@/entities/dream-run";
+import { type DreamIntentRef, type DreamRun } from "@/entities/dream-run";
 import { ApplyDreamProposalModal } from "@/features/apply-dream-proposal";
 import { SkipDreamProposalModal } from "@/features/skip-dream-proposal";
 import { Button } from "@/shared/ui";
@@ -80,8 +76,8 @@ export function DreamProposalCard({
         </p>
       ) : null}
 
-      {proposal.evidence_refs.length > 0 ? (
-        <EvidenceRefsList refs={proposal.evidence_refs} />
+      {proposal.intent_refs.length > 0 ? (
+        <IntentRefsList refs={proposal.intent_refs} />
       ) : null}
 
       {proposal.rejected_reason ? (
@@ -151,23 +147,23 @@ export function DreamProposalCard({
   );
 }
 
-function EvidenceRefsList({ refs }: { refs: DreamEvidenceRef[] }) {
+const tokensFormatter = new Intl.NumberFormat("en-US");
+
+function IntentRefsList({ refs }: { refs: DreamIntentRef[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {refs.map((ref) => {
-        const meta = evidenceKindLabel(ref.kind);
-        return (
-          <span
-            key={`${ref.kind}:${ref.id}`}
-            className="inline-flex h-[18px] items-center gap-1 rounded-full px-2 text-[10px] font-semibold uppercase tracking-wide"
-            style={{ background: meta.surface, color: meta.ink }}
-            title={ref.id}
-          >
-            <span>{meta.label}</span>
-            <span className="font-mono normal-case">{shortId(ref.id)}</span>
+      {refs.map((ref) => (
+        <span
+          key={ref.intent_id}
+          className="inline-flex h-[18px] items-center gap-1 rounded-full bg-base-200 px-2 text-[10px] font-semibold uppercase tracking-wide text-base-content/70"
+          title={ref.intent_id}
+        >
+          <span className="font-mono normal-case">
+            {shortId(ref.intent_id)}
           </span>
-        );
-      })}
+          <span>· {tokensFormatter.format(ref.token_count)} tok</span>
+        </span>
+      ))}
     </div>
   );
 }

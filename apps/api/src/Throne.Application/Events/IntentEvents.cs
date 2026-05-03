@@ -45,4 +45,4 @@ public sealed record DreamRunClosed(DreamRun Run) : IDomainEvent;
 /// produced by an out-of-band debouncer that observes meaningful evidence writes.
 /// UI may also call <c>GET /api/v1/dream-runs/readiness</c> for an authoritative snapshot.
 /// </summary>
-public sealed record DreamFuelChanged(int AvailableScore, string Status) : IDomainEvent;
+public sealed record DreamFuelChanged(int AvailableTokens, string Status) : IDomainEvent;

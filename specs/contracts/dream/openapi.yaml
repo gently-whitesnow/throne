@@ -6,6 +6,8 @@ info:
     HTTP surface for the Dream loop (ADR-0011). Pending proposals live inside DreamRun
     aggregates and never become text_versions; applying a proposal injects the rule into
     the target instruction's `## Learned rules` section as an ordinary text version.
+    Readiness is reported as a token counter over the Intents that would feed the next
+    /dream invocation. There is no blocking threshold — /dream is a manual user command.
   x-csharp-namespace: Throne.Dream.Contracts.Generated
 paths:
   /api/v1/dream-runs/readiness:
@@ -14,9 +16,10 @@ paths:
       tags: [Dream]
       summary: Readiness snapshot for the «dream» pipeline.
       description: >
-        Returns the «fuel meter» (available_score / locked_score / threshold), evidence
-        breakdown, the safe time window the server is currently considering, and a
-        suggested next action (Run /tdream | Wait | Review pending).
+        Returns the «fuel meter» — count of unique-content tokens that would be passed
+        to /dream, count of intents in the safe window, the safe window the server is
+        currently considering, and an informational suggested action (Run /dream | Wait |
+        Review pending). The status is informational and does NOT block /dream.
       responses:
         '200':
           description: OK
@@ -219,15 +222,14 @@ components:
   schemas:
     DreamReadinessStatus:
       type: string
-      enum: [empty, warming_up, ready, rich, pending_review]
+      enum: [empty, has_content, pending_review]
     DreamReadinessDto:
       type: object
       required:
         - status
-        - available_score
-        - locked_score
-        - threshold
-        - evidence_counts
+        - available_tokens
+        - locked_tokens
+        - intent_count
         - safe_window_start
         - safe_window_end
         - pending_proposals_count
@@ -236,26 +238,21 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/DreamReadinessStatus'
-        available_score:
+        available_tokens:
           type: integer
           format: int32
           minimum: 0
-        locked_score:
+          description: Sum of cl100k_base tokens of unique content that would feed the next /dream.
+        locked_tokens:
           type: integer
           format: int32
           minimum: 0
-        threshold:
+          description: Tokens of intents already snapshotted by pending DreamRuns.
+        intent_count:
           type: integer
           format: int32
           minimum: 0
-        evidence_counts:
-          $ref: '#/components/schemas/DreamEvidenceCountsDto'
-        oldest_unprocessed_at:
-          type: string
-          format: date-time
-        newest_safe_evidence_at:
-          type: string
-          format: date-time
+          description: Number of distinct intents currently available for /dream.
         safe_window_start:
           type: string
           format: date-time
@@ -272,72 +269,18 @@ components:
           minimum: 0
         suggested_action:
           type: string
-          description: Human-readable suggestion (Run /tdream | Wait for more signals | Review pending dream proposals).
-    DreamEvidenceCountsDto:
+          description: Informational hint (Run /dream | Wait for more signals | Review pending dream proposals). Never blocking.
+    DreamIntentRefDto:
       type: object
-      required:
-        - reviews
-        - qa
-        - mcp_errors
-        - accepted_outcomes
-        - manual_corrections
-        - verification_failures
-        - skipped_proposals
+      required: [intent_id, token_count, snapshotted_at]
       properties:
-        reviews:
-          type: integer
-          format: int32
-          minimum: 0
-        qa:
-          type: integer
-          format: int32
-          minimum: 0
-        mcp_errors:
-          type: integer
-          format: int32
-          minimum: 0
-        accepted_outcomes:
-          type: integer
-          format: int32
-          minimum: 0
-        manual_corrections:
-          type: integer
-          format: int32
-          minimum: 0
-        verification_failures:
-          type: integer
-          format: int32
-          minimum: 0
-        skipped_proposals:
-          type: integer
-          format: int32
-          minimum: 0
-    DreamOmittedCountsDto:
-      type: object
-      required: [too_recent, budget_exceeded, low_priority]
-      properties:
-        too_recent:
-          type: integer
-          format: int32
-          minimum: 0
-        budget_exceeded:
-          type: integer
-          format: int32
-          minimum: 0
-        low_priority:
-          type: integer
-          format: int32
-          minimum: 0
-    DreamEvidenceRefDto:
-      type: object
-      required: [kind, id]
-      properties:
-        kind:
+        intent_id:
           type: string
-          enum: [review, qa, mcp_call, outcome, verification, manual_correction]
-        id:
-          type: string
-        created_at:
+        token_count:
+          type: integer
+          format: int32
+          minimum: 0
+        snapshotted_at:
           type: string
           format: date-time
     DreamProposalDto:
@@ -349,7 +292,7 @@ components:
         - base_instruction_version
         - proposed_rule
         - evidence_summary
-        - evidence_refs
+        - intent_refs
         - rationale
         - severity
         - decision
@@ -369,10 +312,10 @@ components:
           maxLength: 280
         evidence_summary:
           type: string
-        evidence_refs:
+        intent_refs:
           type: array
           items:
-            $ref: '#/components/schemas/DreamEvidenceRefDto'
+            $ref: '#/components/schemas/DreamIntentRefDto'
         rationale:
           type: string
         severity:
@@ -396,10 +339,8 @@ components:
         - status
         - window_start
         - window_end
-        - readiness_score
-        - evidence_counts
-        - omitted_counts
-        - evidence_refs
+        - token_count
+        - intent_refs
         - proposals
         - created_at
         - evidence_processed
@@ -415,18 +356,14 @@ components:
         window_end:
           type: string
           format: date-time
-        readiness_score:
+        token_count:
           type: integer
           format: int32
           minimum: 0
-        evidence_counts:
-          $ref: '#/components/schemas/DreamEvidenceCountsDto'
-        omitted_counts:
-          $ref: '#/components/schemas/DreamOmittedCountsDto'
-        evidence_refs:
+        intent_refs:
           type: array
           items:
-            $ref: '#/components/schemas/DreamEvidenceRefDto'
+            $ref: '#/components/schemas/DreamIntentRefDto'
         proposals:
           type: array
           items:

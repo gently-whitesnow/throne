@@ -34,21 +34,13 @@ namespace Throne.Dream.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"empty")]
         Empty = 0,
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"warming_up")]
-        [System.Runtime.Serialization.EnumMember(Value = @"warming_up")]
-        Warming_up = 1,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready")]
-        [System.Runtime.Serialization.EnumMember(Value = @"ready")]
-        Ready = 2,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"rich")]
-        [System.Runtime.Serialization.EnumMember(Value = @"rich")]
-        Rich = 3,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"has_content")]
+        [System.Runtime.Serialization.EnumMember(Value = @"has_content")]
+        Has_content = 1,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"pending_review")]
         [System.Runtime.Serialization.EnumMember(Value = @"pending_review")]
-        Pending_review = 4,
+        Pending_review = 2,
 
     }
 
@@ -61,27 +53,26 @@ namespace Throne.Dream.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DreamReadinessStatus>))]
         public DreamReadinessStatus Status { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("available_score")]
+        /// <summary>
+        /// Sum of cl100k_base tokens of unique content that would feed the next /dream.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("available_tokens")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Available_score { get; set; }
+        public int Available_tokens { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("locked_score")]
+        /// <summary>
+        /// Tokens of intents already snapshotted by pending DreamRuns.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("locked_tokens")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Locked_score { get; set; }
+        public int Locked_tokens { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("threshold")]
+        /// <summary>
+        /// Number of distinct intents currently available for /dream.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_count")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Threshold { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("evidence_counts")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public DreamEvidenceCountsDto Evidence_counts { get; set; } = new DreamEvidenceCountsDto();
-
-        [System.Text.Json.Serialization.JsonPropertyName("oldest_unprocessed_at")]
-        public System.DateTimeOffset Oldest_unprocessed_at { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("newest_safe_evidence_at")]
-        public System.DateTimeOffset Newest_safe_evidence_at { get; set; }
+        public int Intent_count { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("safe_window_start")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -100,7 +91,7 @@ namespace Throne.Dream.Contracts.Generated
         public int Pending_runs_count { get; set; }
 
         /// <summary>
-        /// Human-readable suggestion (Run /tdream | Wait for more signals | Review pending dream proposals).
+        /// Informational hint (Run /dream | Wait for more signals | Review pending dream proposals). Never blocking.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("suggested_action")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -118,90 +109,20 @@ namespace Throne.Dream.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DreamEvidenceCountsDto
+    public partial class DreamIntentRefDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("reviews")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Reviews { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("qa")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Qa { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("mcp_errors")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Mcp_errors { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("accepted_outcomes")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Accepted_outcomes { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("manual_corrections")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Manual_corrections { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("verification_failures")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Verification_failures { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("skipped_proposals")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Skipped_proposals { get; set; }
-
-        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DreamOmittedCountsDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("too_recent")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Too_recent { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("budget_exceeded")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Budget_exceeded { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("low_priority")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Low_priority { get; set; }
-
-        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class DreamEvidenceRefDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonPropertyName("intent_id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DreamEvidenceRefDtoKind>))]
-        public DreamEvidenceRefDtoKind Kind { get; set; }
+        public string Intent_id { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.Text.Json.Serialization.JsonPropertyName("token_count")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Token_count { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("snapshotted_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Id { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
-        public System.DateTimeOffset Created_at { get; set; }
+        public System.DateTimeOffset Snapshotted_at { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -243,9 +164,9 @@ namespace Throne.Dream.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Evidence_summary { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("evidence_refs")]
+        [System.Text.Json.Serialization.JsonPropertyName("intent_refs")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<DreamEvidenceRefDto> Evidence_refs { get; set; } = new System.Collections.ObjectModel.Collection<DreamEvidenceRefDto>();
+        public System.Collections.Generic.ICollection<DreamIntentRefDto> Intent_refs { get; set; } = new System.Collections.ObjectModel.Collection<DreamIntentRefDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("rationale")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -303,21 +224,13 @@ namespace Throne.Dream.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Window_end { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("readiness_score")]
+        [System.Text.Json.Serialization.JsonPropertyName("token_count")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Readiness_score { get; set; }
+        public int Token_count { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("evidence_counts")]
+        [System.Text.Json.Serialization.JsonPropertyName("intent_refs")]
         [System.ComponentModel.DataAnnotations.Required]
-        public DreamEvidenceCountsDto Evidence_counts { get; set; } = new DreamEvidenceCountsDto();
-
-        [System.Text.Json.Serialization.JsonPropertyName("omitted_counts")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public DreamOmittedCountsDto Omitted_counts { get; set; } = new DreamOmittedCountsDto();
-
-        [System.Text.Json.Serialization.JsonPropertyName("evidence_refs")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<DreamEvidenceRefDto> Evidence_refs { get; set; } = new System.Collections.ObjectModel.Collection<DreamEvidenceRefDto>();
+        public System.Collections.Generic.ICollection<DreamIntentRefDto> Intent_refs { get; set; } = new System.Collections.ObjectModel.Collection<DreamIntentRefDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("proposals")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -519,36 +432,6 @@ namespace Throne.Dream.Contracts.Generated
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum DreamEvidenceRefDtoKind
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"review")]
-        [System.Runtime.Serialization.EnumMember(Value = @"review")]
-        Review = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"qa")]
-        [System.Runtime.Serialization.EnumMember(Value = @"qa")]
-        Qa = 1,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"mcp_call")]
-        [System.Runtime.Serialization.EnumMember(Value = @"mcp_call")]
-        Mcp_call = 2,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"outcome")]
-        [System.Runtime.Serialization.EnumMember(Value = @"outcome")]
-        Outcome = 3,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"verification")]
-        [System.Runtime.Serialization.EnumMember(Value = @"verification")]
-        Verification = 4,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"manual_correction")]
-        [System.Runtime.Serialization.EnumMember(Value = @"manual_correction")]
-        Manual_correction = 5,
 
     }
 

@@ -48,6 +48,7 @@ public static class DependencyInjection
         services.AddSingleton<GetUserInstructionHandler>();
         services.AddSingleton<ReplaceInstructionTextHandler>();
         services.AddSingleton<ListInstructionVersionsHandler>();
+        services.AddSingleton<ContextTokenCounter>();
         services.AddSingleton<DreamWindowResolver>();
         services.AddSingleton<GetDreamReadinessHandler>();
         services.AddSingleton<ListPendingDreamRunsHandler>();

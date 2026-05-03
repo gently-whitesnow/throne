@@ -17,7 +17,7 @@ public sealed class DreamProposal
         int baseInstructionVersion,
         string proposedRule,
         string evidenceSummary,
-        IReadOnlyList<EvidenceRef> evidenceRefs,
+        IReadOnlyList<IntentRef> intentRefs,
         string rationale,
         string severity,
         string decision,
@@ -31,7 +31,7 @@ public sealed class DreamProposal
         BaseInstructionVersion = baseInstructionVersion;
         ProposedRule = proposedRule;
         EvidenceSummary = evidenceSummary;
-        EvidenceRefs = evidenceRefs;
+        IntentRefs = intentRefs;
         Rationale = rationale;
         Severity = severity;
         Decision = decision;
@@ -46,7 +46,7 @@ public sealed class DreamProposal
     public int BaseInstructionVersion { get; }
     public string ProposedRule { get; }
     public string EvidenceSummary { get; }
-    public IReadOnlyList<EvidenceRef> EvidenceRefs { get; }
+    public IReadOnlyList<IntentRef> IntentRefs { get; }
     public string Rationale { get; }
     public string Severity { get; }
     public string Decision { get; private set; }
@@ -63,7 +63,7 @@ public sealed class DreamProposal
         int baseInstructionVersion,
         string proposedRule,
         string evidenceSummary,
-        IReadOnlyList<EvidenceRef> evidenceRefs,
+        IReadOnlyList<IntentRef> intentRefs,
         string rationale,
         string severity)
     {
@@ -73,7 +73,7 @@ public sealed class DreamProposal
         ArgumentException.ThrowIfNullOrWhiteSpace(evidenceSummary);
         ArgumentException.ThrowIfNullOrWhiteSpace(rationale);
         ArgumentException.ThrowIfNullOrWhiteSpace(severity);
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
+        ArgumentNullException.ThrowIfNull(intentRefs);
         if (proposedRule.Length > ProposedRuleMaxLength)
         {
             throw new ArgumentException(
@@ -89,7 +89,7 @@ public sealed class DreamProposal
         {
             throw new ArgumentOutOfRangeException(nameof(severity), $"Unknown severity: {severity}.");
         }
-        ValidateSeverityEvidence(severity, evidenceRefs);
+        ValidateSeverityIntents(severity, intentRefs);
 
         return new DreamProposal(
             id,
@@ -98,7 +98,7 @@ public sealed class DreamProposal
             baseInstructionVersion,
             proposedRule,
             evidenceSummary,
-            [.. evidenceRefs],
+            [.. intentRefs],
             rationale,
             severity,
             DreamProposalDecisionNames.Pending,
@@ -114,7 +114,7 @@ public sealed class DreamProposal
         int baseInstructionVersion,
         string proposedRule,
         string evidenceSummary,
-        IReadOnlyList<EvidenceRef> evidenceRefs,
+        IReadOnlyList<IntentRef> intentRefs,
         string rationale,
         string severity,
         string decision,
@@ -133,7 +133,7 @@ public sealed class DreamProposal
 
         return new DreamProposal(
             id, targetInstructionId, targetKind, baseInstructionVersion,
-            proposedRule, evidenceSummary, [.. evidenceRefs], rationale, severity,
+            proposedRule, evidenceSummary, [.. intentRefs], rationale, severity,
             decision, finalRule, appliedInstructionVersion, rejectedReason);
     }
 
@@ -158,7 +158,7 @@ public sealed class DreamProposal
         RejectedReason = reason;
     }
 
-    private static void ValidateSeverityEvidence(string severity, IReadOnlyList<EvidenceRef> refs)
+    private static void ValidateSeverityIntents(string severity, IReadOnlyList<IntentRef> refs)
     {
         var minimum = severity switch
         {
@@ -167,10 +167,11 @@ public sealed class DreamProposal
             DreamProposalSeverityNames.Low => 3,
             _ => throw new ArgumentOutOfRangeException(nameof(severity)),
         };
-        if (refs.Count < minimum)
+        var distinct = refs.Select(r => r.IntentId).Distinct(StringComparer.Ordinal).Count();
+        if (distinct < minimum)
         {
             throw new ArgumentException(
-                $"Severity '{severity}' requires at least {minimum} evidence ref(s); got {refs.Count}.",
+                $"Severity '{severity}' requires at least {minimum} distinct intent ref(s); got {distinct}.",
                 nameof(refs));
         }
     }

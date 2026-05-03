@@ -81,9 +81,8 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                     new CreateIndexOptions { Name = "status_created" }),
                 new CreateIndexModel<DreamRunDocument>(
                     Builders<DreamRunDocument>.IndexKeys
-                        .Ascending("evidence_refs.kind")
-                        .Ascending("evidence_refs.id"),
-                    new CreateIndexOptions { Name = "evidence_refs_lookup" }),
+                        .Ascending("intent_refs.intent_id"),
+                    new CreateIndexOptions { Name = "intent_refs_lookup" }),
                 new CreateIndexModel<DreamRunDocument>(
                     Builders<DreamRunDocument>.IndexKeys
                         .Ascending(x => x.Status)

@@ -54,41 +54,41 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
         return doc is null ? null : MongoDreamRunMapping.ToDomain(doc);
     }
 
-    public async Task<IReadOnlyCollection<(string Kind, string Id)>> GetProcessedEvidenceAsync(CancellationToken ct)
+    public async Task<IReadOnlyCollection<string>> GetProcessedIntentIdsAsync(CancellationToken ct)
     {
         var session = sessions.Current;
         var filter = Builders<DreamRunDocument>.Filter.And(
             Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Closed),
             Builders<DreamRunDocument>.Filter.Eq(d => d.EvidenceProcessed, true));
         var docs = session is null
-            ? await _runs.Find(filter).Project(d => d.EvidenceRefs).ToListAsync(ct)
-            : await _runs.Find(session, filter).Project(d => d.EvidenceRefs).ToListAsync(ct);
+            ? await _runs.Find(filter).Project(d => d.IntentRefs).ToListAsync(ct)
+            : await _runs.Find(session, filter).Project(d => d.IntentRefs).ToListAsync(ct);
 
-        var set = new HashSet<(string, string)>();
+        var set = new HashSet<string>(StringComparer.Ordinal);
         foreach (var refs in docs)
         {
             foreach (var r in refs)
             {
-                set.Add((r.Kind, r.Id));
+                set.Add(r.IntentId);
             }
         }
         return set;
     }
 
-    public async Task<IReadOnlyCollection<(string Kind, string Id)>> GetLockedEvidenceAsync(CancellationToken ct)
+    public async Task<IReadOnlyCollection<string>> GetLockedIntentIdsAsync(CancellationToken ct)
     {
         var session = sessions.Current;
         var filter = Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Pending);
         var docs = session is null
-            ? await _runs.Find(filter).Project(d => d.EvidenceRefs).ToListAsync(ct)
-            : await _runs.Find(session, filter).Project(d => d.EvidenceRefs).ToListAsync(ct);
+            ? await _runs.Find(filter).Project(d => d.IntentRefs).ToListAsync(ct)
+            : await _runs.Find(session, filter).Project(d => d.IntentRefs).ToListAsync(ct);
 
-        var set = new HashSet<(string, string)>();
+        var set = new HashSet<string>(StringComparer.Ordinal);
         foreach (var refs in docs)
         {
             foreach (var r in refs)
             {
-                set.Add((r.Kind, r.Id));
+                set.Add(r.IntentId);
             }
         }
         return set;

@@ -1,16 +1,8 @@
-export {
-  evidenceKindLabel,
-  isEmptyRun,
-  pendingProposalsCount
-} from "./model/types";
+export { isEmptyRun, pendingProposalsCount } from "./model/types";
 export type {
-  DreamEvidenceCounts,
-  DreamEvidenceRef,
-  DreamOmittedCounts,
+  DreamIntentRef,
   DreamPendingCount,
   DreamRun,
-  DreamRunDetail,
-  EvidenceKindMeta
+  DreamRunDetail
 } from "./model/types";
-export { DreamEvidenceCountsList } from "./ui/DreamEvidenceCountsList";
 export { DreamRunStatusBadge } from "./ui/DreamRunStatusBadge";

@@ -6,9 +6,9 @@ namespace Throne.Domain.Tests.DreamRuns;
 public class DreamRunTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
-    private static readonly EvidenceRef HighRef = EvidenceRef.Create(EvidenceKindNames.Review, "rev-1");
-    private static readonly EvidenceRef MediumRefA = EvidenceRef.Create(EvidenceKindNames.Qa, "qa-1");
-    private static readonly EvidenceRef MediumRefB = EvidenceRef.Create(EvidenceKindNames.Qa, "qa-2");
+    private static readonly IntentRef IntentA = IntentRef.Create("intent-A", tokenCount: 120, Now);
+    private static readonly IntentRef IntentB = IntentRef.Create("intent-B", tokenCount: 80, Now);
+    private static readonly IntentRef IntentC = IntentRef.Create("intent-C", tokenCount: 200, Now);
 
     [Fact(DisplayName = "DreamRun.Create — pending status, без proposals, окно валидно")]
     public void Create_initializes_pending_run()
@@ -18,21 +18,50 @@ public class DreamRunTests
         run.Proposals.Should().BeEmpty();
         run.IsClosed.Should().BeFalse();
         run.EvidenceProcessed.Should().BeFalse();
+        run.IntentRefs.Should().HaveCount(3);
+        run.TokenCount.Should().Be(400);
     }
 
-    [Fact(DisplayName = "AddProposal: high-severity требует ≥1 evidence ref")]
-    public void HighSeverity_requires_one_ref()
+    [Fact(DisplayName = "DreamRun.Create требует ≥1 IntentRef")]
+    public void Create_requires_at_least_one_intent_ref()
+    {
+        var act = () => DreamRun.Create(
+            DreamRunId.New(),
+            Now.AddDays(-1),
+            Now,
+            tokenCount: 0,
+            intentRefs: [],
+            now: Now);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact(DisplayName = "DreamRun.Create отклоняет дубликаты IntentRef по intent_id")]
+    public void Create_rejects_duplicate_intent_ids()
+    {
+        var dup = IntentRef.Create("intent-A", 50, Now);
+        var act = () => DreamRun.Create(
+            DreamRunId.New(),
+            Now.AddDays(-1),
+            Now,
+            tokenCount: 170,
+            intentRefs: [IntentA, dup],
+            now: Now);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact(DisplayName = "AddProposal: high-severity требует ≥1 distinct intent ref")]
+    public void HighSeverity_requires_one_intent()
     {
         var run = NewRun();
-        var proposal = NewProposal(DreamProposalSeverityNames.High, [HighRef]);
+        var proposal = NewProposal(DreamProposalSeverityNames.High, [IntentA]);
         run.AddProposal(proposal);
         run.Proposals.Should().HaveCount(1);
     }
 
-    [Fact(DisplayName = "Medium severity требует ≥2 evidence refs — ArgumentException иначе")]
-    public void Medium_requires_two_refs()
+    [Fact(DisplayName = "Medium severity требует ≥2 distinct intent refs — ArgumentException иначе")]
+    public void Medium_requires_two_intents()
     {
-        var act = () => NewProposal(DreamProposalSeverityNames.Medium, [MediumRefA]);
+        var act = () => NewProposal(DreamProposalSeverityNames.Medium, [IntentA]);
         act.Should().Throw<ArgumentException>();
     }
 
@@ -42,9 +71,9 @@ public class DreamRunTests
         var run = NewRun();
         for (var i = 0; i < DreamRun.MaxProposals; i++)
         {
-            run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [HighRef]));
+            run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [IntentA]));
         }
-        var act = () => run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [HighRef]));
+        var act = () => run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [IntentA]));
         act.Should().Throw<InvalidOperationException>();
     }
 
@@ -52,7 +81,7 @@ public class DreamRunTests
     public void Apply_last_pending_auto_closes_run()
     {
         var run = NewRun();
-        var p = NewProposal(DreamProposalSeverityNames.High, [HighRef]);
+        var p = NewProposal(DreamProposalSeverityNames.High, [IntentA]);
         run.AddProposal(p);
 
         var result = run.ApplyProposal(p.Id, "правило", appliedInstructionVersion: 7, Now.AddMinutes(1));
@@ -70,8 +99,8 @@ public class DreamRunTests
     public void Skip_one_of_two_keeps_pending_open()
     {
         var run = NewRun();
-        var p1 = NewProposal(DreamProposalSeverityNames.Medium, [MediumRefA, MediumRefB]);
-        var p2 = NewProposal(DreamProposalSeverityNames.High, [HighRef]);
+        var p1 = NewProposal(DreamProposalSeverityNames.Medium, [IntentA, IntentB]);
+        var p2 = NewProposal(DreamProposalSeverityNames.High, [IntentC]);
         run.AddProposal(p1);
         run.AddProposal(p2);
 
@@ -82,7 +111,7 @@ public class DreamRunTests
         run.PendingCount.Should().Be(1);
     }
 
-    [Fact(DisplayName = "Manual close пустого run: default release_evidence=true → EvidenceProcessed=false")]
+    [Fact(DisplayName = "Manual close пустого run: default release_evidence=true → EvidenceProcessed=false и intent_refs очищены")]
     public void Manual_close_empty_run_defaults_to_release()
     {
         var run = NewRun();
@@ -90,27 +119,27 @@ public class DreamRunTests
         var closed = result.Should().BeOfType<DreamRunCloseResult.Closed>().Subject;
         closed.EvidenceProcessed.Should().BeFalse();
         run.IsClosed.Should().BeTrue();
-        run.EvidenceRefs.Should().BeEmpty();
+        run.IntentRefs.Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "Manual close non-empty run: default release_evidence=false → EvidenceProcessed=true")]
-    public void Manual_close_non_empty_run_consumes_evidence()
+    [Fact(DisplayName = "Manual close non-empty run: default release_evidence=false → EvidenceProcessed=true, intent_refs сохраняются")]
+    public void Manual_close_non_empty_run_consumes_intents()
     {
         var run = NewRun();
-        run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [HighRef]));
+        run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [IntentA]));
         var result = run.Close(releaseEvidenceOverride: null, Now);
         var closed = result.Should().BeOfType<DreamRunCloseResult.Closed>().Subject;
         closed.EvidenceProcessed.Should().BeTrue();
-        run.EvidenceRefs.Should().NotBeEmpty();
+        run.IntentRefs.Should().NotBeEmpty();
     }
 
     [Fact(DisplayName = "Skip: повторное решение → AlreadyDecided")]
     public void Skip_already_decided_returns_already_decided()
     {
         var run = NewRun();
-        var p = NewProposal(DreamProposalSeverityNames.Medium, [MediumRefA, MediumRefB]);
+        var p = NewProposal(DreamProposalSeverityNames.Medium, [IntentA, IntentB]);
         run.AddProposal(p);
-        run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [HighRef]));
+        run.AddProposal(NewProposal(DreamProposalSeverityNames.High, [IntentC]));
         run.SkipProposal(p.Id, "duplicate of rule X", Now);
 
         var second = run.SkipProposal(p.Id, "another reason", Now);
@@ -121,20 +150,18 @@ public class DreamRunTests
         DreamRunId.New(),
         Now.AddDays(-7),
         Now.AddMinutes(-30),
-        readinessScore: 12,
-        new EvidenceCounts(1, 2, 0, 0, 0, 0, 0),
-        [HighRef, MediumRefA, MediumRefB],
-        OmittedEvidenceCounts.Zero,
+        tokenCount: 400,
+        [IntentA, IntentB, IntentC],
         Now);
 
-    private static DreamProposal NewProposal(string severity, IReadOnlyList<EvidenceRef> refs) => DreamProposal.Create(
+    private static DreamProposal NewProposal(string severity, IReadOnlyList<IntentRef> refs) => DreamProposal.Create(
         DreamProposalId.New(),
         targetInstructionId: "instr-1",
         targetKind: "work",
         baseInstructionVersion: 5,
         proposedRule: "Не делай unrelated refactor в hotfix-PR.",
-        evidenceSummary: "Reviews указывают на расширение скоупа.",
-        evidenceRefs: refs,
+        evidenceSummary: "intents:1,tokens:120",
+        intentRefs: refs,
         rationale: "См. связанные reviews — pattern повторяется.",
         severity: severity);
 }

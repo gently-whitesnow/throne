@@ -19,25 +19,13 @@ export const readinessStatusMeta: Record<
     label: "Empty",
     ink: "#4C5567",
     surface: "#F6F7FB",
-    description: "Накапливаем сигналы — обратной связи в окне нет."
+    description: "Нет qa/review в окне — добавьте обратной связи."
   },
-  warming_up: {
-    label: "Warming up",
-    ink: "#3C78F2",
-    surface: "#E8F0FF",
-    description: "Сигналы поступают, но порога ещё не достигли."
-  },
-  ready: {
-    label: "Ready",
+  has_content: {
+    label: "Has content",
     ink: "#1F8F5F",
     surface: "#E7F5ED",
-    description: "Достаточно материала для запуска /tdream."
-  },
-  rich: {
-    label: "Rich",
-    ink: "#1F9D88",
-    surface: "#E7F5ED",
-    description: "Накопилось много сигналов — самое время запустить /tdream."
+    description: "Можно запускать /dream."
   },
   pending_review: {
     label: "Review pending",

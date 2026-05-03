@@ -18,8 +18,8 @@ public class ProposeDreamRuleHandlerTests
     {
         var fixture = new Fixture();
         var run = SampleRun(refs: [
-            new EvidenceRef(EvidenceKindNames.Review, "rev-1"),
-            new EvidenceRef(EvidenceKindNames.Review, "rev-2"),
+            IntentRef.Create("intent-1", 50, Now),
+            IntentRef.Create("intent-2", 70, Now),
         ]);
         fixture.Runs.GetByIdAsync(default, default).ReturnsForAnyArgs(run);
         fixture.Instructions
@@ -39,10 +39,7 @@ public class ProposeDreamRuleHandlerTests
                 run.Id.Value,
                 InstructionKindNames.Work,
                 "Always run verify before mark_ready_for_review.",
-                [
-                    new EvidenceRef(EvidenceKindNames.Review, "rev-1"),
-                    new EvidenceRef(EvidenceKindNames.Review, "rev-2"),
-                ],
+                ["intent-1", "intent-2"],
                 "User complained twice that we skipped the gate.",
                 DreamProposalSeverityNames.Medium),
             CancellationToken.None);
@@ -50,7 +47,7 @@ public class ProposeDreamRuleHandlerTests
         result.Status.Should().Be(DreamProposalDecisionNames.Pending);
         captured!.TargetInstructionId.Should().Be("inst-work");
         captured.BaseInstructionVersion.Should().Be(3);
-        captured.EvidenceRefs.Should().HaveCount(2);
+        captured.IntentRefs.Should().HaveCount(2);
     }
 
     [Fact(DisplayName = "Disallowed target_kind ('dream') → validation.failed")]
@@ -61,7 +58,7 @@ public class ProposeDreamRuleHandlerTests
         var act = () => fixture.Handler.HandleAsync(
             new ProposeDreamRuleCommand(
                 "run", InstructionKindNames.Dream, "rule",
-                [new EvidenceRef(EvidenceKindNames.Review, "x")],
+                ["intent-x"],
                 "rationale",
                 DreamProposalSeverityNames.High),
             CancellationToken.None);
@@ -69,34 +66,34 @@ public class ProposeDreamRuleHandlerTests
         (await act.Should().ThrowAsync<ApiException>()).Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    [Fact(DisplayName = "evidence_refs не подмножество run → dream.proposal.evidence_unknown")]
-    public async Task Evidence_must_be_subset()
+    [Fact(DisplayName = "intent_refs не подмножество run → dream.proposal.evidence_unknown")]
+    public async Task Intents_must_be_subset()
     {
         var fixture = new Fixture();
-        var run = SampleRun(refs: [new EvidenceRef(EvidenceKindNames.Review, "in-run")]);
+        var run = SampleRun(refs: [IntentRef.Create("intent-in-run", 50, Now)]);
         fixture.Runs.GetByIdAsync(default, default).ReturnsForAnyArgs(run);
 
         var act = () => fixture.Handler.HandleAsync(
             new ProposeDreamRuleCommand(
                 run.Id.Value, InstructionKindNames.Work, "rule",
-                [new EvidenceRef(EvidenceKindNames.Review, "outside")],
+                ["intent-outside"],
                 "rationale", DreamProposalSeverityNames.High),
             CancellationToken.None);
 
         (await act.Should().ThrowAsync<ApiException>()).Which.Code.Should().Be(ErrorCodes.DreamProposalEvidenceUnknown);
     }
 
-    [Fact(DisplayName = "Severity=medium с одним ref → validation.failed (минимум 2)")]
-    public async Task Severity_demands_minimum_evidence()
+    [Fact(DisplayName = "Severity=medium с одним intent_ref → validation.failed (минимум 2 distinct intents)")]
+    public async Task Severity_demands_minimum_intents()
     {
         var fixture = new Fixture();
-        var run = SampleRun(refs: [new EvidenceRef(EvidenceKindNames.Review, "rev-1")]);
+        var run = SampleRun(refs: [IntentRef.Create("intent-1", 50, Now)]);
         fixture.Runs.GetByIdAsync(default, default).ReturnsForAnyArgs(run);
 
         var act = () => fixture.Handler.HandleAsync(
             new ProposeDreamRuleCommand(
                 run.Id.Value, InstructionKindNames.Work, "rule",
-                [new EvidenceRef(EvidenceKindNames.Review, "rev-1")],
+                ["intent-1"],
                 "rationale", DreamProposalSeverityNames.Medium),
             CancellationToken.None);
 
@@ -113,7 +110,7 @@ public class ProposeDreamRuleHandlerTests
         var act = () => fixture.Handler.HandleAsync(
             new ProposeDreamRuleCommand(
                 run.Id.Value, InstructionKindNames.Work, "rule",
-                [new EvidenceRef(EvidenceKindNames.Review, "rev-1")],
+                ["intent-1"],
                 "rationale", DreamProposalSeverityNames.High),
             CancellationToken.None);
 
@@ -124,33 +121,31 @@ public class ProposeDreamRuleHandlerTests
     public async Task Closed_run_rejected()
     {
         var fixture = new Fixture();
-        var run = SampleRun(refs: [new EvidenceRef(EvidenceKindNames.Review, "rev-1")]);
+        var run = SampleRun(refs: [IntentRef.Create("intent-1", 50, Now)]);
         run.Close(releaseEvidenceOverride: true, Now);
         fixture.Runs.GetByIdAsync(default, default).ReturnsForAnyArgs(run);
 
         var act = () => fixture.Handler.HandleAsync(
             new ProposeDreamRuleCommand(
                 run.Id.Value, InstructionKindNames.Work, "rule",
-                [new EvidenceRef(EvidenceKindNames.Review, "rev-1")],
+                ["intent-1"],
                 "rationale", DreamProposalSeverityNames.High),
             CancellationToken.None);
 
         (await act.Should().ThrowAsync<ApiException>()).Which.Code.Should().Be(ErrorCodes.DreamRunAlreadyClosed);
     }
 
-    private static DreamRun SampleRun(IReadOnlyList<EvidenceRef> refs) => DreamRun.Create(
+    private static DreamRun SampleRun(IReadOnlyList<IntentRef> refs) => DreamRun.Create(
         DreamRunId.New(),
         Now.AddDays(-1),
         Now.AddMinutes(-30),
-        readinessScore: 10,
-        new EvidenceCounts(refs.Count, 0, 0, 0, 0, 0, 0),
+        tokenCount: refs.Sum(r => r.TokenCount),
         refs,
-        OmittedEvidenceCounts.Zero,
         Now);
 
     private static DreamRun SampleRunWithProposals(int count)
     {
-        var run = SampleRun([new EvidenceRef(EvidenceKindNames.Review, "rev-1")]);
+        var run = SampleRun([IntentRef.Create("intent-1", 50, Now)]);
         for (var i = 0; i < count; i++)
         {
             run.AddProposal(DreamProposal.Create(
@@ -159,8 +154,8 @@ public class ProposeDreamRuleHandlerTests
                 InstructionKindNames.Work,
                 baseInstructionVersion: 1,
                 proposedRule: $"rule {i}",
-                evidenceSummary: "review:1",
-                evidenceRefs: [new EvidenceRef(EvidenceKindNames.Review, "rev-1")],
+                evidenceSummary: "intents:1",
+                intentRefs: [IntentRef.Create("intent-1", 50, Now)],
                 rationale: "r",
                 severity: DreamProposalSeverityNames.High));
         }

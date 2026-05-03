@@ -1,3 +1,4 @@
+using Throne.Application.DreamRuns;
 using Throne.Application.Events;
 using Throne.Domain.DreamRuns;
 
@@ -16,16 +17,16 @@ public interface IDreamRunRepository
     Task<DreamRun?> GetMostRecentClosedAsync(CancellationToken ct);
 
     /// <summary>
-    /// Returns evidence refs already consumed by closed DreamRuns whose
-    /// <c>EvidenceProcessed</c> is true. Used to filter «available» evidence.
+    /// Returns intent ids already consumed by closed DreamRuns whose <c>EvidenceProcessed</c>
+    /// is true. Used to filter the «available» window.
     /// </summary>
-    Task<IReadOnlyCollection<(string Kind, string Id)>> GetProcessedEvidenceAsync(CancellationToken ct);
+    Task<IReadOnlyCollection<string>> GetProcessedIntentIdsAsync(CancellationToken ct);
 
     /// <summary>
-    /// Returns evidence refs locked by currently pending DreamRuns. These are
-    /// not «available» for a fresh run but may show up as <c>locked_score</c> in readiness.
+    /// Returns intent ids locked by currently pending DreamRuns. Not «available» for a fresh
+    /// run but contribute to <c>locked_tokens</c> in readiness.
     /// </summary>
-    Task<IReadOnlyCollection<(string Kind, string Id)>> GetLockedEvidenceAsync(CancellationToken ct);
+    Task<IReadOnlyCollection<string>> GetLockedIntentIdsAsync(CancellationToken ct);
 
     Task<AddDreamProposalOutcome> AddProposalAsync(
         DreamRunId runId,
@@ -55,28 +56,17 @@ public interface IDreamRunRepository
 }
 
 /// <summary>
-/// Read-side queries over raw evidence sources (intent_review, intent_qa, mcp_call_log).
-/// Filters by safe window + session-aware exclusion (see ADR-0011 / D).
+/// Read-side query over Mongo collections for assembling /dream training context.
+/// Returns full per-intent payloads — text history, current text, all qa, all reviews —
+/// for each intent that had qa or review activity within the safe time window.
 /// </summary>
-public interface IEvidenceQueries
+public interface IIntentWindowQueries
 {
-    Task<IReadOnlyList<EvidenceItemRecord>> CollectAsync(
+    Task<IReadOnlyList<IntentInWindow>> CollectIntentActivityAsync(
         DateTimeOffset windowStart,
         DateTimeOffset windowEnd,
-        DateTimeOffset sessionActivityCutoff,
         CancellationToken ct);
 }
-
-/// <summary>
-/// Repository-level evidence record. Distinct from <see cref="DreamRuns.EvidenceItem"/>
-/// to keep the Application boundary explicit.
-/// </summary>
-public sealed record EvidenceItemRecord(
-    string Kind,
-    string Id,
-    DateTimeOffset CreatedAt,
-    string? SessionId,
-    bool HighSeverity);
 
 public sealed record CreateDreamRunOutcome(DreamRun Run) : IDomainEventCarrier
 {

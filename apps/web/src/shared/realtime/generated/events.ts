@@ -10,7 +10,7 @@ import type { components as TagsComponents } from "@/shared/api/generated/tags/t
 
 /** Discriminated payload type for each realtime event name. */
 export interface RealtimeEventMap {
-  "dream.fuel_changed": { available_score: number; status: string };
+  "dream.fuel_changed": { available_tokens: number; status: string };
   "dream.proposal_applied": DreamComponents["schemas"]["DreamRunDto"];
   "dream.proposal_created": DreamComponents["schemas"]["DreamRunDto"];
   "dream.proposal_skipped": DreamComponents["schemas"]["DreamRunDto"];

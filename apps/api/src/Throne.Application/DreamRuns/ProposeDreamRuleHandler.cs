@@ -10,16 +10,16 @@ public sealed record ProposeDreamRuleCommand(
     string RunId,
     string TargetKind,
     string ProposedRule,
-    IReadOnlyList<EvidenceRef> EvidenceRefs,
+    IReadOnlyList<string> IntentRefs,
     string Rationale,
     string Severity);
 
 public sealed record ProposeDreamRuleResult(string ProposalId, string Status);
 
 /// <summary>
-/// Proposes a single learned rule against a still-pending DreamRun. The agent
-/// can only reference evidence already captured by the run snapshot — it cannot
-/// invent new refs or target /throne and /dream instruction kinds (Intent 4 §propose_dream_rule).
+/// Proposes a single learned rule against a still-pending DreamRun. The agent can only
+/// reference intents already captured by the run snapshot — not arbitrary ones, and
+/// not /throne or /dream instruction kinds (Intent 4 §propose_dream_rule).
 /// </summary>
 public sealed class ProposeDreamRuleHandler(
     IDreamRunRepository runs,
@@ -62,7 +62,7 @@ public sealed class ProposeDreamRuleHandler(
                 });
         }
 
-        var evidence = ResolveEvidence(command, run);
+        var intentRefs = ResolveIntentRefs(command, run);
 
         var instruction = await ResolveTargetInstructionAsync(command.TargetKind, ct);
 
@@ -72,8 +72,8 @@ public sealed class ProposeDreamRuleHandler(
             command.TargetKind,
             instruction.CurrentVersion,
             command.ProposedRule.Trim(),
-            evidenceSummary: BuildEvidenceSummary(evidence),
-            evidence,
+            evidenceSummary: BuildEvidenceSummary(intentRefs),
+            intentRefs,
             command.Rationale.Trim(),
             command.Severity);
 
@@ -157,52 +157,41 @@ public sealed class ProposeDreamRuleHandler(
                     ["allowed"] = DreamProposalSeverityNames.All,
                 });
         }
-        ArgumentNullException.ThrowIfNull(command.EvidenceRefs);
+        ArgumentNullException.ThrowIfNull(command.IntentRefs);
     }
 
-    private static List<EvidenceRef> ResolveEvidence(ProposeDreamRuleCommand command, DreamRun run)
+    private static List<IntentRef> ResolveIntentRefs(ProposeDreamRuleCommand command, DreamRun run)
     {
-        if (command.EvidenceRefs.Count == 0)
+        if (command.IntentRefs.Count == 0)
         {
-            throw Validation("evidence_refs must contain at least one entry.", "evidence_refs");
+            throw Validation("intent_refs must contain at least one entry.", "intent_refs");
         }
 
-        var allowed = run.EvidenceRefs
-            .Select(r => (r.Kind, r.Id))
-            .ToHashSet();
-        var resolved = new List<EvidenceRef>(command.EvidenceRefs.Count);
-        foreach (var refRequested in command.EvidenceRefs)
+        var allowed = run.IntentRefs.ToDictionary(r => r.IntentId, r => r, StringComparer.Ordinal);
+        var resolved = new List<IntentRef>(command.IntentRefs.Count);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var intentId in command.IntentRefs)
         {
-            if (refRequested is null
-                || string.IsNullOrWhiteSpace(refRequested.Kind)
-                || string.IsNullOrWhiteSpace(refRequested.Id))
+            if (string.IsNullOrWhiteSpace(intentId))
             {
-                throw Validation("evidence_refs entries must have non-empty kind and id.", "evidence_refs");
+                throw Validation("intent_refs entries must be non-empty intent ids.", "intent_refs");
             }
-            if (!EvidenceKindNames.IsKnown(refRequested.Kind))
+            if (!seen.Add(intentId))
             {
-                throw new ApiException(
-                    ErrorCodes.ValidationFailed,
-                    $"Unknown evidence kind: {refRequested.Kind}.",
-                    new Dictionary<string, object?>
-                    {
-                        ["field"] = "evidence_refs",
-                        ["allowed"] = EvidenceKindNames.All,
-                    });
+                throw Validation($"intent_refs has duplicate intent_id '{intentId}'.", "intent_refs");
             }
-            if (!allowed.Contains((refRequested.Kind, refRequested.Id)))
+            if (!allowed.TryGetValue(intentId, out var captured))
             {
                 throw new ApiException(
                     ErrorCodes.DreamProposalEvidenceUnknown,
-                    "evidence_refs must be a subset of run.EvidenceRefs.",
+                    "intent_refs must be a subset of run.IntentRefs.",
                     new Dictionary<string, object?>
                     {
                         ["run_id"] = run.Id.Value,
-                        ["unknown_kind"] = refRequested.Kind,
-                        ["unknown_id"] = refRequested.Id,
+                        ["unknown_intent_id"] = intentId,
                     });
             }
-            resolved.Add(EvidenceRef.Create(refRequested.Kind, refRequested.Id, refRequested.CreatedAt));
+            resolved.Add(captured);
         }
         var minimum = command.Severity switch
         {
@@ -215,10 +204,10 @@ public sealed class ProposeDreamRuleHandler(
         {
             throw new ApiException(
                 ErrorCodes.ValidationFailed,
-                $"Severity '{command.Severity}' requires at least {minimum} evidence ref(s); got {resolved.Count}.",
+                $"Severity '{command.Severity}' requires at least {minimum} intent ref(s); got {resolved.Count}.",
                 new Dictionary<string, object?>
                 {
-                    ["field"] = "evidence_refs",
+                    ["field"] = "intent_refs",
                     ["severity"] = command.Severity,
                     ["minimum"] = minimum,
                 });
@@ -243,16 +232,14 @@ public sealed class ProposeDreamRuleHandler(
         return matches[0];
     }
 
-    private static string BuildEvidenceSummary(List<EvidenceRef> refs)
+    private static string BuildEvidenceSummary(List<IntentRef> refs)
     {
         if (refs.Count == 0)
         {
-            return "no_refs";
+            return "no_intents";
         }
-        return string.Join(",", refs
-            .GroupBy(r => r.Kind, StringComparer.Ordinal)
-            .OrderBy(g => g.Key, StringComparer.Ordinal)
-            .Select(g => $"{g.Key}:{g.Count()}"));
+        var totalTokens = refs.Sum(r => r.TokenCount);
+        return $"intents:{refs.Count},tokens:{totalTokens}";
     }
 
     private static ApiException Validation(string detail, string field) => new(

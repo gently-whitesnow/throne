@@ -84,11 +84,11 @@ events:
     description: Best-effort, debounced fuel-meter signal — UI may also poll /readiness.
     payload:
       type: object
-      required: [available_score, status]
+      required: [available_tokens, status]
       properties:
-        available_score:
+        available_tokens:
           type: integer
           format: int32
         status:
           type: string
-          enum: [empty, warming_up, ready, rich, pending_review]
+          enum: [empty, has_content, pending_review]

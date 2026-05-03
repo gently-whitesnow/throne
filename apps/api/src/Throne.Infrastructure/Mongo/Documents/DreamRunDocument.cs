@@ -17,17 +17,11 @@ internal sealed class DreamRunDocument
     [BsonElement("window_end")]
     public DateTime WindowEnd { get; set; }
 
-    [BsonElement("readiness_score")]
-    public int ReadinessScore { get; set; }
+    [BsonElement("token_count")]
+    public int TokenCount { get; set; }
 
-    [BsonElement("evidence_counts")]
-    public EvidenceCountsDocument EvidenceCounts { get; set; } = new();
-
-    [BsonElement("evidence_refs")]
-    public List<EvidenceRefDocument> EvidenceRefs { get; set; } = [];
-
-    [BsonElement("omitted_counts")]
-    public OmittedEvidenceCountsDocument OmittedCounts { get; set; } = new();
+    [BsonElement("intent_refs")]
+    public List<IntentRefDocument> IntentRefs { get; set; } = [];
 
     [BsonElement("proposals")]
     public List<DreamProposalDocument> Proposals { get; set; } = [];
@@ -43,31 +37,11 @@ internal sealed class DreamRunDocument
     public bool EvidenceProcessed { get; set; }
 }
 
-internal sealed class EvidenceCountsDocument
+internal sealed class IntentRefDocument
 {
-    [BsonElement("reviews")] public int Reviews { get; set; }
-    [BsonElement("qa")] public int Qa { get; set; }
-    [BsonElement("mcp_errors")] public int McpErrors { get; set; }
-    [BsonElement("accepted_outcomes")] public int AcceptedOutcomes { get; set; }
-    [BsonElement("manual_corrections")] public int ManualCorrections { get; set; }
-    [BsonElement("verification_failures")] public int VerificationFailures { get; set; }
-    [BsonElement("skipped_proposals")] public int SkippedProposals { get; set; }
-}
-
-internal sealed class OmittedEvidenceCountsDocument
-{
-    [BsonElement("too_recent")] public int TooRecent { get; set; }
-    [BsonElement("budget_exceeded")] public int BudgetExceeded { get; set; }
-    [BsonElement("low_priority")] public int LowPriority { get; set; }
-}
-
-internal sealed class EvidenceRefDocument
-{
-    [BsonElement("kind")] public string Kind { get; set; } = string.Empty;
-    [BsonElement("id")] public string Id { get; set; } = string.Empty;
-    [BsonElement("created_at")]
-    [BsonIgnoreIfNull]
-    public DateTime? CreatedAt { get; set; }
+    [BsonElement("intent_id")] public string IntentId { get; set; } = string.Empty;
+    [BsonElement("token_count")] public int TokenCount { get; set; }
+    [BsonElement("snapshotted_at")] public DateTime SnapshottedAt { get; set; }
 }
 
 internal sealed class DreamProposalDocument
@@ -78,7 +52,7 @@ internal sealed class DreamProposalDocument
     [BsonElement("base_instruction_version")] public int BaseInstructionVersion { get; set; }
     [BsonElement("proposed_rule")] public string ProposedRule { get; set; } = string.Empty;
     [BsonElement("evidence_summary")] public string EvidenceSummary { get; set; } = string.Empty;
-    [BsonElement("evidence_refs")] public List<EvidenceRefDocument> EvidenceRefs { get; set; } = [];
+    [BsonElement("intent_refs")] public List<IntentRefDocument> IntentRefs { get; set; } = [];
     [BsonElement("rationale")] public string Rationale { get; set; } = string.Empty;
     [BsonElement("severity")] public string Severity { get; set; } = string.Empty;
     [BsonElement("decision")] public string Decision { get; set; } = string.Empty;

@@ -1,6 +1,6 @@
 ---
 adr: 0011
-title: DreamRun aggregate, weighted readiness, server-managed dream context
+title: DreamRun aggregate, dream context as token counter, server-managed dream context
 status: Accepted
 relates_to:
   - ADR-0002
@@ -9,7 +9,7 @@ relates_to:
   - ADR-0007
 ---
 
-# ADR-0011 — DreamRun, weighted readiness, server-managed dream context
+# ADR-0011 — DreamRun, dream context as token counter, server-managed dream context
 
 ## Status
 
@@ -18,64 +18,98 @@ Accepted.
 Расширяет [ADR-0007](0007-vendor-skill-launchers.md) (vendor skill launchers вводят kind `dream`)
 и опирается на [ADR-0002](0002-domain-model-and-text-versioning.md) (text-versioning),
 [ADR-0003](0003-mcp-text-editing-semantics.md) (text-editing semantics),
-[ADR-0004](0004-mcp-call-audit-log.md) (mcp_call_log как источник evidence),
 [ADR-0008](0008-realtime-contract-first-events.md) (realtime через domain events).
 
 ## Context
 
-`/tdream` (см. ADR-0007 §6) собирает накопившийся feedback (`intent_review`, `intent_qa`, ошибки
-из `mcp_call_log`, будущие `verification_run` / `manual_correction` / `intent_outcome`) и
-предлагает точечные правки в `instructions` под управлением пользователя. Чтобы это работало
-коректно, нужно ответить на три вопроса:
+`/dream` — ручная команда пользователя для self-improvement loop пользовательских инструкций.
+Раньше readiness считался как **взвешенный score** по разнородным «evidence»-источникам
+(`intent_review`, `intent_qa`, `mcp_call_log.outcome=error`) с severity-весами и порогами
+`warming_up → ready → rich`, которые блокировали запуск /dream. Этот дизайн оказался плохим
+в трёх местах:
+
+1. **Веса непрозрачны пользователю.** «Score 27 / threshold 40» не отвечает на вопрос
+   «что именно туда пойдёт и хватит ли этого». High-severity bug и тысяча тривиальных qa
+   в одной метрике мешают калибровке.
+2. **MCP-ошибки попадали в обучение /dream.** Они относятся к улучшению самого MCP-инструментария
+   (отдельная команда `/throne` — out of scope этого ADR), а не к улучшению user instructions.
+3. **Блокирующий порог конфликтует с моделью «ручная команда».** Если пользователь хочет
+   потренироваться на одной единице сигнала — он должен мочь.
+
+Нужны три вещи:
 
 1. **Где живут предложения до их применения?**
-   `text_versions` — линейная история **применённых** правок инструкций (snapshot v1, затем
-   replace/insert v2+). Если положить туда «висящий» дream-proposal до решения пользователя,
-   `current_version` начнёт обозначать совсем другое («предложено», а не «применено»),
-   `expected_version` теряет смысл, а bundle resolver рискует выдать агенту неутверждённое
-   правило. Альтернативу с pending TextVersion отвергаем — она ломает контракт ADR-0002.
-2. **Кто решает, какое evidence пора варить в правило?**
-   Вариант «агент сам ходит и читает сырые reviews/qa/mcp_log» переносит на агента
-   ответственность за объём, свежесть и приоритет. Это даёт нестабильное поведение и риск
-   подхватить ещё-не-завершённую активную сессию (ту самую, в которой `/tdream` запущен).
-   Альтернатива «ручной фильтр в каждом MCP-инструменте» расползается по местам. Нужна одна
-   серверная стадия, фиксирующая снимок входов на момент создания run.
-3. **Как мерить, что проблем «накопилось достаточно»?**
-   Простая «количеством записей за N дней» метрика не различает high-severity баг и тысячу
-   тривиальных qa. Нужна весовая модель, которую можно тюнить без выпуска кода.
+   `text_versions` — линейная история **применённых** правок инструкций. Положить туда
+   pending dream-proposal до решения пользователя — сломать `current_version` /
+   `expected_version`.
+2. **Кто решает, что именно идёт в /dream?**
+   Сервер должен фиксировать снимок входов в момент создания run, чтобы агент не путался
+   в свежих/незавершённых записях и не подбирал контекст «по своему усмотрению».
+3. **Как мерить накопленный материал так, чтобы это было одновременно и UI-индикатором, и
+   честным отражением «сколько пойдёт в обучение»?**
+   Простая метрика — общее число токенов уникального контента, который реально попадёт
+   в /dream.
 
 ## Decision
 
-Введена доменная сущность **DreamRun** с embedded **DreamProposal**. `text_versions`
-остаётся неизменной: применённый proposal порождает обычный новый TextVersion через
-существующий `IInstructionRepository.ReplaceTextAsync`, как любое user-driven правило.
-Pending proposal **никогда не превращается в TextVersion**; он живёт исключительно внутри
-DreamRun со статусами `pending|applied|skipped`.
+Доменная сущность **DreamRun** с embedded **DreamProposal** остаётся. `text_versions`
+неизменна: применённый proposal порождает новый TextVersion через
+`IInstructionRepository.ReplaceTextAsync` (секция `## Learned rules`). Pending proposal
+живёт **только** внутри DreamRun со статусами `pending|applied|skipped`.
 
-Серверный «бак топлива» (readiness) пересчитывается по конфигурируемым весам и порогам.
-Расчёт читает evidence из источников (intent_review, intent_qa, mcp_call_log с outcome=error;
-далее — verification_run, manual_correction, accepted_outcome; см. «Не делаем здесь»),
-ограничивается **safe time window** (`now − safety_lag` сверху, последний закрытый
-DreamRun или `now − 90d` снизу) и **session-aware фильтром**: всё evidence сессии,
-которая писала в `mcp_call_log` за последние `safety_lag` минут, исключается из расчёта,
-даже если запись старше окна. Это снимает ровно тот сценарий, когда `/tdream`
-запущен в активной рабочей сессии и пытается «учиться» на собственных свежих ошибках.
+### Снимок входа
 
-DreamRun, созданный MCP-инструментом `run_dream` (Intent 4), фиксирует:
+DreamRun хранит `IntentRefs[]` — список intent'ов, попавших в окно, с per-intent
+`token_count` (cl100k_base) и `snapshotted_at`. Поля `EvidenceRefs/EvidenceCounts/
+OmittedEvidenceCounts/ReadinessScore` удалены вместе с весовой моделью.
 
-- `WindowStart` / `WindowEnd` — окно, по которому собрано evidence;
-- `EvidenceRefs[]` — конкретные `(Kind, Id)` записей **сырья** (не intent_id);
-- `EvidenceCounts` / `OmittedEvidenceCounts` — breakdown для UI и debug;
-- `ReadinessScore` — взвешенный балл на момент создания.
+### Что входит в контекст /dream
 
-Когда DreamRun закрывается (auto после решения по всем proposals или manual через
-`POST /api/v1/dream-runs/{runId}/close`), `EvidenceRefs` становятся «processed»: повторный
-расчёт readiness их игнорирует. Manual close пустого run по умолчанию **не** помечает
-evidence processed — пользователь хочет «попробовать ещё раз». Явный `release_evidence: true`
-в close-теле перезаписывает default.
+В безопасном окне (`now − safety_lag` сверху, последний closed DreamRun или `now − 90d`
+снизу) сервер находит **все intents, у которых есть `intent_qa` или `intent_review`,
+созданные внутри окна**. Для каждого такого intent в /dream идёт:
+
+- полная история `Intent.text` (`text_versions`, `version` ASC: snapshot/replace/insert);
+- финальный `Intent.text` — **дедуплицирован** против последнего version-snapshot/new_text/
+  insert_text (если ничего не менялось — не добавляем повторно);
+- все `intent_qa` для этого intent (`created_at` ASC);
+- все `intent_review` для этого intent (`created_at` ASC).
+
+Внутри агенту материал подаётся двумя «пачками» (формат описан в `tdream` skill playbook):
+
+1. **«улучшение ревью»** — история изменений `Intent.text` + финальный `Intent.text` +
+   `intent_qa`;
+2. **«улучшение работы»** — финальный `Intent.text` + `intent_review`.
+
+Финальный `Intent.text` фигурирует один раз и используется обеими пачками; токены
+считаются по объединению уникального контента.
+
+### Token counter
+
+`Throne.Application.Ports.ITokenizer` — порт; реализация `SharpTokenTokenizer` в
+Infrastructure поверх SharpToken (`cl100k_base`, MIT, без native deps), Singleton.
+`ContextTokenCounter` (Application) делает per-intent токенизацию: концатенирует
+`text_versions ⊕ финальный текст ⊕ qa ⊕ reviews`, токенизирует и суммирует.
+Attachments (`IntentAttachmentDocument`) не входят — out of scope (бинарные блобы).
+
+Метрика `available_tokens` — индикатор в UI («накоплено N токенов из M intents»).
+Никаких порогов нет — `/dream` запускается всегда, когда пользователь так решит.
+
+### Status
+
+Три состояния:
+
+- `empty` — в окне нет intents с qa/review;
+- `has_content` — в окне есть intents, можно запускать /dream;
+- `pending_review` — есть открытые DreamRun, надо разобраться сначала с ними.
+
+Все три — informational; ни один не блокирует MCP-вызов `run_dream`. Tool возвращает
+`status="not_enough_context"` только в одном крайнем случае — `intent_count==0` —
+чтобы агент не создавал бессмысленный пустой run.
+
+### Apply
 
 Apply proposal — единственное место, где DreamRun касается линейной истории инструкций.
-Шаги (`POST /proposals/{id}/apply`):
 
 1. `BaseInstructionVersion` proposal-а должна совпасть с `current_version` инструкции;
    иначе → `409 dream.proposal.needs_rebase` (без мутации).
@@ -85,117 +119,101 @@ Apply proposal — единственное место, где DreamRun каса
 3. Помечает proposal `applied`, фиксирует `AppliedInstructionVersion`.
 4. Если все proposals run-а имеют `Decision != pending` — auto-close.
 
-Domain invariants (закрепляются доменными тестами):
+### Domain invariants
 
-- severity ↔ evidence: `high` ≥ 1 ref, `medium` ≥ 2, `low` ≥ 3 (security/safety/data-loss
-  helper-ы режутся как high даже при 1).
-- `Run.Proposals.Count ≤ 5` (защита от спама).
-- Auto-close — только когда `Proposals.Count ≥ 1` и все `Decision != pending`.
+- `IntentRefs.Count ≥ 1` (DreamRun без intents не существует);
+- `TokenCount ≥ 0`;
+- `IntentRefs` distinct по `IntentId`;
+- `Run.Proposals.Count ≤ 5`;
+- severity ↔ intents: `high ≥ 1`, `medium ≥ 2`, `low ≥ 3` distinct intent_refs внутри
+  proposal;
+- auto-close — только когда `Proposals.Count ≥ 1` и все `Decision != pending`.
 
-### Веса readiness (config `Throne:Dream:Weights`, начальные значения)
+### Конфигурация
 
-| Evidence kind                      | Вес  |
-|------------------------------------|------|
-| `intent_review` (severity ≠ high)  | +5   |
-| `intent_review` severity=high      | +10  |
-| `verification_failure`             | +5   |
-| `manual_correction`                | +8   |
-| `mcp_call.outcome=error`           | +2   |
-| `intent_qa`                        | +1   |
-| `accepted_outcome`                 | +3   |
-| `skipped_proposal_with_reason`     | +4   |
+Секция `Throne:Dream` сохраняет два поля:
 
-### Пороги (`Throne:Dream:Thresholds`)
+- `SafetyLagMinutes` (default 30) — окно `now − safety_lag` отрезает свежие записи;
+- `MaxWindowDays` (default 90) — нижняя граница окна, если closed DreamRun нет.
 
-- `< 10` → `warming_up`;
-- `10..40` → `ready`;
-- `≥ 40` → `rich`;
-- любое high-severity ref сразу даёт `ready` независимо от score.
+`Throne:Dream:Weights` и `Throne:Dream:Thresholds` удалены.
 
 ### Realtime
 
 `dream.run_created`, `dream.proposal_created`, `dream.proposal_applied`,
-`dream.proposal_skipped`, `dream.run_closed` — фанаут через стандартный pipeline ADR-0008
-(domain events на outcome → `RealtimeDomainEventHandler`). `dream.fuel_changed` —
-debounced best-effort: эмитим только на «значимых» evidence-write
-(add_intent_review, add_intent_qa, dream.* mutations); `mcp_call_log.outcome=error`
-realtime НЕ триггерит (слишком шумно). UI всегда может попросить актуальный снимок через
+`dream.proposal_skipped`, `dream.run_closed` — фанаут через стандартный pipeline ADR-0008.
+`dream.fuel_changed` (payload: `{available_tokens, status}`) — debounced best-effort
+индикатор; UI всегда может попросить актуальный снимок через
 `GET /api/v1/dream-runs/readiness`.
 
 ## Альтернативы (отвергнуто)
 
 1. **Pending TextVersion в `text_versions`.** Ломает линейность ADR-0002 и контракт
    `current_version` / `expected_version`.
-2. **Агент сам пагинирует raw evidence без Run-я.** Размывает ответственность, нет защиты
+2. **Агент сам пагинирует raw evidence без Run-а.** Размывает ответственность, нет защиты
    от свежих/незавершённых сессий, нет аудита «что было предложено и что выбрали».
-3. **Простой счётчик evidence без весов.** Не различает high-severity bug и тривиальный qa.
-   Тюнить порог под реальные нагрузки придётся пересборкой.
-4. **Хранение DreamRun в отдельной коллекции на каждый kind инструкции.** Дробит запросы
-   readiness и теряет «единый бак топлива» процесса. Embedded proposals в одном run-е
-   проще читать и нагляднее в UI.
+3. **Сохранить severity-веса, но как UI-метрику.** Эмерджентный параметр, который
+   пользователь не понимает, не отражает реального объёма контекста и расходится
+   с моделью «ручной запуск /dream».
+4. **Разрешить агенту самому собирать full intent payloads вместо снимка IntentRefs.**
+   Агент будет делать неконтролируемые запросы и подмешивать активные сессии.
+5. **Включить `mcp_call_log.error` в /dream через токенайзер.** Эти ошибки относятся
+   к улучшению MCP-инструментария, не к user instructions; смешивание заставляло /dream
+   предлагать правила для /dream и /throne — нерелевантно. Уносим под отдельную
+   будущую команду `/throne`.
 
 ## Consequences
 
 ### Positive
 
+- Метрика `available_tokens` прозрачна: пользователь видит, сколько контента уйдёт в /dream.
 - `text_versions` остаётся честной линейной историей применённых правок инструкций.
-- Server владеет «сколько/что/когда читать» — агент просит готовый bounded
-  `DreamContextPack` (Intent 4 ставит этот endpoint поверх ADR-0011).
-- Веса и пороги меняются конфигом, без релиза.
-- Session-aware фильтр устраняет класс ошибок «учусь на собственной свежей сессии».
-- UI получает консистентный fuel meter и список pending proposals по одному
-  endpoint-у `readiness`, без склейки на клиенте.
+- Server владеет «что/когда читать» — агент получает готовый снимок IntentRefs.
+- Конфиг минимален (только safety_lag и max_window).
+- `mcp_call_log` отделён от обучения /dream и зарезервирован под `/throne`.
+- /dream запускается ручкой — пользователь не зависит от непрозрачного score.
 
 ### Negative / Risks
 
-- Появляется новая агрегатная коллекция `dream_runs` и сопутствующие индексы.
-- Веса/пороги — emergent параметр; неудачные значения дадут «warming_up навсегда» или
-  слишком агрессивные предложения. Митигировано: значения в config + фиксация снапшота
-  весов в run-е (`ReadinessScore`).
-- Race между `apply` и параллельным редактированием инструкции пользователем — решается
-  через `BaseInstructionVersion` + `409 needs_rebase`. Пользователь должен повторно открыть
-  proposal после рефреша.
+- Без cap по токенам один /dream может потащить в контекст десятки тысяч токенов.
+  В v1 принят как allowed (single-user, малые объёмы); cap добавим, если станет проблемой.
+- Session-aware фильтр снят: `intent_qa`/`intent_review` не носят `session_id`. В v1
+  опираемся только на `safety_lag=30 min`. Если активная сессия пишет qa/review во время
+  своей работы и /dream запускается сразу — agent увидит свежую запись. Mitigation: ждём
+  ≥30 мин или запускаем /dream явно из «холодной» сессии. Если окажется недостаточно —
+  отдельной задачей добавим `session_id` в writes.
+- Race между `apply` и параллельным редактированием инструкции — решается через
+  `BaseInstructionVersion` + `409 needs_rebase`.
 
 ## Update — Intent 4 (MCP surface)
 
 Server-managed MCP-инструменты для `/tdream` поверх той же модели:
 
-- `mcp__throne__get_dream_readiness()` — read-only снапшот fuel-метра, переиспользует
-  `GetDreamReadinessHandler` без блокировок и мутаций.
-- `mcp__throne__run_dream(policy="auto")` — создаёт pending DreamRun, если в safe window
-  достаточно сигнала. Возвращает дискриминированное поле `status`:
-  `created` / `not_enough_context` / `existing_pending`. Идемпотентность за 24 часа
-  по последнему pending run-у. Контекст агенту никогда не отдаётся сырьём — только
-  `evidence_summary { counts, patterns[], suggested_target_kinds[],
-  existing_learned_rules_by_kind }` плюс `evidence_refs` для повторного использования
-  в `propose_dream_rule`. `existing_learned_rules_by_kind` собирается сервером из секции
-  `## Learned rules` каждой user-инструкции (`LearnedRulesParser`) — это убирает
-  необходимость для агента вызывать `get_user_instruction` ради дубликат-защиты.
-- `mcp__throne__propose_dream_rule(run_id, target_kind, proposed_rule, evidence_refs[],
-  rationale, severity)` — сервер валидирует подмножество evidence_refs (агент не может
-  ссылаться на чужое сырьё), severity-evidence (high≥1/medium≥2/low≥3), `target_kind ∈
-  {common, interview, work, new_project, fix}` (`dream` и `throne` — не учим), кэп
-  `MaxProposals = 5`, и резолвит `target_instruction` через
-  `GetUserInstructionsByKindsAsync`, фиксируя `base_instruction_version`.
+- `mcp__throne__get_dream_readiness()` — read-only снапшот fuel-метра. Возвращает
+  `{status, available_tokens, locked_tokens, intent_count, safe_window_*, …}`.
+- `mcp__throne__run_dream(policy="auto")` — создаёт pending DreamRun, если в безопасном
+  окне есть хоть один intent с qa/review активностью. Возвращает дискриминированное поле
+  `status`: `created` / `not_enough_context` / `existing_pending`. Идемпотентность
+  за 24 часа по последнему pending run-у. Контекст агенту никогда не отдаётся сырьём — только
+  `evidence_summary { intent_count, token_count, existing_learned_rules_by_kind }` плюс
+  `intent_refs` для повторного использования в `propose_dream_rule`.
+- `mcp__throne__propose_dream_rule(run_id, target_kind, proposed_rule, intent_refs[],
+  rationale, severity)` — сервер валидирует подмножество `intent_refs` (агент не может
+  ссылаться на чужие intents), severity-min (high≥1/medium≥2/low≥3 distinct intents),
+  `target_kind ∈ {common, interview, work, new_project, fix}`, кэп `MaxProposals = 5`.
 - `mcp__throne__close_empty_dream_run(run_id, release_evidence?=true)` — закрывает run
-  только если `Proposals.Count == 0`. Run с предложениями агент закрыть не может;
-  forced-close с proposals — действие пользователя через HTTP `POST .../close`,
-  чтобы агент не мог замаскировать собственные предложения.
+  только если `Proposals.Count == 0`. Forced-close с proposals — действие пользователя
+  через HTTP `POST .../close`.
 
 `apply_dream_proposal` и общий `close_dream_run` в MCP surface не появляются: apply —
-исключительно user-action через HTTP/UI; auto-close сервер выполняет сам, когда все
-proposals decided.
-
-Внутренняя политика контекста (агенту не показывается): `DreamContextBudget` со значениями
-по умолчанию 200 review + 200 qa + 500 mcp_call + 200 outcome + 200 verification +
-200 manual_correction и `MaxPatterns=10`. Превышение бюджета учитывается в
-`OmittedEvidenceCounts.BudgetExceeded`. Приоритезация (`EvidencePrioritizer`):
-high-severity → review → qa → verification → mcp_call → outcome, с тай-брейком по свежести.
+исключительно user-action через HTTP/UI; auto-close сервер выполняет сам.
 
 ## Не делаем здесь
 
-- Источники evidence `verification_run`, `manual_correction`, `intent_outcome` —
-  заведём, когда появятся соответствующие сущности; сегодня readiness считает только
-  `intent_review`, `intent_qa`, `mcp_call_log.outcome=error`, `skipped_proposal_with_reason`.
+- MCP-ошибки (`mcp_call_log.outcome=error`) и их анализ — отдельная команда `/throne`
+  (зарезервировано, реализация вне scope этого ADR).
+- Token cap / OmittedIntents в DreamRun — без cap для v1.
+- Session-aware фильтр через `session_id` в `intent_qa`/`intent_review` — открытая
+  тема на будущее, если safety_lag окажется недостаточным.
 - UI `/dream` (Intent 5) и `/tdream` playbook (Intent 6).
 - Cross-process realtime fanout (см. ADR-0009 — открыт).

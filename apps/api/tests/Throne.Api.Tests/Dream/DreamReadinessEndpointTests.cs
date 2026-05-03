@@ -52,7 +52,7 @@ public sealed class DreamReadinessEndpointTests : IAsyncLifetime
         await _mongo.DisposeAsync();
     }
 
-    [Fact(DisplayName = "GET /api/v1/dream-runs/readiness без evidence → status=empty, score=0")]
+    [Fact(DisplayName = "GET /api/v1/dream-runs/readiness без evidence → status=empty, available_tokens=0")]
     public async Task Readiness_returns_empty_on_fresh_db()
     {
         var response = await _client.GetAsync(new Uri("/api/v1/dream-runs/readiness", UriKind.Relative));
@@ -61,7 +61,9 @@ public sealed class DreamReadinessEndpointTests : IAsyncLifetime
         var payload = await response.Content.ReadFromJsonAsync<ReadinessView>();
         payload.Should().NotBeNull();
         payload!.Status.Should().Be("empty");
-        payload.AvailableScore.Should().Be(0);
+        payload.AvailableTokens.Should().Be(0);
+        payload.LockedTokens.Should().Be(0);
+        payload.IntentCount.Should().Be(0);
         payload.PendingProposalsCount.Should().Be(0);
         payload.PendingRunsCount.Should().Be(0);
         payload.SuggestedAction.Should().Contain("Wait");
@@ -88,7 +90,9 @@ public sealed class DreamReadinessEndpointTests : IAsyncLifetime
     private sealed class ReadinessView
     {
         [JsonPropertyName("status")] public string Status { get; init; } = string.Empty;
-        [JsonPropertyName("available_score")] public int AvailableScore { get; init; }
+        [JsonPropertyName("available_tokens")] public int AvailableTokens { get; init; }
+        [JsonPropertyName("locked_tokens")] public int LockedTokens { get; init; }
+        [JsonPropertyName("intent_count")] public int IntentCount { get; init; }
         [JsonPropertyName("pending_proposals_count")] public int PendingProposalsCount { get; init; }
         [JsonPropertyName("pending_runs_count")] public int PendingRunsCount { get; init; }
         [JsonPropertyName("suggested_action")] public string SuggestedAction { get; init; } = string.Empty;

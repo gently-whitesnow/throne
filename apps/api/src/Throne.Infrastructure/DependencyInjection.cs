@@ -9,6 +9,7 @@ using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
+using Throne.Infrastructure.Tokenization;
 
 namespace Throne.Infrastructure;
 
@@ -51,8 +52,9 @@ public static class DependencyInjection
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddSingleton<IDreamRunRepository, MongoDreamRunRepository>();
-        services.AddSingleton<IEvidenceQueries, MongoEvidenceQueries>();
+        services.AddSingleton<IIntentWindowQueries, MongoIntentWindowQueries>();
         services.AddSingleton<IFeedbackQueries, MongoFeedbackQueries>();
+        services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
         services.AddHostedService<MongoIndexInitializer>();
 
         return services;
@@ -83,8 +85,9 @@ public static class DependencyInjection
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddSingleton<IDreamRunRepository, MongoDreamRunRepository>();
-        services.AddSingleton<IEvidenceQueries, MongoEvidenceQueries>();
+        services.AddSingleton<IIntentWindowQueries, MongoIntentWindowQueries>();
         services.AddSingleton<IFeedbackQueries, MongoFeedbackQueries>();
+        services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
         services.AddHostedService<MongoIndexInitializer>();
         return services;
     }

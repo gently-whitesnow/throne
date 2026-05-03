@@ -13,6 +13,8 @@ import { useDreamRunDetail } from "../model/use-dream-run-detail";
 import { DreamProposalCard } from "./DreamProposalCard";
 import { usePendingDreamRuns } from "../model/use-pending-dream-runs";
 
+const tokensFormatter = new Intl.NumberFormat("en-US");
+
 export function DreamRunsList() {
   const { state } = usePendingDreamRuns();
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
@@ -77,10 +79,10 @@ function DreamRunRow({ run, expanded, onToggle }: RowProps) {
       <header className="flex flex-wrap items-center gap-2">
         <DreamRunStatusBadge status={run.status} />
         <span className="text-sm font-semibold">
-          score {String(run.readiness_score)}
+          {tokensFormatter.format(run.token_count)} tokens
         </span>
         <span className="text-xs text-base-content/60">
-          · {String(run.evidence_refs.length)} evidence
+          · {String(run.intent_refs.length)} intents
         </span>
         <span className="text-xs text-base-content/60">
           · {String(run.proposals.length)} proposals ({String(pending)} pending)

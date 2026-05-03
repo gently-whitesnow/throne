@@ -59,10 +59,8 @@ public class CloseDreamRunHandlerTests
         DreamRunId.New(),
         Now.AddDays(-1),
         Now.AddMinutes(-30),
-        readinessScore: 0,
-        new EvidenceCounts(0, 0, 0, 0, 0, 0, 0),
-        [],
-        OmittedEvidenceCounts.Zero,
+        tokenCount: 50,
+        [IntentRef.Create("intent-1", 50, Now)],
         Now);
 
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider

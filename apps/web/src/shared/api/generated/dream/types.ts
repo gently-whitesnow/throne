@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Readiness snapshot for the «dream» pipeline.
-         * @description Returns the «fuel meter» (available_score / locked_score / threshold), evidence breakdown, the safe time window the server is currently considering, and a suggested next action (Run /tdream | Wait | Review pending).
+         * @description Returns the «fuel meter» — count of unique-content tokens that would be passed to /dream, count of intents in the safe window, the safe window the server is currently considering, and an informational suggested action (Run /dream | Wait | Review pending). The status is informational and does NOT block /dream.
          */
         get: operations["getDreamReadiness"];
         put?: never;
@@ -140,20 +140,24 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        DreamReadinessStatus: "empty" | "warming_up" | "ready" | "rich" | "pending_review";
+        DreamReadinessStatus: "empty" | "has_content" | "pending_review";
         DreamReadinessDto: {
             status: components["schemas"]["DreamReadinessStatus"];
-            /** Format: int32 */
-            available_score: number;
-            /** Format: int32 */
-            locked_score: number;
-            /** Format: int32 */
-            threshold: number;
-            evidence_counts: components["schemas"]["DreamEvidenceCountsDto"];
-            /** Format: date-time */
-            oldest_unprocessed_at?: string;
-            /** Format: date-time */
-            newest_safe_evidence_at?: string;
+            /**
+             * Format: int32
+             * @description Sum of cl100k_base tokens of unique content that would feed the next /dream.
+             */
+            available_tokens: number;
+            /**
+             * Format: int32
+             * @description Tokens of intents already snapshotted by pending DreamRuns.
+             */
+            locked_tokens: number;
+            /**
+             * Format: int32
+             * @description Number of distinct intents currently available for /dream.
+             */
+            intent_count: number;
             /** Format: date-time */
             safe_window_start: string;
             /** Format: date-time */
@@ -162,39 +166,15 @@ export interface components {
             pending_proposals_count: number;
             /** Format: int32 */
             pending_runs_count: number;
-            /** @description Human-readable suggestion (Run /tdream | Wait for more signals | Review pending dream proposals). */
+            /** @description Informational hint (Run /dream | Wait for more signals | Review pending dream proposals). Never blocking. */
             suggested_action: string;
         };
-        DreamEvidenceCountsDto: {
+        DreamIntentRefDto: {
+            intent_id: string;
             /** Format: int32 */
-            reviews: number;
-            /** Format: int32 */
-            qa: number;
-            /** Format: int32 */
-            mcp_errors: number;
-            /** Format: int32 */
-            accepted_outcomes: number;
-            /** Format: int32 */
-            manual_corrections: number;
-            /** Format: int32 */
-            verification_failures: number;
-            /** Format: int32 */
-            skipped_proposals: number;
-        };
-        DreamOmittedCountsDto: {
-            /** Format: int32 */
-            too_recent: number;
-            /** Format: int32 */
-            budget_exceeded: number;
-            /** Format: int32 */
-            low_priority: number;
-        };
-        DreamEvidenceRefDto: {
-            /** @enum {string} */
-            kind: "review" | "qa" | "mcp_call" | "outcome" | "verification" | "manual_correction";
-            id: string;
+            token_count: number;
             /** Format: date-time */
-            created_at?: string;
+            snapshotted_at: string;
         };
         DreamProposalDto: {
             id: string;
@@ -204,7 +184,7 @@ export interface components {
             base_instruction_version: number;
             proposed_rule: string;
             evidence_summary: string;
-            evidence_refs: components["schemas"]["DreamEvidenceRefDto"][];
+            intent_refs: components["schemas"]["DreamIntentRefDto"][];
             rationale: string;
             /** @enum {string} */
             severity: "high" | "medium" | "low";
@@ -224,10 +204,8 @@ export interface components {
             /** Format: date-time */
             window_end: string;
             /** Format: int32 */
-            readiness_score: number;
-            evidence_counts: components["schemas"]["DreamEvidenceCountsDto"];
-            omitted_counts: components["schemas"]["DreamOmittedCountsDto"];
-            evidence_refs: components["schemas"]["DreamEvidenceRefDto"][];
+            token_count: number;
+            intent_refs: components["schemas"]["DreamIntentRefDto"][];
             proposals: components["schemas"]["DreamProposalDto"][];
             /** Format: date-time */
             created_at: string;

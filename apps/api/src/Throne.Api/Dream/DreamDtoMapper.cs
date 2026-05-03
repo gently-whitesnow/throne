@@ -12,10 +12,8 @@ internal static class DreamDtoMapper
         Status = ToWireStatus(run.Status),
         Window_start = run.WindowStart,
         Window_end = run.WindowEnd,
-        Readiness_score = run.ReadinessScore,
-        Evidence_counts = ToCountsDto(run.EvidenceCounts),
-        Omitted_counts = ToOmittedDto(run.OmittedEvidenceCounts),
-        Evidence_refs = run.EvidenceRefs.Select(ToRefDto).ToList(),
+        Token_count = run.TokenCount,
+        Intent_refs = run.IntentRefs.Select(ToIntentRefDto).ToList(),
         Proposals = run.Proposals.Select(ToProposalDto).ToList(),
         Created_at = run.CreatedAt,
         Closed_at = run.ClosedAt ?? default,
@@ -31,12 +29,9 @@ internal static class DreamDtoMapper
     public static DreamReadinessDto ToReadinessDto(ReadinessSnapshot snapshot) => new()
     {
         Status = ToReadinessStatus(snapshot.Status),
-        Available_score = snapshot.AvailableScore,
-        Locked_score = snapshot.LockedScore,
-        Threshold = snapshot.Threshold,
-        Evidence_counts = ToCountsDto(snapshot.EvidenceCounts),
-        Oldest_unprocessed_at = snapshot.OldestUnprocessedAt ?? default,
-        Newest_safe_evidence_at = snapshot.NewestSafeEvidenceAt ?? default,
+        Available_tokens = snapshot.AvailableTokens,
+        Locked_tokens = snapshot.LockedTokens,
+        Intent_count = snapshot.IntentCount,
         Safe_window_start = snapshot.SafeWindowStart,
         Safe_window_end = snapshot.SafeWindowEnd,
         Pending_proposals_count = snapshot.PendingProposalsCount,
@@ -52,7 +47,7 @@ internal static class DreamDtoMapper
         Base_instruction_version = p.BaseInstructionVersion,
         Proposed_rule = p.ProposedRule,
         Evidence_summary = p.EvidenceSummary,
-        Evidence_refs = p.EvidenceRefs.Select(ToRefDto).ToList(),
+        Intent_refs = p.IntentRefs.Select(ToIntentRefDto).ToList(),
         Rationale = p.Rationale,
         Severity = ToSeverity(p.Severity),
         Decision = ToDecision(p.Decision),
@@ -70,29 +65,11 @@ internal static class DreamDtoMapper
         Base_version_matches_current = p.BaseVersionMatchesCurrent,
     };
 
-    private static DreamEvidenceCountsDto ToCountsDto(EvidenceCounts c) => new()
+    private static DreamIntentRefDto ToIntentRefDto(IntentRef r) => new()
     {
-        Reviews = c.Reviews,
-        Qa = c.Qa,
-        Mcp_errors = c.McpErrors,
-        Accepted_outcomes = c.AcceptedOutcomes,
-        Manual_corrections = c.ManualCorrections,
-        Verification_failures = c.VerificationFailures,
-        Skipped_proposals = c.SkippedProposals,
-    };
-
-    private static DreamOmittedCountsDto ToOmittedDto(OmittedEvidenceCounts c) => new()
-    {
-        Too_recent = c.TooRecent,
-        Budget_exceeded = c.BudgetExceeded,
-        Low_priority = c.LowPriority,
-    };
-
-    private static DreamEvidenceRefDto ToRefDto(EvidenceRef r) => new()
-    {
-        Kind = ToEvidenceKind(r.Kind),
-        Id = r.Id,
-        Created_at = r.CreatedAt ?? default,
+        Intent_id = r.IntentId,
+        Token_count = r.TokenCount,
+        Snapshotted_at = r.SnapshottedAt,
     };
 
     private static DreamRunDtoStatus ToWireStatus(string status) => status switch
@@ -118,23 +95,10 @@ internal static class DreamDtoMapper
         _ => throw new InvalidOperationException($"Unknown decision: {decision}"),
     };
 
-    private static DreamEvidenceRefDtoKind ToEvidenceKind(string kind) => kind switch
-    {
-        EvidenceKindNames.Review => DreamEvidenceRefDtoKind.Review,
-        EvidenceKindNames.Qa => DreamEvidenceRefDtoKind.Qa,
-        EvidenceKindNames.McpCall => DreamEvidenceRefDtoKind.Mcp_call,
-        EvidenceKindNames.Outcome => DreamEvidenceRefDtoKind.Outcome,
-        EvidenceKindNames.Verification => DreamEvidenceRefDtoKind.Verification,
-        EvidenceKindNames.ManualCorrection => DreamEvidenceRefDtoKind.Manual_correction,
-        _ => throw new InvalidOperationException($"Unknown evidence kind: {kind}"),
-    };
-
     private static DreamReadinessStatus ToReadinessStatus(string status) => status switch
     {
         ReadinessStatusNames.Empty => DreamReadinessStatus.Empty,
-        ReadinessStatusNames.WarmingUp => DreamReadinessStatus.Warming_up,
-        ReadinessStatusNames.Ready => DreamReadinessStatus.Ready,
-        ReadinessStatusNames.Rich => DreamReadinessStatus.Rich,
+        ReadinessStatusNames.HasContent => DreamReadinessStatus.Has_content,
         ReadinessStatusNames.PendingReview => DreamReadinessStatus.Pending_review,
         _ => throw new InvalidOperationException($"Unknown readiness status: {status}"),
     };

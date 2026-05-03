@@ -2,14 +2,14 @@ namespace Throne.Domain.DreamRuns;
 
 /// <summary>
 /// Aggregate root of the «dream» process (ADR-0011). One DreamRun captures a frozen
-/// window of raw evidence the server thought was «ripe enough» to learn from,
+/// window of Intents whose qa/review activity is ready to feed /dream learning,
 /// together with the embedded proposals an agent made on top of that snapshot.
 /// </summary>
 public sealed class DreamRun
 {
     public const int MaxProposals = 5;
 
-    private readonly List<EvidenceRef> _evidenceRefs;
+    private readonly List<IntentRef> _intentRefs;
     private readonly List<DreamProposal> _proposals;
 
     private DreamRun(
@@ -17,10 +17,8 @@ public sealed class DreamRun
         string status,
         DateTimeOffset windowStart,
         DateTimeOffset windowEnd,
-        int readinessScore,
-        EvidenceCounts evidenceCounts,
-        IReadOnlyList<EvidenceRef> evidenceRefs,
-        OmittedEvidenceCounts omittedEvidenceCounts,
+        int tokenCount,
+        IReadOnlyList<IntentRef> intentRefs,
         IReadOnlyList<DreamProposal> proposals,
         DateTimeOffset createdAt,
         DateTimeOffset? closedAt,
@@ -30,10 +28,8 @@ public sealed class DreamRun
         Status = status;
         WindowStart = windowStart;
         WindowEnd = windowEnd;
-        ReadinessScore = readinessScore;
-        EvidenceCounts = evidenceCounts;
-        _evidenceRefs = [.. evidenceRefs];
-        OmittedEvidenceCounts = omittedEvidenceCounts;
+        TokenCount = tokenCount;
+        _intentRefs = [.. intentRefs];
         _proposals = [.. proposals];
         CreatedAt = createdAt;
         ClosedAt = closedAt;
@@ -44,16 +40,14 @@ public sealed class DreamRun
     public string Status { get; private set; }
     public DateTimeOffset WindowStart { get; }
     public DateTimeOffset WindowEnd { get; }
-    public int ReadinessScore { get; }
-    public EvidenceCounts EvidenceCounts { get; }
-    public IReadOnlyList<EvidenceRef> EvidenceRefs => _evidenceRefs;
-    public OmittedEvidenceCounts OmittedEvidenceCounts { get; }
+    public int TokenCount { get; }
+    public IReadOnlyList<IntentRef> IntentRefs => _intentRefs;
     public IReadOnlyList<DreamProposal> Proposals => _proposals;
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? ClosedAt { get; private set; }
 
     /// <summary>
-    /// True when this closed run «consumed» its evidence — referenced records will not
+    /// True when this closed run «consumed» its intents — referenced intents will not
     /// resurface in the next readiness calculation. False when the run was discarded
     /// (default for empty manual close, or explicit release_evidence=true).
     /// </summary>
@@ -65,30 +59,33 @@ public sealed class DreamRun
         DreamRunId id,
         DateTimeOffset windowStart,
         DateTimeOffset windowEnd,
-        int readinessScore,
-        EvidenceCounts evidenceCounts,
-        IReadOnlyList<EvidenceRef> evidenceRefs,
-        OmittedEvidenceCounts omittedEvidenceCounts,
+        int tokenCount,
+        IReadOnlyList<IntentRef> intentRefs,
         DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(evidenceCounts);
-        ArgumentNullException.ThrowIfNull(evidenceRefs);
-        ArgumentNullException.ThrowIfNull(omittedEvidenceCounts);
+        ArgumentNullException.ThrowIfNull(intentRefs);
         if (windowEnd <= windowStart)
         {
             throw new ArgumentException("WindowEnd must be strictly after WindowStart.", nameof(windowEnd));
         }
-        ArgumentOutOfRangeException.ThrowIfNegative(readinessScore);
+        ArgumentOutOfRangeException.ThrowIfNegative(tokenCount);
+        if (intentRefs.Count == 0)
+        {
+            throw new ArgumentException("DreamRun must reference at least one intent.", nameof(intentRefs));
+        }
+        var distinct = intentRefs.Select(r => r.IntentId).Distinct(StringComparer.Ordinal).Count();
+        if (distinct != intentRefs.Count)
+        {
+            throw new ArgumentException("intent_refs must be distinct by intent_id.", nameof(intentRefs));
+        }
 
         return new DreamRun(
             id,
             DreamRunStatusNames.Pending,
             windowStart,
             windowEnd,
-            readinessScore,
-            evidenceCounts,
-            evidenceRefs,
-            omittedEvidenceCounts,
+            tokenCount,
+            intentRefs,
             proposals: [],
             createdAt: now,
             closedAt: null,
@@ -100,10 +97,8 @@ public sealed class DreamRun
         string status,
         DateTimeOffset windowStart,
         DateTimeOffset windowEnd,
-        int readinessScore,
-        EvidenceCounts evidenceCounts,
-        IReadOnlyList<EvidenceRef> evidenceRefs,
-        OmittedEvidenceCounts omittedEvidenceCounts,
+        int tokenCount,
+        IReadOnlyList<IntentRef> intentRefs,
         IReadOnlyList<DreamProposal> proposals,
         DateTimeOffset createdAt,
         DateTimeOffset? closedAt,
@@ -114,8 +109,8 @@ public sealed class DreamRun
             throw new ArgumentOutOfRangeException(nameof(status), $"Unknown DreamRun status: {status}.");
         }
         return new DreamRun(
-            id, status, windowStart, windowEnd, readinessScore, evidenceCounts, evidenceRefs,
-            omittedEvidenceCounts, proposals, createdAt, closedAt, evidenceProcessed);
+            id, status, windowStart, windowEnd, tokenCount, intentRefs,
+            proposals, createdAt, closedAt, evidenceProcessed);
     }
 
     public DreamProposal? FindProposal(DreamProposalId proposalId) =>
@@ -201,7 +196,7 @@ public sealed class DreamRun
             return new DreamRunCloseResult.AlreadyClosed();
         }
 
-        // По умолчанию пустой run «отпускает» evidence (count==0); run с proposals — фиксирует.
+        // По умолчанию пустой run «отпускает» intents (count==0); run с proposals — фиксирует.
         var defaultRelease = _proposals.Count == 0;
         var release = releaseEvidenceOverride ?? defaultRelease;
         var processed = !release;
@@ -211,7 +206,7 @@ public sealed class DreamRun
         EvidenceProcessed = processed;
         if (release)
         {
-            _evidenceRefs.Clear();
+            _intentRefs.Clear();
         }
         return new DreamRunCloseResult.Closed(processed);
     }

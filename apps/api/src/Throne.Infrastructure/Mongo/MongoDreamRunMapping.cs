@@ -11,10 +11,8 @@ internal static class MongoDreamRunMapping
         Status = run.Status,
         WindowStart = run.WindowStart.UtcDateTime,
         WindowEnd = run.WindowEnd.UtcDateTime,
-        ReadinessScore = run.ReadinessScore,
-        EvidenceCounts = ToCountsDoc(run.EvidenceCounts),
-        EvidenceRefs = run.EvidenceRefs.Select(ToRefDoc).ToList(),
-        OmittedCounts = ToOmittedDoc(run.OmittedEvidenceCounts),
+        TokenCount = run.TokenCount,
+        IntentRefs = run.IntentRefs.Select(ToRefDoc).ToList(),
         Proposals = run.Proposals.Select(ToProposalDoc).ToList(),
         CreatedAt = run.CreatedAt.UtcDateTime,
         ClosedAt = run.ClosedAt?.UtcDateTime,
@@ -26,10 +24,8 @@ internal static class MongoDreamRunMapping
         doc.Status,
         DateTime.SpecifyKind(doc.WindowStart, DateTimeKind.Utc),
         DateTime.SpecifyKind(doc.WindowEnd, DateTimeKind.Utc),
-        doc.ReadinessScore,
-        ToDomainCounts(doc.EvidenceCounts),
-        doc.EvidenceRefs.Select(ToDomainRef).ToList(),
-        ToDomainOmitted(doc.OmittedCounts),
+        doc.TokenCount,
+        doc.IntentRefs.Select(ToDomainRef).ToList(),
         doc.Proposals.Select(ToDomainProposal).ToList(),
         DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
         doc.ClosedAt is null ? null : DateTime.SpecifyKind(doc.ClosedAt.Value, DateTimeKind.Utc),
@@ -43,7 +39,7 @@ internal static class MongoDreamRunMapping
         BaseInstructionVersion = p.BaseInstructionVersion,
         ProposedRule = p.ProposedRule,
         EvidenceSummary = p.EvidenceSummary,
-        EvidenceRefs = p.EvidenceRefs.Select(ToRefDoc).ToList(),
+        IntentRefs = p.IntentRefs.Select(ToRefDoc).ToList(),
         Rationale = p.Rationale,
         Severity = p.Severity,
         Decision = p.Decision,
@@ -52,42 +48,17 @@ internal static class MongoDreamRunMapping
         RejectedReason = p.RejectedReason,
     };
 
-    public static EvidenceRefDocument ToRefDoc(EvidenceRef r) => new()
+    public static IntentRefDocument ToRefDoc(IntentRef r) => new()
     {
-        Kind = r.Kind,
-        Id = r.Id,
-        CreatedAt = r.CreatedAt?.UtcDateTime,
+        IntentId = r.IntentId,
+        TokenCount = r.TokenCount,
+        SnapshottedAt = r.SnapshottedAt.UtcDateTime,
     };
 
-    private static EvidenceCountsDocument ToCountsDoc(EvidenceCounts c) => new()
-    {
-        Reviews = c.Reviews,
-        Qa = c.Qa,
-        McpErrors = c.McpErrors,
-        AcceptedOutcomes = c.AcceptedOutcomes,
-        ManualCorrections = c.ManualCorrections,
-        VerificationFailures = c.VerificationFailures,
-        SkippedProposals = c.SkippedProposals,
-    };
-
-    private static OmittedEvidenceCountsDocument ToOmittedDoc(OmittedEvidenceCounts c) => new()
-    {
-        TooRecent = c.TooRecent,
-        BudgetExceeded = c.BudgetExceeded,
-        LowPriority = c.LowPriority,
-    };
-
-    private static EvidenceCounts ToDomainCounts(EvidenceCountsDocument d) => new(
-        d.Reviews, d.Qa, d.McpErrors, d.AcceptedOutcomes,
-        d.ManualCorrections, d.VerificationFailures, d.SkippedProposals);
-
-    private static OmittedEvidenceCounts ToDomainOmitted(OmittedEvidenceCountsDocument d) => new(
-        d.TooRecent, d.BudgetExceeded, d.LowPriority);
-
-    private static EvidenceRef ToDomainRef(EvidenceRefDocument d) =>
-        new(d.Kind, d.Id, d.CreatedAt is null
-            ? null
-            : DateTime.SpecifyKind(d.CreatedAt.Value, DateTimeKind.Utc));
+    private static IntentRef ToDomainRef(IntentRefDocument d) => new(
+        d.IntentId,
+        d.TokenCount,
+        DateTime.SpecifyKind(d.SnapshottedAt, DateTimeKind.Utc));
 
     private static DreamProposal ToDomainProposal(DreamProposalDocument d) => DreamProposal.Restore(
         new DreamProposalId(d.Id),
@@ -96,7 +67,7 @@ internal static class MongoDreamRunMapping
         d.BaseInstructionVersion,
         d.ProposedRule,
         d.EvidenceSummary,
-        d.EvidenceRefs.Select(ToDomainRef).ToList(),
+        d.IntentRefs.Select(ToDomainRef).ToList(),
         d.Rationale,
         d.Severity,
         d.Decision,
