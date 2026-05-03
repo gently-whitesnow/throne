@@ -25,4 +25,7 @@ public static class ErrorCodes
     public const string DreamProposalAlreadyDecided = "dream.proposal.already_decided";
     public const string DreamRunAlreadyClosed = "dream.run.already_closed";
     public const string DreamProposalNeedsRebase = "dream.proposal.needs_rebase";
+    public const string DreamProposalCapReached = "dream.proposal.cap_reached";
+    public const string DreamProposalEvidenceUnknown = "dream.proposal.evidence_unknown";
+    public const string DreamRunHasProposals = "dream.run.has_proposals";
 }

@@ -56,6 +56,9 @@ public static class DependencyInjection
         services.AddSingleton<ApplyDreamProposalHandler>();
         services.AddSingleton<SkipDreamProposalHandler>();
         services.AddSingleton<CloseDreamRunHandler>();
+        services.AddSingleton<RunDreamHandler>();
+        services.AddSingleton<ProposeDreamRuleHandler>();
+        services.AddSingleton<CloseEmptyDreamRunHandler>();
         return services;
     }
 }

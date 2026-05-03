@@ -156,9 +156,44 @@ realtime НЕ триггерит (слишком шумно). UI всегда м
   через `BaseInstructionVersion` + `409 needs_rebase`. Пользователь должен повторно открыть
   proposal после рефреша.
 
+## Update — Intent 4 (MCP surface)
+
+Server-managed MCP-инструменты для `/tdream` поверх той же модели:
+
+- `mcp__throne__get_dream_readiness()` — read-only снапшот fuel-метра, переиспользует
+  `GetDreamReadinessHandler` без блокировок и мутаций.
+- `mcp__throne__run_dream(policy="auto")` — создаёт pending DreamRun, если в safe window
+  достаточно сигнала. Возвращает дискриминированное поле `status`:
+  `created` / `not_enough_context` / `existing_pending`. Идемпотентность за 24 часа
+  по последнему pending run-у. Контекст агенту никогда не отдаётся сырьём — только
+  `evidence_summary { counts, patterns[], suggested_target_kinds[],
+  existing_learned_rules_by_kind }` плюс `evidence_refs` для повторного использования
+  в `propose_dream_rule`. `existing_learned_rules_by_kind` собирается сервером из секции
+  `## Learned rules` каждой user-инструкции (`LearnedRulesParser`) — это убирает
+  необходимость для агента вызывать `get_user_instruction` ради дубликат-защиты.
+- `mcp__throne__propose_dream_rule(run_id, target_kind, proposed_rule, evidence_refs[],
+  rationale, severity)` — сервер валидирует подмножество evidence_refs (агент не может
+  ссылаться на чужое сырьё), severity-evidence (high≥1/medium≥2/low≥3), `target_kind ∈
+  {common, interview, work, new_project, fix}` (`dream` и `throne` — не учим), кэп
+  `MaxProposals = 5`, и резолвит `target_instruction` через
+  `GetUserInstructionsByKindsAsync`, фиксируя `base_instruction_version`.
+- `mcp__throne__close_empty_dream_run(run_id, release_evidence?=true)` — закрывает run
+  только если `Proposals.Count == 0`. Run с предложениями агент закрыть не может;
+  forced-close с proposals — действие пользователя через HTTP `POST .../close`,
+  чтобы агент не мог замаскировать собственные предложения.
+
+`apply_dream_proposal` и общий `close_dream_run` в MCP surface не появляются: apply —
+исключительно user-action через HTTP/UI; auto-close сервер выполняет сам, когда все
+proposals decided.
+
+Внутренняя политика контекста (агенту не показывается): `DreamContextBudget` со значениями
+по умолчанию 200 review + 200 qa + 500 mcp_call + 200 outcome + 200 verification +
+200 manual_correction и `MaxPatterns=10`. Превышение бюджета учитывается в
+`OmittedEvidenceCounts.BudgetExceeded`. Приоритезация (`EvidencePrioritizer`):
+high-severity → review → qa → verification → mcp_call → outcome, с тай-брейком по свежести.
+
 ## Не делаем здесь
 
-- MCP-инструменты `run_dream` / `propose_instruction_change` (Intent 4).
 - Источники evidence `verification_run`, `manual_correction`, `intent_outcome` —
   заведём, когда появятся соответствующие сущности; сегодня readiness считает только
   `intent_review`, `intent_qa`, `mcp_call_log.outcome=error`, `skipped_proposal_with_reason`.

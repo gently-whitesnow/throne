@@ -14,6 +14,7 @@ public static class ThroneToolsBootstrap
 
         services.AddThroneTool<IntentTools>();
         services.AddThroneTool<FeedbackTools>();
+        services.AddThroneTool<DreamTools>();
 
         return services;
     }
