@@ -12,7 +12,7 @@ public class ContextTokenCounterTests
     public void Empty_window_returns_zero()
     {
         var counter = new ContextTokenCounter(new LengthTokenizer());
-        var window = new IntentWindow(At.AddDays(-1), At, []);
+        var window = new IntentWindow([]);
 
         var result = counter.Count(window);
 
@@ -34,7 +34,7 @@ public class ContextTokenCounterTests
             QaList: [],
             ReviewList: [],
             UpdatedAt: At);
-        var window = new IntentWindow(At.AddDays(-1), At, [intent]);
+        var window = new IntentWindow([intent]);
 
         var result = counter.Count(window);
 
@@ -57,7 +57,7 @@ public class ContextTokenCounterTests
             QaList: [],
             ReviewList: [],
             UpdatedAt: At);
-        var window = new IntentWindow(At.AddDays(-1), At, [intent]);
+        var window = new IntentWindow([intent]);
 
         var result = counter.Count(window);
 
@@ -80,7 +80,7 @@ public class ContextTokenCounterTests
                 new IntentReviewSnapshot("rev-1", "Reason1", "Note1", At.AddHours(-2)),
             ],
             UpdatedAt: At);
-        var window = new IntentWindow(At.AddDays(-1), At, [intent]);
+        var window = new IntentWindow([intent]);
 
         var result = counter.Count(window);
 
@@ -100,7 +100,7 @@ public class ContextTokenCounterTests
     public void Multiple_intents_summed()
     {
         var counter = new ContextTokenCounter(new LengthTokenizer());
-        var window = new IntentWindow(At.AddDays(-1), At,
+        var window = new IntentWindow(
         [
             SimpleIntent("intent-1", "aaa"),
             SimpleIntent("intent-2", "bbbb"),

@@ -26,7 +26,7 @@ public static class RunDreamResultStatuses
 
 /// <summary>
 /// Result of <see cref="RunDreamHandler"/>. Server-managed: the agent never chooses
-/// its own intent window or context size.
+/// its own intent context.
 /// </summary>
 public sealed record RunDreamResult(
     string Status,
@@ -96,7 +96,7 @@ public sealed class RunDreamHandler(
                 RunDreamResultStatuses.NotEnoughContext,
                 readiness,
                 DreamRun: null,
-                Reason: "No intents with qa or review activity in the safe window.");
+                Reason: "No intents with qa or review activity available for /dream.");
         }
 
         var now = clock.GetUtcNow();
@@ -106,8 +106,6 @@ public sealed class RunDreamHandler(
 
         var run = DreamRun.Create(
             DreamRunId.New(),
-            assembly.Available.WindowStart,
-            assembly.Available.WindowEnd,
             assembly.AvailableTokens,
             intentRefs,
             now);

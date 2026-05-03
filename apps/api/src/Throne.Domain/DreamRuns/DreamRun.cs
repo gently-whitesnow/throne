@@ -2,7 +2,7 @@ namespace Throne.Domain.DreamRuns;
 
 /// <summary>
 /// Aggregate root of the «dream» process (ADR-0011). One DreamRun captures a frozen
-/// window of Intents whose qa/review activity is ready to feed /dream learning,
+/// snapshot of intents whose qa/review activity is ready to feed /dream learning,
 /// together with the embedded proposals an agent made on top of that snapshot.
 /// </summary>
 public sealed class DreamRun
@@ -15,8 +15,6 @@ public sealed class DreamRun
     private DreamRun(
         DreamRunId id,
         string status,
-        DateTimeOffset windowStart,
-        DateTimeOffset windowEnd,
         int tokenCount,
         IReadOnlyList<IntentRef> intentRefs,
         IReadOnlyList<DreamProposal> proposals,
@@ -26,8 +24,6 @@ public sealed class DreamRun
     {
         Id = id;
         Status = status;
-        WindowStart = windowStart;
-        WindowEnd = windowEnd;
         TokenCount = tokenCount;
         _intentRefs = [.. intentRefs];
         _proposals = [.. proposals];
@@ -38,8 +34,6 @@ public sealed class DreamRun
 
     public DreamRunId Id { get; }
     public string Status { get; private set; }
-    public DateTimeOffset WindowStart { get; }
-    public DateTimeOffset WindowEnd { get; }
     public int TokenCount { get; }
     public IReadOnlyList<IntentRef> IntentRefs => _intentRefs;
     public IReadOnlyList<DreamProposal> Proposals => _proposals;
@@ -57,17 +51,11 @@ public sealed class DreamRun
 
     public static DreamRun Create(
         DreamRunId id,
-        DateTimeOffset windowStart,
-        DateTimeOffset windowEnd,
         int tokenCount,
         IReadOnlyList<IntentRef> intentRefs,
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(intentRefs);
-        if (windowEnd <= windowStart)
-        {
-            throw new ArgumentException("WindowEnd must be strictly after WindowStart.", nameof(windowEnd));
-        }
         ArgumentOutOfRangeException.ThrowIfNegative(tokenCount);
         if (intentRefs.Count == 0)
         {
@@ -82,8 +70,6 @@ public sealed class DreamRun
         return new DreamRun(
             id,
             DreamRunStatusNames.Pending,
-            windowStart,
-            windowEnd,
             tokenCount,
             intentRefs,
             proposals: [],
@@ -95,8 +81,6 @@ public sealed class DreamRun
     public static DreamRun Restore(
         DreamRunId id,
         string status,
-        DateTimeOffset windowStart,
-        DateTimeOffset windowEnd,
         int tokenCount,
         IReadOnlyList<IntentRef> intentRefs,
         IReadOnlyList<DreamProposal> proposals,
@@ -109,7 +93,7 @@ public sealed class DreamRun
             throw new ArgumentOutOfRangeException(nameof(status), $"Unknown DreamRun status: {status}.");
         }
         return new DreamRun(
-            id, status, windowStart, windowEnd, tokenCount, intentRefs,
+            id, status, tokenCount, intentRefs,
             proposals, createdAt, closedAt, evidenceProcessed);
     }
 

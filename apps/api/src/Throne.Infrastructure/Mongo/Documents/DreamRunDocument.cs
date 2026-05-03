@@ -11,12 +11,6 @@ internal sealed class DreamRunDocument
     [BsonElement("status")]
     public string Status { get; set; } = string.Empty;
 
-    [BsonElement("window_start")]
-    public DateTime WindowStart { get; set; }
-
-    [BsonElement("window_end")]
-    public DateTime WindowEnd { get; set; }
-
     [BsonElement("token_count")]
     public int TokenCount { get; set; }
 

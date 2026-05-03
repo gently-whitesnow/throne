@@ -59,15 +59,19 @@ Accepted.
 
 ### Снимок входа
 
-DreamRun хранит `IntentRefs[]` — список intent'ов, попавших в окно, с per-intent
-`token_count` (cl100k_base) и `snapshotted_at`. Поля `EvidenceRefs/EvidenceCounts/
+DreamRun хранит `IntentRefs[]` — список intent'ов, попавших в snapshot, с per-intent
+`token_count` (cl100k_base) и `snapshotted_at`. Полей `WindowStart/End` нет: /dream —
+ручная команда, и ввод не ограничен временным окном. Поля `EvidenceRefs/EvidenceCounts/
 OmittedEvidenceCounts/ReadinessScore` удалены вместе с весовой моделью.
 
 ### Что входит в контекст /dream
 
-В безопасном окне (`now − safety_lag` сверху, последний closed DreamRun или `now − 90d`
-снизу) сервер находит **все intents, у которых есть `intent_qa` или `intent_review`,
-созданные внутри окна**. Для каждого такого intent в /dream идёт:
+Сервер берёт **все intents, у которых есть хотя бы одна запись `intent_qa` или
+`intent_review`** (минус intents, обработанные closed-processed run-ами, и intents,
+зарезервированные открытыми pending run-ами). Никакого временного окна и никаких
+`safety_lag`/`max_window_days` — если пользователь дёрнул /dream, он уже завершил
+свои процессы и хочет учиться на всём, что накопилось. Для каждого такого intent
+в /dream идёт:
 
 - полная история `Intent.text` (`text_versions`, `version` ASC: snapshot/replace/insert);
 - финальный `Intent.text` — **дедуплицирован** против последнего version-snapshot/new_text/
@@ -99,8 +103,8 @@ Attachments (`IntentAttachmentDocument`) не входят — out of scope (б�
 
 Три состояния:
 
-- `empty` — в окне нет intents с qa/review;
-- `has_content` — в окне есть intents, можно запускать /dream;
+- `empty` — нет ни одного intent с qa/review;
+- `has_content` — есть intents с qa/review, можно запускать /dream;
 - `pending_review` — есть открытые DreamRun, надо разобраться сначала с ними.
 
 Все три — informational; ни один не блокирует MCP-вызов `run_dream`. Tool возвращает
@@ -131,12 +135,8 @@ Apply proposal — единственное место, где DreamRun каса
 
 ### Конфигурация
 
-Секция `Throne:Dream` сохраняет два поля:
-
-- `SafetyLagMinutes` (default 30) — окно `now − safety_lag` отрезает свежие записи;
-- `MaxWindowDays` (default 90) — нижняя граница окна, если closed DreamRun нет.
-
-`Throne:Dream:Weights` и `Throne:Dream:Thresholds` удалены.
+Секция `Throne:Dream` удалена целиком: все поля (`Weights`, `Thresholds`,
+`SafetyLagMinutes`, `MaxWindowDays`) ушли вместе с весовой моделью и временным окном.
 
 ### Realtime
 
@@ -168,20 +168,19 @@ Apply proposal — единственное место, где DreamRun каса
 
 - Метрика `available_tokens` прозрачна: пользователь видит, сколько контента уйдёт в /dream.
 - `text_versions` остаётся честной линейной историей применённых правок инструкций.
-- Server владеет «что/когда читать» — агент получает готовый снимок IntentRefs.
-- Конфиг минимален (только safety_lag и max_window).
+- Сервер владеет «что читать» — агент получает готовый снимок IntentRefs.
+- Конфигурации нет: ноль настроечных параметров для /dream.
 - `mcp_call_log` отделён от обучения /dream и зарезервирован под `/throne`.
-- /dream запускается ручкой — пользователь не зависит от непрозрачного score.
+- /dream — ручная команда; пользователь сам решает, когда контекст готов, без
+  непрозрачных порогов и временных окон.
 
 ### Negative / Risks
 
 - Без cap по токенам один /dream может потащить в контекст десятки тысяч токенов.
   В v1 принят как allowed (single-user, малые объёмы); cap добавим, если станет проблемой.
-- Session-aware фильтр снят: `intent_qa`/`intent_review` не носят `session_id`. В v1
-  опираемся только на `safety_lag=30 min`. Если активная сессия пишет qa/review во время
-  своей работы и /dream запускается сразу — agent увидит свежую запись. Mitigation: ждём
-  ≥30 мин или запускаем /dream явно из «холодной» сессии. Если окажется недостаточно —
-  отдельной задачей добавим `session_id` в writes.
+- Свежие qa/review активной рабочей сессии попадут в /dream сразу, без задержки.
+  Митигация: пользователь сам выбирает момент запуска /dream. Если окажется неудобным,
+  отдельной задачей добавим session-aware фильтр (`session_id` в qa/review writes).
 - Race между `apply` и параллельным редактированием инструкции — решается через
   `BaseInstructionVersion` + `409 needs_rebase`.
 
@@ -190,9 +189,9 @@ Apply proposal — единственное место, где DreamRun каса
 Server-managed MCP-инструменты для `/tdream` поверх той же модели:
 
 - `mcp__throne__get_dream_readiness()` — read-only снапшот fuel-метра. Возвращает
-  `{status, available_tokens, locked_tokens, intent_count, safe_window_*, …}`.
-- `mcp__throne__run_dream(policy="auto")` — создаёт pending DreamRun, если в безопасном
-  окне есть хоть один intent с qa/review активностью. Возвращает дискриминированное поле
+  `{status, available_tokens, locked_tokens, intent_count, pending_*_count, suggested_action}`.
+- `mcp__throne__run_dream(policy="auto")` — создаёт pending DreamRun, если есть хоть один
+  intent с qa/review активностью. Возвращает дискриминированное поле
   `status`: `created` / `not_enough_context` / `existing_pending`. Идемпотентность
   за 24 часа по последнему pending run-у. Контекст агенту никогда не отдаётся сырьём — только
   `evidence_summary { intent_count, token_count, existing_learned_rules_by_kind }` плюс

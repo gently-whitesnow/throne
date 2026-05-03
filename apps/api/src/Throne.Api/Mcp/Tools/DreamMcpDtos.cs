@@ -11,8 +11,6 @@ public sealed record DreamReadinessDto(
     [property: Description("Tokens of unique content available for the next /dream invocation.")] int AvailableTokens,
     [property: Description("Tokens belonging to intents already locked by pending DreamRuns.")] int LockedTokens,
     [property: Description("Number of distinct intents currently in the available bucket.")] int IntentCount,
-    [property: Description("Inclusive lower bound of the safe window.")] DateTimeOffset SafeWindowStart,
-    [property: Description("Exclusive upper bound of the safe window.")] DateTimeOffset SafeWindowEnd,
     [property: Description("Informational suggestion ('Run /dream', 'Wait for more signals', 'Review pending dream proposals'). Never blocking.")] string SuggestedAction,
     [property: Description("Total proposals in pending state across all open DreamRuns.")] int PendingProposalsCount,
     [property: Description("Number of pending DreamRuns. While >0 readiness reports 'pending_review' to discourage parallel /dream.")] int PendingRunsCount);
@@ -25,8 +23,6 @@ public sealed record DreamIntentRefDto(
 public sealed record DreamRunDto(
     [property: Description("DreamRun identifier.")] string Id,
     [property: Description("Run status: 'pending' or 'closed'.")] string Status,
-    [property: Description("Inclusive lower bound of the run's frozen window.")] DateTimeOffset WindowStart,
-    [property: Description("Exclusive upper bound of the run's frozen window.")] DateTimeOffset WindowEnd,
     [property: Description("Sum of tokens across all snapshotted intents.")] int TokenCount,
     [property: Description("Per-intent breakdown captured in the snapshot.")] IReadOnlyList<DreamIntentRefDto> IntentRefs,
     [property: Description("Snapshot creation timestamp (UTC).")] DateTimeOffset CreatedAt,
@@ -64,8 +60,6 @@ internal static class DreamMcpDtoMapper
         AvailableTokens: snapshot.AvailableTokens,
         LockedTokens: snapshot.LockedTokens,
         IntentCount: snapshot.IntentCount,
-        SafeWindowStart: snapshot.SafeWindowStart,
-        SafeWindowEnd: snapshot.SafeWindowEnd,
         SuggestedAction: snapshot.SuggestedAction,
         PendingProposalsCount: snapshot.PendingProposalsCount,
         PendingRunsCount: snapshot.PendingRunsCount);
@@ -73,8 +67,6 @@ internal static class DreamMcpDtoMapper
     public static DreamRunDto ToRun(DreamRun run) => new(
         Id: run.Id.Value,
         Status: run.Status,
-        WindowStart: run.WindowStart,
-        WindowEnd: run.WindowEnd,
         TokenCount: run.TokenCount,
         IntentRefs: run.IntentRefs.Select(ToIntentRef).ToArray(),
         CreatedAt: run.CreatedAt,

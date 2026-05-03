@@ -14,8 +14,6 @@ public interface IDreamRunRepository
 
     Task<int> GetPendingProposalsCountAsync(CancellationToken ct);
 
-    Task<DreamRun?> GetMostRecentClosedAsync(CancellationToken ct);
-
     /// <summary>
     /// Returns intent ids already consumed by closed DreamRuns whose <c>EvidenceProcessed</c>
     /// is true. Used to filter the «available» window.
@@ -58,14 +56,12 @@ public interface IDreamRunRepository
 /// <summary>
 /// Read-side query over Mongo collections for assembling /dream training context.
 /// Returns full per-intent payloads — text history, current text, all qa, all reviews —
-/// for each intent that had qa or review activity within the safe time window.
+/// for each intent that has at least one qa or review record. No time window:
+/// /dream is a manual command, the user gates timing.
 /// </summary>
 public interface IIntentWindowQueries
 {
-    Task<IReadOnlyList<IntentInWindow>> CollectIntentActivityAsync(
-        DateTimeOffset windowStart,
-        DateTimeOffset windowEnd,
-        CancellationToken ct);
+    Task<IReadOnlyList<IntentInWindow>> CollectIntentsAsync(CancellationToken ct);
 }
 
 public sealed record CreateDreamRunOutcome(DreamRun Run) : IDomainEventCarrier

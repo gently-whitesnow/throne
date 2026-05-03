@@ -74,14 +74,6 @@ namespace Throne.Dream.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
         public int Intent_count { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("safe_window_start")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset Safe_window_start { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("safe_window_end")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset Safe_window_end { get; set; }
-
         [System.Text.Json.Serialization.JsonPropertyName("pending_proposals_count")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
         public int Pending_proposals_count { get; set; }
@@ -215,14 +207,6 @@ namespace Throne.Dream.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DreamRunDtoStatus>))]
         public DreamRunDtoStatus Status { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("window_start")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset Window_start { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("window_end")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public System.DateTimeOffset Window_end { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("token_count")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]

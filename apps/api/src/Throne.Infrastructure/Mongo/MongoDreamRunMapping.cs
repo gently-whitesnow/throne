@@ -9,8 +9,6 @@ internal static class MongoDreamRunMapping
     {
         Id = run.Id.Value,
         Status = run.Status,
-        WindowStart = run.WindowStart.UtcDateTime,
-        WindowEnd = run.WindowEnd.UtcDateTime,
         TokenCount = run.TokenCount,
         IntentRefs = run.IntentRefs.Select(ToRefDoc).ToList(),
         Proposals = run.Proposals.Select(ToProposalDoc).ToList(),
@@ -22,8 +20,6 @@ internal static class MongoDreamRunMapping
     public static DreamRun ToDomain(DreamRunDocument doc) => DreamRun.Restore(
         new DreamRunId(doc.Id),
         doc.Status,
-        DateTime.SpecifyKind(doc.WindowStart, DateTimeKind.Utc),
-        DateTime.SpecifyKind(doc.WindowEnd, DateTimeKind.Utc),
         doc.TokenCount,
         doc.IntentRefs.Select(ToDomainRef).ToList(),
         doc.Proposals.Select(ToDomainProposal).ToList(),

@@ -3,7 +3,7 @@ namespace Throne.Application.DreamRuns;
 /// <summary>
 /// Pure projection of an assembled <see cref="DreamWindowAssembly"/> + pending state into
 /// a <see cref="ReadinessSnapshot"/>. Three-state status: empty / has_content / pending_review.
-/// No thresholds, no weights — token count is informational only (ADR-0011 v2).
+/// No thresholds, no weights, no time window — token count is informational only (ADR-0011 v3).
 /// </summary>
 public static class ReadinessProjector
 {
@@ -22,8 +22,6 @@ public static class ReadinessProjector
             assembly.AvailableTokens,
             assembly.LockedTokens,
             assembly.Available.Items.Count,
-            assembly.Available.WindowStart,
-            assembly.Available.WindowEnd,
             pendingProposalsCount,
             pendingRunsCount,
             suggested);

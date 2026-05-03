@@ -57,8 +57,6 @@ public class CloseDreamRunHandlerTests
 
     private static DreamRun SampleRun() => DreamRun.Create(
         DreamRunId.New(),
-        Now.AddDays(-1),
-        Now.AddMinutes(-30),
         tokenCount: 50,
         [IntentRef.Create("intent-1", 50, Now)],
         Now);

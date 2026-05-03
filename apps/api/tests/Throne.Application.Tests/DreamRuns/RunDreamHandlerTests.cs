@@ -12,14 +12,12 @@ namespace Throne.Application.Tests.DreamRuns;
 public class RunDreamHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
-    private static readonly DateTimeOffset WindowStart = Now.AddDays(-3);
-    private static readonly DateTimeOffset WindowEnd = Now.AddMinutes(-30);
 
     [Fact(DisplayName = "Пустое окно возвращает not_enough_context без создания run")]
     public async Task Empty_window_returns_not_enough_context()
     {
         var fixture = new Fixture();
-        fixture.Window.CollectIntentActivityAsync(default, default, default).ReturnsForAnyArgs([]);
+        fixture.Window.CollectIntentsAsync(default).ReturnsForAnyArgs([]);
 
         var result = await fixture.Handler.HandleAsync(new RunDreamCommand(null), CancellationToken.None);
 
@@ -35,7 +33,7 @@ public class RunDreamHandlerTests
         var fixture = new Fixture();
         var existing = SampleRun(createdAt: Now.AddHours(-2));
         fixture.Runs.ListPendingAsync(default).ReturnsForAnyArgs([existing]);
-        fixture.Window.CollectIntentActivityAsync(default, default, default).ReturnsForAnyArgs(
+        fixture.Window.CollectIntentsAsync(default).ReturnsForAnyArgs(
             new[] { Intent("intent-1", "current text", []) });
 
         var result = await fixture.Handler.HandleAsync(new RunDreamCommand(null), CancellationToken.None);
@@ -49,7 +47,7 @@ public class RunDreamHandlerTests
     public async Task Has_content_creates_run_with_summary()
     {
         var fixture = new Fixture();
-        fixture.Window.CollectIntentActivityAsync(default, default, default).ReturnsForAnyArgs(new[]
+        fixture.Window.CollectIntentsAsync(default).ReturnsForAnyArgs(new[]
         {
             Intent("intent-1", "intent text one", new[]
             {
@@ -93,8 +91,6 @@ public class RunDreamHandlerTests
 
     private static DreamRun SampleRun(DateTimeOffset createdAt) => DreamRun.Create(
         DreamRunId.New(),
-        WindowStart,
-        WindowEnd,
         tokenCount: 100,
         [IntentRef.Create("intent-existing", 100, createdAt)],
         createdAt);
@@ -119,12 +115,6 @@ public class RunDreamHandlerTests
         public Fixture()
         {
             var clock = new FakeTimeProvider(Now);
-            var options = new DreamOptions
-            {
-                SafetyLagMinutes = 30,
-                MaxWindowDays = 90,
-            };
-            Runs.GetMostRecentClosedAsync(default).ReturnsForAnyArgs((DreamRun?)null);
             Runs.ListPendingAsync(default).ReturnsForAnyArgs(Array.Empty<DreamRun>());
             Runs.GetProcessedIntentIdsAsync(default).ReturnsForAnyArgs(Array.Empty<string>());
             Runs.GetLockedIntentIdsAsync(default).ReturnsForAnyArgs(Array.Empty<string>());
@@ -134,7 +124,7 @@ public class RunDreamHandlerTests
                 .GetUserInstructionsByKindsAsync(default!, default!, default)
                 .ReturnsForAnyArgs(Array.Empty<Instruction>());
             var counter = new ContextTokenCounter(new LengthTokenizer());
-            var resolver = new DreamWindowResolver(Runs, Window, counter, options, clock);
+            var resolver = new DreamWindowResolver(Runs, Window, counter);
             Handler = new RunDreamHandler(Runs, Instructions, resolver, new PassthroughUnitOfWork(), clock);
         }
     }

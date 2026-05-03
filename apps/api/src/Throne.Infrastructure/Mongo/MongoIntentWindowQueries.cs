@@ -6,11 +6,10 @@ using Throne.Infrastructure.Mongo.Documents;
 namespace Throne.Infrastructure.Mongo;
 
 /// <summary>
-/// Reads /dream training context as full per-intent payloads. An intent enters the window
-/// if any <c>intent_qa</c> or <c>intent_review</c> for it was created in
-/// <c>[windowStart, windowEnd)</c>. For each such intent we then load <i>all</i> versions,
-/// qa, and reviews (no window filter on the per-intent payload — once the intent is in,
-/// the agent sees its complete history). MCP errors are NOT consulted (ADR-0011 v2).
+/// Reads /dream training context as full per-intent payloads. An intent enters the
+/// snapshot if it has at least one <c>intent_qa</c> or <c>intent_review</c> record.
+/// For each such intent we then load all versions, qa, and reviews. MCP errors are
+/// NOT consulted (ADR-0011 v3).
 /// </summary>
 internal sealed class MongoIntentWindowQueries(IMongoDatabase database) : IIntentWindowQueries
 {
@@ -26,28 +25,10 @@ internal sealed class MongoIntentWindowQueries(IMongoDatabase database) : IInten
     private readonly IMongoCollection<TextVersionDocument> _textVersions =
         database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
 
-    public async Task<IReadOnlyList<IntentInWindow>> CollectIntentActivityAsync(
-        DateTimeOffset windowStart,
-        DateTimeOffset windowEnd,
-        CancellationToken ct)
+    public async Task<IReadOnlyList<IntentInWindow>> CollectIntentsAsync(CancellationToken ct)
     {
-        if (windowEnd <= windowStart)
-        {
-            return [];
-        }
-
-        var startUtc = windowStart.UtcDateTime;
-        var endUtc = windowEnd.UtcDateTime;
-
-        var qaIds = await _qa
-            .Find(q => q.CreatedAt >= startUtc && q.CreatedAt < endUtc)
-            .Project(q => q.IntentId)
-            .ToListAsync(ct);
-
-        var reviewIds = await _reviews
-            .Find(r => r.CreatedAt >= startUtc && r.CreatedAt < endUtc)
-            .Project(r => r.IntentId)
-            .ToListAsync(ct);
+        var qaIds = await _qa.Distinct(q => q.IntentId, FilterDefinition<IntentQaDocument>.Empty, cancellationToken: ct).ToListAsync(ct);
+        var reviewIds = await _reviews.Distinct(r => r.IntentId, FilterDefinition<IntentReviewDocument>.Empty, cancellationToken: ct).ToListAsync(ct);
 
         var candidateIds = qaIds.Concat(reviewIds)
             .Where(id => !string.IsNullOrEmpty(id))

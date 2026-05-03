@@ -1,7 +1,7 @@
 namespace Throne.Application.DreamRuns;
 
 /// <summary>
-/// Readiness snapshot for the «dream» pipeline. Token-counter model (ADR-0011 v2).
+/// Readiness snapshot for the «dream» pipeline. Token-counter model (ADR-0011 v3).
 /// <see cref="Status"/> is informational and never blocks /dream — the user always
 /// decides whether to run.
 /// </summary>
@@ -10,8 +10,6 @@ public sealed record ReadinessSnapshot(
     int AvailableTokens,
     int LockedTokens,
     int IntentCount,
-    DateTimeOffset SafeWindowStart,
-    DateTimeOffset SafeWindowEnd,
     int PendingProposalsCount,
     int PendingRunsCount,
     string SuggestedAction);

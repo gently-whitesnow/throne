@@ -230,8 +230,6 @@ components:
         - available_tokens
         - locked_tokens
         - intent_count
-        - safe_window_start
-        - safe_window_end
         - pending_proposals_count
         - pending_runs_count
         - suggested_action
@@ -253,12 +251,6 @@ components:
           format: int32
           minimum: 0
           description: Number of distinct intents currently available for /dream.
-        safe_window_start:
-          type: string
-          format: date-time
-        safe_window_end:
-          type: string
-          format: date-time
         pending_proposals_count:
           type: integer
           format: int32
@@ -337,8 +329,6 @@ components:
       required:
         - id
         - status
-        - window_start
-        - window_end
         - token_count
         - intent_refs
         - proposals
@@ -350,12 +340,6 @@ components:
         status:
           type: string
           enum: [pending, closed]
-        window_start:
-          type: string
-          format: date-time
-        window_end:
-          type: string
-          format: date-time
         token_count:
           type: integer
           format: int32

@@ -44,16 +44,6 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
         return pending.Sum(r => r.PendingCount);
     }
 
-    public async Task<DreamRun?> GetMostRecentClosedAsync(CancellationToken ct)
-    {
-        var session = sessions.Current;
-        var filter = Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Closed);
-        var doc = session is null
-            ? await _runs.Find(filter).SortByDescending(d => d.ClosedAt).Limit(1).FirstOrDefaultAsync(ct)
-            : await _runs.Find(session, filter).SortByDescending(d => d.ClosedAt).Limit(1).FirstOrDefaultAsync(ct);
-        return doc is null ? null : MongoDreamRunMapping.ToDomain(doc);
-    }
-
     public async Task<IReadOnlyCollection<string>> GetProcessedIntentIdsAsync(CancellationToken ct)
     {
         var session = sessions.Current;

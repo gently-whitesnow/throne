@@ -158,10 +158,6 @@ export interface components {
              * @description Number of distinct intents currently available for /dream.
              */
             intent_count: number;
-            /** Format: date-time */
-            safe_window_start: string;
-            /** Format: date-time */
-            safe_window_end: string;
             /** Format: int32 */
             pending_proposals_count: number;
             /** Format: int32 */
@@ -199,10 +195,6 @@ export interface components {
             id: string;
             /** @enum {string} */
             status: "pending" | "closed";
-            /** Format: date-time */
-            window_start: string;
-            /** Format: date-time */
-            window_end: string;
             /** Format: int32 */
             token_count: number;
             intent_refs: components["schemas"]["DreamIntentRefDto"][];

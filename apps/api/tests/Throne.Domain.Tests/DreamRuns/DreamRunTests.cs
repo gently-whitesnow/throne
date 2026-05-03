@@ -27,8 +27,6 @@ public class DreamRunTests
     {
         var act = () => DreamRun.Create(
             DreamRunId.New(),
-            Now.AddDays(-1),
-            Now,
             tokenCount: 0,
             intentRefs: [],
             now: Now);
@@ -41,8 +39,6 @@ public class DreamRunTests
         var dup = IntentRef.Create("intent-A", 50, Now);
         var act = () => DreamRun.Create(
             DreamRunId.New(),
-            Now.AddDays(-1),
-            Now,
             tokenCount: 170,
             intentRefs: [IntentA, dup],
             now: Now);
@@ -148,8 +144,6 @@ public class DreamRunTests
 
     private static DreamRun NewRun() => DreamRun.Create(
         DreamRunId.New(),
-        Now.AddDays(-7),
-        Now.AddMinutes(-30),
         tokenCount: 400,
         [IntentA, IntentB, IntentC],
         Now);

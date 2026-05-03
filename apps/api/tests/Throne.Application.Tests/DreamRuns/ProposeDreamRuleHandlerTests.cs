@@ -137,8 +137,6 @@ public class ProposeDreamRuleHandlerTests
 
     private static DreamRun SampleRun(IReadOnlyList<IntentRef> refs) => DreamRun.Create(
         DreamRunId.New(),
-        Now.AddDays(-1),
-        Now.AddMinutes(-30),
         tokenCount: refs.Sum(r => r.TokenCount),
         refs,
         Now);

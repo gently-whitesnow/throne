@@ -99,8 +99,6 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
 
     private static DreamRun NewRun() => DreamRun.Create(
         DreamRunId.New(),
-        Now.AddDays(-7),
-        Now.AddMinutes(-30),
         tokenCount: 120,
         [IntentRef.Create("intent-1", 120, Now)],
         Now);

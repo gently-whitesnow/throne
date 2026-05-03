@@ -10,8 +10,6 @@ internal static class DreamDtoMapper
     {
         Id = run.Id.Value,
         Status = ToWireStatus(run.Status),
-        Window_start = run.WindowStart,
-        Window_end = run.WindowEnd,
         Token_count = run.TokenCount,
         Intent_refs = run.IntentRefs.Select(ToIntentRefDto).ToList(),
         Proposals = run.Proposals.Select(ToProposalDto).ToList(),
@@ -32,8 +30,6 @@ internal static class DreamDtoMapper
         Available_tokens = snapshot.AvailableTokens,
         Locked_tokens = snapshot.LockedTokens,
         Intent_count = snapshot.IntentCount,
-        Safe_window_start = snapshot.SafeWindowStart,
-        Safe_window_end = snapshot.SafeWindowEnd,
         Pending_proposals_count = snapshot.PendingProposalsCount,
         Pending_runs_count = snapshot.PendingRunsCount,
         Suggested_action = snapshot.SuggestedAction,

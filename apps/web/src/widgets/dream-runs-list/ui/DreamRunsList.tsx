@@ -91,9 +91,6 @@ function DreamRunRow({ run, expanded, onToggle }: RowProps) {
           {formatDate(run.created_at)}
         </span>
       </header>
-      <p className="m-0 mt-1 text-[11px] text-base-content/60">
-        window {formatDate(run.window_start)} → {formatDate(run.window_end)}
-      </p>
       <div className="mt-2 flex gap-2">
         <button
           type="button"

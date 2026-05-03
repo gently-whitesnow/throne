@@ -3,38 +3,19 @@ using Throne.Application.Ports;
 namespace Throne.Application.DreamRuns;
 
 /// <summary>
-/// Computes the safe window (ADR-0011 v2) and assembles the <see cref="IntentWindow"/>
-/// snapshot from intents whose qa/review activity falls into the window. Splits intents
-/// into the «available» bucket and the «locked-by-pending-runs» bucket, and tokenises
-/// both via <see cref="ContextTokenCounter"/>.
+/// Assembles the /dream training context (ADR-0011 v3): all intents with qa/review
+/// activity, minus those locked by pending DreamRuns and those consumed by closed
+/// processed runs. Token counts are computed via <see cref="ContextTokenCounter"/>.
+/// No time window — /dream is a manual user command, the user gates timing.
 /// </summary>
 public sealed class DreamWindowResolver(
     IDreamRunRepository runs,
     IIntentWindowQueries intentWindow,
-    ContextTokenCounter tokenCounter,
-    DreamOptions options,
-    TimeProvider clock)
+    ContextTokenCounter tokenCounter)
 {
     public async Task<DreamWindowAssembly> AssembleAsync(CancellationToken ct)
     {
-        var now = clock.GetUtcNow();
-        var safetyLag = TimeSpan.FromMinutes(options.SafetyLagMinutes);
-        var maxWindow = TimeSpan.FromDays(options.MaxWindowDays);
-
-        var windowEnd = now - safetyLag;
-        var floor = now - maxWindow;
-
-        var lastClosed = await runs.GetMostRecentClosedAsync(ct);
-        var windowStart = lastClosed?.WindowEnd > floor ? lastClosed.WindowEnd : floor;
-        if (windowStart >= windowEnd)
-        {
-            // Окно пустое (например, safety_lag > интервал между запусками); вернём
-            // пустой snapshot, но с корректными границами для UI.
-            var emptyWindow = new IntentWindow(windowStart, windowEnd, []);
-            return new DreamWindowAssembly(emptyWindow, emptyWindow, AvailableTokens: 0, LockedTokens: 0, []);
-        }
-
-        var raw = await intentWindow.CollectIntentActivityAsync(windowStart, windowEnd, ct);
+        var raw = await intentWindow.CollectIntentsAsync(ct);
         var processed = await runs.GetProcessedIntentIdsAsync(ct);
         var locked = await runs.GetLockedIntentIdsAsync(ct);
         var processedSet = new HashSet<string>(processed, StringComparer.Ordinal);
@@ -68,8 +49,8 @@ public sealed class DreamWindowResolver(
             .ThenBy(i => i.IntentId, StringComparer.Ordinal)
             .ToList();
 
-        var availableWindow = new IntentWindow(windowStart, windowEnd, sortedAvailable);
-        var lockedWindow = new IntentWindow(windowStart, windowEnd, sortedLocked);
+        var availableWindow = new IntentWindow(sortedAvailable);
+        var lockedWindow = new IntentWindow(sortedLocked);
         var availableTokens = tokenCounter.Count(availableWindow);
         var lockedTokens = tokenCounter.Count(lockedWindow);
         return new DreamWindowAssembly(

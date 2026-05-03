@@ -62,8 +62,8 @@ public class ReadinessProjectorTests
         int availableTokens,
         int lockedTokens)
     {
-        var availableWindow = new IntentWindow(WindowStart, WindowEnd, available);
-        var lockedWindow = new IntentWindow(WindowStart, WindowEnd, []);
+        var availableWindow = new IntentWindow(available);
+        var lockedWindow = new IntentWindow([]);
         var breakdown = available
             .Select(i => new IntentTokenBreakdown(i.IntentId, availableTokens / Math.Max(1, available.Count), i.UpdatedAt))
             .ToList();
