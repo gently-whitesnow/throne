@@ -85,3 +85,13 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 - На уровне `skills[]` манифеста [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) добавлено опциональное поле `internal: bool` (default `false`). Семантика и обоснование — в [ADR-0010](0010-internal-skills-flag.md).
 - Уточнение к §8 этого ADR: будущий vendor installer при генерации `.agents/skills/` и `.claude/skills/` в чужие репо **пропускает** скиллы с `internal: true`. Throne-репо продолжает держать соответствующие launcher-файлы локально для self-dogfooding, поэтому `SkillLauncherParityTests` остаются без изменений.
 - Backend (`ISkillManifestProvider`, `GetSkillsTreeHandler`, `/api/v1/instructions/skills-tree`) пока не фильтрует по `internal` — флаг нужен только installer'у. Скрытие в UI — отдельный шаг поверх ADR-0010.
+
+## Update 2026-05-03 — tdream final shape (server-managed, DreamRun aggregate)
+
+- Раздел п.5 «Backend для `tdream`» уточнён: вместо `add_intent_review` с `reason="instruction_patch_proposal"` агент теперь работает строго через server-managed surface, описанный в [ADR-0011](0011-dream-run-model.md):
+  - `mcp__throne__run_dream` — создаёт/возвращает DreamRun с снимком evidence в safe time window. Сервер сам решает «достаточно ли сигнала» (readiness/safety_lag/session-aware).
+  - `mcp__throne__propose_dream_rule` — оформляет ≤5 предложений с `target_kind ∈ {common, interview, work, new_project, fix}`, `evidence_refs`, `severity`, `rationale`. Сервер инжектит финальный текст в секцию `## Learned rules` целевой user-инструкции при apply.
+  - `mcp__throne__close_empty_dream_run(release_evidence=true)` — путь «не хватает сигнала / всё дубликаты»; agent never closes a run with proposals.
+  - Apply / forced-close с proposals — исключительно user-action через UI/HTTP (`POST /api/v1/dream-runs/{runId}/proposals/{proposalId}/apply` и `.../close`).
+- system text для `kind: dream` в манифесте перепрошит под этот алгоритм. Launcher `tdream` остаётся тонким: вся логика приходит через `get_instruction_bundle(mode="dream")`.
+- Ограничение из п.5 «без новых tools» отменено осознанно: появилось четыре MCP-инструмента (`run_dream`, `propose_dream_rule`, `close_empty_dream_run`, read-only `get_dream_readiness`) — это собственно тот «вырост объёма», под который п.5 уже допускал точечные tools.

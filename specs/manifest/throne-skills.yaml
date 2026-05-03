@@ -78,15 +78,39 @@ system_instructions:
 
   - kind: dream
     text: |
-      Цель dream — собрать накопленную обратную связь по работе агента и предложить улучшения серверных инструкций Throne.
+      Цель dream — улучшить USER-инструкции пользователя на основе накопленной обратной связи. Не правит system-инструкции (это область /throne), не правит код, не работает с Intent.text напрямую. Output — DreamProposal, apply path — пользователь через UI.
 
-      Правила:
-      - Не активируй изменения серверных инструкций автоматически. У агента нет write-surface для Instruction-документов в MVP (см. ADR-0003): любые правки оформляются как предложения.
-      - Источник сигналов — записи intent_review и mcp_call_log, прикреплённые к Intent'ам, по которым шла работа. Сначала собери непротиворечивую выборку: что повторяется, что мешает, чего не хватает в текущих bundle.
-      - Группируй наблюдения по затронутым режимам: common / interview / work / new_project / dream / fix.
-      - Для каждой группы оформи предложение как add_intent_review на соответствующем Instruction Intent с reason='instruction_patch_proposal' и текстом, содержащим: что менять, формулировку патча, ожидаемый эффект и риск/откат.
-      - Не редактируй Intent.text инструкций напрямую и не выдумывай новые режимы без явного запроса пользователя.
-      - Верни короткий отчёт: список предложений, затронутые режимы, что было только предложено и что (если вообще) уже принято существующими процессами.
+      Алгоритм (агент НЕ выбирает объём контекста — это решает сервер):
+
+      1) mcp__throne__run_dream().
+         - status='not_enough_context' → верни пользователю server-side reason и suggested_action; STOP.
+         - status='existing_pending' → сообщи «Найден незакрытый dream-run, продолжаю» и работай с existing run.
+         - status='created' → новый run, evidence_summary получен.
+
+         Не вызывай get_dream_readiness отдельно — run_dream сам считает readiness и принимает решение.
+
+      2) Из run.evidence_summary возьми suggested_target_kinds[] и existing_learned_rules_by_kind. Для каждого target_kind агент УЖЕ знает существующие learned rules (для дубликат-проверки) — без чтения полного текста инструкции.
+
+      3) Сформулируй proposals (≤5) через mcp__throne__propose_dream_rule:
+         - target_kind: один из {common, interview, work, new_project, fix}.
+         - proposed_rule: одна короткая строка ≤280 символов. Сервер сам инжектит правило в `## Learned rules` целевой инструкции. Условные правила («Если X — предпочитай Y»), не абсолютные.
+         - evidence_refs: subset run.evidence_refs (только подкрепляющие правило).
+         - severity: high (security/safety/data-loss; ≥1 evidence) | medium (recurring scope/process; ≥2) | low (refinement; ≥3).
+         - rationale: 1-3 предложения.
+         - Сравни с existing_learned_rules_by_kind[target_kind] — НЕ создавай proposal-дубликат.
+
+      4) Если после анализа НЕ создал ни одного proposal (нет достойных сигналов / все дубликаты):
+         mcp__throne__close_empty_dream_run(run_id, release_evidence=true) — отпустить evidence для будущих /tdream. Сообщи пользователю «evidence ещё не дотягивает до правил».
+
+      5) Если создал ≥1 proposal — НЕ закрывай run. Auto-close произойдёт после decision пользователем в UI.
+
+      Жёсткие инварианты:
+      - Не аппрувит свои предложения. Apply — исключительно user-action в UI.
+      - Не предлагает изменений system-инструкций / скиллов / кода / новых метрик — это область /throne.
+      - Не предлагает rule с toxic absolutism («никогда», «всегда без исключений»).
+      - Не вызывает run_dream если уже сделал в этой сессии (см. existing_pending guard).
+      - НЕ вызывает get_user_instruction, list_intent_reviews, query_mcp_call_log — всё нужное в run.evidence_summary.
+      - Возвращает короткий отчёт: статус (created|existing_pending|not_enough_context|empty_closed), количество proposals, затронутые kinds, ссылка пользователю на /pages/dream.
 
   - kind: fix
     text: |
@@ -214,7 +238,7 @@ skills:
       Mode: fix (review attached via add_intent_review before the bundle is fetched).
 
   - name: tdream
-    description: Aggregate Throne feedback and propose instruction improvements (no auto-activation).
+    description: User instruction self-improvement loop with server-managed context and explicit human approval (DreamRun + DreamProposal, see ADR-0011).
     bundle_mode: dream
     launcher_body: |
       You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
@@ -223,9 +247,9 @@ skills:
 
       1. No intent context is required. Do not create a new intent for the dream session itself.
       2. Call `mcp__throne__get_instruction_bundle(mode="dream")`.
-      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file. It will tell you which intents/reviews to read and how to formulate proposed patches.
-      4. Record proposals via `mcp__throne__add_intent_review` on the relevant Instruction-Intent(s) with `reason="instruction_patch_proposal"`. Do NOT activate changes silently — agents have no write-surface for Instruction documents in MVP (see ADR-0003).
+      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file. It owns the algorithm: `run_dream` → `propose_dream_rule` (≤5) or `close_empty_dream_run`. The agent never picks context volume — the server does.
+      4. Do NOT activate changes silently — apply is exclusively a user action in the UI (see ADR-0011). Agents have no write-surface for Instruction documents in MVP (see ADR-0003).
       5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      6. Return: list of proposed changes, affected modes, risk/rollback notes, and explicitly state that nothing was activated, only proposed.
+      6. Return a short status: run status (created|existing_pending|not_enough_context|empty_closed), number of proposals, affected target_kinds, link the user to /pages/dream.
 
       Mode: dream.
