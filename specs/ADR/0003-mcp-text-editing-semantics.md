@@ -223,3 +223,18 @@ Slash-команды — договорённость в agent instruction/promp
 - Реализация — `Throne.Api.Mcp.Prompts.IntentPrompts` с `[McpServerPromptType]` / `[McpServerPrompt]`, регистрация через симметричный `AddThronePrompt<T>()` helper рядом с `AddThroneTool<T>()`.
 
 Зависимостей модели и tools'ов это не меняет: 9 MVP-tools §1 остаются единственным write-API.
+
+## Amendment — read-tools для self-learning (`/throne`)
+
+Для self-learning skill'а `/throne` (Intent 3 серии self-learning, май 2026) добавлены 4 read-only MCP tools, которые **не** входят в bundle (`get_instruction_bundle` их не возвращает) и не меняют write-surface §1:
+
+- `list_intent_reviews(cursor?, limit?=50, since?, reason_filter?, intent_id?) -> { items, next_cursor? }` — пагинированное чтение `intent_review`. Лимит на ответ 200 записей.
+- `list_intent_qa(cursor?, limit?=50, since?, intent_id?) -> { items, next_cursor? }` — пагинированное чтение `intent_qa`. Лимит на ответ 200 записей.
+- `query_mcp_call_log(cursor?, limit?=100, since?, tool_name?, outcome_filter?, intent_id?, session_id?) -> { items, next_cursor? }` — пагинированное чтение `mcp_call_log` с safe-проекцией аргументов (см. ADR-0004 §argument_summary). Лимит 500 записей на ответ.
+- `get_user_instruction(kind) -> InstructionWithText` — чтение текущей user-инструкции для MVP-пользователя по `kind` (`work`, `common`, …). Возвращает `instruction_id`, `kind`, `current_version`, `text`.
+
+Все 4 tools — read-only. `Cursor` — opaque base64(JSON{ created_at, id }). Окно по умолчанию — последние 30 дней; абсолютный максимум — 90 дней (`since` старше клампится на сервере). Ответ ограничен 64 КБ, как в §2.
+
+Использование — преимущественно `/throne` для глубокого расследования. `/tdream` эти tools **не** вызывает: ему достаточно агрегированного DreamContextPack (см. Intent 4 серии и ADR-0011 §evidence_summary).
+
+Тестовое покрытие audit-by-construction (ADR-0004) распространяется автоматически: tools регистрируются через `AddThroneTool<FeedbackTools>()`, который заворачивает их в `AuditingMcpServerTool`.

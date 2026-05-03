@@ -13,6 +13,7 @@ public static class ThroneToolsBootstrap
             typeof(ThroneToolsBootstrap).Assembly.GetName().Version?.ToString() ?? "0.0.0"));
 
         services.AddThroneTool<IntentTools>();
+        services.AddThroneTool<FeedbackTools>();
 
         return services;
     }

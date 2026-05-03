@@ -152,3 +152,24 @@ ADR-0003 amendment ввёл MCP prompts (`tinterview`/`twork`/`tnew`/`treview`) 
 4. Unit-тесты на `AuditingMcpServerPrompt` параметризованы по 4 prompt-именам и проверяют корректную запись `mode_hint`. Smoke integration-тест (когда понадобится) параметризуется тем же реестром prompts по образцу tools — добавление нового prompt'а автоматически добавляет тест-кейс.
 
 Транзакционность и best-effort семантика sink (§5) — те же, что и для tools.
+
+## Amendment — read access to `mcp_call_log` для self-learning
+
+Для self-learning skill'а `/throne` (Intent 3 серии self-learning, май 2026) §7 расширен: журнал теперь читаем **через MCP**, в дополнение к прямому `mongosh`. Read-tools (`list_intent_qa`, `list_intent_reviews`, `query_mcp_call_log`, `get_user_instruction`) описаны в ADR-0003 amendment «read-tools для self-learning».
+
+Чтобы исторические `arguments` не попадали назад агенту (PII / большие payload'ы), `query_mcp_call_log` отдаёт **не** raw `arguments`, а `argument_summary` — whitelist по `tool_name`:
+
+| `tool_name` | `argument_summary` |
+|---|---|
+| `replace_intent_text` | `{ expected_version, old_text_preview (≤80), new_text_preview (≤80) }` |
+| `insert_intent_text_after_line` | `{ expected_version, after_line, insert_text_preview (≤80) }` |
+| `add_intent_review` | `{ expected_version, note_preview (≤80) }` |
+| `add_intent_qa` | `{ expected_version, question_preview (≤80) }` |
+| `get_instruction_bundle` | `{ mode, intent_id }` |
+| `create_intent` | `{ text_preview (≤80), tags }` |
+| `propose_dream_rule` | `{ run_id, target_kind, severity, proposed_rule_preview (≤80) }` |
+| прочие | `null` |
+
+Сырые `arguments` остаются в Mongo в неизменном виде (важно для §1 «append-only, удалений нет»); whitelist применяется только при чтении. `result_summary` отдаётся как есть — он уже компактный по §2.
+
+Покрытие audit-by-construction (§4) распространяется на новые read-tools автоматически: они регистрируются через `AddThroneTool<FeedbackTools>()` и оборачиваются в `AuditingMcpServerTool`. Каждый вызов сам пишется в `mcp_call_log` — это нужный замкнутый цикл «как агент пользуется feedback-tools».
