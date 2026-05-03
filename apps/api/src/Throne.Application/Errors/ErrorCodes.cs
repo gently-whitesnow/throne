@@ -20,4 +20,9 @@ public static class ErrorCodes
     public const string TagNameTaken = "tag.name_taken";
     public const string TagNameInvalid = "tag.name_invalid";
     public const string TagInUse = "tag.in_use";
+    public const string DreamRunNotFound = "dream.run.not_found";
+    public const string DreamProposalNotFound = "dream.proposal.not_found";
+    public const string DreamProposalAlreadyDecided = "dream.proposal.already_decided";
+    public const string DreamRunAlreadyClosed = "dream.run.already_closed";
+    public const string DreamProposalNeedsRebase = "dream.proposal.needs_rebase";
 }

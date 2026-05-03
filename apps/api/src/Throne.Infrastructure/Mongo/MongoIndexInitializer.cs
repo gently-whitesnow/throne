@@ -71,6 +71,27 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                 new CreateIndexOptions { Name = "tag_ids" }),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
+        var dreamRuns = database.GetCollection<DreamRunDocument>(MongoCollectionNames.DreamRuns);
+        await dreamRuns.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<DreamRunDocument>(
+                    Builders<DreamRunDocument>.IndexKeys
+                        .Ascending(x => x.Status)
+                        .Ascending(x => x.CreatedAt),
+                    new CreateIndexOptions { Name = "status_created" }),
+                new CreateIndexModel<DreamRunDocument>(
+                    Builders<DreamRunDocument>.IndexKeys
+                        .Ascending("evidence_refs.kind")
+                        .Ascending("evidence_refs.id"),
+                    new CreateIndexOptions { Name = "evidence_refs_lookup" }),
+                new CreateIndexModel<DreamRunDocument>(
+                    Builders<DreamRunDocument>.IndexKeys
+                        .Ascending(x => x.Status)
+                        .Descending(x => x.ClosedAt),
+                    new CreateIndexOptions { Name = "status_closed_desc" }),
+            ],
+            cancellationToken).ConfigureAwait(false);
+
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(
             [

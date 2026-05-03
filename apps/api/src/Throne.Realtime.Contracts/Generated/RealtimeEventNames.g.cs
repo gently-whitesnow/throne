@@ -11,6 +11,12 @@ namespace Throne.Realtime.Contracts.Generated;
 /// </summary>
 public static class RealtimeEventNames
 {
+    public const string DreamFuelChanged = "dream.fuel_changed";
+    public const string DreamProposalApplied = "dream.proposal_applied";
+    public const string DreamProposalCreated = "dream.proposal_created";
+    public const string DreamProposalSkipped = "dream.proposal_skipped";
+    public const string DreamRunClosed = "dream.run_closed";
+    public const string DreamRunCreated = "dream.run_created";
     public const string IntentAttachmentAdded = "intent.attachment_added";
     public const string IntentAttachmentDeleted = "intent.attachment_deleted";
     public const string IntentCreated = "intent.created";
@@ -26,6 +32,12 @@ public static class RealtimeEventNames
 
     public static readonly System.Collections.Generic.IReadOnlyList<string> All = new[]
     {
+        DreamFuelChanged,
+        DreamProposalApplied,
+        DreamProposalCreated,
+        DreamProposalSkipped,
+        DreamRunClosed,
+        DreamRunCreated,
         IntentAttachmentAdded,
         IntentAttachmentDeleted,
         IntentCreated,

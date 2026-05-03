@@ -1,3 +1,4 @@
+using Throne.Api.Dream;
 using Throne.Api.Intents;
 using Throne.Api.Tags;
 using Throne.Application.Events;
@@ -66,6 +67,19 @@ internal sealed class RealtimeDomainEventHandler(
             RealtimeEventNames.TagUpdated, TagDtoMapper.ToDto(updated.Tag)),
         TagDeleted deleted => new RealtimeEventEnvelope(
             RealtimeEventNames.TagDeleted, new { tag_id = deleted.TagId }),
+        DreamRunCreated created => new RealtimeEventEnvelope(
+            RealtimeEventNames.DreamRunCreated, DreamDtoMapper.ToRunDto(created.Run)),
+        DreamProposalCreated created => new RealtimeEventEnvelope(
+            RealtimeEventNames.DreamProposalCreated, DreamDtoMapper.ToRunDto(created.Run)),
+        DreamProposalApplied applied => new RealtimeEventEnvelope(
+            RealtimeEventNames.DreamProposalApplied, DreamDtoMapper.ToRunDto(applied.Run)),
+        DreamProposalSkipped skipped => new RealtimeEventEnvelope(
+            RealtimeEventNames.DreamProposalSkipped, DreamDtoMapper.ToRunDto(skipped.Run)),
+        DreamRunClosed closed => new RealtimeEventEnvelope(
+            RealtimeEventNames.DreamRunClosed, DreamDtoMapper.ToRunDto(closed.Run)),
+        DreamFuelChanged fuel => new RealtimeEventEnvelope(
+            RealtimeEventNames.DreamFuelChanged,
+            new { available_score = fuel.AvailableScore, status = fuel.Status }),
         _ => null,
     };
 

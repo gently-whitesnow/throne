@@ -1,0 +1,503 @@
+openapi: "3.1.0"
+info:
+  title: Throne Dream
+  version: "1.0.0"
+  description: >
+    HTTP surface for the Dream loop (ADR-0011). Pending proposals live inside DreamRun
+    aggregates and never become text_versions; applying a proposal injects the rule into
+    the target instruction's `## Learned rules` section as an ordinary text version.
+  x-csharp-namespace: Throne.Dream.Contracts.Generated
+paths:
+  /api/v1/dream-runs/readiness:
+    get:
+      operationId: getDreamReadiness
+      tags: [Dream]
+      summary: Readiness snapshot for the «dream» pipeline.
+      description: >
+        Returns the «fuel meter» (available_score / locked_score / threshold), evidence
+        breakdown, the safe time window the server is currently considering, and a
+        suggested next action (Run /tdream | Wait | Review pending).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamReadinessDto'
+  /api/v1/dream-runs/pending:
+    get:
+      operationId: listPendingDreamRuns
+      tags: [Dream]
+      summary: List currently pending DreamRuns (with embedded proposals).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DreamRunDto'
+  /api/v1/dream-runs/pending/count:
+    get:
+      operationId: getPendingDreamProposalsCount
+      tags: [Dream]
+      summary: Count of pending proposals across all pending DreamRuns.
+      description: >
+        Strictly proposals, not runs. The fuel meter uses pending_runs_count and
+        pending_proposals_count separately; this endpoint exists for shell badges.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamPendingCountDto'
+  /api/v1/dream-runs/{run_id}:
+    get:
+      operationId: getDreamRun
+      tags: [Dream]
+      summary: Single DreamRun with proposals and per-proposal preview diff.
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamRunDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/dream-runs/{run_id}/close:
+    post:
+      operationId: closeDreamRun
+      tags: [Dream]
+      summary: Close a DreamRun manually.
+      description: >
+        Default release_evidence depends on the run shape: empty run → release (don't
+        consume); non-empty run → consume (standard path). Explicit boolean overrides.
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseDreamRunRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamRunDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Already closed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/dream-runs/{run_id}/proposals/{proposal_id}/apply:
+    post:
+      operationId: applyDreamProposal
+      tags: [Dream]
+      summary: Apply a pending proposal to its target instruction.
+      description: >
+        Injects `final_rule` (or `proposed_rule` when omitted) into the instruction's
+        `## Learned rules` section, creating a new text version through the standard
+        instruction replace path. Validates `base_instruction_version`; mismatch returns
+        409 dream.proposal.needs_rebase without mutation.
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: proposal_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyDreamProposalRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamRunDto'
+        '404':
+          description: Run, proposal, or instruction not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Already decided, run closed, or needs rebase
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/dream-runs/{run_id}/proposals/{proposal_id}/skip:
+    post:
+      operationId: skipDreamProposal
+      tags: [Dream]
+      summary: Reject a pending proposal with a reason.
+      parameters:
+        - in: path
+          name: run_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: proposal_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkipDreamProposalRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamRunDto'
+        '404':
+          description: Run or proposal not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Already decided or run closed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    DreamReadinessStatus:
+      type: string
+      enum: [empty, warming_up, ready, rich, pending_review]
+    DreamReadinessDto:
+      type: object
+      required:
+        - status
+        - available_score
+        - locked_score
+        - threshold
+        - evidence_counts
+        - safe_window_start
+        - safe_window_end
+        - pending_proposals_count
+        - pending_runs_count
+        - suggested_action
+      properties:
+        status:
+          $ref: '#/components/schemas/DreamReadinessStatus'
+        available_score:
+          type: integer
+          format: int32
+          minimum: 0
+        locked_score:
+          type: integer
+          format: int32
+          minimum: 0
+        threshold:
+          type: integer
+          format: int32
+          minimum: 0
+        evidence_counts:
+          $ref: '#/components/schemas/DreamEvidenceCountsDto'
+        oldest_unprocessed_at:
+          type: string
+          format: date-time
+        newest_safe_evidence_at:
+          type: string
+          format: date-time
+        safe_window_start:
+          type: string
+          format: date-time
+        safe_window_end:
+          type: string
+          format: date-time
+        pending_proposals_count:
+          type: integer
+          format: int32
+          minimum: 0
+        pending_runs_count:
+          type: integer
+          format: int32
+          minimum: 0
+        suggested_action:
+          type: string
+          description: Human-readable suggestion (Run /tdream | Wait for more signals | Review pending dream proposals).
+    DreamEvidenceCountsDto:
+      type: object
+      required:
+        - reviews
+        - qa
+        - mcp_errors
+        - accepted_outcomes
+        - manual_corrections
+        - verification_failures
+        - skipped_proposals
+      properties:
+        reviews:
+          type: integer
+          format: int32
+          minimum: 0
+        qa:
+          type: integer
+          format: int32
+          minimum: 0
+        mcp_errors:
+          type: integer
+          format: int32
+          minimum: 0
+        accepted_outcomes:
+          type: integer
+          format: int32
+          minimum: 0
+        manual_corrections:
+          type: integer
+          format: int32
+          minimum: 0
+        verification_failures:
+          type: integer
+          format: int32
+          minimum: 0
+        skipped_proposals:
+          type: integer
+          format: int32
+          minimum: 0
+    DreamOmittedCountsDto:
+      type: object
+      required: [too_recent, budget_exceeded, low_priority]
+      properties:
+        too_recent:
+          type: integer
+          format: int32
+          minimum: 0
+        budget_exceeded:
+          type: integer
+          format: int32
+          minimum: 0
+        low_priority:
+          type: integer
+          format: int32
+          minimum: 0
+    DreamEvidenceRefDto:
+      type: object
+      required: [kind, id]
+      properties:
+        kind:
+          type: string
+          enum: [review, qa, mcp_call, outcome, verification, manual_correction]
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    DreamProposalDto:
+      type: object
+      required:
+        - id
+        - target_instruction_id
+        - target_kind
+        - base_instruction_version
+        - proposed_rule
+        - evidence_summary
+        - evidence_refs
+        - rationale
+        - severity
+        - decision
+      properties:
+        id:
+          type: string
+        target_instruction_id:
+          type: string
+        target_kind:
+          type: string
+        base_instruction_version:
+          type: integer
+          format: int32
+          minimum: 1
+        proposed_rule:
+          type: string
+          maxLength: 280
+        evidence_summary:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DreamEvidenceRefDto'
+        rationale:
+          type: string
+        severity:
+          type: string
+          enum: [high, medium, low]
+        decision:
+          type: string
+          enum: [pending, applied, skipped]
+        final_rule:
+          type: string
+        applied_instruction_version:
+          type: integer
+          format: int32
+          minimum: 1
+        rejected_reason:
+          type: string
+    DreamRunDto:
+      type: object
+      required:
+        - id
+        - status
+        - window_start
+        - window_end
+        - readiness_score
+        - evidence_counts
+        - omitted_counts
+        - evidence_refs
+        - proposals
+        - created_at
+        - evidence_processed
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, closed]
+        window_start:
+          type: string
+          format: date-time
+        window_end:
+          type: string
+          format: date-time
+        readiness_score:
+          type: integer
+          format: int32
+          minimum: 0
+        evidence_counts:
+          $ref: '#/components/schemas/DreamEvidenceCountsDto'
+        omitted_counts:
+          $ref: '#/components/schemas/DreamOmittedCountsDto'
+        evidence_refs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DreamEvidenceRefDto'
+        proposals:
+          type: array
+          items:
+            $ref: '#/components/schemas/DreamProposalDto'
+        created_at:
+          type: string
+          format: date-time
+        closed_at:
+          type: string
+          format: date-time
+        evidence_processed:
+          type: boolean
+    DreamProposalPreviewDto:
+      type: object
+      required:
+        - proposal_id
+        - current_text
+        - proposed_text
+        - current_instruction_version
+        - base_version_matches_current
+      properties:
+        proposal_id:
+          type: string
+        current_text:
+          type: string
+        proposed_text:
+          type: string
+        current_instruction_version:
+          type: integer
+          format: int32
+          minimum: 0
+        base_version_matches_current:
+          type: boolean
+    DreamRunDetailDto:
+      type: object
+      required: [run, previews]
+      properties:
+        run:
+          $ref: '#/components/schemas/DreamRunDto'
+        previews:
+          type: array
+          items:
+            $ref: '#/components/schemas/DreamProposalPreviewDto'
+    DreamPendingCountDto:
+      type: object
+      required: [pending_proposals_count]
+      properties:
+        pending_proposals_count:
+          type: integer
+          format: int32
+          minimum: 0
+    CloseDreamRunRequest:
+      type: object
+      properties:
+        release_evidence:
+          type: boolean
+          description: >
+            Override default. Default is (run.proposals.length == 0). True forces evidence
+            back into the unprocessed pool; false marks evidence consumed.
+    ApplyDreamProposalRequest:
+      type: object
+      properties:
+        final_rule:
+          type: string
+          maxLength: 280
+          description: User-edited rule text. When omitted, server uses proposed_rule.
+    SkipDreamProposalRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+          description: Why the user rejected this proposal. Becomes a learning signal.

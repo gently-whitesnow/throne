@@ -12,6 +12,8 @@ cd "$ROOT"
 GENERATED_PATHS=(
   "apps/api/src/Throne.Intents.Contracts/Generated/"
   "apps/api/src/Throne.Instructions.Contracts/Generated/"
+  "apps/api/src/Throne.Tags.Contracts/Generated/"
+  "apps/api/src/Throne.Dream.Contracts/Generated/"
   "apps/api/src/Throne.Realtime.Contracts/Generated/"
   "apps/api/src/Throne.Api/Generated/"
   "apps/web/src/shared/api/generated/"

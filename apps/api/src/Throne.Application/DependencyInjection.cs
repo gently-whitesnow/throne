@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Application.DreamRuns;
 using Throne.Application.Events;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
@@ -43,6 +44,14 @@ public static class DependencyInjection
         services.AddSingleton<GetInstructionHandler>();
         services.AddSingleton<ReplaceInstructionTextHandler>();
         services.AddSingleton<ListInstructionVersionsHandler>();
+        services.AddSingleton<DreamWindowResolver>();
+        services.AddSingleton<GetDreamReadinessHandler>();
+        services.AddSingleton<ListPendingDreamRunsHandler>();
+        services.AddSingleton<GetPendingProposalsCountHandler>();
+        services.AddSingleton<GetDreamRunHandler>();
+        services.AddSingleton<ApplyDreamProposalHandler>();
+        services.AddSingleton<SkipDreamProposalHandler>();
+        services.AddSingleton<CloseDreamRunHandler>();
         return services;
     }
 }

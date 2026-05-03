@@ -65,3 +65,30 @@ events:
       properties:
         tag_id:
           type: string
+  dream.run_created:
+    description: A new DreamRun was created (server captured a fresh evidence window).
+    payload_ref: dream#/components/schemas/DreamRunDto
+  dream.proposal_created:
+    description: A pending proposal was added to a DreamRun.
+    payload_ref: dream#/components/schemas/DreamRunDto
+  dream.proposal_applied:
+    description: A pending proposal was applied (text version created on its target instruction).
+    payload_ref: dream#/components/schemas/DreamRunDto
+  dream.proposal_skipped:
+    description: A pending proposal was rejected with a reason.
+    payload_ref: dream#/components/schemas/DreamRunDto
+  dream.run_closed:
+    description: A DreamRun was closed (auto after all proposals decided, or manually).
+    payload_ref: dream#/components/schemas/DreamRunDto
+  dream.fuel_changed:
+    description: Best-effort, debounced fuel-meter signal — UI may also poll /readiness.
+    payload:
+      type: object
+      required: [available_score, status]
+      properties:
+        available_score:
+          type: integer
+          format: int32
+        status:
+          type: string
+          enum: [empty, warming_up, ready, rich, pending_review]

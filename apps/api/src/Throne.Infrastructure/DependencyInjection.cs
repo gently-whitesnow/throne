@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Throne.Application.DreamRuns;
 using Throne.Application.Events;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
@@ -23,6 +24,10 @@ public static class DependencyInjection
         services.AddOptions<SkillManifestOptions>()
             .Bind(configuration.GetSection(SkillManifestOptions.SectionName));
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
+
+        services.AddOptions<DreamOptions>()
+            .Bind(configuration.GetSection(DreamOptions.SectionName));
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DreamOptions>>().Value);
 
         services.AddSingleton<IMongoClient>(sp =>
             new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
@@ -45,6 +50,8 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
+        services.AddSingleton<IDreamRunRepository, MongoDreamRunRepository>();
+        services.AddSingleton<IEvidenceQueries, MongoEvidenceQueries>();
         services.AddHostedService<MongoIndexInitializer>();
 
         return services;
@@ -60,6 +67,8 @@ public static class DependencyInjection
         services.AddSingleton<IMongoClient>(database.Client);
         services.AddOptions<SkillManifestOptions>();
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
+        services.AddOptions<DreamOptions>();
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<DreamOptions>>().Value);
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<MongoUnitOfWork>();
         services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(
@@ -72,6 +81,8 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
+        services.AddSingleton<IDreamRunRepository, MongoDreamRunRepository>();
+        services.AddSingleton<IEvidenceQueries, MongoEvidenceQueries>();
         services.AddHostedService<MongoIndexInitializer>();
         return services;
     }

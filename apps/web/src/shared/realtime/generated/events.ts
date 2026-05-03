@@ -3,12 +3,19 @@
 // Source of truth: specs/contracts/realtime/events.yaml
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
+import type { components as DreamComponents } from "@/shared/api/generated/dream/types";
 import type { components as IntentsComponents } from "@/shared/api/generated/intents/types";
 import type { components as TagsComponents } from "@/shared/api/generated/tags/types";
 
 
 /** Discriminated payload type for each realtime event name. */
 export interface RealtimeEventMap {
+  "dream.fuel_changed": { available_score: number; status: string };
+  "dream.proposal_applied": DreamComponents["schemas"]["DreamRunDto"];
+  "dream.proposal_created": DreamComponents["schemas"]["DreamRunDto"];
+  "dream.proposal_skipped": DreamComponents["schemas"]["DreamRunDto"];
+  "dream.run_closed": DreamComponents["schemas"]["DreamRunDto"];
+  "dream.run_created": DreamComponents["schemas"]["DreamRunDto"];
   "intent.attachment_added": IntentsComponents["schemas"]["IntentAttachmentDto"];
   "intent.attachment_deleted": { intent_id: string; attachment_id: string };
   "intent.created": IntentsComponents["schemas"]["IntentDetailDto"];
@@ -26,6 +33,12 @@ export interface RealtimeEventMap {
 export type RealtimeEventName = keyof RealtimeEventMap;
 
 export const realtimeEventNames: readonly RealtimeEventName[] = [
+  "dream.fuel_changed",
+  "dream.proposal_applied",
+  "dream.proposal_created",
+  "dream.proposal_skipped",
+  "dream.run_closed",
+  "dream.run_created",
   "intent.attachment_added",
   "intent.attachment_deleted",
   "intent.created",
