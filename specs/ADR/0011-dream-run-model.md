@@ -188,8 +188,6 @@ Apply proposal — единственное место, где DreamRun каса
 
 Server-managed MCP-инструменты для `/tdream` поверх той же модели:
 
-- `mcp__throne__get_dream_readiness()` — read-only снапшот fuel-метра. Возвращает
-  `{status, available_tokens, locked_tokens, intent_count, pending_*_count, suggested_action}`.
 - `mcp__throne__run_dream(policy="auto")` — создаёт pending DreamRun, если есть хоть один
   intent с qa/review активностью. Возвращает дискриминированное поле
   `status`: `created` / `not_enough_context` / `existing_pending`. Идемпотентность
@@ -200,12 +198,30 @@ Server-managed MCP-инструменты для `/tdream` поверх той �
   rationale, severity)` — сервер валидирует подмножество `intent_refs` (агент не может
   ссылаться на чужие intents), severity-min (high≥1/medium≥2/low≥3 distinct intents),
   `target_kind ∈ {common, interview, work, new_project, fix}`, кэп `MaxProposals = 5`.
-- `mcp__throne__close_empty_dream_run(run_id, release_evidence?=true)` — закрывает run
-  только если `Proposals.Count == 0`. Forced-close с proposals — действие пользователя
-  через HTTP `POST .../close`.
 
-`apply_dream_proposal` и общий `close_dream_run` в MCP surface не появляются: apply —
-исключительно user-action через HTTP/UI; auto-close сервер выполняет сам.
+`apply_dream_proposal`, `close_dream_run` и `get_dream_readiness` в MCP surface не появляются:
+apply — исключительно user-action через HTTP/UI; auto-close сервер выполняет сам;
+readiness снапшот живёт только как HTTP-эндпоинт `/dream/readiness` для UI-виджета
+fuel-meter — агенту он не нужен, потому что `run_dream` сам считает readiness и принимает
+решение запускать ли цикл.
+
+### Update 2026-05-03 — пустой /tdream (no_proposals)
+
+Раннее в этом разделе предполагался MCP-вызов `close_empty_dream_run` для пути «нет
+proposals». От этого отказались осознанно: закрытие dream-run должно оставаться
+решением человека-оператора, не агента.
+
+- Если агент после `run_dream` не сформулировал ни одного `propose_dream_rule`, он
+  сообщает пользователю «ничего не нашёл» и завершает работу. Run остаётся `pending`.
+- Накопленное evidence продолжает быть привязано к открытому run и не возвращается в
+  общий пул до закрытия.
+- Дальнейшее решение принимает оператор через UI: либо явно закрыть пустой run
+  (тогда серверный handler `CloseEmptyDreamRunHandler` отрабатывает с
+  `release_evidence=true` и evidence снова доступно), либо оставить run открытым,
+  накопить ещё qa/review и запустить `/tdream` позже.
+- HTTP `POST /api/v1/dream-runs/{runId}/close` (в т.ч. для пустых run) и handler
+  `CloseEmptyDreamRunHandler` сохраняются — они теперь обслуживают только UI-кнопку
+  «закрыть» и forced-close c proposals. На MCP surface эта операция не отражается.
 
 ## Не делаем здесь
 

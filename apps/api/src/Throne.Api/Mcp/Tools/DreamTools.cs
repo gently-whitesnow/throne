@@ -8,19 +8,9 @@ namespace Throne.Api.Mcp.Tools;
 
 [McpServerToolType]
 public sealed class DreamTools(
-    GetDreamReadinessHandler getReadiness,
     RunDreamHandler runDream,
-    ProposeDreamRuleHandler proposeRule,
-    CloseEmptyDreamRunHandler closeEmpty)
+    ProposeDreamRuleHandler proposeRule)
 {
-    [McpServerTool(Name = "get_dream_readiness", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Read-only readiness snapshot of the /dream context fuel meter. Returns the count of unique-content tokens currently in the safe window plus the number of distinct intents. Status is informational and never blocks /dream.")]
-    public async Task<DreamReadinessDto> GetDreamReadiness(CancellationToken cancellationToken = default)
-    {
-        var snapshot = await getReadiness.HandleAsync(new GetDreamReadinessQuery(), cancellationToken);
-        return DreamMcpDtoMapper.ToReadiness(snapshot);
-    }
-
     [McpServerTool(Name = "run_dream", UseStructuredContent = true)]
     [Description("Create a new pending DreamRun if any intent has fresh qa/review activity in the safe window. Server-managed: the agent does not pick the window or context size. Idempotent over the last 24h. Returns status='not_enough_context' when no intents qualify or 'existing_pending' if an open run was created recently.")]
     public async Task<RunDreamResultDto> RunDream(
@@ -52,18 +42,5 @@ public sealed class DreamTools(
                 severity),
             cancellationToken);
         return DreamMcpDtoMapper.ToProposeResult(result);
-    }
-
-    [McpServerTool(Name = "close_empty_dream_run", UseStructuredContent = true)]
-    [Description("Close a still-pending DreamRun that produced no proposals. The agent uses this to release the locked intents back into the next /dream window. Forced closes of runs WITH proposals are rejected (409) — that path is reserved for the user via UI/HTTP.")]
-    public async Task<DreamRunDto> CloseEmptyDreamRun(
-        [Description("DreamRun id to close. Must be pending and have zero proposals.")] string run_id,
-        [Description("If true (default), the run's intents are released to be reconsidered next time. If false, the intents are marked processed and will not resurface.")] bool? release_evidence = null,
-        CancellationToken cancellationToken = default)
-    {
-        var run = await closeEmpty.HandleAsync(
-            new CloseEmptyDreamRunCommand(run_id, release_evidence),
-            cancellationToken);
-        return DreamMcpDtoMapper.ToRun(run);
     }
 }

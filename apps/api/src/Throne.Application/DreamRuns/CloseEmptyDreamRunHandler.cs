@@ -7,10 +7,11 @@ namespace Throne.Application.DreamRuns;
 public sealed record CloseEmptyDreamRunCommand(string RunId, bool? ReleaseEvidence);
 
 /// <summary>
-/// Closes a still-pending DreamRun that the agent considers «not actionable» — no
-/// proposals were generated. Forced closes of runs with proposals are explicitly
-/// out of scope for the MCP surface; those are user-actions over HTTP only
-/// (Intent 4 §close_empty_dream_run).
+/// Closes a still-pending DreamRun that produced no proposals. Invoked by the
+/// human operator through the UI (HTTP endpoint) — never by an agent. The MCP
+/// surface intentionally does not expose this operation: deciding when to release
+/// locked evidence is a user choice, see ADR-0011 «Update 2026-05-03 — пустой /tdream».
+/// Forced closes of runs WITH proposals stay user-only over HTTP as well.
 /// </summary>
 public sealed class CloseEmptyDreamRunHandler(
     IDreamRunRepository runs,
