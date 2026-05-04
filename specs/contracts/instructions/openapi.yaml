@@ -152,7 +152,7 @@ components:
           description: Instruction identifier (24 hex chars, ObjectId-shaped).
         kind:
           type: string
-          description: Instruction kind (common | interview | work | new_project | dream | fix).
+          description: Instruction kind (common | interview | work | dream | fix).
         current_version:
           type: integer
           format: int32
@@ -186,7 +186,7 @@ components:
       properties:
         name:
           type: string
-          description: Skill identifier (slug, e.g. tinterview/twork/tnew/tfix/tdream).
+          description: Skill identifier (slug, e.g. tinterview/twork/tfix/tdream).
         description:
           type: string
           description: Short skill description (matches launcher frontmatter).
@@ -203,7 +203,7 @@ components:
       properties:
         mode:
           type: string
-          description: Bundle mode (interview | work | new_project | dream | fix).
+          description: Bundle mode (interview | work | dream | fix).
         includes:
           type: array
           items:
@@ -223,7 +223,7 @@ components:
           description: system | user.
         kind:
           type: string
-          description: Instruction kind (common | interview | work | new_project | dream | fix).
+          description: Instruction kind (common | interview | work | dream | fix).
         instruction_id:
           type: string
           nullable: true

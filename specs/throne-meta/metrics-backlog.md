@@ -1,6 +1,6 @@
 # Throne metrics backlog
 
-Live-документ. Любое предложение по новой метрике от скилла /throne идёт через Intent с действием «Update metrics-backlog.md: ...».
+Live-документ. Новые метрики добавляются через обычный Intent с действием «Update metrics-backlog.md: ...».
 
 Status: `proposed` | `partially` | `shipped`.
 

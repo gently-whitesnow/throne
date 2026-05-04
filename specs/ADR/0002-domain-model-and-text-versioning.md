@@ -52,7 +52,7 @@ Instruction (canonical document, collection: instructions)
 - id              : string
 - scope           : enum { user }   ; system-инструкции живут в коде, не в Mongo (см. ADR-0007 update 2026-05-02)
 - user_id         : string?         ; обязателен для scope=user, MVP — "mvp-user"
-- kind            : enum { common | interview | work | new_project | dream | fix }
+- kind            : enum { common | interview | work | dream | fix }
 - text            : string          ; пустая строка допустима для незаполненных user-антагонистов
 - current_version : int ≥ 1
 - created_at      : timestamp (UTC)

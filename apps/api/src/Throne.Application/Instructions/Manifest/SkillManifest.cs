@@ -16,5 +16,4 @@ public sealed record SkillDefinition(
     string Name,
     string Description,
     string BundleMode,
-    string LauncherBody,
-    bool Internal = false);
+    string LauncherBody);

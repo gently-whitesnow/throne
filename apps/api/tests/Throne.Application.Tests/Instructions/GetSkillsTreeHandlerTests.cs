@@ -10,7 +10,7 @@ public class GetSkillsTreeHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "GetSkillsTree собирает все 5 skill-ов с правильным составом bundle")]
+    [Fact(DisplayName = "GetSkillsTree собирает все 4 skill-а с правильным составом bundle")]
     public async Task Returns_all_skills_with_correct_bundles()
     {
         var repo = Substitute.For<IInstructionRepository>();
@@ -21,7 +21,7 @@ public class GetSkillsTreeHandlerTests
         var tree = await handler.HandleAsync(new GetSkillsTreeQuery(), CancellationToken.None);
 
         tree.Skills.Select(s => s.Name).Should().Equal(
-            "tinterview", "twork", "tnew", "tfix", "tdream");
+            "tinterview", "twork", "tfix", "tdream");
 
         var work = tree.Skills.Single(s => s.Name == "twork");
         work.Bundle.Mode.Should().Be(InstructionBundleModeNames.Work);

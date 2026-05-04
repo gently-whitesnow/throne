@@ -56,7 +56,6 @@ public sealed class RunDreamHandler(
         InstructionKindNames.Common,
         InstructionKindNames.Interview,
         InstructionKindNames.Work,
-        InstructionKindNames.NewProject,
         InstructionKindNames.Fix,
     ];
 

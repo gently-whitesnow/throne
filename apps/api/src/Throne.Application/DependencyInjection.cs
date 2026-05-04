@@ -29,9 +29,6 @@ public static class DependencyInjection
         services.AddSingleton<AddIntentReviewHandler>();
         services.AddSingleton<ListIntentQaHandler>();
         services.AddSingleton<ListIntentReviewsHandler>();
-        services.AddSingleton<ListIntentQaForFeedbackHandler>();
-        services.AddSingleton<ListIntentReviewsForFeedbackHandler>();
-        services.AddSingleton<QueryMcpCallLogHandler>();
         services.AddSingleton<ListIntentsHandler>();
         services.AddSingleton<SetIntentStatusHandler>();
         services.AddSingleton<SetIntentTagsHandler>();
@@ -45,7 +42,6 @@ public static class DependencyInjection
         services.AddSingleton<GetSkillsTreeHandler>();
         services.AddSingleton<ListInstructionsHandler>();
         services.AddSingleton<GetInstructionHandler>();
-        services.AddSingleton<GetUserInstructionHandler>();
         services.AddSingleton<ReplaceInstructionTextHandler>();
         services.AddSingleton<ListInstructionVersionsHandler>();
         services.AddSingleton<ContextTokenCounter>();

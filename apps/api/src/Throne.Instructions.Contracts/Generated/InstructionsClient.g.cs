@@ -38,7 +38,7 @@ namespace Throne.Instructions.Contracts.Generated
         public string Id { get; set; }
 
         /// <summary>
-        /// Instruction kind (common | interview | work | new_project | dream | fix).
+        /// Instruction kind (common | interview | work | dream | fix).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -99,7 +99,7 @@ namespace Throne.Instructions.Contracts.Generated
     {
 
         /// <summary>
-        /// Skill identifier (slug, e.g. tinterview/twork/tnew/tfix/tdream).
+        /// Skill identifier (slug, e.g. tinterview/twork/tfix/tdream).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -139,7 +139,7 @@ namespace Throne.Instructions.Contracts.Generated
     {
 
         /// <summary>
-        /// Bundle mode (interview | work | new_project | dream | fix).
+        /// Bundle mode (interview | work | dream | fix).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mode")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -172,7 +172,7 @@ namespace Throne.Instructions.Contracts.Generated
         public string Scope { get; set; }
 
         /// <summary>
-        /// Instruction kind (common | interview | work | new_project | dream | fix).
+        /// Instruction kind (common | interview | work | dream | fix).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

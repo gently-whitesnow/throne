@@ -9,13 +9,6 @@
 # and `.agents/skills/<name>/SKILL.md` for target repos. Until then, an architecture
 # fitness test asserts on-disk launcher files match this manifest byte-for-byte.
 #
-# Optional skill field `internal: bool` (default `false`, see ADR-0010) marks
-# meta-tooling that lives only inside Throne self-dogfooding. The future installer
-# (ADR-0007 §8) skips entries with `internal: true` when generating `.claude/skills/`
-# and `.agents/skills/` for target repos. Throne-repo keeps the launcher files
-# locally so internal skills work here. Backend runtime and `/api/v1/instructions/skills-tree`
-# do not filter by this flag yet.
-#
 # User-scope instructions are runtime data in Mongo (see ADR-0007). They are not
 # stored here — only the fact that the corresponding kind participates in a bundle
 # (via `bundles[].includes` with `scope: user`).
@@ -64,21 +57,9 @@ system_instructions:
       - Если завершил осмысленный проход работы и дальше нужен пользователь, в конце вызови mark_ready_for_review по текущему intent.
       - Результат work не сохраняй в Intent; он живёт в коде, документах или других артефактах рабочего контекста.
 
-  - kind: new_project
-    text: |
-      Цель new_project — создать или развить минимальный рабочий скелет нового проекта по Intent.text.
-
-      Правила:
-      - Начни с самого маленького вертикального среза, который можно запустить, проверить и продолжить догфудить.
-      - Выбирай привычный, поддерживаемый стек и существующие локальные конвенции, если они уже есть.
-      - С первого дня заложи базовую структуру, тестовый/quality harness, секреты вне репозитория и понятные команды запуска.
-      - Не строи преждевременно CRM, workflow-engine, multi-user модель, UI или интеграции, если Intent явно этого не требует.
-      - Если появляются архитектурные решения с долгим хвостом поддержки, оформи или предложи ADR.
-      - Результат не сохраняй в Intent; при уточнениях правь только Intent.text через MCP.
-
   - kind: dream
     text: |
-      Цель dream — улучшить USER-инструкции пользователя на основе накопленной обратной связи. Не правит system-инструкции (это область /throne), не правит код, не работает с Intent.text напрямую. Output — DreamProposal, apply path — пользователь через UI.
+      Цель dream — улучшить USER-инструкции пользователя на основе накопленной обратной связи. Не правит код, не работает с Intent.text напрямую. Output — DreamProposal, apply path — пользователь через UI.
 
       Алгоритм (агент НЕ выбирает объём контекста — это решает сервер):
 
@@ -90,7 +71,7 @@ system_instructions:
       2) Из run.evidence_summary возьми suggested_target_kinds[] и existing_learned_rules_by_kind. Для каждого target_kind агент УЖЕ знает существующие learned rules (для дубликат-проверки) — без чтения полного текста инструкции.
 
       3) Сформулируй proposals (≤5) через mcp__throne__propose_dream_rule:
-         - target_kind: один из {common, interview, work, new_project, fix}.
+         - target_kind: один из {common, interview, work, fix}.
          - proposed_rule: одна короткая строка ≤280 символов. Сервер сам инжектит правило в `## Learned rules` целевой инструкции. Условные правила («Если X — предпочитай Y»), не абсолютные.
          - evidence_refs: subset run.evidence_refs (только подкрепляющие правило).
          - severity: high (security/safety/data-loss; ≥1 evidence) | medium (recurring scope/process; ≥2) | low (refinement; ≥3).
@@ -105,51 +86,10 @@ system_instructions:
       Жёсткие инварианты:
       - Не аппрувит свои предложения. Apply — исключительно user-action в UI.
       - Не закрывает dream-run сам — ни пустой, ни с proposals. Закрытие пустого run и release_evidence — действие оператора через UI.
-      - Не предлагает изменений system-инструкций / скиллов / кода / новых метрик — это область /throne.
+      - Не предлагает изменений кода или новых метрик — dream работает только с user-инструкциями.
       - Не предлагает rule с toxic absolutism («никогда», «всегда без исключений»).
       - Не вызывает run_dream если уже сделал в этой сессии (см. existing_pending guard).
-      - НЕ вызывает get_user_instruction, list_intent_reviews, query_mcp_call_log — всё нужное в run.evidence_summary.
       - Возвращает короткий отчёт: статус (created|existing_pending|not_enough_context|no_proposals), количество proposals, затронутые kinds, ссылка пользователю на /pages/dream.
-
-  - kind: throne
-    text: |
-      Цель throne — meta-инструмент команды Throne для эволюции самого продукта. Скилл оптимизирует ПРОЦЕССЫ работы Throne: чтобы агент задавал лучше вопросы, понимал пользователя за меньшее число шагов и писал работу с меньшим числом замечаний (в идеале 0).
-
-      Жёсткие границы:
-      - НЕ выполняет work, не активирует изменения, не правит YAML-манифест, ADR, код, миграции, UI и metrics-backlog.md напрямую.
-      - НЕ проектирует архитектурные изменения. Если предложение требует кода/схемы/структуры — оформи его как отдельный Intent на исследование, который потом ведёт /twork по обычному SDD flow.
-      - Все предложения — новые Intent с тегом `throne` через mcp__throne__create_intent.
-      - Максимум 5 новых Intent за один запуск.
-      - Не требуй list_intents — его нет в MVP. На повторных запусках опирайся на текущий контекст диалога; человек разберётся при review.
-
-      Сигналы (читай по необходимости):
-      - mcp__throne__query_mcp_call_log(outcome_filter='error', since=last_60d) — паттерны ошибок MCP-инструментов.
-      - mcp__throne__list_intent_reviews(since=last_60d) — review-замечания пользователя.
-      - mcp__throne__list_intent_qa(since=last_60d) — interview-сигналы.
-
-      За запуск покрывай минимум 2 направления из 3; третье (метрики) рассматривай ОБЯЗАТЕЛЬНО:
-
-      1) SYSTEM INSTRUCTIONS — тексты в specs/manifest/throne-skills.yaml под system_instructions[] (kind common/interview/work/new_project/dream/fix/throne). Что переписать, добавить или убрать.
-         Типичные паттерны:
-         - >3 вопросов в interview до уточнения постановки → правка interview kind.
-         - Высокий error_code='match_not_found' для replace_intent_text → правка common/work про чтение перед правкой.
-         - Частый review с reason='overengineering' → правка work про minimum viable change.
-         - Низкий dream readiness неделями → правка common kind, чтобы стимулировать пользователя оставлять review.
-
-      2) SKILLS — launcher_body / description / bundle_mode mapping в манифесте: новый mode/kind, существующий скилл не справляется, launcher слишком толстый.
-
-      3) NEW METRICS / TELEMETRY — чего не хватает в mcp_call_log и других коллекциях для качественного инсайта.
-         - Прочитай specs/throne-meta/metrics-backlog.md через Read tool, если файл существует. Если метрика уже в backlog (status=proposed/partially) — НЕ дублируй proposal на ту же метрику.
-         - Throne не правит файлы. Чтобы обновить metrics-backlog или добавить новую метрику — создай Intent с действием «Update specs/throne-meta/metrics-backlog.md: добавить метрику X со status=proposed, evidence ...».
-
-      Формат каждого proposal-Intent (text):
-        Title: одна action-style строка.
-        ## Problem — что сигналит, какой паттерн повторяется.
-        ## Proposed change — Affected area: system_instructions[kind=X] | skills[name=Y] | metrics[name=Z, action: add to backlog | update status]; конкретное предложение.
-        ## Evidence — mcp_call_log:<id>, intent_review:<id>; severity high≥1 ref, medium≥2, low≥3.
-        ## Risk + rollback — что может сломаться, как откатить.
-
-      Итоговый отчёт: список созданных intent ids (≤5), по каждому одна строка, разбивка по affected area.
 
   - kind: fix
     text: |
@@ -175,12 +115,6 @@ bundles:
       - { scope: system, kind: work }
       - { scope: user,   kind: common }
       - { scope: user,   kind: work }
-  - mode: new_project
-    includes:
-      - { scope: system, kind: common }
-      - { scope: system, kind: new_project }
-      - { scope: user,   kind: common }
-      - { scope: user,   kind: new_project }
   - mode: dream
     includes:
       - { scope: system, kind: common }
@@ -193,10 +127,6 @@ bundles:
       - { scope: system, kind: fix }
       - { scope: user,   kind: common }
       - { scope: user,   kind: fix }
-  - mode: throne
-    includes:
-      - { scope: system, kind: common }
-      - { scope: system, kind: throne }
 
 skills:
   - name: tinterview
@@ -239,26 +169,6 @@ skills:
 
       Mode: work.
 
-  - name: tnew
-    description: Start or continue a Throne intent for a new project skeleton.
-    bundle_mode: new_project
-    launcher_body: |
-      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
-
-      Steps:
-
-      1. Resolve the intent:
-         - If the user passed an `intent_id`, use it.
-         - Else if there is an active intent in this session, continue it (unless the user clearly asks for a new one).
-         - Else create a new intent via `mcp__throne__create_intent` from the user's message.
-      2. Call `mcp__throne__get_instruction_bundle(mode="new_project", intent_id=<resolved id>)`.
-      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file.
-      4. Persist outcome via MCP as the bundle directs (`add_intent_qa` / `add_intent_review` / `replace_intent_text` / `insert_intent_text_after_line`).
-      5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      6. Return a short status: intent id, title/summary, next suggested action.
-
-      Mode: new_project.
-
   - name: tfix
     description: Capture user feedback on a Throne intent and continue the fix.
     bundle_mode: fix
@@ -296,21 +206,3 @@ skills:
       6. Return a short status: run status (created|existing_pending|not_enough_context|no_proposals), number of proposals, affected target_kinds, link the user to /pages/dream.
 
       Mode: dream.
-
-  - name: throne
-    description: Self-improvement loop for Throne system itself (internal — process optimization for instructions, skills, metrics proposals).
-    bundle_mode: throne
-    internal: true
-    launcher_body: |
-      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
-
-      Steps:
-
-      1. No intent context is required. Do not create a new intent for the throne session itself.
-      2. Call `mcp__throne__get_instruction_bundle(mode="throne")`.
-      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file.
-      4. For each substantial proposal, create a new Intent via `mcp__throne__create_intent(text=..., tags=["throne"])`. Do NOT modify YAML manifest, ADR, or codebase directly.
-      5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      6. Return: list of created intent ids with one-line titles, affected areas (system_instructions / skills / metrics), and an explicit note that nothing was activated, only proposed.
-
-      Mode: throne.

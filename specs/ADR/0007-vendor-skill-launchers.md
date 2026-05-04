@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-UX-входом в Throne workflow были MCP prompts (`tnew, twork, tinterview, treview`), зарегистрированные в `Throne.Api.Mcp.Prompts.IntentPrompts`. Это давало slash-команды поверх MCP, но получило две проблемы:
+UX-входом в Throne workflow были MCP prompts (`twork, tinterview, treview`), зарегистрированные в `Throne.Api.Mcp.Prompts.IntentPrompts`. Это давало slash-команды поверх MCP, но получило две проблемы:
 
 1. **Vendor parity.** Cursor и Codex ненадёжно показывают MCP prompts как user-facing команды; пользователь не может вызвать workflow одинаково из всех клиентов.
 2. **Coupling серверной логики к релизу `Throne.Api`.** Текст playbook'а лежал в C# атрибутах и `IntentPrompts.*Playbook`; обновление playbook требовало нового релиза сервера, а не правки данных в `instructions`.
@@ -41,7 +41,6 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 
    | Launcher | Bundle mode | Назначение |
    |---|---|---|
-   | `tnew` | `new_project` | Создать или продолжить intent для нового проекта |
    | `twork` | `work` | Точечная работа по текущему intent в репо |
    | `tinterview` | `interview` | Уточнить постановку, по одному вопросу за шаг |
    | `tfix` | `fix` | Зафиксировать review через `add_intent_review` и продолжить работу. Заменяет `treview`. |
@@ -54,7 +53,7 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 
 ## Consequences
 
-- Vendor parity: одна и та же команда `tnew/twork/tinterview/tfix/tdream` доступна во всех целевых клиентах через их штатный skill/rule механизм.
+- Vendor parity: одна и та же команда `twork/tinterview/tfix/tdream` доступна во всех целевых клиентах через их штатный skill/rule механизм.
 - Playbook эволюционирует данными в `instructions`, а не релизами `Throne.Api`. Это согласуется с принципом «Throne строится для других проектов; сам Throne — на manual SDD».
 - Старая команда `treview` исчезает как видимое имя (заменена на `tfix`); инфраструктурные tool description'ы обновлены. Backward-compat для имени `treview` не вводим осознанно — UX был сломан и для старого имени.
 - Появляется два каталога вендорных файлов в репо (`.agents/skills/`, `.claude/skills/`). Цена принимается: они тонкие, инсталлер в будущем сгенерирует их в чужие проекты по тем же шаблонам.
@@ -76,29 +75,15 @@ UX-входом в Throne workflow были MCP prompts (`tnew, twork, tintervie
 
 - Сидинг через `EnsureSeedInstructionsHandler` упразднён. System-инструкции живут в коде как `SystemInstructionCatalog` ([apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs](../../apps/api/src/Throne.Application/Instructions/SystemInstructionCatalog.cs)) и версионируются вместе с релизом `Throne.Api`. Mongo collection `instructions` теперь хранит только `scope=user` записи.
 - Документ `instructions` обогащён полями `scope` и `user_id`. MVP-пользователь — `mvp-user`.
-- Kinds: `common | interview | work | new_project | dream | fix`. Kind `light_work` переименован в `work` (launcher `twork`). Введён kind `fix` для launcher `tfix` — отдельный режим продолжения работы после review (раньше делил bundle с `light_work`).
-- Bundle resolver (`GetInstructionBundleHandler`) собирает `[system:common, system:<mode>]` из catalog и `user:*` инструкции `mvp-user` для тех же kinds. Антагонист в user создаётся под каждый system kind: для `common`, `work`, `new_project` — с реальным текстом, для `interview`, `dream`, `fix` — пустые редактируемые записи.
+- Kinds: `common | interview | work | dream | fix`. Kind `light_work` переименован в `work` (launcher `twork`). Введён kind `fix` для launcher `tfix` — отдельный режим продолжения работы после review (раньше делил bundle с `light_work`).
+- Bundle resolver (`GetInstructionBundleHandler`) собирает `[system:common, system:<mode>]` из catalog и `user:*` инструкции `mvp-user` для тех же kinds. Антагонист в user создаётся под каждый system kind: для `common`, `work` — с реальным текстом, для `interview`, `dream`, `fix` — пустые редактируемые записи.
 - `Instruction.Validate` ослаблен: пустой `Text` для user-инструкций легален, чтобы пустые антагонисты были корректным состоянием.
-
-## Update 2026-05-03 — internal skills flag
-
-- На уровне `skills[]` манифеста [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) добавлено опциональное поле `internal: bool` (default `false`). Семантика и обоснование — в [ADR-0010](0010-internal-skills-flag.md).
-- Уточнение к §8 этого ADR: будущий vendor installer при генерации `.agents/skills/` и `.claude/skills/` в чужие репо **пропускает** скиллы с `internal: true`. Throne-репо продолжает держать соответствующие launcher-файлы локально для self-dogfooding, поэтому `SkillLauncherParityTests` остаются без изменений.
-- Backend (`ISkillManifestProvider`, `GetSkillsTreeHandler`, `/api/v1/instructions/skills-tree`) пока не фильтрует по `internal` — флаг нужен только installer'у. Скрытие в UI — отдельный шаг поверх ADR-0010.
-
-## Update 2026-05-03 — internal skill `throne` (meta-tooling)
-
-- В манифест добавлен скилл `throne` с `internal: true` ([ADR-0010](0010-internal-skills-flag.md)). Имя без префикса `t` подчёркивает meta-роль: это не workflow по конкретному Intent, а самосовершенствование самого Throne (system-инструкции, скиллы, метрики).
-- Bundle: новый `mode: throne → [system:common, system:throne]`. User-scope в MVP не вводится — playbook не персонализируется per-user.
-- Системный текст для `kind: throne` — placeholder; полноценный playbook вводится отдельно (см. Intent 8 серии self-learning). Launcher ограничивает агента: предложения оформляются только как новые Intent с тегом `throne`, никаких прямых правок YAML/ADR/кода и никакой автоактивации.
-- Vendor launcher файлы созданы локально для self-dogfooding ([.claude/skills/throne/SKILL.md](../../.claude/skills/throne/SKILL.md), [.agents/skills/throne/SKILL.md](../../.agents/skills/throne/SKILL.md)). Будущий installer (§8) пропускает их при генерации в чужие репо благодаря `internal: true`.
-- Backend: `ISkillManifestProvider` поддерживает новый kind/mode без изменений в C#-коде; добавлены только константы `InstructionKindNames.Throne` и `InstructionBundleModeNames.Throne` (`InstructionKindNames.All` участвует в валидации манифеста). `SkillLauncherParityTests` остаются без правок.
 
 ## Update 2026-05-03 — tdream final shape (server-managed, DreamRun aggregate)
 
 - Раздел п.5 «Backend для `tdream`» уточнён: вместо `add_intent_review` с `reason="instruction_patch_proposal"` агент теперь работает строго через server-managed surface, описанный в [ADR-0011](0011-dream-run-model.md):
   - `mcp__throne__run_dream` — создаёт/возвращает DreamRun с снимком evidence в safe time window. Сервер сам решает «достаточно ли сигнала» (readiness/safety_lag/session-aware).
-  - `mcp__throne__propose_dream_rule` — оформляет ≤5 предложений с `target_kind ∈ {common, interview, work, new_project, fix}`, `evidence_refs`, `severity`, `rationale`. Сервер инжектит финальный текст в секцию `## Learned rules` целевой user-инструкции при apply.
+  - `mcp__throne__propose_dream_rule` — оформляет ≤5 предложений с `target_kind ∈ {common, interview, work, fix}`, `evidence_refs`, `severity`, `rationale`. Сервер инжектит финальный текст в секцию `## Learned rules` целевой user-инструкции при apply.
   - Если proposals нет — агент сообщает пользователю «ничего не нашёл» и завершает работу. Закрытие пустого run и release_evidence — действие оператора через UI; agent never closes a run, ни пустой, ни с proposals.
   - Apply / forced-close с proposals — исключительно user-action через UI/HTTP (`POST /api/v1/dream-runs/{runId}/proposals/{proposalId}/apply` и `.../close`).
 - system text для `kind: dream` в манифесте перепрошит под этот алгоритм. Launcher `tdream` остаётся тонким: вся логика приходит через `get_instruction_bundle(mode="dream")`.

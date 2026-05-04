@@ -105,7 +105,7 @@ export interface components {
         InstructionListItemDto: {
             /** @description Instruction identifier (24 hex chars, ObjectId-shaped). */
             id: string;
-            /** @description Instruction kind (common | interview | work | new_project | dream | fix). */
+            /** @description Instruction kind (common | interview | work | dream | fix). */
             kind: string;
             /** Format: int32 */
             current_version: number;
@@ -120,7 +120,7 @@ export interface components {
             skills: components["schemas"]["SkillNodeDto"][];
         };
         SkillNodeDto: {
-            /** @description Skill identifier (slug, e.g. tinterview/twork/tnew/tfix/tdream). */
+            /** @description Skill identifier (slug, e.g. tinterview/twork/tfix/tdream). */
             name: string;
             /** @description Short skill description (matches launcher frontmatter). */
             description: string;
@@ -129,14 +129,14 @@ export interface components {
             bundle: components["schemas"]["BundleNodeDto"];
         };
         BundleNodeDto: {
-            /** @description Bundle mode (interview | work | new_project | dream | fix). */
+            /** @description Bundle mode (interview | work | dream | fix). */
             mode: string;
             includes: components["schemas"]["BundleEntryNodeDto"][];
         };
         BundleEntryNodeDto: {
             /** @description system | user. */
             scope: string;
-            /** @description Instruction kind (common | interview | work | new_project | dream | fix). */
+            /** @description Instruction kind (common | interview | work | dream | fix). */
             kind: string;
             /** @description Instruction id. For system entries — synthetic 'system:<kind>'. Null when a user entry is missing. */
             instruction_id?: string | null;

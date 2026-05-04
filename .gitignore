@@ -31,3 +31,5 @@ dist/
 .vite/
 .next/
 .turbo/
+
+mongo-dumps

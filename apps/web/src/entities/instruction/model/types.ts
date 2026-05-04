@@ -6,13 +6,7 @@ export type InstructionListItem =
 export type InstructionDetail =
   InstructionsComponents["schemas"]["InstructionDetailDto"];
 
-export type InstructionKind =
-  | "common"
-  | "interview"
-  | "work"
-  | "new_project"
-  | "dream"
-  | "fix";
+export type InstructionKind = "common" | "interview" | "work" | "dream" | "fix";
 
 export interface InstructionKindMeta {
   label: string;
@@ -35,11 +29,6 @@ export const instructionKindMeta: Record<string, InstructionKindMeta> = {
     label: "Work",
     ink: "#A87900",
     surface: "#FFF3D6"
-  },
-  new_project: {
-    label: "New project",
-    ink: "#274DC6",
-    surface: "#E8F0FF"
   },
   dream: {
     label: "Dream",

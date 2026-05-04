@@ -31,7 +31,7 @@ Accepted (amended семь раз: (1) убраны `*_from_interview` write-too
 
 ### 1. Набор tools (final)
 
-MVP-набор — 9 tools, ровно столько, сколько нужно для slash-команд `/tinterview`, `/twork`, `/tnew`, `/treview`. `list_*`, `get_instruction(id)`, `read_instruction_text` / `search_instruction_text`, `include_text?` флаг и **write-tools для Instruction** сознательно не вводятся (см. альтернативы в Context). Инструкции редактируются пользователем напрямую (mongosh / будущий HTTP-эндпойнт), агент через MCP их только читает.
+MVP-набор — 9 tools, ровно столько, сколько нужно для slash-команд `/tinterview`, `/twork`, `/treview`. `list_*`, `get_instruction(id)`, `read_instruction_text` / `search_instruction_text`, `include_text?` флаг и **write-tools для Instruction** сознательно не вводятся (см. альтернативы в Context). Инструкции редактируются пользователем напрямую (mongosh / будущий HTTP-эндпойнт), агент через MCP их только читает.
 
 Чтение (4):
 
@@ -58,7 +58,7 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 
 `Ack` — компактный ответ `{ intent_id, current_version, accepted: true }`. qa/review не возвращаются назад агенту.
 
-`add_intent_qa` — отдельный tool, не флаг и не часть edit-операций. Edit-tools о режиме работы (interview / work / new_project) ничего не знают и в `intent_qa` не пишут. Подробности связи qa ↔ правки — §5.
+`add_intent_qa` — отдельный tool, не флаг и не часть edit-операций. Edit-tools о режиме работы (interview / work) ничего не знают и в `intent_qa` не пишут. Подробности связи qa ↔ правки — §5.
 
 Параметра `reason?` на edit-tools нет: «зачем агент это сделал» уже выводимо из `mcp_call_log` (session_id + tool_name + arguments по timestamp) и из `intent_qa` для interview-сессий. Поле `reason` остаётся только в `add_intent_review` как контентное (см. §6).
 
@@ -143,7 +143,7 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 1. `Instruction(kind: interview)` явно предписывает: после каждого ответа пользователя — сначала `add_intent_qa`, затем правка `Intent.text`. Это часть seed-инструкций (см. ADR-0005).
 2. Серверная телеметрия из ADR-0004 («MCP call audit log») позволяет в dogfooding посчитать долю text-правок без сопряжённого `add_intent_qa` за окно ±N секунд в interview-сессиях. Это сигнал для улучшения инструкций, а не runtime-валидация.
 
-Жёсткую серверную проверку «нельзя править без свежего qa» сознательно не вводим: режим работы (interview vs work vs new_project) серверу неизвестен, и такая проверка наложила бы runtime-ограничение поверх семантики, которая существует только на уровне agent instruction.
+Жёсткую серверную проверку «нельзя править без свежего qa» сознательно не вводим: режим работы (interview vs work) серверу неизвестен, и такая проверка наложила бы runtime-ограничение поверх семантики, которая существует только на уровне agent instruction.
 
 ### 6. Review
 
@@ -162,7 +162,6 @@ add_intent_review(intent_id, expected_version, note, reason) -> Ack
 ```text
 mode = interview     -> [common, interview]
 mode = work          -> [common, work]
-mode = new_project   -> [common, new_project]
 mode = dream         -> [common, dream]
 mode = fix           -> [common, fix]
 ```
@@ -174,7 +173,6 @@ Slash-команды на стороне агента маппятся на ре
 ```text
 /tinterview -> get_instruction_bundle(interview, intent_id?)
 /twork      -> get_instruction_bundle(work, intent_id?)
-/tnew       -> get_instruction_bundle(new_project, intent_id?)
 /tfix       -> get_instruction_bundle(fix, intent_id?)
 ```
 
@@ -195,7 +193,7 @@ Slash-команды на стороне агента маппятся на ре
 
 - Контракт ошибок achievable в 3 кодах на каждый агрегат: достаточно для actionable retry-логики агента, без переусложнения.
 - Decoupled `add_intent_qa` корректно покрывает три реальных interview-сценария (`1 ответ → N правок`, `1 ответ → 0 правок`, `0 ответов → 1 правка`), которые first-cut вариант с `*_from_interview` покрывал криво.
-- Edit-tools одинаковы для всех режимов (interview / work / new_project) — у сервера нет режимного состояния, и agent instruction остаётся единственным местом, где этот режим живёт.
+- Edit-tools одинаковы для всех режимов (interview / work) — у сервера нет режимного состояния, и agent instruction остаётся единственным местом, где этот режим живёт.
 - Минимальный агентский surface: агент видит только `text` Intent/Instruction, не нагружается обучающим материалом (qa/review/версии). Меньше шума в контексте → меньше токенов → меньше сбоев на длинных сессиях.
 - Убран `reason?` из edit-tools → меньше параметров и одно правило: «зачем» уже есть в `mcp_call_log` и `intent_qa`, второй раз нет смысла.
 - Серверный `get_instruction_bundle(mode, intent_id?)` снимает класс ошибок «агент забыл подмешать common».
@@ -216,25 +214,14 @@ Slash-команды — договорённость в agent instruction/promp
 
 Контракт MVP:
 
-- 4 prompts: `tinterview`, `twork`, `tnew`, `treview`.
+- 3 prompts: `tinterview`, `twork`, `treview`.
 - Аргументы у каждого: `intent_id?: string`, `text?: string` (snake_case как у tools, по тому же `pragma CA1707`).
-- Mode mapping для `get_instruction_bundle` зашит в каждом prompt'е и не настраивается клиентом: `tinterview→interview`, `twork→work`, `tnew→new_project`, `treview→work`.
+- Mode mapping для `get_instruction_bundle` зашит в каждом prompt'е и не настраивается клиентом: `tinterview→interview`, `twork→work`, `treview→work`.
 - Prompts-методы возвращают строку (один user-`PromptMessage`): общий блок правил (active-resolution, optimistic concurrency, edit discipline, error catalogue, запреты) + per-command playbook + подстановка переданных аргументов.
 - Реализация — `Throne.Api.Mcp.Prompts.IntentPrompts` с `[McpServerPromptType]` / `[McpServerPrompt]`, регистрация через симметричный `AddThronePrompt<T>()` helper рядом с `AddThroneTool<T>()`.
 
 Зависимостей модели и tools'ов это не меняет: 9 MVP-tools §1 остаются единственным write-API.
 
-## Amendment — read-tools для self-learning (`/throne`)
+## Amendment 2026-05-04 — read-tools для self-learning удалены
 
-Для self-learning skill'а `/throne` (Intent 3 серии self-learning, май 2026) добавлены 4 read-only MCP tools, которые **не** входят в bundle (`get_instruction_bundle` их не возвращает) и не меняют write-surface §1:
-
-- `list_intent_reviews(cursor?, limit?=50, since?, reason_filter?, intent_id?) -> { items, next_cursor? }` — пагинированное чтение `intent_review`. Лимит на ответ 200 записей.
-- `list_intent_qa(cursor?, limit?=50, since?, intent_id?) -> { items, next_cursor? }` — пагинированное чтение `intent_qa`. Лимит на ответ 200 записей.
-- `query_mcp_call_log(cursor?, limit?=100, since?, tool_name?, outcome_filter?, intent_id?, session_id?) -> { items, next_cursor? }` — пагинированное чтение `mcp_call_log` с safe-проекцией аргументов (см. ADR-0004 §argument_summary). Лимит 500 записей на ответ.
-- `get_user_instruction(kind) -> InstructionWithText` — чтение текущей user-инструкции для MVP-пользователя по `kind` (`work`, `common`, …). Возвращает `instruction_id`, `kind`, `current_version`, `text`.
-
-Все 4 tools — read-only. `Cursor` — opaque base64(JSON{ created_at, id }). Окно по умолчанию — последние 30 дней; абсолютный максимум — 90 дней (`since` старше клампится на сервере). Ответ ограничен 64 КБ, как в §2.
-
-Использование — преимущественно `/throne` для глубокого расследования. `/tdream` эти tools **не** вызывает: ему достаточно агрегированного DreamContextPack (см. Intent 4 серии и ADR-0011 §evidence_summary).
-
-Тестовое покрытие audit-by-construction (ADR-0004) распространяется автоматически: tools регистрируются через `AddThroneTool<FeedbackTools>()`, который заворачивает их в `AuditingMcpServerTool`.
+Существовавшие read-only MCP tools `list_intent_reviews`, `list_intent_qa`, `query_mcp_call_log`, `get_user_instruction`, обслуживавшие удалённую команду `/throne`, исключены из MCP surface. `FeedbackTools.cs` удалён вместе с портом `IFeedbackQueries`. `/tdream` ими не пользовался и не зависит от удаления.

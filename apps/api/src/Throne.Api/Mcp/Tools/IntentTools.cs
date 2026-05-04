@@ -207,7 +207,7 @@ public sealed class IntentTools(
     [McpServerTool(Name = "get_instruction_bundle", UseStructuredContent = true)]
     [Description("Read the complete instruction bundle for a runtime mode. Call before interview/work and pass intent_id once known for audit linkage.")]
     public Task<InstructionBundle> GetInstructionBundle(
-        [Description("Runtime mode: interview, work, new_project, fix, or dream. Use fix for /tfix continuation, work for /twork.")] string mode,
+        [Description("Runtime mode: interview, work, fix, or dream. Use fix for /tfix continuation, work for /twork.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default) =>
         getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);

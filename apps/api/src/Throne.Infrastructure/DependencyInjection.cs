@@ -48,7 +48,6 @@ public static class DependencyInjection
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddSingleton<IDreamRunRepository, MongoDreamRunRepository>();
         services.AddSingleton<IIntentWindowQueries, MongoIntentWindowQueries>();
-        services.AddSingleton<IFeedbackQueries, MongoFeedbackQueries>();
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
         services.AddHostedService<MongoIndexInitializer>();
 
@@ -79,7 +78,6 @@ public static class DependencyInjection
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddSingleton<IDreamRunRepository, MongoDreamRunRepository>();
         services.AddSingleton<IIntentWindowQueries, MongoIntentWindowQueries>();
-        services.AddSingleton<IFeedbackQueries, MongoFeedbackQueries>();
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
         services.AddHostedService<MongoIndexInitializer>();
         return services;

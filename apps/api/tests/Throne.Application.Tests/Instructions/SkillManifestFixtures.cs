@@ -26,7 +26,6 @@ internal static class SkillManifestFixtures
         {
             Bundle(InstructionBundleModeNames.Interview, InstructionKindNames.Interview),
             Bundle(InstructionBundleModeNames.Work, InstructionKindNames.Work),
-            Bundle(InstructionBundleModeNames.NewProject, InstructionKindNames.NewProject),
             Bundle(InstructionBundleModeNames.Dream, InstructionKindNames.Dream),
             Bundle(InstructionBundleModeNames.Fix, InstructionKindNames.Fix),
         };
@@ -35,7 +34,6 @@ internal static class SkillManifestFixtures
         {
             new SkillDefinition("tinterview", "interview launcher", InstructionBundleModeNames.Interview, "interview body"),
             new SkillDefinition("twork", "work launcher", InstructionBundleModeNames.Work, "work body"),
-            new SkillDefinition("tnew", "new project launcher", InstructionBundleModeNames.NewProject, "new project body"),
             new SkillDefinition("tfix", "fix launcher", InstructionBundleModeNames.Fix, "fix body"),
             new SkillDefinition("tdream", "dream launcher", InstructionBundleModeNames.Dream, "dream body"),
         };

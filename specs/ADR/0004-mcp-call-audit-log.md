@@ -135,12 +135,12 @@ McpCallLog
 
 ## Amendment — coverage of MCP prompts
 
-ADR-0003 amendment ввёл MCP prompts (`tinterview`/`twork`/`tnew`/`treview`) как surface для slash-команд. Чтобы dogfooding-телеметрия не оставалась слепой к тому, какие slash-команды агент действительно использует, `mcp_call_log` фиксирует и `prompts/get`. Поля и правила:
+ADR-0003 amendment ввёл MCP prompts (`tinterview`/`twork`/`treview`) как surface для slash-команд. Чтобы dogfooding-телеметрия не оставалась слепой к тому, какие slash-команды агент действительно использует, `mcp_call_log` фиксирует и `prompts/get`. Поля и правила:
 
 - `tool_name` ← `prompts/get:<promptName>` (например, `prompts/get:tinterview`). Префикс гарантирует, что аналитика по `tool_name` не путает tools и prompts.
 - `arguments` ← raw arguments prompt'а (`{ intent_id?, text? }`).
 - `intent_id` ← извлекается из `arguments.intent_id`, если есть.
-- `mode_hint` ← статический маппинг команды на mode (`tinterview→interview`, `twork→work`, `tnew→new_project`, `tfix→fix`).
+- `mode_hint` ← статический маппинг команды на mode (`tinterview→interview`, `twork→work`, `tfix→fix`).
 - `result_summary` ← `{ messages_count, user_chars, assistant_chars }`. Полный текст ответа prompt'а в журнал не пишем: он детерминирован от `server_version` + `arguments` + текущей версии prompt-кода.
 - Остальные поля (`outcome`, `error_code`, `duration_ms`, `server_version`, `created_at`, `session_id`) — без изменений.
 
@@ -153,23 +153,6 @@ ADR-0003 amendment ввёл MCP prompts (`tinterview`/`twork`/`tnew`/`treview`) 
 
 Транзакционность и best-effort семантика sink (§5) — те же, что и для tools.
 
-## Amendment — read access to `mcp_call_log` для self-learning
+## Amendment 2026-05-04 — read-MCP-доступ к `mcp_call_log` удалён
 
-Для self-learning skill'а `/throne` (Intent 3 серии self-learning, май 2026) §7 расширен: журнал теперь читаем **через MCP**, в дополнение к прямому `mongosh`. Read-tools (`list_intent_qa`, `list_intent_reviews`, `query_mcp_call_log`, `get_user_instruction`) описаны в ADR-0003 amendment «read-tools для self-learning».
-
-Чтобы исторические `arguments` не попадали назад агенту (PII / большие payload'ы), `query_mcp_call_log` отдаёт **не** raw `arguments`, а `argument_summary` — whitelist по `tool_name`:
-
-| `tool_name` | `argument_summary` |
-|---|---|
-| `replace_intent_text` | `{ expected_version, old_text_preview (≤80), new_text_preview (≤80) }` |
-| `insert_intent_text_after_line` | `{ expected_version, after_line, insert_text_preview (≤80) }` |
-| `add_intent_review` | `{ expected_version, note_preview (≤80) }` |
-| `add_intent_qa` | `{ expected_version, question_preview (≤80) }` |
-| `get_instruction_bundle` | `{ mode, intent_id }` |
-| `create_intent` | `{ text_preview (≤80), tags }` |
-| `propose_dream_rule` | `{ run_id, target_kind, severity, proposed_rule_preview (≤80) }` |
-| прочие | `null` |
-
-Сырые `arguments` остаются в Mongo в неизменном виде (важно для §1 «append-only, удалений нет»); whitelist применяется только при чтении. `result_summary` отдаётся как есть — он уже компактный по §2.
-
-Покрытие audit-by-construction (§4) распространяется на новые read-tools автоматически: они регистрируются через `AddThroneTool<FeedbackTools>()` и оборачиваются в `AuditingMcpServerTool`. Каждый вызов сам пишется в `mcp_call_log` — это нужный замкнутый цикл «как агент пользуется feedback-tools».
+Read-tools `list_intent_qa`, `list_intent_reviews`, `query_mcp_call_log`, `get_user_instruction`, обслуживавшие удалённую команду `/throne`, исключены из MCP surface вместе с `FeedbackTools.cs`. Прямое чтение журнала через `mongosh` остаётся доступным согласно §7. `argument_summary`-whitelist — out of scope, поскольку MCP-чтения журнала больше нет.

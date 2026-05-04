@@ -35,8 +35,7 @@ public sealed class GetInstructionBundleHandler(
             var status = query.Mode switch
             {
                 InstructionBundleModeNames.Interview => IntentStatusNames.Interview,
-                InstructionBundleModeNames.Work or InstructionBundleModeNames.NewProject or InstructionBundleModeNames.Fix
-                    => IntentStatusNames.Work,
+                InstructionBundleModeNames.Work or InstructionBundleModeNames.Fix => IntentStatusNames.Work,
                 _ => null,
             };
 

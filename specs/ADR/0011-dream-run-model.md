@@ -32,7 +32,7 @@ Accepted.
    «что именно туда пойдёт и хватит ли этого». High-severity bug и тысяча тривиальных qa
    в одной метрике мешают калибровке.
 2. **MCP-ошибки попадали в обучение /dream.** Они относятся к улучшению самого MCP-инструментария
-   (отдельная команда `/throne` — out of scope этого ADR), а не к улучшению user instructions.
+   и не должны идти в обучение user instructions.
 3. **Блокирующий порог конфликтует с моделью «ручная команда».** Если пользователь хочет
    потренироваться на одной единице сигнала — он должен мочь.
 
@@ -159,8 +159,7 @@ Apply proposal — единственное место, где DreamRun каса
    Агент будет делать неконтролируемые запросы и подмешивать активные сессии.
 5. **Включить `mcp_call_log.error` в /dream через токенайзер.** Эти ошибки относятся
    к улучшению MCP-инструментария, не к user instructions; смешивание заставляло /dream
-   предлагать правила для /dream и /throne — нерелевантно. Уносим под отдельную
-   будущую команду `/throne`.
+   предлагать правила для /dream — нерелевантно. Сейчас MCP-ошибки в обучение /dream не идут.
 
 ## Consequences
 
@@ -170,7 +169,7 @@ Apply proposal — единственное место, где DreamRun каса
 - `text_versions` остаётся честной линейной историей применённых правок инструкций.
 - Сервер владеет «что читать» — агент получает готовый снимок IntentRefs.
 - Конфигурации нет: ноль настроечных параметров для /dream.
-- `mcp_call_log` отделён от обучения /dream и зарезервирован под `/throne`.
+- `mcp_call_log` отделён от обучения /dream.
 - /dream — ручная команда; пользователь сам решает, когда контекст готов, без
   непрозрачных порогов и временных окон.
 
@@ -197,7 +196,7 @@ Server-managed MCP-инструменты для `/tdream` поверх той �
 - `mcp__throne__propose_dream_rule(run_id, target_kind, proposed_rule, intent_refs[],
   rationale, severity)` — сервер валидирует подмножество `intent_refs` (агент не может
   ссылаться на чужие intents), severity-min (high≥1/medium≥2/low≥3 distinct intents),
-  `target_kind ∈ {common, interview, work, new_project, fix}`, кэп `MaxProposals = 5`.
+  `target_kind ∈ {common, interview, work, fix}`, кэп `MaxProposals = 5`.
 
 `apply_dream_proposal`, `close_dream_run` и `get_dream_readiness` в MCP surface не появляются:
 apply — исключительно user-action через HTTP/UI; auto-close сервер выполняет сам;
@@ -225,8 +224,7 @@ proposals». От этого отказались осознанно: закры
 
 ## Не делаем здесь
 
-- MCP-ошибки (`mcp_call_log.outcome=error`) и их анализ — отдельная команда `/throne`
-  (зарезервировано, реализация вне scope этого ADR).
+- MCP-ошибки (`mcp_call_log.outcome=error`) и их анализ — out of scope этого ADR.
 - Token cap / OmittedIntents в DreamRun — без cap для v1.
 - Session-aware фильтр через `session_id` в `intent_qa`/`intent_review` — открытая
   тема на будущее, если safety_lag окажется недостаточным.

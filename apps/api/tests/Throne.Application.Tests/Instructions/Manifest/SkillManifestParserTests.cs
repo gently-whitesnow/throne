@@ -6,7 +6,7 @@ namespace Throne.Application.Tests.Instructions.Manifest;
 public class SkillManifestParserTests
 {
     private static readonly string[] ExpectedSkillNames =
-        ["tinterview", "twork", "tnew", "tfix", "tdream", "throne"];
+        ["tinterview", "twork", "tfix", "tdream"];
 
     private const string ValidYaml = """
         version: 1
@@ -115,51 +115,6 @@ public class SkillManifestParserTests
         act.Should().Throw<SkillManifestException>().WithMessage("*work*system_instructions*");
     }
 
-    [Fact(DisplayName = "SkillManifestParser выставляет internal=false когда поле отсутствует")]
-    public void Defaults_internal_to_false_when_absent()
-    {
-        var manifest = SkillManifestParser.Parse(ValidYaml);
-
-        manifest.Skills.Should().HaveCount(1);
-        manifest.Skills[0].Internal.Should().BeFalse();
-    }
-
-    [Fact(DisplayName = "SkillManifestParser парсит internal: true и сохраняет default false для остальных")]
-    public void Parses_internal_flag_when_present()
-    {
-        const string yaml = """
-            version: 1
-            system_instructions:
-              - kind: common
-                text: "x"
-              - kind: work
-                text: "x"
-            bundles:
-              - mode: work
-                includes:
-                  - { scope: system, kind: common }
-                  - { scope: system, kind: work }
-                  - { scope: user, kind: common }
-                  - { scope: user, kind: work }
-            skills:
-              - name: twork
-                description: "twork desc"
-                bundle_mode: work
-                launcher_body: "body"
-              - name: throne
-                description: "internal skill"
-                bundle_mode: work
-                launcher_body: "body"
-                internal: true
-            """;
-
-        var manifest = SkillManifestParser.Parse(yaml);
-
-        manifest.Skills.Should().HaveCount(2);
-        manifest.Skills.Single(s => s.Name == "twork").Internal.Should().BeFalse();
-        manifest.Skills.Single(s => s.Name == "throne").Internal.Should().BeTrue();
-    }
-
     [Fact(DisplayName = "Реальный manifest specs/manifest/throne-skills.yaml парсится без ошибок")]
     public void Parses_real_manifest_from_repo()
     {
@@ -169,8 +124,8 @@ public class SkillManifestParserTests
         var manifest = SkillManifestParser.Parse(yaml);
 
         manifest.Skills.Select(s => s.Name).Should().BeEquivalentTo(ExpectedSkillNames);
-        manifest.SystemInstructions.Should().HaveCount(7);
-        manifest.Bundles.Should().HaveCount(6);
+        manifest.SystemInstructions.Should().HaveCount(5);
+        manifest.Bundles.Should().HaveCount(4);
     }
 
     private static string ResolveManifestPath()

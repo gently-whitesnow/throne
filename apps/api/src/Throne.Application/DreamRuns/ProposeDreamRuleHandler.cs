@@ -19,7 +19,7 @@ public sealed record ProposeDreamRuleResult(string ProposalId, string Status);
 /// <summary>
 /// Proposes a single learned rule against a still-pending DreamRun. The agent can only
 /// reference intents already captured by the run snapshot — not arbitrary ones, and
-/// not /throne or /dream instruction kinds (Intent 4 §propose_dream_rule).
+/// not the dream instruction kind itself.
 /// </summary>
 public sealed class ProposeDreamRuleHandler(
     IDreamRunRepository runs,
@@ -31,7 +31,6 @@ public sealed class ProposeDreamRuleHandler(
         InstructionKindNames.Common,
         InstructionKindNames.Interview,
         InstructionKindNames.Work,
-        InstructionKindNames.NewProject,
         InstructionKindNames.Fix,
     ];
 

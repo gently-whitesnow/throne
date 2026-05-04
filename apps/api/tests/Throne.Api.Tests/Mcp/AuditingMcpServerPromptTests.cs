@@ -76,10 +76,10 @@ public class AuditingMcpServerPromptTests
     public async Task Get_summary_keeps_only_lengths()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var inner = new StubPrompt("tnew", _ => new ValueTask<GetPromptResult>(SuccessResult("hello world")));
+        var inner = new StubPrompt("tinterview", _ => new ValueTask<GetPromptResult>(SuccessResult("hello world")));
         var prompt = NewWrapper(inner, sink);
 
-        await prompt.GetAsync(NewContext("tnew", new Dictionary<string, JsonElement>()), CancellationToken.None);
+        await prompt.GetAsync(NewContext("tinterview", new Dictionary<string, JsonElement>()), CancellationToken.None);
 
         await sink.Received(1).WriteAsync(
             Arg.Is<McpCallLogEntry>(e =>

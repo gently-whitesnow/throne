@@ -22,10 +22,10 @@ public sealed class DreamTools(
     }
 
     [McpServerTool(Name = "propose_dream_rule", UseStructuredContent = true)]
-    [Description("Propose a single learned rule against a still-pending DreamRun. intent_refs must be a subset of the run's snapshot — agents cannot reference intents the server did not include. target_kind is restricted to user instructions: common, interview, work, new_project, fix. /throne and /dream kinds are out of scope here.")]
+    [Description("Propose a single learned rule against a still-pending DreamRun. intent_refs must be a subset of the run's snapshot — agents cannot reference intents the server did not include. target_kind is restricted to user instructions: common, interview, work, fix. The dream kind is out of scope here.")]
     public async Task<ProposeDreamRuleResultDto> ProposeDreamRule(
         [Description("DreamRun id this proposal belongs to (must still be pending).")] string run_id,
-        [Description("Target user instruction kind: 'common', 'interview', 'work', 'new_project', or 'fix'. Other kinds are rejected.")] string target_kind,
+        [Description("Target user instruction kind: 'common', 'interview', 'work', or 'fix'. Other kinds are rejected.")] string target_kind,
         [Description("The proposed bullet to append under the target's `## Learned rules` section. At most 280 characters.")] string proposed_rule,
         [Description("Subset of run.intent_refs justifying this proposal. Severity dictates the minimum distinct intents: high>=1, medium>=2, low>=3.")] IReadOnlyList<string> intent_refs,
         [Description("Why the rule matters. Short, diagnostic prose that an end user can audit later.")] string rationale,
