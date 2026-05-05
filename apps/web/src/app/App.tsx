@@ -5,6 +5,7 @@ import { HomePage } from "@/pages/home";
 import { IntentDetailPage } from "@/pages/intent-detail";
 import { IntentsSectionPage } from "@/pages/intents-section";
 import { InstructionsSectionPage } from "@/pages/instructions-section";
+import { McpTokenPage } from "@/pages/me-mcp-token";
 import { TagsSectionPage } from "@/pages/tags-section";
 import { AppShell } from "@/widgets/app-shell";
 
@@ -20,6 +21,7 @@ export function App() {
           <Route path="/tags" element={<TagsSectionPage />} />
           <Route path="/instructions" element={<InstructionsSectionPage />} />
           <Route path="/dream" element={<DreamSectionPage />} />
+          <Route path="/me/mcp-token" element={<McpTokenPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

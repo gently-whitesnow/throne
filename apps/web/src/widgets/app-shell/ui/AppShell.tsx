@@ -1,4 +1,4 @@
-import { FileText, Hash, Sparkles, Sprout } from "lucide-react";
+import { FileText, Hash, KeyRound, Sparkles, Sprout } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useDreamPendingCount } from "../model/use-dream-pending-count";
@@ -7,7 +7,8 @@ const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
   { to: "/tags", label: "Tags", icon: Hash },
   { to: "/instructions", label: "Instructions", icon: FileText },
-  { to: "/dream", label: "Dream", icon: Sprout }
+  { to: "/dream", label: "Dream", icon: Sprout },
+  { to: "/me/mcp-token", label: "MCP Token", icon: KeyRound }
 ] as const;
 
 export function AppShell() {
