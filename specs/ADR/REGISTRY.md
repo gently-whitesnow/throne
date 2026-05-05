@@ -11,6 +11,8 @@
 - [ADR-0006](0006-openapi-contract-first-codegen.md) — OpenAPI contract-first: `specs/contracts/<module>/openapi.yaml` — единый источник правды для HTTP API. Backend DTO + abstract AspNetCore controller генерируются NSwag, frontend `types.ts`/`endpoints.ts` — `openapi-typescript`. Quality gate `contracts` ловит drift. Правила расширения — в `specs/contracts/AGENTS.md`.
 - [ADR-0008](0008-realtime-contract-first-events.md) — Realtime contract-first events via domain events: `specs/contracts/realtime/events.yaml` — единый источник правды для server-to-client realtime. Транспорт SSE (`GET /api/v1/realtime/stream`), in-memory broker. Repository outcomes реализуют `IDomainEventCarrier`; декоратор `DomainEventDispatchingUnitOfWork` автоматически фанаутит события через `IDomainEventDispatcher`; `RealtimeDomainEventHandler` маппит их в SSE. Pipeline pluggable: новые handlers (внешний брокер, история, read-models) подключаются регистрацией в DI без изменения handlers/Application. Frontend — типобезопасный `useRealtimeEvent`. Quality gate `realtime` падает, если событие добавлено только в yaml, или только на бэке, или только на фронте.
 
+- [ADR-0012](0012-throne-behind-auth-gate.md) — Throne behind auth-gate: identity полностью вынесен в отдельный сервис auth-gate; Throne потребляет JWT (JWKS) и кладёт `user_id` в ambient `ICurrentUserAccessor`. MCP-клиенты используют долгоживущий Personal Access Token (SHA-256 хеш в Mongo, copy-once UI). Multi-user изоляция через поле `OwnerUserId` на user-owned агрегатах. Local dev — `Auth:Mode=Disabled` с фолбэком `userId="local-dev"`. Раскатывается инкрементально; этот реестр обновляется по мере шагов.
+
 ## Module-scoped (affect one bounded context)
 <!-- Decisions scoped to specific modules -->
 

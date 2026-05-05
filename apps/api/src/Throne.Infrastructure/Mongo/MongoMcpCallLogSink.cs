@@ -20,6 +20,7 @@ internal sealed class MongoMcpCallLogSink(IMongoDatabase database) : IMcpCallLog
             Id = Guid.NewGuid().ToString("N"),
             CreatedAt = entry.CreatedAt.UtcDateTime,
             SessionId = entry.SessionId,
+            UserId = entry.UserId,
             ToolName = entry.ToolName,
             Arguments = ToBson(entry.Arguments),
             IntentId = entry.IntentId,

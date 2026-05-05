@@ -6,6 +6,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using NSubstitute;
 using Throne.Api.Mcp;
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 
@@ -34,7 +35,22 @@ public class AuditingMcpServerToolTests
             Arg.Is<McpCallLogEntry>(e =>
                 e.ToolName == "create_intent" &&
                 e.Outcome == McpCallOutcome.Success &&
-                e.ErrorCode == null),
+                e.ErrorCode == null &&
+                e.UserId == CurrentUserIds.LocalDev),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "InvokeAsync пишет user_id из ICurrentUserAccessor")]
+    public async Task Invoke_records_user_id_from_accessor()
+    {
+        var sink = Substitute.For<IMcpCallLogSink>();
+        var inner = new StubTool("create_intent", _ => new ValueTask<CallToolResult>(SuccessResult()));
+        var tool = NewWrapper(inner, sink, new StubCurrentUser("user-42"));
+
+        await tool.InvokeAsync(NewCallContext("create_intent", new Dictionary<string, JsonElement>()), CancellationToken.None);
+
+        await sink.Received(1).WriteAsync(
+            Arg.Is<McpCallLogEntry>(e => e.UserId == "user-42"),
             Arg.Any<CancellationToken>());
     }
 
@@ -104,13 +120,22 @@ public class AuditingMcpServerToolTests
             Arg.Any<CancellationToken>());
     }
 
-    private static AuditingMcpServerTool NewWrapper(McpServerTool inner, IMcpCallLogSink sink) =>
+    private static AuditingMcpServerTool NewWrapper(
+        McpServerTool inner,
+        IMcpCallLogSink sink,
+        ICurrentUserAccessor? currentUser = null) =>
         new(
             inner,
             sink,
+            currentUser ?? new StubCurrentUser(CurrentUserIds.LocalDev),
             new FakeTimeProvider(Now),
             NullLogger<AuditingMcpServerTool>.Instance,
             new ServerVersion("test"));
+
+    private sealed class StubCurrentUser(string userId) : ICurrentUserAccessor
+    {
+        public string UserId { get; } = userId;
+    }
 
     private static RequestContext<CallToolRequestParams> NewCallContext(
         string toolName,

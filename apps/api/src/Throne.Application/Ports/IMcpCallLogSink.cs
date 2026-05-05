@@ -3,6 +3,7 @@ namespace Throne.Application.Ports;
 public sealed record McpCallLogEntry(
     DateTimeOffset CreatedAt,
     string? SessionId,
+    string? UserId,
     string ToolName,
     IReadOnlyDictionary<string, object?> Arguments,
     string? IntentId,

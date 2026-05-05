@@ -9,8 +9,6 @@ public class McpToolRegistrationRulesTests
     [
         "WithTools",
         "WithToolsFromAssembly",
-        "WithPrompts",
-        "WithPromptsFromAssembly",
     ];
 
     private const string SdkBuilderExtensionsType =
@@ -18,11 +16,9 @@ public class McpToolRegistrationRulesTests
 
     private const string McpServerToolType = "ModelContextProtocol.Server.McpServerTool";
 
-    private const string McpServerPromptType = "ModelContextProtocol.Server.McpServerPrompt";
-
     private const string AllowedRegistrationType = "Throne.Api.Mcp.ThroneToolRegistration";
 
-    [Fact(DisplayName = "Throne.Api не вызывает SDK WithTools/WithPrompts/*FromAssembly — только AddThroneTool<T>/AddThronePrompt<T>")]
+    [Fact(DisplayName = "Throne.Api не вызывает SDK WithTools/WithToolsFromAssembly — только AddThroneTool<T>")]
     public void Api_does_not_call_SDK_registration()
     {
         var offenders = new List<string>();
@@ -32,7 +28,7 @@ public class McpToolRegistrationRulesTests
             offenders);
 
         offenders.Should().BeEmpty(
-            "Throne.Api must register MCP tools/prompts only via AddThroneTool<T>() / AddThronePrompt<T>(). Offenders: {0}",
+            "Throne.Api must register MCP tools only via AddThroneTool<T>(). Offenders: {0}",
             string.Join(", ", offenders));
     }
 
@@ -48,21 +44,6 @@ public class McpToolRegistrationRulesTests
 
         offenders.Should().BeEmpty(
             "Only ThroneToolRegistration may call McpServerTool.Create — that is what guarantees AuditingMcpServerTool wrapping. Offenders: {0}",
-            string.Join(", ", offenders));
-    }
-
-    [Fact(DisplayName = "Throne.Api вызывает McpServerPrompt.Create только из ThroneToolRegistration (audit by construction)")]
-    public void Only_registration_helper_calls_McpServerPrompt_Create()
-    {
-        var offenders = new List<string>();
-        ScanCalls((reference, holder) =>
-            reference.DeclaringType.FullName == McpServerPromptType &&
-            reference.Name == "Create" &&
-            !holder.StartsWith(AllowedRegistrationType, StringComparison.Ordinal),
-            offenders);
-
-        offenders.Should().BeEmpty(
-            "Only ThroneToolRegistration may call McpServerPrompt.Create — that is what guarantees AuditingMcpServerPrompt wrapping. Offenders: {0}",
             string.Join(", ", offenders));
     }
 

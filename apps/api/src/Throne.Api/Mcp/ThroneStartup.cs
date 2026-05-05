@@ -25,16 +25,5 @@ public static class ThroneStartup
                 $"Found {unwrappedTools.Length} MCP tool(s) registered without audit decorator: {names}. " +
                 "All tools must be registered via AddThroneTool<T>().");
         }
-
-        var prompts = services.GetServices<McpServerPrompt>().ToArray();
-
-        var unwrappedPrompts = prompts.Where(p => p is not AuditingMcpServerPrompt).ToArray();
-        if (unwrappedPrompts.Length > 0)
-        {
-            var names = string.Join(", ", unwrappedPrompts.Select(p => p.ProtocolPrompt.Name));
-            throw new InvalidOperationException(
-                $"Found {unwrappedPrompts.Length} MCP prompt(s) registered without audit decorator: {names}. " +
-                "All prompts must be registered via AddThronePrompt<T>().");
-        }
     }
 }

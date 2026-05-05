@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 
@@ -11,6 +12,7 @@ namespace Throne.Api.Mcp;
 internal sealed partial class AuditingMcpServerTool(
     McpServerTool inner,
     IMcpCallLogSink callLogSink,
+    ICurrentUserAccessor currentUser,
     TimeProvider clock,
     ILogger<AuditingMcpServerTool> logger,
     ServerVersion serverVersion) : McpServerTool
@@ -26,6 +28,7 @@ internal sealed partial class AuditingMcpServerTool(
         var intentId = ExtractIntentId(request.Params?.Arguments);
         var modeHint = ExtractModeHint(toolName, request.Params?.Arguments);
         var sessionId = ExtractSessionId(request);
+        var userId = currentUser.UserId;
         var startedAt = clock.GetUtcNow();
         var stopwatch = Stopwatch.StartNew();
 
@@ -39,7 +42,7 @@ internal sealed partial class AuditingMcpServerTool(
             var errorCode = outcome == McpCallOutcome.Error ? TryReadErrorCode(result) : null;
 
             await TryWriteAuditAsync(
-                startedAt, sessionId, toolName, arguments, intentId, modeHint,
+                startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 outcome, errorCode, summary, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -49,7 +52,7 @@ internal sealed partial class AuditingMcpServerTool(
         {
             stopwatch.Stop();
             await TryWriteAuditAsync(
-                startedAt, sessionId, toolName, arguments, intentId, modeHint,
+                startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, ex.Code, null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
                 .ConfigureAwait(false);
             throw;
@@ -58,7 +61,7 @@ internal sealed partial class AuditingMcpServerTool(
         {
             stopwatch.Stop();
             await TryWriteAuditAsync(
-                startedAt, sessionId, toolName, arguments, intentId, modeHint,
+                startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, "internal_error", null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
                 .ConfigureAwait(false);
             LogToolFailure(logger, toolName, ex);
@@ -69,6 +72,7 @@ internal sealed partial class AuditingMcpServerTool(
     private async Task TryWriteAuditAsync(
         DateTimeOffset createdAt,
         string? sessionId,
+        string? userId,
         string toolName,
         Dictionary<string, object?> arguments,
         string? intentId,
@@ -84,6 +88,7 @@ internal sealed partial class AuditingMcpServerTool(
             var entry = new McpCallLogEntry(
                 createdAt,
                 sessionId,
+                userId,
                 toolName,
                 arguments,
                 intentId,
