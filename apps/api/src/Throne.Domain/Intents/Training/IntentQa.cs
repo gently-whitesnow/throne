@@ -2,6 +2,7 @@ namespace Throne.Domain.Intents.Training;
 
 public sealed record IntentQa(
     string Id,
+    string OwnerUserId,
     IntentId IntentId,
     int IntentVersionAtWrite,
     string Question,
@@ -11,6 +12,7 @@ public sealed record IntentQa(
 {
     public static IntentQa Create(
         string id,
+        string ownerUserId,
         IntentId intentId,
         int intentVersionAtWrite,
         string question,
@@ -19,6 +21,7 @@ public sealed record IntentQa(
         IntentTrainingAuthor createdBy)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentNullException.ThrowIfNull(question);
         ArgumentNullException.ThrowIfNull(answer);
         if (question.Length == 0)
@@ -36,6 +39,6 @@ public sealed record IntentQa(
             throw new ArgumentOutOfRangeException(nameof(intentVersionAtWrite), "intent_version_at_write must be >= 1.");
         }
 
-        return new IntentQa(id, intentId, intentVersionAtWrite, question, answer, now, createdBy);
+        return new IntentQa(id, ownerUserId, intentId, intentVersionAtWrite, question, answer, now, createdBy);
     }
 }

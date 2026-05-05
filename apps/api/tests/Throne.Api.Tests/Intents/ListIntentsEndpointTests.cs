@@ -78,13 +78,13 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
             var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
             var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-            var shortIntent = Intent.Create(IntentId.New(), "short text", [Throne.Domain.Tags.TagId.New()], Now);
+            var shortIntent = Intent.Create(IntentId.New(), "local-dev", "short text", [Throne.Domain.Tags.TagId.New()], Now);
             var shortVersion = TextVersion.CreateSnapshot(
                 Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, shortIntent.Id.Value,
                 shortIntent.Text, Now, TextVersionAuthor.Agent);
 
             var longText = new string('x', 200);
-            var longIntent = Intent.Create(IntentId.New(), longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
+            var longIntent = Intent.Create(IntentId.New(), "local-dev", longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
             var longVersion = TextVersion.CreateSnapshot(
                 Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, longIntent.Id.Value,
                 longText, Now, TextVersionAuthor.Agent);
@@ -146,7 +146,7 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
 
     private static async Task<Intent> SeedAsync(IIntentRepository repo, IUnitOfWork uow, string text)
     {
-        var intent = Intent.Create(IntentId.New(), text, [Throne.Domain.Tags.TagId.New()], Now);
+        var intent = Intent.Create(IntentId.New(), "local-dev", text, [Throne.Domain.Tags.TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, intent.Id.Value,
             intent.Text, Now, TextVersionAuthor.Agent);

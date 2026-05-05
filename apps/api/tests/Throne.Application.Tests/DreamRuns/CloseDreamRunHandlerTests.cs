@@ -57,6 +57,7 @@ public class CloseDreamRunHandlerTests
 
     private static DreamRun SampleRun() => DreamRun.Create(
         DreamRunId.New(),
+        ownerUserId: "user-1",
         tokenCount: 50,
         [IntentRef.Create("intent-1", 50, Now)],
         Now);

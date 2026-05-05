@@ -8,6 +8,9 @@ internal sealed class IntentDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
+    [BsonElement("owner_user_id")]
+    public string OwnerUserId { get; set; } = string.Empty;
+
     [BsonElement("text")]
     public string Text { get; set; } = string.Empty;
 

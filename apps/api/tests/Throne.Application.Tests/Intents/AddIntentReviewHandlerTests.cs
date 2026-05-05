@@ -60,7 +60,7 @@ public class AddIntentReviewHandlerTests
     private static AddIntentReviewHandler NewHandler(out IIntentTrainingRepository repo)
     {
         repo = Substitute.For<IIntentTrainingRepository>();
-        return new AddIntentReviewHandler(repo, new PassthroughUnitOfWork(), new FakeTimeProvider(Now));
+        return new AddIntentReviewHandler(repo, new PassthroughUnitOfWork(), new TestCurrentUserAccessor(), new FakeTimeProvider(Now));
     }
 
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider

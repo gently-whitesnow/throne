@@ -59,7 +59,7 @@ public class RunDreamHandlerTests
             }),
         });
         fixture.Instructions
-            .GetUserInstructionsByKindsAsync(MvpUser.Id, Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([SeededWorkInstruction()]);
 
         var result = await fixture.Handler.HandleAsync(new RunDreamCommand("auto"), CancellationToken.None);
@@ -91,6 +91,7 @@ public class RunDreamHandlerTests
 
     private static DreamRun SampleRun(DateTimeOffset createdAt) => DreamRun.Create(
         DreamRunId.New(),
+        ownerUserId: "user-1",
         tokenCount: 100,
         [IntentRef.Create("intent-existing", 100, createdAt)],
         createdAt);
@@ -98,7 +99,7 @@ public class RunDreamHandlerTests
     private static Instruction SeededWorkInstruction() => Instruction.Restore(
         new InstructionId("inst-work"),
         InstructionScopeNames.User,
-        userId: MvpUser.Id,
+        userId: "user-1",
         kind: InstructionKindNames.Work,
         text: "# Work\n\n## Learned rules\n\n- Already learned thing\n",
         currentVersion: 3,
@@ -125,7 +126,7 @@ public class RunDreamHandlerTests
                 .ReturnsForAnyArgs(Array.Empty<Instruction>());
             var counter = new ContextTokenCounter(new LengthTokenizer());
             var resolver = new DreamWindowResolver(Runs, Window, counter);
-            Handler = new RunDreamHandler(Runs, Instructions, resolver, new PassthroughUnitOfWork(), clock);
+            Handler = new RunDreamHandler(Runs, Instructions, resolver, new PassthroughUnitOfWork(), new TestCurrentUserAccessor(), clock);
         }
     }
 

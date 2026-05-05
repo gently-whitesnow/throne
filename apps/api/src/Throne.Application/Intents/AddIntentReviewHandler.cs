@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -14,6 +15,7 @@ public sealed record AddIntentReviewCommand(
 public sealed class AddIntentReviewHandler(
     IIntentTrainingRepository repository,
     IUnitOfWork unitOfWork,
+    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<Ack> HandleAsync(AddIntentReviewCommand command, CancellationToken ct)
@@ -41,6 +43,7 @@ public sealed class AddIntentReviewHandler(
         var now = clock.GetUtcNow();
         var review = IntentReview.Create(
             id: Guid.NewGuid().ToString("N"),
+            ownerUserId: currentUser.UserId,
             intentId: id,
             intentVersionAtWrite: command.ExpectedVersion,
             note: command.Note,

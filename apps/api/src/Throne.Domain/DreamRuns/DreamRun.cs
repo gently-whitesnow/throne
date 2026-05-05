@@ -14,6 +14,7 @@ public sealed class DreamRun
 
     private DreamRun(
         DreamRunId id,
+        string ownerUserId,
         string status,
         int tokenCount,
         IReadOnlyList<IntentRef> intentRefs,
@@ -23,6 +24,7 @@ public sealed class DreamRun
         bool evidenceProcessed)
     {
         Id = id;
+        OwnerUserId = ownerUserId;
         Status = status;
         TokenCount = tokenCount;
         _intentRefs = [.. intentRefs];
@@ -33,6 +35,7 @@ public sealed class DreamRun
     }
 
     public DreamRunId Id { get; }
+    public string OwnerUserId { get; }
     public string Status { get; private set; }
     public int TokenCount { get; }
     public IReadOnlyList<IntentRef> IntentRefs => _intentRefs;
@@ -51,10 +54,12 @@ public sealed class DreamRun
 
     public static DreamRun Create(
         DreamRunId id,
+        string ownerUserId,
         int tokenCount,
         IReadOnlyList<IntentRef> intentRefs,
         DateTimeOffset now)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentNullException.ThrowIfNull(intentRefs);
         ArgumentOutOfRangeException.ThrowIfNegative(tokenCount);
         if (intentRefs.Count == 0)
@@ -69,6 +74,7 @@ public sealed class DreamRun
 
         return new DreamRun(
             id,
+            ownerUserId,
             DreamRunStatusNames.Pending,
             tokenCount,
             intentRefs,
@@ -80,6 +86,7 @@ public sealed class DreamRun
 
     public static DreamRun Restore(
         DreamRunId id,
+        string ownerUserId,
         string status,
         int tokenCount,
         IReadOnlyList<IntentRef> intentRefs,
@@ -88,12 +95,13 @@ public sealed class DreamRun
         DateTimeOffset? closedAt,
         bool evidenceProcessed)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         if (!DreamRunStatusNames.IsKnown(status))
         {
             throw new ArgumentOutOfRangeException(nameof(status), $"Unknown DreamRun status: {status}.");
         }
         return new DreamRun(
-            id, status, tokenCount, intentRefs,
+            id, ownerUserId, status, tokenCount, intentRefs,
             proposals, createdAt, closedAt, evidenceProcessed);
     }
 

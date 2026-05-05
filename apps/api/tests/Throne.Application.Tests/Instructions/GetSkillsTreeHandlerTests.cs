@@ -16,7 +16,7 @@ public class GetSkillsTreeHandlerTests
         var repo = Substitute.For<IInstructionRepository>();
         repo.GetUserInstructionsByKindsAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
-        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo);
+        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo, new TestCurrentUserAccessor());
 
         var tree = await handler.HandleAsync(new GetSkillsTreeQuery(), CancellationToken.None);
 
@@ -39,7 +39,7 @@ public class GetSkillsTreeHandlerTests
         var repo = Substitute.For<IInstructionRepository>();
         repo.GetUserInstructionsByKindsAsync(Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
-        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo);
+        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo, new TestCurrentUserAccessor());
 
         var tree = await handler.HandleAsync(new GetSkillsTreeQuery(), CancellationToken.None);
 
@@ -58,12 +58,12 @@ public class GetSkillsTreeHandlerTests
     {
         var repo = Substitute.For<IInstructionRepository>();
         var userCommon = Instruction.Create(
-            InstructionId.New(), InstructionScopeNames.User, MvpUser.Id, InstructionKindNames.Common, "user common", Now);
+            InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Common, "user common", Now);
         var userWork = Instruction.Create(
-            InstructionId.New(), InstructionScopeNames.User, MvpUser.Id, InstructionKindNames.Work, "user work", Now);
-        repo.GetUserInstructionsByKindsAsync(MvpUser.Id, Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Work, "user work", Now);
+        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([userCommon, userWork]);
-        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo);
+        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo, new TestCurrentUserAccessor());
 
         var tree = await handler.HandleAsync(new GetSkillsTreeQuery(), CancellationToken.None);
 
@@ -80,9 +80,9 @@ public class GetSkillsTreeHandlerTests
     public async Task Missing_user_instruction_marked_absent()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        repo.GetUserInstructionsByKindsAsync(MvpUser.Id, Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
-        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo);
+        var handler = new GetSkillsTreeHandler(SkillManifestFixtures.Provider(), repo, new TestCurrentUserAccessor());
 
         var tree = await handler.HandleAsync(new GetSkillsTreeQuery(), CancellationToken.None);
 

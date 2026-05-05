@@ -23,7 +23,7 @@ public class ProposeDreamRuleHandlerTests
         ]);
         fixture.Runs.GetByIdAsync(default, default).ReturnsForAnyArgs(run);
         fixture.Instructions
-            .GetUserInstructionsByKindsAsync(MvpUser.Id, Arg.Is<IReadOnlyList<string>>(l => l.Contains(InstructionKindNames.Work)), Arg.Any<CancellationToken>())
+            .GetUserInstructionsByKindsAsync("user-1", Arg.Is<IReadOnlyList<string>>(l => l.Contains(InstructionKindNames.Work)), Arg.Any<CancellationToken>())
             .Returns([SampleInstruction()]);
         DreamProposal? captured = null;
         fixture.Runs
@@ -137,6 +137,7 @@ public class ProposeDreamRuleHandlerTests
 
     private static DreamRun SampleRun(IReadOnlyList<IntentRef> refs) => DreamRun.Create(
         DreamRunId.New(),
+        ownerUserId: "user-1",
         tokenCount: refs.Sum(r => r.TokenCount),
         refs,
         Now);
@@ -163,7 +164,7 @@ public class ProposeDreamRuleHandlerTests
     private static Instruction SampleInstruction() => Instruction.Restore(
         new InstructionId("inst-work"),
         InstructionScopeNames.User,
-        userId: MvpUser.Id,
+        userId: "user-1",
         kind: InstructionKindNames.Work,
         text: "# Work\n",
         currentVersion: 3,
@@ -178,7 +179,7 @@ public class ProposeDreamRuleHandlerTests
 
         public Fixture()
         {
-            Handler = new ProposeDreamRuleHandler(Runs, Instructions, new PassthroughUnitOfWork());
+            Handler = new ProposeDreamRuleHandler(Runs, Instructions, new PassthroughUnitOfWork(), new TestCurrentUserAccessor());
         }
     }
 

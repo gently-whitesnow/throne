@@ -156,7 +156,7 @@ public sealed class UploadIntentAttachmentEndpointTests : IAsyncLifetime
         var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var intent = Intent.Create(IntentId.New(), text, null, Now);
+        var intent = Intent.Create(IntentId.New(), "local-dev", text, null, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"),
             TextVersionOwnerKind.Intent,

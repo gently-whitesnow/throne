@@ -92,13 +92,14 @@ public class MongoDreamRunRepositoryTests(MongoFixture fixture)
         await fixture.Client.DropDatabaseAsync(name);
         var db = fixture.Client.GetDatabase(name);
         var sessions = new MongoSessionAccessor();
-        var repo = new MongoDreamRunRepository(db, sessions);
+        var repo = new MongoDreamRunRepository(db, sessions, new TestCurrentUserAccessor());
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
         return (db, repo, uow);
     }
 
     private static DreamRun NewRun() => DreamRun.Create(
         DreamRunId.New(),
+        ownerUserId: "user-1",
         tokenCount: 120,
         [IntentRef.Create("intent-1", 120, Now)],
         Now);

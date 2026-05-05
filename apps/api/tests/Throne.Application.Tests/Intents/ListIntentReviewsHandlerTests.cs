@@ -19,10 +19,10 @@ public class ListIntentReviewsHandlerTests
         var training = Substitute.For<IIntentTrainingRepository>();
         var id = IntentId.New();
         intents.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(id, "body", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(id, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var review = IntentReview.Create(
-            "review-1", id, intentVersionAtWrite: 1,
+            "review-1", "user-1", id, intentVersionAtWrite: 1,
             note: "looks good", reason: "ok", now: Now, createdBy: IntentTrainingAuthor.User);
         training.ListReviewsByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns([review]);

@@ -2,6 +2,7 @@ namespace Throne.Application.Intents;
 
 public sealed record IntentAttachment(
     string Id,
+    string OwnerUserId,
     string IntentId,
     string FileName,
     string ContentType,

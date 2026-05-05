@@ -78,7 +78,7 @@ public class AddIntentQaHandlerTests
     private static AddIntentQaHandler NewHandler(out IIntentTrainingRepository repo)
     {
         repo = Substitute.For<IIntentTrainingRepository>();
-        return new AddIntentQaHandler(repo, new PassthroughUnitOfWork(), new FakeTimeProvider(Now));
+        return new AddIntentQaHandler(repo, new PassthroughUnitOfWork(), new TestCurrentUserAccessor(), new FakeTimeProvider(Now));
     }
 
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider

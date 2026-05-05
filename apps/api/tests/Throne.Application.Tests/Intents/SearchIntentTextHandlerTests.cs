@@ -24,6 +24,7 @@ public class SearchIntentTextHandlerTests
     {
         var intent = Intent.Restore(
             new IntentId(IntentIdValue),
+            ownerUserId: "user-1",
             "alpha\nbeta\ngamma",
             IntentStatusNames.Draft,
             currentVersion: 1,
@@ -46,6 +47,7 @@ public class SearchIntentTextHandlerTests
     {
         var intent = Intent.Restore(
             new IntentId(IntentIdValue),
+            ownerUserId: "user-1",
             "x\nx\nx\nx\nx",
             IntentStatusNames.Draft,
             currentVersion: 1,

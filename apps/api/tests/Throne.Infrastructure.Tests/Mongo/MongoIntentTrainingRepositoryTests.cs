@@ -20,7 +20,7 @@ public class MongoIntentTrainingRepositoryTests(MongoFixture fixture)
     {
         var (db, repo, uow, id) = await SeedAsync();
 
-        var qa = IntentQa.Create("qa-1", id, intentVersionAtWrite: 1,
+        var qa = IntentQa.Create("qa-1", "user-1", id, intentVersionAtWrite: 1,
             "why?", "because", WrittenAt, IntentTrainingAuthor.Agent);
 
         var outcome = await uow.ExecuteAsync(
@@ -48,7 +48,7 @@ public class MongoIntentTrainingRepositoryTests(MongoFixture fixture)
     {
         var (db, repo, uow, id) = await SeedAsync();
 
-        var qa = IntentQa.Create("qa-x", id, intentVersionAtWrite: 99,
+        var qa = IntentQa.Create("qa-x", "user-1", id, intentVersionAtWrite: 99,
             "q", "a", WrittenAt, IntentTrainingAuthor.Agent);
 
         var outcome = await uow.ExecuteAsync(
@@ -69,7 +69,7 @@ public class MongoIntentTrainingRepositoryTests(MongoFixture fixture)
         var (_, repo, uow, _) = await SeedAsync();
 
         var ghost = new IntentId("does-not-exist");
-        var qa = IntentQa.Create("qa-x", ghost, 1, "q", "a", WrittenAt, IntentTrainingAuthor.Agent);
+        var qa = IntentQa.Create("qa-x", "user-1", ghost, 1, "q", "a", WrittenAt, IntentTrainingAuthor.Agent);
 
         var outcome = await uow.ExecuteAsync(
             ct => repo.AddQaAsync(ghost, expectedVersion: 1, qa, WrittenAt, ct),
@@ -83,7 +83,7 @@ public class MongoIntentTrainingRepositoryTests(MongoFixture fixture)
     {
         var (db, repo, uow, id) = await SeedAsync();
 
-        var review = IntentReview.Create("rev-1", id, 1, "n", "r", WrittenAt, IntentTrainingAuthor.Agent);
+        var review = IntentReview.Create("rev-1", "user-1", id, 1, "n", "r", WrittenAt, IntentTrainingAuthor.Agent);
 
         var outcome = await uow.ExecuteAsync(
             ct => repo.AddReviewAsync(id, expectedVersion: 1, review, WrittenAt, ct),
@@ -109,12 +109,13 @@ public class MongoIntentTrainingRepositoryTests(MongoFixture fixture)
         await fixture.Client.DropDatabaseAsync(name);
         var db = fixture.Client.GetDatabase(name);
         var sessions = new MongoSessionAccessor();
-        var intentRepo = new MongoIntentRepository(db, sessions);
-        var trainingRepo = new MongoIntentTrainingRepository(db, sessions);
+        var accessor = new TestCurrentUserAccessor();
+        var intentRepo = new MongoIntentRepository(db, sessions, accessor);
+        var trainingRepo = new MongoIntentTrainingRepository(db, sessions, accessor);
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "seed", null, Created);
+        var intent = Intent.Create(id, "user-1", "seed", null, Created);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "seed", Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(

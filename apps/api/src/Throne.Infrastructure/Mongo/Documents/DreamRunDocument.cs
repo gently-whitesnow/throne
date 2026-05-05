@@ -8,6 +8,9 @@ internal sealed class DreamRunDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
+    [BsonElement("owner_user_id")]
+    public string OwnerUserId { get; set; } = string.Empty;
+
     [BsonElement("status")]
     public string Status { get; set; } = string.Empty;
 

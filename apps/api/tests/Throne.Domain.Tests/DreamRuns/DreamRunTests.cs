@@ -27,6 +27,7 @@ public class DreamRunTests
     {
         var act = () => DreamRun.Create(
             DreamRunId.New(),
+            ownerUserId: "user-1",
             tokenCount: 0,
             intentRefs: [],
             now: Now);
@@ -39,10 +40,23 @@ public class DreamRunTests
         var dup = IntentRef.Create("intent-A", 50, Now);
         var act = () => DreamRun.Create(
             DreamRunId.New(),
+            ownerUserId: "user-1",
             tokenCount: 170,
             intentRefs: [IntentA, dup],
             now: Now);
         act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact(DisplayName = "DreamRun.Create требует непустой ownerUserId")]
+    public void Create_rejects_empty_owner_user_id()
+    {
+        var act = () => DreamRun.Create(
+            DreamRunId.New(),
+            ownerUserId: "",
+            tokenCount: 100,
+            intentRefs: [IntentA],
+            now: Now);
+        act.Should().Throw<ArgumentException>().WithParameterName("ownerUserId");
     }
 
     [Fact(DisplayName = "AddProposal: high-severity требует ≥1 distinct intent ref")]
@@ -144,6 +158,7 @@ public class DreamRunTests
 
     private static DreamRun NewRun() => DreamRun.Create(
         DreamRunId.New(),
+        ownerUserId: "user-1",
         tokenCount: 400,
         [IntentA, IntentB, IntentC],
         Now);

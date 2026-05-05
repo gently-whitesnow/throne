@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -15,6 +16,7 @@ public sealed class CreateIntentHandler(
     IIntentRepository repository,
     ITagRepository tagRepository,
     IUnitOfWork unitOfWork,
+    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<Intent> HandleAsync(CreateIntentCommand command, CancellationToken ct)
@@ -23,13 +25,14 @@ public sealed class CreateIntentHandler(
 
         var now = clock.GetUtcNow();
         var id = IntentId.New();
+        var ownerUserId = currentUser.UserId;
 
         var outcome = await unitOfWork.ExecuteAsync(
             async inner =>
             {
                 var (tagIds, createdTags) = await ResolveTagIdsAsync(command.TagNames, now, inner);
 
-                var intent = Intent.Create(id, command.Text, tagIds, now);
+                var intent = Intent.Create(id, ownerUserId, command.Text, tagIds, now);
                 var initialVersion = TextVersion.CreateSnapshot(
                     id: Guid.NewGuid().ToString("N"),
                     ownerKind: TextVersionOwnerKind.Intent,

@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
@@ -12,6 +13,7 @@ public sealed class GetInstructionBundleHandler(
     ISkillManifestProvider manifestProvider,
     IIntentRepository intents,
     IUnitOfWork unitOfWork,
+    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<InstructionBundle> HandleAsync(GetInstructionBundleQuery query, CancellationToken ct)
@@ -85,7 +87,7 @@ public sealed class GetInstructionBundleHandler(
         var userKinds = userSlots.Select(s => s.Kind).ToArray();
         var userInstructions = userKinds.Length == 0
             ? Array.Empty<Domain.Instructions.Instruction>()
-            : await repository.GetUserInstructionsByKindsAsync(MvpUser.Id, userKinds, ct);
+            : await repository.GetUserInstructionsByKindsAsync(currentUser.UserId, userKinds, ct);
 
         var userKindOrder = userSlots
             .Select((slot, idx) => (slot.Kind, idx))

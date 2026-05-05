@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -14,6 +15,7 @@ public sealed record AddIntentQaCommand(
 public sealed class AddIntentQaHandler(
     IIntentTrainingRepository repository,
     IUnitOfWork unitOfWork,
+    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<Ack> HandleAsync(AddIntentQaCommand command, CancellationToken ct)
@@ -41,6 +43,7 @@ public sealed class AddIntentQaHandler(
         var now = clock.GetUtcNow();
         var qa = IntentQa.Create(
             id: Guid.NewGuid().ToString("N"),
+            ownerUserId: currentUser.UserId,
             intentId: id,
             intentVersionAtWrite: command.ExpectedVersion,
             question: command.Question,

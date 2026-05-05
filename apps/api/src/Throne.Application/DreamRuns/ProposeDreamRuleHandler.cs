@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Instructions;
 using Throne.Application.Ports;
@@ -24,7 +25,8 @@ public sealed record ProposeDreamRuleResult(string ProposalId, string Status);
 public sealed class ProposeDreamRuleHandler(
     IDreamRunRepository runs,
     IInstructionRepository instructions,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    ICurrentUserAccessor currentUser)
 {
     private static readonly IReadOnlyList<string> AllowedTargetKinds =
     [
@@ -216,7 +218,8 @@ public sealed class ProposeDreamRuleHandler(
 
     private async Task<Instruction> ResolveTargetInstructionAsync(string targetKind, CancellationToken ct)
     {
-        var matches = await instructions.GetUserInstructionsByKindsAsync(MvpUser.Id, [targetKind], ct);
+        var userId = currentUser.UserId;
+        var matches = await instructions.GetUserInstructionsByKindsAsync(userId, [targetKind], ct);
         if (matches.Count == 0)
         {
             throw new ApiException(
@@ -225,7 +228,7 @@ public sealed class ProposeDreamRuleHandler(
                 new Dictionary<string, object?>
                 {
                     ["kind"] = targetKind,
-                    ["user_id"] = MvpUser.Id,
+                    ["user_id"] = userId,
                 });
         }
         return matches[0];

@@ -1,15 +1,22 @@
 using MongoDB.Driver;
+using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.DreamRuns;
 using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+internal sealed class MongoDreamRunRepository(
+    IMongoDatabase database,
+    MongoSessionAccessor sessions,
+    ICurrentUserAccessor currentUser)
     : IDreamRunRepository
 {
     private readonly IMongoCollection<DreamRunDocument> _runs =
         database.GetCollection<DreamRunDocument>(MongoCollectionNames.DreamRuns);
+
+    private FilterDefinition<DreamRunDocument> OwnerFilter() =>
+        Builders<DreamRunDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
 
     public async Task<CreateDreamRunOutcome> CreateAsync(DreamRun run, CancellationToken ct)
     {
@@ -23,15 +30,17 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
     {
         var session = sessions.Current;
         var doc = session is null
-            ? await _runs.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct)
-            : await _runs.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            ? await _runs.Find(Builders<DreamRunDocument>.Filter.And(Builders<DreamRunDocument>.Filter.Eq(d => d.Id, id.Value), OwnerFilter())).FirstOrDefaultAsync(ct)
+            : await _runs.Find(session, Builders<DreamRunDocument>.Filter.And(Builders<DreamRunDocument>.Filter.Eq(d => d.Id, id.Value), OwnerFilter())).FirstOrDefaultAsync(ct);
         return doc is null ? null : MongoDreamRunMapping.ToDomain(doc);
     }
 
     public async Task<IReadOnlyList<DreamRun>> ListPendingAsync(CancellationToken ct)
     {
         var session = sessions.Current;
-        var filter = Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Pending);
+        var filter = Builders<DreamRunDocument>.Filter.And(
+            OwnerFilter(),
+            Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Pending));
         var docs = session is null
             ? await _runs.Find(filter).SortBy(d => d.CreatedAt).ToListAsync(ct)
             : await _runs.Find(session, filter).SortBy(d => d.CreatedAt).ToListAsync(ct);
@@ -48,6 +57,7 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
     {
         var session = sessions.Current;
         var filter = Builders<DreamRunDocument>.Filter.And(
+            OwnerFilter(),
             Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Closed),
             Builders<DreamRunDocument>.Filter.Eq(d => d.EvidenceProcessed, true));
         var docs = session is null
@@ -68,7 +78,9 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
     public async Task<IReadOnlyCollection<string>> GetLockedIntentIdsAsync(CancellationToken ct)
     {
         var session = sessions.Current;
-        var filter = Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Pending);
+        var filter = Builders<DreamRunDocument>.Filter.And(
+            OwnerFilter(),
+            Builders<DreamRunDocument>.Filter.Eq(d => d.Status, DreamRunStatusNames.Pending));
         var docs = session is null
             ? await _runs.Find(filter).Project(d => d.IntentRefs).ToListAsync(ct)
             : await _runs.Find(session, filter).Project(d => d.IntentRefs).ToListAsync(ct);
@@ -91,7 +103,7 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
     {
         ArgumentNullException.ThrowIfNull(proposal);
         var session = RequireSession(nameof(AddProposalAsync));
-        var doc = await _runs.Find(session, d => d.Id == runId.Value).FirstOrDefaultAsync(ct);
+        var doc = await _runs.Find(session, Builders<DreamRunDocument>.Filter.And(Builders<DreamRunDocument>.Filter.Eq(d => d.Id, runId.Value), OwnerFilter())).FirstOrDefaultAsync(ct);
         if (doc is null)
         {
             return new AddDreamProposalOutcome.RunNotFound();
@@ -121,7 +133,7 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
         CancellationToken ct)
     {
         var session = RequireSession(nameof(ApplyProposalAsync));
-        var doc = await _runs.Find(session, d => d.Id == runId.Value).FirstOrDefaultAsync(ct);
+        var doc = await _runs.Find(session, Builders<DreamRunDocument>.Filter.And(Builders<DreamRunDocument>.Filter.Eq(d => d.Id, runId.Value), OwnerFilter())).FirstOrDefaultAsync(ct);
         if (doc is null)
         {
             return new ApplyDreamProposalOutcome.RunNotFound();
@@ -153,7 +165,7 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
         CancellationToken ct)
     {
         var session = RequireSession(nameof(SkipProposalAsync));
-        var doc = await _runs.Find(session, d => d.Id == runId.Value).FirstOrDefaultAsync(ct);
+        var doc = await _runs.Find(session, Builders<DreamRunDocument>.Filter.And(Builders<DreamRunDocument>.Filter.Eq(d => d.Id, runId.Value), OwnerFilter())).FirstOrDefaultAsync(ct);
         if (doc is null)
         {
             return new SkipDreamProposalOutcome.RunNotFound();
@@ -184,7 +196,7 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
         CancellationToken ct)
     {
         var session = RequireSession(nameof(CloseAsync));
-        var doc = await _runs.Find(session, d => d.Id == runId.Value).FirstOrDefaultAsync(ct);
+        var doc = await _runs.Find(session, Builders<DreamRunDocument>.Filter.And(Builders<DreamRunDocument>.Filter.Eq(d => d.Id, runId.Value), OwnerFilter())).FirstOrDefaultAsync(ct);
         if (doc is null)
         {
             return new CloseDreamRunOutcome.NotFound();
@@ -206,7 +218,9 @@ internal sealed class MongoDreamRunRepository(IMongoDatabase database, MongoSess
         var replaced = MongoDreamRunMapping.ToDocument(run);
         await _runs.ReplaceOneAsync(
             session,
-            d => d.Id == run.Id.Value,
+            Builders<DreamRunDocument>.Filter.And(
+                Builders<DreamRunDocument>.Filter.Eq(d => d.Id, run.Id.Value),
+                OwnerFilter()),
             replaced,
             options: (ReplaceOptions?)null,
             ct);

@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -9,7 +10,10 @@ using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessionAccessor sessions) : IIntentRepository
+internal sealed class MongoIntentRepository(
+    IMongoDatabase database,
+    MongoSessionAccessor sessions,
+    ICurrentUserAccessor currentUser) : IIntentRepository
 {
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
@@ -19,6 +23,9 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
     private readonly IMongoCollection<IntentStatusChangeDocument> _statusChanges =
         database.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges);
+
+    private FilterDefinition<IntentDocument> OwnerFilter() =>
+        Builders<IntentDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
 
     public async Task<CreateIntentOutcome> CreateAsync(
         Intent intent,
@@ -59,7 +66,11 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            OwnerFilter());
+
+        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new ReplaceIntentTextOutcome.NotFound();
@@ -89,16 +100,19 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
                         .Set(d => d.CurrentVersion, intent.CurrentVersion)
                         .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
 
+                    var updateFilter = Builders<IntentDocument>.Filter.And(
+                        byIdAndOwner,
+                        Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
                     var updateResult = await _intents.UpdateOneAsync(
                         session,
-                        d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+                        updateFilter,
                         update,
                         options: null,
                         ct);
 
                     if (updateResult.ModifiedCount == 0)
                     {
-                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+                        var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
                         return new ReplaceIntentTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
                     }
 
@@ -125,7 +139,11 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.InsertTextAfterLineAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            OwnerFilter());
+
+        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new InsertIntentTextAfterLineOutcome.NotFound();
@@ -152,16 +170,19 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
                         .Set(d => d.CurrentVersion, intent.CurrentVersion)
                         .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
 
+                    var updateFilter = Builders<IntentDocument>.Filter.And(
+                        byIdAndOwner,
+                        Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
                     var updateResult = await _intents.UpdateOneAsync(
                         session,
-                        d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+                        updateFilter,
                         update,
                         options: null,
                         ct);
 
                     if (updateResult.ModifiedCount == 0)
                     {
-                        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+                        var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
                         return new InsertIntentTextAfterLineOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
                     }
 
@@ -178,8 +199,10 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
     {
         var session = sessions.Current;
         var filter = statuses is { Count: > 0 }
-            ? Builders<IntentDocument>.Filter.In(d => d.Status, statuses)
-            : FilterDefinition<IntentDocument>.Empty;
+            ? Builders<IntentDocument>.Filter.And(
+                OwnerFilter(),
+                Builders<IntentDocument>.Filter.In(d => d.Status, statuses))
+            : OwnerFilter();
         var documents = session is null
             ? await _intents.Find(filter)
                 .SortBy(d => d.CreatedAt)
@@ -202,7 +225,11 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var deleteIntent = await _intents.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct);
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            OwnerFilter());
+
+        var deleteIntent = await _intents.DeleteOneAsync(session, byIdAndOwner, options: null, ct);
         if (deleteIntent.DeletedCount == 0)
         {
             return new DeleteIntentOutcome.NotFound();
@@ -234,7 +261,11 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.SetStatusAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            OwnerFilter());
+
+        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new SetIntentStatusOutcome.NotFound();
@@ -276,14 +307,16 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
         var updateResult = await _intents.UpdateOneAsync(
             session,
-            BuildStatusUpdateFilter(id.Value, originalVersion, originalStatus),
+            Builders<IntentDocument>.Filter.And(
+                BuildStatusUpdateFilter(id.Value, originalVersion, originalStatus),
+                OwnerFilter()),
             update,
             options: null,
             ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
             if (fresh is null)
             {
                 return new SetIntentStatusOutcome.NotFound();
@@ -329,7 +362,11 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             ?? throw new InvalidOperationException(
                 "MongoIntentRepository.SetTagsAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            OwnerFilter());
+
+        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new SetIntentTagsOutcome.NotFound();
@@ -352,16 +389,19 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
             .Set(d => d.TagIds, newTagIdValues)
             .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
 
+        var updateFilter = Builders<IntentDocument>.Filter.And(
+            byIdAndOwner,
+            Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
         var updateResult = await _intents.UpdateOneAsync(
             session,
-            d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+            updateFilter,
             update,
             options: null,
             ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new SetIntentTagsOutcome.NotFound()
                 : new SetIntentTagsOutcome.VersionConflict(fresh.CurrentVersion);
@@ -373,9 +413,12 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            OwnerFilter());
         var document = session is null
-            ? await _intents.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct)
-            : await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            ? await _intents.Find(byIdAndOwner).FirstOrDefaultAsync(ct)
+            : await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
 
         return document is null ? null : MapToDomain(document);
     }
@@ -383,6 +426,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
     private static IntentDocument MapIntent(Intent intent) => new()
     {
         Id = intent.Id.Value,
+        OwnerUserId = intent.OwnerUserId,
         Text = intent.Text,
         Status = intent.Status,
         CurrentVersion = intent.CurrentVersion,
@@ -421,6 +465,7 @@ internal sealed class MongoIntentRepository(IMongoDatabase database, MongoSessio
 
     private static Intent MapToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
+        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,

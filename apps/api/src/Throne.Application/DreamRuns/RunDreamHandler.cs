@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Instructions;
 using Throne.Application.Ports;
@@ -49,6 +50,7 @@ public sealed class RunDreamHandler(
     IInstructionRepository instructions,
     DreamWindowResolver windows,
     IUnitOfWork unitOfWork,
+    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     private static readonly IReadOnlyList<string> AgentInstructionKinds =
@@ -105,6 +107,7 @@ public sealed class RunDreamHandler(
 
         var run = DreamRun.Create(
             DreamRunId.New(),
+            currentUser.UserId,
             assembly.AvailableTokens,
             intentRefs,
             now);
@@ -143,7 +146,7 @@ public sealed class RunDreamHandler(
     private async Task<IReadOnlyDictionary<string, IReadOnlyList<LearnedRule>>> CollectExistingRulesAsync(
         CancellationToken ct)
     {
-        var matches = await instructions.GetUserInstructionsByKindsAsync(MvpUser.Id, AgentInstructionKinds, ct);
+        var matches = await instructions.GetUserInstructionsByKindsAsync(currentUser.UserId, AgentInstructionKinds, ct);
         var byKind = new Dictionary<string, IReadOnlyList<LearnedRule>>(StringComparer.Ordinal);
         foreach (var kind in AgentInstructionKinds)
         {

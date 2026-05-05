@@ -19,10 +19,10 @@ public class ListIntentQaHandlerTests
         var training = Substitute.For<IIntentTrainingRepository>();
         var id = IntentId.New();
         intents.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(id, "body", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(id, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var qa = IntentQa.Create(
-            "qa-1", id, intentVersionAtWrite: 1,
+            "qa-1", "user-1", id, intentVersionAtWrite: 1,
             question: "q?", answer: "a", now: Now, createdBy: IntentTrainingAuthor.Agent);
         training.ListQaByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns([qa]);

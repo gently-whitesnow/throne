@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -6,7 +7,8 @@ namespace Throne.Application.Instructions;
 
 public sealed class GetSkillsTreeHandler(
     ISkillManifestProvider manifestProvider,
-    IInstructionRepository repository)
+    IInstructionRepository repository,
+    ICurrentUserAccessor currentUser)
 {
     public async Task<SkillsTree> HandleAsync(GetSkillsTreeQuery _, CancellationToken ct)
     {
@@ -22,7 +24,7 @@ public sealed class GetSkillsTreeHandler(
 
         var userInstructions = allUserKinds.Length == 0
             ? Array.Empty<Instruction>()
-            : await repository.GetUserInstructionsByKindsAsync(MvpUser.Id, allUserKinds, ct);
+            : await repository.GetUserInstructionsByKindsAsync(currentUser.UserId, allUserKinds, ct);
 
         var userByKind = userInstructions
             .GroupBy(i => i.Kind, StringComparer.Ordinal)

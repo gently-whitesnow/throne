@@ -1,4 +1,5 @@
 using MongoDB.Driver;
+using Throne.Application.Auth;
 using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -7,7 +8,10 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+internal sealed class MongoIntentTrainingRepository(
+    IMongoDatabase database,
+    MongoSessionAccessor sessions,
+    ICurrentUserAccessor currentUser)
     : IIntentTrainingRepository
 {
     private readonly IMongoCollection<IntentDocument> _intents =
@@ -18,6 +22,9 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
 
     private readonly IMongoCollection<IntentReviewDocument> _reviews =
         database.GetCollection<IntentReviewDocument>(MongoCollectionNames.IntentReview);
+
+    private FilterDefinition<IntentDocument> IntentOwnerFilter() =>
+        Builders<IntentDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
 
     public async Task<AppendTrainingOutcome> AddQaAsync(
         IntentId id,
@@ -66,7 +73,9 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
     public async Task<IReadOnlyList<IntentQa>> ListQaByIntentAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
-        var filter = Builders<IntentQaDocument>.Filter.Eq(d => d.IntentId, id.Value);
+        var filter = Builders<IntentQaDocument>.Filter.And(
+            Builders<IntentQaDocument>.Filter.Eq(d => d.IntentId, id.Value),
+            Builders<IntentQaDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId));
 
         var documents = session is null
             ? await _qa.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false)
@@ -83,7 +92,9 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
     public async Task<IReadOnlyList<IntentReview>> ListReviewsByIntentAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
-        var filter = Builders<IntentReviewDocument>.Filter.Eq(d => d.IntentId, id.Value);
+        var filter = Builders<IntentReviewDocument>.Filter.And(
+            Builders<IntentReviewDocument>.Filter.Eq(d => d.IntentId, id.Value),
+            Builders<IntentReviewDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId));
 
         var documents = session is null
             ? await _reviews.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false)
@@ -110,10 +121,17 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
         Func<IDomainEvent> eventFactory,
         CancellationToken ct)
     {
+        var byIdAndOwner = Builders<IntentDocument>.Filter.And(
+            Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value),
+            IntentOwnerFilter());
+        var versionFilter = Builders<IntentDocument>.Filter.And(
+            byIdAndOwner,
+            Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
+
         var update = Builders<IntentDocument>.Update.Set(d => d.UpdatedAt, now.UtcDateTime);
         var updateResult = await _intents.UpdateOneAsync(
             session,
-            d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+            versionFilter,
             update,
             options: null,
             ct).ConfigureAwait(false);
@@ -123,7 +141,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
             return new AppendTrainingOutcome.Appended(expectedVersion, eventFactory());
         }
 
-        var fresh = await _intents.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct).ConfigureAwait(false);
         if (fresh is null)
         {
             return new AppendTrainingOutcome.NotFound();
@@ -135,6 +153,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
     private static IntentQaDocument MapQa(IntentQa qa) => new()
     {
         Id = qa.Id,
+        OwnerUserId = qa.OwnerUserId,
         IntentId = qa.IntentId.Value,
         IntentVersionAtWrite = qa.IntentVersionAtWrite,
         Question = qa.Question,
@@ -146,6 +165,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
     private static IntentReviewDocument MapReview(IntentReview r) => new()
     {
         Id = r.Id,
+        OwnerUserId = r.OwnerUserId,
         IntentId = r.IntentId.Value,
         IntentVersionAtWrite = r.IntentVersionAtWrite,
         Note = r.Note,
@@ -156,6 +176,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
 
     private static IntentQa MapQaToDomain(IntentQaDocument doc) => new(
         Id: doc.Id,
+        OwnerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         IntentId: new IntentId(doc.IntentId),
         IntentVersionAtWrite: doc.IntentVersionAtWrite,
         Question: doc.Question,
@@ -165,6 +186,7 @@ internal sealed class MongoIntentTrainingRepository(IMongoDatabase database, Mon
 
     private static IntentReview MapReviewToDomain(IntentReviewDocument doc) => new(
         Id: doc.Id,
+        OwnerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         IntentId: new IntentId(doc.IntentId),
         IntentVersionAtWrite: doc.IntentVersionAtWrite,
         Note: doc.Note,

@@ -89,11 +89,11 @@ public class MongoIntentInsertAfterLineTests(MongoFixture fixture)
         await fixture.Client.DropDatabaseAsync(name);
         var db = fixture.Client.GetDatabase(name);
         var sessions = new MongoSessionAccessor();
-        var repo = new MongoIntentRepository(db, sessions);
+        var repo = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor());
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, text, null, Created);
+        var intent = Intent.Create(id, "user-1", text, null, Created);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(

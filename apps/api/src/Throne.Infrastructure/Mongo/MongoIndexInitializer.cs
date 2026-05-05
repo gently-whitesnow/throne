@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Hosting;
+using MongoDB.Bson;
 using MongoDB.Driver;
+using Throne.Application.Auth;
 using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
@@ -7,9 +9,38 @@ namespace Throne.Infrastructure.Mongo;
 internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken) =>
-        ExecuteWhenPrimaryAsync(CreateIndexesAsync, cancellationToken);
+        ExecuteWhenPrimaryAsync(async ct =>
+        {
+            await BackfillOwnerUserIdAsync(ct).ConfigureAwait(false);
+            await CreateIndexesAsync(ct).ConfigureAwait(false);
+        }, cancellationToken);
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private static readonly IReadOnlyList<string> UserOwnedCollections =
+    [
+        MongoCollectionNames.Intents,
+        MongoCollectionNames.IntentQa,
+        MongoCollectionNames.IntentReview,
+        MongoCollectionNames.IntentAttachments,
+        MongoCollectionNames.DreamRuns,
+    ];
+
+    private async Task BackfillOwnerUserIdAsync(CancellationToken cancellationToken)
+    {
+        var filter = new BsonDocument("owner_user_id", new BsonDocument("$exists", false));
+        var update = new BsonDocument("$set", new BsonDocument("owner_user_id", CurrentUserIds.LocalDev));
+        foreach (var name in UserOwnedCollections)
+        {
+            var collection = database.GetCollection<BsonDocument>(name);
+            await collection.UpdateManyAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        var instructions = database.GetCollection<BsonDocument>(MongoCollectionNames.Instructions);
+        var legacyMvpFilter = new BsonDocument("user_id", "mvp-user");
+        var renameUpdate = new BsonDocument("$set", new BsonDocument("user_id", CurrentUserIds.LocalDev));
+        await instructions.UpdateManyAsync(legacyMvpFilter, renameUpdate, cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
 
     private async Task CreateIndexesAsync(CancellationToken cancellationToken)
     {
@@ -24,22 +55,32 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var qa = database.GetCollection<IntentQaDocument>(MongoCollectionNames.IntentQa);
-        await qa.Indexes.CreateOneAsync(
-            new CreateIndexModel<IntentQaDocument>(
-                Builders<IntentQaDocument>.IndexKeys
-                    .Ascending(x => x.IntentId)
-                    .Ascending(x => x.CreatedAt),
-                new CreateIndexOptions { Name = "intent_created" }),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await qa.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<IntentQaDocument>(
+                    Builders<IntentQaDocument>.IndexKeys
+                        .Ascending(x => x.IntentId)
+                        .Ascending(x => x.CreatedAt),
+                    new CreateIndexOptions { Name = "intent_created" }),
+                new CreateIndexModel<IntentQaDocument>(
+                    Builders<IntentQaDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
+                    new CreateIndexOptions { Name = "owner_user_id" }),
+            ],
+            cancellationToken).ConfigureAwait(false);
 
         var reviews = database.GetCollection<IntentReviewDocument>(MongoCollectionNames.IntentReview);
-        await reviews.Indexes.CreateOneAsync(
-            new CreateIndexModel<IntentReviewDocument>(
-                Builders<IntentReviewDocument>.IndexKeys
-                    .Ascending(x => x.IntentId)
-                    .Ascending(x => x.CreatedAt),
-                new CreateIndexOptions { Name = "intent_created" }),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await reviews.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<IntentReviewDocument>(
+                    Builders<IntentReviewDocument>.IndexKeys
+                        .Ascending(x => x.IntentId)
+                        .Ascending(x => x.CreatedAt),
+                    new CreateIndexOptions { Name = "intent_created" }),
+                new CreateIndexModel<IntentReviewDocument>(
+                    Builders<IntentReviewDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
+                    new CreateIndexOptions { Name = "owner_user_id" }),
+            ],
+            cancellationToken).ConfigureAwait(false);
 
         var statusChanges = database.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges);
         await statusChanges.Indexes.CreateOneAsync(
@@ -51,11 +92,16 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var intentAttachments = database.GetCollection<IntentAttachmentDocument>(MongoCollectionNames.IntentAttachments);
-        await intentAttachments.Indexes.CreateOneAsync(
-            new CreateIndexModel<IntentAttachmentDocument>(
-                Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.IntentId),
-                new CreateIndexOptions { Name = "intent_id" }),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await intentAttachments.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<IntentAttachmentDocument>(
+                    Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.IntentId),
+                    new CreateIndexOptions { Name = "intent_id" }),
+                new CreateIndexModel<IntentAttachmentDocument>(
+                    Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
+                    new CreateIndexOptions { Name = "owner_user_id" }),
+            ],
+            cancellationToken).ConfigureAwait(false);
 
         var tags = database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
         await tags.Indexes.CreateOneAsync(
@@ -64,12 +110,17 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                 new CreateIndexOptions { Unique = true, Name = "name_unique" }),
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
-        var intentsByTag = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
-        await intentsByTag.Indexes.CreateOneAsync(
-            new CreateIndexModel<IntentDocument>(
-                Builders<IntentDocument>.IndexKeys.Ascending(x => x.TagIds),
-                new CreateIndexOptions { Name = "tag_ids" }),
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        var intentsCollection = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+        await intentsCollection.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<IntentDocument>(
+                    Builders<IntentDocument>.IndexKeys.Ascending(x => x.TagIds),
+                    new CreateIndexOptions { Name = "tag_ids" }),
+                new CreateIndexModel<IntentDocument>(
+                    Builders<IntentDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
+                    new CreateIndexOptions { Name = "owner_user_id" }),
+            ],
+            cancellationToken).ConfigureAwait(false);
 
         var dreamRuns = database.GetCollection<DreamRunDocument>(MongoCollectionNames.DreamRuns);
         await dreamRuns.Indexes.CreateManyAsync(
@@ -83,6 +134,9 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                     Builders<DreamRunDocument>.IndexKeys
                         .Ascending("intent_refs.intent_id"),
                     new CreateIndexOptions { Name = "intent_refs_lookup" }),
+                new CreateIndexModel<DreamRunDocument>(
+                    Builders<DreamRunDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
+                    new CreateIndexOptions { Name = "owner_user_id" }),
             ],
             cancellationToken).ConfigureAwait(false);
 

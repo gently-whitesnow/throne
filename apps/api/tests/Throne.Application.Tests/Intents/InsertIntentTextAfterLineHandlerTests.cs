@@ -17,6 +17,7 @@ public class InsertIntentTextAfterLineHandlerTests
     {
         var intent = Intent.Restore(
             new IntentId(IntentIdValue),
+            ownerUserId: "user-1",
             "a\nX\nb",
             IntentStatusNames.Work,
             currentVersion: 2,

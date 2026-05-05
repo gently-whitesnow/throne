@@ -9,6 +9,7 @@ public sealed class Intent
 
     private Intent(
         IntentId id,
+        string ownerUserId,
         string text,
         string status,
         int currentVersion,
@@ -17,6 +18,7 @@ public sealed class Intent
         DateTimeOffset updatedAt)
     {
         Id = id;
+        OwnerUserId = ownerUserId;
         Text = text;
         Status = status;
         CurrentVersion = currentVersion;
@@ -26,6 +28,7 @@ public sealed class Intent
     }
 
     public IntentId Id { get; }
+    public string OwnerUserId { get; }
     public string Text { get; private set; }
     public string Status { get; private set; }
     public int CurrentVersion { get; private set; }
@@ -35,10 +38,12 @@ public sealed class Intent
 
     public static Intent Create(
         IntentId id,
+        string ownerUserId,
         string text,
         IReadOnlyList<TagId>? tagIds,
         DateTimeOffset now)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentNullException.ThrowIfNull(text);
         if (text.Length == 0)
         {
@@ -46,11 +51,12 @@ public sealed class Intent
         }
 
         var normalized = NormalizeTagIds(tagIds);
-        return new Intent(id, text, IntentStatusNames.Draft, currentVersion: 1, normalized, now, now);
+        return new Intent(id, ownerUserId, text, IntentStatusNames.Draft, currentVersion: 1, normalized, now, now);
     }
 
     public static Intent Restore(
         IntentId id,
+        string ownerUserId,
         string text,
         string status,
         int currentVersion,
@@ -58,13 +64,14 @@ public sealed class Intent
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ValidateStatus(status, nameof(status));
         if (currentVersion < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(currentVersion), "current_version must be >= 1.");
         }
 
-        return new Intent(id, text, status, currentVersion, tagIds, createdAt, updatedAt);
+        return new Intent(id, ownerUserId, text, status, currentVersion, tagIds, createdAt, updatedAt);
     }
 
     public bool SetTagIds(IReadOnlyList<TagId> tagIds, DateTimeOffset now)

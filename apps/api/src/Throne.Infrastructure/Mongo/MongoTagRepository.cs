@@ -261,6 +261,9 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
 
     private static Intent MapIntentToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
+        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId)
+            ? Throne.Application.Auth.CurrentUserIds.LocalDev
+            : doc.OwnerUserId,
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? Throne.Domain.Intents.IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,

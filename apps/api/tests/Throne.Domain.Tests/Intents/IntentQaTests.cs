@@ -14,10 +14,11 @@ public class IntentQaTests
         var id = "qa-1";
         var intentId = IntentId.New();
 
-        var qa = IntentQa.Create(id, intentId, intentVersionAtWrite: 3,
+        var qa = IntentQa.Create(id, "user-1", intentId, intentVersionAtWrite: 3,
             question: "?", answer: ".", now: Now, createdBy: IntentTrainingAuthor.Agent);
 
         qa.Id.Should().Be(id);
+        qa.OwnerUserId.Should().Be("user-1");
         qa.IntentId.Should().Be(intentId);
         qa.IntentVersionAtWrite.Should().Be(3);
         qa.Question.Should().Be("?");
@@ -31,13 +32,16 @@ public class IntentQaTests
     {
         var intentId = IntentId.New();
 
-        Action emptyQ = () => IntentQa.Create("id", intentId, 1, "", "a", Now, IntentTrainingAuthor.Agent);
+        Action emptyQ = () => IntentQa.Create("id", "user-1", intentId, 1, "", "a", Now, IntentTrainingAuthor.Agent);
         emptyQ.Should().Throw<ArgumentException>().WithParameterName("question");
 
-        Action emptyA = () => IntentQa.Create("id", intentId, 1, "q", "", Now, IntentTrainingAuthor.Agent);
+        Action emptyA = () => IntentQa.Create("id", "user-1", intentId, 1, "q", "", Now, IntentTrainingAuthor.Agent);
         emptyA.Should().Throw<ArgumentException>().WithParameterName("answer");
 
-        Action zeroVersion = () => IntentQa.Create("id", intentId, 0, "q", "a", Now, IntentTrainingAuthor.Agent);
+        Action zeroVersion = () => IntentQa.Create("id", "user-1", intentId, 0, "q", "a", Now, IntentTrainingAuthor.Agent);
         zeroVersion.Should().Throw<ArgumentOutOfRangeException>();
+
+        Action emptyOwner = () => IntentQa.Create("id", "", intentId, 1, "q", "a", Now, IntentTrainingAuthor.Agent);
+        emptyOwner.Should().Throw<ArgumentException>().WithParameterName("ownerUserId");
     }
 }

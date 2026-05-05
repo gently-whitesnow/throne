@@ -1,3 +1,4 @@
+using Throne.Application.Auth;
 using Throne.Domain.DreamRuns;
 using Throne.Infrastructure.Mongo.Documents;
 
@@ -8,6 +9,7 @@ internal static class MongoDreamRunMapping
     public static DreamRunDocument ToDocument(DreamRun run) => new()
     {
         Id = run.Id.Value,
+        OwnerUserId = run.OwnerUserId,
         Status = run.Status,
         TokenCount = run.TokenCount,
         IntentRefs = run.IntentRefs.Select(ToRefDoc).ToList(),
@@ -19,6 +21,7 @@ internal static class MongoDreamRunMapping
 
     public static DreamRun ToDomain(DreamRunDocument doc) => DreamRun.Restore(
         new DreamRunId(doc.Id),
+        string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         doc.Status,
         doc.TokenCount,
         doc.IntentRefs.Select(ToDomainRef).ToList(),

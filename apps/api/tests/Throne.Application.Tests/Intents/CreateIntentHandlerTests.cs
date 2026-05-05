@@ -33,7 +33,7 @@ public class CreateIntentHandlerTests
 
         var uow = new PassthroughUnitOfWork();
         var clock = new FakeTimeProvider(Now);
-        var handler = new CreateIntentHandler(repo, tagRepo, uow, clock);
+        var handler = new CreateIntentHandler(repo, tagRepo, uow, new TestCurrentUserAccessor(), clock);
 
         var intent = await handler.HandleAsync(new CreateIntentCommand("hello world", ["throne"], TextVersionAuthor.Agent), CancellationToken.None);
 
@@ -82,7 +82,7 @@ public class CreateIntentHandlerTests
 
         var uow = new PassthroughUnitOfWork();
         var clock = new FakeTimeProvider(Now);
-        var handler = new CreateIntentHandler(repo, tagRepo, uow, clock);
+        var handler = new CreateIntentHandler(repo, tagRepo, uow, new TestCurrentUserAccessor(), clock);
 
         var intent = await handler.HandleAsync(
             new CreateIntentCommand("hello world", ["throne"], TextVersionAuthor.Agent),
