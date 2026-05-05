@@ -1,4 +1,9 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Auth;
@@ -39,19 +44,104 @@ public class AuthServicesTests
         provider.GetRequiredService<ICurrentUserAccessor>().UserId.Should().Be(CurrentUserIds.LocalDev);
     }
 
-    [Fact(DisplayName = "AddThroneAuth с Auth:Mode=Jwt бросает NotSupportedException — JWT не подключен")]
-    public void Jwt_mode_not_supported_yet()
+    [Fact(DisplayName = "AddThroneAuth с Auth:Mode=Jwt регистрирует JwtBearer и FallbackPolicy")]
+    public async Task Jwt_mode_registers_jwt_bearer_and_fallback_policy()
     {
         var services = new ServiceCollection();
+        services.AddLogging();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Auth:Mode"] = "Jwt",
+                ["Auth:Authority"] = "https://auth-gate.example.test",
+                ["Auth:Issuer"] = "https://auth-gate.example.test",
+                ["Auth:Audience"] = "throne",
             })
             .Build();
 
-        var act = () => services.AddThroneAuth(configuration);
+        services.AddThroneAuth(configuration);
 
-        act.Should().Throw<NotSupportedException>();
+        await using var provider = services.BuildServiceProvider();
+
+        var schemes = provider.GetRequiredService<IAuthenticationSchemeProvider>();
+        var jwt = await schemes.GetSchemeAsync(JwtBearerDefaults.AuthenticationScheme);
+        jwt.Should().NotBeNull();
+
+        var authzOptions = provider
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<AuthorizationOptions>>().Value;
+        authzOptions.FallbackPolicy.Should().NotBeNull();
+        authzOptions.FallbackPolicy!.Requirements.Should().Contain(r => r is DenyAnonymousAuthorizationRequirement);
     }
+
+    [Fact(DisplayName = "Auth:Mode=Jwt регистрирует HttpContextCurrentUserAccessor — userId читается из claim user_id")]
+    public void Jwt_mode_resolves_user_id_from_user_id_claim()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:Mode"] = "Jwt",
+                ["Auth:Authority"] = "https://auth-gate.example.test",
+                ["Auth:Issuer"] = "https://auth-gate.example.test",
+                ["Auth:Audience"] = "throne",
+            })
+            .Build();
+
+        services.AddThroneAuth(configuration);
+
+        using var provider = services.BuildServiceProvider();
+
+        var ctxAccessor = provider.GetRequiredService<IHttpContextAccessor>();
+        var ctx = new DefaultHttpContext();
+        ctx.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(new[]
+            {
+                new System.Security.Claims.Claim(AuthOptions.UserIdClaim, "user-42"),
+                new System.Security.Claims.Claim("sub", "ignored"),
+                new System.Security.Claims.Claim("email", "ignored@example.test"),
+            }, authenticationType: "Test"));
+        ctxAccessor.HttpContext = ctx;
+
+        using var scope = provider.CreateScope();
+        var accessor = scope.ServiceProvider.GetRequiredService<ICurrentUserAccessor>();
+
+        accessor.UserId.Should().Be("user-42");
+    }
+
+    [Fact(DisplayName = "HttpContextCurrentUserAccessor бросает, если claim user_id отсутствует")]
+    public void Jwt_mode_throws_when_user_id_claim_missing()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:Mode"] = "Jwt",
+                ["Auth:Authority"] = "https://auth-gate.example.test",
+                ["Auth:Issuer"] = "https://auth-gate.example.test",
+                ["Auth:Audience"] = "throne",
+            })
+            .Build();
+
+        services.AddThroneAuth(configuration);
+
+        using var provider = services.BuildServiceProvider();
+
+        var ctxAccessor = provider.GetRequiredService<IHttpContextAccessor>();
+        var ctx = new DefaultHttpContext();
+        ctx.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(new[]
+            {
+                new System.Security.Claims.Claim("sub", "abc"),
+            }, authenticationType: "Test"));
+        ctxAccessor.HttpContext = ctx;
+
+        using var scope = provider.CreateScope();
+        var accessor = scope.ServiceProvider.GetRequiredService<ICurrentUserAccessor>();
+
+        var act = () => accessor.UserId;
+        act.Should().Throw<InvalidOperationException>().WithMessage("*user_id*");
+    }
+
 }

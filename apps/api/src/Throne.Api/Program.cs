@@ -15,9 +15,12 @@ var app = builder.Build();
 
 ThroneStartup.AssertToolsRegistered(app.Services);
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
-app.MapMcp("/mcp");
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapMcp("/mcp").AllowAnonymous();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
 app.Run();
 

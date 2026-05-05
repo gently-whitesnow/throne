@@ -1,5 +1,10 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Throne.Application.Auth;
 
 namespace Throne.Api.Auth;
@@ -13,24 +18,84 @@ public static class AuthServices
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var section = configuration.GetSection(AuthOptions.SectionName);
-        services.Configure<AuthOptions>(section);
+        services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
+        services.AddHttpContextAccessor();
 
-        var options = section.Get<AuthOptions>() ?? new AuthOptions();
-
-        switch (options.Mode)
+        // ICurrentUserAccessor выбирается по AuthMode на момент резолва (Scoped),
+        // что совместимо с lazy-конфигом WebApplicationFactory в тестах.
+        services.AddScoped<ICurrentUserAccessor>(sp =>
         {
-            case AuthMode.Disabled:
-                services.AddSingleton<ICurrentUserAccessor, LocalDevCurrentUserAccessor>();
-                break;
-            case AuthMode.Jwt:
-                throw new NotSupportedException(
-                    "Auth:Mode=Jwt is reserved for the auth-gate integration that is not wired up yet. " +
-                    "Use Auth:Mode=Disabled for local dev.");
-            default:
-                throw new InvalidOperationException($"Unknown Auth:Mode '{options.Mode}'.");
-        }
+            var mode = sp.GetRequiredService<IOptions<AuthOptions>>().Value.Mode;
+            return mode switch
+            {
+                AuthMode.Jwt => ActivatorUtilities.CreateInstance<HttpContextCurrentUserAccessor>(sp),
+                AuthMode.Disabled => new LocalDevCurrentUserAccessor(),
+                _ => throw new InvalidOperationException($"Unknown Auth:Mode '{mode}'."),
+            };
+        });
+
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer();
+
+        services.AddSingleton<IConfigureOptions<JwtBearerOptions>, ConfigureJwtBearer>();
+        services.AddSingleton<IPostConfigureOptions<AuthorizationOptions>, ConfigureAuthorization>();
+        services.AddAuthorization();
 
         return services;
+    }
+
+    private sealed class ConfigureJwtBearer(IOptions<AuthOptions> options)
+        : IConfigureNamedOptions<JwtBearerOptions>
+    {
+        public void Configure(JwtBearerOptions options)
+            => Configure(JwtBearerDefaults.AuthenticationScheme, options);
+
+        public void Configure(string? name, JwtBearerOptions o)
+        {
+            if (name != JwtBearerDefaults.AuthenticationScheme)
+            {
+                return;
+            }
+
+            var auth = options.Value;
+
+            if (!string.IsNullOrWhiteSpace(auth.Authority))
+            {
+                o.Authority = auth.Authority;
+            }
+
+            if (!string.IsNullOrWhiteSpace(auth.MetadataAddress))
+            {
+                o.MetadataAddress = auth.MetadataAddress;
+            }
+
+            o.RequireHttpsMetadata = auth.RequireHttpsMetadata;
+            o.MapInboundClaims = false;
+
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = !string.IsNullOrWhiteSpace(auth.Issuer),
+                ValidIssuer = auth.Issuer,
+                ValidateAudience = !string.IsNullOrWhiteSpace(auth.Audience),
+                ValidAudience = auth.Audience,
+                ValidateLifetime = true,
+                NameClaimType = AuthOptions.UserIdClaim,
+            };
+        }
+    }
+
+    private sealed class ConfigureAuthorization(IOptions<AuthOptions> options)
+        : IPostConfigureOptions<AuthorizationOptions>
+    {
+        public void PostConfigure(string? name, AuthorizationOptions o)
+        {
+            if (options.Value.Mode == AuthMode.Jwt)
+            {
+                o.FallbackPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            }
+        }
     }
 }
