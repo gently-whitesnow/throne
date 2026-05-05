@@ -1,6 +1,5 @@
 using FluentAssertions;
 using MongoDB.Driver;
-using Throne.Application.Instructions;
 using Throne.Domain.Instructions;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo;
@@ -20,7 +19,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         var instruction = Instruction.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
-            MvpUser.Id,
+            "local-dev",
             InstructionKindNames.Work,
             "work text",
             Now);
@@ -39,7 +38,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         stored.Should().NotBeNull();
         stored!.Kind.Should().Be(InstructionKindNames.Work);
         stored.Scope.Should().Be(InstructionScopeNames.User);
-        stored.UserId.Should().Be(MvpUser.Id);
+        stored.UserId.Should().Be("local-dev");
         stored.Text.Should().Be("work text");
         stored.CurrentVersion.Should().Be(1);
 
@@ -56,28 +55,28 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
     {
         var (_, repo, uow) = await NewScopeAsync();
 
-        await SeedUserInstructionAsync(repo, uow, MvpUser.Id, InstructionKindNames.Common, "common text");
-        await SeedUserInstructionAsync(repo, uow, MvpUser.Id, InstructionKindNames.Work, "work text");
-        await SeedUserInstructionAsync(repo, uow, MvpUser.Id, InstructionKindNames.Interview, "interview text");
+        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Common, "common text");
+        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Work, "work text");
+        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Interview, "interview text");
         await SeedUserInstructionAsync(repo, uow, "other-user", InstructionKindNames.Work, "other work");
 
         var got = await repo.GetUserInstructionsByKindsAsync(
-            MvpUser.Id,
+            "local-dev",
             [InstructionKindNames.Common, InstructionKindNames.Work],
             CancellationToken.None);
 
         got.Select(i => i.Kind).Should().BeEquivalentTo(
             new[] { InstructionKindNames.Common, InstructionKindNames.Work });
-        got.Should().OnlyContain(i => i.UserId == MvpUser.Id && i.Scope == InstructionScopeNames.User);
+        got.Should().OnlyContain(i => i.UserId == "local-dev" && i.Scope == InstructionScopeNames.User);
     }
 
     [Fact(DisplayName = "GetUserInstructionsByKindsAsync на пустой список kinds возвращает пусто")]
     public async Task User_instructions_empty_kinds_returns_empty()
     {
         var (_, repo, uow) = await NewScopeAsync();
-        await SeedUserInstructionAsync(repo, uow, MvpUser.Id, InstructionKindNames.Work, "x");
+        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Work, "x");
 
-        var got = await repo.GetUserInstructionsByKindsAsync(MvpUser.Id, [], CancellationToken.None);
+        var got = await repo.GetUserInstructionsByKindsAsync("local-dev", [], CancellationToken.None);
 
         got.Should().BeEmpty();
     }

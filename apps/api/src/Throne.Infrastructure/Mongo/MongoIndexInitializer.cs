@@ -35,11 +35,6 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
             var collection = database.GetCollection<BsonDocument>(name);
             await collection.UpdateManyAsync(filter, update, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
-
-        var instructions = database.GetCollection<BsonDocument>(MongoCollectionNames.Instructions);
-        var legacyMvpFilter = new BsonDocument("user_id", "mvp-user");
-        var renameUpdate = new BsonDocument("$set", new BsonDocument("user_id", CurrentUserIds.LocalDev));
-        await instructions.UpdateManyAsync(legacyMvpFilter, renameUpdate, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateIndexesAsync(CancellationToken cancellationToken)
