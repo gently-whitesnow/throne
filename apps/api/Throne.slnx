@@ -10,6 +10,7 @@
     <Project Path="src/Throne.Instructions.Contracts/Throne.Instructions.Contracts.csproj" />
     <Project Path="src/Throne.Realtime.Contracts/Throne.Realtime.Contracts.csproj" />
     <Project Path="src/Throne.Tags.Contracts/Throne.Tags.Contracts.csproj" />
+    <Project Path="src/Throne.Me.Contracts/Throne.Me.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Throne.Api.Tests/Throne.Api.Tests.csproj" />

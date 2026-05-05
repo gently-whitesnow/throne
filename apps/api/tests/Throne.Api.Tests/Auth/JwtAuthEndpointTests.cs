@@ -128,20 +128,20 @@ public sealed class JwtAuthEndpointTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(DisplayName = "Auth:Mode=Jwt: /health и /mcp остаются открытыми (AllowAnonymous)")]
-    public async Task Health_and_mcp_are_anonymous()
+    [Fact(DisplayName = "Auth:Mode=Jwt: /health открыт (AllowAnonymous), /mcp требует PAT")]
+    public async Task Health_is_anonymous_and_mcp_requires_pat()
     {
         var health = await _client.GetAsync(new Uri("/health", UriKind.Relative));
         health.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // /mcp без токена не должен возвращать 401 — сейчас он AllowAnonymous;
-        // PAT-авторизация подключается отдельным intent'ом.
+        // /mcp под Mode=Jwt требует Personal Access Token. Без него — 401
+        // (см. ADR-0012, §MCP authentication — Personal Access Token).
         using var mcp = new HttpRequestMessage(HttpMethod.Post, new Uri("/mcp", UriKind.Relative))
         {
             Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json"),
         };
         var mcpResponse = await _client.SendAsync(mcp);
-        mcpResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        mcpResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     private static string IssueToken(

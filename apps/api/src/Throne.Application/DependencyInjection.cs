@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Application.Auth;
 using Throne.Application.DreamRuns;
 using Throne.Application.Events;
 using Throne.Application.Instructions;
@@ -56,6 +57,10 @@ public static class DependencyInjection
         services.AddSingleton<RunDreamHandler>();
         services.AddSingleton<ProposeDreamRuleHandler>();
         services.AddSingleton<CloseEmptyDreamRunHandler>();
+        services.AddSingleton<PersonalAccessTokenSecretFactory>();
+        services.AddSingleton<IPersonalAccessTokenResolver, PersonalAccessTokenResolver>();
+        services.AddSingleton<GenerateMcpTokenHandler>();
+        services.AddSingleton<GetMcpTokenMetaHandler>();
         return services;
     }
 }

@@ -1,3 +1,4 @@
+using Throne.Api.Auth;
 using Throne.Api.Intents;
 using Throne.Api.Mcp;
 
@@ -17,6 +18,8 @@ ThroneStartup.AssertToolsRegistered(app.Services);
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UsePersonalAccessTokenMcpAuth("/mcp");
 
 app.MapControllers();
 app.MapMcp("/mcp").AllowAnonymous();

@@ -25,6 +25,7 @@ public class OwnerUserIdRulesTests
         typeof(Throne.Domain.Intents.Training.IntentQa),
         typeof(Throne.Domain.Intents.Training.IntentReview),
         typeof(Throne.Domain.DreamRuns.DreamRun),
+        typeof(Throne.Domain.Auth.PersonalAccessToken),
     ];
 
     private static readonly string[] UserOwnedDocumentTypeNames =
@@ -34,6 +35,7 @@ public class OwnerUserIdRulesTests
         "Throne.Infrastructure.Mongo.Documents.IntentReviewDocument",
         "Throne.Infrastructure.Mongo.Documents.IntentAttachmentDocument",
         "Throne.Infrastructure.Mongo.Documents.DreamRunDocument",
+        "Throne.Infrastructure.Mongo.Documents.PersonalAccessTokenDocument",
     ];
 
     private static readonly string[] UserOwnedRepositoryTypeNames =
@@ -42,6 +44,7 @@ public class OwnerUserIdRulesTests
         "Throne.Infrastructure.Mongo.MongoIntentTrainingRepository",
         "Throne.Infrastructure.Mongo.MongoIntentAttachmentRepository",
         "Throne.Infrastructure.Mongo.MongoDreamRunRepository",
+        "Throne.Infrastructure.Mongo.MongoPersonalAccessTokenRepository",
     ];
 
     // Handlers, ВЫЗЫВАЮЩИЕ Domain.Create на user-owned агрегате. UploadIntentAttachmentHandler
@@ -53,6 +56,7 @@ public class OwnerUserIdRulesTests
         typeof(Throne.Application.Intents.AddIntentQaHandler),
         typeof(Throne.Application.Intents.AddIntentReviewHandler),
         typeof(Throne.Application.DreamRuns.RunDreamHandler),
+        typeof(Throne.Application.Auth.GenerateMcpTokenHandler),
     ];
 
     [Fact(DisplayName = "User-owned Domain-агрегаты требуют ownerUserId в Create/Restore")]

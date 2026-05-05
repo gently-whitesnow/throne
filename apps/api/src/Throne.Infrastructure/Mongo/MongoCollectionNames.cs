@@ -12,4 +12,5 @@ public static class MongoCollectionNames
     public const string IntentAttachments = "intent_attachments";
     public const string Tags = "tags";
     public const string DreamRuns = "dream_runs";
+    public const string PersonalAccessTokens = "personal_access_tokens";
 }

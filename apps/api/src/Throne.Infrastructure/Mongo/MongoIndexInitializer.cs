@@ -24,6 +24,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         MongoCollectionNames.IntentReview,
         MongoCollectionNames.IntentAttachments,
         MongoCollectionNames.DreamRuns,
+        MongoCollectionNames.PersonalAccessTokens,
     ];
 
     private async Task BackfillOwnerUserIdAsync(CancellationToken cancellationToken)
@@ -132,6 +133,18 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                 new CreateIndexModel<DreamRunDocument>(
                     Builders<DreamRunDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
                     new CreateIndexOptions { Name = "owner_user_id" }),
+            ],
+            cancellationToken).ConfigureAwait(false);
+
+        var pat = database.GetCollection<PersonalAccessTokenDocument>(MongoCollectionNames.PersonalAccessTokens);
+        await pat.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<PersonalAccessTokenDocument>(
+                    Builders<PersonalAccessTokenDocument>.IndexKeys.Ascending(x => x.HashSha256),
+                    new CreateIndexOptions { Unique = true, Name = "hash_sha256_unique" }),
+                new CreateIndexModel<PersonalAccessTokenDocument>(
+                    Builders<PersonalAccessTokenDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
+                    new CreateIndexOptions { Unique = true, Name = "owner_user_id_unique" }),
             ],
             cancellationToken).ConfigureAwait(false);
 
