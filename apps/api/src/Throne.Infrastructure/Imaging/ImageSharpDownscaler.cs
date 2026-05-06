@@ -8,7 +8,7 @@ namespace Throne.Infrastructure.Imaging;
 public sealed class ImageSharpDownscaler : IImageDownscaler
 {
     private const string JpegMime = "image/jpeg";
-    private const int JpegQuality = 85;
+    private const int JpegQuality = 75;
 
     public async Task<DownscaledImage> DownscaleAsync(
         Stream source,

@@ -11,7 +11,6 @@ public static class ErrorCodes
     public const string IntentAttachmentTooLarge = "intent.attachment.too_large";
     public const string IntentAttachmentLimitExceeded = "intent.attachment.limit_exceeded";
     public const string IntentAttachmentNotFound = "intent.attachment.not_found";
-    public const string IntentAttachmentNotImage = "intent.attachment.not_image";
     public const string InstructionNotFound = "instruction.not_found";
     public const string InstructionVersionConflict = "instruction.version_conflict";
     public const string InstructionTextMatchNotFound = "instruction.text.match_not_found";

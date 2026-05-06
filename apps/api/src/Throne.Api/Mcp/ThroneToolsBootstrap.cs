@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Api.Mcp.Resources;
 using Throne.Api.Mcp.Tools;
 
 namespace Throne.Api.Mcp;
@@ -14,6 +15,8 @@ public static class ThroneToolsBootstrap
 
         services.AddThroneTool<IntentTools>();
         services.AddThroneTool<DreamTools>();
+
+        services.AddSingleton<IntentAttachmentsResources>();
 
         return services;
     }

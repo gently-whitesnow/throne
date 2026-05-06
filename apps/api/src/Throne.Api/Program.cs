@@ -1,6 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Auth;
 using Throne.Api.Intents;
 using Throne.Api.Mcp;
+using Throne.Api.Mcp.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +12,11 @@ builder.Services.AddControllers(o => o.ModelBinderProviders.Insert(0, new FilePa
 
 builder.Services
     .AddMcpServer()
-    .WithHttpTransport();
+    .WithHttpTransport()
+    .WithListResourcesHandler(static (request, ct) =>
+        request.Services!.GetRequiredService<IntentAttachmentsResources>().ListAsync(request, ct))
+    .WithReadResourceHandler(static (request, ct) =>
+        request.Services!.GetRequiredService<IntentAttachmentsResources>().ReadAsync(request, ct));
 
 var app = builder.Build();
 

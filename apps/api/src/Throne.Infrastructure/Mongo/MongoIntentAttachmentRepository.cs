@@ -197,7 +197,13 @@ internal sealed class MongoIntentAttachmentRepository(
             return [];
         }
 
-        var filter = Builders<IntentAttachmentDocument>.Filter.Eq(x => x.CompressionState, CompressionStatePending);
+        // Backfill-friendly: ловим как новые pending, так и старые image-аттачи без compression_state
+        // (загруженные до появления флага). Главный признак — content_type начинается с "image/"
+        // и compression_state != "ready".
+        var filterBuilder = Builders<IntentAttachmentDocument>.Filter;
+        var filter = filterBuilder.And(
+            filterBuilder.Regex(x => x.ContentType, new BsonRegularExpression("^image/", "i")),
+            filterBuilder.Ne(x => x.CompressionState, CompressionStateReady));
         var docs = await _attachments
             .Find(filter)
             .SortBy(x => x.CreatedAt)
@@ -243,7 +249,8 @@ internal sealed class MongoIntentAttachmentRepository(
             .FirstOrDefaultAsync(ct)
             ;
 
-        if (existing is null || existing.CompressionState != CompressionStatePending)
+        if (existing is null
+            || string.Equals(existing.CompressionState, CompressionStateReady, StringComparison.Ordinal))
         {
             return;
         }
@@ -273,7 +280,7 @@ internal sealed class MongoIntentAttachmentRepository(
 
         var updateFilter = Builders<IntentAttachmentDocument>.Filter.And(
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId),
-            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.CompressionState, CompressionStatePending));
+            Builders<IntentAttachmentDocument>.Filter.Ne(x => x.CompressionState, CompressionStateReady));
 
         var updateResult = await _attachments
             .UpdateOneAsync(updateFilter, update, cancellationToken: ct)
