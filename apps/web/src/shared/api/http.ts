@@ -78,22 +78,15 @@ async function attemptRefresh(): Promise<boolean> {
   }
 }
 
-function redirectToLogin(): never {
-  if (typeof window !== "undefined") {
-    const here =
-      window.location.pathname + window.location.search + window.location.hash;
-    const returnTo = encodeURIComponent(here);
-    window.location.href = `/login/?returnTo=${returnTo}`;
-  }
-  throw new HttpError(401, "/api/auth/refresh", "authentication required");
-}
-
 async function authedFetch(url: string, init: RequestInit): Promise<Response> {
   const first = await fetch(url, init);
   if (first.status !== 401) return first;
   const refreshed = await attemptRefresh();
   if (!refreshed) {
-    redirectToLogin();
+    // Refresh не прошёл — пробрасываем оригинальный 401 наверх. Решение,
+    // что делать (показать пустоту, кнопку логина и т. п.), принимает UI.
+    // Никаких автоматических редиректов на /login.
+    return first;
   }
   return await fetch(url, init);
 }

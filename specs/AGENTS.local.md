@@ -27,6 +27,13 @@ Api ──► Infrastructure (только в Program.cs / DI wiring)
 
 Нарушение направления зависимостей провалит `Throne.Architecture.Tests`.
 
+## Аттачи интента (ADR-0013)
+
+- Discovery — `get_intent.attachments[]`. У каждой записи поля `kind` (`image`/`text`/`unsupported`) и `recommended_tool` — этот тул и зови.
+- `read_intent_attachment_image(intent_id, attachment_id)` отдаёт нативный image-блок (vision-tokens). Использовать только при `kind="image"`.
+- `read_intent_attachment_text(intent_id, attachment_id, offset?, max_chars?)` — UTF-8 slice, `max_chars` обязательно, при `truncated=true` дочитывай со следующим `offset = returned_bytes_end`.
+- MCP Resources провайдер для аттачей удалён. Никаких `intent://`-URI и `@`-mention.
+
 ## Frontend / UI
 
 При работе над `apps/web` или UI-компонентами используй [DESIGN.md](../DESIGN.md) как источник проектной дизайн-системы.

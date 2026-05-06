@@ -10,7 +10,7 @@ public sealed record McpIntentReadResult(
     [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
     [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt,
-    [property: Description("Attachment metadata. Fetch binary content via the MCP resource 'intent://{intent_id}/attachments'.")]
+    [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry, call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log).")]
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments);
 
 public sealed record McpTagRef(
@@ -21,6 +21,11 @@ public sealed record McpIntentAttachmentReadResult(
     [property: Description("Attachment identifier.")] string Id,
     [property: Description("Owning intent identifier.")] string IntentId,
     [property: Description("Original file name.")] string FileName,
-    [property: Description("Declared MIME type.")] string ContentType,
-    [property: Description("Stored size in bytes.")] long SizeBytes,
-    [property: Description("Upload timestamp.")] DateTimeOffset CreatedAt);
+    [property: Description("Stored MIME type. Image attachments are server-compressed to image/jpeg.")] string ContentType,
+    [property: Description("Stored size in bytes (post-compression for images).")] long SizeBytes,
+    [property: Description("Upload timestamp.")] DateTimeOffset CreatedAt,
+    [property: Description("Content family: 'image', 'text' or 'unsupported'. Drives the choice of read tool.")] string Kind,
+    [property: Description("Name of the MCP tool that returns the bytes for this attachment, or null if unsupported.")] string? RecommendedTool,
+    [property: Description("True for image attachments that have been server-side downscaled to ≤1024 px JPEG q75.")] bool IsCompressedImage,
+    [property: Description("Width in pixels of the stored image (post-compression). Null for non-image attachments.")] int? CompressedWidth,
+    [property: Description("Height in pixels of the stored image (post-compression). Null for non-image attachments.")] int? CompressedHeight);

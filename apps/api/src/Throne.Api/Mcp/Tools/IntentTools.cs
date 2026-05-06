@@ -6,6 +6,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
+using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -73,7 +74,7 @@ public sealed class IntentTools(
             cancellationToken);
 
     [McpServerTool(Name = "get_intent", ReadOnly = true)]
-    [Description("Read canonical Intent state by id, including full text and attachment metadata. Attachment bytes are NOT inlined; fetch them via the MCP resource 'intent://{intent_id}/attachments'.")]
+    [Description("Read canonical Intent state by id, including full text and attachment metadata. Attachment bytes are NOT inlined. For each attachment call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log files).")]
     public async Task<CallToolResult> GetIntent(
         [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
         CancellationToken cancellationToken)
@@ -93,13 +94,22 @@ public sealed class IntentTools(
             intent.CreatedAt,
             intent.UpdatedAt,
             attachmentList
-                .Select(a => new McpIntentAttachmentReadResult(
-                    a.Id,
-                    a.IntentId,
-                    a.FileName,
-                    a.ContentType,
-                    a.SizeBytes,
-                    a.CreatedAt))
+                .Select(a =>
+                {
+                    var kind = AttachmentKindResolver.Resolve(a.ContentType);
+                    return new McpIntentAttachmentReadResult(
+                        a.Id,
+                        a.IntentId,
+                        a.FileName,
+                        a.ContentType,
+                        a.SizeBytes,
+                        a.CreatedAt,
+                        AttachmentKindResolver.KindWireName(kind),
+                        AttachmentKindResolver.RecommendedTool(kind),
+                        a.IsCompressed,
+                        a.CompressedWidth,
+                        a.CompressedHeight);
+                })
                 .ToArray());
 
         return new CallToolResult
