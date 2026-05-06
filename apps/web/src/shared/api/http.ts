@@ -27,11 +27,25 @@ export class HttpError extends Error {
   }
 }
 
+let redirectedToLogin = false;
+
+function redirectToLoginOnce(): void {
+  if (redirectedToLogin) return;
+  redirectedToLogin = true;
+  if (typeof window === "undefined") return;
+  const here =
+    window.location.pathname + window.location.search + window.location.hash;
+  window.location.href = `/login/?returnTo=${encodeURIComponent(here)}`;
+}
+
 async function parseError(
   url: string,
   response: Response,
   method: string
 ): Promise<HttpError> {
+  if (response.status === 401) {
+    redirectToLoginOnce();
+  }
   let body: Record<string, unknown> | undefined;
   let text = "";
   try {
@@ -52,51 +66,12 @@ async function parseError(
   );
 }
 
-// Access-token живёт 15 мин в HttpOnly cookie. По истечении API возвращает
-// 401 → один запрос на /api/auth/refresh, при успехе бэк ставит свежую cookie,
-// SPA повторяет оригинальный запрос. На 401 от refresh — редирект на /login.
-
-let pendingRefresh: Promise<boolean> | null = null;
-
-async function attemptRefresh(): Promise<boolean> {
-  if (pendingRefresh) return pendingRefresh;
-  pendingRefresh = (async () => {
-    try {
-      const r = await fetch("/api/auth/refresh", {
-        method: "POST",
-        credentials: "same-origin"
-      });
-      return r.ok;
-    } catch {
-      return false;
-    }
-  })();
-  try {
-    return await pendingRefresh;
-  } finally {
-    pendingRefresh = null;
-  }
-}
-
-async function authedFetch(url: string, init: RequestInit): Promise<Response> {
-  const first = await fetch(url, init);
-  if (first.status !== 401) return first;
-  const refreshed = await attemptRefresh();
-  if (!refreshed) {
-    // Refresh не прошёл — пробрасываем оригинальный 401 наверх. Решение,
-    // что делать (показать пустоту, кнопку логина и т. п.), принимает UI.
-    // Никаких автоматических редиректов на /login.
-    return first;
-  }
-  return await fetch(url, init);
-}
-
 export async function httpGet<T>(
   path: string,
   signal?: AbortSignal
 ): Promise<T> {
   const url = `${baseUrl}${path}`;
-  const response = await authedFetch(url, {
+  const response = await fetch(url, {
     method: "GET",
     headers: { Accept: "application/json" },
     signal
@@ -115,7 +90,7 @@ export async function httpPost<TResponse>(
   signal?: AbortSignal
 ): Promise<TResponse> {
   const url = `${baseUrl}${path}`;
-  const response = await authedFetch(url, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -142,7 +117,7 @@ export async function httpPostForm<TResponse>(
   signal?: AbortSignal
 ): Promise<TResponse> {
   const url = `${baseUrl}${path}`;
-  const response = await authedFetch(url, {
+  const response = await fetch(url, {
     method: "POST",
     headers: { Accept: "application/json" },
     body,
@@ -161,7 +136,7 @@ export async function httpGetBlob(
   signal?: AbortSignal
 ): Promise<Blob> {
   const url = `${baseUrl}${path}`;
-  const response = await authedFetch(url, {
+  const response = await fetch(url, {
     method: "GET",
     signal
   });
@@ -178,7 +153,7 @@ export async function httpDelete(
   signal?: AbortSignal
 ): Promise<void> {
   const url = `${baseUrl}${path}`;
-  const response = await authedFetch(url, {
+  const response = await fetch(url, {
     method: "DELETE",
     headers: { Accept: "application/json" },
     signal
