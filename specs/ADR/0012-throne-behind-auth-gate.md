@@ -8,9 +8,8 @@ Proposed
 
 Throne должен быть пригоден к деплою на публичный сервер без того, чтобы превращаться
 в identity provider. Авторизация выносится в отдельный сервис **auth-gate** (отдельный
-intent/repo): nginx + auth-api (.NET) с провайдерами Telegram/Google, JWKS, RS256/ES256;
-в claims — только внутренний `user_id`. Throne стоит за nginx auth-gate как обычный
-backend.
+intent/repo): auth-api (.NET) с провайдерами Telegram/Google, JWKS, RS256/ES256.
+Throne стоит за auth-gate как обычный backend.
 
 Возникающие вопросы и ограничения:
 
@@ -35,8 +34,9 @@ backend.
 - Стандартный middleware `AddJwtBearer` с `Authority = auth-gate` (или `MetadataAddress`
   на `/.well-known/jwks.json`). JWKS кэшируется автоматически.
 - Issuer и audience берутся из конфига (`JWT_ISSUER`, `JWT_AUDIENCE`).
-- Из claims читается только внутренний `user_id` и попадает в ambient
-  `ICurrentUserAccessor`. Без валидного токена — 401.
+- Идентификатор пользователя — стандартный OIDC claim `sub`. `MapInboundClaims = false`,
+  чтобы `sub` не превращался в `ClaimTypes.NameIdentifier`. Значение попадает в
+  ambient `ICurrentUserAccessor`. Без валидного токена — 401.
 - Никаких cookie, refresh, login-endpoint в Throne.
 
 ### MCP authentication — Personal Access Token
@@ -61,7 +61,7 @@ backend.
 - Все репозитории фильтруют выборки по `OwnerUserId`.
 - Видимость строго приватная. Sharing/ACL/workspaces — вне MVP.
 - Открытая регистрация: первый успешный логин в auth-gate создаёт `user`. Throne узнаёт
-  о пользователе при первом запросе с его `user_id` — никаких локальных таблиц
+  о пользователе при первом запросе по claim `sub` — никаких локальных таблиц
   `users`/`external_logins` в Throne.
 
 ### Local development
@@ -90,7 +90,7 @@ quality gates. Этот ADR фиксирует целевую архитекту
    расширены полем `userId`; AuditingMcpServerTool/Prompt пишут его из аккессора.
 2. `OwnerUserId` на user-owned агрегатах + миграция Mongo + architecture-test
    (handler не пишет user-owned-сущность без `OwnerUserId`).
-3. JWT middleware (`Auth:Mode = Jwt`) с маппингом `user_id` claim → ambient.
+3. JWT middleware (`Auth:Mode = Jwt`) с маппингом `sub` claim → ambient.
 4. PAT: коллекция `personal_access_tokens`, endpoints, web-страница «MCP Token»,
    MCP middleware.
 5. Документация и smoke-тест против реального auth-gate.

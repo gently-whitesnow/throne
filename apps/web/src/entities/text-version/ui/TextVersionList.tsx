@@ -88,14 +88,14 @@ export function TextVersionList({
             </pre>
           ) : null}
           {v.kind === "replace" ? (
-            <div className="m-0 whitespace-pre-wrap break-words rounded bg-base-200 p-2 font-mono text-xs">
+            <div className="m-0 rounded bg-base-200 p-2 font-mono text-xs">
               {v.old_text ? (
-                <pre className="m-0">
+                <pre className="m-0 whitespace-pre-wrap break-words">
                   <del className="bg-error/10 line-through">{v.old_text}</del>
                 </pre>
               ) : null}
               {v.new_text ? (
-                <pre className="m-0">
+                <pre className="m-0 whitespace-pre-wrap break-words">
                   <ins className="bg-success/10 no-underline">{v.new_text}</ins>
                 </pre>
               ) : null}

@@ -73,8 +73,8 @@ public class AuthServicesTests
         authzOptions.FallbackPolicy!.Requirements.Should().Contain(r => r is DenyAnonymousAuthorizationRequirement);
     }
 
-    [Fact(DisplayName = "Auth:Mode=Jwt регистрирует HttpContextCurrentUserAccessor — userId читается из claim user_id")]
-    public void Jwt_mode_resolves_user_id_from_user_id_claim()
+    [Fact(DisplayName = "Auth:Mode=Jwt регистрирует HttpContextCurrentUserAccessor — userId читается из claim sub")]
+    public void Jwt_mode_resolves_user_id_from_sub_claim()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -98,7 +98,6 @@ public class AuthServicesTests
             new System.Security.Claims.ClaimsIdentity(new[]
             {
                 new System.Security.Claims.Claim(AuthOptions.UserIdClaim, "user-42"),
-                new System.Security.Claims.Claim("sub", "ignored"),
                 new System.Security.Claims.Claim("email", "ignored@example.test"),
             }, authenticationType: "Test"));
         ctxAccessor.HttpContext = ctx;
@@ -109,8 +108,8 @@ public class AuthServicesTests
         accessor.UserId.Should().Be("user-42");
     }
 
-    [Fact(DisplayName = "HttpContextCurrentUserAccessor бросает, если claim user_id отсутствует")]
-    public void Jwt_mode_throws_when_user_id_claim_missing()
+    [Fact(DisplayName = "HttpContextCurrentUserAccessor бросает, если claim sub отсутствует")]
+    public void Jwt_mode_throws_when_sub_claim_missing()
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -133,7 +132,7 @@ public class AuthServicesTests
         ctx.User = new System.Security.Claims.ClaimsPrincipal(
             new System.Security.Claims.ClaimsIdentity(new[]
             {
-                new System.Security.Claims.Claim("sub", "abc"),
+                new System.Security.Claims.Claim("email", "no-sub@example.test"),
             }, authenticationType: "Test"));
         ctxAccessor.HttpContext = ctx;
 
@@ -141,7 +140,7 @@ public class AuthServicesTests
         var accessor = scope.ServiceProvider.GetRequiredService<ICurrentUserAccessor>();
 
         var act = () => accessor.UserId;
-        act.Should().Throw<InvalidOperationException>().WithMessage("*user_id*");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*sub*");
     }
 
 }

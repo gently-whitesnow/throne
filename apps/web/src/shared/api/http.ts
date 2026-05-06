@@ -52,12 +52,58 @@ async function parseError(
   );
 }
 
+// Access-token живёт 15 мин в HttpOnly cookie. По истечении API возвращает
+// 401 → один запрос на /api/auth/refresh, при успехе бэк ставит свежую cookie,
+// SPA повторяет оригинальный запрос. На 401 от refresh — редирект на /login.
+
+let pendingRefresh: Promise<boolean> | null = null;
+
+async function attemptRefresh(): Promise<boolean> {
+  if (pendingRefresh) return pendingRefresh;
+  pendingRefresh = (async () => {
+    try {
+      const r = await fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "same-origin"
+      });
+      return r.ok;
+    } catch {
+      return false;
+    }
+  })();
+  try {
+    return await pendingRefresh;
+  } finally {
+    pendingRefresh = null;
+  }
+}
+
+function redirectToLogin(): never {
+  if (typeof window !== "undefined") {
+    const here =
+      window.location.pathname + window.location.search + window.location.hash;
+    const returnTo = encodeURIComponent(here);
+    window.location.href = `/login/?returnTo=${returnTo}`;
+  }
+  throw new HttpError(401, "/api/auth/refresh", "authentication required");
+}
+
+async function authedFetch(url: string, init: RequestInit): Promise<Response> {
+  const first = await fetch(url, init);
+  if (first.status !== 401) return first;
+  const refreshed = await attemptRefresh();
+  if (!refreshed) {
+    redirectToLogin();
+  }
+  return await fetch(url, init);
+}
+
 export async function httpGet<T>(
   path: string,
   signal?: AbortSignal
 ): Promise<T> {
   const url = `${baseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await authedFetch(url, {
     method: "GET",
     headers: { Accept: "application/json" },
     signal
@@ -76,7 +122,7 @@ export async function httpPost<TResponse>(
   signal?: AbortSignal
 ): Promise<TResponse> {
   const url = `${baseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await authedFetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -103,7 +149,7 @@ export async function httpPostForm<TResponse>(
   signal?: AbortSignal
 ): Promise<TResponse> {
   const url = `${baseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await authedFetch(url, {
     method: "POST",
     headers: { Accept: "application/json" },
     body,
@@ -122,7 +168,7 @@ export async function httpGetBlob(
   signal?: AbortSignal
 ): Promise<Blob> {
   const url = `${baseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await authedFetch(url, {
     method: "GET",
     signal
   });
@@ -139,7 +185,7 @@ export async function httpDelete(
   signal?: AbortSignal
 ): Promise<void> {
   const url = `${baseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await authedFetch(url, {
     method: "DELETE",
     headers: { Accept: "application/json" },
     signal

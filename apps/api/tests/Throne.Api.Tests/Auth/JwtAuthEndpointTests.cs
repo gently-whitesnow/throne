@@ -159,8 +159,7 @@ public sealed class JwtAuthEndpointTests : IAsyncLifetime
             audience: Audience,
             claims: new[]
             {
-                new Claim("user_id", userId),
-                new Claim("sub", "ignored-sub"),
+                new Claim("sub", userId),
             },
             notBefore: now.Add(notBeforeOffset ?? TimeSpan.FromMinutes(-1)),
             expires: now.Add(lifetime),

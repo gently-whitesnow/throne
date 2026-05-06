@@ -12,7 +12,7 @@ namespace Throne.Api.Auth;
 ///   подменяет userId на <c>local-dev</c>.
 /// - Под <c>Auth:Mode=Jwt</c> middleware читает <c>Authorization: Bearer &lt;token&gt;</c>
 ///   (или fallback <c>?token=</c>) и резолвит plaintext PAT в userId. На успехе
-///   подмешивает <see cref="ClaimsPrincipal"/> с claim <c>user_id</c>, который потом
+///   подмешивает <see cref="ClaimsPrincipal"/> с claim <c>sub</c>, который потом
 ///   считывает <see cref="HttpContextCurrentUserAccessor"/>. На отсутствии или
 ///   невалидном токене — 401.
 /// </summary>

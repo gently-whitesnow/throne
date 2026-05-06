@@ -187,8 +187,7 @@ public sealed class PersonalAccessTokenEndpointTests : IAsyncLifetime
             audience: Audience,
             claims: new[]
             {
-                new Claim("user_id", userId),
-                new Claim("sub", "ignored-sub"),
+                new Claim("sub", userId),
             },
             notBefore: now.AddMinutes(-1),
             expires: now.AddMinutes(5),

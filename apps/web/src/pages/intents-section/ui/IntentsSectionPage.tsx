@@ -6,10 +6,10 @@ export function IntentsSectionPage() {
   const { id } = useParams<{ id?: string }>();
 
   return (
-    <div className="grid h-screen max-md:grid-cols-1 max-md:grid-rows-[minmax(180px,40vh)_1fr] md:grid-cols-[320px_1fr]">
+    <div className="grid h-screen overflow-hidden max-md:grid-cols-1 max-md:grid-rows-[minmax(180px,40vh)_1fr] md:grid-cols-[320px_1fr] md:grid-rows-1">
       <IntentBoard />
       <section
-        className="flex h-screen min-w-0 flex-col overflow-hidden max-md:h-auto"
+        className="flex min-h-0 min-w-0 flex-col overflow-hidden"
         aria-label="Детали Intent"
       >
         {id ? (

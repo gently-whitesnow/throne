@@ -11,7 +11,7 @@ import { AppShell } from "@/widgets/app-shell";
 
 export function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/app">
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />

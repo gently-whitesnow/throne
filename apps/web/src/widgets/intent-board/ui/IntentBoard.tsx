@@ -109,10 +109,10 @@ export function IntentBoard() {
 
   return (
     <section
-      className="flex min-w-0 flex-col border-base-300 bg-base-100 max-md:border-b md:border-r"
+      className="flex min-h-0 min-w-0 flex-col overflow-hidden border-base-300 bg-base-100 max-md:border-b md:border-r"
       aria-label="Список Intents"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-base-300 px-3.5 py-3">
+      <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-base-300 px-3.5 py-3">
         <h2 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/60">
           Intents
         </h2>
@@ -124,7 +124,7 @@ export function IntentBoard() {
         />
       </div>
       <div
-        className="flex gap-1 border-b border-base-300 px-3.5 py-2"
+        className="flex flex-shrink-0 gap-1 border-b border-base-300 px-3.5 py-2"
         role="tablist"
         aria-label="Область видимости intents"
       >
@@ -146,7 +146,7 @@ export function IntentBoard() {
           );
         })}
       </div>
-      <div className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60">
+      <div className="flex flex-shrink-0 items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60">
         <Search aria-hidden size={14} strokeWidth={2} />
         <input
           type="search"
@@ -161,7 +161,7 @@ export function IntentBoard() {
       </div>
       {allTags.length > 0 && (
         <div
-          className="flex flex-wrap gap-1 border-b border-base-300 px-3.5 py-2"
+          className="flex max-h-[112px] flex-shrink-0 flex-wrap gap-1 overflow-y-auto border-b border-base-300 px-3.5 py-2"
           role="group"
           aria-label="Фильтр по тегам"
         >

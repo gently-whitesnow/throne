@@ -5,10 +5,10 @@ public sealed class AuthOptions
     public const string SectionName = "Auth";
 
     /// <summary>
-    /// Имя claim, из которого берётся внутренний идентификатор пользователя Throne.
-    /// Согласовано с auth-gate (см. ADR-0012).
+    /// Имя claim, из которого берётся идентификатор пользователя — стандартный
+    /// OIDC <c>sub</c>. См. ADR-0012.
     /// </summary>
-    public const string UserIdClaim = "user_id";
+    public const string UserIdClaim = "sub";
 
     public AuthMode Mode { get; set; } = AuthMode.Disabled;
 
