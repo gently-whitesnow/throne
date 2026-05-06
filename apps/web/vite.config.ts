@@ -3,8 +3,12 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
-  base: "/app/",
+// В dev SPA крутится на корне (`vite dev` через прокси к локальному throne-api).
+// В prod-сборке за Caddy SPA смонтирована под /app/ — отдельная зона от auth-web (/login)
+// и будущего лендинга (/). Префикс зашит в Vite (asset URL'ы) и в react-router (basename
+// читается из `import.meta.env.BASE_URL`).
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/app/" : "/",
   plugins: [tailwindcss(), react()],
   resolve: {
     alias: {
@@ -22,4 +26,4 @@ export default defineConfig({
   test: {
     environment: "jsdom"
   }
-});
+}));
