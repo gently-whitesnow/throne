@@ -31,8 +31,8 @@ internal sealed class MongoPersonalAccessTokenRepository(
         var ownerFilter = Builders<PersonalAccessTokenDocument>.Filter
             .Eq(d => d.OwnerUserId, token.OwnerUserId);
 
-        await _collection.DeleteManyAsync(session, ownerFilter, options: null, ct).ConfigureAwait(false);
-        await _collection.InsertOneAsync(session, Map(token), options: null, ct).ConfigureAwait(false);
+        await _collection.DeleteManyAsync(session, ownerFilter, options: null, ct);
+        await _collection.InsertOneAsync(session, Map(token), options: null, ct);
     }
 
     public async Task<PersonalAccessToken?> FindByOwnerAsync(string ownerUserId, CancellationToken ct)
@@ -43,8 +43,8 @@ internal sealed class MongoPersonalAccessTokenRepository(
         var filter = Builders<PersonalAccessTokenDocument>.Filter.Eq(d => d.OwnerUserId, ownerUserId);
 
         var doc = session is null
-            ? await _collection.Find(filter).FirstOrDefaultAsync(ct).ConfigureAwait(false)
-            : await _collection.Find(session, filter).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+            ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
+            : await _collection.Find(session, filter).FirstOrDefaultAsync(ct);
 
         return doc is null ? null : MapToDomain(doc);
     }
@@ -56,7 +56,7 @@ internal sealed class MongoPersonalAccessTokenRepository(
         // Resolver работает до аутентификации, поэтому намеренно не использует
         // OwnerUserId-фильтр (фильтрация выполнена ровно в этом запросе через unique-hash).
         var filter = Builders<PersonalAccessTokenDocument>.Filter.Eq(d => d.HashSha256, hashSha256);
-        var doc = await _collection.Find(filter).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var doc = await _collection.Find(filter).FirstOrDefaultAsync(ct);
         return doc is null ? null : MapToDomain(doc);
     }
 

@@ -17,11 +17,11 @@ public sealed class DeleteIntentHandler(
 
         var id = new IntentId(command.IntentId);
 
-        await attachments.DeleteAllForIntentAsync(id, ct).ConfigureAwait(false);
+        await attachments.DeleteAllForIntentAsync(id, ct);
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.DeleteAsync(id, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         switch (outcome)
         {

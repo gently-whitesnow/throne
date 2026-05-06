@@ -53,7 +53,7 @@ public sealed class AddIntentQaHandler(
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.AddQaAsync(id, command.ExpectedVersion, qa, now, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         return outcome switch
         {

@@ -23,8 +23,8 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
             ?? throw new InvalidOperationException(
                 "MongoInstructionRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct).ConfigureAwait(false);
-        await _instructions.InsertOneAsync(session, MapInstruction(instruction), options: null, ct).ConfigureAwait(false);
+        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct);
+        await _instructions.InsertOneAsync(session, MapInstruction(instruction), options: null, ct);
     }
 
     public async Task<IReadOnlyList<Instruction>> GetUserInstructionsByKindsAsync(
@@ -47,9 +47,9 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         var session = sessions.Current;
         var documents = session is null
             ? await _instructions.Find(filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
-                .ToListAsync(ct).ConfigureAwait(false)
+                .ToListAsync(ct)
             : await _instructions.Find(session, filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
-                .ToListAsync(ct).ConfigureAwait(false);
+                .ToListAsync(ct);
 
         var result = new List<Instruction>(documents.Count);
         foreach (var doc in documents)
@@ -66,9 +66,9 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         var session = sessions.Current;
         var documents = session is null
             ? await _instructions.Find(filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
-                .ToListAsync(ct).ConfigureAwait(false)
+                .ToListAsync(ct)
             : await _instructions.Find(session, filter).SortBy(x => x.Kind).ThenBy(x => x.CreatedAt)
-                .ToListAsync(ct).ConfigureAwait(false);
+                .ToListAsync(ct);
 
         var result = new List<Instruction>(documents.Count);
         foreach (var doc in documents)
@@ -84,8 +84,8 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         var filter = Builders<InstructionDocument>.Filter.Eq(x => x.Id, id.Value);
         var session = sessions.Current;
         var doc = session is null
-            ? await _instructions.Find(filter).FirstOrDefaultAsync(ct).ConfigureAwait(false)
-            : await _instructions.Find(session, filter).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+            ? await _instructions.Find(filter).FirstOrDefaultAsync(ct)
+            : await _instructions.Find(session, filter).FirstOrDefaultAsync(ct);
 
         return doc is null ? null : MapToDomain(doc);
     }
@@ -106,7 +106,7 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
             ?? throw new InvalidOperationException(
                 "MongoInstructionRepository.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var document = await _instructions.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var document = await _instructions.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new ReplaceInstructionTextOutcome.NotFound();
@@ -141,15 +141,15 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
                         d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
                         update,
                         options: null,
-                        ct).ConfigureAwait(false);
+                        ct);
 
                     if (updateResult.ModifiedCount == 0)
                     {
-                        var fresh = await _instructions.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+                        var fresh = await _instructions.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
                         return new ReplaceInstructionTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
                     }
 
-                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct).ConfigureAwait(false);
+                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct);
                     return new ReplaceInstructionTextOutcome.Replaced(instruction);
                 }
 

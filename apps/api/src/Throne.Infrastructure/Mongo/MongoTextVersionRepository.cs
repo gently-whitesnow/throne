@@ -24,8 +24,8 @@ internal sealed class MongoTextVersionRepository(IMongoDatabase database, MongoS
 
         var session = sessions.Current;
         var documents = session is null
-            ? await _textVersions.Find(filter).SortBy(d => d.Version).ToListAsync(ct).ConfigureAwait(false)
-            : await _textVersions.Find(session, filter).SortBy(d => d.Version).ToListAsync(ct).ConfigureAwait(false);
+            ? await _textVersions.Find(filter).SortBy(d => d.Version).ToListAsync(ct)
+            : await _textVersions.Find(session, filter).SortBy(d => d.Version).ToListAsync(ct);
 
         var result = new List<TextVersion>(documents.Count);
         foreach (var doc in documents)

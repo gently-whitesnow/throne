@@ -14,7 +14,7 @@ public sealed class GetMcpTokenMetaHandler(
 {
     public async Task<McpTokenMeta> HandleAsync(CancellationToken ct)
     {
-        var token = await repository.FindByOwnerAsync(currentUser.UserId, ct).ConfigureAwait(false);
+        var token = await repository.FindByOwnerAsync(currentUser.UserId, ct);
         return token is null
             ? new McpTokenMeta(HasToken: false, CreatedAt: null, LastFour: null)
             : new McpTokenMeta(HasToken: true, CreatedAt: token.CreatedAt, LastFour: token.LastFour);

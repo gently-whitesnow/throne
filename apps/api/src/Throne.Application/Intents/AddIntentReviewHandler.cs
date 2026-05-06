@@ -53,7 +53,7 @@ public sealed class AddIntentReviewHandler(
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.AddReviewAsync(id, command.ExpectedVersion, review, now, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         return outcome switch
         {

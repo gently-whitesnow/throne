@@ -7,6 +7,9 @@ public sealed record IntentAttachment(
     string FileName,
     string ContentType,
     long SizeBytes,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool IsCompressed = false,
+    int? CompressedWidth = null,
+    int? CompressedHeight = null);
 
 public sealed record IntentAttachmentContent(IntentAttachment Attachment, Stream Content);

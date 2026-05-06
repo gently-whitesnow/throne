@@ -5,8 +5,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Throne.Application.Errors;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
+using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -28,6 +30,7 @@ public sealed class IntentTools(
     SetIntentTagsHandler setTagsHandler,
     GetInstructionBundleHandler getInstructionBundle,
     IIntentAttachmentRepository attachments,
+    IImageDownscaler imageDownscaler,
     ITagRepository tagRepository)
 {
     private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web);
@@ -74,43 +77,14 @@ public sealed class IntentTools(
             cancellationToken);
 
     [McpServerTool(Name = "get_intent", ReadOnly = true)]
-    [Description("Read canonical Intent state by id, including full text and attachments. Image attachments are returned as MCP image content blocks so agents can inspect them.")]
+    [Description("Read canonical Intent state by id, including full text and attachment metadata. Attachment image bytes are NOT inlined; fetch a specific screenshot via get_intent_attachment_image.")]
     public async Task<CallToolResult> GetIntent(
         [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
         CancellationToken cancellationToken)
     {
         var intent = await get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken);
         var attachmentList = await attachments
-            .ListByIntentAsync(intent.Id, cancellationToken)
-            ;
-
-        var content = new List<ContentBlock>();
-        var imageReturned = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var attachment in attachmentList)
-        {
-            if (!attachment.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var opened = await attachments
-                .OpenContentAsync(intent.Id, attachment.Id, cancellationToken)
-                ;
-            if (opened is null)
-            {
-                continue;
-            }
-
-            await using var stream = opened.Content;
-            using var memory = new MemoryStream();
-            await stream.CopyToAsync(memory, cancellationToken);
-            content.Add(new ImageContentBlock
-            {
-                Data = Convert.ToBase64String(memory.ToArray()),
-                MimeType = opened.Attachment.ContentType,
-            });
-            imageReturned.Add(attachment.Id);
-        }
+            .ListByIntentAsync(intent.Id, cancellationToken);
 
         var tagRefs = await BuildTagRefsAsync(intent.TagIds, cancellationToken);
 
@@ -129,16 +103,95 @@ public sealed class IntentTools(
                     a.FileName,
                     a.ContentType,
                     a.SizeBytes,
-                    a.CreatedAt,
-                    imageReturned.Contains(a.Id)))
-                .ToArray(),
-            imageReturned.Count);
-
-        content.Insert(0, new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) });
+                    a.CreatedAt))
+                .ToArray());
 
         return new CallToolResult
         {
-            Content = content,
+            Content = [new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) }],
+            StructuredContent = JsonSerializer.SerializeToNode(result, ToolJsonOptions)?.AsObject(),
+            IsError = false,
+        };
+    }
+
+    [McpServerTool(Name = "get_intent_attachment_image", ReadOnly = true)]
+    [Description("Fetch one image attachment as an MCP image content block. The server fits it to the canonical agent vision budget; size is not configurable. Use after get_intent to inspect a specific screenshot.")]
+    public async Task<CallToolResult> GetIntentAttachmentImage(
+        [Description("Intent id that owns the attachment.")] string intent_id,
+        [Description("Attachment id returned by get_intent in attachments[].id.")] string attachment_id,
+        CancellationToken cancellationToken = default)
+    {
+        var intent = await get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken);
+
+        var opened = await attachments.OpenContentAsync(intent.Id, attachment_id, cancellationToken)
+            ?? throw new ApiException(
+                ErrorCodes.IntentAttachmentNotFound,
+                $"Attachment '{attachment_id}' not found on intent '{intent_id}'.",
+                new Dictionary<string, object?> { ["intent_id"] = intent_id, ["attachment_id"] = attachment_id });
+
+        await using var stream = opened.Content;
+        var meta = opened.Attachment;
+        if (!meta.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ApiException(
+                ErrorCodes.IntentAttachmentNotImage,
+                $"Attachment '{attachment_id}' is '{meta.ContentType}', not an image.",
+                new Dictionary<string, object?>
+                {
+                    ["intent_id"] = intent_id,
+                    ["attachment_id"] = attachment_id,
+                    ["content_type"] = meta.ContentType,
+                });
+        }
+
+        byte[] imageBytes;
+        string outputMime;
+        int outputWidth;
+        int outputHeight;
+
+        if (meta.IsCompressed && meta.CompressedWidth is int cachedWidth && meta.CompressedHeight is int cachedHeight)
+        {
+            using var buffered = new MemoryStream();
+            await stream.CopyToAsync(buffered, cancellationToken);
+            imageBytes = buffered.ToArray();
+            outputMime = meta.ContentType;
+            outputWidth = cachedWidth;
+            outputHeight = cachedHeight;
+        }
+        else
+        {
+            var downscaled = await imageDownscaler.DownscaleAsync(
+                stream,
+                meta.ContentType,
+                IntentAttachmentLimits.CompressedMaxDimension,
+                cancellationToken);
+            imageBytes = downscaled.Data;
+            outputMime = downscaled.MimeType;
+            outputWidth = downscaled.Width;
+            outputHeight = downscaled.Height;
+        }
+
+        var result = new McpIntentAttachmentImageResult(
+            meta.Id,
+            meta.IntentId,
+            meta.FileName,
+            meta.ContentType,
+            outputMime,
+            outputWidth,
+            outputHeight,
+            meta.CreatedAt);
+
+        return new CallToolResult
+        {
+            Content =
+            [
+                new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) },
+                new ImageContentBlock
+                {
+                    Data = Convert.ToBase64String(imageBytes),
+                    MimeType = outputMime,
+                },
+            ],
             StructuredContent = JsonSerializer.SerializeToNode(result, ToolJsonOptions)?.AsObject(),
             IsError = false,
         };

@@ -28,7 +28,7 @@ public sealed class SearchIntentTextHandler(IIntentRepository repository)
                 new Dictionary<string, object?> { ["field"] = "query" });
         }
 
-        var intent = await repository.GetByIdAsync(new IntentId(query.IntentId), ct).ConfigureAwait(false)
+        var intent = await repository.GetByIdAsync(new IntentId(query.IntentId), ct)
             ?? throw new ApiException(
                 ErrorCodes.IntentNotFound,
                 $"Intent '{query.IntentId}' not found.",

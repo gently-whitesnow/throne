@@ -11,7 +11,7 @@ public sealed class DomainEventDispatcher(IEnumerable<IDomainEventHandler> handl
         ArgumentNullException.ThrowIfNull(evt);
         foreach (var handler in handlers)
         {
-            await handler.HandleAsync(evt, ct).ConfigureAwait(false);
+            await handler.HandleAsync(evt, ct);
         }
     }
 
@@ -20,7 +20,7 @@ public sealed class DomainEventDispatcher(IEnumerable<IDomainEventHandler> handl
         ArgumentNullException.ThrowIfNull(events);
         foreach (var evt in events)
         {
-            await DispatchAsync(evt, ct).ConfigureAwait(false);
+            await DispatchAsync(evt, ct);
         }
     }
 }

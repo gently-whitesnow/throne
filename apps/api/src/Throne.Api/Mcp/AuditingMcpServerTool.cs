@@ -34,7 +34,7 @@ internal sealed partial class AuditingMcpServerTool(
 
         try
         {
-            var result = await inner.InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+            var result = await inner.InvokeAsync(request, cancellationToken);
             stopwatch.Stop();
 
             var summary = SummarizeResult(toolName, result);
@@ -44,7 +44,7 @@ internal sealed partial class AuditingMcpServerTool(
             await TryWriteAuditAsync(
                 startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 outcome, errorCode, summary, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
-                .ConfigureAwait(false);
+                ;
 
             return result;
         }
@@ -54,7 +54,7 @@ internal sealed partial class AuditingMcpServerTool(
             await TryWriteAuditAsync(
                 startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, ex.Code, null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
-                .ConfigureAwait(false);
+                ;
             throw;
         }
         catch (Exception ex)
@@ -63,7 +63,7 @@ internal sealed partial class AuditingMcpServerTool(
             await TryWriteAuditAsync(
                 startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, "internal_error", null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
-                .ConfigureAwait(false);
+                ;
             LogToolFailure(logger, toolName, ex);
             throw;
         }
@@ -99,7 +99,7 @@ internal sealed partial class AuditingMcpServerTool(
                 durationMs,
                 serverVersion.Value);
 
-            await callLogSink.WriteAsync(entry, ct).ConfigureAwait(false);
+            await callLogSink.WriteAsync(entry, ct);
         }
         catch (Exception ex)
         {

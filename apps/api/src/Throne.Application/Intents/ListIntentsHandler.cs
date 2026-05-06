@@ -10,6 +10,6 @@ public sealed class ListIntentsHandler(IIntentRepository repository)
     public async Task<IReadOnlyList<Intent>> HandleAsync(ListIntentsQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
-        return await repository.ListAsync(query.Statuses, ct).ConfigureAwait(false);
+        return await repository.ListAsync(query.Statuses, ct);
     }
 }

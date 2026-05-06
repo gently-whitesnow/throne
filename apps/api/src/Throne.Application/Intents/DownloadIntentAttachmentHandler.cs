@@ -15,7 +15,7 @@ public sealed class DownloadIntentAttachmentHandler(
         ArgumentNullException.ThrowIfNull(query);
 
         var intentId = new IntentId(query.IntentId);
-        if (await intents.GetByIdAsync(intentId, ct).ConfigureAwait(false) is null)
+        if (await intents.GetByIdAsync(intentId, ct) is null)
         {
             throw new ApiException(
                 ErrorCodes.IntentNotFound,
@@ -23,7 +23,7 @@ public sealed class DownloadIntentAttachmentHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
         }
 
-        return await attachments.OpenContentAsync(intentId, query.AttachmentId, ct).ConfigureAwait(false)
+        return await attachments.OpenContentAsync(intentId, query.AttachmentId, ct)
             ?? throw new ApiException(
                 ErrorCodes.IntentAttachmentNotFound,
                 $"Attachment '{query.AttachmentId}' not found.",

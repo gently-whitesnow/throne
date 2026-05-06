@@ -27,4 +27,16 @@ internal sealed class IntentAttachmentDocument
 
     [BsonElement("created_at")]
     public DateTime CreatedAt { get; set; }
+
+    [BsonElement("compression_state")]
+    [BsonIgnoreIfNull]
+    public string? CompressionState { get; set; }
+
+    [BsonElement("derived_width")]
+    [BsonIgnoreIfNull]
+    public int? DerivedWidth { get; set; }
+
+    [BsonElement("derived_height")]
+    [BsonIgnoreIfNull]
+    public int? DerivedHeight { get; set; }
 }

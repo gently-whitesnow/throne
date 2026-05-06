@@ -24,7 +24,7 @@ public sealed class PersonalAccessTokenResolver(IPersonalAccessTokenRepository r
         }
 
         var hash = PersonalAccessTokenSecretFactory.ComputeSha256Hex(plaintextToken);
-        var token = await repository.FindByHashAsync(hash, ct).ConfigureAwait(false);
+        var token = await repository.FindByHashAsync(hash, ct);
         return token?.OwnerUserId;
     }
 }

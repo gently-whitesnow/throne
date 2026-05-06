@@ -43,9 +43,9 @@ public sealed class RealtimeController : ControllerBase
         var keepAlive = WriteKeepAliveLoopAsync(ct);
         try
         {
-            await foreach (var envelope in subscription.ReadAllAsync(ct).ConfigureAwait(false))
+            await foreach (var envelope in subscription.ReadAllAsync(ct))
             {
-                await WriteEventAsync(envelope, ct).ConfigureAwait(false);
+                await WriteEventAsync(envelope, ct);
             }
         }
         catch (OperationCanceledException)
@@ -54,7 +54,7 @@ public sealed class RealtimeController : ControllerBase
         }
         finally
         {
-            await keepAlive.ConfigureAwait(false);
+            await keepAlive;
         }
     }
 
@@ -62,8 +62,8 @@ public sealed class RealtimeController : ControllerBase
     {
         var payloadJson = JsonSerializer.Serialize(envelope.Payload, PayloadOptions);
         var frame = $"event: {envelope.Name}\ndata: {payloadJson}\n\n";
-        await Response.WriteAsync(frame, ct).ConfigureAwait(false);
-        await Response.Body.FlushAsync(ct).ConfigureAwait(false);
+        await Response.WriteAsync(frame, ct);
+        await Response.Body.FlushAsync(ct);
     }
 
     private async Task WriteKeepAliveLoopAsync(CancellationToken ct)
@@ -72,9 +72,9 @@ public sealed class RealtimeController : ControllerBase
         {
             while (!ct.IsCancellationRequested)
             {
-                await Task.Delay(KeepAliveInterval, ct).ConfigureAwait(false);
-                await Response.WriteAsync(": keep-alive\n\n", ct).ConfigureAwait(false);
-                await Response.Body.FlushAsync(ct).ConfigureAwait(false);
+                await Task.Delay(KeepAliveInterval, ct);
+                await Response.WriteAsync(": keep-alive\n\n", ct);
+                await Response.Body.FlushAsync(ct);
             }
         }
         catch (OperationCanceledException)

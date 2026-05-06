@@ -5,7 +5,9 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Throne.Application.Events;
 using Throne.Application.Instructions.Manifest;
+using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Infrastructure.Imaging;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Tokenization;
@@ -50,6 +52,10 @@ public static class DependencyInjection
         services.AddSingleton<IPersonalAccessTokenRepository, MongoPersonalAccessTokenRepository>();
         services.AddSingleton<IIntentWindowQueries, MongoIntentWindowQueries>();
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
+        services.AddSingleton<IImageDownscaler, ImageSharpDownscaler>();
+        services.AddOptions<IntentAttachmentCompressionOptions>()
+            .BindConfiguration(IntentAttachmentCompressionOptions.SectionName);
+        services.AddHostedService<IntentAttachmentCompressionWorker>();
         services.AddHostedService<MongoIndexInitializer>();
 
         return services;
@@ -81,6 +87,8 @@ public static class DependencyInjection
         services.AddSingleton<IPersonalAccessTokenRepository, MongoPersonalAccessTokenRepository>();
         services.AddSingleton<IIntentWindowQueries, MongoIntentWindowQueries>();
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
+        services.AddSingleton<IImageDownscaler, ImageSharpDownscaler>();
+        services.AddOptions<IntentAttachmentCompressionOptions>();
         services.AddHostedService<MongoIndexInitializer>();
         return services;
     }

@@ -38,13 +38,13 @@ internal sealed class MongoIntentTrainingRepository(
         var session = RequireSession(nameof(AddQaAsync));
 
         var bumpOutcome = await CheckVersionAndBumpUpdatedAtAsync(
-            session, id, expectedVersion, now, () => new IntentQaAdded(qa), ct).ConfigureAwait(false);
+            session, id, expectedVersion, now, () => new IntentQaAdded(qa), ct);
         if (bumpOutcome is not AppendTrainingOutcome.Appended appended)
         {
             return bumpOutcome;
         }
 
-        await _qa.InsertOneAsync(session, MapQa(qa), options: null, ct).ConfigureAwait(false);
+        await _qa.InsertOneAsync(session, MapQa(qa), options: null, ct);
         return appended;
     }
 
@@ -60,13 +60,13 @@ internal sealed class MongoIntentTrainingRepository(
         var session = RequireSession(nameof(AddReviewAsync));
 
         var bumpOutcome = await CheckVersionAndBumpUpdatedAtAsync(
-            session, id, expectedVersion, now, () => new IntentReviewAdded(review), ct).ConfigureAwait(false);
+            session, id, expectedVersion, now, () => new IntentReviewAdded(review), ct);
         if (bumpOutcome is not AppendTrainingOutcome.Appended appended)
         {
             return bumpOutcome;
         }
 
-        await _reviews.InsertOneAsync(session, MapReview(review), options: null, ct).ConfigureAwait(false);
+        await _reviews.InsertOneAsync(session, MapReview(review), options: null, ct);
         return appended;
     }
 
@@ -78,8 +78,8 @@ internal sealed class MongoIntentTrainingRepository(
             Builders<IntentQaDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId));
 
         var documents = session is null
-            ? await _qa.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false)
-            : await _qa.Find(session, filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false);
+            ? await _qa.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct)
+            : await _qa.Find(session, filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct);
 
         var result = new List<IntentQa>(documents.Count);
         foreach (var doc in documents)
@@ -97,8 +97,8 @@ internal sealed class MongoIntentTrainingRepository(
             Builders<IntentReviewDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId));
 
         var documents = session is null
-            ? await _reviews.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false)
-            : await _reviews.Find(session, filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct).ConfigureAwait(false);
+            ? await _reviews.Find(filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct)
+            : await _reviews.Find(session, filter).SortBy(d => d.CreatedAt).ThenBy(d => d.Id).ToListAsync(ct);
 
         var result = new List<IntentReview>(documents.Count);
         foreach (var doc in documents)
@@ -134,14 +134,14 @@ internal sealed class MongoIntentTrainingRepository(
             versionFilter,
             update,
             options: null,
-            ct).ConfigureAwait(false);
+            ct);
 
         if (updateResult.ModifiedCount > 0 || updateResult.MatchedCount > 0)
         {
             return new AppendTrainingOutcome.Appended(expectedVersion, eventFactory());
         }
 
-        var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
         if (fresh is null)
         {
             return new AppendTrainingOutcome.NotFound();

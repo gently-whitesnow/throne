@@ -16,12 +16,12 @@ public sealed class ListInstructionVersionsHandler(
         ArgumentNullException.ThrowIfNull(query);
 
         var id = new InstructionId(query.InstructionId);
-        _ = await instructions.GetByIdAsync(id, ct).ConfigureAwait(false)
+        _ = await instructions.GetByIdAsync(id, ct)
             ?? throw new ApiException(
                 ErrorCodes.InstructionNotFound,
                 $"Instruction '{query.InstructionId}' not found.",
                 new Dictionary<string, object?> { ["instruction_id"] = query.InstructionId });
 
-        return await textVersions.ListByOwnerAsync(TextVersionOwnerKind.Instruction, id.Value, ct).ConfigureAwait(false);
+        return await textVersions.ListByOwnerAsync(TextVersionOwnerKind.Instruction, id.Value, ct);
     }
 }

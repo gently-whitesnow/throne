@@ -32,7 +32,7 @@ public sealed class GenerateMcpTokenHandler(
             lastFour: secret.LastFour,
             createdAt: now);
 
-        await repository.ReplaceForOwnerAsync(token, ct).ConfigureAwait(false);
+        await repository.ReplaceForOwnerAsync(token, ct);
 
         return new GenerateMcpTokenResult(secret.Plaintext, secret.LastFour, now);
     }

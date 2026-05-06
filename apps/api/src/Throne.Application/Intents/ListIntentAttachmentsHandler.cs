@@ -15,7 +15,7 @@ public sealed class ListIntentAttachmentsHandler(
         ArgumentNullException.ThrowIfNull(query);
 
         var intentId = new IntentId(query.IntentId);
-        if (await intents.GetByIdAsync(intentId, ct).ConfigureAwait(false) is null)
+        if (await intents.GetByIdAsync(intentId, ct) is null)
         {
             throw new ApiException(
                 ErrorCodes.IntentNotFound,
@@ -23,6 +23,6 @@ public sealed class ListIntentAttachmentsHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
         }
 
-        return await attachments.ListByIntentAsync(intentId, ct).ConfigureAwait(false);
+        return await attachments.ListByIntentAsync(intentId, ct);
     }
 }

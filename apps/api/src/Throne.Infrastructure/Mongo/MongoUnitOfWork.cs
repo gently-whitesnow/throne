@@ -10,7 +10,7 @@ internal sealed class MongoUnitOfWork(IMongoClient client, MongoSessionAccessor 
         ArgumentNullException.ThrowIfNull(work);
         return ExecuteAsync<object?>(async inner =>
         {
-            await work(inner).ConfigureAwait(false);
+            await work(inner);
             return null;
         }, ct);
     }
@@ -21,23 +21,23 @@ internal sealed class MongoUnitOfWork(IMongoClient client, MongoSessionAccessor 
 
         if (accessor.Current is not null)
         {
-            return await work(ct).ConfigureAwait(false);
+            return await work(ct);
         }
 
-        using var session = await client.StartSessionAsync(cancellationToken: ct).ConfigureAwait(false);
+        using var session = await client.StartSessionAsync(cancellationToken: ct);
         session.StartTransaction();
         using var scope = accessor.BeginScope(session);
 
         T result;
         try
         {
-            result = await work(ct).ConfigureAwait(false);
+            result = await work(ct);
         }
         catch
         {
             try
             {
-                await session.AbortTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+                await session.AbortTransactionAsync(CancellationToken.None);
             }
             catch
             {
@@ -46,7 +46,7 @@ internal sealed class MongoUnitOfWork(IMongoClient client, MongoSessionAccessor 
             throw;
         }
 
-        await session.CommitTransactionAsync(ct).ConfigureAwait(false);
+        await session.CommitTransactionAsync(ct);
         return result;
     }
 

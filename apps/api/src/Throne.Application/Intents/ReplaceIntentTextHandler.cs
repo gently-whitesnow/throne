@@ -35,7 +35,7 @@ public sealed class ReplaceIntentTextHandler(
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, command.Author, now, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         return outcome switch
         {

@@ -36,7 +36,7 @@ public sealed class UploadIntentAttachmentHandler(
 
         var intentId = new IntentId(command.IntentId);
 
-        if (await intents.GetByIdAsync(intentId, ct).ConfigureAwait(false) is null)
+        if (await intents.GetByIdAsync(intentId, ct) is null)
         {
             throw new ApiException(
                 ErrorCodes.IntentNotFound,
@@ -44,7 +44,7 @@ public sealed class UploadIntentAttachmentHandler(
                 new Dictionary<string, object?> { ["intent_id"] = command.IntentId });
         }
 
-        var count = await attachments.CountByIntentAsync(intentId, ct).ConfigureAwait(false);
+        var count = await attachments.CountByIntentAsync(intentId, ct);
         if (count >= IntentAttachmentLimits.MaxPerIntent)
         {
             throw new ApiException(
@@ -59,7 +59,7 @@ public sealed class UploadIntentAttachmentHandler(
 
         var outcome = await unitOfWork.ExecuteOutsideTransactionAsync(
             inner => attachments.AddAsync(intentId, command.Content, command.FileName, command.ContentType, inner),
-            ct).ConfigureAwait(false);
+            ct);
         return outcome.Attachment;
     }
 }

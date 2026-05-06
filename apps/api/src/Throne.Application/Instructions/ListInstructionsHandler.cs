@@ -10,6 +10,6 @@ public sealed class ListInstructionsHandler(IInstructionRepository repository)
     public async Task<IReadOnlyList<Instruction>> HandleAsync(ListInstructionsQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
-        return await repository.ListAsync(ct).ConfigureAwait(false);
+        return await repository.ListAsync(ct);
     }
 }

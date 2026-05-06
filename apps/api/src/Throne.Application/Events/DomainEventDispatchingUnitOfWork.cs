@@ -24,16 +24,16 @@ public sealed class DomainEventDispatchingUnitOfWork(
     public async Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(work);
-        var result = await inner.ExecuteAsync(work, ct).ConfigureAwait(false);
-        await DispatchIfCarrierAsync(result, ct).ConfigureAwait(false);
+        var result = await inner.ExecuteAsync(work, ct);
+        await DispatchIfCarrierAsync(result, ct);
         return result;
     }
 
     public async Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(work);
-        var result = await inner.ExecuteOutsideTransactionAsync(work, ct).ConfigureAwait(false);
-        await DispatchIfCarrierAsync(result, ct).ConfigureAwait(false);
+        var result = await inner.ExecuteOutsideTransactionAsync(work, ct);
+        await DispatchIfCarrierAsync(result, ct);
         return result;
     }
 

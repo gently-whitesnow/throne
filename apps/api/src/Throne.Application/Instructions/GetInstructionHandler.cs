@@ -12,7 +12,7 @@ public sealed class GetInstructionHandler(IInstructionRepository repository)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        return await repository.GetByIdAsync(new InstructionId(query.InstructionId), ct).ConfigureAwait(false)
+        return await repository.GetByIdAsync(new InstructionId(query.InstructionId), ct)
             ?? throw new ApiException(
                 ErrorCodes.InstructionNotFound,
                 $"Instruction '{query.InstructionId}' not found.",

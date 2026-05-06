@@ -32,7 +32,7 @@ public sealed class InsertIntentTextAfterLineHandler(
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.InsertTextAfterLineAsync(id, command.ExpectedVersion, command.AfterLine, command.InsertText, now, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         return outcome switch
         {

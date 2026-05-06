@@ -16,7 +16,7 @@ public sealed class ListIntentQaHandler(
         ArgumentNullException.ThrowIfNull(query);
 
         var id = new IntentId(query.IntentId);
-        if (await intents.GetByIdAsync(id, ct).ConfigureAwait(false) is null)
+        if (await intents.GetByIdAsync(id, ct) is null)
         {
             throw new ApiException(
                 ErrorCodes.IntentNotFound,
@@ -24,6 +24,6 @@ public sealed class ListIntentQaHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
         }
 
-        return await training.ListQaByIntentAsync(id, ct).ConfigureAwait(false);
+        return await training.ListQaByIntentAsync(id, ct);
     }
 }

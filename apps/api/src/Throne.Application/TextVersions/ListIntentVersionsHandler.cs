@@ -16,12 +16,12 @@ public sealed class ListIntentVersionsHandler(
         ArgumentNullException.ThrowIfNull(query);
 
         var id = new IntentId(query.IntentId);
-        _ = await intents.GetByIdAsync(id, ct).ConfigureAwait(false)
+        _ = await intents.GetByIdAsync(id, ct)
             ?? throw new ApiException(
                 ErrorCodes.IntentNotFound,
                 $"Intent '{query.IntentId}' not found.",
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
-        return await textVersions.ListByOwnerAsync(TextVersionOwnerKind.Intent, id.Value, ct).ConfigureAwait(false);
+        return await textVersions.ListByOwnerAsync(TextVersionOwnerKind.Intent, id.Value, ct);
     }
 }

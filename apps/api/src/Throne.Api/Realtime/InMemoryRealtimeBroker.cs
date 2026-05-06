@@ -29,7 +29,7 @@ internal sealed class InMemoryRealtimeBroker : IRealtimeEventBroker
 
         foreach (var subscription in _subscriptions.Values)
         {
-            await subscription.WriteAsync(envelope, ct).ConfigureAwait(false);
+            await subscription.WriteAsync(envelope, ct);
         }
     }
 
@@ -50,7 +50,7 @@ internal sealed class InMemoryRealtimeBroker : IRealtimeEventBroker
         public async IAsyncEnumerable<RealtimeEventEnvelope> ReadAllAsync(
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
         {
-            while (await _channel.Reader.WaitToReadAsync(ct).ConfigureAwait(false))
+            while (await _channel.Reader.WaitToReadAsync(ct))
             {
                 while (_channel.Reader.TryRead(out var envelope))
                 {
@@ -66,7 +66,7 @@ internal sealed class InMemoryRealtimeBroker : IRealtimeEventBroker
                 return;
             }
 
-            await _channel.Writer.WriteAsync(envelope, ct).ConfigureAwait(false);
+            await _channel.Writer.WriteAsync(envelope, ct);
         }
 
         public void Dispose()

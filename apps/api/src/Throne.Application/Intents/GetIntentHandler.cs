@@ -12,7 +12,7 @@ public sealed class GetIntentHandler(IIntentRepository repository)
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        return await repository.GetByIdAsync(new IntentId(query.IntentId), ct).ConfigureAwait(false)
+        return await repository.GetByIdAsync(new IntentId(query.IntentId), ct)
             ?? throw new ApiException(
                 ErrorCodes.IntentNotFound,
                 $"Intent '{query.IntentId}' not found.",

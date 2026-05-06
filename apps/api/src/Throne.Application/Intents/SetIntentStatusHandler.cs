@@ -29,7 +29,7 @@ public sealed class SetIntentStatusHandler(
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => repository.SetStatusAsync(id, command.Status, appendText, command.ChangedBy, command.Source, now, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         return outcome switch
         {

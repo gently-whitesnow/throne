@@ -16,7 +16,7 @@ public sealed class DeleteIntentAttachmentHandler(
         ArgumentNullException.ThrowIfNull(command);
 
         var intentId = new IntentId(command.IntentId);
-        if (await intents.GetByIdAsync(intentId, ct).ConfigureAwait(false) is null)
+        if (await intents.GetByIdAsync(intentId, ct) is null)
         {
             throw new ApiException(
                 ErrorCodes.IntentNotFound,
@@ -26,7 +26,7 @@ public sealed class DeleteIntentAttachmentHandler(
 
         var outcome = await unitOfWork.ExecuteOutsideTransactionAsync(
             inner => attachments.DeleteAsync(intentId, command.AttachmentId, inner),
-            ct).ConfigureAwait(false);
+            ct);
 
         if (outcome is DeleteIntentAttachmentOutcome.NotFound)
         {

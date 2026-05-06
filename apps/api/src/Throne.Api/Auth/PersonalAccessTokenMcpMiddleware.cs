@@ -29,24 +29,24 @@ public sealed class PersonalAccessTokenMcpMiddleware(
 
         if (options.CurrentValue.Mode != AuthMode.Jwt)
         {
-            await next(context).ConfigureAwait(false);
+            await next(context);
             return;
         }
 
         var token = ExtractToken(context.Request);
         if (string.IsNullOrEmpty(token))
         {
-            await Write401Async(context, "Missing PAT.").ConfigureAwait(false);
+            await Write401Async(context, "Missing PAT.");
             return;
         }
 
         var ownerUserId = await resolver
             .ResolveOwnerUserIdAsync(token, context.RequestAborted)
-            .ConfigureAwait(false);
+            ;
 
         if (string.IsNullOrEmpty(ownerUserId))
         {
-            await Write401Async(context, "Invalid PAT.").ConfigureAwait(false);
+            await Write401Async(context, "Invalid PAT.");
             return;
         }
 
@@ -57,7 +57,7 @@ public sealed class PersonalAccessTokenMcpMiddleware(
             roleType: ClaimTypes.Role);
         context.User = new ClaimsPrincipal(identity);
 
-        await next(context).ConfigureAwait(false);
+        await next(context);
     }
 
     private static string? ExtractToken(HttpRequest request)

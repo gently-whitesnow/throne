@@ -27,7 +27,7 @@ public sealed class InstructionsController(
     public override async Task<ActionResult<ICollection<InstructionListItemDto>>> ListInstructions()
     {
         var instructions = await listHandler.HandleAsync(new ListInstructionsQuery(), HttpContext.RequestAborted)
-            .ConfigureAwait(false);
+            ;
 
         var dtos = new List<InstructionListItemDto>(instructions.Count);
         foreach (var instruction in instructions)
@@ -42,7 +42,7 @@ public sealed class InstructionsController(
         try
         {
             var instruction = await getHandler.HandleAsync(new GetInstructionQuery(id), HttpContext.RequestAborted)
-                .ConfigureAwait(false);
+                ;
             return Ok(ToDetailDto(instruction));
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.InstructionNotFound)
@@ -59,7 +59,7 @@ public sealed class InstructionsController(
         {
             var instruction = await replaceHandler.HandleAsync(
                 new ReplaceInstructionTextCommand(id, body.Expected_version, body.Old_text, body.New_text, TextVersionAuthor.User),
-                HttpContext.RequestAborted).ConfigureAwait(false);
+                HttpContext.RequestAborted);
             return Ok(ToDetailDto(instruction));
         }
         catch (ApiException ex)
@@ -73,7 +73,7 @@ public sealed class InstructionsController(
         try
         {
             var versions = await listVersionsHandler.HandleAsync(
-                new ListInstructionVersionsQuery(id), HttpContext.RequestAborted).ConfigureAwait(false);
+                new ListInstructionVersionsQuery(id), HttpContext.RequestAborted);
 
             var dtos = new List<TextVersionDto>(versions.Count);
             foreach (var v in versions)
