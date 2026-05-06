@@ -240,9 +240,9 @@ function RailRow({
       onClick={onSelect}
       aria-current={active ? "true" : undefined}
       className={[
-        "flex w-full items-center gap-2 border-l-2 px-3.5 py-1.5 text-left text-[13px] transition-colors",
+        "flex w-full items-center gap-2 border-l-[3px] px-3.5 py-1.5 text-left text-[13px] transition-colors",
         active
-          ? "border-primary bg-primary/10 text-primary"
+          ? "border-primary bg-primary/10 font-semibold text-primary"
           : muted
             ? "border-transparent text-base-content/70 hover:bg-base-200"
             : "border-transparent text-base-content hover:bg-base-200"
@@ -263,7 +263,7 @@ function RailRow({
       <span
         className={[
           "tabular-nums text-[11px]",
-          active ? "text-primary" : "text-base-content/60"
+          active ? "text-primary/80" : "text-base-content/40"
         ].join(" ")}
       >
         {String(count)}

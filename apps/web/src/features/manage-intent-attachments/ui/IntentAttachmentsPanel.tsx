@@ -1,4 +1,4 @@
-import { Image, ImagePlus, Trash2 } from "lucide-react";
+import { Image, ImagePlus, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { IntentAttachment } from "@/entities/intent";
@@ -14,7 +14,6 @@ import {
 } from "@/shared/api";
 import { filesFromClipboard } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
-import { Button } from "@/shared/ui";
 
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -284,10 +283,11 @@ export function IntentAttachmentsPanel({
                   attachment.id
                 )
               );
+            const deleting = busyDeleteId === attachment.id;
             return (
               <li
                 key={attachment.id}
-                className="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-100 p-2.5"
+                className="group relative flex flex-col gap-2 rounded-lg border border-base-300 bg-base-100 p-2.5"
               >
                 <a
                   className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md bg-base-200 text-base-content/60 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
@@ -308,6 +308,17 @@ export function IntentAttachmentsPanel({
                     </span>
                   )}
                 </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void deleteAttachment(attachment);
+                  }}
+                  disabled={deleting}
+                  aria-label={`Удалить ${attachment.file_name}`}
+                  className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-base-300 bg-base-100/95 text-base-content/70 opacity-0 shadow-sm transition-opacity hover:bg-error hover:text-error-content focus-visible:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <X aria-hidden size={14} strokeWidth={2.5} />
+                </button>
                 <div className="flex min-w-0 flex-col gap-px">
                   <span className="truncate text-[13px] font-semibold">
                     {attachment.file_name}
@@ -316,17 +327,6 @@ export function IntentAttachmentsPanel({
                     {formatBytes(attachment.size_bytes)}
                   </span>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    void deleteAttachment(attachment);
-                  }}
-                  disabled={busyDeleteId === attachment.id}
-                  aria-label={`Удалить ${attachment.file_name}`}
-                  icon={<Trash2 aria-hidden size={14} strokeWidth={2} />}
-                >
-                  {busyDeleteId === attachment.id ? "Удаляем…" : "Удалить"}
-                </Button>
               </li>
             );
           })}

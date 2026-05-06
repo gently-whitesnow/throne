@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { intentStatusMeta, type IntentDetail } from "@/entities/intent";
+import { type IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { IntentTagsInline } from "@/features/set-intent-tags";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { formatRelativeTime } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
@@ -98,29 +99,37 @@ export function IntentDetailPage() {
 
   const intent = state.intent;
   const title = firstLine(intent.text) || intent.id;
-  const status = intentStatusMeta[intent.status];
+  const updatedDate = new Date(intent.updated_at);
 
   return (
     <>
       <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-base-300 px-6 py-3.5">
-        <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-2">
           <h1 className="m-0 break-words text-lg font-semibold leading-snug text-base-content">
             {title}
           </h1>
-          <div className="flex flex-wrap gap-2.5 text-xs text-base-content/70">
-            <span
-              className="inline-flex h-6 items-center rounded-full px-2.5 text-[11px] font-bold tracking-wide"
-              style={{ background: status.surface, color: status.ink }}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-base-content/60">
+            <SetIntentStatusForm
+              intent={intent}
+              onSaved={(next) => {
+                setState({ kind: "ready", intent: next });
+                setActivityKey((k) => k + 1);
+              }}
+            />
+            <span className="tabular-nums font-semibold text-base-content/70">
+              v{intent.current_version}
+            </span>
+            <span className="text-base-content/30">·</span>
+            <time
+              dateTime={intent.updated_at}
+              title={updatedDate.toLocaleString()}
+              className="tabular-nums"
             >
-              {status.label}
-            </span>
-            <span className="tabular-nums">v{intent.current_version}</span>
-            <span className="tabular-nums text-base-content/60">
-              {new Date(intent.updated_at).toLocaleString()}
-            </span>
+              изменён {formatRelativeTime(updatedDate)}
+            </time>
           </div>
         </div>
-        <div className="flex flex-shrink-0 gap-2">
+        <div className="flex flex-shrink-0 items-center gap-2">
           {!editing && (
             <Button
               variant="primary"
@@ -141,21 +150,12 @@ export function IntentDetailPage() {
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4">
-        <SetIntentStatusForm
+        <IntentTagsInline
           intent={intent}
           onSaved={(next) => {
             setState({ kind: "ready", intent: next });
-            setActivityKey((k) => k + 1);
           }}
         />
-        <div className="mt-4">
-          <IntentTagsInline
-            intent={intent}
-            onSaved={(next) => {
-              setState({ kind: "ready", intent: next });
-            }}
-          />
-        </div>
         {editing ? (
           <ReplaceIntentTextForm
             intent={intent}
