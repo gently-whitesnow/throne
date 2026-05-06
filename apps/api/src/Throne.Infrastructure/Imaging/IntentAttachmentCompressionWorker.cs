@@ -107,7 +107,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
                 return;
             }
 
-            var compressed = await downscaler.DownscaleAsync(raw, item.ContentType, settings.MaxDimension, ct);
+            var compressed = await downscaler.DownscaleAsync(raw, item.ContentType, settings.MaxDimension, settings.JpegQuality, ct);
             await repo.ApplyCompressionAsync(item.AttachmentId, item.GridFsId, compressed, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

@@ -8,5 +8,6 @@ public interface IImageDownscaler
         Stream source,
         string sourceMime,
         int maxDimension,
+        int quality,
         CancellationToken ct);
 }

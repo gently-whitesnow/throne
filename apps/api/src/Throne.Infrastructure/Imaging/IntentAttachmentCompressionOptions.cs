@@ -8,5 +8,7 @@ public sealed class IntentAttachmentCompressionOptions
 
     public int BatchSize { get; set; } = 20;
 
-    public int MaxDimension { get; set; } = 1024;
+    public int MaxDimension { get; set; } = 768;
+
+    public int JpegQuality { get; set; } = 60;
 }

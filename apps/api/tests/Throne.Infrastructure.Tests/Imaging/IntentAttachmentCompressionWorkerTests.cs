@@ -22,7 +22,7 @@ public class IntentAttachmentCompressionWorkerTests
             .Returns(NewPng(2000, 1500));
 
         var downscaler = new ImageSharpDownscaler();
-        var settings = new IntentAttachmentCompressionOptions { MaxDimension = 1024, BatchSize = 10 };
+        var settings = new IntentAttachmentCompressionOptions { MaxDimension = 768, BatchSize = 10, JpegQuality = 60 };
 
         await IntentAttachmentCompressionWorker
             .CompressBatchAsync(repo, downscaler, settings, log: null, CancellationToken.None);
@@ -32,8 +32,8 @@ public class IntentAttachmentCompressionWorkerTests
             "gridfs-1",
             Arg.Is<DownscaledImage>(d =>
                 d.MimeType == "image/jpeg" &&
-                d.Width == 1024 &&
-                d.Height == 768 &&
+                d.Width == 768 &&
+                d.Height == 576 &&
                 d.Data.Length > 0),
             Arg.Any<CancellationToken>());
     }
@@ -49,7 +49,7 @@ public class IntentAttachmentCompressionWorkerTests
         repo.OpenRawContentAsync("no-blob", Arg.Any<CancellationToken>()).Returns((Stream?)null);
         repo.OpenRawContentAsync("blob-2", Arg.Any<CancellationToken>()).Returns(NewPng(800, 600));
 
-        var settings = new IntentAttachmentCompressionOptions { MaxDimension = 1024, BatchSize = 10 };
+        var settings = new IntentAttachmentCompressionOptions { MaxDimension = 768, BatchSize = 10, JpegQuality = 60 };
 
         await IntentAttachmentCompressionWorker
             .CompressBatchAsync(repo, new ImageSharpDownscaler(), settings, log: null, CancellationToken.None);
@@ -72,7 +72,7 @@ public class IntentAttachmentCompressionWorkerTests
         repo.OpenRawContentAsync("blob-bad", Arg.Any<CancellationToken>()).Returns(new MemoryStream([0xFF, 0xFE]));
         repo.OpenRawContentAsync("blob-ok", Arg.Any<CancellationToken>()).Returns(NewPng(500, 400));
 
-        var settings = new IntentAttachmentCompressionOptions { MaxDimension = 1024, BatchSize = 10 };
+        var settings = new IntentAttachmentCompressionOptions { MaxDimension = 768, BatchSize = 10, JpegQuality = 60 };
 
         await IntentAttachmentCompressionWorker
             .CompressBatchAsync(repo, new ImageSharpDownscaler(), settings, log: null, CancellationToken.None);
@@ -98,7 +98,7 @@ public class IntentAttachmentCompressionWorkerTests
             log: null,
             CancellationToken.None);
 
-        await downscaler.DidNotReceiveWithAnyArgs().DownscaleAsync(default!, default!, default, default);
+        await downscaler.DidNotReceiveWithAnyArgs().DownscaleAsync(default!, default!, default, default, default);
         await repo.DidNotReceiveWithAnyArgs().ApplyCompressionAsync(default!, default!, default!, default);
     }
 

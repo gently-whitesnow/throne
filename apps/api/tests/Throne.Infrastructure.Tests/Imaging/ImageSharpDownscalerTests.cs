@@ -15,7 +15,7 @@ public class ImageSharpDownscalerTests
         var source = NewPng(width: 4000, height: 3000);
         var sut = new ImageSharpDownscaler();
 
-        var result = await sut.DownscaleAsync(source, "image/png", maxDimension: 1024, CancellationToken.None);
+        var result = await sut.DownscaleAsync(source, "image/png", maxDimension: 1024, quality: 60, CancellationToken.None);
 
         result.MimeType.Should().Be("image/jpeg");
         Math.Max(result.Width, result.Height).Should().Be(1024);
@@ -30,7 +30,7 @@ public class ImageSharpDownscalerTests
         var source = NewPng(width: 320, height: 240);
         var sut = new ImageSharpDownscaler();
 
-        var result = await sut.DownscaleAsync(source, "image/png", maxDimension: 1024, CancellationToken.None);
+        var result = await sut.DownscaleAsync(source, "image/png", maxDimension: 1024, quality: 60, CancellationToken.None);
 
         result.Width.Should().Be(320);
         result.Height.Should().Be(240);
@@ -43,7 +43,7 @@ public class ImageSharpDownscalerTests
         var source = NewJpeg(width: 600, height: 400);
         var sut = new ImageSharpDownscaler();
 
-        var result = await sut.DownscaleAsync(source, "image/jpeg", maxDimension: 1024, CancellationToken.None);
+        var result = await sut.DownscaleAsync(source, "image/jpeg", maxDimension: 1024, quality: 60, CancellationToken.None);
 
         result.Width.Should().Be(600);
         result.Height.Should().Be(400);

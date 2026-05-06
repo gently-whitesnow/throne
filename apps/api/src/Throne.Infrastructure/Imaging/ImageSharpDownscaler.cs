@@ -8,12 +8,12 @@ namespace Throne.Infrastructure.Imaging;
 public sealed class ImageSharpDownscaler : IImageDownscaler
 {
     private const string JpegMime = "image/jpeg";
-    private const int JpegQuality = 75;
 
     public async Task<DownscaledImage> DownscaleAsync(
         Stream source,
         string sourceMime,
         int maxDimension,
+        int quality,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -39,7 +39,7 @@ public sealed class ImageSharpDownscaler : IImageDownscaler
         }
 
         using var output = new MemoryStream();
-        await image.SaveAsync(output, new JpegEncoder { Quality = JpegQuality }, ct);
+        await image.SaveAsync(output, new JpegEncoder { Quality = quality }, ct);
         return new DownscaledImage(output.ToArray(), JpegMime, image.Width, image.Height);
     }
 }
