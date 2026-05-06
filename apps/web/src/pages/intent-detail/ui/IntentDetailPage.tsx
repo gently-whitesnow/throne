@@ -6,7 +6,7 @@ import { DeleteIntentButton } from "@/features/delete-intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
-import { SetIntentTagsButton } from "@/features/set-intent-tags";
+import { IntentTagsInline } from "@/features/set-intent-tags";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
@@ -115,11 +115,6 @@ export function IntentDetailPage() {
               {status.label}
             </span>
             <span className="tabular-nums">v{intent.current_version}</span>
-            {intent.tags.length > 0 ? (
-              <span className="tabular-nums">
-                #{intent.tags.map((t) => t.name).join(" #")}
-              </span>
-            ) : null}
             <span className="tabular-nums text-base-content/60">
               {new Date(intent.updated_at).toLocaleString()}
             </span>
@@ -127,17 +122,14 @@ export function IntentDetailPage() {
         </div>
         <div className="flex flex-shrink-0 gap-2">
           {!editing && (
-            <>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setEditing(true);
-                }}
-              >
-                Редактировать
-              </Button>
-              <SetIntentTagsButton intent={intent} />
-            </>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditing(true);
+              }}
+            >
+              Редактировать
+            </Button>
           )}
           <DeleteIntentButton
             intentId={intent.id}
@@ -156,6 +148,14 @@ export function IntentDetailPage() {
             setActivityKey((k) => k + 1);
           }}
         />
+        <div className="mt-4">
+          <IntentTagsInline
+            intent={intent}
+            onSaved={(next) => {
+              setState({ kind: "ready", intent: next });
+            }}
+          />
+        </div>
         {editing ? (
           <ReplaceIntentTextForm
             intent={intent}

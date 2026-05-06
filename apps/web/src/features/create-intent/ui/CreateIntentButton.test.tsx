@@ -17,6 +17,14 @@ vi.mock("@/shared/api", () => ({
   }
 }));
 
+vi.mock("@/entities/tag", () => ({
+  useTagPicker: () => ({
+    availableTags: [],
+    loadError: null,
+    createTag: vi.fn().mockResolvedValue("")
+  })
+}));
+
 describe("CreateIntentButton", () => {
   afterEach(() => {
     cleanup();

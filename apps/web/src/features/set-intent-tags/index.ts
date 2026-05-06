@@ -1,1 +1,1 @@
-export { SetIntentTagsButton } from "./ui/SetIntentTagsButton";
+export { IntentTagsInline } from "./ui/IntentTagsInline";

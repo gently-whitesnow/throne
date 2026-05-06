@@ -14,6 +14,7 @@ export {
   apiUrl,
   httpGet,
   httpPost,
+  httpPut,
   httpPostForm,
   httpGetBlob,
   httpDelete,

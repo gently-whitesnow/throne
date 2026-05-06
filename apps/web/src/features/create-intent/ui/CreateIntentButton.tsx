@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useId, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { IntentAttachment, IntentDetail } from "@/entities/intent";
+import { useTagPicker } from "@/entities/tag";
 import {
   HttpError,
   INTENT_ATTACHMENTS_CHANGED_EVENT,
@@ -10,7 +11,8 @@ import {
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
-import { Button } from "@/shared/ui";
+import { filesFromClipboard } from "@/shared/lib";
+import { Button, TagMultiSelect } from "@/shared/ui";
 
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -22,16 +24,17 @@ interface CreateIntentButtonProps {
 export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tagPicker = useTagPicker();
   const titleId = useId();
   const descriptionId = useId();
 
   const reset = () => {
     setText("");
-    setTags("");
+    setTags([]);
     setFiles([]);
     setError(null);
   };
@@ -106,15 +109,11 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
     setError(null);
     try {
       const filesToUpload = files;
-      const tagList = tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
       const created = await httpPost<IntentDetail>(
         intentsEndpoints.createIntent(),
         {
           text,
-          tag_names: tagList.length > 0 ? tagList : undefined
+          tag_names: tags.length > 0 ? tags : undefined
         }
       );
       reset();
@@ -218,14 +217,15 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
             aria-label="Текст intent"
             autoFocus
           />
-          <input
-            className="input input-bordered w-full"
-            placeholder="Теги через запятую (опционально)"
+          <TagMultiSelect
             value={tags}
-            onChange={(e) => {
-              setTags(e.target.value);
-            }}
-            aria-label="Теги intent"
+            onChange={setTags}
+            availableTags={tagPicker.availableTags}
+            onRequestCreate={tagPicker.createTag}
+            loadError={tagPicker.loadError}
+            disabled={busy}
+            placeholder="Добавить тег…"
+            ariaLabel="Теги intent"
           />
           <label className="flex cursor-pointer flex-col gap-1.5 rounded-md border border-dashed border-base-300 bg-base-200 px-4 py-3 transition-colors hover:border-primary hover:bg-primary/5">
             <input
@@ -331,29 +331,6 @@ async function uploadAttachments(intentId: string, files: File[]) {
       );
     }
   }
-}
-
-function filesFromClipboard(clipboard: DataTransfer): File[] {
-  const result: File[] = [];
-  const fallbackName = "clipboard-image.png";
-
-  for (const item of Array.from(clipboard.items)) {
-    if (item.kind !== "file" || !item.type.startsWith("image/")) continue;
-
-    const file = item.getAsFile();
-    if (!file) continue;
-
-    result.push(
-      file.name
-        ? file
-        : new File([file], fallbackName, {
-            type: file.type,
-            lastModified: file.lastModified
-          })
-    );
-  }
-
-  return result;
 }
 
 function formatBytes(bytes: number): string {

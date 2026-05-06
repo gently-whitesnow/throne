@@ -111,6 +111,33 @@ export async function httpPost<TResponse>(
   return (await response.json()) as TResponse;
 }
 
+export async function httpPut<TResponse>(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal
+): Promise<TResponse> {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+    signal
+  });
+
+  if (!response.ok) {
+    throw await parseError(url, response, "PUT");
+  }
+
+  if (response.status === 204) {
+    return undefined as TResponse;
+  }
+
+  return (await response.json()) as TResponse;
+}
+
 export async function httpPostForm<TResponse>(
   path: string,
   body: FormData,

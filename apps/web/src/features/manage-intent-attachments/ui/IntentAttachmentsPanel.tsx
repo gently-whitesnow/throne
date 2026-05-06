@@ -12,6 +12,7 @@ import {
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
+import { filesFromClipboard } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 
@@ -144,7 +145,7 @@ export function IntentAttachmentsPanel({
     }
   };
 
-  const uploadFiles = async (nextFiles: FileList | null) => {
+  const uploadFiles = async (nextFiles: Iterable<File> | null) => {
     if (!nextFiles || state.kind !== "ready") return;
 
     const files = Array.from(nextFiles);
@@ -202,8 +203,15 @@ export function IntentAttachmentsPanel({
 
   return (
     <section
-      className="mt-5 border-t border-base-300 pt-4"
+      className="mt-5 rounded-md border-t border-base-300 pt-4 focus-within:outline-2 focus-within:outline-primary/40 focus-within:outline-offset-2"
       aria-labelledby="attachments-title"
+      tabIndex={0}
+      onPaste={(event) => {
+        const pasted = filesFromClipboard(event.clipboardData);
+        if (pasted.length === 0) return;
+        event.preventDefault();
+        void uploadFiles(pasted);
+      }}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
@@ -214,8 +222,8 @@ export function IntentAttachmentsPanel({
             Вложения
           </h2>
           <p className="mt-1 text-xs text-base-content/60">
-            Можно приложить до 10 файлов по 10 МБ; изображения показываются
-            превью.
+            До 10 файлов по 10 МБ; изображения показываются превью. Можно
+            вставить картинку из буфера.
           </p>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">

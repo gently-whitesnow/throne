@@ -1,7 +1,14 @@
 import { useState } from "react";
 
-import type { IntentDetail } from "@/entities/intent";
-import { HttpError, httpPost, intentsEndpoints } from "@/shared/api";
+import type { IntentAttachment, IntentDetail } from "@/entities/intent";
+import {
+  HttpError,
+  INTENT_ATTACHMENTS_CHANGED_EVENT,
+  httpPost,
+  httpPostForm,
+  intentsEndpoints
+} from "@/shared/api";
+import { filesFromClipboard } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface ReplaceIntentTextFormProps {
@@ -18,6 +25,7 @@ export function ReplaceIntentTextForm({
   const [draft, setDraft] = useState(intent.text);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pasteHint, setPasteHint] = useState<string | null>(null);
 
   const submit = async () => {
     if (busy) return;
@@ -48,6 +56,24 @@ export function ReplaceIntentTextForm({
     }
   };
 
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = filesFromClipboard(event.clipboardData);
+    if (files.length === 0) return;
+    event.preventDefault();
+    setPasteHint(`Загружаем ${String(files.length)} вложение(й)…`);
+    void uploadAttachments(intent.id, files)
+      .then((count) => {
+        setPasteHint(
+          count > 0
+            ? `Добавлено вложений: ${String(count)}.`
+            : "Не удалось добавить вложение."
+        );
+      })
+      .catch(() => {
+        setPasteHint("Не удалось добавить вложение.");
+      });
+  };
+
   return (
     <form
       onSubmit={(e) => {
@@ -62,9 +88,16 @@ export function ReplaceIntentTextForm({
         onChange={(e) => {
           setDraft(e.target.value);
         }}
+        onPaste={handlePaste}
         rows={20}
         aria-label="Текст intent"
       />
+      <p className="m-0 text-[11px] text-base-content/60">
+        Можно вставить картинку из буфера — она прикрепится как вложение.
+      </p>
+      {pasteHint ? (
+        <p className="m-0 text-[11px] text-base-content/70">{pasteHint}</p>
+      ) : null}
       {error ? (
         <p role="alert" className="m-0 text-sm text-error">
           {error}
@@ -80,6 +113,40 @@ export function ReplaceIntentTextForm({
       </div>
     </form>
   );
+}
+
+async function uploadAttachments(
+  intentId: string,
+  files: File[]
+): Promise<number> {
+  let success = 0;
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    try {
+      await httpPostForm<IntentAttachment>(
+        intentsEndpoints.uploadIntentAttachment(intentId),
+        form
+      );
+      success += 1;
+      window.dispatchEvent(
+        new CustomEvent(INTENT_ATTACHMENTS_CHANGED_EVENT, {
+          detail: { intentId }
+        })
+      );
+    } catch (err) {
+      const message =
+        err instanceof HttpError
+          ? `Не удалось загрузить ${file.name} (${String(err.status)}).`
+          : `Не удалось загрузить ${file.name}.`;
+      window.dispatchEvent(
+        new CustomEvent(INTENT_ATTACHMENTS_CHANGED_EVENT, {
+          detail: { intentId, error: message }
+        })
+      );
+    }
+  }
+  return success;
 }
 
 function formatError(err: HttpError): string {

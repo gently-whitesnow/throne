@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   intentStatusMeta,
@@ -9,57 +9,46 @@ import {
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { ARCHIVE_CONTEXT, UNTAGGED_CONTEXT } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { EntityList, type EntityListRow } from "@/shared/ui";
+
+const ARCHIVE_STATUSES: ReadonlySet<IntentStatus> = new Set(["done", "reject"]);
 
 type LoadState =
   | { kind: "loading" }
   | { kind: "ready"; items: IntentListItem[] }
   | { kind: "error"; message: string };
 
-type ScopeKey = "active" | "archive";
-
-const scopeStatuses: Record<ScopeKey, IntentStatus[]> = {
-  active: ["draft", "interview", "ready_for_work", "work", "ready_for_review"],
-  archive: ["done", "reject"]
-};
-
-const scopeLabels: Record<ScopeKey, string> = {
-  active: "Активные",
-  archive: "Архив"
-};
-
 export function IntentBoard() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState("");
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [scope, setScope] = useState<ScopeKey>("active");
+
+  const context = params.get("context");
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams();
-    for (const status of scopeStatuses[scope]) {
-      params.append("status", status);
-    }
-    const url = `${intentsEndpoints.listIntents()}?${params.toString()}`;
-    httpGet<IntentListItem[]>(url, controller.signal)
+    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
       .then((items) => {
         setState({ kind: "ready", items });
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
-        const message =
-          err instanceof HttpError
-            ? `Не удалось загрузить intents (${String(err.status)}).`
-            : "Не удалось загрузить intents.";
-        setState({ kind: "error", message });
+        setState({
+          kind: "error",
+          message:
+            err instanceof HttpError
+              ? `Не удалось загрузить intents (${String(err.status)}).`
+              : "Не удалось загрузить intents."
+        });
       });
     return () => {
       controller.abort();
     };
-  }, [reloadKey, scope]);
+  }, [reloadKey]);
 
   const reload = useCallback(() => {
     setReloadKey((v) => v + 1);
@@ -71,20 +60,13 @@ export function IntentBoard() {
   useRealtimeEvent("intent.status_changed", reload);
   useRealtimeEvent("intent.tags_changed", reload);
 
-  const allTags = useMemo(() => {
-    if (state.kind !== "ready") return [] as string[];
-    const set = new Set<string>();
-    for (const i of state.items) for (const t of i.tags) set.add(t.name);
-    return [...set].sort();
-  }, [state]);
-
   const rows = useMemo<EntityListRow[]>(() => {
     if (state.kind !== "ready") return [];
     const q = query.trim().toLowerCase();
+    const search = new URLSearchParams(params).toString();
     return state.items
+      .filter((i) => matchesContext(i, context))
       .filter((i) => {
-        if (activeTag && !i.tags.some((t) => t.name === activeTag))
-          return false;
         if (!q) return true;
         return (
           i.text_short.toLowerCase().includes(q) ||
@@ -94,6 +76,8 @@ export function IntentBoard() {
       .map((i) => {
         const status = intentStatusMeta[i.status];
         const tagNames = i.tags.map((t) => t.name);
+        const href =
+          search.length > 0 ? `/intents/${i.id}?${search}` : `/intents/${i.id}`;
         return {
           id: i.id,
           title: firstLine(i.text_short) || i.id,
@@ -102,10 +86,20 @@ export function IntentBoard() {
           badge: status.label,
           badgeColor: status.surface,
           badgeTextColor: status.ink,
-          href: `/intents/${i.id}`
+          href
         };
       });
-  }, [state, query, activeTag]);
+  }, [context, params, query, state]);
+
+  const handleCreated = (intentId: string) => {
+    reload();
+    const search = params.toString();
+    const target =
+      search.length > 0
+        ? `/intents/${intentId}?${search}`
+        : `/intents/${intentId}`;
+    void navigate(target);
+  };
 
   return (
     <section
@@ -113,44 +107,20 @@ export function IntentBoard() {
       aria-label="Список Intents"
     >
       <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-base-300 px-3.5 py-3">
-        <h2 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/60">
-          Intents
+        <h2 className="m-0 truncate text-[13px] font-bold uppercase tracking-wider text-base-content/60">
+          {contextTitle(context)}
         </h2>
         <CreateIntentButton
           onCreated={(intent) => {
-            reload();
-            void navigate(`/intents/${intent.id}`);
+            handleCreated(intent.id);
           }}
         />
-      </div>
-      <div
-        className="flex flex-shrink-0 gap-1 border-b border-base-300 px-3.5 py-2"
-        role="tablist"
-        aria-label="Область видимости intents"
-      >
-        {(["active", "archive"] as const).map((key) => {
-          const active = scope === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              className={tabClass(active)}
-              onClick={() => {
-                setScope(key);
-              }}
-            >
-              {scopeLabels[key]}
-            </button>
-          );
-        })}
       </div>
       <div className="flex flex-shrink-0 items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60">
         <Search aria-hidden size={14} strokeWidth={2} />
         <input
           type="search"
-          placeholder="Поиск по тексту и тегам"
+          placeholder="Поиск в контексте"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -159,29 +129,6 @@ export function IntentBoard() {
           className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-base-content placeholder:text-base-content/50 focus:outline-none"
         />
       </div>
-      {allTags.length > 0 && (
-        <div
-          className="flex max-h-[112px] flex-shrink-0 flex-wrap gap-1 overflow-y-auto border-b border-base-300 px-3.5 py-2"
-          role="group"
-          aria-label="Фильтр по тегам"
-        >
-          {allTags.map((tag) => {
-            const active = activeTag === tag;
-            return (
-              <button
-                key={tag}
-                type="button"
-                className={chipClass(active)}
-                onClick={() => {
-                  setActiveTag(active ? null : tag);
-                }}
-              >
-                #{tag}
-              </button>
-            );
-          })}
-        </div>
-      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {state.kind === "loading" && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
@@ -199,11 +146,7 @@ export function IntentBoard() {
         {state.kind === "ready" && (
           <EntityList
             items={rows}
-            emptyMessage={
-              scope === "active"
-                ? "Нет активных intents. Создайте первый."
-                : "В архиве пусто."
-            }
+            emptyMessage={emptyMessage(context, state.items.length)}
           />
         )}
       </div>
@@ -211,20 +154,36 @@ export function IntentBoard() {
   );
 }
 
-function chipClass(active: boolean): string {
-  const base =
-    "inline-flex h-[22px] items-center rounded-full border px-2 text-[11px] font-medium transition-colors cursor-pointer";
-  return active
-    ? `${base} border-primary bg-primary/10 text-primary`
-    : `${base} border-base-300 bg-base-100 text-base-content/70 hover:bg-base-200 hover:text-base-content`;
+function matchesContext(item: IntentListItem, context: string | null): boolean {
+  if (!context) return false;
+  if (context === ARCHIVE_CONTEXT) {
+    return ARCHIVE_STATUSES.has(item.status);
+  }
+  if (ARCHIVE_STATUSES.has(item.status)) return false;
+  if (context === UNTAGGED_CONTEXT) {
+    return item.tags.length === 0;
+  }
+  return item.tags.some((t) => t.name === context);
 }
 
-function tabClass(active: boolean): string {
-  const base =
-    "inline-flex h-7 flex-1 items-center justify-center rounded-md px-3 text-[12px] font-medium transition-colors cursor-pointer";
-  return active
-    ? `${base} bg-primary/10 text-primary`
-    : `${base} text-base-content/70 hover:bg-base-200 hover:text-base-content`;
+function contextTitle(context: string | null): string {
+  if (!context) return "Intents";
+  if (context === ARCHIVE_CONTEXT) return "Архив";
+  if (context === UNTAGGED_CONTEXT) return "Без тегов";
+  return `# ${context}`;
+}
+
+function emptyMessage(context: string | null, total: number): string {
+  if (!context) {
+    return total === 0
+      ? "Нет ни одного intent. Создайте первый."
+      : "Выберите контекст слева.";
+  }
+  if (context === ARCHIVE_CONTEXT) return "В архиве пусто.";
+  if (context === UNTAGGED_CONTEXT) {
+    return "Все active intents уже разнесены по тегам.";
+  }
+  return "В этом контексте пока пусто.";
 }
 
 function firstLine(text: string): string {
