@@ -18,7 +18,7 @@ public sealed class McpBoundMethodParameterRulesTests
     [Fact(DisplayName = "MCP tool/prompt: nullable параметр ⇒ default в сигнатуре (иначе AIFunction требует ключ в JSON)")]
     public void Nullable_parameters_on_mcp_bound_methods_must_have_cli_defaults()
     {
-        var assembly = typeof(Throne.Api.Mcp.ThroneToolRegistration).Assembly;
+        var assembly = typeof(Throne.Api.AssemblyMarker).Assembly;
         var ctx = new NullabilityInfoContext();
         var violations = new List<string>();
 
@@ -66,7 +66,9 @@ public sealed class McpBoundMethodParameterRulesTests
         }
 
         violations.Should().BeEmpty(
-            "Fix by adding explicit defaults (e.g. \"= null\", \"= default\") so AIFunctionFactory treats the parameter as optional. Violations:{0}{1}",
+            "Nullable-параметр без default — это runtime ловушка: AIFunctionFactory требует ключ в JSON " +
+            "и бросит ArgumentException, если клиент не передал поле. " +
+            "Чини добавлением \"= null\" или \"= default\" в сигнатуре MCP-метода. Violations:{0}{1}",
             Environment.NewLine,
             string.Join(Environment.NewLine, violations));
     }

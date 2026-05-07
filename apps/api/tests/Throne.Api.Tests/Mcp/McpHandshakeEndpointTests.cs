@@ -9,6 +9,7 @@ using Throne.Application.Instructions;
 namespace Throne.Api.Tests.Mcp;
 
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public sealed class McpHandshakeEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
     private WebApplicationFactory<Program> _factory = null!;

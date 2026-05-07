@@ -1,6 +1,7 @@
 {
   "$schema": "https://example.invalid/throne-quality.schema.json",
-  "version": 1,
+  "version": 2,
+  "stopOnFirstFail": false,
   "backend": {
     "solution": "apps/api/Throne.slnx"
   },
@@ -10,70 +11,115 @@
     "packageManager": "pnpm",
     "lockfile": "apps/web/pnpm-lock.yaml"
   },
-  "gates": {
-    "backend-format": {
+  "gates": [
+    {
+      "id": "backend-contracts",
+      "scope": "backend",
       "enabled": true,
-      "script": "scripts/quality/dotnet-format-verify.sh"
+      "description": "OpenAPI codegen drift: regen .NET и TS клиенты, fail если diff."
     },
-    "backend-build": {
+    {
+      "id": "backend-realtime",
+      "scope": "backend",
       "enabled": true,
-      "script": "scripts/quality/dotnet-build-warnaserror.sh"
+      "description": "Realtime 4-way coverage: events.yaml ↔ Application.Events ↔ RealtimeDomainEventHandler ↔ apps/web useRealtimeEvent."
     },
-    "backend-test": {
+    {
+      "id": "backend-format",
+      "scope": "backend",
       "enabled": true,
-      "script": "scripts/quality/dotnet-test.sh"
+      "description": "dotnet format --verify-no-changes."
     },
-    "backend-architecture": {
+    {
+      "id": "backend-build",
+      "scope": "backend",
       "enabled": true,
-      "description": "NetArchTest layer rules in Throne.Architecture.Tests; runs as part of test gate"
+      "description": "dotnet build -warnaserror."
     },
-    "frontend-deps": {
+    {
+      "id": "backend-test-unit",
+      "scope": "backend",
       "enabled": true,
-      "description": "pnpm install --frozen-lockfile"
+      "description": "dotnet test --filter Category!=Integration. Включает Throne.Architecture.Tests (NetArchTest)."
     },
-    "frontend-format": {
+    {
+      "id": "backend-test-integration",
+      "scope": "backend",
       "enabled": true,
-      "description": "Prettier check for apps/web"
+      "slow": true,
+      "description": "dotnet test --filter Category=Integration. Testcontainers MongoDB (replSet rs0), требует Docker."
     },
-    "frontend-lint": {
+    {
+      "id": "backend-maintainability",
+      "scope": "backend",
       "enabled": true,
-      "description": "ESLint flat config for TypeScript and React"
+      "config": ".quality/maintainability-budget.json",
+      "profile": "legacy",
+      "ratchet": ".quality/maintainability-baseline.json",
+      "description": "File/type/method LOC, ctor deps, cyclomatic, fan-out. Advisory + ratchet vs baseline snapshot."
     },
-    "frontend-typecheck": {
+    {
+      "id": "backend-duplicates",
+      "scope": "backend",
       "enabled": true,
-      "description": "TypeScript project references build"
+      "config": ".quality/maintainability-budget.json",
+      "description": "Cross-file duplication по нормализованным окнам. Advisory-only: печатает отчёт, не валит билд (детектор лексический, шумит на идиомах)."
     },
-    "frontend-architecture": {
+    {
+      "id": "backend-audit",
+      "scope": "backend",
       "enabled": true,
-      "description": "Steiger + @feature-sliced/steiger-plugin FSD rules; insignificant-slice is disabled for the initial scaffold"
+      "slow": true,
+      "description": "dotnet list package --vulnerable --include-transitive."
     },
-    "frontend-test": {
+    {
+      "id": "frontend-deps",
+      "scope": "frontend",
       "enabled": true,
-      "description": "Vitest run"
+      "description": "pnpm install --frozen-lockfile (lockfile drift = fail)."
     },
-    "frontend-build": {
+    {
+      "id": "frontend-format",
+      "scope": "frontend",
       "enabled": true,
-      "description": "Vite production build"
+      "description": "Prettier check."
     },
-    "maintainability": {
-      "enabled": false,
-      "description": "Profile=legacy. Baseline will be generated after first real domain code lands."
-    },
-    "backend-security-audit": {
+    {
+      "id": "frontend-lint",
+      "scope": "frontend",
       "enabled": true,
-      "script": "scripts/quality/package-audit.sh"
+      "description": "ESLint flat config."
     },
-    "frontend-security-audit": {
+    {
+      "id": "frontend-typecheck",
+      "scope": "frontend",
       "enabled": true,
-      "description": "pnpm audit --audit-level high"
+      "description": "TypeScript project references build."
     },
-    "coverage": {
-      "enabled": false,
-      "description": "Deferred until use cases are implemented"
+    {
+      "id": "frontend-architecture",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Steiger + @feature-sliced/steiger-plugin (FSD 2.0). insignificant-slice выключен."
     },
-    "mutation": {
-      "enabled": false,
-      "description": "Opt-in for critical domain modules later"
+    {
+      "id": "frontend-test",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Vitest run."
+    },
+    {
+      "id": "frontend-build",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Vite production build."
+    },
+    {
+      "id": "frontend-audit",
+      "scope": "frontend",
+      "enabled": true,
+      "slow": true,
+      "description": "pnpm audit --audit-level high."
     }
-  }
+  ]
 }

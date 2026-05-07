@@ -19,6 +19,7 @@ using Throne.Domain.TextVersions;
 namespace Throne.Api.Tests.Intents;
 
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);

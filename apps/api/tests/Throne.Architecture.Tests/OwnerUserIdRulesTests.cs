@@ -73,7 +73,8 @@ public class OwnerUserIdRulesTests
             {
                 factory.GetParameters().Should().Contain(
                     p => p.Name == "ownerUserId" && p.ParameterType == typeof(string),
-                    $"{type.FullName}.{factory.Name} must accept ownerUserId:string");
+                    $"{type.FullName}.{factory.Name} обязан принимать ownerUserId:string первым/явным параметром " +
+                    "(ADR-0012: multi-user изоляция). Без него агрегат может оказаться без владельца.");
             }
         }
     }
@@ -81,7 +82,7 @@ public class OwnerUserIdRulesTests
     [Fact(DisplayName = "Mongo-документы user-owned коллекций имеют [BsonElement(\"owner_user_id\")]")]
     public void UserOwnedDocuments_have_owner_user_id_element()
     {
-        var assembly = typeof(Throne.Infrastructure.DependencyInjection).Assembly;
+        var assembly = typeof(Throne.Infrastructure.AssemblyMarker).Assembly;
         foreach (var name in UserOwnedDocumentTypeNames)
         {
             var type = assembly.GetType(name);
@@ -102,7 +103,7 @@ public class OwnerUserIdRulesTests
     [Fact(DisplayName = "Mongo-репозитории user-owned коллекций зависят от ICurrentUserAccessor")]
     public void UserOwnedRepositories_depend_on_ICurrentUserAccessor()
     {
-        var assembly = typeof(Throne.Infrastructure.DependencyInjection).Assembly;
+        var assembly = typeof(Throne.Infrastructure.AssemblyMarker).Assembly;
         foreach (var name in UserOwnedRepositoryTypeNames)
         {
             var type = assembly.GetType(name);
@@ -112,14 +113,17 @@ public class OwnerUserIdRulesTests
             ctors.Should().NotBeEmpty();
             ctors.Any(c => c.GetParameters().Any(p =>
                 p.ParameterType == typeof(Throne.Application.Auth.ICurrentUserAccessor)))
-                .Should().BeTrue($"{name} must inject ICurrentUserAccessor");
+                .Should().BeTrue(
+                    $"{name} обязан инжектить ICurrentUserAccessor — иначе репо не может фильтровать " +
+                    "выборки по owner_user_id и потенциально вернёт чужие данные. " +
+                    "Добавь параметр ICurrentUserAccessor в конструктор + Filter.Eq(\"owner_user_id\", _user.UserId).");
         }
     }
 
     [Fact(DisplayName = "Mongo-репозитории user-owned коллекций ссылаются на owner_user_id")]
     public void UserOwnedRepositories_reference_owner_user_id_in_il()
     {
-        var assemblyPath = typeof(Throne.Infrastructure.DependencyInjection).Assembly.Location;
+        var assemblyPath = typeof(Throne.Infrastructure.AssemblyMarker).Assembly.Location;
         using var module = ModuleDefinition.ReadModule(assemblyPath);
 
         foreach (var name in UserOwnedRepositoryTypeNames)
@@ -140,7 +144,9 @@ public class OwnerUserIdRulesTests
                     .Any(i => i.Operand is MethodReference mr && mr.Name.Contains("OwnerUserId", StringComparison.Ordinal));
 
             hits.Should().BeTrue(
-                $"{name} must reference OwnerUserId / \"owner_user_id\" — иначе фильтрация не работает.");
+                $"{name}: в IL не нашли ни строки \"owner_user_id\", ни поля OwnerUserId, ни вызова *OwnerUserId*. " +
+                "Без них фильтр по владельцу не применяется — это leakage между пользователями. " +
+                "Добавь Filter.Eq(\"owner_user_id\", _user.UserId) в Find/Update/Delete.");
         }
     }
 
@@ -153,7 +159,9 @@ public class OwnerUserIdRulesTests
             ctors.Should().NotBeEmpty();
             ctors.Any(c => c.GetParameters().Any(p =>
                 p.ParameterType == typeof(Throne.Application.Auth.ICurrentUserAccessor)))
-                .Should().BeTrue($"{type.FullName} must inject ICurrentUserAccessor");
+                .Should().BeTrue(
+                    $"{type.FullName} создаёт user-owned агрегат, поэтому обязан инжектить ICurrentUserAccessor " +
+                    "и передавать _user.UserId в Domain.Create(...). Иначе создаваемый объект может оказаться без владельца.");
         }
     }
 

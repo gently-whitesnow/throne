@@ -4,11 +4,15 @@
 
 ## Перед завершением хода
 
+Гейты декларированы в [.quality/quality.config.json](.quality/quality.config.json). Бегунок — [scripts/quality/verify.py](scripts/quality/verify.py); `verify.sh` оставлен как тонкая обёртка для совместимости.
+
 ```bash
-bash scripts/quality/verify.sh
+bash scripts/quality/verify.sh --fast   # в процессе работы (~1 мин, без integration-тестов и audits)
+bash scripts/quality/verify.sh          # перед сдачей хода (полный, включая integration + audits)
+bash scripts/quality/verify.sh --list   # перечислить гейты и их статус
 ```
 
-Должно вернуть `ALL GATES PASSED`. Падает — чини root cause, не отключай гейты.
+Падает — чини root cause, не отключай гейты. Ослабление гейта (правка `quality.config.json` enabled, baseline-снимки, или comment в Architecture-тесте) требует rationale в коммите.
 
 ## Куда смотреть
 

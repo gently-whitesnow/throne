@@ -16,6 +16,7 @@ using Throne.Api.Tests.Infrastructure;
 namespace Throne.Api.Tests.Auth;
 
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public sealed class JwtAuthEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
     private const string Issuer = "https://auth-gate.test/";

@@ -4,11 +4,15 @@
 
 ## Перед завершением хода
 
+Гейты в [.quality/quality.config.json](.quality/quality.config.json), бегунок — [scripts/quality/verify.py](scripts/quality/verify.py).
+
 ```bash
-bash scripts/quality/verify.sh
+bash scripts/quality/verify.sh --fast   # быстрый цикл (~1 мин)
+bash scripts/quality/verify.sh          # перед сдачей хода (полный)
+bash scripts/quality/verify.sh --list   # что включено
 ```
 
-Должно вернуть `ALL GATES PASSED`. Падает — чини root cause, не отключай гейты.
+Падает — чини root cause, не отключай гейты.
 
 ## Куда смотреть
 

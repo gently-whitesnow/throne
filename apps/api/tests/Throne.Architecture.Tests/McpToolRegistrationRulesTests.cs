@@ -28,7 +28,9 @@ public class McpToolRegistrationRulesTests
             offenders);
 
         offenders.Should().BeEmpty(
-            "Throne.Api must register MCP tools only via AddThroneTool<T>(). Offenders: {0}",
+            "MCP tools регистрируются ТОЛЬКО через AddThroneTool<T>() — это путь, который оборачивает " +
+            "вызов в AuditingMcpServerTool (см. ADR-0004). WithTools/WithToolsFromAssembly обходят аудит. " +
+            "Перенеси регистрацию в Throne.Api.Mcp.ThroneToolRegistration. Offenders: {0}",
             string.Join(", ", offenders));
     }
 
@@ -43,7 +45,9 @@ public class McpToolRegistrationRulesTests
             offenders);
 
         offenders.Should().BeEmpty(
-            "Only ThroneToolRegistration may call McpServerTool.Create — that is what guarantees AuditingMcpServerTool wrapping. Offenders: {0}",
+            "McpServerTool.Create вызывается только из Throne.Api.Mcp.ThroneToolRegistration. " +
+            "Любой другой call-site обходит AuditingMcpServerTool — теряется audit trail (ADR-0004). " +
+            "Перенеси создание тула внутрь ThroneToolRegistration.AddThroneTool<T>(). Offenders: {0}",
             string.Join(", ", offenders));
     }
 
@@ -52,7 +56,7 @@ public class McpToolRegistrationRulesTests
 
     private static void ScanCalls(Func<MethodReference, string, bool> predicate, List<string> offenders)
     {
-        var asmPath = typeof(Throne.Api.Mcp.ThroneToolRegistration).Assembly.Location;
+        var asmPath = typeof(Throne.Api.AssemblyMarker).Assembly.Location;
         using var module = ModuleDefinition.ReadModule(asmPath);
 
         foreach (var type in EnumerateAllTypes(module))

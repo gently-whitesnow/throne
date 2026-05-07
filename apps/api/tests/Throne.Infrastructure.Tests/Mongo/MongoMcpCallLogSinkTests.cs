@@ -7,6 +7,7 @@ using Throne.Infrastructure.Mongo.Documents;
 namespace Throne.Infrastructure.Tests.Mongo;
 
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public class MongoMcpCallLogSinkTests(MongoFixture fixture)
 {
     [Fact(DisplayName = "WriteAsync пишет audit-запись со всеми полями в коллекцию mcp_call_log")]

@@ -10,6 +10,7 @@ using Throne.Api.Tests.Infrastructure;
 namespace Throne.Api.Tests.Dream;
 
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public sealed class DreamReadinessEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
     private WebApplicationFactory<Program> _factory = null!;

@@ -13,6 +13,7 @@ namespace Throne.Infrastructure.Tests.Mongo;
 /// записи чужого OwnerUserId.
 /// </summary>
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public class MongoOwnerUserIdIsolationTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);

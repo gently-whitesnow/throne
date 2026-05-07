@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Throne.Application\Throne.Application.csproj" />
     <ProjectReference Include="..\..\src\Throne.Infrastructure\Throne.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Throne.Api\Throne.Api.csproj" />
+    <ProjectReference Include="..\..\src\Throne.Mcp.Stdio\Throne.Mcp.Stdio.csproj" />
   </ItemGroup>
 
 </Project>

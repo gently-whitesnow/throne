@@ -12,10 +12,10 @@ public class ConfigureAwaitRulesTests
 {
     private static readonly string[] ProductionAssemblies =
     [
-        typeof(Throne.Domain.Intents.Intent).Assembly.Location,
-        typeof(Throne.Application.Intents.IntentAttachment).Assembly.Location,
-        typeof(Throne.Infrastructure.DependencyInjection).Assembly.Location,
-        typeof(Throne.Api.Mcp.Tools.IntentTools).Assembly.Location,
+        typeof(Throne.Domain.AssemblyMarker).Assembly.Location,
+        typeof(Throne.Application.AssemblyMarker).Assembly.Location,
+        typeof(Throne.Infrastructure.AssemblyMarker).Assembly.Location,
+        typeof(Throne.Api.AssemblyMarker).Assembly.Location,
     ];
 
     [Fact(DisplayName = "В production-ассемблях нет вызовов Task.ConfigureAwait")]
@@ -51,6 +51,9 @@ public class ConfigureAwaitRulesTests
         }
 
         offenders.Should().BeEmpty(
-            "ConfigureAwait не нужен в .NET-сервисном коде (нет SynchronizationContext).");
+            "ConfigureAwait не нужен в Throne (server-side, нет SynchronizationContext) и создаёт визуальный шум. " +
+            "Удали .ConfigureAwait(...) — поведение не изменится. Offenders:{0}{1}",
+            Environment.NewLine,
+            string.Join(Environment.NewLine, offenders));
     }
 }

@@ -12,6 +12,7 @@ using Tag = Throne.Domain.Tags.Tag;
 namespace Throne.Infrastructure.Tests.Mongo;
 
 [Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
 public class MongoIntentRepositoryTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);

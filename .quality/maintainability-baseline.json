@@ -1,0 +1,41 @@
+{
+  "profile": "legacy",
+  "version": 1,
+  "violations": [
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Api/Intents/IntentsController.cs",
+      "subject": "IntentsController primary constructor"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Api/Mcp/Tools/IntentTools.cs",
+      "subject": "IntentTools primary constructor"
+    },
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Application/Errors/ErrorCodes.cs",
+      "subject": "ErrorCodes"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/DreamRuns/DreamProposal.cs",
+      "subject": "DreamProposal.DreamProposal"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/DreamRuns/DreamRun.cs",
+      "subject": "DreamRun.DreamRun"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/TextVersions/TextVersion.cs",
+      "subject": "TextVersion primary constructor"
+    },
+    {
+      "code": "METHOD_LOC",
+      "path": "apps/api/src/Throne.Infrastructure/Mongo/MongoIndexInitializer.cs",
+      "subject": "MongoIndexInitializer.CreateIndexesAsync"
+    }
+  ]
+}
