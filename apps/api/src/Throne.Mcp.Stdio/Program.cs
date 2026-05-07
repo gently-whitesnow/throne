@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
-using ModelContextProtocol.Server;
 using Throne.Mcp.Stdio;
 
 // Throne.Mcp.Stdio is a thin STDIO→HTTP MCP proxy. The whole process exists to
@@ -65,18 +64,8 @@ catch (Exception ex)
 
 StdioProxyLog.ProxyReady(bootstrapLogger, upstreamUri, upstreamTools.Count);
 
-builder.Services.AddSingleton(upstream);
-
-foreach (var tool in upstreamTools)
-{
-    var captured = tool;
-    builder.Services.AddSingleton<McpServerTool>(_ => McpServerTool.Create(captured));
-}
-
-var upstreamInstructions = upstream.ServerInstructions;
-
 builder.Services
-    .AddMcpServer(o => o.ServerInstructions = upstreamInstructions)
+    .AddStdioProxy(upstream, upstreamTools)
     .WithStdioServerTransport();
 
 var host = builder.Build();
