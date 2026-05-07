@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
+using Throne.Api.Tests.Infrastructure;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -15,21 +15,17 @@ using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Tests.Intents;
 
-public sealed class ListIntentsEndpointTests : IAsyncLifetime
+[Collection(nameof(MongoIntegrationFixture))]
+public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder().WithReplicaSet().Build();
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        await _mongo.StartAsync();
-
-        var raw = _mongo.GetConnectionString();
-        var separator = raw.Contains('?') ? '&' : '?';
-        var connectionString = $"{raw}{separator}directConnection=true";
+        var connectionString = mongo.ConnectionString;
         var dbName = $"throne_api_{Guid.NewGuid():N}";
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -51,13 +47,13 @@ public sealed class ListIntentsEndpointTests : IAsyncLifetime
         });
 
         _client = _factory.CreateClient();
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
         _client.Dispose();
         await _factory.DisposeAsync();
-        await _mongo.DisposeAsync();
     }
 
     [Fact(DisplayName = "GET /api/v1/intents возвращает пустой массив когда intents нет")]

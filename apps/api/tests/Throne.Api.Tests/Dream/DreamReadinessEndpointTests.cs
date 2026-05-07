@@ -5,23 +5,19 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Testcontainers.MongoDb;
+using Throne.Api.Tests.Infrastructure;
 
 namespace Throne.Api.Tests.Dream;
 
-public sealed class DreamReadinessEndpointTests : IAsyncLifetime
+[Collection(nameof(MongoIntegrationFixture))]
+public sealed class DreamReadinessEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder().WithReplicaSet().Build();
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        await _mongo.StartAsync();
-
-        var raw = _mongo.GetConnectionString();
-        var separator = raw.Contains('?') ? '&' : '?';
-        var connectionString = $"{raw}{separator}directConnection=true";
+        var connectionString = mongo.ConnectionString;
         var dbName = $"throne_dream_{Guid.NewGuid():N}";
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -43,13 +39,13 @@ public sealed class DreamReadinessEndpointTests : IAsyncLifetime
         });
 
         _client = _factory.CreateClient();
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
         _client.Dispose();
         await _factory.DisposeAsync();
-        await _mongo.DisposeAsync();
     }
 
     [Fact(DisplayName = "GET /api/v1/dream-runs/readiness без evidence → status=empty, available_tokens=0")]

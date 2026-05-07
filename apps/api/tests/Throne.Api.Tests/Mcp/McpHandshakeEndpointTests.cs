@@ -3,24 +3,19 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Client;
-using Testcontainers.MongoDb;
+using Throne.Api.Tests.Infrastructure;
 using Throne.Application.Instructions;
 
 namespace Throne.Api.Tests.Mcp;
 
-public sealed class McpHandshakeEndpointTests : IAsyncLifetime
+[Collection(nameof(MongoIntegrationFixture))]
+public sealed class McpHandshakeEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder().WithReplicaSet().Build();
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        await _mongo.StartAsync();
-
-        var raw = _mongo.GetConnectionString();
-        var separator = raw.Contains('?') ? '&' : '?';
-        var connectionString = $"{raw}{separator}directConnection=true";
         var dbName = $"throne_mcp_handshake_{Guid.NewGuid():N}";
 
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -35,20 +30,20 @@ public sealed class McpHandshakeEndpointTests : IAsyncLifetime
             {
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Mongo:ConnectionString"] = connectionString,
+                    ["Mongo:ConnectionString"] = mongo.ConnectionString,
                     ["Mongo:Database"] = dbName,
                 });
             });
         });
 
         _client = _factory.CreateClient();
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
         _client.Dispose();
         await _factory.DisposeAsync();
-        await _mongo.DisposeAsync();
     }
 
     [Fact(DisplayName = "MCP initialize: InitializeResult.instructions = ThroneServerInstructions.MiniRouter (ADR-0014)")]

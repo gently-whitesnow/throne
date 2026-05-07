@@ -12,30 +12,26 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Testcontainers.MongoDb;
+using Throne.Api.Tests.Infrastructure;
 using Throne.Me.Contracts.Generated;
 
 namespace Throne.Api.Tests.Auth;
 
-public sealed class PersonalAccessTokenEndpointTests : IAsyncLifetime
+[Collection(nameof(MongoIntegrationFixture))]
+public sealed class PersonalAccessTokenEndpointTests(MongoFixture mongo) : IAsyncLifetime
 {
     private const string Issuer = "https://auth-gate.test/";
     private const string Audience = "throne";
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder().WithReplicaSet().Build();
     private readonly RSA _rsa = RSA.Create(2048);
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
     private RsaSecurityKey _signingKey = null!;
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync()
     {
-        await _mongo.StartAsync();
-
-        var raw = _mongo.GetConnectionString();
-        var separator = raw.Contains('?') ? '&' : '?';
-        var connectionString = $"{raw}{separator}directConnection=true";
+        var connectionString = mongo.ConnectionString;
         var dbName = $"throne_pat_{Guid.NewGuid():N}";
 
         _signingKey = new RsaSecurityKey(_rsa) { KeyId = "test-key" };
@@ -74,13 +70,13 @@ public sealed class PersonalAccessTokenEndpointTests : IAsyncLifetime
         });
 
         _client = _factory.CreateClient();
+        return Task.CompletedTask;
     }
 
     public async Task DisposeAsync()
     {
         _client.Dispose();
         await _factory.DisposeAsync();
-        await _mongo.DisposeAsync();
         _rsa.Dispose();
     }
 
