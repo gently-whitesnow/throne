@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Auth;
 using Throne.Api.Intents;
 using Throne.Api.Mcp;
+using Throne.Application.Instructions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +11,7 @@ builder.Services.AddThroneMcpCore(builder.Configuration);
 builder.Services.AddControllers(o => o.ModelBinderProviders.Insert(0, new FileParameterModelBinderProvider()));
 
 builder.Services
-    .AddMcpServer()
+    .AddMcpServer(o => o.ServerInstructions = ThroneServerInstructions.MiniRouter)
     .WithHttpTransport();
 
 var app = builder.Build();

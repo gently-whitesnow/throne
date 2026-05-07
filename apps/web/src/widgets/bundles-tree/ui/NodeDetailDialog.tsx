@@ -6,7 +6,7 @@ import type { InstructionDetail } from "@/entities/instruction";
 import { ReplaceInstructionTextForm } from "@/features/replace-instruction-text";
 import { Button } from "@/shared/ui";
 
-import type { BundleEntryNode, SelectedNode, SkillNode } from "../model/types";
+import type { BundleEntryNode, BundleNode, SelectedNode } from "../model/types";
 
 interface NodeDetailDialogProps {
   selection: SelectedNode;
@@ -79,11 +79,8 @@ export function NodeDetailDialog({
         </header>
 
         <div className="flex flex-col gap-4 overflow-y-auto">
-          {selection.kind === "skill" ? (
-            <SkillBody skill={selection.skill} />
-          ) : null}
           {selection.kind === "bundle" ? (
-            <BundleBody skill={selection.skill} />
+            <BundleBody bundle={selection.bundle} />
           ) : null}
           {selection.kind === "entry" ? (
             <EntryBody
@@ -99,34 +96,15 @@ export function NodeDetailDialog({
   );
 }
 
-function SkillBody({ skill }: { skill: SkillNode }) {
-  return (
-    <>
-      <ReadOnlySection
-        title="Описание"
-        body={skill.description}
-        hint="Совпадает с frontmatter SKILL.md."
-      />
-      <ReadOnlySection
-        title="Тело launcher-а (read-only)"
-        body={skill.launcher_body}
-        hint="Это содержимое попадает в файл .claude/skills и .agents/skills как тонкий launcher."
-        monospace
-      />
-    </>
-  );
-}
-
-function BundleBody({ skill }: { skill: SkillNode }) {
+function BundleBody({ bundle }: { bundle: BundleNode }) {
   return (
     <>
       <p className="m-0 text-[13px] leading-relaxed text-base-content/70 [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1.5 [&_code]:py-px [&_code]:font-mono [&_code]:text-xs">
-        При вызове <code>/{skill.name}</code> агент дёргает{" "}
-        <code>get_instruction_bundle(mode="{skill.bundle.mode}")</code> и
-        получает следующие инструкции в этом порядке:
+        При вызове <code>get_instruction_bundle(mode="{bundle.mode}")</code>{" "}
+        агент получает следующие инструкции в этом порядке:
       </p>
       <ol className="m-0 flex list-decimal flex-col gap-1 pl-5 text-[13px] [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1.5 [&_code]:py-px [&_code]:font-mono [&_code]:text-xs">
-        {skill.bundle.includes.map((entry, index) => (
+        {bundle.includes.map((entry, index) => (
           <li key={`${entry.scope}:${entry.kind}:${String(index)}`}>
             <code>{entry.scope}</code>
             <span> · </span>
@@ -169,8 +147,7 @@ function EntryBody({ entry, onSaved, onCancel }: EntryBodyProps) {
     return (
       <p className="m-0 text-[13px] leading-relaxed text-base-content/70">
         У этого user-kind ещё нет записи в Mongo. Создание user-инструкций из UI
-        пока не поддерживается — это runtime-данные (см. ADR-0007), они
-        появляются автоматически при инициализации.
+        пока не поддерживается — они появляются автоматически при инициализации.
       </p>
     );
   }
@@ -246,22 +223,18 @@ function ReadOnlySection({
 }
 
 function selectionEyebrow(selection: SelectedNode) {
-  if (selection.kind === "skill") return "Skill";
   if (selection.kind === "bundle") return "Bundle";
   return "Instruction";
 }
 
 function selectionTitle(selection: SelectedNode) {
-  if (selection.kind === "skill") return `/${selection.skill.name}`;
-  if (selection.kind === "bundle")
-    return `mode: ${selection.skill.bundle.mode}`;
+  if (selection.kind === "bundle") return `mode: ${selection.bundle.mode}`;
   return `${selection.entry.scope} · ${selection.entry.kind}`;
 }
 
 function selectionSubtitle(selection: SelectedNode) {
-  if (selection.kind === "skill") return selection.skill.description;
   if (selection.kind === "bundle") {
-    return `Состав bundle для скилла /${selection.skill.name}`;
+    return `Состав bundle для mode "${selection.bundle.mode}"`;
   }
-  return `Используется в bundle mode "${selection.skill.bundle.mode}"`;
+  return `Используется в bundle mode "${selection.bundle.mode}"`;
 }

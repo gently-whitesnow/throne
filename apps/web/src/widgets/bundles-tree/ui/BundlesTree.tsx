@@ -4,8 +4,7 @@ import {
   FileText,
   Layers,
   Lock,
-  Pencil,
-  ScrollText
+  Pencil
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -14,18 +13,18 @@ import { HttpError, httpGet, instructionsEndpoints } from "@/shared/api";
 
 import type {
   BundleEntryNode,
-  SelectedNode,
-  SkillNode,
-  SkillsTreeData
+  BundleNode,
+  BundlesTreeData,
+  SelectedNode
 } from "../model/types";
 import { NodeDetailDialog } from "./NodeDetailDialog";
 
 type LoadState =
   | { kind: "loading" }
-  | { kind: "ready"; tree: SkillsTreeData }
+  | { kind: "ready"; tree: BundlesTreeData }
   | { kind: "error"; message: string };
 
-export function SkillsTree() {
+export function BundlesTree() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [reloadKey, setReloadKey] = useState(0);
@@ -34,17 +33,16 @@ export function SkillsTree() {
   useEffect(() => {
     const controller = new AbortController();
     setState({ kind: "loading" });
-    httpGet<SkillsTreeData>(
-      instructionsEndpoints.getSkillsTree(),
+    httpGet<BundlesTreeData>(
+      instructionsEndpoints.getBundlesTree(),
       controller.signal
     )
       .then((tree) => {
         setState({ kind: "ready", tree });
         setExpanded((prev) => {
           const next = { ...prev };
-          for (const skill of tree.skills) {
-            next[skillKey(skill)] = next[skillKey(skill)] ?? true;
-            next[bundleKey(skill)] = next[bundleKey(skill)] ?? true;
+          for (const bundle of tree.bundles) {
+            next[bundleKey(bundle)] = next[bundleKey(bundle)] ?? true;
           }
           return next;
         });
@@ -53,8 +51,8 @@ export function SkillsTree() {
         if (controller.signal.aborted) return;
         const message =
           err instanceof HttpError
-            ? `Не удалось загрузить дерево скиллов (${String(err.status)}).`
-            : "Не удалось загрузить дерево скиллов.";
+            ? `Не удалось загрузить дерево бандлов (${String(err.status)}).`
+            : "Не удалось загрузить дерево бандлов.";
         setState({ kind: "error", message });
       });
     return () => {
@@ -71,21 +69,24 @@ export function SkillsTree() {
     setReloadKey((k) => k + 1);
   }, []);
 
-  const skills = useMemo(
-    () => (state.kind === "ready" ? state.tree.skills : []),
+  const bundles = useMemo(
+    () => (state.kind === "ready" ? state.tree.bundles : []),
     [state]
   );
 
   return (
     <section
       className="mx-auto flex max-w-5xl flex-col gap-4"
-      aria-label="Дерево скиллов"
+      aria-label="Дерево бандлов"
     >
       <header className="flex flex-col gap-1.5">
-        <h2 className="m-0 text-xl font-bold tracking-tight">Skills</h2>
+        <h2 className="m-0 text-xl font-bold tracking-tight">Bundles</h2>
         <p className="m-0 text-sm leading-relaxed text-base-content/70">
-          Точное содержимое, которое попадает агенту при вызове команды.
-          Источник правды —{" "}
+          Точное содержимое, которое попадает агенту при{" "}
+          <code className="rounded bg-base-200 px-1.5 py-px font-mono text-xs">
+            get_instruction_bundle(mode)
+          </code>
+          . Источник правды —{" "}
           <code className="rounded bg-base-200 px-1.5 py-px font-mono text-xs">
             specs/manifest/throne-skills.yaml
           </code>
@@ -102,17 +103,17 @@ export function SkillsTree() {
             {state.message}
           </p>
         )}
-        {state.kind === "ready" && skills.length === 0 && (
+        {state.kind === "ready" && bundles.length === 0 && (
           <p className="m-0 p-4 text-[13px] text-base-content/60">
-            В манифесте нет ни одного скилла.
+            В манифесте нет ни одного бандла.
           </p>
         )}
-        {state.kind === "ready" && skills.length > 0 && (
+        {state.kind === "ready" && bundles.length > 0 && (
           <ul className="m-0 list-none p-0" role="tree">
-            {skills.map((skill) => (
-              <SkillRow
-                key={skill.name}
-                skill={skill}
+            {bundles.map((bundle) => (
+              <BundleRow
+                key={bundle.mode}
+                bundle={bundle}
                 expanded={expanded}
                 onToggle={toggle}
                 onOpen={(node) => {
@@ -137,68 +138,45 @@ export function SkillsTree() {
   );
 }
 
-interface SkillRowProps {
-  skill: SkillNode;
+interface BundleRowProps {
+  bundle: BundleNode;
   expanded: Record<string, boolean>;
   onToggle: (key: string) => void;
   onOpen: (node: SelectedNode) => void;
 }
 
-function SkillRow({ skill, expanded, onToggle, onOpen }: SkillRowProps) {
-  const skillOpen = expanded[skillKey(skill)] ?? true;
-  const bundleOpen = expanded[bundleKey(skill)] ?? true;
+function BundleRow({ bundle, expanded, onToggle, onOpen }: BundleRowProps) {
+  const open = expanded[bundleKey(bundle)] ?? true;
 
   return (
-    <li className="mt-1 first:mt-0" role="treeitem" aria-expanded={skillOpen}>
+    <li className="mt-1 first:mt-0" role="treeitem" aria-expanded={open}>
       <NodeRow
         expandable
-        expanded={skillOpen}
+        expanded={open}
         onExpand={() => {
-          onToggle(skillKey(skill));
+          onToggle(bundleKey(bundle));
         }}
-        icon={<ScrollText aria-hidden size={16} strokeWidth={2} />}
-        label={`/${skill.name}`}
-        meta={skill.description}
+        icon={<Layers aria-hidden size={16} strokeWidth={2} />}
+        label={`mode: ${bundle.mode}`}
+        meta={`${String(bundle.includes.length)} инструкций`}
         onOpen={() => {
-          onOpen({ kind: "skill", skill });
+          onOpen({ kind: "bundle", bundle });
         }}
       />
-      {skillOpen ? (
+      {open ? (
         <ul
           className="m-0 ml-4 list-none border-l border-dashed border-base-300 p-0"
           role="group"
         >
-          <li role="treeitem" aria-expanded={bundleOpen}>
-            <NodeRow
-              expandable
-              expanded={bundleOpen}
-              onExpand={() => {
-                onToggle(bundleKey(skill));
-              }}
-              icon={<Layers aria-hidden size={15} strokeWidth={2} />}
-              label={`bundle: ${skill.bundle.mode}`}
-              meta={`${String(skill.bundle.includes.length)} инструкций`}
+          {bundle.includes.map((entry, index) => (
+            <EntryRow
+              key={`${entry.scope}:${entry.kind}:${String(index)}`}
+              entry={entry}
               onOpen={() => {
-                onOpen({ kind: "bundle", skill });
+                onOpen({ kind: "entry", bundle, entry });
               }}
             />
-            {bundleOpen ? (
-              <ul
-                className="m-0 ml-4 list-none border-l border-dashed border-base-300 p-0"
-                role="group"
-              >
-                {skill.bundle.includes.map((entry, index) => (
-                  <EntryRow
-                    key={`${entry.scope}:${entry.kind}:${String(index)}`}
-                    entry={entry}
-                    onOpen={() => {
-                      onOpen({ kind: "entry", skill, entry });
-                    }}
-                  />
-                ))}
-              </ul>
-            ) : null}
-          </li>
+          ))}
         </ul>
       ) : null}
     </li>
@@ -307,10 +285,6 @@ function NodeRow({
   );
 }
 
-function skillKey(skill: SkillNode) {
-  return `skill:${skill.name}`;
-}
-
-function bundleKey(skill: SkillNode) {
-  return `bundle:${skill.name}`;
+function bundleKey(bundle: BundleNode) {
+  return `bundle:${bundle.mode}`;
 }

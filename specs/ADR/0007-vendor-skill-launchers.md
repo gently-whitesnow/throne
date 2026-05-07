@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0014](0014-mcp-initialize-instructions-routing.md). Vendor skill launchers и архитектурный тест парности удалены; runtime-инструкции доставляются через MCP `InitializeResult.instructions`. Манифест [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) продолжает быть source of truth для `system_instructions` + `bundles` (см. Update 2026-05-02), но секции `skills:` в нём больше нет.
 
 ## Context
 

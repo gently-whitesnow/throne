@@ -73,8 +73,10 @@ foreach (var tool in upstreamTools)
     builder.Services.AddSingleton<McpServerTool>(_ => McpServerTool.Create(captured));
 }
 
+var upstreamInstructions = upstream.ServerInstructions;
+
 builder.Services
-    .AddMcpServer()
+    .AddMcpServer(o => o.ServerInstructions = upstreamInstructions)
     .WithStdioServerTransport();
 
 var host = builder.Build();

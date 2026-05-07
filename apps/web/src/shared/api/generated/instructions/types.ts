@@ -61,7 +61,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/instructions/skills-tree": {
+    "/api/v1/instructions/bundles-tree": {
         parameters: {
             query?: never;
             header?: never;
@@ -69,10 +69,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Precomputed skill → bundle → instructions tree.
-         * @description Returns the runtime composition that the agent receives when invoking each skill. Source of truth is the declarative skill manifest (specs/manifest/throne-skills.yaml). For every skill in the manifest the response includes the bundle mode, its ordered includes (system + user instructions), and full text payload of each entry. User-scope entries carry editable=true; system entries are read-only synthetic ids.
+         * Precomputed bundle → instructions tree.
+         * @description Returns the runtime composition that the agent receives for each bundle mode. Source of truth is the declarative manifest (specs/manifest/throne-skills.yaml). For every bundle in the manifest the response includes the bundle mode and its ordered includes (system + user instructions) with full text payload. User-scope entries carry editable=true; system entries are read-only synthetic ids.
          */
-        get: operations["getSkillsTree"];
+        get: operations["getBundlesTree"];
         put?: never;
         post?: never;
         delete?: never;
@@ -116,17 +116,8 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
-        SkillsTreeDto: {
-            skills: components["schemas"]["SkillNodeDto"][];
-        };
-        SkillNodeDto: {
-            /** @description Skill identifier (slug, e.g. tinterview/twork/tfix/tdream). */
-            name: string;
-            /** @description Short skill description (matches launcher frontmatter). */
-            description: string;
-            /** @description Full body of the launcher file (read-only — projection of manifest). */
-            launcher_body: string;
-            bundle: components["schemas"]["BundleNodeDto"];
+        BundlesTreeDto: {
+            bundles: components["schemas"]["BundleNodeDto"][];
         };
         BundleNodeDto: {
             /** @description Bundle mode (interview | work | dream | fix). */
@@ -319,7 +310,7 @@ export interface operations {
             };
         };
     };
-    getSkillsTree: {
+    getBundlesTree: {
         parameters: {
             query?: never;
             header?: never;
@@ -334,7 +325,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SkillsTreeDto"];
+                    "application/json": components["schemas"]["BundlesTreeDto"];
                 };
             };
         };

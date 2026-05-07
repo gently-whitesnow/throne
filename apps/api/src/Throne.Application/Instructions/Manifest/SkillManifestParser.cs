@@ -29,21 +29,11 @@ public static class SkillManifestParser
                     Includes: b.Includes
                         .Select(i => new BundleInclude(i.Scope ?? "", i.Kind ?? ""))
                         .ToArray()))
-                .ToArray(),
-            Skills: raw.Skills
-                .Select(s => new SkillDefinition(
-                    Name: s.Name ?? "",
-                    Description: s.Description ?? "",
-                    BundleMode: s.BundleMode ?? "",
-                    LauncherBody: NormalizeBody(s.LauncherBody)))
                 .ToArray());
 
         Validate(manifest);
         return manifest;
     }
-
-    private static string NormalizeBody(string? body) =>
-        body is null ? string.Empty : body.Replace("\r\n", "\n", StringComparison.Ordinal);
 
     private static void Validate(SkillManifest m)
     {
@@ -106,32 +96,6 @@ public static class SkillManifestParser
                 }
             }
         }
-
-        var skillNames = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var s in m.Skills)
-        {
-            if (string.IsNullOrWhiteSpace(s.Name))
-            {
-                throw new SkillManifestException("skills: empty name.");
-            }
-            if (!skillNames.Add(s.Name))
-            {
-                throw new SkillManifestException($"skills: duplicate name '{s.Name}'.");
-            }
-            if (string.IsNullOrWhiteSpace(s.Description))
-            {
-                throw new SkillManifestException($"skills: '{s.Name}' has no description.");
-            }
-            if (!bundleModes.Contains(s.BundleMode))
-            {
-                throw new SkillManifestException(
-                    $"skills: '{s.Name}' references bundle_mode '{s.BundleMode}' that is not in bundles.");
-            }
-            if (string.IsNullOrWhiteSpace(s.LauncherBody))
-            {
-                throw new SkillManifestException($"skills: '{s.Name}' has no launcher_body.");
-            }
-        }
     }
 
     private sealed class RawManifest
@@ -139,7 +103,6 @@ public static class SkillManifestParser
         public int Version { get; set; }
         public List<RawSystemInstruction> SystemInstructions { get; set; } = new();
         public List<RawBundle> Bundles { get; set; } = new();
-        public List<RawSkill> Skills { get; set; } = new();
     }
 
     private sealed class RawSystemInstruction
@@ -158,14 +121,6 @@ public static class SkillManifestParser
     {
         public string? Scope { get; set; }
         public string? Kind { get; set; }
-    }
-
-    private sealed class RawSkill
-    {
-        public string? Name { get; set; }
-        public string? Description { get; set; }
-        public string? BundleMode { get; set; }
-        public string? LauncherBody { get; set; }
     }
 }
 

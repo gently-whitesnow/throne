@@ -2,16 +2,10 @@ using System.Text.Json.Serialization;
 
 namespace Throne.Application.Instructions;
 
-public sealed record GetSkillsTreeQuery;
+public sealed record GetBundlesTreeQuery;
 
-public sealed record SkillsTree(
-    [property: JsonPropertyName("skills")] IReadOnlyList<SkillNode> Skills);
-
-public sealed record SkillNode(
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("description")] string Description,
-    [property: JsonPropertyName("launcher_body")] string LauncherBody,
-    [property: JsonPropertyName("bundle")] BundleNode Bundle);
+public sealed record BundlesTree(
+    [property: JsonPropertyName("bundles")] IReadOnlyList<BundleNode> Bundles);
 
 public sealed record BundleNode(
     [property: JsonPropertyName("mode")] string Mode,

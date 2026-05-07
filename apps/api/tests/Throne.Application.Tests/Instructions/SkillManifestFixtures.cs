@@ -30,15 +30,7 @@ internal static class SkillManifestFixtures
             Bundle(InstructionBundleModeNames.Fix, InstructionKindNames.Fix),
         };
 
-        var skills = new[]
-        {
-            new SkillDefinition("tinterview", "interview launcher", InstructionBundleModeNames.Interview, "interview body"),
-            new SkillDefinition("twork", "work launcher", InstructionBundleModeNames.Work, "work body"),
-            new SkillDefinition("tfix", "fix launcher", InstructionBundleModeNames.Fix, "fix body"),
-            new SkillDefinition("tdream", "dream launcher", InstructionBundleModeNames.Dream, "dream body"),
-        };
-
-        return new SkillManifest(1, systemInstructions, bundles, skills);
+        return new SkillManifest(1, systemInstructions, bundles);
     }
 
     public static InMemorySkillManifestProvider Provider() => new(Sample());

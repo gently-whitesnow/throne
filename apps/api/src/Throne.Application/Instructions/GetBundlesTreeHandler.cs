@@ -5,15 +5,14 @@ using Throne.Domain.Instructions;
 
 namespace Throne.Application.Instructions;
 
-public sealed class GetSkillsTreeHandler(
+public sealed class GetBundlesTreeHandler(
     ISkillManifestProvider manifestProvider,
     IInstructionRepository repository,
     ICurrentUserAccessor currentUser)
 {
-    public async Task<SkillsTree> HandleAsync(GetSkillsTreeQuery _, CancellationToken ct)
+    public async Task<BundlesTree> HandleAsync(GetBundlesTreeQuery _, CancellationToken ct)
     {
         var manifest = manifestProvider.Current;
-        var bundlesByMode = manifest.Bundles.ToDictionary(b => b.Mode, StringComparer.Ordinal);
 
         var allUserKinds = manifest.Bundles
             .SelectMany(b => b.Includes)
@@ -30,14 +29,9 @@ public sealed class GetSkillsTreeHandler(
             .GroupBy(i => i.Kind, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.OrderBy(i => i.CreatedAt).First(), StringComparer.Ordinal);
 
-        var skills = new List<SkillNode>(manifest.Skills.Count);
-        foreach (var skill in manifest.Skills)
+        var bundles = new List<BundleNode>(manifest.Bundles.Count);
+        foreach (var bundle in manifest.Bundles)
         {
-            if (!bundlesByMode.TryGetValue(skill.BundleMode, out var bundle))
-            {
-                continue;
-            }
-
             var entries = new List<BundleEntryNode>(bundle.Includes.Count);
             foreach (var inc in bundle.Includes)
             {
@@ -68,13 +62,9 @@ public sealed class GetSkillsTreeHandler(
                 }
             }
 
-            skills.Add(new SkillNode(
-                Name: skill.Name,
-                Description: skill.Description,
-                LauncherBody: skill.LauncherBody,
-                Bundle: new BundleNode(skill.BundleMode, entries)));
+            bundles.Add(new BundleNode(bundle.Mode, entries));
         }
 
-        return new SkillsTree(skills);
+        return new BundlesTree(bundles);
     }
 }

@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Проектные правила для агентов. Skill-ы, bundle-маппинг `mode → kinds` и тексты system-инструкций (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это единственный источник правды для backend runtime, frontend `/instructions` дерева и будущего installer-а skill-файлов.
+Проектные правила для агентов. Bundle-маппинг `mode → kinds` и тексты system-инструкций (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это единственный источник правды для backend runtime и frontend `/instructions` дерева. Runtime-инструкции попадают агенту через MCP `InitializeResult.instructions` (mini-router) и далее `get_instruction_bundle(mode, intent_id?)` — см. [ADR-0014](ADR/0014-mcp-initialize-instructions-routing.md). Локальных skill-launcher файлов в `.claude/skills/` или `.agents/skills/` больше нет.
 
 ## Перед завершением хода
 

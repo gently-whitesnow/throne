@@ -5,8 +5,7 @@ namespace Throne.Application.Tests.Instructions.Manifest;
 
 public class SkillManifestParserTests
 {
-    private static readonly string[] ExpectedSkillNames =
-        ["tinterview", "twork", "tfix", "tdream"];
+    private static readonly string[] ExpectedBundleModes = ["interview", "work", "dream", "fix"];
 
     private const string ValidYaml = """
         version: 1
@@ -22,16 +21,9 @@ public class SkillManifestParserTests
               - { scope: system, kind: work }
               - { scope: user, kind: common }
               - { scope: user, kind: work }
-        skills:
-          - name: twork
-            description: "twork desc"
-            bundle_mode: work
-            launcher_body: |
-              launcher line one
-              launcher line two
         """;
 
-    [Fact(DisplayName = "SkillManifestParser парсит валидный YAML с system/bundles/skills")]
+    [Fact(DisplayName = "SkillManifestParser парсит валидный YAML с system/bundles")]
     public void Parses_valid_manifest()
     {
         var manifest = SkillManifestParser.Parse(ValidYaml);
@@ -43,9 +35,6 @@ public class SkillManifestParserTests
         manifest.Bundles.Should().HaveCount(1);
         manifest.Bundles[0].Mode.Should().Be("work");
         manifest.Bundles[0].Includes.Should().HaveCount(4);
-        manifest.Skills.Should().HaveCount(1);
-        manifest.Skills[0].Name.Should().Be("twork");
-        manifest.Skills[0].LauncherBody.Should().Contain("launcher line one\nlauncher line two");
     }
 
     [Fact(DisplayName = "SkillManifestParser отвергает версию ≠ 1")]
@@ -65,35 +54,9 @@ public class SkillManifestParserTests
               - kind: not_a_real_kind
                 text: "x"
             bundles: []
-            skills: []
             """;
         var act = () => SkillManifestParser.Parse(yaml);
         act.Should().Throw<SkillManifestException>().WithMessage("*not_a_real_kind*");
-    }
-
-    [Fact(DisplayName = "SkillManifestParser отвергает skill, ссылающийся на отсутствующий bundle_mode")]
-    public void Rejects_skill_with_missing_bundle_mode()
-    {
-        var yaml = """
-            version: 1
-            system_instructions:
-              - kind: common
-                text: "x"
-              - kind: work
-                text: "x"
-            bundles:
-              - mode: work
-                includes:
-                  - { scope: system, kind: common }
-                  - { scope: system, kind: work }
-            skills:
-              - name: tdream
-                description: "x"
-                bundle_mode: dream
-                launcher_body: "x"
-            """;
-        var act = () => SkillManifestParser.Parse(yaml);
-        act.Should().Throw<SkillManifestException>().WithMessage("*dream*");
     }
 
     [Fact(DisplayName = "SkillManifestParser отвергает bundle, требующий system kind без записи в system_instructions")]
@@ -109,7 +72,6 @@ public class SkillManifestParserTests
                 includes:
                   - { scope: system, kind: common }
                   - { scope: system, kind: work }
-            skills: []
             """;
         var act = () => SkillManifestParser.Parse(yaml);
         act.Should().Throw<SkillManifestException>().WithMessage("*work*system_instructions*");
@@ -123,28 +85,28 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.Skills.Select(s => s.Name).Should().BeEquivalentTo(ExpectedSkillNames);
         manifest.SystemInstructions.Should().HaveCount(5);
         manifest.Bundles.Should().HaveCount(4);
+        manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
     }
 
     private static string ResolveManifestPath()
     {
         // The manifest is also published into bin output via Throne.Api.csproj Content,
-        // so we anchor on .claude/skills (only present at repo root) to find the source.
+        // so we anchor on specs/AGENTS.local.md (only present at repo root) to find the source.
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
             var manifestPath = Path.Combine(dir.FullName, "specs", "manifest", "throne-skills.yaml");
-            var skillsDir = Path.Combine(dir.FullName, ".claude", "skills");
-            if (File.Exists(manifestPath) && Directory.Exists(skillsDir))
+            var anchor = Path.Combine(dir.FullName, "specs", "AGENTS.local.md");
+            if (File.Exists(manifestPath) && File.Exists(anchor))
             {
                 return manifestPath;
             }
             dir = dir.Parent;
         }
         throw new FileNotFoundException(
-            "Cannot locate repo-root throne-skills.yaml (looked for specs/manifest/throne-skills.yaml + .claude/skills) walking up from " +
+            "Cannot locate repo-root throne-skills.yaml (looked for specs/manifest/throne-skills.yaml + specs/AGENTS.local.md) walking up from " +
             AppContext.BaseDirectory);
     }
 }

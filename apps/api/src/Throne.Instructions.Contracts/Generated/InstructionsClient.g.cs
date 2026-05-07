@@ -76,52 +76,12 @@ namespace Throne.Instructions.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class SkillsTreeDto
+    public partial class BundlesTreeDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("skills")]
+        [System.Text.Json.Serialization.JsonPropertyName("bundles")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<SkillNodeDto> Skills { get; set; } = new System.Collections.ObjectModel.Collection<SkillNodeDto>();
-
-        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class SkillNodeDto
-    {
-
-        /// <summary>
-        /// Skill identifier (slug, e.g. tinterview/twork/tfix/tdream).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("name")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Name { get; set; }
-
-        /// <summary>
-        /// Short skill description (matches launcher frontmatter).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Description { get; set; }
-
-        /// <summary>
-        /// Full body of the launcher file (read-only — projection of manifest).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("launcher_body")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Launcher_body { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("bundle")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public BundleNodeDto Bundle { get; set; } = new BundleNodeDto();
+        public System.Collections.Generic.ICollection<BundleNodeDto> Bundles { get; set; } = new System.Collections.ObjectModel.Collection<BundleNodeDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

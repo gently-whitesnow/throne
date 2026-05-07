@@ -91,16 +91,16 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-  /api/v1/instructions/skills-tree:
+  /api/v1/instructions/bundles-tree:
     get:
-      operationId: getSkillsTree
+      operationId: getBundlesTree
       tags: [Instructions]
-      summary: Precomputed skill → bundle → instructions tree.
+      summary: Precomputed bundle → instructions tree.
       description: >
-        Returns the runtime composition that the agent receives when invoking each skill.
-        Source of truth is the declarative skill manifest (specs/manifest/throne-skills.yaml).
-        For every skill in the manifest the response includes the bundle mode, its ordered
-        includes (system + user instructions), and full text payload of each entry.
+        Returns the runtime composition that the agent receives for each bundle mode.
+        Source of truth is the declarative manifest (specs/manifest/throne-skills.yaml).
+        For every bundle in the manifest the response includes the bundle mode and its
+        ordered includes (system + user instructions) with full text payload.
         User-scope entries carry editable=true; system entries are read-only synthetic ids.
       responses:
         '200':
@@ -108,7 +108,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SkillsTreeDto'
+                $ref: '#/components/schemas/BundlesTreeDto'
   /api/v1/instructions/{id}/versions:
     get:
       operationId: listInstructionVersions
@@ -167,34 +167,15 @@ components:
         updated_at:
           type: string
           format: date-time
-    SkillsTreeDto:
+    BundlesTreeDto:
       type: object
       required:
-        - skills
+        - bundles
       properties:
-        skills:
+        bundles:
           type: array
           items:
-            $ref: '#/components/schemas/SkillNodeDto'
-    SkillNodeDto:
-      type: object
-      required:
-        - name
-        - description
-        - launcher_body
-        - bundle
-      properties:
-        name:
-          type: string
-          description: Skill identifier (slug, e.g. tinterview/twork/tfix/tdream).
-        description:
-          type: string
-          description: Short skill description (matches launcher frontmatter).
-        launcher_body:
-          type: string
-          description: Full body of the launcher file (read-only — projection of manifest).
-        bundle:
-          $ref: '#/components/schemas/BundleNodeDto'
+            $ref: '#/components/schemas/BundleNodeDto'
     BundleNodeDto:
       type: object
       required:

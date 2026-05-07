@@ -14,13 +14,13 @@ public sealed class InstructionsController(
     GetInstructionHandler getHandler,
     ReplaceInstructionTextHandler replaceHandler,
     ListInstructionVersionsHandler listVersionsHandler,
-    GetSkillsTreeHandler skillsTreeHandler) : InstructionsControllerBase
+    GetBundlesTreeHandler bundlesTreeHandler) : InstructionsControllerBase
 {
     private const int TextShortMaxLength = 140;
 
-    public override async Task<ActionResult<SkillsTreeDto>> GetSkillsTree()
+    public override async Task<ActionResult<BundlesTreeDto>> GetBundlesTree()
     {
-        var tree = await skillsTreeHandler.HandleAsync(new GetSkillsTreeQuery(), HttpContext.RequestAborted);
+        var tree = await bundlesTreeHandler.HandleAsync(new GetBundlesTreeQuery(), HttpContext.RequestAborted);
         return Ok(ToDto(tree));
     }
 
@@ -174,15 +174,15 @@ public sealed class InstructionsController(
     private static string TextShort(string text) =>
         text.Length <= TextShortMaxLength ? text : text[..TextShortMaxLength];
 
-    private static SkillsTreeDto ToDto(SkillsTree tree)
+    private static BundlesTreeDto ToDto(BundlesTree tree)
     {
-        var dto = new SkillsTreeDto();
-        foreach (var skill in tree.Skills)
+        var dto = new BundlesTreeDto();
+        foreach (var bundle in tree.Bundles)
         {
-            var bundle = new BundleNodeDto { Mode = skill.Bundle.Mode };
-            foreach (var entry in skill.Bundle.Includes)
+            var bundleDto = new BundleNodeDto { Mode = bundle.Mode };
+            foreach (var entry in bundle.Includes)
             {
-                bundle.Includes.Add(new BundleEntryNodeDto
+                bundleDto.Includes.Add(new BundleEntryNodeDto
                 {
                     Scope = entry.Scope,
                     Kind = entry.Kind,
@@ -193,14 +193,7 @@ public sealed class InstructionsController(
                     Present = entry.Present,
                 });
             }
-
-            dto.Skills.Add(new SkillNodeDto
-            {
-                Name = skill.Name,
-                Description = skill.Description,
-                Launcher_body = skill.LauncherBody,
-                Bundle = bundle,
-            });
+            dto.Bundles.Add(bundleDto);
         }
         return dto;
     }

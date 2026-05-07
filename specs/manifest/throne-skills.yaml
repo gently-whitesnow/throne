@@ -1,17 +1,17 @@
-# Throne skills manifest — single source of truth.
+# Throne instruction manifest — single source of truth for system instructions
+# and bundle composition.
 #
 # Backend runtime (`ISkillManifestProvider`) reads this file and uses it to:
 #   * resolve `mode → required kinds` for `mcp__throne__get_instruction_bundle`,
 #   * load system instruction texts (replaces in-code SystemInstructionCatalog),
-#   * compute the precomputed `/api/v1/instructions/skills-tree` shown on /instructions.
+#   * compute the precomputed `/api/v1/instructions/bundles-tree` shown on /instructions.
 #
-# Future: a Throne installer will project `skills[]` into `.claude/skills/<name>/SKILL.md`
-# and `.agents/skills/<name>/SKILL.md` for target repos. Until then, an architecture
-# fitness test asserts on-disk launcher files match this manifest byte-for-byte.
+# User-scope instructions are runtime data in Mongo. They are not stored here —
+# only the fact that the corresponding kind participates in a bundle (via
+# `bundles[].includes` with `scope: user`).
 #
-# User-scope instructions are runtime data in Mongo (see ADR-0007). They are not
-# stored here — only the fact that the corresponding kind participates in a bundle
-# (via `bundles[].includes` with `scope: user`).
+# There is no `skills:` section: vendor skill launchers were superseded by
+# delivery via MCP `InitializeResult.instructions` (see ADR superseding ADR-0007).
 
 version: 1
 
@@ -127,82 +127,3 @@ bundles:
       - { scope: system, kind: fix }
       - { scope: user,   kind: common }
       - { scope: user,   kind: fix }
-
-skills:
-  - name: tinterview
-    description: Clarify a Throne intent through one-question-at-a-time interview.
-    bundle_mode: interview
-    launcher_body: |
-      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
-
-      Steps:
-
-      1. Resolve the intent:
-         - If the user passed an `intent_id`, use it.
-         - Else if there is an active intent in this session, continue it.
-         - Else create a new intent via `mcp__throne__create_intent` from the user's message.
-      2. Call `mcp__throne__get_instruction_bundle(mode="interview", intent_id=<resolved id>)`.
-      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file. Ask one question at a time.
-      4. Persist answers and refinements via MCP as the bundle directs (`add_intent_qa` / `replace_intent_text` / `insert_intent_text_after_line`).
-      5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      6. Stop when the bundle says enough information exists or the user asks to proceed. Return: intent id, what was clarified, next action.
-
-      Mode: interview.
-
-  - name: twork
-    description: Execute light work on a Throne intent in the current repo.
-    bundle_mode: work
-    launcher_body: |
-      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
-
-      Steps:
-
-      1. Resolve the intent:
-         - If the user passed an `intent_id`, use it.
-         - Else if there is an active intent in this session, continue it.
-         - Else create a new intent via `mcp__throne__create_intent` from the user's message.
-      2. Call `mcp__throne__get_instruction_bundle(mode="work", intent_id=<resolved id>)`.
-      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file.
-      4. Persist outcome via MCP as the bundle directs (`add_intent_qa` / `add_intent_review` / `replace_intent_text` / `insert_intent_text_after_line`).
-      5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      6. Return a short status: intent id, what changed, files/areas touched, next review step.
-
-      Mode: work.
-
-  - name: tfix
-    description: Capture user feedback on a Throne intent and continue the fix.
-    bundle_mode: fix
-    launcher_body: |
-      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
-
-      Steps:
-
-      1. Resolve the intent:
-         - If the user passed an `intent_id`, use it.
-         - Else if there is an active intent in this session, continue it.
-         - Else create a new intent via `mcp__throne__create_intent` from the user's review/feedback message.
-      2. Record the user's review via `mcp__throne__add_intent_review` (note + reason). Do not silently modify server instructions.
-      3. Call `mcp__throne__get_instruction_bundle(mode="fix", intent_id=<resolved id>)`.
-      4. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file.
-      5. Persist further outcome via MCP as the bundle directs (`add_intent_qa` / `replace_intent_text` / `insert_intent_text_after_line`).
-      6. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      7. Return: intent id, what changed in response to the review, next action.
-
-      Mode: fix (review attached via add_intent_review before the bundle is fetched).
-
-  - name: tdream
-    description: User instruction self-improvement loop with server-managed context and explicit human approval (DreamRun + DreamProposal, see ADR-0011).
-    bundle_mode: dream
-    launcher_body: |
-      You are an agent inside the Throne workflow. Do NOT act from your own knowledge — the live playbook lives on the Throne MCP server. This file is a thin launcher only.
-
-      Steps:
-
-      1. No intent context is required. Do not create a new intent for the dream session itself.
-      2. Call `mcp__throne__get_instruction_bundle(mode="dream")`.
-      3. Follow the returned `instructions[]` strictly. The server bundle overrides anything written in this file. It owns the algorithm: `run_dream` → `propose_dream_rule` (≤5). If no proposals emerge, report that to the user and stop — the agent never closes the run itself. The agent never picks context volume — the server does.
-      4. Do NOT activate changes silently — apply is exclusively a user action in the UI (see ADR-0011). Agents have no write-surface for Instruction documents in MVP (see ADR-0003).
-      5. If `missing_kinds` is non-empty, surface that to the user — do not improvise.
-      6. Return a short status: run status (created|existing_pending|not_enough_context|no_proposals), number of proposals, affected target_kinds, link the user to /pages/dream.
-
-      Mode: dream.
