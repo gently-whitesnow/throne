@@ -1,0 +1,21 @@
+# Throne maintainability thresholds for built-in .NET code metrics analyzers.
+# Profile: legacy (brownfield baseline). Tightening goes through a separate intent.
+# See specs/AGENTS.local.md (Maintainability gate) for governance.
+
+# Cyclomatic complexity per method.
+CA1502: 30
+
+# Cyclomatic complexity average per type.
+CA1502(Type): 10
+
+# Maintainability index minimum.
+CA1505: 10
+
+# Class coupling per method.
+CA1506: 50
+
+# Class coupling per type.
+CA1506(Type): 120
+
+# Inheritance depth maximum.
+CA1501: 8

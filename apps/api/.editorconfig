@@ -19,6 +19,13 @@ dotnet_sort_system_directives_first = true
 csharp_new_line_before_open_brace = all
 csharp_prefer_braces = true:warning
 
+# Code metrics analyzers (thresholds in apps/api/CodeMetricsConfig.txt).
+# With TreatWarningsAsErrors=true these become blocking on backend-build.
+dotnet_diagnostic.CA1501.severity = warning
+dotnet_diagnostic.CA1502.severity = warning
+dotnet_diagnostic.CA1505.severity = warning
+dotnet_diagnostic.CA1506.severity = warning
+
 # Nullability
 dotnet_style_null_propagation = true:warning
 dotnet_style_coalesce_expression = true:warning
@@ -51,3 +58,187 @@ dotnet_naming_symbols.private_static_readonly_fields.required_modifiers = static
 # Tests use snake_case method names (idiomatic xUnit) — disable CA1707
 [**/tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
+
+# Pre-existing CA1502 violations on aggregate roots / domain types.
+# TODO(intent:84be552145af4ca3bdab3584aa61d46e): декомпозировать и снять suppress.
+# До этого момента per-type cyclomatic threshold для перечисленных файлов выключен,
+# глобальный порог в CodeMetricsConfig.txt остаётся CA1502(Type): 10.
+[src/Throne.Domain/DreamRuns/DreamProposal.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Domain/DreamRuns/DreamRun.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Domain/Instructions/Instruction.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Domain/Intents/Intent.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Domain/Intents/IntentTextSearch.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Domain/Tags/Tag.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/DreamRuns/ApplyDreamProposalHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/DreamRuns/ProposeDreamRuleHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/DreamRuns/RunDreamHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/Instructions/GetBundlesTreeHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/Instructions/GetInstructionBundleHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.CA1506.severity = none
+
+[src/Throne.Application/Instructions/Manifest/SkillManifestParser.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/Intents/ReadIntentTextHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/Intents/SetIntentTagsHandler.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Domain.Tests/DreamRuns/DreamRunTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Manifest/YamlFileSkillManifestProvider.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/DreamRunDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/InstructionDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/IntentAttachmentDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/IntentDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/IntentQaDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/IntentReviewDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/IntentStatusChangeDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/McpCallLogDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/TextVersionDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/McpArgumentSummaries.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoDreamRunRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoInstructionRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.CA1506.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoIntentAttachmentRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.CA1506.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoIntentTrainingRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoMcpCallLogSink.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoPersonalAccessTokenRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoTagRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Application.Tests/Intents/CreateIntentHandlerTests.cs]
+dotnet_diagnostic.CA1506.severity = none
+
+[src/Throne.Api/Auth/AuthOptions.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Auth/PersonalAccessTokenMcpMiddleware.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Dream/DreamController.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Dream/DreamDtoMapper.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Instructions/InstructionsController.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Intents/IntentDtoMapper.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Intents/IntentsController.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Mcp/AuditingMcpServerTool.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Mcp/Tools/IntentAttachmentTools.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Mcp/Tools/IntentTools.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Api/Tags/TagsController.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Infrastructure.Tests/Mongo/MongoIntentRepositoryTests.cs]
+dotnet_diagnostic.CA1506.severity = none
+
+[tests/Throne.Infrastructure.Tests/Mongo/TransactionRollbackTests.cs]
+dotnet_diagnostic.CA1506.severity = none
+
+[tests/Throne.Api.Tests/Auth/PersonalAccessTokenEndpointTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Api.Tests/Dream/DreamReadinessEndpointTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Api.Tests/Intents/ListIntentsEndpointTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Api.Tests/Intents/UploadIntentAttachmentEndpointTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Api.Tests/Mcp/AuditingMcpServerToolTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Api.Tests/Mcp/IntentAttachmentToolsTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Architecture.Tests/LayerDependencyRulesTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Architecture.Tests/McpBoundMethodParameterRulesTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Architecture.Tests/McpToolRegistrationRulesTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[tests/Throne.Architecture.Tests/OwnerUserIdRulesTests.cs]
+dotnet_diagnostic.CA1502.severity = none

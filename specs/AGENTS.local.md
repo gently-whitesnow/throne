@@ -44,6 +44,7 @@ Api ──► Infrastructure (только в Program.cs / DI wiring)
 - **Multi-user изоляция** (`OwnerUserIdRulesTests`, [ADR-0012](ADR/0012-throne-behind-auth-gate.md)): user-owned агрегаты обязаны принимать `ownerUserId` в `Create`/`Restore`; Mongo-документы — `[BsonElement("owner_user_id")]`; Mongo-репозитории — инжектят `ICurrentUserAccessor` и фильтруют по `owner_user_id`; Application-handler'ы создания user-owned зависят от `ICurrentUserAccessor`.
 - **MCP tool registration** (`McpToolRegistrationRulesTests`, [ADR-0004](ADR/0004-mcp-call-audit-log.md)): тулы регистрируются ТОЛЬКО через `AddThroneTool<T>()` (оборачивает в `AuditingMcpServerTool`). SDK `WithTools`/`WithToolsFromAssembly` обходят аудит — запрещены. `McpServerTool.Create` вызывается только из `Throne.Api.Mcp.ThroneToolRegistration`.
 - **MCP nullable parameter contract** (`McpBoundMethodParameterRulesTests`): nullable-параметр MCP-тула обязан иметь default (`= null`/`= default`); иначе `AIFunctionFactory` бросит `ArgumentException`, если клиент не прислал ключ.
+- **Class coupling / cyclomatic / Maintainability Index** (Roslyn analyzers `CA1502`/`CA1505`/`CA1506` + `CA1501`): пороги живут в [apps/api/CodeMetricsConfig.txt](../apps/api/CodeMetricsConfig.txt) (профиль `legacy`), severity `warning` в [apps/api/.editorconfig](../apps/api/.editorconfig). Из-за `TreatWarningsAsErrors=true` любое **новое** нарушение валит `backend-build`. Существующие нарушения brownfield зафиксированы per-file в `.editorconfig` под TODO-ссылкой на intent — глобальный порог не ослабляется.
 
 ## Maintainability gate (ratchet) и duplicate gate (advisory)
 
@@ -58,6 +59,18 @@ bash scripts/quality/maintainability-budget-check.sh \
 ```
 
 **`backend-duplicates` — advisory-only.** Детектор лексический (нормализует identifiers/numbers/strings, скользит окно по логическим строкам, ловит cross-file совпадения). На текущем коде даёт много false-positive из-за идиоматических паттернов (Mongo-репозитории, Application-handlers, MVC-контроллеры). Поэтому печатает отчёт в выводе verify, но **не валит билд** и не имеет baseline. Если увидел реальную копи-пасту в отчёте — выноси в общий код по поводу, не «чтобы хэш ушёл».
+
+## Code Metrics analyzers (CA1501/CA1502/CA1505/CA1506)
+
+Class coupling, cyclomatic complexity и Maintainability Index считаются Roslyn-аналайзерами из `Microsoft.CodeAnalysis.NetAnalyzers` (включён через `EnableNETAnalyzers=true`). Пороги — [apps/api/CodeMetricsConfig.txt](../apps/api/CodeMetricsConfig.txt), профиль `legacy`. Severity = `warning` в [apps/api/.editorconfig](../apps/api/.editorconfig); `TreatWarningsAsErrors=true` делает их blocking-гейтом на `backend-build`. Любое **новое** нарушение валит билд без обсуждения.
+
+Brownfield-нарушения, существующие на момент включения, зафиксированы per-file в `.editorconfig` секциями вида `[src/.../File.cs] dotnet_diagnostic.CA1502.severity = none` под TODO-ссылкой на исходный intent. Это явный технический долг: при правке файла принимай ответственность снять suppress, а не продлевать его. Глобальные пороги в `CodeMetricsConfig.txt` ослаблять нельзя — только отдельным intent'ом с rationale.
+
+**Protected files** (ослабление = отдельный коммит с rationale):
+
+- [apps/api/CodeMetricsConfig.txt](../apps/api/CodeMetricsConfig.txt) — пороги.
+- [apps/api/.editorconfig](../apps/api/.editorconfig) — секции `dotnet_diagnostic.CA15{01,02,05,06}.severity` и per-file suppress'ы.
+- [apps/api/Directory.Build.props](../apps/api/Directory.Build.props) — `<AdditionalFiles Include="...CodeMetricsConfig.txt" />`.
 
 ## Аттачи интента (ADR-0013)
 
