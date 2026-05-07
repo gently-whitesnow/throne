@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { ChatUploadsPage } from "@/pages/chat-uploads";
 import { DreamSectionPage } from "@/pages/dream-section";
 import { HomePage } from "@/pages/home";
 import { IntentDetailPage } from "@/pages/intent-detail";
@@ -21,6 +22,7 @@ export function App() {
           <Route path="/tags" element={<TagsSectionPage />} />
           <Route path="/instructions" element={<InstructionsSectionPage />} />
           <Route path="/dream" element={<DreamSectionPage />} />
+          <Route path="/chat-uploads" element={<ChatUploadsPage />} />
           <Route path="/me/mcp-token" element={<McpTokenPage />} />
         </Route>
       </Routes>

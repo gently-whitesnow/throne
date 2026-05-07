@@ -36,6 +36,7 @@ public class OwnerUserIdRulesTests
         "Throne.Infrastructure.Mongo.Documents.IntentAttachmentDocument",
         "Throne.Infrastructure.Mongo.Documents.DreamRunDocument",
         "Throne.Infrastructure.Mongo.Documents.PersonalAccessTokenDocument",
+        "Throne.Infrastructure.Mongo.Documents.ChatUploadDocument",
     ];
 
     private static readonly string[] UserOwnedRepositoryTypeNames =
@@ -45,6 +46,7 @@ public class OwnerUserIdRulesTests
         "Throne.Infrastructure.Mongo.MongoIntentAttachmentRepository",
         "Throne.Infrastructure.Mongo.MongoDreamRunRepository",
         "Throne.Infrastructure.Mongo.MongoPersonalAccessTokenRepository",
+        "Throne.Infrastructure.Mongo.MongoChatUploadRepository",
     ];
 
     // Handlers, ВЫЗЫВАЮЩИЕ Domain.Create на user-owned агрегате. UploadIntentAttachmentHandler

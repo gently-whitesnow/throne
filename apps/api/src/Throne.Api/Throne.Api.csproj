@@ -9,6 +9,7 @@
     <ProjectReference Include="..\Throne.Tags.Contracts\Throne.Tags.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Dream.Contracts\Throne.Dream.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Me.Contracts\Throne.Me.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.ChatUploads.Contracts\Throne.ChatUploads.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

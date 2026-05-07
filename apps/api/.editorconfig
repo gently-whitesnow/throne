@@ -242,3 +242,28 @@ dotnet_diagnostic.CA1502.severity = none
 
 [tests/Throne.Architecture.Tests/OwnerUserIdRulesTests.cs]
 dotnet_diagnostic.CA1502.severity = none
+
+# Chat-history transfer module (ADR-0015 / intent:30f47388533249cc86cd834650b7c1a7).
+# Manifest validation, Mongo document, and Mongo repo aggregate naturally above
+# the per-type cyclomatic threshold (parser must check every required JSON field;
+# Mongo document is a 12-field POCO; repo wraps file-system + collection).
+# TODO(intent:30f47388533249cc86cd834650b7c1a7): пересмотреть структурировав
+# валидацию в declarative manner, чтобы снять suppress.
+[src/Throne.Application/ChatUploads/ChatUploadManifestParser.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/ChatUploads/ChatUploadManifestDtoMapper.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Application/ChatUploads/ChatUploadManifestDtos.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/Documents/ChatUploadDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+[src/Throne.Infrastructure/Mongo/MongoChatUploadRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.CA1506.severity = none
+
+[src/Throne.Api/ChatUploads/ChatUploadsController.cs]
+dotnet_diagnostic.CA1502.severity = none

@@ -3,6 +3,7 @@
 // Source of truth: specs/contracts/realtime/events.yaml
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
+import type { components as ChatUploadsComponents } from "@/shared/api/generated/chat-uploads/types";
 import type { components as DreamComponents } from "@/shared/api/generated/dream/types";
 import type { components as IntentsComponents } from "@/shared/api/generated/intents/types";
 import type { components as TagsComponents } from "@/shared/api/generated/tags/types";
@@ -10,6 +11,8 @@ import type { components as TagsComponents } from "@/shared/api/generated/tags/t
 
 /** Discriminated payload type for each realtime event name. */
 export interface RealtimeEventMap {
+  "chat_upload.created": ChatUploadsComponents["schemas"]["ChatUploadDto"];
+  "chat_upload.deleted": { chat_upload_id: string };
   "dream.fuel_changed": { available_tokens: number; status: string };
   "dream.proposal_applied": DreamComponents["schemas"]["DreamRunDto"];
   "dream.proposal_created": DreamComponents["schemas"]["DreamRunDto"];
@@ -33,6 +36,8 @@ export interface RealtimeEventMap {
 export type RealtimeEventName = keyof RealtimeEventMap;
 
 export const realtimeEventNames: readonly RealtimeEventName[] = [
+  "chat_upload.created",
+  "chat_upload.deleted",
   "dream.fuel_changed",
   "dream.proposal_applied",
   "dream.proposal_created",

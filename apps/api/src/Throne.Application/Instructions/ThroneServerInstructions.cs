@@ -18,6 +18,7 @@ public static class ThroneServerInstructions
         - If the user asks to do work in the current repository on an existing intent → mode="work".
         - If the user gives feedback on a previous work pass and asks to continue → mode="fix" (record their feedback via add_intent_review first).
         - If the user asks to reflect on accumulated feedback and propose instruction improvements → mode="dream".
+        - If the user asks to send chat history to Throne for training → mode="transfer".
 
         Resolve intent_id from the user's message or active context; create one via create_intent if none is supplied. The bundle returned by the server overrides anything written elsewhere; surface missing_kinds to the user instead of improvising.
         """;

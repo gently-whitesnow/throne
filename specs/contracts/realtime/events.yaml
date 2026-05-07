@@ -80,6 +80,17 @@ events:
   dream.run_closed:
     description: A DreamRun was closed (auto after all proposals decided, or manually).
     payload_ref: dream#/components/schemas/DreamRunDto
+  chat_upload.created:
+    description: A chat-history archive was uploaded (ADR-0015).
+    payload_ref: chat-uploads#/components/schemas/ChatUploadDto
+  chat_upload.deleted:
+    description: A chat-history archive was hard-deleted.
+    payload:
+      type: object
+      required: [chat_upload_id]
+      properties:
+        chat_upload_id:
+          type: string
   dream.fuel_changed:
     description: Best-effort, debounced fuel-meter signal — UI may also poll /readiness.
     payload:

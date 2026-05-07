@@ -1,4 +1,11 @@
-import { FileText, Hash, KeyRound, Sparkles, Sprout } from "lucide-react";
+import {
+  Archive,
+  FileText,
+  Hash,
+  KeyRound,
+  Sparkles,
+  Sprout
+} from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useDreamPendingCount } from "../model/use-dream-pending-count";
@@ -8,6 +15,7 @@ const NAV_ITEMS = [
   { to: "/tags", label: "Tags", icon: Hash },
   { to: "/instructions", label: "Instructions", icon: FileText },
   { to: "/dream", label: "Dream", icon: Sprout },
+  { to: "/chat-uploads", label: "Chat uploads", icon: Archive },
   { to: "/me/mcp-token", label: "MCP Token", icon: KeyRound }
 ] as const;
 

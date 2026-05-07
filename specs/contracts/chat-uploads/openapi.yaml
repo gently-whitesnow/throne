@@ -1,0 +1,193 @@
+openapi: "3.1.0"
+info:
+  title: Throne Chat Uploads
+  version: "1.0.0"
+  description: >
+    Voluntary chat-history archives uploaded by agents (Claude Code, Claude Desktop,
+    Codex CLI and their variations) for later analysis and training. The flow is
+    initiated from the user's chat with the agent (mode="transfer", see ADR-0015);
+    this HTTP surface only stores, lists, deletes and downloads archives.
+    Archives live on a mounted host-volume directory inside the docker container,
+    not in Mongo GridFS. Multi-tenancy is enforced server-side via owner_user_id —
+    a user only sees and acts on their own archives.
+  x-csharp-namespace: Throne.ChatUploads.Contracts.Generated
+paths:
+  /api/v1/chat-uploads:
+    get:
+      operationId: listChatUploads
+      tags: [ChatUploads]
+      summary: List chat-history uploads of the current user.
+      description: >
+        Returns metadata only; ordered by created_at descending. Each archive
+        is represented by a single record regardless of how many conversations
+        it contains.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatUploadDto'
+    post:
+      operationId: createChatUpload
+      tags: [ChatUploads]
+      summary: Upload a chat-history archive (multipart/form-data).
+      description: >
+        Multipart fields:
+          - `archive` — the zip file (≤200 MB).
+          - `manifest` — the manifest.json bytes (UTF-8, schemaVersion=1).
+        Server validates schemaVersion, archive size, and the sha256 of every
+        conversation declared in the manifest against its bytes inside the zip.
+        Mismatch → 422. The archive is persisted to the configured host-volume
+        directory; the manifest contents become the metadata record.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [archive, manifest]
+              properties:
+                archive:
+                  type: string
+                  format: binary
+                  description: Zip archive containing per-conversation files described by the manifest.
+                manifest:
+                  type: string
+                  format: binary
+                  description: manifest.json bytes (UTF-8). Schema documented in ADR-0015.
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatUploadDto'
+        '413':
+          description: Archive exceeds size limit (200 MB).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Manifest invalid, archive corrupted, sha256 mismatch, or schemaVersion unsupported.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/chat-uploads/{id}:
+    delete:
+      operationId: deleteChatUpload
+      tags: [ChatUploads]
+      summary: Hard-delete a chat-history upload.
+      description: >
+        Removes the metadata record and the underlying zip from the host volume.
+        No soft-delete, no retention. Insights extracted from this archive by
+        the backend analyzer are kept independently and survive deletion.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted (or already gone).
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/chat-uploads/{id}/download:
+    get:
+      operationId: downloadChatUpload
+      tags: [ChatUploads]
+      summary: Download the original archive.
+      description: Streams back the zip exactly as it was uploaded.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    ChatUploadStatus:
+      type: string
+      enum: [uploaded]
+      description: >
+        MVP carries a single value. Reserved for analyzer-driven transitions
+        (`analyzed`, `failed`, …) once the local insight pipeline lands.
+    ChatUploadDto:
+      type: object
+      required:
+        - id
+        - agent
+        - device
+        - date_range
+        - conversation_count
+        - size_bytes
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Server-generated identifier (32 hex chars).
+        agent:
+          type: string
+          description: Agent vendor identifier as declared in the manifest (e.g. "claude-code", "claude-desktop", "codex-cli").
+        agent_version:
+          type: string
+          description: Optional agent version reported in the manifest.
+        device:
+          type: string
+          description: device_id from manifest, formatted "username@hostname".
+        device_display_name:
+          type: string
+          description: Optional human-readable device name supplied by the agent.
+        date_range:
+          $ref: '#/components/schemas/ChatUploadDateRangeDto'
+        conversation_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of conversations declared in the manifest.
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Size of the persisted zip on disk.
+        status:
+          $ref: '#/components/schemas/ChatUploadStatus'
+        created_at:
+          type: string
+          format: date-time
+    ChatUploadDateRangeDto:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: Earliest timestamp covered by the archive (UTC).
+        to:
+          type: string
+          format: date-time
+          description: Latest timestamp covered by the archive (UTC).

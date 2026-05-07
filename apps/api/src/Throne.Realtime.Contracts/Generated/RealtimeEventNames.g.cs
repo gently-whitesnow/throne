@@ -11,6 +11,8 @@ namespace Throne.Realtime.Contracts.Generated;
 /// </summary>
 public static class RealtimeEventNames
 {
+    public const string ChatUploadCreated = "chat_upload.created";
+    public const string ChatUploadDeleted = "chat_upload.deleted";
     public const string DreamFuelChanged = "dream.fuel_changed";
     public const string DreamProposalApplied = "dream.proposal_applied";
     public const string DreamProposalCreated = "dream.proposal_created";
@@ -32,6 +34,8 @@ public static class RealtimeEventNames
 
     public static readonly System.Collections.Generic.IReadOnlyList<string> All = new[]
     {
+        ChatUploadCreated,
+        ChatUploadDeleted,
         DreamFuelChanged,
         DreamProposalApplied,
         DreamProposalCreated,

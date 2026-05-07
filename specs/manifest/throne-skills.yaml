@@ -91,6 +91,70 @@ system_instructions:
       - Не вызывает run_dream если уже сделал в этой сессии (см. existing_pending guard).
       - Возвращает короткий отчёт: статус (created|existing_pending|not_enough_context|no_proposals), количество proposals, затронутые kinds, ссылка пользователю на /pages/dream.
 
+  - kind: transfer
+    text: |
+      Цель transfer — добровольно загрузить дамп переписок пользователя с агентами в Throne, чтобы локальный backend-анализатор позднее нарезал из них правки к user-инструкциям и подсказки к Intent.text. Загрузка инициируется из чата с агентом; UI-формы загрузки нет.
+
+      Поддерживаемые вендоры (MVP): все вариации Claude (Claude Code, Claude Desktop) и все вариации Codex (Codex CLI и пр.). Cursor / Cline / Aider в первой итерации НЕ поддерживаются.
+
+      Шаги:
+
+      1) Определи свой тип: один из `claude-code`, `claude-desktop`, `codex-cli` (или ближайший аналог). Это значение положишь в `manifest.agent`.
+
+      2) Вычисли `device_id = username@hostname` (Node: `os.userInfo().username` + `os.hostname()`; Python: `getpass.getuser()` + `platform.node()`). Опционально подставь человекочитаемый `deviceDisplayName` (например, «MacBook Pro»).
+
+      3) Сканируй историю своего вендора в первую очередь:
+         - `claude-code` → `~/.claude/projects/<slug>/*.jsonl`,
+         - `claude-desktop` → файлы переписки локального desktop-клиента,
+         - `codex-cli` → `~/.codex/sessions/...`.
+         Если по клиенту есть выбор каталогов, спроси пользователя, либо используй default. Не выходи за пределы home-директории.
+
+      4) Покажи пользователю сводку: «N диалогов, период X..Y, размер Z MB» и ЖДИ явного апрува (всё / часть по ID / диапазон дат). Без апрува не грузи.
+
+      5) Собери zip с раскладкой:
+         - `manifest.json` в корне (см. схему ниже),
+         - per-conversation файлы по путям, объявленным в `manifest.conversations[].path`.
+         Подпиши каждый conversation полем `sha256` (по байтам файла внутри zip). Сервер сверит — расходится → 422.
+
+      6) `manifest.json`:
+         ```json
+         {
+           "schemaVersion": 1,
+           "agent": "claude-code",
+           "agentVersion": "1.2.3",
+           "device": "gently@MacBook-Pro",
+           "deviceDisplayName": "MacBook Pro",
+           "createdAt": "<ISO-8601 UTC>",
+           "dateRange": { "from": "<ISO-8601 UTC>", "to": "<ISO-8601 UTC>" },
+           "conversations": [
+             {
+               "id": "<vendor-prefixed id>",
+               "path": "<relative path inside zip>",
+               "sha256": "<hex>",
+               "messageCount": <int>,
+               "from": "<ISO-8601 UTC>",
+               "to":   "<ISO-8601 UTC>",
+               "sizeBytes": <int>
+             }
+           ]
+         }
+         ```
+
+      7) Загрузка: `POST /api/v1/chat-uploads`, multipart/form-data, поля `archive` (zip) и `manifest` (JSON-байты). Аутентификация — тем же PAT/JWT, который уже в MCP-конфиге. Лимит — 200 MB на архив.
+
+      8) Если архив не пролезает в лимит — побей выборку по календарным месяцам, при необходимости — по неделям/дням, и грузи несколькими POST'ами. Каждый POST = отдельная запись в UI.
+
+      9) Доложи пользователю: «загружено N диалогов, период X..Y, размер Z MB». При ошибке — покажи `code` и `detail` из ProblemDetails.
+
+      10) **После** успешной загрузки своего вендора явно предложи «также загрузить из <другого вендора>». Если пользователь согласен — повтори шаги 3–9 для второго вендора.
+
+      Жёсткие инварианты:
+      - Не фильтруй секреты в диалогах. Не предупреждай пользователя про секреты в MVP.
+      - Не делай дедуп per-conversation на этапе клиента: сервер принимает upload как есть.
+      - Не выдумывай deviceDisplayName, если пользователь его не дал.
+      - Не пытайся ходить в чужой home/корневой каталог; ограничься известным расположением своего вендора.
+      - Не публикуй в чат сами тексты диалогов; пользователю достаточно сводки.
+
   - kind: fix
     text: |
       Цель fix — учесть свежий review пользователя и продолжить работу по существующему Intent.
@@ -127,3 +191,9 @@ bundles:
       - { scope: system, kind: fix }
       - { scope: user,   kind: common }
       - { scope: user,   kind: fix }
+  - mode: transfer
+    includes:
+      - { scope: system, kind: common }
+      - { scope: system, kind: transfer }
+      - { scope: user,   kind: common }
+      - { scope: user,   kind: transfer }

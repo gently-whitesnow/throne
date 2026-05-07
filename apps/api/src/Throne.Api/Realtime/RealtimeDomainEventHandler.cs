@@ -1,3 +1,4 @@
+using Throne.Api.ChatUploads;
 using Throne.Api.Dream;
 using Throne.Api.Intents;
 using Throne.Api.Tags;
@@ -80,6 +81,10 @@ internal sealed class RealtimeDomainEventHandler(
         DreamFuelChanged fuel => new RealtimeEventEnvelope(
             RealtimeEventNames.DreamFuelChanged,
             new { available_tokens = fuel.AvailableTokens, status = fuel.Status }),
+        ChatUploadCreated created => new RealtimeEventEnvelope(
+            RealtimeEventNames.ChatUploadCreated, ChatUploadDtoMapper.ToDto(created.Upload)),
+        ChatUploadDeleted deleted => new RealtimeEventEnvelope(
+            RealtimeEventNames.ChatUploadDeleted, new { chat_upload_id = deleted.ChatUploadId }),
         _ => null,
     };
 

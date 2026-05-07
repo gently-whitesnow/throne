@@ -13,4 +13,5 @@ public static class InstructionBundleModeNames
     public const string Work = "work";
     public const string Dream = "dream";
     public const string Fix = "fix";
+    public const string Transfer = "transfer";
 }

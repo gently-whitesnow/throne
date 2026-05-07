@@ -76,9 +76,12 @@ function csBanner() {
 }
 
 function moduleAlias(moduleName) {
-  // intents -> IntentsComponents
+  // intents -> IntentsComponents; chat-uploads -> ChatUploadsComponents
   return (
-    moduleName.charAt(0).toUpperCase() + moduleName.slice(1) + "Components"
+    moduleName
+      .split("-")
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join("") + "Components"
   );
 }
 

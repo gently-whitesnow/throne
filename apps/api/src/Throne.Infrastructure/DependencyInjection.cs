@@ -7,6 +7,7 @@ using Throne.Application.Events;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Infrastructure.ChatUploads;
 using Throne.Infrastructure.Imaging;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
@@ -56,6 +57,9 @@ public static class DependencyInjection
         services.AddOptions<IntentAttachmentCompressionOptions>()
             .BindConfiguration(IntentAttachmentCompressionOptions.SectionName);
         services.AddHostedService<IntentAttachmentCompressionWorker>();
+        services.AddOptions<ChatUploadStorageOptions>()
+            .BindConfiguration(ChatUploadStorageOptions.SectionName);
+        services.AddSingleton<IChatUploadRepository, MongoChatUploadRepository>();
         services.AddHostedService<MongoIndexInitializer>();
 
         return services;
@@ -89,6 +93,8 @@ public static class DependencyInjection
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
         services.AddSingleton<IImageDownscaler, ImageSharpDownscaler>();
         services.AddOptions<IntentAttachmentCompressionOptions>();
+        services.AddOptions<ChatUploadStorageOptions>();
+        services.AddSingleton<IChatUploadRepository, MongoChatUploadRepository>();
         services.AddHostedService<MongoIndexInitializer>();
         return services;
     }

@@ -1,3 +1,4 @@
+using Throne.Application.ChatUploads;
 using Throne.Application.Intents;
 using Throne.Domain.DreamRuns;
 using Throne.Domain.Intents;
@@ -46,3 +47,7 @@ public sealed record DreamRunClosed(DreamRun Run) : IDomainEvent;
 /// UI may also call <c>GET /api/v1/dream-runs/readiness</c> for an authoritative snapshot.
 /// </summary>
 public sealed record DreamFuelChanged(int AvailableTokens, string Status) : IDomainEvent;
+
+public sealed record ChatUploadCreated(ChatUpload Upload) : IDomainEvent;
+
+public sealed record ChatUploadDeleted(string ChatUploadId) : IDomainEvent;

@@ -5,7 +5,7 @@ namespace Throne.Application.Tests.Instructions.Manifest;
 
 public class SkillManifestParserTests
 {
-    private static readonly string[] ExpectedBundleModes = ["interview", "work", "dream", "fix"];
+    private static readonly string[] ExpectedBundleModes = ["interview", "work", "dream", "fix", "transfer"];
 
     private const string ValidYaml = """
         version: 1
@@ -85,8 +85,8 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(5);
-        manifest.Bundles.Should().HaveCount(4);
+        manifest.SystemInstructions.Should().HaveCount(6);
+        manifest.Bundles.Should().HaveCount(5);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
     }
 

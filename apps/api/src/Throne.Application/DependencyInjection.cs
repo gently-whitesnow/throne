@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Auth;
+using Throne.Application.ChatUploads;
 using Throne.Application.DreamRuns;
 using Throne.Application.Events;
 using Throne.Application.Instructions;
@@ -61,6 +62,10 @@ public static class DependencyInjection
         services.AddSingleton<IPersonalAccessTokenResolver, PersonalAccessTokenResolver>();
         services.AddSingleton<GenerateMcpTokenHandler>();
         services.AddSingleton<GetMcpTokenMetaHandler>();
+        services.AddSingleton<CreateChatUploadHandler>();
+        services.AddSingleton<ListChatUploadsHandler>();
+        services.AddSingleton<DownloadChatUploadHandler>();
+        services.AddSingleton<DeleteChatUploadHandler>();
         return services;
     }
 }
