@@ -8,7 +8,7 @@ import {
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
-import { filesFromClipboard } from "@/shared/lib";
+import { computeMinimalTextDelta, filesFromClipboard } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface ReplaceIntentTextFormProps {
@@ -29,7 +29,8 @@ export function ReplaceIntentTextForm({
 
   const submit = async () => {
     if (busy) return;
-    if (draft === intent.text) {
+    const delta = computeMinimalTextDelta(intent.text, draft);
+    if (delta === null) {
       onCancel();
       return;
     }
@@ -40,8 +41,8 @@ export function ReplaceIntentTextForm({
         intentsEndpoints.replaceIntentText(intent.id),
         {
           expected_version: intent.current_version,
-          old_text: intent.text,
-          new_text: draft
+          old_text: delta.oldText,
+          new_text: delta.newText
         }
       );
       onSaved(next);

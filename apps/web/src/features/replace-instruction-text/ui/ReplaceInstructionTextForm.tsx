@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { InstructionDetail } from "@/entities/instruction";
 import { HttpError, httpPost, instructionsEndpoints } from "@/shared/api";
+import { computeMinimalTextDelta } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface ReplaceInstructionTextFormProps {
@@ -21,7 +22,8 @@ export function ReplaceInstructionTextForm({
 
   const submit = async () => {
     if (busy) return;
-    if (draft === instruction.text) {
+    const delta = computeMinimalTextDelta(instruction.text, draft);
+    if (delta === null) {
       onCancel();
       return;
     }
@@ -32,8 +34,8 @@ export function ReplaceInstructionTextForm({
         instructionsEndpoints.replaceInstructionText(instruction.id),
         {
           expected_version: instruction.current_version,
-          old_text: instruction.text,
-          new_text: draft
+          old_text: delta.oldText,
+          new_text: delta.newText
         }
       );
       onSaved(next);
