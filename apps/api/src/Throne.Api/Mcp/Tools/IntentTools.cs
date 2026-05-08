@@ -27,6 +27,7 @@ public sealed class IntentTools(
     SetIntentStatusHandler setStatus,
     SetIntentTagsHandler setTagsHandler,
     GetInstructionBundleHandler getInstructionBundle,
+    ListIntentsHandler listIntents,
     IIntentAttachmentRepository attachments,
     ITagRepository tagRepository)
 {
@@ -72,6 +73,129 @@ public sealed class IntentTools(
         setTagsHandler.HandleAsync(
             new SetIntentTagsCommand(intent_id, expected_version, TagIds: null, TagNames: tags),
             cancellationToken);
+
+    [McpServerTool(Name = "list_intents", ReadOnly = true, UseStructuredContent = true)]
+    [Description("List intents owned by the current user with compact previews. Use to discover intent ids before calling get_intent. Filters: tag (slug), status (multi), query (case-insensitive substring of Intent.text). Sort defaults to updated_desc; pagination via opaque next_cursor.")]
+    public async Task<McpIntentListResult> ListIntents(
+        [Description("Tag slug to filter by. The agent should pass the current repository slug here when scoping to one project; omit for cross-project listing.")] string? tag = null,
+        [Description("Statuses to include. Pass values like 'draft', 'ready_for_work', 'work', 'ready_for_review', 'done', 'reject'. Omit for all statuses. To list 'archive', pass ['done','reject'].")] IReadOnlyList<string>? status = null,
+        [Description("Case-insensitive substring of Intent.text. Omit to skip text filtering.")] string? query = null,
+        [Description("Sort order: 'updated_desc' (default), 'created_desc', or 'created_asc'.")] string? sort = null,
+        [Description("Page size, default 50, capped at 100.")] int? limit = null,
+        [Description("Opaque cursor returned as next_cursor by the previous page. Omit for the first page.")] string? cursor = null,
+        CancellationToken cancellationToken = default)
+    {
+        var sortValue = ParseSort(sort);
+        var cursorValue = ParseCursor(cursor);
+        var statuses = status is { Count: > 0 } ? status : null;
+        var effectiveLimit = limit ?? ListIntentsHandler.DefaultLimit;
+
+        var page = await listIntents.HandleAsync(
+            new ListIntentsPagedQuery(
+                Statuses: statuses,
+                TagName: tag,
+                Query: query,
+                Sort: sortValue,
+                Limit: effectiveLimit,
+                Cursor: cursorValue),
+            cancellationToken);
+
+        var allTagIds = page.Items.SelectMany(i => i.TagIds).ToList();
+        var tagRefs = await BuildTagRefsAsync(allTagIds, cancellationToken);
+        var tagsById = tagRefs.ToDictionary(t => t.Id, t => t, StringComparer.Ordinal);
+
+        var items = new List<McpIntentListItem>(page.Items.Count);
+        foreach (var intent in page.Items)
+        {
+            var intentTags = intent.TagIds
+                .Select(id => tagsById.TryGetValue(id.Value, out var t) ? t : null)
+                .Where(t => t is not null)
+                .Select(t => t!)
+                .ToList();
+            items.Add(new McpIntentListItem(
+                Id: intent.Id.Value,
+                Status: intent.Status,
+                CurrentVersion: intent.CurrentVersion,
+                Tags: intentTags,
+                Preview: BuildPreview(intent.Text),
+                CreatedAt: intent.CreatedAt,
+                UpdatedAt: intent.UpdatedAt));
+        }
+
+        return new McpIntentListResult(items, EncodeCursor(page.NextCursor));
+    }
+
+    private static IntentListSort ParseSort(string? raw) => raw switch
+    {
+        null or "" or "updated_desc" => IntentListSort.UpdatedDesc,
+        "created_desc" => IntentListSort.CreatedDesc,
+        "created_asc" => IntentListSort.CreatedAsc,
+        _ => throw new ArgumentException(
+            $"Unknown sort '{raw}'. Allowed: updated_desc, created_desc, created_asc.",
+            nameof(raw)),
+    };
+
+    private static string BuildPreview(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+        foreach (var line in text.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0)
+            {
+                continue;
+            }
+            return trimmed.Length <= 200 ? trimmed : trimmed[..200];
+        }
+        return string.Empty;
+    }
+
+    private static string? EncodeCursor(IntentListCursor? cursor)
+    {
+        if (cursor is null)
+        {
+            return null;
+        }
+        var iso = cursor.SortValue.UtcDateTime.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+        var raw = $"{iso}|{cursor.Id}";
+        return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw));
+    }
+
+    private static IntentListCursor? ParseCursor(string? cursor)
+    {
+        if (string.IsNullOrWhiteSpace(cursor))
+        {
+            return null;
+        }
+        string decoded;
+        try
+        {
+            decoded = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
+        }
+        catch (FormatException ex)
+        {
+            throw new ArgumentException("cursor is not a valid base64 token.", nameof(cursor), ex);
+        }
+        var sep = decoded.IndexOf('|');
+        if (sep <= 0 || sep == decoded.Length - 1)
+        {
+            throw new ArgumentException("cursor payload is malformed.", nameof(cursor));
+        }
+        var iso = decoded[..sep];
+        var id = decoded[(sep + 1)..];
+        if (!DateTimeOffset.TryParse(
+                iso,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var sortValue))
+        {
+            throw new ArgumentException("cursor sort-value is not a valid timestamp.", nameof(cursor));
+        }
+        return new IntentListCursor(sortValue, id);
+    }
 
     [McpServerTool(Name = "get_intent", ReadOnly = true)]
     [Description("Read canonical Intent state by id, including full text and attachment metadata. Attachment bytes are NOT inlined. For each attachment call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log files).")]

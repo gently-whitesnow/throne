@@ -13,6 +13,19 @@ public sealed record McpIntentReadResult(
     [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry, call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log).")]
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments);
 
+public sealed record McpIntentListResult(
+    [property: Description("Compact list of intents matching the filter.")] IReadOnlyList<McpIntentListItem> Items,
+    [property: Description("Opaque cursor to fetch the next page; null when this is the last page.")] string? NextCursor);
+
+public sealed record McpIntentListItem(
+    [property: Description("Intent identifier.")] string Id,
+    [property: Description("Current intent status.")] string Status,
+    [property: Description("Current text version. Use as expected_version for write tools.")] int CurrentVersion,
+    [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
+    [property: Description("First non-empty line of Intent.text, trimmed to 200 characters.")] string Preview,
+    [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
+    [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt);
+
 public sealed record McpTagRef(
     [property: Description("Tag identifier.")] string Id,
     [property: Description("Normalized hashtag-shaped slug.")] string Name);

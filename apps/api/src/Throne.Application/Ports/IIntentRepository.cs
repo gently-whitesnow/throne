@@ -1,3 +1,4 @@
+using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Tags;
@@ -34,6 +35,8 @@ public interface IIntentRepository
         CancellationToken ct);
 
     Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct);
+
+    Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct);
 
     Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct);
 

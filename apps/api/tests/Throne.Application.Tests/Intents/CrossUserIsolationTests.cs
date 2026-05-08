@@ -39,7 +39,8 @@ public class CrossUserIsolationTests
         var only = Intent.Restore(IntentId.New(), "user-1", "mine", IntentStatusNames.Draft, 1, [], Now, Now);
         repo.ListAsync(Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>()).Returns([only]);
 
-        var handler = new ListIntentsHandler(repo);
+        var tagRepo = Substitute.For<ITagRepository>();
+        var handler = new ListIntentsHandler(repo, tagRepo);
         var list = await handler.HandleAsync(new ListIntentsQuery(), CancellationToken.None);
 
         list.Should().HaveCount(1);

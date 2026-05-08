@@ -1,5 +1,6 @@
 using MongoDB.Driver;
 using Throne.Application.Auth;
+using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -218,6 +219,105 @@ internal sealed class MongoIntentRepository(
         }
         return result;
     }
+
+    public async Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+
+        var session = sessions.Current;
+        var fb = Builders<IntentDocument>.Filter;
+        var clauses = new List<FilterDefinition<IntentDocument>> { OwnerFilter() };
+
+        if (spec.Statuses is { Count: > 0 })
+        {
+            clauses.Add(fb.In(d => d.Status, spec.Statuses));
+        }
+
+        if (spec.TagId is not null)
+        {
+            clauses.Add(fb.AnyEq(d => d.TagIds, spec.TagId.Value.Value));
+        }
+
+        if (!string.IsNullOrEmpty(spec.Query))
+        {
+            // Case-insensitive substring match. Uses regex with collection scan; OK for MVP scale.
+            var pattern = System.Text.RegularExpressions.Regex.Escape(spec.Query);
+            clauses.Add(fb.Regex(d => d.Text, new MongoDB.Bson.BsonRegularExpression(pattern, "i")));
+        }
+
+        if (spec.Cursor is not null)
+        {
+            clauses.Add(BuildCursorFilter(spec.Sort, spec.Cursor));
+        }
+
+        var filter = fb.And(clauses);
+        var sort = BuildSort(spec.Sort);
+
+        var find = session is null
+            ? _intents.Find(filter).Sort(sort)
+            : _intents.Find(session, filter).Sort(sort);
+
+        var pageSize = spec.Limit + 1;
+        var documents = await find.Limit(pageSize).ToListAsync(ct);
+
+        var hasMore = documents.Count > spec.Limit;
+        var pageDocs = hasMore ? documents.Take(spec.Limit).ToList() : documents;
+
+        var items = new List<Intent>(pageDocs.Count);
+        foreach (var doc in pageDocs)
+        {
+            items.Add(MapToDomain(doc));
+        }
+
+        IntentListCursor? next = null;
+        if (hasMore && pageDocs.Count > 0)
+        {
+            var last = pageDocs[^1];
+            var sortValue = SortValueFor(spec.Sort, last);
+            next = new IntentListCursor(sortValue, last.Id);
+        }
+
+        return new IntentListPage(items, next);
+    }
+
+    private static SortDefinition<IntentDocument> BuildSort(IntentListSort sort)
+    {
+        var sb = Builders<IntentDocument>.Sort;
+        return sort switch
+        {
+            IntentListSort.UpdatedDesc => sb.Combine(sb.Descending(d => d.UpdatedAt), sb.Ascending(d => d.Id)),
+            IntentListSort.CreatedDesc => sb.Combine(sb.Descending(d => d.CreatedAt), sb.Ascending(d => d.Id)),
+            IntentListSort.CreatedAsc => sb.Combine(sb.Ascending(d => d.CreatedAt), sb.Ascending(d => d.Id)),
+            _ => throw new InvalidOperationException($"Unknown sort: {sort}"),
+        };
+    }
+
+    private static FilterDefinition<IntentDocument> BuildCursorFilter(IntentListSort sort, IntentListCursor cursor)
+    {
+        var fb = Builders<IntentDocument>.Filter;
+        var sortValue = cursor.SortValue.UtcDateTime;
+        return sort switch
+        {
+            IntentListSort.UpdatedDesc => fb.Or(
+                fb.Lt(d => d.UpdatedAt, sortValue),
+                fb.And(fb.Eq(d => d.UpdatedAt, sortValue), fb.Gt(d => d.Id, cursor.Id))),
+            IntentListSort.CreatedDesc => fb.Or(
+                fb.Lt(d => d.CreatedAt, sortValue),
+                fb.And(fb.Eq(d => d.CreatedAt, sortValue), fb.Gt(d => d.Id, cursor.Id))),
+            IntentListSort.CreatedAsc => fb.Or(
+                fb.Gt(d => d.CreatedAt, sortValue),
+                fb.And(fb.Eq(d => d.CreatedAt, sortValue), fb.Gt(d => d.Id, cursor.Id))),
+            _ => throw new InvalidOperationException($"Unknown sort: {sort}"),
+        };
+    }
+
+    private static DateTimeOffset SortValueFor(IntentListSort sort, IntentDocument doc) => sort switch
+    {
+        IntentListSort.UpdatedDesc => new DateTimeOffset(DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc)),
+        IntentListSort.CreatedDesc => new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc)),
+        IntentListSort.CreatedAsc => new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc)),
+        _ => throw new InvalidOperationException($"Unknown sort: {sort}"),
+    };
 
     public async Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct)
     {

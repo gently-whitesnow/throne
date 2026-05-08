@@ -58,6 +58,7 @@ public class IntentToolsAttachmentTests
             setStatus: null!,
             setTagsHandler: null!,
             getInstructionBundle: null!,
+            listIntents: null!,
             attachments: attachments,
             tagRepository: tagRepo);
 }
