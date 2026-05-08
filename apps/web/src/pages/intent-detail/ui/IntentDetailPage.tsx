@@ -1,3 +1,4 @@
+import { Check, Copy } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -26,6 +27,7 @@ export function IntentDetailPage() {
   const [activityKey, setActivityKey] = useState(0);
 
   const [refreshKey, setRefreshKey] = useState(0);
+  const [idCopied, setIdCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -105,9 +107,38 @@ export function IntentDetailPage() {
     <>
       <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-base-300 px-6 py-3.5">
         <div className="flex min-w-0 flex-col gap-2">
-          <h1 className="m-0 break-words text-lg font-semibold leading-snug text-base-content">
-            {title}
-          </h1>
+          <div className="flex min-w-0 items-start gap-2">
+            <h1 className="m-0 min-w-0 break-words text-lg font-semibold leading-snug text-base-content">
+              {title}
+            </h1>
+            <button
+              type="button"
+              aria-label={
+                idCopied ? "Идентификатор скопирован" : "Скопировать id интента"
+              }
+              title={idCopied ? "Скопировано" : `Скопировать id: ${intent.id}`}
+              onClick={() => {
+                void (async () => {
+                  try {
+                    await navigator.clipboard.writeText(intent.id);
+                    setIdCopied(true);
+                    window.setTimeout(() => {
+                      setIdCopied(false);
+                    }, 1500);
+                  } catch {
+                    setIdCopied(false);
+                  }
+                })();
+              }}
+              className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {idCopied ? (
+                <Check aria-hidden size={14} strokeWidth={2} />
+              ) : (
+                <Copy aria-hidden size={14} strokeWidth={2} />
+              )}
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-base-content/60">
             <SetIntentStatusForm
               intent={intent}
