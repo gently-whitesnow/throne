@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace Throne.Api.Mcp.Tools;
 
@@ -15,7 +16,9 @@ public sealed record McpIntentReadResult(
 
 public sealed record McpIntentListResult(
     [property: Description("Compact list of intents matching the filter.")] IReadOnlyList<McpIntentListItem> Items,
-    [property: Description("Opaque cursor to fetch the next page; null when this is the last page.")] string? NextCursor);
+    [property: Description("Opaque cursor to fetch the next page; null when this is the last page.")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    string? NextCursor);
 
 public sealed record McpIntentListItem(
     [property: Description("Intent identifier.")] string Id,
