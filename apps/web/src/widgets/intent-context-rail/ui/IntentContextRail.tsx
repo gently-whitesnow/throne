@@ -4,7 +4,12 @@ import { useSearchParams } from "react-router-dom";
 
 import type { IntentListItem } from "@/entities/intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
-import { ARCHIVE_CONTEXT, UNTAGGED_CONTEXT } from "@/shared/lib";
+import {
+  ARCHIVE_CONTEXT,
+  UNTAGGED_CONTEXT,
+  archiveSubContext,
+  isArchiveContext
+} from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 
 const ARCHIVE_STATUSES = new Set(["done", "reject"] as const);
@@ -56,21 +61,38 @@ export function IntentContextRail() {
   useRealtimeEvent("intent.tags_changed", reload);
   useRealtimeEvent("intent.status_changed", reload);
 
-  const { tagRows, untaggedCount, archiveCount } = useMemo(() => {
+  const {
+    tagRows,
+    untaggedCount,
+    archiveCount,
+    archiveTagRows,
+    archiveUntaggedCount
+  } = useMemo(() => {
     if (state.kind !== "ready") {
       return {
         tagRows: [] as ContextRow[],
         untaggedCount: 0,
-        archiveCount: 0
+        archiveCount: 0,
+        archiveTagRows: [] as ContextRow[],
+        archiveUntaggedCount: 0
       };
     }
     const counts = new Map<string, number>();
+    const archiveCounts = new Map<string, number>();
     let untagged = 0;
     let archive = 0;
+    let archiveUntagged = 0;
     for (const item of state.items) {
       const isArchive = ARCHIVE_STATUSES.has(item.status as "done" | "reject");
       if (isArchive) {
         archive += 1;
+        if (item.tags.length === 0) {
+          archiveUntagged += 1;
+        } else {
+          for (const tag of item.tags) {
+            archiveCounts.set(tag.name, (archiveCounts.get(tag.name) ?? 0) + 1);
+          }
+        }
         continue;
       }
       if (item.tags.length === 0) {
@@ -81,18 +103,25 @@ export function IntentContextRail() {
         counts.set(tag.name, (counts.get(tag.name) ?? 0) + 1);
       }
     }
-    const rows: ContextRow[] = [...counts.entries()]
-      .map(([name, count]) => ({
-        key: name,
-        label: name,
-        count,
-        icon: "tag" as const
-      }))
-      .sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.label.localeCompare(b.label);
-      });
-    return { tagRows: rows, untaggedCount: untagged, archiveCount: archive };
+    const sortRows = (entries: Iterable<[string, number]>): ContextRow[] =>
+      [...entries]
+        .map(([name, count]) => ({
+          key: name,
+          label: name,
+          count,
+          icon: "tag" as const
+        }))
+        .sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return a.label.localeCompare(b.label);
+        });
+    return {
+      tagRows: sortRows(counts.entries()),
+      untaggedCount: untagged,
+      archiveCount: archive,
+      archiveTagRows: sortRows(archiveCounts.entries()),
+      archiveUntaggedCount: archiveUntagged
+    };
   }, [state]);
 
   const currentContext = params.get("context");
@@ -203,6 +232,42 @@ export function IntentContextRail() {
                 muted
               />
             </li>
+            {isArchiveContext(currentContext) && archiveCount > 0
+              ? [
+                  ...archiveTagRows.map((row) => (
+                    <li key={`archive-${row.key}`}>
+                      <RailRow
+                        label={`#${row.label}`}
+                        icon={<Hash aria-hidden size={14} strokeWidth={2} />}
+                        count={row.count}
+                        active={currentContext === archiveSubContext(row.key)}
+                        onSelect={() => {
+                          select(archiveSubContext(row.key));
+                        }}
+                        muted
+                        nested
+                      />
+                    </li>
+                  )),
+                  archiveUntaggedCount > 0 ? (
+                    <li key="archive-untagged">
+                      <RailRow
+                        label="Без тегов"
+                        icon={<Inbox aria-hidden size={14} strokeWidth={2} />}
+                        count={archiveUntaggedCount}
+                        active={
+                          currentContext === archiveSubContext(UNTAGGED_CONTEXT)
+                        }
+                        onSelect={() => {
+                          select(archiveSubContext(UNTAGGED_CONTEXT));
+                        }}
+                        muted
+                        nested
+                      />
+                    </li>
+                  ) : null
+                ]
+              : null}
             {tagRows.length === 0 &&
             untaggedCount === 0 &&
             archiveCount === 0 ? (
@@ -224,6 +289,7 @@ interface RailRowProps {
   active: boolean;
   onSelect: () => void;
   muted?: boolean;
+  nested?: boolean;
 }
 
 function RailRow({
@@ -232,7 +298,8 @@ function RailRow({
   count,
   active,
   onSelect,
-  muted
+  muted,
+  nested
 }: RailRowProps) {
   return (
     <button
@@ -240,7 +307,8 @@ function RailRow({
       onClick={onSelect}
       aria-current={active ? "true" : undefined}
       className={[
-        "flex w-full items-center gap-2 border-l-[3px] px-3.5 py-1.5 text-left text-[13px] transition-colors",
+        "flex w-full items-center gap-2 border-l-[3px] py-1.5 text-left text-[13px] transition-colors",
+        nested ? "pl-8 pr-3.5" : "px-3.5",
         active
           ? "border-primary bg-primary/10 font-semibold text-primary"
           : muted

@@ -9,7 +9,11 @@ import {
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
-import { ARCHIVE_CONTEXT, UNTAGGED_CONTEXT } from "@/shared/lib";
+import {
+  UNTAGGED_CONTEXT,
+  archiveContextTag,
+  isArchiveContext
+} from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { EntityList, type EntityListRow } from "@/shared/ui";
 
@@ -156,8 +160,12 @@ export function IntentBoard() {
 
 function matchesContext(item: IntentListItem, context: string | null): boolean {
   if (!context) return false;
-  if (context === ARCHIVE_CONTEXT) {
-    return ARCHIVE_STATUSES.has(item.status);
+  if (isArchiveContext(context)) {
+    if (!ARCHIVE_STATUSES.has(item.status)) return false;
+    const subTag = archiveContextTag(context);
+    if (subTag === null) return true;
+    if (subTag === UNTAGGED_CONTEXT) return item.tags.length === 0;
+    return item.tags.some((t) => t.name === subTag);
   }
   if (ARCHIVE_STATUSES.has(item.status)) return false;
   if (context === UNTAGGED_CONTEXT) {
@@ -168,7 +176,12 @@ function matchesContext(item: IntentListItem, context: string | null): boolean {
 
 function contextTitle(context: string | null): string {
   if (!context) return "Intents";
-  if (context === ARCHIVE_CONTEXT) return "Архив";
+  if (isArchiveContext(context)) {
+    const subTag = archiveContextTag(context);
+    if (subTag === null) return "Архив";
+    if (subTag === UNTAGGED_CONTEXT) return "Архив · Без тегов";
+    return `Архив · # ${subTag}`;
+  }
   if (context === UNTAGGED_CONTEXT) return "Без тегов";
   return `# ${context}`;
 }
@@ -179,7 +192,7 @@ function emptyMessage(context: string | null, total: number): string {
       ? "Нет ни одного intent. Создайте первый."
       : "Выберите контекст слева.";
   }
-  if (context === ARCHIVE_CONTEXT) return "В архиве пусто.";
+  if (isArchiveContext(context)) return "В архиве пусто.";
   if (context === UNTAGGED_CONTEXT) {
     return "Все active intents уже разнесены по тегам.";
   }
