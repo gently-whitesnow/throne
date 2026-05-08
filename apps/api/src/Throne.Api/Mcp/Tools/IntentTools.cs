@@ -76,7 +76,15 @@ public sealed class IntentTools(
 
     [McpServerTool(Name = "list_intents", ReadOnly = true, UseStructuredContent = true)]
     [Description("List intents owned by the current user with compact previews. Use to discover intent ids before calling get_intent. Filters: tag (slug), status (multi), query (case-insensitive substring of Intent.text). Sort defaults to updated_desc; pagination via opaque next_cursor.")]
-    public async Task<CallToolResult> ListIntents(
+    // NOTE: must return McpIntentListResult (the payload type), NOT CallToolResult.
+    // When UseStructuredContent=true the MCP SDK derives the tool's outputSchema from
+    // the return type. CallToolResult serialises with a top-level `structuredContent: true`
+    // (any-schema), which Zod inside the Claude Code app rejects with
+    // "tools[*].outputSchema.properties.structuredContent: Invalid input" — that error
+    // discards the entire tools/list response and the user sees zero tools from this
+    // server. See incident: master HEAD around 278f8c3. Errors are surfaced by throwing;
+    // the SDK wraps them into a CallToolResult with IsError=true.
+    public async Task<McpIntentListResult> ListIntents(
         [Description("Tag slug to filter by. The agent should pass the current repository slug here when scoping to one project; omit for cross-project listing.")] string? tag = null,
         [Description("Statuses to include. Pass values like 'draft', 'ready_for_work', 'work', 'ready_for_review', 'done', 'reject'. Omit for all statuses. To list 'archive', pass ['done','reject'].")] IReadOnlyList<string>? status = null,
         [Description("Case-insensitive substring of Intent.text. Omit to skip text filtering.")] string? query = null,
@@ -85,21 +93,8 @@ public sealed class IntentTools(
         [Description("Opaque cursor returned as next_cursor by the previous page. Omit for the first page.")] string? cursor = null,
         CancellationToken cancellationToken = default)
     {
-        IntentListSort sortValue;
-        IntentListCursor? cursorValue;
-        try
-        {
-            sortValue = ParseSort(sort);
-            cursorValue = ParseCursor(cursor);
-        }
-        catch (ArgumentException ex)
-        {
-            return new CallToolResult
-            {
-                Content = [new TextContentBlock { Text = ex.Message }],
-                IsError = true,
-            };
-        }
+        var sortValue = ParseSort(sort);
+        var cursorValue = ParseCursor(cursor);
 
         var statuses = status is { Count: > 0 } ? status : null;
         var effectiveLimit = limit ?? ListIntentsHandler.DefaultLimit;
@@ -140,13 +135,7 @@ public sealed class IntentTools(
                 UpdatedAt: intent.UpdatedAt));
         }
 
-        var result = new McpIntentListResult(items, EncodeCursor(page.NextCursor));
-        return new CallToolResult
-        {
-            Content = [new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) }],
-            StructuredContent = JsonSerializer.SerializeToNode(result, ToolJsonOptions)?.AsObject(),
-            IsError = false,
-        };
+        return new McpIntentListResult(items, EncodeCursor(page.NextCursor));
     }
 
     private static IntentListSort ParseSort(string? raw) => raw switch

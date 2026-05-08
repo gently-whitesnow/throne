@@ -1,6 +1,4 @@
-using System.Text.Json;
 using FluentAssertions;
-using ModelContextProtocol.Protocol;
 using NSubstitute;
 using Throne.Api.Mcp.Tools;
 using Throne.Application.Intents;
@@ -33,12 +31,10 @@ public class IntentToolsListTests
         var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
-        var call = await tools.ListIntents(
+        var result = await tools.ListIntents(
             tag: null, status: null, query: null, sort: null, limit: null, cursor: null,
             cancellationToken: CancellationToken.None);
 
-        call.IsError.Should().BeFalse();
-        var result = ParseStructured(call);
         result.Items.Should().HaveCount(2);
         result.Items.Should().AllSatisfy(item =>
             item.Tags.Should().ContainSingle().Which.Name.Should().Be("shared"));
@@ -61,17 +57,15 @@ public class IntentToolsListTests
         var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
-        var call = await tools.ListIntents(
+        var result = await tools.ListIntents(
             tag: null, status: null, query: null, sort: null, limit: null, cursor: null,
             cancellationToken: CancellationToken.None);
 
-        call.IsError.Should().BeFalse();
-        var result = ParseStructured(call);
         result.Items.Should().HaveCount(1);
         result.Items[0].Preview.Should().HaveLength(200).And.Be(new string('a', 200));
     }
 
-    [Fact(DisplayName = "list_intents возвращает читаемую ошибку при невалидном cursor")]
+    [Fact(DisplayName = "list_intents бросает ArgumentException с читаемым текстом при невалидном cursor (SDK обёрнет в IsError)")]
     public async Task ListIntents_returns_readable_error_for_bad_cursor()
     {
         var intentRepo = Substitute.For<IIntentRepository>();
@@ -79,16 +73,15 @@ public class IntentToolsListTests
         var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
-        var call = await tools.ListIntents(
+        var act = () => tools.ListIntents(
             tag: null, status: null, query: null, sort: null, limit: null, cursor: "not-base64!!!",
             cancellationToken: CancellationToken.None);
 
-        call.IsError.Should().BeTrue();
-        var text = call.Content.OfType<TextContentBlock>().Single().Text;
-        text.Should().Contain("base64");
+        var ex = await act.Should().ThrowAsync<ArgumentException>();
+        ex.Which.Message.Should().Contain("base64");
     }
 
-    [Fact(DisplayName = "list_intents возвращает читаемую ошибку при неизвестном sort")]
+    [Fact(DisplayName = "list_intents бросает ArgumentException с читаемым текстом при неизвестном sort")]
     public async Task ListIntents_returns_readable_error_for_unknown_sort()
     {
         var intentRepo = Substitute.For<IIntentRepository>();
@@ -96,21 +89,12 @@ public class IntentToolsListTests
         var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
-        var call = await tools.ListIntents(
+        var act = () => tools.ListIntents(
             tag: null, status: null, query: null, sort: "unknown_sort", limit: null, cursor: null,
             cancellationToken: CancellationToken.None);
 
-        call.IsError.Should().BeTrue();
-        var text = call.Content.OfType<TextContentBlock>().Single().Text;
-        text.Should().Contain("Unknown sort");
-    }
-
-    private static readonly JsonSerializerOptions ParseOptions = new(JsonSerializerDefaults.Web);
-
-    private static McpIntentListResult ParseStructured(CallToolResult call)
-    {
-        var json = call.StructuredContent!.ToJsonString();
-        return JsonSerializer.Deserialize<McpIntentListResult>(json, ParseOptions)!;
+        var ex = await act.Should().ThrowAsync<ArgumentException>();
+        ex.Which.Message.Should().Contain("Unknown sort");
     }
 
     private static IntentTools NewTools(
