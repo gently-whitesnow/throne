@@ -49,6 +49,16 @@ describe("CreateIntentButton", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("preselects initialTags as chips when opening the dialog", () => {
+    render(<CreateIntentButton initialTags={["throne"]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Создать intent" }));
+
+    expect(
+      screen.getByRole("button", { name: "Убрать тег throne" })
+    ).toBeTruthy();
+  });
+
   it("closes the dialog when clicking outside", () => {
     render(<CreateIntentButton />);
 

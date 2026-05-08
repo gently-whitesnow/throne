@@ -1,4 +1,4 @@
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, MessagesSquare, Play } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -27,7 +27,26 @@ export function IntentDetailPage() {
   const [activityKey, setActivityKey] = useState(0);
 
   const [refreshKey, setRefreshKey] = useState(0);
-  const [idCopied, setIdCopied] = useState(false);
+  const [copiedAction, setCopiedAction] = useState<
+    "id" | "execute" | "interview" | null
+  >(null);
+
+  const copyToClipboard = (
+    text: string,
+    action: "id" | "execute" | "interview"
+  ) => {
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopiedAction(action);
+        window.setTimeout(() => {
+          setCopiedAction((current) => (current === action ? null : current));
+        }, 1500);
+      } catch {
+        setCopiedAction(null);
+      }
+    })();
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -114,28 +133,73 @@ export function IntentDetailPage() {
             <button
               type="button"
               aria-label={
-                idCopied ? "Идентификатор скопирован" : "Скопировать id интента"
+                copiedAction === "id"
+                  ? "Идентификатор скопирован"
+                  : "Скопировать id интента"
               }
-              title={idCopied ? "Скопировано" : `Скопировать id: ${intent.id}`}
+              title={
+                copiedAction === "id"
+                  ? "Скопировано"
+                  : `Скопировать id: ${intent.id}`
+              }
               onClick={() => {
-                void (async () => {
-                  try {
-                    await navigator.clipboard.writeText(intent.id);
-                    setIdCopied(true);
-                    window.setTimeout(() => {
-                      setIdCopied(false);
-                    }, 1500);
-                  } catch {
-                    setIdCopied(false);
-                  }
-                })();
+                copyToClipboard(intent.id, "id");
               }}
               className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              {idCopied ? (
+              {copiedAction === "id" ? (
                 <Check aria-hidden size={14} strokeWidth={2} />
               ) : (
                 <Copy aria-hidden size={14} strokeWidth={2} />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label={
+                copiedAction === "execute"
+                  ? "Команда «выполни intent» скопирована"
+                  : "Скопировать команду «выполни intent»"
+              }
+              title={
+                copiedAction === "execute"
+                  ? "Скопировано"
+                  : `Скопировать: Выполни intent ${intent.id}`
+              }
+              onClick={() => {
+                copyToClipboard(`Выполни intent ${intent.id}`, "execute");
+              }}
+              className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {copiedAction === "execute" ? (
+                <Check aria-hidden size={14} strokeWidth={2} />
+              ) : (
+                <Play aria-hidden size={14} strokeWidth={2} />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label={
+                copiedAction === "interview"
+                  ? "Команда «проведи интервью» скопирована"
+                  : "Скопировать команду «проведи интервью»"
+              }
+              title={
+                copiedAction === "interview"
+                  ? "Скопировано"
+                  : `Скопировать: Проведи интервью со мной по ${intent.id}`
+              }
+              onClick={() => {
+                copyToClipboard(
+                  `Проведи интервью со мной по ${intent.id}`,
+                  "interview"
+                );
+              }}
+              className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {copiedAction === "interview" ? (
+                <Check aria-hidden size={14} strokeWidth={2} />
+              ) : (
+                <MessagesSquare aria-hidden size={14} strokeWidth={2} />
               )}
             </button>
           </div>

@@ -19,12 +19,16 @@ const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 interface CreateIntentButtonProps {
   onCreated?: (intent: IntentDetail) => void;
+  initialTags?: readonly string[];
 }
 
-export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
+export function CreateIntentButton({
+  onCreated,
+  initialTags
+}: CreateIntentButtonProps) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(() => [...(initialTags ?? [])]);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +38,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
 
   const reset = () => {
     setText("");
-    setTags([]);
+    setTags([...(initialTags ?? [])]);
     setFiles([]);
     setError(null);
   };
@@ -140,6 +144,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
         icon={<Plus aria-hidden size={18} strokeWidth={2.4} />}
         variant="primary"
         onClick={() => {
+          setTags([...(initialTags ?? [])]);
           setOpen(true);
         }}
       >

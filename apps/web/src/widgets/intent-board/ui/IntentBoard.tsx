@@ -32,6 +32,14 @@ export function IntentBoard() {
   const [query, setQuery] = useState("");
 
   const context = params.get("context");
+  const contextTagName =
+    context && !isArchiveContext(context) && context !== UNTAGGED_CONTEXT
+      ? context
+      : null;
+  const initialTags = useMemo(
+    () => (contextTagName ? [contextTagName] : []),
+    [contextTagName]
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -115,6 +123,7 @@ export function IntentBoard() {
           {contextTitle(context)}
         </h2>
         <CreateIntentButton
+          initialTags={initialTags}
           onCreated={(intent) => {
             handleCreated(intent.id);
           }}
