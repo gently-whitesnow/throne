@@ -100,8 +100,12 @@ public sealed class IntentTools(
                 Cursor: cursorValue),
             cancellationToken);
 
-        var allTagIds = page.Items.SelectMany(i => i.TagIds).ToList();
-        var tagRefs = await BuildTagRefsAsync(allTagIds, cancellationToken);
+        var uniqueTagIds = page.Items
+            .SelectMany(i => i.TagIds)
+            .GroupBy(t => t.Value, StringComparer.Ordinal)
+            .Select(g => g.First())
+            .ToList();
+        var tagRefs = await BuildTagRefsAsync(uniqueTagIds, cancellationToken);
         var tagsById = tagRefs.ToDictionary(t => t.Id, t => t, StringComparer.Ordinal);
 
         var items = new List<McpIntentListItem>(page.Items.Count);
