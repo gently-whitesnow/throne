@@ -23,6 +23,8 @@ app.UseAuthorization();
 
 app.UsePersonalAccessTokenMcpAuth("/mcp");
 
+app.UseMiddleware<McpKeepAliveMiddleware>();
+
 app.MapControllers();
 app.MapMcp("/mcp").AllowAnonymous();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
