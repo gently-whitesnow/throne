@@ -157,7 +157,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
       }}
     >
       <div
-        className="modal-box max-h-[min(820px,calc(100vh-48px))] w-full max-w-2xl border border-base-300 bg-base-100"
+        className="modal-box max-h-[min(960px,calc(100vh-32px))] w-full max-w-2xl border border-base-300 bg-base-100"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -204,7 +204,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
           className="flex flex-col gap-3.5"
         >
           <textarea
-            className="textarea textarea-bordered min-h-[220px] w-full text-base"
+            className="textarea textarea-bordered min-h-[320px] w-full text-base"
             placeholder="Кратко опишите intent"
             value={text}
             onChange={(e) => {
@@ -213,7 +213,7 @@ export function CreateIntentButton({ onCreated }: CreateIntentButtonProps) {
             onPaste={(e) => {
               pasteImages(e.clipboardData);
             }}
-            rows={8}
+            rows={12}
             aria-label="Текст intent"
             autoFocus
           />
