@@ -1,0 +1,386 @@
+{
+  "$schema": "https://example.invalid/throne-suppress-baseline.schema.json",
+  "description": "Per-file analyzer suppression baseline. Ratcheted: count can only decrease.",
+  "entries": [
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Auth/AuthOptions.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Auth/PersonalAccessTokenAuthMiddleware.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/InstructionPatches/InstructionPatchDtoMapper.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Intents/IntentsController.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Mcp/AuditingMcpServerTool.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Mcp/Tools/InstructionPatchTools.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Mcp/Tools/IntentAttachmentTools.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Application/InstructionPatches/ApplyInstructionPatchHandler.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Application/InstructionPatches/GetInstructionPatchHandler.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Application/InstructionPatches/ProposeInstructionPatchHandler.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Application/InstructionPatches/RejectInstructionPatchHandler.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Application/Ports/IIntentRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Instructions/Instruction.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Instructions/InstructionPatch.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Instructions/InstructionPatchBudgets.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Instructions/InstructionPatchFactory.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Instructions/InstructionPatchGuards.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Instructions/InstructionPatchTransitions.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Intents/FractionalIndex.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Intents/Intent.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Intents/IntentTextSearch.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Domain/Tags/Tag.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Manifest/YamlFileSkillManifestProvider.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/DreamSessionDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/InstructionDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/InstructionPatchDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/IntentAttachmentDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/IntentDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/IntentEventDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/IntentLinkDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/IntentStatusChangeDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/McpCallLogDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/TextVersionDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/McpArgumentSummaries.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoDreamSessionRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoDreamSessionRepository.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIndexInitializer.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoInstructionPatchRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoInstructionPatchRepository.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoInstructionRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoInstructionRepository.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentAttachmentRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentEventRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentEventsMigration.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentLinkRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentLinkRepository.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentTrainingRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoMcpCallLogSink.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoPersonalAccessTokenRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoTagRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Api.Tests/Auth/PersonalAccessTokenEndpointTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Api.Tests/Intents/ListIntentsEndpointTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Api.Tests/Intents/UploadIntentAttachmentEndpointTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Api.Tests/Mcp/AuditingMcpServerToolTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Api.Tests/Mcp/IntentAttachmentToolsTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Application.Tests/Intents/CreateIntentHandlerTests.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Architecture.Tests/LayerDependencyRulesTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Architecture.Tests/McpBoundMethodParameterRulesTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Architecture.Tests/McpToolRegistrationRulesTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Architecture.Tests/OwnerUserIdRulesTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Domain.Tests/Instructions/InstructionPatchTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Domain.Tests/Intents/FractionalIndexTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Infrastructure.Tests/Mongo/MongoInstructionPatchRepositoryTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Infrastructure.Tests/Mongo/MongoIntentRepositoryTests.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "tests/Throne.Infrastructure.Tests/Mongo/TransactionRollbackTests.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/DreamTools.cs:3",
+      "rule": "CA1707"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/InstructionPatchTools.cs:2",
+      "rule": "CA1707"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentAttachmentTools.cs:2",
+      "rule": "CA1707"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentLinkTools.cs:2",
+      "rule": "CA1707"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentStatusTools.cs:2",
+      "rule": "CA1707"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentTextTools.cs:2",
+      "rule": "CA1707"
+    },
+    {
+      "kind": "pragma",
+      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentTools.cs:2",
+      "rule": "CA1707"
+    }
+  ]
+}

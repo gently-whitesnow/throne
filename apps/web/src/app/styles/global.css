@@ -1,0 +1,107 @@
+@import "@fontsource-variable/mona-sans";
+@import "@fontsource/monaspace-neon";
+
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes:
+    throne-light --default,
+    throne-dark;
+}
+
+@theme {
+  --font-sans: "Mona Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:
+    "Monaspace Neon", ui-monospace, "Fira Code", "Cascadia Code", monospace;
+}
+
+/* ── Throne Light (DaisyUI tokens, mapped from DESIGN.md) ── */
+[data-theme="throne-light"] {
+  --color-primary: oklch(0.5 0.2 255);
+  --color-primary-content: oklch(1 0 0);
+  --color-secondary: oklch(0.48 0.14 280);
+  --color-secondary-content: oklch(1 0 0);
+  --color-accent: oklch(0.56 0.17 168);
+  --color-accent-content: oklch(1 0 0);
+  --color-neutral: oklch(0.3 0.006 260);
+  --color-neutral-content: oklch(0.96 0 0);
+  --color-base-100: oklch(1 0 0);
+  --color-base-200: oklch(0.97 0.005 250);
+  --color-base-300: oklch(0.93 0.005 250);
+  --color-base-content: oklch(0.22 0.005 250);
+  --color-info: oklch(0.58 0.2 240);
+  --color-info-content: oklch(1 0 0);
+  --color-success: oklch(0.58 0.2 155);
+  --color-success-content: oklch(1 0 0);
+  --color-warning: oklch(0.68 0.2 70);
+  --color-warning-content: oklch(0.15 0 0);
+  --color-error: oklch(0.55 0.24 25);
+  --color-error-content: oklch(1 0 0);
+}
+
+/* ── Throne Dark ── */
+[data-theme="throne-dark"] {
+  --color-primary: oklch(0.68 0.17 250);
+  --color-primary-content: oklch(0.12 0 0);
+  --color-secondary: oklch(0.62 0.13 280);
+  --color-secondary-content: oklch(1 0 0);
+  --color-accent: oklch(0.74 0.16 168);
+  --color-accent-content: oklch(0.12 0 0);
+  --color-neutral: oklch(0.22 0.005 250);
+  --color-neutral-content: oklch(0.85 0 0);
+  --color-base-100: oklch(0.17 0.005 260);
+  --color-base-200: oklch(0.2 0.005 260);
+  --color-base-300: oklch(0.27 0.005 260);
+  --color-base-content: oklch(0.88 0.005 250);
+  --color-info: oklch(0.72 0.16 240);
+  --color-info-content: oklch(0.12 0 0);
+  --color-success: oklch(0.74 0.18 155);
+  --color-success-content: oklch(0.12 0 0);
+  --color-warning: oklch(0.78 0.17 70);
+  --color-warning-content: oklch(0.12 0 0);
+  --color-error: oklch(0.68 0.2 25);
+  --color-error-content: oklch(1 0 0);
+}
+
+/* Toast fade-in */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@utility animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Streaming caret blink */
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@utility animate-caret-blink {
+  animation: caret-blink 1s steps(1, end) infinite;
+}
+
+.badge {
+  padding-inline: calc(0.2rem + 0.2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

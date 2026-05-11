@@ -1,0 +1,31 @@
+{
+  "profile": "legacy",
+  "version": 1,
+  "violations": [
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Api/Intents/IntentsController.cs",
+      "subject": "IntentsController primary constructor"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/Intents/Events/IntentEvent.cs",
+      "subject": "IntentEvent primary constructor"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/Intents/Intent.cs",
+      "subject": "Intent.Intent"
+    },
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/TextVersions/TextVersion.cs",
+      "subject": "TextVersion primary constructor"
+    },
+    {
+      "code": "TYPE_LOC",
+      "path": "apps/api/src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs",
+      "subject": "MongoIntentRepository"
+    }
+  ]
+}

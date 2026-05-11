@@ -1,0 +1,131 @@
+{
+  "$schema": "https://example.invalid/throne-quality.schema.json",
+  "version": 2,
+  "stopOnFirstFail": false,
+  "backend": {
+    "solution": "apps/api/Throne.slnx"
+  },
+  "frontend": {
+    "workspace": "apps/web",
+    "architecture": "FSD 2.0",
+    "packageManager": "pnpm",
+    "lockfile": "apps/web/pnpm-lock.yaml"
+  },
+  "gates": [
+    {
+      "id": "backend-contracts",
+      "scope": "backend",
+      "enabled": true,
+      "description": "OpenAPI codegen drift: regen .NET и TS клиенты, fail если diff."
+    },
+    {
+      "id": "backend-realtime",
+      "scope": "backend",
+      "enabled": true,
+      "description": "Realtime 4-way coverage: events.yaml ↔ Application.Events ↔ RealtimeDomainEventHandler ↔ apps/web useRealtimeEvent."
+    },
+    {
+      "id": "backend-format",
+      "scope": "backend",
+      "enabled": true,
+      "description": "dotnet format --verify-no-changes."
+    },
+    {
+      "id": "backend-build",
+      "scope": "backend",
+      "enabled": true,
+      "description": "dotnet build -warnaserror."
+    },
+    {
+      "id": "backend-test-unit",
+      "scope": "backend",
+      "enabled": true,
+      "description": "dotnet test --filter Category!=Integration. Включает Throne.Architecture.Tests (NetArchTest)."
+    },
+    {
+      "id": "backend-test-integration",
+      "scope": "backend",
+      "enabled": true,
+      "slow": true,
+      "description": "dotnet test --filter Category=Integration. Testcontainers MongoDB (replSet rs0), требует Docker."
+    },
+    {
+      "id": "backend-maintainability",
+      "scope": "backend",
+      "enabled": true,
+      "config": ".quality/maintainability-budget.json",
+      "profile": "legacy",
+      "ratchet": ".quality/maintainability-baseline.json",
+      "description": "File/type/method LOC, ctor deps, cyclomatic, fan-out. Advisory + ratchet vs baseline snapshot."
+    },
+    {
+      "id": "backend-duplicates",
+      "scope": "backend",
+      "enabled": true,
+      "config": ".quality/maintainability-budget.json",
+      "description": "Cross-file duplication по нормализованным окнам. Advisory-only: печатает отчёт, не валит билд (детектор лексический, шумит на идиомах)."
+    },
+    {
+      "id": "backend-audit",
+      "scope": "backend",
+      "enabled": true,
+      "slow": true,
+      "description": "dotnet list package --vulnerable --include-transitive."
+    },
+    {
+      "id": "backend-suppressions",
+      "scope": "backend",
+      "enabled": true,
+      "description": "Ratchet over per-file analyzer suppressions in apps/api/.editorconfig + #pragma warning disable. Baseline: .quality/suppress-baseline.json. New entries must cite intent:<id> or ADR-NNNN within 15 preceding lines AND require an explicit re-baseline commit."
+    },
+    {
+      "id": "frontend-deps",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "pnpm install --frozen-lockfile (lockfile drift = fail)."
+    },
+    {
+      "id": "frontend-format",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Prettier check."
+    },
+    {
+      "id": "frontend-lint",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "ESLint flat config."
+    },
+    {
+      "id": "frontend-typecheck",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "TypeScript project references build."
+    },
+    {
+      "id": "frontend-architecture",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Steiger + @feature-sliced/steiger-plugin (FSD 2.0). insignificant-slice выключен."
+    },
+    {
+      "id": "frontend-test",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Vitest run."
+    },
+    {
+      "id": "frontend-build",
+      "scope": "frontend",
+      "enabled": true,
+      "description": "Vite production build."
+    },
+    {
+      "id": "frontend-audit",
+      "scope": "frontend",
+      "enabled": true,
+      "slow": true,
+      "description": "pnpm audit --audit-level high."
+    }
+  ]
+}

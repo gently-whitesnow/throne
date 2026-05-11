@@ -1,0 +1,1087 @@
+openapi: "3.1.0"
+info:
+  title: Throne Intents
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Intents.Contracts.Generated
+paths:
+  /api/v1/intents:
+    get:
+      operationId: listIntents
+      tags: [Intents]
+      summary: List intents (metadata + short text preview).
+      description: >
+        Returns intent metadata (id, current_version, tags, timestamps) and a short text preview.
+        Full text must be fetched via a dedicated read endpoint.
+        Optional `status` query parameter narrows the result to intents in the specified statuses;
+        repeat the parameter for multiple values (e.g. `?status=interview&status=work`).
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/IntentStatus'
+          style: form
+          explode: true
+          description: Filter by one or more workflow statuses. Omit to return all intents.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentListItemDto'
+    post:
+      operationId: createIntent
+      tags: [Intents]
+      summary: Create a new Intent (user-driven).
+      description: Creates an Intent and seeds v1 of its text. ChangedBy=user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntentRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+  /api/v1/intents/{id}:
+    get:
+      operationId: getIntent
+      tags: [Intents]
+      summary: Get a single intent (full text).
+      description: Returns the full intent including canonical text, tags and version.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    delete:
+      operationId: deleteIntent
+      tags: [Intents]
+      summary: Delete an Intent and cascade its text_versions.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/status:
+    post:
+      operationId: setIntentStatus
+      tags: [Intents]
+      summary: Set intent status (user-driven).
+      description: >
+        User-driven status change for an intent. Allows any supported status.
+        When status=reject, reject_reason is required and appended to the end of Intent.text.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetIntentStatusRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: State conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/tags:
+    put:
+      operationId: setIntentTags
+      tags: [Intents]
+      summary: Replace the set of tags attached to an Intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetIntentTagsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent or tag not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/move:
+    post:
+      operationId: moveIntent
+      tags: [Intents]
+      summary: Reorder an intent in the user-defined sort order.
+      description: >
+        Drag-and-drop reorder. The client supplies neighbours by id (`before_id`, `after_id`)
+        and the server reads their canonical `sort_key` values to compute the midpoint.
+        At least one neighbour must be supplied. Reorder does not bump `current_version`
+        nor `updated_at` — the change is purely positional and is not recorded as a text version.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveIntentRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent or pivot not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (e.g. neither neighbour supplied)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/replace-text:
+    post:
+      operationId: replaceIntentText
+      tags: [Intents]
+      summary: Replace a unique substring of Intent.text (user-driven).
+      description: >
+        User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version.
+        ChangedBy=user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../shared.yaml#/components/schemas/ReplaceTextRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Match not found or ambiguous
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/versions:
+    get:
+      operationId: listIntentVersions
+      tags: [Intents]
+      summary: List the text-version history of an Intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../shared.yaml#/components/schemas/TextVersionDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/events:
+    get:
+      operationId: listIntentEvents
+      tags: [Intents]
+      summary: Unified append-only event feed for an intent.
+      description: >
+        Returns the merged history (text + graph) for the intent in chronological
+        order. Backed by `intent_events` (ADR-0019); link events surface on both
+        endpoints of an edge via `peer_intent_id`.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentEventDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/links/summary:
+    get:
+      operationId: getIntentLinksSummary
+      tags: [Intents]
+      summary: Batch-fetch link aggregates for a set of intents (board badges + hover overlay).
+      description: >
+        Companion to `listIntents`: instead of bloating the list DTO with graph-join
+        fields, the board fetches per-intent link aggregates here. For each requested
+        id the server returns counts and peer previews for the four roles surfaced on
+        the card (`blocked_by`, `derived_from`, `source_of`, `relates`). Edges whose
+        peer the caller does not own are dropped from the projection. Missing ids in
+        the response map to «no incident edges».
+      parameters:
+        - in: query
+          name: ids
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            minItems: 1
+            maxItems: 200
+          style: form
+          explode: true
+          description: One or more intent ids to aggregate links for. Repeat the parameter for each id.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentLinksSummaryDto'
+        '422':
+          description: Validation failed (e.g. `ids` empty or above the cap).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/links:
+    get:
+      operationId: listIntentLinks
+      tags: [Intents]
+      summary: List directional graph edges incident to this intent.
+      description: >
+        Returns outgoing and incoming `intent_links` for the intent. The `direction` field on
+        each item is computed relative to the queried intent: `outgoing` = the queried intent
+        is the `from_id`, `incoming` = it is the `to_id`. Edges whose peer the caller does not
+        own (or that point at a deleted intent) are dropped from the projection.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: direction
+          required: false
+          schema:
+            $ref: '#/components/schemas/IntentLinkDirection'
+        - in: query
+          name: type
+          required: false
+          schema:
+            $ref: '#/components/schemas/IntentLinkType'
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentLinksPageDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    post:
+      operationId: createIntentLink
+      tags: [Intents]
+      summary: Create one directed edge between two intents (M:N graph).
+      description: >
+        Creates one directed edge `(from_id=path id, to_id, type)`. Stage 1 supports
+        `relates`, `blocks`, `derived_from`. Mirror roles (`blocked_by`, `source_of`)
+        are computed projections, never separate edges. Self-links are rejected with
+        `link.self_link`. Duplicates `(from_id, to_id, type)` are rejected with
+        `link.duplicate`. The reserved type `duplicate_of` is rejected with
+        `link.type_unsupported` until stage 3.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntentLinkRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentLinkDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Duplicate edge
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (self-link or unsupported type)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/links/{to_id}/{type}:
+    delete:
+      operationId: deleteIntentLink
+      tags: [Intents]
+      summary: Delete one directed edge by its natural key.
+      description: >
+        Idempotent delete by natural key `(from_id=path id, to_id, type)`. Returns 204
+        whether the edge existed or not — repeated calls with stale state must be safe.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: to_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: type
+          required: true
+          schema:
+            $ref: '#/components/schemas/IntentLinkType'
+      responses:
+        '204':
+          description: Deleted (or already absent)
+  /api/v1/intents/{id}/attachments:
+    get:
+      operationId: listIntentAttachments
+      tags: [Intents]
+      summary: List file attachments for an intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntentAttachmentDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    post:
+      operationId: uploadIntentAttachment
+      tags: [Intents]
+      summary: Upload one file attachment for an intent.
+      description: >
+        Multipart upload of a single file. Separate from create/update intent text.
+        Server enforces at most 10 attachments per intent and 10 MiB per file.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File bytes (any content type; images are the primary use case).
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentAttachmentDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '413':
+          description: File exceeds maximum size
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Too many attachments for this intent
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/attachments/{attachment_id}:
+    delete:
+      operationId: deleteIntentAttachment
+      tags: [Intents]
+      summary: Delete one file attachment from an intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        - in: path
+          name: attachment_id
+          required: true
+          schema:
+            type: string
+          description: Attachment identifier.
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Intent or attachment not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/attachments/{attachment_id}/content:
+    get:
+      operationId: downloadIntentAttachment
+      tags: [Intents]
+      summary: Download one file attachment from an intent.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        - in: path
+          name: attachment_id
+          required: true
+          schema:
+            type: string
+          description: Attachment identifier.
+      responses:
+        '200':
+          description: File bytes
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Intent or attachment not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    CreateIntentRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          minLength: 1
+          description: Initial text of the Intent.
+        tag_names:
+          type: array
+          items:
+            type: string
+          description: Optional tag names (slug-style). Server upserts by name — existing names are reused, new names create tags.
+    MoveIntentRequest:
+      type: object
+      properties:
+        before_id:
+          type: string
+          description: Id of the intent that should immediately precede the moved intent. Optional when after_id is supplied.
+        after_id:
+          type: string
+          description: Id of the intent that should immediately follow the moved intent. Optional when before_id is supplied.
+      description: >
+        At least one of before_id / after_id must be present. Supplying both pins the moved
+        intent strictly between the two neighbours.
+    SetIntentTagsRequest:
+      type: object
+      required:
+        - tag_names
+        - expected_version
+      properties:
+        tag_names:
+          type: array
+          items:
+            type: string
+          description: Replacement set of tag names; pass an empty array to detach all tags. Server upserts by name.
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: current_version observed before this update; tag changes do not bump the value but it must still match.
+    TagRefDto:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: Tag identifier.
+        name:
+          type: string
+          description: Normalized hashtag-shaped slug.
+    IntentStatus:
+      type: string
+      enum:
+        - draft
+        - interview
+        - ready_for_work
+        - work
+        - ready_for_review
+        - needs_help
+        - done
+        - reject
+        - fridge
+      description: >
+        Current workflow status of the intent.
+        `ready_for_review` and `needs_help` together form the «inbox»: agent finished
+        successfully (`ready_for_review`) or got stuck and asks the operator for
+        input (`needs_help`). `fridge` is the user-only «later» bucket.
+    SetIntentStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/IntentStatus'
+        reject_reason:
+          type: string
+          minLength: 1
+          description: Required when status=reject. Appended to the end of Intent.text.
+    IntentListItemDto:
+      type: object
+      required:
+        - id
+        - status
+        - current_version
+        - tags
+        - text_short
+        - sort_key
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        status:
+          $ref: '#/components/schemas/IntentStatus'
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Current text version of the intent.
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagRefDto'
+          description: Tags currently attached to the intent (id + display name).
+        text_short:
+          type: string
+          maxLength: 140
+          description: First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
+        sort_key:
+          type: string
+          minLength: 1
+          description: Fractional sort key (base62). Default list order is ascending by this key.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    IntentDetailDto:
+      type: object
+      required:
+        - id
+        - status
+        - current_version
+        - tags
+        - text
+        - sort_key
+        - created_at
+        - updated_at
+        - links
+      properties:
+        id:
+          type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+        status:
+          $ref: '#/components/schemas/IntentStatus'
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagRefDto'
+          description: Tags currently attached to the intent (id + display name).
+        text:
+          type: string
+          description: Full canonical Intent.Text.
+        sort_key:
+          type: string
+          minLength: 1
+          description: Fractional sort key (base62). Stable across edits; only changes via /move.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinkViewDto'
+          description: >
+            Outgoing + incoming graph edges, projected against the current owner's intents.
+            Use `list_intent_links` for paginated access when this list grows large.
+    IntentEventDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - kind
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Event identifier.
+        intent_id:
+          type: string
+          description: >
+            Primary subject of the event. For text events — the intent whose text changed.
+            For link events — the `from_id` of the edge.
+        peer_intent_id:
+          type: string
+          description: >
+            Other endpoint of a link event (the `to_id`); absent for non-link events.
+            Allows the timeline of either endpoint to surface the event.
+        kind:
+          type: string
+          enum:
+            - text_changed
+            - link_added
+            - link_removed
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: For `text_changed`, the resulting `current_version`. Absent for link events.
+        text_change:
+          $ref: '#/components/schemas/IntentEventTextChangeDto'
+        link:
+          $ref: '#/components/schemas/IntentEventLinkPayloadDto'
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          enum: [user, agent, system]
+          description: Author. Absent for `link_removed` (no author tracked at delete time in stage 2).
+    IntentEventTextChangeDto:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          enum: [create, replace, insert]
+        snapshot:
+          type: string
+          description: Full text snapshot. Present for kind=create (v1).
+        old_text:
+          type: string
+          description: Replaced fragment. Present for kind=replace.
+        new_text:
+          type: string
+          description: New fragment. Present for kind=replace.
+        after_line:
+          type: integer
+          format: int32
+        insert_text:
+          type: string
+    IntentEventLinkPayloadDto:
+      type: object
+      required:
+        - id
+        - from_id
+        - to_id
+        - type
+        - author
+        - created_at
+      properties:
+        id:
+          type: string
+        from_id:
+          type: string
+        to_id:
+          type: string
+        type:
+          $ref: '#/components/schemas/IntentLinkType'
+        author:
+          $ref: '#/components/schemas/IntentLinkAuthor'
+        rationale:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    IntentLinkType:
+      type: string
+      enum:
+        - relates
+        - blocks
+        - derived_from
+        - duplicate_of
+      description: >
+        Closed set of supported edge types. `relates` / `blocks` / `derived_from` are stage 1.
+        `duplicate_of` is reserved for stage 3 (merge semantics).
+    IntentLinkAuthor:
+      type: string
+      enum:
+        - user
+        - agent
+      description: Who authored the edge.
+    IntentLinkDirection:
+      type: string
+      enum:
+        - outgoing
+        - incoming
+      description: Direction of the edge relative to the queried intent.
+    IntentLinkDto:
+      type: object
+      required:
+        - id
+        - from_id
+        - to_id
+        - type
+        - author
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Edge identifier.
+        from_id:
+          type: string
+          description: Source intent id.
+        to_id:
+          type: string
+          description: Target intent id.
+        type:
+          $ref: '#/components/schemas/IntentLinkType'
+        author:
+          $ref: '#/components/schemas/IntentLinkAuthor'
+        rationale:
+          type: string
+          description: Optional free-text justification supplied by user/agent.
+        created_at:
+          type: string
+          format: date-time
+    IntentLinkPeerDto:
+      type: object
+      required:
+        - id
+        - status
+        - current_version
+        - sort_key
+        - text_short
+        - tags
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/IntentStatus'
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        sort_key:
+          type: string
+        text_short:
+          type: string
+          maxLength: 140
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagRefDto'
+    IntentLinkViewDto:
+      type: object
+      required:
+        - link
+        - direction
+        - peer
+      properties:
+        link:
+          $ref: '#/components/schemas/IntentLinkDto'
+        direction:
+          $ref: '#/components/schemas/IntentLinkDirection'
+        peer:
+          $ref: '#/components/schemas/IntentLinkPeerDto'
+    IntentLinksPageDto:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinkViewDto'
+        next_cursor:
+          type: string
+          description: Opaque cursor for the next page; absent on the final page.
+    IntentLinksSummaryDto:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinksSummaryEntryDto'
+          description: >
+            One entry per requested intent id that has at least one incident edge.
+            Ids without any edges are omitted; the client must default missing ids
+            to «no links».
+    IntentLinksSummaryEntryDto:
+      type: object
+      required:
+        - intent_id
+        - blocked_by
+        - derived_from
+        - source_of
+        - relates
+      properties:
+        intent_id:
+          type: string
+          description: Intent the aggregate applies to.
+        blocked_by:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinkPeerDto'
+          description: >
+            Other intents (owned by the caller) that have an outgoing `blocks` edge
+            into this intent — the «⚠ blocked by N» badge group.
+        derived_from:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinkPeerDto'
+          description: >
+            Intents this intent points at via outgoing `derived_from` (parents in the
+            structural sense). Usually 0 or 1; not enforced.
+        source_of:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinkPeerDto'
+          description: Intents that point at this intent via incoming `derived_from` (children).
+        relates:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentLinkPeerDto'
+          description: >
+            Symmetric thematic neighbours (`relates` edges in either direction,
+            de-duplicated by peer id).
+    CreateIntentLinkRequest:
+      type: object
+      required:
+        - to_id
+        - type
+      properties:
+        to_id:
+          type: string
+          description: Target intent id (must differ from path id).
+        type:
+          $ref: '#/components/schemas/IntentLinkType'
+        rationale:
+          type: string
+          description: Optional free-text justification (≤ 1000 chars).
+          maxLength: 1000
+    IntentAttachmentDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - file_name
+        - content_type
+        - size_bytes
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Attachment identifier (24 hex chars, ObjectId-shaped).
+        intent_id:
+          type: string
+          description: Owning intent id.
+        file_name:
+          type: string
+          description: Original file name from the upload.
+        content_type:
+          type: string
+          description: Declared MIME type of the uploaded file.
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Stored size in bytes.
+        created_at:
+          type: string
+          format: date-time

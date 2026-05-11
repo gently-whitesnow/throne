@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Throne.Application\Throne.Application.csproj" />
+    <ProjectReference Include="..\Throne.Infrastructure\Throne.Infrastructure.csproj" />
+    <ProjectReference Include="..\Throne.Intents.Contracts\Throne.Intents.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Instructions.Contracts\Throne.Instructions.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Realtime.Contracts\Throne.Realtime.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Tags.Contracts\Throne.Tags.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Me.Contracts\Throne.Me.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.InstructionPatches.Contracts\Throne.InstructionPatches.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Dreams.Contracts\Throne.Dreams.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Skill manifest is the runtime source of truth (see ADR-0007). It must travel
+      with the published binary, otherwise the API fails to boot in environments
+      where the repo tree is not available next to /app (Docker, CI artefacts).
+      Link= preserves the directory layout so the provider's existing path lookup
+      under AppContext.BaseDirectory keeps working unchanged.
+    -->
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-skills.yaml"
+             Link="specs/manifest/throne-skills.yaml"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
+  </ItemGroup>
+
+</Project>

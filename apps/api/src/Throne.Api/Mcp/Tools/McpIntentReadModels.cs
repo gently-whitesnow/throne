@@ -1,0 +1,85 @@
+using System.ComponentModel;
+using System.Text.Json.Serialization;
+
+namespace Throne.Api.Mcp.Tools;
+
+public sealed record McpIntentReadResult(
+    [property: Description("Intent identifier.")] string Id,
+    [property: Description("Full canonical Intent.text.")] string Text,
+    [property: Description("Current intent status.")] string Status,
+    [property: Description("Current text version.")] int CurrentVersion,
+    [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
+    [property: Description("Fractional sort key (base62). Use to reason about the intent's position in the user-defined order.")] string SortKey,
+    [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
+    [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt,
+    [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry, call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log).")]
+    IReadOnlyList<McpIntentAttachmentReadResult> Attachments,
+    [property: Description("Outgoing + incoming graph edges incident to this intent. Mirror roles ('blocked_by' for incoming 'blocks', 'source_of' for incoming 'derived_from') are computed projections — the same edge appears once with a 'direction' field.")]
+    IReadOnlyList<McpIntentLinkRead> Links);
+
+public sealed record McpIntentLinkRead(
+    [property: Description("Edge identifier.")] string Id,
+    [property: Description("Direction relative to the queried intent: 'outgoing' = this intent is the from_id, 'incoming' = this intent is the to_id.")] string Direction,
+    [property: Description("Edge type: 'relates' (thematic), 'blocks' (dependency), 'derived_from' (causal trace).")] string Type,
+    [property: Description("Authored by 'user' or 'agent'.")] string Author,
+    [property: Description("Optional rationale string supplied at link creation; null if absent.")] string? Rationale,
+    [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
+    [property: Description("The peer intent — outgoing direction targets it, incoming direction originates from it.")] McpIntentLinkPeer Peer);
+
+public sealed record McpIntentLinkPeer(
+    [property: Description("Peer intent identifier.")] string Id,
+    [property: Description("Peer intent status.")] string Status,
+    [property: Description("Peer intent current text version.")] int CurrentVersion,
+    [property: Description("Peer intent fractional sort key.")] string SortKey,
+    [property: Description("First non-empty line of the peer's text, trimmed to 200 characters.")] string Preview,
+    [property: Description("Tags attached to the peer intent.")] IReadOnlyList<McpTagRef> Tags);
+
+public sealed record McpIntentLinkResult(
+    [property: Description("Edge identifier.")] string Id,
+    [property: Description("Source intent id.")] string FromId,
+    [property: Description("Target intent id.")] string ToId,
+    [property: Description("Edge type: 'relates', 'blocks', or 'derived_from'.")] string Type,
+    [property: Description("Authored by 'user' or 'agent'.")] string Author,
+    [property: Description("Optional rationale string; null if absent.")] string? Rationale,
+    [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt);
+
+public sealed record McpIntentUnlinkResult(
+    [property: Description("True when an edge was actually deleted; false when the edge was already absent (idempotent retry).")] bool Deleted);
+
+public sealed record McpIntentLinksPageResult(
+    [property: Description("Edges incident to the queried intent.")] IReadOnlyList<McpIntentLinkRead> Items,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    [property: Description("Opaque cursor to fetch the next page; null when this is the last page.")] string? NextCursor);
+
+public sealed record McpIntentListResult(
+    [property: Description("Compact list of intents matching the filter.")] IReadOnlyList<McpIntentListItem> Items,
+    [property: Description("Opaque cursor to fetch the next page; null when this is the last page.")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    string? NextCursor);
+
+public sealed record McpIntentListItem(
+    [property: Description("Intent identifier.")] string Id,
+    [property: Description("Current intent status.")] string Status,
+    [property: Description("Current text version. Use as expected_version for write tools.")] int CurrentVersion,
+    [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
+    [property: Description("First non-empty line of Intent.text, trimmed to 200 characters.")] string Preview,
+    [property: Description("Fractional sort key (base62). Lower lexicographic value = higher in the list.")] string SortKey,
+    [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
+    [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt);
+
+public sealed record McpTagRef(
+    [property: Description("Tag identifier.")] string Id,
+    [property: Description("Normalized hashtag-shaped slug.")] string Name);
+
+public sealed record McpIntentAttachmentReadResult(
+    [property: Description("Attachment identifier.")] string Id,
+    [property: Description("Owning intent identifier.")] string IntentId,
+    [property: Description("Original file name.")] string FileName,
+    [property: Description("Stored MIME type. Image attachments are server-compressed to image/jpeg.")] string ContentType,
+    [property: Description("Stored size in bytes (post-compression for images).")] long SizeBytes,
+    [property: Description("Upload timestamp.")] DateTimeOffset CreatedAt,
+    [property: Description("Content family: 'image', 'text' or 'unsupported'. Drives the choice of read tool.")] string Kind,
+    [property: Description("Name of the MCP tool that returns the bytes for this attachment, or null if unsupported.")] string? RecommendedTool,
+    [property: Description("True for image attachments that have been server-side downscaled to ≤1024 px JPEG q75.")] bool IsCompressedImage,
+    [property: Description("Width in pixels of the stored image (post-compression). Null for non-image attachments.")] int? CompressedWidth,
+    [property: Description("Height in pixels of the stored image (post-compression). Null for non-image attachments.")] int? CompressedHeight);

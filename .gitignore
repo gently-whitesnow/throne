@@ -1,0 +1,37 @@
+# .NET
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+
+# Build artifacts
+*.binlog
+artifacts/
+TestResults/
+coverage/
+*.trx
+*.coverage
+*.coveragexml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Node (future apps/web)
+node_modules/
+dist/
+.vite/
+.next/
+.turbo/
+
+mongo-dumps
+docker-compose.override.yml
+.claude/scheduled_tasks.lock

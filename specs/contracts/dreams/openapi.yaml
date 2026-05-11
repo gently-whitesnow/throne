@@ -1,0 +1,161 @@
+openapi: "3.1.0"
+info:
+  title: Throne Dream Sessions
+  version: "1.0.0"
+  description: >
+    HTTP surface for DreamSession (ADR-0022). A DreamSession is the agent's
+    memory of a single /dream pass: which conversations it read, what summary
+    and reflection it produced, which InstructionPatches it proposed. Records
+    are immutable and owner-scoped via the ambient `ICurrentUserAccessor`.
+    Writes happen exclusively through MCP (`record_dream_session`) — there is
+    no POST endpoint, because only the frontier agent at the end of a /dream
+    pass is allowed to record a session. The UI is read-only.
+
+    `/api/v1/dream-sources` exposes the static manifest list of vendor → path
+    pairs declared in `specs/manifest/throne-skills.yaml`; sources are global
+    in v1 (no per-user override).
+  x-csharp-namespace: Throne.Dreams.Contracts.Generated
+paths:
+  /api/v1/dream-sessions:
+    get:
+      operationId: listDreamSessions
+      tags: [DreamSessions]
+      summary: List DreamSessions (newest first), paginated.
+      parameters:
+        - in: query
+          name: vendor
+          required: false
+          schema:
+            type: string
+            description: Optional vendor filter (e.g. claude-code, claude-desktop, codex-cli).
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            description: Opaque continuation cursor returned by the previous page.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamSessionPageDto'
+  /api/v1/dream-sessions/{dream_session_id}:
+    get:
+      operationId: getDreamSession
+      tags: [DreamSessions]
+      summary: Single DreamSession by id (owner-scoped).
+      parameters:
+        - in: path
+          name: dream_session_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamSessionDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/dream-sources:
+    get:
+      operationId: listDreamSources
+      tags: [DreamSessions]
+      summary: List manifest-declared dream sources (vendor → path / hint).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamSourcePageDto'
+components:
+  schemas:
+    DreamSessionDto:
+      type: object
+      required:
+        - id
+        - created_at
+        - vendor
+        - processed_conversation_ids
+        - summary
+        - proposed_patch_ids
+      properties:
+        id:
+          type: string
+          description: Server-generated id (32 hex chars).
+        created_at:
+          type: string
+          format: date-time
+        vendor:
+          type: string
+        date_from:
+          type: string
+          format: date-time
+          description: Lower bound of the analysed period (inclusive); null when the agent took the full history.
+        date_to:
+          type: string
+          format: date-time
+          description: Upper bound of the analysed period (inclusive); null when open-ended.
+        processed_conversation_ids:
+          type: array
+          items:
+            type: string
+          description: Opaque agent-side ids / paths of dialogs the agent read.
+        summary:
+          type: string
+          maxLength: 4000
+        reflection:
+          type: string
+          maxLength: 4000
+          description: Agent's notes on prior applied patches (whether they landed in practice).
+        proposed_patch_ids:
+          type: array
+          items:
+            type: string
+          description: InstructionPatch ids created during this pass (opaque on the server).
+    DreamSessionPageDto:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DreamSessionDto'
+        next_cursor:
+          type: string
+          description: Opaque continuation token; null when the page exhausted the result set.
+    DreamSourceDto:
+      type: object
+      required: [vendor, path, hint]
+      properties:
+        vendor:
+          type: string
+        path:
+          type: string
+        hint:
+          type: string
+    DreamSourcePageDto:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DreamSourceDto'

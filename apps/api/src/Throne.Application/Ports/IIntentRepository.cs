@@ -1,0 +1,76 @@
+using Throne.Application.Intents;
+using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
+using Throne.Domain.TextVersions;
+
+namespace Throne.Application.Ports;
+
+public interface IIntentRepository
+{
+    Task<CreateIntentOutcome> CreateAsync(
+        Intent intent,
+        TextVersion initialVersion,
+        IntentStatusChange initialStatusChange,
+        IReadOnlyList<Tag> upsertedTags,
+        CancellationToken ct);
+
+    Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct);
+
+    Task<ReplaceIntentTextOutcome> ReplaceTextAsync(
+        IntentId id,
+        int expectedVersion,
+        string oldText,
+        string newText,
+        TextVersionAuthor changedBy,
+        DateTimeOffset now,
+        CancellationToken ct);
+
+    Task<InsertIntentTextAfterLineOutcome> InsertTextAfterLineAsync(
+        IntentId id,
+        int expectedVersion,
+        int afterLine,
+        string insertText,
+        DateTimeOffset now,
+        CancellationToken ct);
+
+    Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct);
+
+    Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct);
+
+    Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct);
+
+    Task<SetIntentStatusOutcome> SetStatusAsync(
+        IntentId id,
+        string status,
+        string? appendText,
+        IntentTrainingAuthor changedBy,
+        string source,
+        DateTimeOffset now,
+        CancellationToken ct);
+
+    Task<SetIntentTagsOutcome> SetTagsAsync(
+        IntentId id,
+        int expectedVersion,
+        IReadOnlyList<TagId> tagIds,
+        DateTimeOffset now,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Lowest <c>sort_key</c> currently held by the current user's intents, or null when
+    /// the user has none. Used by create-flows to compute a key strictly above the top.
+    /// </summary>
+    Task<string?> GetMinSortKeyAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Reorder an intent so that it sits between the supplied pivots (each by id, optional).
+    /// The repository looks up the pivots' sort keys and computes the midpoint via
+    /// <see cref="Throne.Domain.Intents.FractionalIndex"/> — clients never send keys.
+    /// At least one pivot must be supplied.
+    /// </summary>
+    Task<MoveIntentOutcome> MoveBetweenAsync(
+        IntentId id,
+        IntentId? beforeId,
+        IntentId? afterId,
+        CancellationToken ct);
+}

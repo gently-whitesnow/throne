@@ -1,0 +1,72 @@
+{
+  "$schema": "https://example.invalid/dotnet-quality-harness/maintainability-budget.schema.json",
+  "defaultProfile": "legacy",
+  "scanRoots": [
+    "apps/api/src",
+    "apps/api/tests"
+  ],
+  "generatedFilePatterns": [
+    "**/Generated/**",
+    "**/generated/**",
+    "**/*.g.cs",
+    "**/*.generated.cs",
+    "**/*.designer.cs",
+    "**/Migrations/**",
+    "**/bin/**",
+    "**/obj/**"
+  ],
+  "fanOutIgnorePrefixes": [
+    "System",
+    "Microsoft.Extensions.Logging",
+    "Microsoft.Extensions.DependencyInjection",
+    "Microsoft.Extensions.Options",
+    "Microsoft.Extensions.Hosting",
+    "Xunit",
+    "FluentAssertions",
+    "NSubstitute",
+    "Mono.Cecil",
+    "NetArchTest"
+  ],
+  "duplicates": {
+    "windowLines": 8,
+    "minOccurrences": 2,
+    "crossFileOnly": true,
+    "gateMode": "advisory",
+    "ignorePathPatterns": [
+      "**/Generated/**",
+      "**/generated/**",
+      "**/*.g.cs",
+      "**/*.generated.cs"
+    ]
+  },
+  "profiles": {
+    "strict": {
+      "description": "Для новых или уже очищенных areas. Можно делать blocking после baseline.",
+      "gateMode": "blocking",
+      "limits": {
+        "fileMaxLoc": 400,
+        "typeMaxLoc": 200,
+        "methodMaxLoc": 50,
+        "constructorMaxDependencies": 5,
+        "methodMaxCyclomaticComplexity": 10,
+        "typeMaxPublicMembers": 12,
+        "fileMaxFanOut": 15
+      },
+      "exclude": []
+    },
+    "legacy": {
+      "description": "Для brownfield adoption. Advisory + ratchet через baseline snapshot.",
+      "gateMode": "advisory",
+      "limits": {
+        "fileMaxLoc": 800,
+        "typeMaxLoc": 500,
+        "methodMaxLoc": 120,
+        "constructorMaxDependencies": 8,
+        "methodMaxCyclomaticComplexity": 25,
+        "typeMaxPublicMembers": 25,
+        "fileMaxFanOut": 30
+      },
+      "exclude": []
+    }
+  }
+}

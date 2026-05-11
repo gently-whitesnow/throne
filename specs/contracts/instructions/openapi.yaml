@@ -1,0 +1,252 @@
+openapi: "3.1.0"
+info:
+  title: Throne Instructions
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Instructions.Contracts.Generated
+paths:
+  /api/v1/instructions:
+    get:
+      operationId: listInstructions
+      tags: [Instructions]
+      summary: List instructions (metadata + short text preview).
+      description: >
+        Returns instruction metadata (id, kind, current_version, timestamps) and a short text preview.
+        Full text must be fetched via getInstruction.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstructionListItemDto'
+  /api/v1/instructions/{id}:
+    get:
+      operationId: getInstruction
+      tags: [Instructions]
+      summary: Get a single instruction (full text).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Instruction identifier (24 hex chars, ObjectId-shaped).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructionDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/instructions/{id}/replace-text:
+    post:
+      operationId: replaceInstructionText
+      tags: [Instructions]
+      summary: Replace a unique substring of Instruction.text (user-driven).
+      description: >
+        Instruction kinds are seeded by the business and cannot be created or deleted via API.
+        Only the text body is editable. Optimistic concurrency via expected_version. ChangedBy=user.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../shared.yaml#/components/schemas/ReplaceTextRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructionDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Match not found or ambiguous
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/instructions/bundles-tree:
+    get:
+      operationId: getBundlesTree
+      tags: [Instructions]
+      summary: Precomputed bundle → instructions tree.
+      description: >
+        Returns the runtime composition that the agent receives for each bundle mode.
+        Source of truth is the declarative manifest (specs/manifest/throne-skills.yaml).
+        For every bundle in the manifest the response includes the bundle mode and its
+        ordered includes (system + user instructions) with full text payload.
+        User-scope entries carry editable=true; system entries are read-only synthetic ids.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BundlesTreeDto'
+  /api/v1/instructions/{id}/versions:
+    get:
+      operationId: listInstructionVersions
+      tags: [Instructions]
+      summary: List the text-version history of an Instruction.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../shared.yaml#/components/schemas/TextVersionDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    InstructionListItemDto:
+      type: object
+      required:
+        - id
+        - kind
+        - current_version
+        - text_short
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Instruction identifier (24 hex chars, ObjectId-shaped).
+        kind:
+          type: string
+          description: Instruction kind (common | interview | work | dream | fix).
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        text_short:
+          type: string
+          maxLength: 140
+          description: First 140 characters of Instruction.Text (no ellipsis).
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BundlesTreeDto:
+      type: object
+      required:
+        - bundles
+      properties:
+        bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleNodeDto'
+    BundleNodeDto:
+      type: object
+      required:
+        - mode
+        - includes
+      properties:
+        mode:
+          type: string
+          description: Bundle mode (interview | work | dream | fix).
+        includes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleEntryNodeDto'
+    BundleEntryNodeDto:
+      type: object
+      required:
+        - scope
+        - kind
+        - current_version
+        - text
+        - editable
+        - present
+      properties:
+        scope:
+          type: string
+          description: system | user.
+        kind:
+          type: string
+          description: Instruction kind (common | interview | work | dream | fix).
+        instruction_id:
+          type: string
+          nullable: true
+          description: Instruction id. For system entries — synthetic 'system:<kind>'. Null when a user entry is missing.
+        current_version:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 1 for system. For user — Mongo current_version, or 0 if no user record exists yet.
+        text:
+          type: string
+          description: Full text of the instruction (empty string when a user entry is missing).
+        editable:
+          type: boolean
+          description: True only for user-scope entries.
+        present:
+          type: boolean
+          description: False when a user-scope record does not yet exist in Mongo.
+    InstructionDetailDto:
+      type: object
+      required:
+        - id
+        - kind
+        - current_version
+        - text
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        text:
+          type: string
+          description: Full canonical Instruction.Text.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

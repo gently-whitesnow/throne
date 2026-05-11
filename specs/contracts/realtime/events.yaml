@@ -1,0 +1,103 @@
+version: 1
+# Source of truth for server-to-client realtime events.
+# Adding an event here is the FIRST step. The realtime gate fails until:
+#   - a domain-event record exists in Throne.Application/Events/IntentEvents.cs,
+#   - the repository raises that event by carrying it on its outcome,
+#   - RealtimeDomainEventHandler maps it to RealtimeEventNames.<PascalName>,
+#   - the frontend subscribes via useRealtimeEvent('<name>') in at least one place.
+#
+# The dispatching IUnitOfWork decorator fans out events automatically — handlers
+# never publish realtime events themselves. See ADR-0008 for rationale.
+#
+# Transport: Server-Sent Events at GET /api/v1/realtime/stream.
+
+events:
+  intent.created:
+    description: A new Intent was created.
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.deleted:
+    description: An Intent was deleted.
+    payload:
+      type: object
+      required: [intent_id]
+      properties:
+        intent_id:
+          type: string
+  intent.text_changed:
+    description: Intent.text was edited (replace or insert).
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.status_changed:
+    description: Intent status transitioned.
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.attachment_added:
+    description: A file attachment was uploaded for an Intent.
+    payload_ref: intents#/components/schemas/IntentAttachmentDto
+  intent.attachment_deleted:
+    description: A file attachment was removed from an Intent.
+    payload:
+      type: object
+      required: [intent_id, attachment_id]
+      properties:
+        intent_id:
+          type: string
+        attachment_id:
+          type: string
+  intent.tags_changed:
+    description: The set of tags attached to an Intent changed.
+    payload_ref: intents#/components/schemas/IntentDetailDto
+  intent.link_added:
+    description: A graph edge was added between two intents.
+    payload_ref: intents#/components/schemas/IntentLinkDto
+  intent.link_removed:
+    description: A graph edge was removed.
+    payload:
+      type: object
+      required: [id, from_id, to_id, type]
+      properties:
+        id:
+          type: string
+        from_id:
+          type: string
+        to_id:
+          type: string
+        type:
+          $ref: 'intents#/components/schemas/IntentLinkType'
+  intent.reordered:
+    description: An Intent's sort_key changed (drag-and-drop reorder).
+    payload:
+      type: object
+      required: [intent_id, sort_key]
+      properties:
+        intent_id:
+          type: string
+        sort_key:
+          type: string
+  tag.created:
+    description: A new tag was created (by user or auto-upsert during create_intent / set_intent_tags).
+    payload_ref: tags#/components/schemas/TagDto
+  tag.updated:
+    description: A tag was renamed.
+    payload_ref: tags#/components/schemas/TagDto
+  tag.deleted:
+    description: A tag was deleted.
+    payload:
+      type: object
+      required: [tag_id]
+      properties:
+        tag_id:
+          type: string
+  instruction_patch.proposed:
+    description: A frontier agent proposed a new patch for a user instruction (ADR-0021).
+    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
+  instruction_patch.applied:
+    description: A patch was applied (verbatim or after user edit). The target instruction got a new text version.
+    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
+  instruction_patch.rejected:
+    description: A user rejected the patch with a comment (≥10 chars after trimming).
+    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
+  instruction_patch.superseded:
+    description: A newer patch on the same target invalidated this one.
+    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
+  dream_session.recorded:
+    description: A frontier agent recorded a DreamSession at the end of a /dream pass (ADR-0022).
+    payload_ref: dreams#/components/schemas/DreamSessionDto

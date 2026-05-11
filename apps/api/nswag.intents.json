@@ -1,0 +1,56 @@
+{
+  "runtime": "Net100",
+  "defaultVariables": "OpenApiDocument=../../specs/contracts/intents/openapi.yaml,GeneratedClient=src/Throne.Intents.Contracts/Generated/IntentsClient.g.cs,ClientNamespace=Throne.Intents.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=src/Throne.Api/Generated/IntentsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=Intents",
+  "documentGenerator": {
+    "fromDocument": {
+      "url": "$(OpenApiDocument)",
+      "output": null,
+      "newLineBehavior": "Auto"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpClient": {
+      "generateClientClasses": false,
+      "generateClientInterfaces": false,
+      "generateDtoTypes": true,
+      "injectHttpClient": false,
+      "disposeHttpClient": false,
+      "generateExceptionClasses": false,
+      "wrapDtoExceptions": false,
+      "useBaseUrl": false,
+      "generateBaseUrlProperty": false,
+      "generateSyncMethods": false,
+      "generatePrepareRequestAndProcessResponseAsAsyncMethods": false,
+      "operationGenerationMode": "MultipleClientsFromOperationId",
+      "generateOptionalParameters": true,
+      "generateJsonMethods": false,
+      "generateDataAnnotations": true,
+      "jsonLibrary": "SystemTextJson",
+      "jsonLibraryVersion": "9.0",
+      "namespace": "$(ClientNamespace)",
+      "output": "$(GeneratedClient)",
+      "newLineBehavior": "Auto"
+    },
+    "openApiToCSharpController": {
+      "controllerStyle": "Abstract",
+      "controllerTarget": "AspNetCore",
+      "useActionResultType": true,
+      "generateModelValidationAttributes": true,
+      "routeNamingStrategy": "OperationId",
+      "className": "$(ControllerClassName)",
+      "operationGenerationMode": "MultipleClientsFromOperationId",
+      "additionalNamespaceUsages": [
+        "$(ClientNamespace)"
+      ],
+      "generateOptionalParameters": true,
+      "generateJsonMethods": false,
+      "generateDataAnnotations": true,
+      "generateDtoTypes": false,
+      "jsonLibrary": "SystemTextJson",
+      "jsonLibraryVersion": "9.0",
+      "namespace": "$(ControllerNamespace)",
+      "output": "$(GeneratedController)",
+      "newLineBehavior": "Auto"
+    }
+  }
+}
