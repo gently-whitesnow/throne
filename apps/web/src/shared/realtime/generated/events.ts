@@ -22,10 +22,13 @@ export interface RealtimeEventMap {
   "intent.deleted": { intent_id: string };
   "intent.link_added": IntentsComponents["schemas"]["IntentLinkDto"];
   "intent.link_removed": { id: string; from_id: string; to_id: string; type: unknown };
+  "intent.pin_moved": { intent_id: string; context_tag_id: string; pin_sort_key: string };
+  "intent.pinned": { intent_id: string; context_tag_id: string; pin_sort_key: string };
   "intent.reordered": { intent_id: string; sort_key: string };
   "intent.status_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.tags_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.text_changed": IntentsComponents["schemas"]["IntentDetailDto"];
+  "intent.unpinned": { intent_id: string; context_tag_id: string };
   "tag.created": TagsComponents["schemas"]["TagDto"];
   "tag.deleted": { tag_id: string };
   "tag.updated": TagsComponents["schemas"]["TagDto"];
@@ -45,10 +48,13 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "intent.deleted",
   "intent.link_added",
   "intent.link_removed",
+  "intent.pin_moved",
+  "intent.pinned",
   "intent.reordered",
   "intent.status_changed",
   "intent.tags_changed",
   "intent.text_changed",
+  "intent.unpinned",
   "tag.created",
   "tag.deleted",
   "tag.updated",

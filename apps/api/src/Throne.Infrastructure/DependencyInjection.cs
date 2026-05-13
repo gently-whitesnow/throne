@@ -42,6 +42,7 @@ public static class DependencyInjection
             sp.GetRequiredService<MongoUnitOfWork>(),
             sp.GetRequiredService<IDomainEventDispatcher>()));
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
+        services.AddSingleton<IIntentPinRepository, MongoIntentPinRepository>();
         services.AddSingleton<IIntentLinkRepository, MongoIntentLinkRepository>();
         services.AddSingleton<ITagRepository, MongoTagRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
@@ -81,6 +82,7 @@ public static class DependencyInjection
             sp.GetRequiredService<MongoUnitOfWork>(),
             sp.GetRequiredService<IDomainEventDispatcher>()));
         services.AddSingleton<IIntentRepository, MongoIntentRepository>();
+        services.AddSingleton<IIntentPinRepository, MongoIntentPinRepository>();
         services.AddSingleton<IIntentLinkRepository, MongoIntentLinkRepository>();
         services.AddSingleton<ITagRepository, MongoTagRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();

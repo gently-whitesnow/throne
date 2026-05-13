@@ -1,10 +1,12 @@
+import { Pin } from "lucide-react";
 import { useState, type DragEvent, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
 /**
  * Custom MIME used to mark drags of intent rows from this list. Foreign drop
- * targets (например, секция «Связи») сниффят его в dragover через
- * `dataTransfer.types`, чтобы подсветить drop-зону без чтения payload.
+ * targets (например, секция «Связи» или Pinned в сайдбаре) сниффят его в
+ * dragover через `dataTransfer.types`, чтобы подсветить drop-зону без чтения
+ * payload.
  */
 export const INTENT_DND_MIME = "application/x-throne-intent-id";
 
@@ -26,6 +28,8 @@ export interface EntityListRow {
   tint?: string;
   /** Extra inline content rendered after the warning chip (e.g. link badges). */
   trailing?: ReactNode;
+  /** When true, renders a pin marker next to the title. Bookmarks the row in some context. */
+  pinned?: boolean;
 }
 
 /**
@@ -213,8 +217,16 @@ export function EntityList({
                 </span>
               ) : null}
               <span className="flex min-w-0 flex-1 flex-col gap-px">
-                <span className="truncate font-medium leading-tight">
-                  {row.title}
+                <span className="flex items-center gap-1.5 truncate font-medium leading-tight">
+                  {row.pinned ? (
+                    <Pin
+                      aria-label="Запинено"
+                      size={12}
+                      strokeWidth={2.5}
+                      className="flex-shrink-0 text-primary"
+                    />
+                  ) : null}
+                  <span className="truncate">{row.title}</span>
                 </span>
                 {row.subtitle ? (
                   <span className="truncate text-[11px] text-base-content/60">

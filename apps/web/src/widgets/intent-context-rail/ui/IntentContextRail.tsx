@@ -27,9 +27,12 @@ import {
   INBOX_REVIEW_CONTEXT,
   UNTAGGED_CONTEXT,
   archiveSubContext,
-  isArchiveContext
+  isArchiveContext,
+  isTagContext
 } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
+
+import { PinnedSection } from "./PinnedSection";
 
 type LoadState =
   | { kind: "loading" }
@@ -117,6 +120,9 @@ export function IntentContextRail() {
   useRealtimeEvent("intent.deleted", reload);
   useRealtimeEvent("intent.tags_changed", reload);
   useRealtimeEvent("intent.status_changed", reload);
+  useRealtimeEvent("intent.pinned", reload);
+  useRealtimeEvent("intent.unpinned", reload);
+  useRealtimeEvent("intent.pin_moved", reload);
 
   const {
     tagRows,
@@ -242,11 +248,46 @@ export function IntentContextRail() {
   const totalActive =
     tagRows.reduce((acc, row) => acc + row.count, 0) + untaggedCount;
 
+  const items = useMemo<IntentListItem[]>(
+    () => (state.kind === "ready" ? state.items : []),
+    [state]
+  );
+  const tagNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of items) {
+      for (const tag of item.tags) map.set(tag.name, tag.id);
+    }
+    return map;
+  }, [items]);
+  const currentContextTagId =
+    currentContext && isTagContext(currentContext)
+      ? (tagNameToId.get(currentContext) ?? null)
+      : null;
+  const pinnedIntents = useMemo(() => {
+    if (items.length === 0) return [];
+    if (currentContextTagId !== null) {
+      return items.filter((i) => i.pinned_in.includes(currentContextTagId));
+    }
+    // Aggregate view (Inbox/root/virtual contexts) — show any pinned intent.
+    return items.filter((i) => i.pinned_in.length > 0);
+  }, [items, currentContextTagId]);
+
   return (
     <aside
       className="flex min-h-0 min-w-0 flex-col overflow-hidden border-base-300 bg-base-100 max-md:border-b md:border-r"
       aria-label="Контексты Intents"
     >
+      {state.kind === "ready" ? (
+        <PinnedSection
+          items={items}
+          currentContextTagId={currentContextTagId}
+          currentContextLabel={
+            currentContext && isTagContext(currentContext) ? currentContext : ""
+          }
+          pinnedIntents={pinnedIntents}
+          onMutationFailed={reload}
+        />
+      ) : null}
       {state.kind === "ready" && inboxTotal > 0 ? (
         <InboxWidget
           reviewCount={inboxReviewCount}

@@ -57,6 +57,16 @@ internal static class IntentsErrorMapper
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 
+    public static ActionResult<IntentDetailDto> MapPin(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.ValidationFailed =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<IntentLinkDto> MapCreateLink(ApiException ex) =>
         ex.Code switch
         {

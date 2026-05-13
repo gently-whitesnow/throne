@@ -14,4 +14,5 @@ public static class MongoCollectionNames
     public const string IntentEvents = "intent_events";
     public const string InstructionPatches = "instruction_patches";
     public const string DreamSessions = "dream_sessions";
+    public const string IntentPins = "intent_pins";
 }

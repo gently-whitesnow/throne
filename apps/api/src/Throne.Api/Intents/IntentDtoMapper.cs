@@ -12,7 +12,8 @@ internal static class IntentDtoMapper
     public static IntentDetailDto ToDetailDto(
         Intent intent,
         IReadOnlyDictionary<string, Tag> tagsById,
-        IReadOnlyList<IntentLinkViewDto>? links = null) => new()
+        IReadOnlyList<IntentLinkViewDto>? links = null,
+        IReadOnlyList<string>? pinnedIn = null) => new()
         {
             Id = intent.Id.Value,
             Status = IntentStatusDtoMapper.ToContractStatus(intent.Status),
@@ -25,12 +26,16 @@ internal static class IntentDtoMapper
             Links = links is null
                 ? new System.Collections.ObjectModel.Collection<IntentLinkViewDto>()
                 : new System.Collections.ObjectModel.Collection<IntentLinkViewDto>([.. links]),
+            Pinned_in = pinnedIn is null
+                ? new System.Collections.ObjectModel.Collection<string>()
+                : new System.Collections.ObjectModel.Collection<string>([.. pinnedIn]),
         };
 
     public static IntentListItemDto ToListDto(
         Intent intent,
         IReadOnlyDictionary<string, Tag> tagsById,
-        int textShortMaxLength) => new()
+        int textShortMaxLength,
+        IReadOnlyList<string>? pinnedIn = null) => new()
         {
             Id = intent.Id.Value,
             Status = IntentStatusDtoMapper.ToContractStatus(intent.Status),
@@ -40,6 +45,9 @@ internal static class IntentDtoMapper
             Sort_key = intent.SortKey,
             Created_at = intent.CreatedAt,
             Updated_at = intent.UpdatedAt,
+            Pinned_in = pinnedIn is null
+                ? new System.Collections.ObjectModel.Collection<string>()
+                : new System.Collections.ObjectModel.Collection<string>([.. pinnedIn]),
         };
 
     public static IntentLinkPeerDto ToPeerDto(Intent peer, IReadOnlyDictionary<string, Tag> tagsById) => new()

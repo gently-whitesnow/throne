@@ -19,6 +19,11 @@
     },
     {
       "kind": "editorconfig",
+      "location": "src/Throne.Api/Intents/IntentDtoMapper.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
       "location": "src/Throne.Api/Intents/IntentsController.cs",
       "rule": "CA1502"
     },
@@ -164,6 +169,11 @@
     },
     {
       "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/Documents/IntentPinDocument.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
       "location": "src/Throne.Infrastructure/Mongo/Documents/IntentStatusChangeDocument.cs",
       "rule": "CA1502"
     },
@@ -240,6 +250,16 @@
     {
       "kind": "editorconfig",
       "location": "src/Throne.Infrastructure/Mongo/MongoIntentLinkRepository.cs",
+      "rule": "CA1506"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentPinRepository.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
+      "location": "src/Throne.Infrastructure/Mongo/MongoIntentPinRepository.cs",
       "rule": "CA1506"
     },
     {

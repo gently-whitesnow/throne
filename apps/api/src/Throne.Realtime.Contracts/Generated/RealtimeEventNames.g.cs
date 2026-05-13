@@ -22,10 +22,13 @@ public static class RealtimeEventNames
     public const string IntentDeleted = "intent.deleted";
     public const string IntentLinkAdded = "intent.link_added";
     public const string IntentLinkRemoved = "intent.link_removed";
+    public const string IntentPinMoved = "intent.pin_moved";
+    public const string IntentPinned = "intent.pinned";
     public const string IntentReordered = "intent.reordered";
     public const string IntentStatusChanged = "intent.status_changed";
     public const string IntentTagsChanged = "intent.tags_changed";
     public const string IntentTextChanged = "intent.text_changed";
+    public const string IntentUnpinned = "intent.unpinned";
     public const string TagCreated = "tag.created";
     public const string TagDeleted = "tag.deleted";
     public const string TagUpdated = "tag.updated";
@@ -43,10 +46,13 @@ public static class RealtimeEventNames
         IntentDeleted,
         IntentLinkAdded,
         IntentLinkRemoved,
+        IntentPinMoved,
+        IntentPinned,
         IntentReordered,
         IntentStatusChanged,
         IntentTagsChanged,
         IntentTextChanged,
+        IntentUnpinned,
         TagCreated,
         TagDeleted,
         TagUpdated,

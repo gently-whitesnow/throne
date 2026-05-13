@@ -85,6 +85,104 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Pin an intent inside a tag-scoped Pinned list. When neither pivot is supplied the pin is appended to the tail.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PinIntentRequest
+    {
+
+        /// <summary>
+        /// Tag id that defines the per-context pin bucket. Must reference a tag owned by the caller.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("context_tag_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Context_tag_id { get; set; }
+
+        /// <summary>
+        /// Optional id of the intent whose pin in this context should immediately precede the new pin.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("before_id")]
+        public string Before_id { get; set; }
+
+        /// <summary>
+        /// Optional id of the intent whose pin in this context should immediately follow the new pin.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("after_id")]
+        public string After_id { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UnpinIntentRequest
+    {
+
+        /// <summary>
+        /// Tag id whose Pinned bucket should drop this intent.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("context_tag_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Context_tag_id { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// At least one of before_id / after_id must be present. Pivot ids reference other intents pinned in the same context.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MovePinRequest
+    {
+
+        /// <summary>
+        /// Tag id of the Pinned list to reorder inside.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("context_tag_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Context_tag_id { get; set; }
+
+        /// <summary>
+        /// Optional id of the pinned intent that should immediately precede this pin.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("before_id")]
+        public string Before_id { get; set; }
+
+        /// <summary>
+        /// Optional id of the pinned intent that should immediately follow this pin.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("after_id")]
+        public string After_id { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetIntentTagsRequest
     {
@@ -270,6 +368,13 @@ namespace Throne.Intents.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Updated_at { get; set; }
 
+        /// <summary>
+        /// Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pinned_in")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -337,6 +442,13 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("links")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IntentLinkViewDto> Links { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkViewDto>();
+
+        /// <summary>
+        /// Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pinned_in")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

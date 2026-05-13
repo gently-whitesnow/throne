@@ -97,6 +97,36 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> MoveIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] MoveIntentRequest body);
 
         /// <summary>
+        /// Pin an intent in a tag-scoped context.
+        /// </summary>
+        /// <remarks>
+        /// Adds a pin record `(intent_id, context_tag_id)`. Pins are bookmarks: they do not change the intent's status nor bump `current_version`. Position inside the context's Pinned list is governed by a fractional `pin_sort_key`; supply `before_id` and/or `after_id` to insert between existing pins, or omit both to append to the end. Idempotent: re-pinning an existing pair without neighbours is a no-op; supplying neighbours reorders the existing pin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/pin", Name = "pinIntent")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> PinIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PinIntentRequest body);
+
+        /// <summary>
+        /// Remove a pin from a tag-scoped context.
+        /// </summary>
+        /// <remarks>
+        /// Removes the pin record `(intent_id, context_tag_id)`. Idempotent: returns 200 with the refreshed Intent DTO even if the pin did not exist.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/pin", Name = "unpinIntent")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> UnpinIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UnpinIntentRequest body);
+
+        /// <summary>
+        /// Reorder a pin inside its context's Pinned list.
+        /// </summary>
+        /// <remarks>
+        /// Drag-and-drop reorder of an existing pin. Behaves like `/move` for intents but operates on `pin_sort_key` instead of `sort_key`. At least one of `before_id` / `after_id` must be supplied; pivot ids reference other pinned intents inside the same `context_tag_id`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/pin/move", Name = "movePin")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> MovePin([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] MovePinRequest body);
+
+        /// <summary>
         /// Replace a unique substring of Intent.text (user-driven).
         /// </summary>
         /// <remarks>

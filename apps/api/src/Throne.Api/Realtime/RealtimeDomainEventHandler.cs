@@ -56,6 +56,15 @@ internal sealed class RealtimeDomainEventHandler(
         IntentReordered reordered => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentReordered,
             new { intent_id = reordered.Intent.Id.Value, sort_key = reordered.Intent.SortKey }),
+        IntentPinned pinned => new RealtimeEventEnvelope(
+            RealtimeEventNames.IntentPinned,
+            new { intent_id = pinned.IntentId, context_tag_id = pinned.ContextTagId, pin_sort_key = pinned.PinSortKey }),
+        IntentUnpinned unpinned => new RealtimeEventEnvelope(
+            RealtimeEventNames.IntentUnpinned,
+            new { intent_id = unpinned.IntentId, context_tag_id = unpinned.ContextTagId }),
+        IntentPinMoved pinMoved => new RealtimeEventEnvelope(
+            RealtimeEventNames.IntentPinMoved,
+            new { intent_id = pinMoved.IntentId, context_tag_id = pinMoved.ContextTagId, pin_sort_key = pinMoved.PinSortKey }),
         IntentLinkAdded linkAdded => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentLinkAdded, IntentLinkDtoMapper.ToLinkDto(linkAdded.Link)),
         IntentLinkRemoved linkRemoved => new RealtimeEventEnvelope(

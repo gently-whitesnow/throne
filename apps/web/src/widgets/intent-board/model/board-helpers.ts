@@ -7,11 +7,13 @@ import {
   FRIDGE_CONTEXT,
   INBOX_HELP_CONTEXT,
   INBOX_REVIEW_CONTEXT,
+  PINNED_CONTEXT,
   UNTAGGED_CONTEXT,
   archiveContextTag,
   isArchiveContext,
   isFridgeContext,
-  isInboxContext
+  isInboxContext,
+  isPinnedContext
 } from "@/shared/lib";
 
 export function matchesContext(
@@ -19,6 +21,9 @@ export function matchesContext(
   context: string | null
 ): boolean {
   if (!context) return false;
+  if (isPinnedContext(context)) {
+    return item.pinned_in.length > 0;
+  }
   if (isArchiveContext(context)) {
     if (!ARCHIVE_STATUSES.has(item.status)) return false;
     const subTag = archiveContextTag(context);
@@ -55,6 +60,7 @@ export function contextTitle(context: string | null): string {
   if (context === INBOX_REVIEW_CONTEXT) return "Жду ревью";
   if (context === INBOX_HELP_CONTEXT) return "Нужна помощь";
   if (context === UNTAGGED_CONTEXT) return "Без тегов";
+  if (context === PINNED_CONTEXT) return "Pinned";
   return `# ${context}`;
 }
 
@@ -73,6 +79,9 @@ export function emptyMessage(context: string | null, total: number): string {
     return "Нет intents, где агент просит помощи.";
   if (context === UNTAGGED_CONTEXT) {
     return "Все active intents уже разнесены по тегам.";
+  }
+  if (context === PINNED_CONTEXT) {
+    return "Нет запиненных intents. Перетащите карточку в секцию «Pinned».";
   }
   return "В этом контексте пока пусто.";
 }

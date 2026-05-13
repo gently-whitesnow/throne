@@ -20,5 +20,6 @@ export {
   httpPostForm,
   httpGetBlob,
   httpDelete,
+  httpDeleteWithBody,
   HttpError
 } from "./http";

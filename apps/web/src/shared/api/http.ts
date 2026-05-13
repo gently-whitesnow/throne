@@ -190,3 +190,31 @@ export async function httpDelete(
     throw await parseError(url, response, "DELETE");
   }
 }
+
+/**
+ * DELETE with a JSON body, returning the parsed response. Used by endpoints
+ * that semantically delete a resource but need to identify it via more than
+ * the URL alone (e.g. `unpinIntent` carries the `context_tag_id`).
+ */
+export async function httpDeleteWithBody<TResponse>(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal
+): Promise<TResponse> {
+  const url = `${baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify(body),
+    signal
+  });
+
+  if (!response.ok) {
+    throw await parseError(url, response, "DELETE");
+  }
+
+  return (await response.json()) as TResponse;
+}
