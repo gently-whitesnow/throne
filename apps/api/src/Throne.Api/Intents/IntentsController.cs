@@ -203,7 +203,7 @@ public sealed partial class IntentsController(
 
         var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
         // Freshly created intents start unpinned; skip the pin lookup.
-        var dto = IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: Array.Empty<string>());
+        var dto = IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: Array.Empty<IntentPin>());
         return CreatedAtAction(nameof(GetIntent), new { id = intent.Id.Value }, dto);
     }
 

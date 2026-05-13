@@ -145,6 +145,35 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PinnedContextDto
+    {
+
+        /// <summary>
+        /// Tag id whose Pinned bucket holds this entry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("context_tag_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Context_tag_id { get; set; }
+
+        /// <summary>
+        /// Fractional sort key (base62) defining the entry's position inside the bucket. Client-side ordering of the Pinned list inside a tag context is ascending by this key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pin_sort_key")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Pin_sort_key { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     /// <summary>
     /// At least one of before_id / after_id must be present. Pivot ids reference other intents pinned in the same context.
     /// <br/>
@@ -369,11 +398,11 @@ namespace Throne.Intents.Contracts.Generated
         public System.DateTimeOffset Updated_at { get; set; }
 
         /// <summary>
-        /// Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
+        /// Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pinned_in")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<PinnedContextDto> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<PinnedContextDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -444,11 +473,11 @@ namespace Throne.Intents.Contracts.Generated
         public System.Collections.Generic.ICollection<IntentLinkViewDto> Links { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkViewDto>();
 
         /// <summary>
-        /// Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
+        /// Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pinned_in")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<PinnedContextDto> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<PinnedContextDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

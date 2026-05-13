@@ -33,10 +33,10 @@ public interface IIntentPinRepository
         CancellationToken ct);
 
     /// <summary>
-    /// Tag ids that each given intent is pinned in. Caller-scoped; intents the caller
-    /// does not own are filtered out. Missing intent ids return an empty list.
+    /// Per-context pin entries for each given intent (tag id + pin_sort_key). Caller-scoped;
+    /// intents the caller does not own are filtered out. Missing intent ids return an empty list.
     /// </summary>
-    Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> GetPinnedInAsync(
+    Task<IReadOnlyDictionary<string, IReadOnlyList<IntentPin>>> GetPinnedInAsync(
         IReadOnlyList<string> intentIds,
         CancellationToken ct);
 

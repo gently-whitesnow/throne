@@ -63,9 +63,9 @@ public sealed partial class IntentsController
         return IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: pinnedIn);
     }
 
-    private async Task<IReadOnlyList<string>> GetPinnedInAsync(string intentId, CancellationToken ct)
+    private async Task<IReadOnlyList<IntentPin>> GetPinnedInAsync(string intentId, CancellationToken ct)
     {
         var map = await pinRepository.GetPinnedInAsync([intentId], ct);
-        return map.TryGetValue(intentId, out var ids) ? ids : Array.Empty<string>();
+        return map.TryGetValue(intentId, out var pins) ? pins : Array.Empty<IntentPin>();
     }
 }

@@ -185,11 +185,11 @@ internal sealed class MongoIntentPinRepository(
         return new MovePinOutcome.Moved(MapToIntent(intent), pin, Changed: true);
     }
 
-    public async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> GetPinnedInAsync(
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<IntentPin>>> GetPinnedInAsync(
         IReadOnlyList<string> intentIds,
         CancellationToken ct)
     {
-        var result = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        var result = new Dictionary<string, IReadOnlyList<IntentPin>>(StringComparer.Ordinal);
         if (intentIds is null || intentIds.Count == 0)
         {
             return result;
@@ -200,18 +200,16 @@ internal sealed class MongoIntentPinRepository(
             OwnerFilter(),
             Builders<IntentPinDocument>.Filter.In(d => d.IntentId, intentIds));
         var find = session is null ? _pins.Find(filter) : _pins.Find(session, filter);
-        var docs = await find
-            .Project(d => new { d.IntentId, d.ContextTagId })
-            .ToListAsync(ct);
+        var docs = await find.ToListAsync(ct);
 
         foreach (var doc in docs)
         {
             if (!result.TryGetValue(doc.IntentId, out var list))
             {
-                list = new List<string>();
+                list = new List<IntentPin>();
                 result[doc.IntentId] = list;
             }
-            ((List<string>)list).Add(doc.ContextTagId);
+            ((List<IntentPin>)list).Add(ToDomain(doc));
         }
         return result;
     }

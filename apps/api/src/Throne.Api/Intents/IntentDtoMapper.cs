@@ -13,7 +13,7 @@ internal static class IntentDtoMapper
         Intent intent,
         IReadOnlyDictionary<string, Tag> tagsById,
         IReadOnlyList<IntentLinkViewDto>? links = null,
-        IReadOnlyList<string>? pinnedIn = null) => new()
+        IReadOnlyList<IntentPin>? pinnedIn = null) => new()
         {
             Id = intent.Id.Value,
             Status = IntentStatusDtoMapper.ToContractStatus(intent.Status),
@@ -26,16 +26,14 @@ internal static class IntentDtoMapper
             Links = links is null
                 ? new System.Collections.ObjectModel.Collection<IntentLinkViewDto>()
                 : new System.Collections.ObjectModel.Collection<IntentLinkViewDto>([.. links]),
-            Pinned_in = pinnedIn is null
-                ? new System.Collections.ObjectModel.Collection<string>()
-                : new System.Collections.ObjectModel.Collection<string>([.. pinnedIn]),
+            Pinned_in = ToPinnedContexts(pinnedIn),
         };
 
     public static IntentListItemDto ToListDto(
         Intent intent,
         IReadOnlyDictionary<string, Tag> tagsById,
         int textShortMaxLength,
-        IReadOnlyList<string>? pinnedIn = null) => new()
+        IReadOnlyList<IntentPin>? pinnedIn = null) => new()
         {
             Id = intent.Id.Value,
             Status = IntentStatusDtoMapper.ToContractStatus(intent.Status),
@@ -45,10 +43,27 @@ internal static class IntentDtoMapper
             Sort_key = intent.SortKey,
             Created_at = intent.CreatedAt,
             Updated_at = intent.UpdatedAt,
-            Pinned_in = pinnedIn is null
-                ? new System.Collections.ObjectModel.Collection<string>()
-                : new System.Collections.ObjectModel.Collection<string>([.. pinnedIn]),
+            Pinned_in = ToPinnedContexts(pinnedIn),
         };
+
+    private static System.Collections.ObjectModel.Collection<PinnedContextDto> ToPinnedContexts(
+        IReadOnlyList<IntentPin>? pins)
+    {
+        if (pins is null || pins.Count == 0)
+        {
+            return new System.Collections.ObjectModel.Collection<PinnedContextDto>();
+        }
+        var list = new List<PinnedContextDto>(pins.Count);
+        foreach (var pin in pins)
+        {
+            list.Add(new PinnedContextDto
+            {
+                Context_tag_id = pin.ContextTagId.Value,
+                Pin_sort_key = pin.PinSortKey,
+            });
+        }
+        return new System.Collections.ObjectModel.Collection<PinnedContextDto>(list);
+    }
 
     public static IntentLinkPeerDto ToPeerDto(Intent peer, IReadOnlyDictionary<string, Tag> tagsById) => new()
     {

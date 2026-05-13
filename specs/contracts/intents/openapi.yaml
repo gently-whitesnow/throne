@@ -796,6 +796,19 @@ components:
           type: string
           minLength: 1
           description: Tag id whose Pinned bucket should drop this intent.
+    PinnedContextDto:
+      type: object
+      required:
+        - context_tag_id
+        - pin_sort_key
+      properties:
+        context_tag_id:
+          type: string
+          description: Tag id whose Pinned bucket holds this entry.
+        pin_sort_key:
+          type: string
+          minLength: 1
+          description: Fractional sort key (base62) defining the entry's position inside the bucket. Client-side ordering of the Pinned list inside a tag context is ascending by this key.
     MovePinRequest:
       type: object
       required:
@@ -918,8 +931,8 @@ components:
         pinned_in:
           type: array
           items:
-            type: string
-          description: Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
+            $ref: '#/components/schemas/PinnedContextDto'
+          description: Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order.
     IntentDetailDto:
       type: object
       required:
@@ -971,8 +984,8 @@ components:
         pinned_in:
           type: array
           items:
-            type: string
-          description: Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
+            $ref: '#/components/schemas/PinnedContextDto'
+          description: Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order.
     IntentEventDto:
       type: object
       required:
