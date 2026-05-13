@@ -95,6 +95,18 @@ pnpm dev
 pnpm build
 ```
 
+### STDIO-прокси для MCP-клиентов
+
+`Throne.Mcp.Stdio` распространяется как [global .NET tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools) в NuGet (`PackageId=Throne.Mcp.Stdio`, команда `throne-mcp-stdio`). Это единственный поддерживаемый способ подключения внешних MCP-клиентов (Claude Desktop/Code, Cursor, Codex) — пути до локального чекаута и пред-собранные бинари в Releases намеренно не используются (см. [ADR-0009 § Distribution](specs/ADR/0009-cross-process-realtime-fanout.md#distribution)).
+
+```bash
+dotnet tool install -g Throne.Mcp.Stdio
+# обновление
+dotnet tool update -g Throne.Mcp.Stdio
+```
+
+Публикация — workflow [.github/workflows/publish-mcp-stdio.yml](.github/workflows/publish-mcp-stdio.yml) по тегу `v*`.
+
 ## Quality gates
 
 ```bash

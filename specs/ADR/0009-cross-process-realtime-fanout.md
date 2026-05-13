@@ -68,6 +68,17 @@ Root cause:
 - Multi-instance `Throne.Api` и cross-instance fanout — будущее ADR поверх seam'а из ADR-0008.
 - Удаление `Throne.Mcp.Stdio` целиком — возможно, когда Claude Code/Codex/Cursor разрешат указывать non-HTTPS HTTP MCP-сервер локально. Тогда launcher'ы будут указывать на `http://localhost:5008/mcp` напрямую, а Stdio станет ненужным.
 
+## Distribution
+
+`Throne.Mcp.Stdio` распространяется как **global .NET tool** (`PackAsTool=true`, `ToolCommandName=throne-mcp-stdio`) и публикуется в NuGet.org из workflow [.github/workflows/publish-mcp-stdio.yml](../../.github/workflows/publish-mcp-stdio.yml) по тегу `v*`. Пользователь ставит прокси одной командой `dotnet tool install -g Throne.Mcp.Stdio`, а MCP-клиент видит его как `command: "throne-mcp-stdio"` без путей до чекаута.
+
+Что **не** делаем:
+- не публикуем single-file бинари в GitHub Releases — отдельный путь, осознанно отложен до запроса;
+- не пакуем через Homebrew/winget — следующий шаг по запросу;
+- не предлагаем пользователю `dotnet run --project <local-path>` как вход — это работает только у автора.
+
+Если когда-нибудь STDIO-прокси станет ненужен (см. «Out of scope»), пакет деприкейтится; до этого момента лендинг и любые внешние инструкции должны ссылаться именно на dotnet tool.
+
 ## References
 
 - [ADR-0008](0008-realtime-contract-first-events.md) — текущий realtime pipeline и seam `IRealtimeEventBroker`.
@@ -77,3 +88,5 @@ Root cause:
 - [Throne.Api/Realtime/RealtimeDomainEventHandler.cs](../../apps/api/src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs)
 - [Throne.Application/Events/DomainEventDispatchingUnitOfWork.cs](../../apps/api/src/Throne.Application/Events/DomainEventDispatchingUnitOfWork.cs)
 - [docker-compose.yml](../../docker-compose.yml)
+- [Throne.Mcp.Stdio.csproj](../../apps/api/src/Throne.Mcp.Stdio/Throne.Mcp.Stdio.csproj)
+- [.github/workflows/publish-mcp-stdio.yml](../../.github/workflows/publish-mcp-stdio.yml)
