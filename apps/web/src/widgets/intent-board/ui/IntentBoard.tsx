@@ -1,4 +1,3 @@
-import { Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -10,6 +9,7 @@ import {
 import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { isTagContext } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import {
   EntityList,
@@ -28,6 +28,7 @@ import { computeFamilyTints } from "../model/family-tint";
 import { computeStepRanks } from "../model/step-rank";
 import { useLinksSummary } from "../model/useLinksSummary";
 import { IntentLinksOverlay } from "./IntentLinksOverlay";
+import { PinnedSection } from "./PinnedSection";
 
 const LINKS_RAIL_WIDTH = 36;
 
@@ -41,7 +42,6 @@ export function IntentBoard() {
   const [params] = useSearchParams();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [reloadKey, setReloadKey] = useState(0);
-  const [query, setQuery] = useState("");
 
   const context = params.get("context");
 
@@ -118,17 +118,34 @@ export function IntentBoard() {
 
   const visibleItems = useMemo(() => {
     if (state.kind !== "ready") return [] as IntentListItem[];
-    const q = query.trim().toLowerCase();
-    return orderedItems
-      .filter((i) => matchesContext(i, context))
-      .filter((i) => {
-        if (!q) return true;
-        return (
-          i.text_short.toLowerCase().includes(q) ||
-          i.tags.some((t) => t.name.toLowerCase().includes(q))
-        );
-      });
-  }, [context, orderedItems, query, state.kind]);
+    return orderedItems.filter((i) => matchesContext(i, context));
+  }, [context, orderedItems, state.kind]);
+
+  // Pinned section: only meaningful inside a tag context (a real Tag id is
+  // needed to scope drop-to-pin / movePin / unpin). Pinned items are filtered
+  // to those pinned in the *current* tag.
+  const allItems = useMemo<IntentListItem[]>(
+    () => (state.kind === "ready" ? state.items : []),
+    [state]
+  );
+  const tagNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of allItems) {
+      for (const tag of item.tags) map.set(tag.name, tag.id);
+    }
+    return map;
+  }, [allItems]);
+  const currentContextTagId =
+    context && isTagContext(context)
+      ? (tagNameToId.get(context) ?? null)
+      : null;
+  const pinnedIntents = useMemo(
+    () =>
+      currentContextTagId === null
+        ? []
+        : allItems.filter((i) => i.pinned_in.includes(currentContextTagId)),
+    [allItems, currentContextTagId]
+  );
 
   const visibleIds = useMemo(
     () => visibleItems.map((i) => i.id),
@@ -263,19 +280,15 @@ export function IntentBoard() {
           }}
         />
       </div>
-      <div className="flex flex-shrink-0 items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60">
-        <Search aria-hidden size={14} strokeWidth={2} />
-        <input
-          type="search"
-          placeholder="Поиск в контексте"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-          }}
-          aria-label="Поиск intents"
-          className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-base-content placeholder:text-base-content/50 focus:outline-none"
+      {state.kind === "ready" && isTagContext(context) ? (
+        <PinnedSection
+          items={allItems}
+          currentContextTagId={currentContextTagId}
+          currentContextLabel={context ?? ""}
+          pinnedIntents={pinnedIntents}
+          onMutationFailed={reload}
         />
-      </div>
+      ) : null}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto">
         {state.kind === "loading" && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
