@@ -60,7 +60,9 @@ export function PinnedSection({
   useEffect(() => {
     const onDragStart = (e: globalThis.DragEvent) => {
       if (e.dataTransfer?.types.includes(INTENT_DND_MIME)) {
-        setDragMode((prev) => (prev.kind === "none" ? { kind: "external" } : prev));
+        setDragMode((prev) =>
+          prev.kind === "none" ? { kind: "external" } : prev
+        );
       }
     };
     const onDragEnd = () => {
@@ -228,12 +230,21 @@ export function PinnedSection({
                 .filter(Boolean)
                 .join(" ")}
             >
-              <button
-                type="button"
+              {/* Nested <button>s break HTML and suppress dragstart on the <li>.
+                  Use a div+button pair instead so drag-reorder actually fires. */}
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   goToIntent(intent.id);
                 }}
-                className="group flex w-full items-center gap-2 rounded px-2 py-1 text-left text-[12px] transition-colors hover:bg-base-300/40"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    goToIntent(intent.id);
+                  }
+                }}
+                className="group flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1 text-left text-[12px] transition-colors hover:bg-base-300/40 focus-visible:outline-2 focus-visible:outline-primary"
               >
                 <Pin
                   aria-hidden
@@ -256,7 +267,7 @@ export function PinnedSection({
                 >
                   <PinOff aria-hidden size={11} strokeWidth={2.5} />
                 </button>
-              </button>
+              </div>
             </li>
           );
         })}
