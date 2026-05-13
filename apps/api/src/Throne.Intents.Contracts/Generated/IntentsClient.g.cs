@@ -199,11 +199,12 @@ namespace Throne.Intents.Contracts.Generated
         public IntentStatus Status { get; set; }
 
         /// <summary>
-        /// Required when status=reject. Appended to the end of Intent.text.
+        /// Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason.
+        /// <br/>
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("reject_reason")]
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
         [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
-        public string Reject_reason { get; set; }
+        public string Reason { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

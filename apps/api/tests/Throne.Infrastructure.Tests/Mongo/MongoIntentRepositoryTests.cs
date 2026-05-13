@@ -98,6 +98,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
                 id,
                 IntentStatusNames.Work,
                 appendText: null,
+                reason: null,
                 IntentTrainingAuthor.System,
                 "get_instruction_bundle:work",
                 Now.AddMinutes(5),
@@ -122,6 +123,44 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         changes[1].ToStatus.Should().Be(IntentStatusNames.Work);
         changes[1].Source.Should().Be("get_instruction_bundle:work");
         changes[1].CreatedBy.Should().Be("system");
+        changes[1].Reason.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "SetStatusAsync с reason для не-reject перехода сохраняет reason в логе и не трогает Intent.text")]
+    public async Task SetStatus_persists_reason_for_non_reject_transition()
+    {
+        var (db, repo, uow) = await NewScopeAsync();
+
+        var id = IntentId.New();
+        var intent = Intent.Create(id, "user-1", "body", [TagId.New()], Now);
+        var version = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
+            "body", Now, TextVersionAuthor.Agent);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
+
+        await uow.ExecuteAsync(
+            ct => repo.SetStatusAsync(
+                id,
+                IntentStatusNames.NeedsHelp,
+                appendText: null,
+                reason: "нужен доступ к prod",
+                IntentTrainingAuthor.Agent,
+                "set_intent_status",
+                Now.AddMinutes(5),
+                ct),
+            CancellationToken.None);
+
+        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
+            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        stored!.Text.Should().Be("body");
+
+        var changes = await db.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges)
+            .Find(x => x.IntentId == id.Value)
+            .SortBy(x => x.CreatedAt)
+            .ToListAsync();
+        changes.Should().HaveCount(2);
+        changes[1].ToStatus.Should().Be(IntentStatusNames.NeedsHelp);
+        changes[1].Reason.Should().Be("нужен доступ к prod");
     }
 
     [Fact(DisplayName = "CreateAsync вне UoW бросает InvalidOperationException")]

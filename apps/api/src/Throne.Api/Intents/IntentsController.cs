@@ -237,7 +237,7 @@ public sealed partial class IntentsController(
                 new SetIntentStatusCommand(
                     id,
                     IntentStatusDtoMapper.FromContractStatus(body.Status),
-                    body.Reject_reason,
+                    body.Reason,
                     IntentTrainingAuthor.User,
                     "http:set_intent_status"),
                 HttpContext.RequestAborted);

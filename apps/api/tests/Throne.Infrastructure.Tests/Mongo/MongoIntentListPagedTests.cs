@@ -51,7 +51,7 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         var draft = await Seed(repo, uow, "draft text", Base, [sharedTag]);
         var doneIntent = await Seed(repo, uow, "done text", Base.AddMinutes(1), [sharedTag]);
         await uow.ExecuteAsync(
-            ct => repo.SetStatusAsync(doneIntent.Id, IntentStatusNames.Done, null, IntentTrainingAuthor.System, "test", Base.AddMinutes(2), ct),
+            ct => repo.SetStatusAsync(doneIntent.Id, IntentStatusNames.Done, null, null, IntentTrainingAuthor.System, "test", Base.AddMinutes(2), ct),
             CancellationToken.None);
         await Seed(repo, uow, "untagged-other", Base.AddMinutes(3), [otherTag]);
 

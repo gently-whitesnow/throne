@@ -123,13 +123,13 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
             var rejected = await SeedAsync(repo, uow, "reject-text");
 
             await uow.ExecuteAsync(
-                ct => repo.SetStatusAsync(work.Id, "work", null, IntentTrainingAuthor.User, "test", Now, ct),
+                ct => repo.SetStatusAsync(work.Id, "work", null, null, IntentTrainingAuthor.User, "test", Now, ct),
                 CancellationToken.None);
             await uow.ExecuteAsync(
-                ct => repo.SetStatusAsync(done.Id, "done", null, IntentTrainingAuthor.User, "test", Now, ct),
+                ct => repo.SetStatusAsync(done.Id, "done", null, null, IntentTrainingAuthor.User, "test", Now, ct),
                 CancellationToken.None);
             await uow.ExecuteAsync(
-                ct => repo.SetStatusAsync(rejected.Id, "reject", "rejected", IntentTrainingAuthor.User, "test", Now, ct),
+                ct => repo.SetStatusAsync(rejected.Id, "reject", "rejected", "rejected", IntentTrainingAuthor.User, "test", Now, ct),
                 CancellationToken.None);
         }
 

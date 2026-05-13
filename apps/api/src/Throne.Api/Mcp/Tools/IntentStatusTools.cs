@@ -24,31 +24,27 @@ public sealed class IntentStatusTools(
             new SetIntentTagsCommand(intent_id, expected_version, TagIds: null, TagNames: tags),
             cancellationToken);
 
-    [McpServerTool(Name = "mark_ready_for_review", UseStructuredContent = true)]
-    [Description("Mark an Intent as ready_for_review after the agent finishes a meaningful work pass. Signals the user that the result is ready to inspect.")]
-    public Task<Intent> MarkReadyForReview(
-        [Description("Intent id to move into ready_for_review.")] string intent_id,
+    [McpServerTool(Name = "set_intent_status", UseStructuredContent = true)]
+    [Description(
+        "Move an Intent to any workflow status. Single write-surface for status transitions — there are no per-status tools. " +
+        "Agent-driven transitions you initiate on your own: 'ready_for_work' when interview is done and the formulation is clear, " +
+        "'ready_for_review' when a work pass is finished and the operator can come for acceptance, " +
+        "'needs_help' when you are genuinely blocked (missing access/info, ambiguous architecture, external dependency) — " +
+        "before calling needs_help, append a short note to Intent.text describing what is needed from the operator. " +
+        "Other statuses ('draft', 'interview', 'work', 'done', 'reject', 'fridge') are visible and applicable, but apply them only when the operator explicitly asks " +
+        "(\"send to fridge\", \"reject this\", \"close as done\", etc.). 'interview' / 'work' are also auto-set by the server on read of the matching instruction bundle. " +
+        "Reason is optional for any transition (recorded in the status-change log) and required for 'reject' (also appended to Intent.text as the rejection reason).")]
+    public Task<Intent> SetIntentStatus(
+        [Description("Intent id to mutate.")] string intent_id,
+        [Description("Target status: draft | interview | ready_for_work | work | ready_for_review | needs_help | done | reject | fridge.")] string status,
+        [Description("Optional free-text reason for the transition. Recorded in intent_status_changes.reason. Required when status='reject' (also appended to Intent.text).")] string? reason = null,
         CancellationToken cancellationToken = default) =>
         setStatus.HandleAsync(
             new SetIntentStatusCommand(
                 intent_id,
-                IntentStatusNames.ReadyForReview,
-                RejectReason: null,
+                status,
+                reason,
                 IntentTrainingAuthor.Agent,
-                Source: "mark_ready_for_review"),
-            cancellationToken);
-
-    [McpServerTool(Name = "mark_needs_help", UseStructuredContent = true)]
-    [Description("Mark an Intent as needs_help when the agent is blocked and cannot continue without operator input (missing access/info, ambiguous decision, external dependency). Use sparingly: prefer to keep working autonomously when feasible. Before calling, append a short note to Intent.text describing what is needed.")]
-    public Task<Intent> MarkNeedsHelp(
-        [Description("Intent id to move into needs_help.")] string intent_id,
-        CancellationToken cancellationToken = default) =>
-        setStatus.HandleAsync(
-            new SetIntentStatusCommand(
-                intent_id,
-                IntentStatusNames.NeedsHelp,
-                RejectReason: null,
-                IntentTrainingAuthor.Agent,
-                Source: "mark_needs_help"),
+                Source: "set_intent_status"),
             cancellationToken);
 }

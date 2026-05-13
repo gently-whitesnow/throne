@@ -101,10 +101,11 @@ paths:
     post:
       operationId: setIntentStatus
       tags: [Intents]
-      summary: Set intent status (user-driven).
+      summary: Set intent status.
       description: >
-        User-driven status change for an intent. Allows any supported status.
-        When status=reject, reject_reason is required and appended to the end of Intent.text.
+        Status change for an intent. Allows any supported status. `reason` is optional
+        for any transition (recorded in the status-change log) and required when
+        status=reject (additionally appended to the end of Intent.text as the rejection reason).
       parameters:
         - in: path
           name: id
@@ -704,10 +705,13 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/IntentStatus'
-        reject_reason:
+        reason:
           type: string
           minLength: 1
-          description: Required when status=reject. Appended to the end of Intent.text.
+          description: >
+            Optional free-text reason for the transition. Recorded in the status-change
+            log. Required when status=reject — in that case the value is also appended
+            to the end of Intent.text as the rejection reason.
     IntentListItemDto:
       type: object
       required:

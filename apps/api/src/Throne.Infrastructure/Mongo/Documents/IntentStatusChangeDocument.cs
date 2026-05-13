@@ -27,4 +27,8 @@ internal sealed class IntentStatusChangeDocument
 
     [BsonElement("created_by")]
     public string CreatedBy { get; set; } = string.Empty;
+
+    [BsonElement("reason")]
+    [BsonIgnoreIfNull]
+    public string? Reason { get; set; }
 }

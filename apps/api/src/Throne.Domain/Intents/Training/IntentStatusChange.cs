@@ -8,7 +8,8 @@ public sealed record IntentStatusChange(
     string ToStatus,
     string Source,
     DateTimeOffset CreatedAt,
-    IntentTrainingAuthor CreatedBy)
+    IntentTrainingAuthor CreatedBy,
+    string? Reason)
 {
     public static IntentStatusChange Create(
         string id,
@@ -18,7 +19,8 @@ public sealed record IntentStatusChange(
         string toStatus,
         string source,
         DateTimeOffset createdAt,
-        IntentTrainingAuthor createdBy)
+        IntentTrainingAuthor createdBy,
+        string? reason = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentException.ThrowIfNullOrEmpty(source);
@@ -32,6 +34,8 @@ public sealed record IntentStatusChange(
                 "intent_version_at_write must be >= 1.");
         }
 
+        var normalizedReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+
         return new IntentStatusChange(
             id,
             intentId,
@@ -40,7 +44,8 @@ public sealed record IntentStatusChange(
             toStatus,
             source,
             createdAt,
-            createdBy);
+            createdBy,
+            normalizedReason);
     }
 
     private static void ValidateStatus(string status, string paramName)

@@ -67,7 +67,7 @@ export function SetIntentStatusForm({
         intentsEndpoints.setIntentStatus(intent.id),
         {
           status: next,
-          reject_reason: reason
+          reason
         }
       );
       onSaved(updated);

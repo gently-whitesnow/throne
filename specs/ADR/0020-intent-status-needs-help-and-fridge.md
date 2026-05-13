@@ -31,6 +31,8 @@ Extends: [ADR-0017](0017-removal-of-review-stage.md)
 
 Bundle `work` (specs/manifest/throne-skills.yaml) описывает критерии: `mark_needs_help` — это сигнал «застрял», а не способ передать рутинное уточнение; перед вызовом агент обязан кратко прописать в `Intent.text`, что именно нужно от оператора. Если агент в состоянии разобраться сам — должен разбираться. Описания обоих tool'ов в `IntentTools.cs` несут ту же норму, чтобы инструкции попадали к агенту даже при доставке через MCP `InitializeResult.instructions` (ADR-0014).
 
+**Update (2026-05-13, intent e76532a0):** оба точечных тула (`mark_needs_help`, `mark_ready_for_review`) упразднены — единственный write-surface для смены статуса теперь универсальный `set_intent_status(intent_id, status, reason?)`. Inbox-pair (`needs_help` + `ready_for_review`) и `fridge` как продуктовые статусы и UI-сущности сохранены без изменений — изменилась только форма агентского вызова. Поведенческие нормы (когда уместен `needs_help`, требование пометки в `Intent.text` перед вызовом) перенесены в `system_instructions[kind: work]` и в Description нового тула. Триггер: агент не имел write-surface для `ready_for_work`, и поток interview не закрывался без действий оператора. Подробности — в правке ADR-0017.
+
 ### 4. UI: Inbox-виджет + псевдо-контекст «Холодильник»
 
 В сайдбаре `apps/web/src/widgets/intent-context-rail` появляется кросс-контекстный Inbox-виджет в верхней части — две строки-счётчика «Жду ревью» / «Нужна помощь», агрегирующие соответствующие статусы по всем тегам. Клик по строке открывает плоский кросс-контекстный список Intent'ов в этом статусе. Дублирующих пунктов в нижнем списке псевдо-контекстов не делаем — Inbox единственная точка входа в эти статусы.
@@ -46,7 +48,7 @@ Bundle `work` (specs/manifest/throne-skills.yaml) описывает крите�
 
 ### 5. Контракт-first и валидация
 
-Добавление в OpenAPI enum + перегенерация `Throne.Intents.Contracts.Generated` и `apps/web/src/shared/api/generated` через существующий codegen (см. ADR-0006). `SetIntentStatusHandler` валидирует статус через `IntentStatusNames.IsKnown` и автоматически принимает новые значения — отдельной таблицы переходов сознательно не вводим: продуктово любые переходы между статусами разрешены (например, оператор может вернуть Intent из `fridge` обратно в `work`). Спец-логика `reject_reason` остаётся применимой только к `reject`.
+Добавление в OpenAPI enum + перегенерация `Throne.Intents.Contracts.Generated` и `apps/web/src/shared/api/generated` через существующий codegen (см. ADR-0006). `SetIntentStatusHandler` валидирует статус через `IntentStatusNames.IsKnown` и автоматически принимает новые значения — отдельной таблицы переходов сознательно не вводим: продуктово любые переходы между статусами разрешены (например, оператор может вернуть Intent из `fridge` обратно в `work`). Спец-логика `reason` для `reject`: поле обязательно (валидируется в handler'е) и дополнительно апендится в Intent.text. Для остальных статусов `reason` опционален и сохраняется только в `intent_status_changes.reason` (см. правку в ADR-0017).
 
 ## Последствия
 

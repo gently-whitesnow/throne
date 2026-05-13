@@ -44,6 +44,7 @@ public interface IIntentRepository
         IntentId id,
         string status,
         string? appendText,
+        string? reason,
         IntentTrainingAuthor changedBy,
         string source,
         DateTimeOffset now,

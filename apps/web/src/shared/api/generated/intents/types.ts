@@ -59,8 +59,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Set intent status (user-driven).
-         * @description User-driven status change for an intent. Allows any supported status. When status=reject, reject_reason is required and appended to the end of Intent.text.
+         * Set intent status.
+         * @description Status change for an intent. Allows any supported status. `reason` is optional for any transition (recorded in the status-change log) and required when status=reject (additionally appended to the end of Intent.text as the rejection reason).
          */
         post: operations["setIntentStatus"];
         delete?: never;
@@ -321,8 +321,8 @@ export interface components {
         IntentStatus: "draft" | "interview" | "ready_for_work" | "work" | "ready_for_review" | "needs_help" | "done" | "reject" | "fridge";
         SetIntentStatusRequest: {
             status: components["schemas"]["IntentStatus"];
-            /** @description Required when status=reject. Appended to the end of Intent.text. */
-            reject_reason?: string;
+            /** @description Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason. */
+            reason?: string;
         };
         IntentListItemDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */

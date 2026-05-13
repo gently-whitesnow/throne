@@ -21,11 +21,13 @@ ADR-0002/0003 ввели training-only коллекции `intent_qa` и `intent
    - Realtime-события `intent.qa_added` и `intent.review_added`;
    - Instruction kind `fix` (включая bundle `fix`, system-instruction `fix`, режим `fix` в `get_instruction_bundle` и упоминания в mini-router'е). После feedback-а пользователя агент остаётся в режиме `work` — это покрывается обновлённым правилом в `system_instructions[kind: work]`.
 
-2. **Сохранить** статус `ready_for_review` и MCP-tool `mark_ready_for_review`. Пользователю удобно, когда агент явно сигнализирует: «работа закончена, можно идти смотреть код». Это единственный фактический сигнал ready_for_review — авто-перехода на этот статус нет.
+2. **Сохранить** статус `ready_for_review`. Пользователю удобно, когда агент явно сигнализирует: «работа закончена, можно идти смотреть код». Это единственный фактический сигнал ready_for_review — авто-перехода на этот статус нет.
 
 3. **Жизненный цикл Intent после выпила**:
-   - Статусы остались как есть, минус явные `mark_ready_for_work`-вызовы.
-   - Переходы `interview` / `work` выполняются автоматически при чтении соответствующего instruction bundle через `get_instruction_bundle(mode, intent_id)` (см. [ADR-0014](0014-mcp-initialize-instructions-routing.md)). Follow-up на feedback также происходит в режиме `work` — отдельного режима `fix` больше нет. Переход в `ready_for_review` остаётся явным агентским действием через `mark_ready_for_review`. Переходы в `done` / `reject` делает пользователь через UI.
+   - Статусы остались как есть.
+   - Переходы `interview` / `work` выполняются автоматически при чтении соответствующего instruction bundle через `get_instruction_bundle(mode, intent_id)` (см. [ADR-0014](0014-mcp-initialize-instructions-routing.md)). Follow-up на feedback также происходит в режиме `work` — отдельного режима `fix` больше нет. Переход в `ready_for_review` остаётся явным агентским действием. Переходы в `done` / `reject` делает пользователь через UI.
+
+   **Update (2026-05-13, intent e76532a0):** точечные MCP-инструменты `mark_ready_for_review` (вводился этим ADR) и `mark_needs_help` (введён в [ADR-0020](0020-intent-status-needs-help-and-fridge.md)) упразднены. Их заменил единый универсальный `set_intent_status(intent_id, status, reason?)`, дающий агенту прямой доступ к любому статусу — стееринг «какой статус ставить когда» зашит в `system_instructions[kind: common|interview|work]` и в Description тула. Триггер изменения: агент не мог самостоятельно завершить interview переходом в `ready_for_work` и тем создавал лишнее трение для оператора. Параметр `reason` опционален для любого перехода (пишется в `intent_status_changes.reason`); для `reject` обязателен и дополнительно апендится в Intent.text. HTTP-контракт `POST /intents/{id}/status` соответственно переименовал поле `reject_reason` → `reason` (источник правды — `specs/contracts/intents/openapi.yaml`). Авто-переходы `interview` / `work` при чтении bundle сохранены без изменений: они by design могут «откатить» агентский `ready_for_work` обратно на `interview` — трактуем это как «оператор снова уточняет постановку».
 
 4. **Dream subsystem** теперь забирает обучающий контекст только из `Intent.text` + `text_versions` (intents с `current_version > 1`) и из загруженных через transfer чат-историй. `IntentInWindow` больше не несёт `QaList` / `ReviewList`.
 

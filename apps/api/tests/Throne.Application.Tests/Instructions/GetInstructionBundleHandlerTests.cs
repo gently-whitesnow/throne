@@ -52,6 +52,7 @@ public class GetInstructionBundleHandlerTests
             Arg.Any<IntentId>(),
             IntentStatusNames.Work,
             null,
+            null,
             IntentTrainingAuthor.System,
             "get_instruction_bundle:work",
             Arg.Any<DateTimeOffset>(),
@@ -96,7 +97,7 @@ public class GetInstructionBundleHandlerTests
             InstructionKindNames.Common,
             InstructionKindNames.Dream);
         await intents.DidNotReceiveWithAnyArgs().SetStatusAsync(
-            default!, default!, default, default, default!, default, default);
+            default!, default!, default, default, default, default!, default, default);
     }
 
     [Fact(DisplayName = "GetInstructionBundle отклоняет неизвестный mode")]
@@ -127,7 +128,7 @@ public class GetInstructionBundleHandlerTests
         bundle.IntentId.Should().BeNull();
         bundle.Mode.Should().Be(InstructionBundleModeNames.Interview);
         await intents.DidNotReceiveWithAnyArgs().SetStatusAsync(
-            default!, default!, default, default, default!, default, default);
+            default!, default!, default, default, default, default!, default, default);
     }
 
     [Fact(DisplayName = "InstructionBundle сериализует intent_id даже когда null (MCP output schema)")]
@@ -163,6 +164,7 @@ public class GetInstructionBundleHandlerTests
         repo.SetStatusAsync(
                 Arg.Any<IntentId>(),
                 Arg.Any<string>(),
+                Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<IntentTrainingAuthor>(),
                 Arg.Any<string>(),

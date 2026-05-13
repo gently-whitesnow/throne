@@ -481,6 +481,7 @@ internal sealed class MongoIntentRepository(
         IntentId id,
         string status,
         string? appendText,
+        string? reason,
         IntentTrainingAuthor changedBy,
         string source,
         DateTimeOffset now,
@@ -578,7 +579,8 @@ internal sealed class MongoIntentRepository(
                 toStatus: intent.Status,
                 source: source,
                 createdAt: now,
-                createdBy: changedBy);
+                createdBy: changedBy,
+                reason: reason);
 
             await _statusChanges.InsertOneAsync(session, MapStatusChange(statusChange), options: null, ct)
                 ;
@@ -684,6 +686,7 @@ internal sealed class MongoIntentRepository(
         Source = change.Source,
         CreatedAt = change.CreatedAt.UtcDateTime,
         CreatedBy = change.CreatedBy.ToWire(),
+        Reason = change.Reason,
     };
 
     private static Intent MapToDomain(IntentDocument doc) => Intent.Restore(

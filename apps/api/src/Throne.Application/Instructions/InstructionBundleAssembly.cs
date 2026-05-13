@@ -54,6 +54,7 @@ public sealed class IntentStatusAutoTransition(
                 new IntentId(intentId),
                 status,
                 appendText: null,
+                reason: null,
                 IntentTrainingAuthor.System,
                 $"get_instruction_bundle:{mode}",
                 now,

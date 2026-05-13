@@ -8,7 +8,7 @@ namespace Throne.Application.Intents;
 public sealed record SetIntentStatusCommand(
     string IntentId,
     string Status,
-    string? RejectReason,
+    string? Reason,
     IntentTrainingAuthor ChangedBy,
     string Source);
 
@@ -25,10 +25,19 @@ public sealed class SetIntentStatusHandler(
 
         var now = clock.GetUtcNow();
         var id = new IntentId(command.IntentId);
-        var appendText = BuildRejectAppendText(command.Status, command.RejectReason);
+        var normalizedReason = string.IsNullOrWhiteSpace(command.Reason) ? null : command.Reason.Trim();
+        var appendText = BuildRejectAppendText(command.Status, normalizedReason);
 
         var outcome = await unitOfWork.ExecuteAsync(
-            inner => repository.SetStatusAsync(id, command.Status, appendText, command.ChangedBy, command.Source, now, inner),
+            inner => repository.SetStatusAsync(
+                id,
+                command.Status,
+                appendText,
+                normalizedReason,
+                command.ChangedBy,
+                command.Source,
+                now,
+                inner),
             ct);
 
         return outcome switch
@@ -65,8 +74,8 @@ public sealed class SetIntentStatusHandler(
                 });
         }
 
-        var hasRejectReason = !string.IsNullOrWhiteSpace(command.RejectReason);
-        if (command.Status == IntentStatusNames.Reject && !hasRejectReason)
+        var hasReason = !string.IsNullOrWhiteSpace(command.Reason);
+        if (command.Status == IntentStatusNames.Reject && !hasReason)
         {
             throw new ApiException(
                 ErrorCodes.ValidationFailed,
@@ -74,30 +83,18 @@ public sealed class SetIntentStatusHandler(
                 new Dictionary<string, object?>
                 {
                     ["status"] = command.Status,
-                    ["field"] = "reject_reason",
-                });
-        }
-
-        if (command.Status != IntentStatusNames.Reject && hasRejectReason)
-        {
-            throw new ApiException(
-                ErrorCodes.ValidationFailed,
-                "reject_reason is only allowed when status=reject.",
-                new Dictionary<string, object?>
-                {
-                    ["status"] = command.Status,
-                    ["field"] = "reject_reason",
+                    ["field"] = "reason",
                 });
         }
     }
 
-    private static string? BuildRejectAppendText(string status, string? rejectReason)
+    private static string? BuildRejectAppendText(string status, string? reason)
     {
-        if (status != IntentStatusNames.Reject)
+        if (status != IntentStatusNames.Reject || string.IsNullOrWhiteSpace(reason))
         {
             return null;
         }
 
-        return $"\n\nПричина отклонения:\n{rejectReason!.Trim()}\n";
+        return $"\n\nПричина отклонения:\n{reason}\n";
     }
 }

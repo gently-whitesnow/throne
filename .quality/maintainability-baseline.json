@@ -19,6 +19,11 @@
     },
     {
       "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Domain/Intents/Training/IntentStatusChange.cs",
+      "subject": "IntentStatusChange primary constructor"
+    },
+    {
+      "code": "CTOR_DEPS",
       "path": "apps/api/src/Throne.Domain/TextVersions/TextVersion.cs",
       "subject": "TextVersion primary constructor"
     },
