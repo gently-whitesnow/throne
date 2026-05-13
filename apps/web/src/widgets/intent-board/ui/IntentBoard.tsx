@@ -143,7 +143,9 @@ export function IntentBoard() {
     () =>
       currentContextTagId === null
         ? []
-        : allItems.filter((i) => i.pinned_in.includes(currentContextTagId)),
+        : allItems.filter((i) =>
+            i.pinned_in.some((p) => p.context_tag_id === currentContextTagId)
+          ),
     [allItems, currentContextTagId]
   );
 

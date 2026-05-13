@@ -161,9 +161,14 @@ export function PinnedSection({
   };
 
   const isDragging = dragMode.kind !== "none";
-  const ordered = [...pinnedIntents].sort((a, b) =>
-    compareSortKeys(a.sort_key, b.sort_key)
-  );
+  // Order is per-context: pull pin_sort_key from the entry whose tag matches
+  // the active context. Intent.sort_key is the board-wide ordering and would
+  // not reflect drag-reorder inside the Pinned bucket.
+  const ordered = [...pinnedIntents].sort((a, b) => {
+    const ka = pinSortKeyFor(a, currentContextTagId);
+    const kb = pinSortKeyFor(b, currentContextTagId);
+    return compareSortKeys(ka, kb);
+  });
   const dropHint = canAcceptExternal
     ? `Запинить в #${currentContextLabel}`
     : "Выберите тег-контекст, чтобы запинить";
@@ -177,11 +182,12 @@ export function PinnedSection({
         void handleSectionDrop(e);
       }}
       className={[
-        "flex-shrink-0 border-b border-base-300 px-3 py-2",
-        isDragging ? "bg-primary/5" : "bg-base-200/40"
+        "flex-shrink-0 border-b border-base-300 px-3",
+        ordered.length === 0 ? "py-1.5" : "py-2",
+        isDragging ? "bg-primary/5" : ""
       ].join(" ")}
     >
-      <h3 className="m-0 mb-1 flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-base-content/60">
+      <h3 className="m-0 flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-base-content/60">
         <Pin aria-hidden size={12} strokeWidth={2.5} />
         Pinned
       </h3>
@@ -258,18 +264,16 @@ export function PinnedSection({
           );
         })}
       </ul>
-      {ordered.length === 0 || dragMode.kind === "external" ? (
+      {dragMode.kind === "external" ? (
         <div
           className={[
-            "mt-1 rounded border-2 border-dashed px-2 py-2 text-center text-[11px]",
-            dragMode.kind === "external" && canAcceptExternal
+            "mt-1 rounded border border-dashed px-2 py-1 text-center text-[11px]",
+            canAcceptExternal
               ? "border-primary/50 bg-primary/5 text-primary"
               : "border-base-content/15 bg-base-200/30 text-base-content/50"
           ].join(" ")}
         >
-          {ordered.length === 0 && dragMode.kind !== "external"
-            ? "Перетащите карточку сюда, чтобы запинить"
-            : dropHint}
+          {dropHint}
         </div>
       ) : null}
     </section>
@@ -288,8 +292,23 @@ function findPinContextTagId(
   const item = items.find((i) => i.id === intentId);
   if (!item) return fallback;
   if (item.pinned_in.length === 0) return fallback;
-  if (fallback && item.pinned_in.includes(fallback)) return fallback;
-  return item.pinned_in[0];
+  if (fallback && item.pinned_in.some((p) => p.context_tag_id === fallback)) {
+    return fallback;
+  }
+  return item.pinned_in[0].context_tag_id;
+}
+
+function pinSortKeyFor(
+  item: IntentListItem,
+  contextTagId: string | null
+): string {
+  if (contextTagId === null) {
+    // Aggregate views: use whichever entry exists; for stability fall back to
+    // the intent's main sort_key so unrelated items don't reshuffle.
+    return item.pinned_in[0]?.pin_sort_key ?? item.sort_key;
+  }
+  const entry = item.pinned_in.find((p) => p.context_tag_id === contextTagId);
+  return entry?.pin_sort_key ?? item.sort_key;
 }
 
 function resolveNeighbours(

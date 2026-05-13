@@ -356,6 +356,12 @@ export interface components {
             /** @description Tag id whose Pinned bucket should drop this intent. */
             context_tag_id: string;
         };
+        PinnedContextDto: {
+            /** @description Tag id whose Pinned bucket holds this entry. */
+            context_tag_id: string;
+            /** @description Fractional sort key (base62) defining the entry's position inside the bucket. Client-side ordering of the Pinned list inside a tag context is ascending by this key. */
+            pin_sort_key: string;
+        };
         /** @description At least one of before_id / after_id must be present. Pivot ids reference other intents pinned in the same context. */
         MovePinRequest: {
             /** @description Tag id of the Pinned list to reorder inside. */
@@ -409,8 +415,8 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
-            /** @description Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere». */
-            pinned_in: string[];
+            /** @description Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order. */
+            pinned_in: components["schemas"]["PinnedContextDto"][];
         };
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
@@ -430,8 +436,8 @@ export interface components {
             updated_at: string;
             /** @description Outgoing + incoming graph edges, projected against the current owner's intents. Use `list_intent_links` for paginated access when this list grows large. */
             links: components["schemas"]["IntentLinkViewDto"][];
-            /** @description Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere». */
-            pinned_in: string[];
+            /** @description Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order. */
+            pinned_in: components["schemas"]["PinnedContextDto"][];
         };
         IntentEventDto: {
             /** @description Event identifier. */
