@@ -11,10 +11,6 @@ interface OverlayProps {
   railWidth: number;
   /** String that changes when row layout changes (visible-id signature). */
   layoutSignature: string;
-  /** intentId → clusterId; intra-cluster edges are dropped so the rail only
-   * shows cross-cluster connections — links inside a cluster are surfaced as
-   * chips on the row. */
-  clusterByIntent: ReadonlyMap<string, string>;
 }
 
 interface ConnectorEdge {
@@ -63,16 +59,14 @@ export function IntentLinksOverlay({
   rowRefs,
   containerRef,
   railWidth,
-  layoutSignature,
-  clusterByIntent
+  layoutSignature
 }: OverlayProps) {
   const edges = useEdges(
     summary,
     rowRefs,
     containerRef,
     railWidth,
-    layoutSignature,
-    clusterByIntent
+    layoutSignature
   );
 
   if (edges.length === 0) return null;
@@ -139,8 +133,7 @@ function useEdges(
   rowRefs: ReadonlyMap<string, HTMLLIElement>,
   containerRef: RefObject<HTMLElement | null>,
   railWidth: number,
-  layoutSignature: string,
-  clusterByIntent: ReadonlyMap<string, string>
+  layoutSignature: string
 ): ConnectorEdge[] {
   const [edges, setEdges] = useState<ConnectorEdge[]>([]);
 
@@ -151,24 +144,18 @@ function useEdges(
       return;
     }
     const recompute = () => {
-      setEdges(
-        buildEdges(summary, rowRefs, container, railWidth, clusterByIntent)
-      );
+      setEdges(buildEdges(summary, rowRefs, container, railWidth));
     };
     recompute();
+    // Right-pane drag, sidebar collapse and font-zoom all change card widths
+    // without touching summary/layoutSignature. ResizeObserver gives us a
+    // re-measure trigger that is independent of React state churn.
     const observer = new ResizeObserver(recompute);
     observer.observe(container);
     return () => {
       observer.disconnect();
     };
-  }, [
-    summary,
-    rowRefs,
-    containerRef,
-    railWidth,
-    layoutSignature,
-    clusterByIntent
-  ]);
+  }, [summary, rowRefs, containerRef, railWidth, layoutSignature]);
 
   return edges;
 }
@@ -188,16 +175,9 @@ function buildEdges(
   summary: LinksSummaryMap,
   rowRefs: ReadonlyMap<string, HTMLLIElement>,
   container: HTMLElement,
-  railWidth: number,
-  clusterByIntent: ReadonlyMap<string, string>
+  railWidth: number
 ): ConnectorEdge[] {
-  const seeds = collectSeeds(summary).filter((seed) => {
-    // Intra-cluster edges are surfaced as inline chips on the row — drop them
-    // here so the rail only carries cross-cluster connections.
-    const a = clusterByIntent.get(seed.fromId);
-    const b = clusterByIntent.get(seed.toId);
-    return !(a && b && a === b);
-  });
+  const seeds = collectSeeds(summary);
   if (seeds.length === 0) return [];
 
   const containerBox = container.getBoundingClientRect();

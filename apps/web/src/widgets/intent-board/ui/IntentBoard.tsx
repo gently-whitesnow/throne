@@ -11,7 +11,11 @@ import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { useRealtimeEvent } from "@/shared/realtime";
-import { type EntityListReorder, type EntityListRow } from "@/shared/ui";
+import {
+  EntityList,
+  type EntityListReorder,
+  type EntityListRow
+} from "@/shared/ui";
 
 import {
   contextTitle,
@@ -20,17 +24,10 @@ import {
   matchesContext,
   synthesizeSortKey
 } from "../model/board-helpers";
-import { buildEntries, type ClusterMove } from "../model/board-dnd";
 import { computeFamilyTints } from "../model/family-tint";
 import { computeStepRanks } from "../model/step-rank";
-import {
-  computeClusters,
-  useClusterCollapsedState
-} from "../model/useClusters";
 import { useLinksSummary } from "../model/useLinksSummary";
-import { IntentBoardList } from "./IntentBoardList";
 import { IntentLinksOverlay } from "./IntentLinksOverlay";
-import { LinkChips } from "./LinkChips";
 
 const LINKS_RAIL_WIDTH = 36;
 
@@ -78,7 +75,12 @@ export function IntentBoard() {
   useRealtimeEvent("intent.text_changed", reload);
   useRealtimeEvent("intent.status_changed", reload);
   useRealtimeEvent("intent.tags_changed", reload);
+  // Link mutations are handled by useLinksSummary (separate cache); list does
+  // not refetch on link_added/link_removed — keeps list-cache and links-cache
+  // independent.
 
+  // intent.reordered is positional only — patch sort_key in place to keep the list
+  // in the new order without a full refetch (the server sends the freshly assigned key).
   const onReordered = useCallback(
     (payload: { intent_id: string; sort_key: string }) => {
       setState((prev) => {
@@ -97,6 +99,8 @@ export function IntentBoard() {
   );
   useRealtimeEvent("intent.reordered", onReordered);
 
+  // Server-defined order is sort_key ASC, ordinal. Use compareSortKeys (byte-wise)
+  // — never localeCompare, see entities/intent/model/sortKey.ts for why.
   const orderedItems = useMemo(
     () =>
       state.kind === "ready"
@@ -126,6 +130,8 @@ export function IntentBoard() {
     [visibleItems]
   );
   const linksSummary = useLinksSummary(visibleIds);
+  // Bumps whenever the visible-id sequence changes; drives the overlay's
+  // re-measurement without subscribing to scroll/resize events.
   const layoutSignature = useMemo(() => visibleIds.join("|"), [visibleIds]);
   const stepRanks = useMemo(
     () => computeStepRanks(visibleIds, linksSummary),
@@ -135,22 +141,6 @@ export function IntentBoard() {
     () => computeFamilyTints(visibleIds, linksSummary),
     [linksSummary, visibleIds]
   );
-  const clustersResult = useMemo(
-    () =>
-      computeClusters(
-        visibleItems.map((i) => ({
-          id: i.id,
-          tagNames: i.tags.map((t) => t.name)
-        })),
-        linksSummary
-      ),
-    [linksSummary, visibleItems]
-  );
-  const entries = useMemo(
-    () => buildEntries(visibleIds, clustersResult.byIntent),
-    [clustersResult.byIntent, visibleIds]
-  );
-  const { isCollapsed, toggle } = useClusterCollapsedState();
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
@@ -174,10 +164,9 @@ export function IntentBoard() {
     ]);
   }, [hoveredId, linksSummary]);
 
-  const rowsById = useMemo<ReadonlyMap<string, EntityListRow>>(() => {
+  const rows = useMemo<EntityListRow[]>(() => {
     const search = new URLSearchParams(params).toString();
-    const map = new Map<string, EntityListRow>();
-    for (const i of visibleItems) {
+    return visibleItems.map((i) => {
       const status = intentStatusMeta[i.status];
       const tagNames = i.tags.map((t) => t.name);
       const href =
@@ -186,7 +175,7 @@ export function IntentBoard() {
       const blockedCount = summary?.blocked_by.length ?? 0;
       const step = stepRanks.get(i.id) ?? 1;
       const isPeer = hoverPeerIds.has(i.id);
-      map.set(i.id, {
+      return {
         id: i.id,
         title: firstLine(i.text_short) || i.id,
         subtitle: tagNames.length > 0 ? `#${tagNames.join(" #")}` : undefined,
@@ -195,6 +184,8 @@ export function IntentBoard() {
         badgeColor: status.surface,
         badgeTextColor: status.ink,
         href,
+        // Step rank surfaces only when something blocks this card. Step 1 is
+        // «do it now» — implicit, no chip needed.
         warning: step > 1 ? `Шаг ${String(step)}` : undefined,
         warningTitle:
           step > 1
@@ -204,9 +195,8 @@ export function IntentBoard() {
           ? "outline outline-2 outline-primary/40 outline-offset-[-2px] z-10"
           : undefined,
         tint: familyTints.get(i.id)
-      });
-    }
-    return map;
+      };
+    });
   }, [
     familyTints,
     hoverPeerIds,
@@ -216,20 +206,12 @@ export function IntentBoard() {
     visibleItems
   ]);
 
-  const trailingForRow = useCallback(
-    (id: string) => (
-      <LinkChips
-        summary={linksSummary}
-        intentId={id}
-        clusterByIntent={clustersResult.byIntent}
-      />
-    ),
-    [clustersResult.byIntent, linksSummary]
-  );
-
-  const handleCardReorder = useCallback(
+  const handleReorder = useCallback(
     ({ movedId, beforeId, afterId }: EntityListReorder) => {
       if (!beforeId && !afterId) return;
+      // Optimistic: place a synthetic sort_key between the neighbours so the local
+      // ordering matches the dropped position immediately. The realtime event with
+      // the authoritative key arrives later and replaces this placeholder.
       const items = state.kind === "ready" ? state.items : [];
       const placeholder = synthesizeSortKey(items, beforeId, afterId);
       setState((prev) => {
@@ -241,36 +223,13 @@ export function IntentBoard() {
           )
         };
       });
+
       moveIntent({ intentId: movedId, beforeId, afterId }).catch(() => {
+        // Rollback on failure: pull a fresh authoritative list.
         reload();
       });
     },
     [reload, state]
-  );
-
-  const handleClusterReorder = useCallback(
-    ({ memberIds, beforeId, afterId }: ClusterMove) => {
-      // Sequence moveIntent calls so members land consecutively at the target
-      // boundary: each call advances the «before» cursor to the just-moved id.
-      // No optimistic key here — realtime intent.reordered carries the truth.
-      let cursor: string | null = beforeId;
-      const chain = memberIds.reduce<Promise<unknown>>(
-        (prev, id) =>
-          prev.then(async () => {
-            await moveIntent({
-              intentId: id,
-              beforeId: cursor,
-              afterId
-            });
-            cursor = id;
-          }),
-        Promise.resolve()
-      );
-      chain.catch(() => {
-        reload();
-      });
-    },
-    [reload]
   );
 
   const handleCreated = (intentId: string) => {
@@ -328,18 +287,12 @@ export function IntentBoard() {
         {state.kind === "ready" && (
           <>
             <div style={{ paddingRight: LINKS_RAIL_WIDTH }}>
-              <IntentBoardList
-                entries={entries}
-                rowsById={rowsById}
-                clusters={clustersResult.clusters}
-                collapsedClusters={isCollapsed}
-                toggleCluster={toggle}
-                onCardReorder={handleCardReorder}
-                onClusterReorder={handleClusterReorder}
+              <EntityList
+                items={rows}
+                emptyMessage={emptyMessage(context, state.items.length)}
+                onReorder={handleReorder}
                 onRowHover={setHoveredId}
                 rowRef={handleRowRef}
-                trailingForRow={trailingForRow}
-                emptyMessage={emptyMessage(context, state.items.length)}
               />
             </div>
             <IntentLinksOverlay
@@ -349,7 +302,6 @@ export function IntentBoard() {
               containerRef={scrollRef}
               railWidth={LINKS_RAIL_WIDTH}
               layoutSignature={layoutSignature}
-              clusterByIntent={clustersResult.byIntent}
             />
           </>
         )}
@@ -359,5 +311,8 @@ export function IntentBoard() {
 }
 
 function pluralizeSteps(n: number): string {
+  // Russian pluralisation: 1 — «шага», 2..4 — «шагов», 5+ — «шагов». Keep it
+  // simple: «шага» for 1, «шагов» for the rest. This text only appears in a
+  // tooltip so a perfect form isn't worth a library dependency.
   return n === 1 ? "шага" : "шагов";
 }
