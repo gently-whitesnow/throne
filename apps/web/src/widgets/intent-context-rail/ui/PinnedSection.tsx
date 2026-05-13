@@ -1,5 +1,5 @@
 import { Pin, PinOff } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { compareSortKeys, type IntentListItem } from "@/entities/intent";
@@ -29,7 +29,7 @@ interface PinnedSectionProps {
 
 type DragMode =
   | { kind: "none" }
-  | { kind: "external"; movedId: string }
+  | { kind: "external" }
   | { kind: "internal"; movedId: string };
 
 interface DropTarget {
@@ -51,24 +51,36 @@ export function PinnedSection({
 
   const canAcceptExternal = currentContextTagId !== null;
 
+  // Detect intent drags globally: dataTransfer payload is unreadable during
+  // dragover for security, so we cannot decide "is this an intent drag?" from
+  // the section's own dragover handler — we'd never know to render the
+  // drop-zone in the first place if the section was hidden. A document-level
+  // dragstart listener flips us into "external" the moment any intent row
+  // becomes the drag source.
+  useEffect(() => {
+    const onDragStart = (e: globalThis.DragEvent) => {
+      if (e.dataTransfer?.types.includes(INTENT_DND_MIME)) {
+        setDragMode((prev) => (prev.kind === "none" ? { kind: "external" } : prev));
+      }
+    };
+    const onDragEnd = () => {
+      setDragMode({ kind: "none" });
+      setDropTarget(null);
+    };
+    document.addEventListener("dragstart", onDragStart);
+    document.addEventListener("dragend", onDragEnd);
+    document.addEventListener("drop", onDragEnd);
+    return () => {
+      document.removeEventListener("dragstart", onDragStart);
+      document.removeEventListener("dragend", onDragEnd);
+      document.removeEventListener("drop", onDragEnd);
+    };
+  }, []);
+
   const handleSectionDragOver = (e: DragEvent<HTMLElement>) => {
     if (!e.dataTransfer.types.includes(INTENT_DND_MIME)) return;
     if (!canAcceptExternal && dragMode.kind !== "internal") return;
     e.preventDefault();
-    if (dragMode.kind === "none") {
-      const movedId = e.dataTransfer.getData(INTENT_DND_MIME);
-      if (movedId) setDragMode({ kind: "external", movedId });
-    }
-  };
-
-  const handleSectionDragLeave = (e: DragEvent<HTMLElement>) => {
-    // Only clear the drop-state if the pointer actually exited the section,
-    // not just crossed a child boundary.
-    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-    if (dragMode.kind !== "none") {
-      setDragMode({ kind: "none" });
-      setDropTarget(null);
-    }
   };
 
   const handleSectionDrop = async (e: DragEvent<HTMLElement>) => {
@@ -122,7 +134,7 @@ export function PinnedSection({
 
   const handleRowDragOver = (e: DragEvent<HTMLLIElement>, id: string) => {
     if (dragMode.kind === "none") return;
-    if (dragMode.movedId === id) return;
+    if (dragMode.kind === "internal" && dragMode.movedId === id) return;
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const position =
@@ -173,7 +185,6 @@ export function PinnedSection({
     <section
       aria-label="Запиненные intents"
       onDragOver={handleSectionDragOver}
-      onDragLeave={handleSectionDragLeave}
       onDrop={(e) => {
         void handleSectionDrop(e);
       }}
