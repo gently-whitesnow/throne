@@ -1,16 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { IntentListItem } from "@/entities/intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
 import { Button } from "@/shared/ui";
 
 import { createIntentLink } from "../api/intent-links-api";
-import type { IntentLinkType } from "../model/types";
+import {
+  bucketDropParams,
+  type DisplayBucket,
+  type IntentLinkType
+} from "../model/types";
 
 interface AddLinkFormProps {
   intentId: string;
-  onCreated: () => void;
-  onCancel: () => void;
+  /** Если задано — селектор типа спрятан и связь создаётся в этом бакете. */
+  presetBucket?: DisplayBucket;
+  /** Прячет лишний chrome (заголовки, рационал) — для встроенной формы. */
+  compact?: boolean;
+  autoFocus?: boolean;
+  onCreated?: () => void;
 }
 
 const linkTypeOptions: { value: IntentLinkType; label: string }[] = [
@@ -21,8 +29,10 @@ const linkTypeOptions: { value: IntentLinkType; label: string }[] = [
 
 export function AddLinkForm({
   intentId,
-  onCreated,
-  onCancel
+  presetBucket,
+  compact = false,
+  autoFocus = false,
+  onCreated
 }: AddLinkFormProps) {
   const [allIntents, setAllIntents] = useState<IntentListItem[] | null>(null);
   const [query, setQuery] = useState("");
@@ -31,6 +41,11 @@ export function AddLinkForm({
   const [rationale, setRationale] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus();
+  }, [autoFocus]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -59,17 +74,29 @@ export function AddLinkForm({
       .slice(0, 8);
   }, [allIntents, query]);
 
+  const reset = () => {
+    setQuery("");
+    setSelected(null);
+    setRationale("");
+  };
+
   const submit = () => {
     if (!selected || submitting) return;
     setSubmitting(true);
     setError(null);
-    createIntentLink(intentId, {
-      to_id: selected,
-      type,
+
+    const params = presetBucket
+      ? bucketDropParams(presetBucket, intentId, selected)
+      : { fromId: intentId, toId: selected, type };
+    createIntentLink(params.fromId, {
+      to_id: params.toId,
+      type: params.type,
       rationale: rationale.trim() ? rationale.trim() : undefined
     })
       .then(() => {
-        onCreated();
+        reset();
+        setSubmitting(false);
+        onCreated?.();
       })
       .catch((err: unknown) => {
         const code = err instanceof HttpError ? err.code : undefined;
@@ -77,7 +104,7 @@ export function AddLinkForm({
           code === "link.duplicate"
             ? "Такая связь уже существует."
             : code === "link.self_link"
-              ? "Нельзя связать интент сам с собой."
+              ? "Нельзя связать intent сам с собой."
               : code === "link.type_unsupported"
                 ? "Этот тип пока не поддержан."
                 : err instanceof HttpError
@@ -89,22 +116,25 @@ export function AddLinkForm({
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-base-300 bg-base-100 p-2.5">
-      <select
-        value={type}
-        onChange={(e) => {
-          setType(e.target.value as IntentLinkType);
-        }}
-        className="rounded border border-base-300 bg-base-100 px-2 py-1 text-[12px] text-base-content"
-        aria-label="Тип связи"
-      >
-        {linkTypeOptions.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-2">
+      {!presetBucket && (
+        <select
+          value={type}
+          onChange={(e) => {
+            setType(e.target.value as IntentLinkType);
+          }}
+          className="rounded border border-base-300 bg-base-100 px-2 py-1 text-[12px] text-base-content"
+          aria-label="Тип связи"
+        >
+          {linkTypeOptions.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      )}
       <input
+        ref={inputRef}
         type="text"
         value={query}
         onChange={(e) => {
@@ -137,22 +167,23 @@ export function AddLinkForm({
           </li>
         ))}
       </ul>
-      <textarea
-        value={rationale}
-        onChange={(e) => {
-          setRationale(e.target.value);
-        }}
-        placeholder="Зачем эта связь? (опционально)"
-        rows={2}
-        className="rounded border border-base-300 bg-base-100 px-2 py-1 text-[12px] text-base-content placeholder:text-base-content/50"
-      />
+      {!compact && (
+        <textarea
+          value={rationale}
+          onChange={(e) => {
+            setRationale(e.target.value);
+          }}
+          placeholder="Зачем эта связь? (опционально)"
+          rows={2}
+          className="rounded border border-base-300 bg-base-100 px-2 py-1 text-[12px] text-base-content placeholder:text-base-content/50"
+        />
+      )}
       {error && (
         <p role="alert" className="m-0 text-[11px] text-error">
           {error}
         </p>
       )}
-      <div className="flex justify-end gap-2">
-        <Button onClick={onCancel}>Отмена</Button>
+      <div className="flex justify-end">
         <Button
           variant="primary"
           onClick={submit}

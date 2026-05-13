@@ -1,6 +1,13 @@
 import { useState, type DragEvent, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
+/**
+ * Custom MIME used to mark drags of intent rows from this list. Foreign drop
+ * targets (например, секция «Связи») сниффят его в dragover через
+ * `dataTransfer.types`, чтобы подсветить drop-зону без чтения payload.
+ */
+export const INTENT_DND_MIME = "application/x-throne-intent-id";
+
 export interface EntityListRow {
   id: string;
   title: string;
@@ -70,6 +77,7 @@ export function EntityList({
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.setData(INTENT_DND_MIME, id);
   };
 
   const handleDragOver = (e: DragEvent<HTMLLIElement>, id: string) => {

@@ -1,5 +1,5 @@
 export { Button } from "./button/Button";
-export { EntityList } from "./entity-list/EntityList";
+export { EntityList, INTENT_DND_MIME } from "./entity-list/EntityList";
 export type {
   EntityListRow,
   EntityListReorder

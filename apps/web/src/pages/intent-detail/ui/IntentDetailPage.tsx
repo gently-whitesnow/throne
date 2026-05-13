@@ -13,7 +13,7 @@ import { formatRelativeTime } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
-import { IntentLinksPanel } from "@/widgets/intent-links-panel";
+import { IntentLinksSection } from "@/widgets/intent-links-section";
 
 type LoadState =
   | { kind: "loading" }
@@ -99,8 +99,8 @@ export function IntentDetailPage() {
       void navigate("/intents");
     }
   });
-  // Refresh the activity timeline on link events. The sidebar listens for
-  // realtime updates of the projected `links[]` itself (see IntentLinksPanel).
+  // Refresh the activity timeline on link events. Сама секция «Связи» уже
+  // слушает realtime и тянет свежий `links[]` отдельным запросом.
   useRealtimeEvent("intent.link_added", (payload) => {
     if (payload.from_id === id || payload.to_id === id) {
       setActivityKey((k) => k + 1);
@@ -280,6 +280,7 @@ export function IntentDetailPage() {
             </pre>
           )}
           <IntentAttachmentsPanel intentId={intent.id} />
+          <IntentLinksSection intentId={intent.id} />
           <section className="mt-6 flex flex-col gap-2">
             <h2 className="m-0 text-sm font-semibold text-base-content">
               Активность
@@ -290,7 +291,6 @@ export function IntentDetailPage() {
             />
           </section>
         </div>
-        <IntentLinksPanel intentId={intent.id} />
       </div>
     </>
   );
