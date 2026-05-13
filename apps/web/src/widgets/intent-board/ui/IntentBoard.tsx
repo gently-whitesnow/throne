@@ -75,6 +75,11 @@ export function IntentBoard() {
   useRealtimeEvent("intent.text_changed", reload);
   useRealtimeEvent("intent.status_changed", reload);
   useRealtimeEvent("intent.tags_changed", reload);
+  // Pin events change the `pinned_in` field on the affected intent; the cheapest
+  // path is a list refetch since this is also the source of the Pinned section.
+  useRealtimeEvent("intent.pinned", reload);
+  useRealtimeEvent("intent.unpinned", reload);
+  useRealtimeEvent("intent.pin_moved", reload);
   // Link mutations are handled by useLinksSummary (separate cache); list does
   // not refetch on link_added/link_removed — keeps list-cache and links-cache
   // independent.
@@ -194,7 +199,8 @@ export function IntentBoard() {
         outline: isPeer
           ? "outline outline-2 outline-primary/40 outline-offset-[-2px] z-10"
           : undefined,
-        tint: familyTints.get(i.id)
+        tint: familyTints.get(i.id),
+        pinned: i.pinned_in.length > 0
       };
     });
   }, [

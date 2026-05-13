@@ -72,6 +72,40 @@ events:
           type: string
         sort_key:
           type: string
+  intent.pinned:
+    description: An Intent was pinned in a tag-scoped context.
+    payload:
+      type: object
+      required: [intent_id, context_tag_id, pin_sort_key]
+      properties:
+        intent_id:
+          type: string
+        context_tag_id:
+          type: string
+        pin_sort_key:
+          type: string
+  intent.unpinned:
+    description: An Intent was unpinned from a tag-scoped context.
+    payload:
+      type: object
+      required: [intent_id, context_tag_id]
+      properties:
+        intent_id:
+          type: string
+        context_tag_id:
+          type: string
+  intent.pin_moved:
+    description: A pin was reordered inside its context's Pinned list.
+    payload:
+      type: object
+      required: [intent_id, context_tag_id, pin_sort_key]
+      properties:
+        intent_id:
+          type: string
+        context_tag_id:
+          type: string
+        pin_sort_key:
+          type: string
   tag.created:
     description: A new tag was created (by user or auto-upsert during create_intent / set_intent_tags).
     payload_ref: tags#/components/schemas/TagDto

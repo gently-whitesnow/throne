@@ -5,11 +5,14 @@ export {
   FRIDGE_CONTEXT,
   INBOX_REVIEW_CONTEXT,
   INBOX_HELP_CONTEXT,
+  PINNED_CONTEXT,
   archiveContextTag,
   archiveSubContext,
   isArchiveContext,
   isFridgeContext,
-  isInboxContext
+  isInboxContext,
+  isPinnedContext,
+  isTagContext
 } from "./intent-contexts";
 export {
   computeMinimalTextDelta,

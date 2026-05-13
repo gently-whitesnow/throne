@@ -106,6 +106,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pin an intent in a tag-scoped context.
+         * @description Adds a pin record `(intent_id, context_tag_id)`. Pins are bookmarks: they do not change the intent's status nor bump `current_version`. Position inside the context's Pinned list is governed by a fractional `pin_sort_key`; supply `before_id` and/or `after_id` to insert between existing pins, or omit both to append to the end. Idempotent: re-pinning an existing pair without neighbours is a no-op; supplying neighbours reorders the existing pin.
+         */
+        post: operations["pinIntent"];
+        /**
+         * Remove a pin from a tag-scoped context.
+         * @description Removes the pin record `(intent_id, context_tag_id)`. Idempotent: returns 200 with the refreshed Intent DTO even if the pin did not exist.
+         */
+        delete: operations["unpinIntent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{id}/pin/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reorder a pin inside its context's Pinned list.
+         * @description Drag-and-drop reorder of an existing pin. Behaves like `/move` for intents but operates on `pin_sort_key` instead of `sort_key`. At least one of `before_id` / `after_id` must be supplied; pivot ids reference other pinned intents inside the same `context_tag_id`.
+         */
+        post: operations["movePin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}/replace-text": {
         parameters: {
             query?: never;
@@ -299,6 +343,28 @@ export interface components {
             /** @description Id of the intent that should immediately follow the moved intent. Optional when before_id is supplied. */
             after_id?: string;
         };
+        /** @description Pin an intent inside a tag-scoped Pinned list. When neither pivot is supplied the pin is appended to the tail. */
+        PinIntentRequest: {
+            /** @description Tag id that defines the per-context pin bucket. Must reference a tag owned by the caller. */
+            context_tag_id: string;
+            /** @description Optional id of the intent whose pin in this context should immediately precede the new pin. */
+            before_id?: string;
+            /** @description Optional id of the intent whose pin in this context should immediately follow the new pin. */
+            after_id?: string;
+        };
+        UnpinIntentRequest: {
+            /** @description Tag id whose Pinned bucket should drop this intent. */
+            context_tag_id: string;
+        };
+        /** @description At least one of before_id / after_id must be present. Pivot ids reference other intents pinned in the same context. */
+        MovePinRequest: {
+            /** @description Tag id of the Pinned list to reorder inside. */
+            context_tag_id: string;
+            /** @description Optional id of the pinned intent that should immediately precede this pin. */
+            before_id?: string;
+            /** @description Optional id of the pinned intent that should immediately follow this pin. */
+            after_id?: string;
+        };
         SetIntentTagsRequest: {
             /** @description Replacement set of tag names; pass an empty array to detach all tags. Server upserts by name. */
             tag_names: string[];
@@ -343,6 +409,8 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            /** @description Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere». */
+            pinned_in: string[];
         };
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
@@ -362,6 +430,8 @@ export interface components {
             updated_at: string;
             /** @description Outgoing + incoming graph edges, projected against the current owner's intents. Use `list_intent_links` for paginated access when this list grows large. */
             links: components["schemas"]["IntentLinkViewDto"][];
+            /** @description Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere». */
+            pinned_in: string[];
         };
         IntentEventDto: {
             /** @description Event identifier. */
@@ -788,6 +858,129 @@ export interface operations {
                 };
             };
             /** @description Validation failed (e.g. neither neighbour supplied) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    pinIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinIntentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Intent, pivot pin or context not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation failed (e.g. inverted pivots) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    unpinIntent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnpinIntentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Intent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    movePin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MovePinRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Intent or pivot pin not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation failed */
             422: {
                 headers: {
                     [name: string]: unknown;

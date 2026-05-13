@@ -37,6 +37,9 @@ public static class DependencyInjection
         services.AddSingleton<SetIntentStatusHandler>();
         services.AddSingleton<SetIntentTagsHandler>();
         services.AddSingleton<MoveIntentHandler>();
+        services.AddSingleton<PinIntentHandler>();
+        services.AddSingleton<UnpinIntentHandler>();
+        services.AddSingleton<MovePinHandler>();
         services.AddSingleton<LinkIntentHandler>();
         services.AddSingleton<UnlinkIntentHandler>();
         services.AddSingleton<ListIntentLinksHandler>();

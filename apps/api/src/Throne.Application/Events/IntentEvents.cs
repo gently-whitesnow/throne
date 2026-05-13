@@ -19,6 +19,12 @@ public sealed record IntentTagsChanged(Intent Intent) : IDomainEvent;
 
 public sealed record IntentReordered(Intent Intent) : IDomainEvent;
 
+public sealed record IntentPinned(string IntentId, string ContextTagId, string PinSortKey) : IDomainEvent;
+
+public sealed record IntentUnpinned(string IntentId, string ContextTagId) : IDomainEvent;
+
+public sealed record IntentPinMoved(string IntentId, string ContextTagId, string PinSortKey) : IDomainEvent;
+
 public sealed record IntentLinkAdded(IntentLink Link) : IDomainEvent;
 
 public sealed record IntentLinkRemoved(IntentLink Link) : IDomainEvent;

@@ -35,12 +35,16 @@ public sealed partial class IntentsController(
     DownloadIntentAttachmentHandler downloadAttachmentHandler,
     DeleteIntentAttachmentHandler deleteAttachmentHandler,
     MoveIntentHandler moveHandler,
+    PinIntentHandler pinHandler,
+    UnpinIntentHandler unpinHandler,
+    MovePinHandler movePinHandler,
     LinkIntentHandler linkHandler,
     UnlinkIntentHandler unlinkHandler,
     ListIntentLinksHandler listLinksHandler,
     GetIntentLinksSummaryHandler linksSummaryHandler,
     ListIntentEventsHandler listEventsHandler,
     IIntentLinkRepository linkRepository,
+    IIntentPinRepository pinRepository,
     ITagRepository tags) : IntentsControllerBase
 {
     private const int TextShortMaxLength = 140;
@@ -57,10 +61,17 @@ public sealed partial class IntentsController(
             HttpContext.RequestAborted);
 
         var tagMap = await BuildTagMapAsync(intents.SelectMany(i => i.TagIds), HttpContext.RequestAborted);
+        var pinnedMap = await pinRepository.GetPinnedInAsync(
+            intents.Select(i => i.Id.Value).ToList(),
+            HttpContext.RequestAborted);
         var dtos = new List<IntentListItemDto>(intents.Count);
         foreach (var intent in intents)
         {
-            dtos.Add(IntentDtoMapper.ToListDto(intent, tagMap, TextShortMaxLength));
+            dtos.Add(IntentDtoMapper.ToListDto(
+                intent,
+                tagMap,
+                TextShortMaxLength,
+                pinnedMap.TryGetValue(intent.Id.Value, out var pinned) ? pinned : null));
         }
         return Ok(dtos);
     }
@@ -92,7 +103,8 @@ public sealed partial class IntentsController(
             var links = await linkRepository.ListByIntentAsync(intent.Id, HttpContext.RequestAborted);
             var tagMap = await BuildTagMapAsync(CollectTagIds(intent, links), HttpContext.RequestAborted);
             var linkDtos = links.Select(v => IntentLinkDtoMapper.ToLinkViewDto(v, tagMap)).ToList();
-            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap, linkDtos));
+            var pinnedIn = await GetPinnedInAsync(intent.Id.Value, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap, linkDtos, pinnedIn));
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
         {
@@ -190,7 +202,8 @@ public sealed partial class IntentsController(
             HttpContext.RequestAborted);
 
         var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
-        var dto = IntentDtoMapper.ToDetailDto(intent, tagMap);
+        // Freshly created intents start unpinned; skip the pin lookup.
+        var dto = IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: Array.Empty<string>());
         return CreatedAtAction(nameof(GetIntent), new { id = intent.Id.Value }, dto);
     }
 
@@ -203,7 +216,8 @@ public sealed partial class IntentsController(
                 new SetIntentTagsCommand(id, body.Expected_version, TagIds: null, body.Tag_names?.ToList()),
                 HttpContext.RequestAborted);
             var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
-            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
+            var pinnedIn = await GetPinnedInAsync(intent.Id.Value, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: pinnedIn));
         }
         catch (ApiException ex)
         {
@@ -220,7 +234,8 @@ public sealed partial class IntentsController(
                 new ReplaceIntentTextCommand(id, body.Expected_version, body.Old_text, body.New_text, TextVersionAuthor.User),
                 HttpContext.RequestAborted);
             var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
-            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
+            var pinnedIn = await GetPinnedInAsync(intent.Id.Value, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: pinnedIn));
         }
         catch (ApiException ex)
         {
@@ -243,7 +258,8 @@ public sealed partial class IntentsController(
                 HttpContext.RequestAborted);
 
             var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
-            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
+            var pinnedIn = await GetPinnedInAsync(intent.Id.Value, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: pinnedIn));
         }
         catch (ApiException ex)
         {
@@ -260,13 +276,15 @@ public sealed partial class IntentsController(
                 new MoveIntentCommand(id, body.Before_id, body.After_id),
                 HttpContext.RequestAborted);
             var tagMap = await BuildTagMapAsync(intent.TagIds, HttpContext.RequestAborted);
-            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap));
+            var pinnedIn = await GetPinnedInAsync(intent.Id.Value, HttpContext.RequestAborted);
+            return Ok(IntentDtoMapper.ToDetailDto(intent, tagMap, pinnedIn: pinnedIn));
         }
         catch (ApiException ex)
         {
             return IntentsErrorMapper.MapMove(ex);
         }
     }
+
 
     public override async Task<IActionResult> DeleteIntent(string id)
     {

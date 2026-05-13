@@ -221,6 +221,122 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/pin:
+    post:
+      operationId: pinIntent
+      tags: [Intents]
+      summary: Pin an intent in a tag-scoped context.
+      description: >
+        Adds a pin record `(intent_id, context_tag_id)`. Pins are bookmarks: they do not
+        change the intent's status nor bump `current_version`. Position inside the
+        context's Pinned list is governed by a fractional `pin_sort_key`; supply
+        `before_id` and/or `after_id` to insert between existing pins, or omit both
+        to append to the end. Idempotent: re-pinning an existing pair without
+        neighbours is a no-op; supplying neighbours reorders the existing pin.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinIntentRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent, pivot pin or context not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (e.g. inverted pivots)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    delete:
+      operationId: unpinIntent
+      tags: [Intents]
+      summary: Remove a pin from a tag-scoped context.
+      description: >
+        Removes the pin record `(intent_id, context_tag_id)`. Idempotent: returns 200
+        with the refreshed Intent DTO even if the pin did not exist.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnpinIntentRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/pin/move:
+    post:
+      operationId: movePin
+      tags: [Intents]
+      summary: Reorder a pin inside its context's Pinned list.
+      description: >
+        Drag-and-drop reorder of an existing pin. Behaves like `/move` for intents
+        but operates on `pin_sort_key` instead of `sort_key`. At least one of
+        `before_id` / `after_id` must be supplied; pivot ids reference other pinned
+        intents inside the same `context_tag_id`.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovePinRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent or pivot pin not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/replace-text:
     post:
       operationId: replaceIntentText
@@ -653,6 +769,51 @@ components:
       description: >
         At least one of before_id / after_id must be present. Supplying both pins the moved
         intent strictly between the two neighbours.
+    PinIntentRequest:
+      type: object
+      required:
+        - context_tag_id
+      properties:
+        context_tag_id:
+          type: string
+          minLength: 1
+          description: Tag id that defines the per-context pin bucket. Must reference a tag owned by the caller.
+        before_id:
+          type: string
+          description: Optional id of the intent whose pin in this context should immediately precede the new pin.
+        after_id:
+          type: string
+          description: Optional id of the intent whose pin in this context should immediately follow the new pin.
+      description: >
+        Pin an intent inside a tag-scoped Pinned list. When neither pivot is supplied
+        the pin is appended to the tail.
+    UnpinIntentRequest:
+      type: object
+      required:
+        - context_tag_id
+      properties:
+        context_tag_id:
+          type: string
+          minLength: 1
+          description: Tag id whose Pinned bucket should drop this intent.
+    MovePinRequest:
+      type: object
+      required:
+        - context_tag_id
+      properties:
+        context_tag_id:
+          type: string
+          minLength: 1
+          description: Tag id of the Pinned list to reorder inside.
+        before_id:
+          type: string
+          description: Optional id of the pinned intent that should immediately precede this pin.
+        after_id:
+          type: string
+          description: Optional id of the pinned intent that should immediately follow this pin.
+      description: >
+        At least one of before_id / after_id must be present. Pivot ids reference other
+        intents pinned in the same context.
     SetIntentTagsRequest:
       type: object
       required:
@@ -723,6 +884,7 @@ components:
         - sort_key
         - created_at
         - updated_at
+        - pinned_in
       properties:
         id:
           type: string
@@ -753,6 +915,11 @@ components:
         updated_at:
           type: string
           format: date-time
+        pinned_in:
+          type: array
+          items:
+            type: string
+          description: Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
     IntentDetailDto:
       type: object
       required:
@@ -765,6 +932,7 @@ components:
         - created_at
         - updated_at
         - links
+        - pinned_in
       properties:
         id:
           type: string
@@ -800,6 +968,11 @@ components:
           description: >
             Outgoing + incoming graph edges, projected against the current owner's intents.
             Use `list_intent_links` for paginated access when this list grows large.
+        pinned_in:
+          type: array
+          items:
+            type: string
+          description: Tag ids in whose Pinned bucket this intent is currently pinned. Empty array means «not pinned anywhere».
     IntentEventDto:
       type: object
       required:

@@ -170,6 +170,26 @@ dotnet_diagnostic.CA1502.severity = none
 [src/Throne.Infrastructure/Mongo/MongoTagRepository.cs]
 dotnet_diagnostic.CA1502.severity = none
 
+# intent:ea2efea6c36a424c8787e0e85cff8a06: pin support adds a pinned_in collection
+# expression branch to both ToDetailDto and ToListDto, pushing the type-level
+# cyclomatic count one over the threshold. The mapper is still a flat dto-builder.
+[src/Throne.Api/Intents/IntentDtoMapper.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+# intent:ea2efea6c36a424c8787e0e85cff8a06: per-context Intent pins Mongo POCO.
+# CA1502 type-level threshold (10) is structurally too tight for the property
+# fan-out — same precedent as IntentDocument et al.
+[src/Throne.Infrastructure/Mongo/Documents/IntentPinDocument.cs]
+dotnet_diagnostic.CA1502.severity = none
+
+# intent:ea2efea6c36a424c8787e0e85cff8a06: Mongo repository adapter for
+# intent_pins; CA1502/CA1506 type-level inflated by Builders<T> expression
+# chains and the multi-branch pin/move/unpin logic — same precedent as
+# MongoIntentRepository.
+[src/Throne.Infrastructure/Mongo/MongoIntentPinRepository.cs]
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.CA1506.severity = none
+
 [tests/Throne.Application.Tests/Intents/CreateIntentHandlerTests.cs]
 dotnet_diagnostic.CA1506.severity = none
 

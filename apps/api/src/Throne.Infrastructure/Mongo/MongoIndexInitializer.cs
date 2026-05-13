@@ -25,6 +25,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         MongoCollectionNames.PersonalAccessTokens,
         MongoCollectionNames.InstructionPatches,
         MongoCollectionNames.DreamSessions,
+        MongoCollectionNames.IntentPins,
     ];
 
     /// <summary>
@@ -144,6 +145,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
 
         await CreateIntentLinkIndexesAsync(cancellationToken);
         await CreateIntentEventIndexesAsync(cancellationToken);
+        await CreateIntentPinIndexesAsync(cancellationToken);
 
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(
@@ -202,6 +204,36 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                         PartialFilterExpression = Builders<IntentEventDocument>.Filter
                             .Eq(x => x.Kind, IntentEventKindWires.TextChanged),
                     }),
+            ],
+            cancellationToken);
+    }
+
+    private async Task CreateIntentPinIndexesAsync(CancellationToken cancellationToken)
+    {
+        var pins = database.GetCollection<IntentPinDocument>(MongoCollectionNames.IntentPins);
+        await pins.Indexes.CreateManyAsync(
+            [
+                // One pin per (owner, intent, context). Race-protects the upsert path: even
+                // if two PinAsync calls land at the same time, only one document survives.
+                new CreateIndexModel<IntentPinDocument>(
+                    Builders<IntentPinDocument>.IndexKeys
+                        .Ascending(x => x.OwnerUserId)
+                        .Ascending(x => x.IntentId)
+                        .Ascending(x => x.ContextTagId),
+                    new CreateIndexOptions { Unique = true, Name = "owner_intent_context_unique" }),
+                // Drives the per-context ordered listing (sidebar Pinned section).
+                new CreateIndexModel<IntentPinDocument>(
+                    Builders<IntentPinDocument>.IndexKeys
+                        .Ascending(x => x.OwnerUserId)
+                        .Ascending(x => x.ContextTagId)
+                        .Ascending(x => x.PinSortKey),
+                    new CreateIndexOptions { Name = "owner_context_sort_key" }),
+                // Batch lookup of pinned_in for the list DTOs.
+                new CreateIndexModel<IntentPinDocument>(
+                    Builders<IntentPinDocument>.IndexKeys
+                        .Ascending(x => x.OwnerUserId)
+                        .Ascending(x => x.IntentId),
+                    new CreateIndexOptions { Name = "owner_intent" }),
             ],
             cancellationToken);
     }
