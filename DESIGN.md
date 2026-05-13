@@ -24,6 +24,14 @@ colors:
   warning-soft: "#FFF3D6"
   error: "#CF4D4D"
   error-soft: "#FDEAEA"
+surface-scale:
+  base-100: "{colors.canvas}"
+  base-200: "{colors.neutral-soft}"
+  base-300: "{colors.border}"
+  base-content: "{colors.text}"
+themes:
+  light: default
+  dark: throne-dark
 typography:
   page-title:
     fontFamily: Mona Sans
@@ -73,10 +81,15 @@ components:
     backgroundColor: "{colors.neutral-soft}"
     textColor: "{colors.text-muted}"
     rounded: "{rounded.md}"
+    width: 56px
+  nav-item:
+    rounded: "{rounded.md}"
+    size: 40px
+    textColor: "{colors.text-muted}"
   nav-item-active:
-    backgroundColor: "{colors.info-soft}"
-    textColor: "{colors.primary-strong}"
-    rounded: "{rounded.sm}"
+    backgroundColor: "{colors.primary}/10"
+    textColor: "{colors.primary}"
+    rounded: "{rounded.md}"
   card:
     backgroundColor: "{colors.canvas}"
     textColor: "{colors.text}"
@@ -115,7 +128,20 @@ components:
 
 Throne is not a marketing site and not a playful productivity app. It is a command center for spec-driven AI engineering: calm, dense, trustworthy, and operationally clear.
 
-The interface should feel precise and intentional. Normal state stays quiet; only actionable changes surface stronger emphasis. The system is light-first, dark-capable later, and optimized for long sessions spent reading specs, scanning status, and making decisions.
+The interface should feel precise and intentional. Normal state stays quiet; only actionable changes surface stronger emphasis. The system is light-first; a `throne-dark` theme is shipped and mirrors every token in the same semantic shape.
+
+The public landing in `throne-infra/site` reuses the same tokens, fonts, surface scale, and component shapes as `apps/web`. The site presentation is light-only and a touch more spacious, but the visual language is identical.
+
+## Surface scale
+
+The shell is layered on three surfaces; map them directly when a runtime depends on DaisyUI/CSS variables:
+
+- `base-100` → `canvas`. Main content background.
+- `base-200` → `neutral-soft`. Sidebar, code blocks, soft chips, hover wash.
+- `base-300` → `border`. Panel borders, dividers, faint separators.
+- `base-content` → `text`. Default foreground inside the shell.
+
+Active emphasis is rendered as a 10 % primary wash (`bg-primary/10`) with `text-primary`, not as a hard-fill chip — see `nav-item-active`.
 
 ## Colors
 
@@ -131,9 +157,9 @@ Avoid pastel hero gradients, candy-colored surfaces, or color usage that looks i
 
 ## Typography
 
-Use `Mona Sans` as the default UI family and `Monaspace Neon` for code, diffs, IDs, and markdown-like machine text.
+Use `Mona Sans` (variable, latin + latin-ext) as the default UI family and `Monaspace Neon` for code, diffs, IDs, and markdown-like machine text. Both ship as `@fontsource(-variable)` packages in `apps/web` and as the matching `@fontsource` imports in `throne-infra/site` — the public landing must use the same two families, not a generic monospace fallback.
 
-- Body copy is compact by default: 14px equivalent.
+- Body copy is compact by default: 14px equivalent inside `apps/web`. The public landing scales body up to 16px, but every heading still references the same `Mona Sans` family at restrained weights (≤ 600).
 - Meta text can drop to 12px, but only for timestamps, IDs, and secondary annotations.
 - In-app headings should stay restrained. `page-title` is the maximum scale for application chrome.
 - Monospace text should feel editorial and crisp, not terminal-heavy.
