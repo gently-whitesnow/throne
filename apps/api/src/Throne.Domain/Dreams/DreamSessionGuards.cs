@@ -11,6 +11,7 @@ internal static class DreamSessionGuards
         string id,
         string ownerUserId,
         string vendor,
+        string? host,
         DateTimeOffset? dateFrom,
         DateTimeOffset? dateTo,
         IReadOnlyList<string> processedConversationIds,
@@ -21,6 +22,7 @@ internal static class DreamSessionGuards
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         DreamSessionVendorGuards.EnsureValid(vendor);
+        DreamSessionHostGuards.EnsureValid(host);
         DreamSessionDateGuards.EnsureRange(dateFrom, dateTo);
         DreamSessionTextGuards.EnsureSummary(summary);
         DreamSessionTextGuards.EnsureReflection(reflection);
@@ -39,6 +41,23 @@ internal static class DreamSessionVendorGuards
             throw new ArgumentException(
                 $"vendor must be ≤{DreamSession.MaxVendorLength} characters.",
                 nameof(vendor));
+        }
+    }
+}
+
+internal static class DreamSessionHostGuards
+{
+    public static void EnsureValid(string? host)
+    {
+        if (host is null || string.IsNullOrWhiteSpace(host))
+        {
+            throw new ArgumentException("host must not be empty.", nameof(host));
+        }
+        if (host.Length > DreamSession.MaxHostLength)
+        {
+            throw new ArgumentException(
+                $"host must be ≤{DreamSession.MaxHostLength} characters.",
+                nameof(host));
         }
     }
 }

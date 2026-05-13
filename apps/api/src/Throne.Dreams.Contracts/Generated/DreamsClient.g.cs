@@ -46,6 +46,14 @@ namespace Throne.Dreams.Contracts.Generated
         public string Vendor { get; set; }
 
         /// <summary>
+        /// Hostname of the machine the /dream pass ran on. Always set on new records; may be omitted only for legacy sessions written before the field existed.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.StringLength(255)]
+        public string Host { get; set; }
+
+        /// <summary>
         /// Lower bound of the analysed period (inclusive); null when the agent took the full history.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date_from")]

@@ -64,6 +64,10 @@ internal sealed class MongoDreamSessionRepository(
         {
             clauses.Add(Builders<DreamSessionDocument>.Filter.Eq(x => x.Vendor, filter.Vendor));
         }
+        if (!string.IsNullOrWhiteSpace(filter.Host))
+        {
+            clauses.Add(Builders<DreamSessionDocument>.Filter.Eq(x => x.Host, filter.Host));
+        }
         if (cursor is not null && DreamSessionCursor.TryDecode(cursor, out var decoded))
         {
             clauses.Add(Builders<DreamSessionDocument>.Filter.Or(
@@ -113,6 +117,7 @@ internal static class DreamSessionMongoMapper
         OwnerUserId = session.OwnerUserId,
         CreatedAt = session.Identity.CreatedAt.UtcDateTime,
         Vendor = session.Payload.Vendor,
+        Host = session.Payload.Host,
         DateFrom = session.Payload.DateFrom?.UtcDateTime,
         DateTo = session.Payload.DateTo?.UtcDateTime,
         ProcessedConversationIds = session.Payload.ProcessedConversationIds.ToList(),
@@ -126,6 +131,7 @@ internal static class DreamSessionMongoMapper
         ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         createdAt: ToUtcOffset(doc.CreatedAt),
         vendor: doc.Vendor,
+        host: doc.Host,
         dateFrom: doc.DateFrom is { } from ? ToUtcOffset(from) : null,
         dateTo: doc.DateTo is { } to ? ToUtcOffset(to) : null,
         processedConversationIds: doc.ProcessedConversationIds ?? new List<string>(),

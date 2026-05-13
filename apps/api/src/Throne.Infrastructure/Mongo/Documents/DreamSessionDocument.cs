@@ -21,6 +21,16 @@ internal sealed class DreamSessionDocument
     [BsonElement("vendor")]
     public string Vendor { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Agent-reported source machine for this /dream pass (typically the OS
+    /// hostname). Frontier-frontier scoping uses this to compute the
+    /// «what's already processed» set per machine. Null for legacy records
+    /// written before the field existed.
+    /// </summary>
+    [BsonElement("host")]
+    [BsonIgnoreIfNull]
+    public string? Host { get; set; }
+
     [BsonElement("date_from")]
     [BsonIgnoreIfNull]
     public DateTime? DateFrom { get; set; }

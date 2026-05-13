@@ -24,6 +24,10 @@ public static class DreamSessionDtoMapper
             Summary = session.Payload.Summary,
             Proposed_patch_ids = session.Payload.ProposedPatchIds.ToList(),
         };
+        if (session.Payload.Host is { } host)
+        {
+            dto.Host = host;
+        }
         if (session.Payload.DateFrom is { } from)
         {
             dto.Date_from = from;

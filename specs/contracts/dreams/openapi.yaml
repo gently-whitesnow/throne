@@ -29,6 +29,16 @@ paths:
             type: string
             description: Optional vendor filter (e.g. claude-code, claude-desktop, codex-cli).
         - in: query
+          name: host
+          required: false
+          schema:
+            type: string
+            description: >
+              Optional machine-hostname filter. Dream-mode agents pass their own
+              hostname so the per-machine «what's already processed» frontier
+              stays separated when one user runs /dream from several machines.
+              Omit to list every session (UI / analytics view).
+        - in: query
           name: limit
           required: false
           schema:
@@ -105,6 +115,13 @@ components:
           format: date-time
         vendor:
           type: string
+        host:
+          type: string
+          maxLength: 255
+          description: >
+            Hostname of the machine the /dream pass ran on. Always set on new
+            records; may be omitted only for legacy sessions written before the
+            field existed.
         date_from:
           type: string
           format: date-time

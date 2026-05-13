@@ -24,8 +24,34 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
         loaded.Should().NotBeNull();
         loaded!.OwnerUserId.Should().Be("user-1");
         loaded.Payload.Vendor.Should().Be("claude-code");
+        loaded.Payload.Host.Should().Be("macstudio.local");
         loaded.Payload.Summary.Should().Be("hello");
         loaded.Payload.ProcessedConversationIds.Should().Equal("a", "b");
+    }
+
+    [Fact(DisplayName = "ListAsync host-фильтр отсекает сессии других машин того же owner")]
+    public async Task List_host_filter_isolates_machines()
+    {
+        var (_, repo, uow) = await NewScopeAsync("user-1");
+
+        var mac = MakeSession("d-mac", "user-1", host: "macstudio.local", at: Now);
+        var laptop = MakeSession("d-laptop", "user-1", host: "laptop.local", at: Now.AddMinutes(5));
+        await uow.ExecuteAsync(ct => repo.CreateAsync(mac, ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(laptop, ct), CancellationToken.None);
+
+        var onlyMac = await repo.ListAsync(
+            new DreamSessionListFilter(Vendor: null, Host: "macstudio.local"),
+            limit: 50,
+            cursor: null,
+            CancellationToken.None);
+        onlyMac.Items.Should().ContainSingle().Which.Id.Should().Be("d-mac");
+
+        var all = await repo.ListAsync(
+            new DreamSessionListFilter(Vendor: null),
+            limit: 50,
+            cursor: null,
+            CancellationToken.None);
+        all.Items.Should().HaveCount(2);
     }
 
     [Fact(DisplayName = "GetAsync фильтрует по owner и не отдаёт чужие dream-sessions")]
@@ -72,12 +98,14 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
         string id,
         string ownerUserId,
         string vendor = "claude-code",
+        string host = "macstudio.local",
         DateTimeOffset? at = null) =>
         DreamSession.Create(
             id: id,
             ownerUserId: ownerUserId,
             createdAt: at ?? Now,
             vendor: vendor,
+            host: host,
             dateFrom: null,
             dateTo: null,
             processedConversationIds: ["a", "b"],

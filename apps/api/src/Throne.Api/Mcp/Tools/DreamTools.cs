@@ -40,15 +40,16 @@ public sealed class DreamTools(
     }
 
     [McpServerTool(Name = "list_dream_sessions", ReadOnly = true, UseStructuredContent = true)]
-    [Description("List DreamSessions owned by the caller, ordered by created_at descending. Use this at the start of a /dream pass to recall prior summaries / reflections / proposed_patch_ids and to find processed_conversation_ids that should not be re-analysed. Pagination is opaque-cursor based. Empty `items` is a valid success state — it just means the caller has never recorded a dream pass yet; do NOT treat it as an error.")]
+    [Description("List DreamSessions owned by the caller, ordered by created_at descending. Use this at the start of a /dream pass to recall prior summaries / reflections / proposed_patch_ids and to find processed_conversation_ids that should not be re-analysed. Pagination is opaque-cursor based. Empty `items` is a valid success state — it just means the caller has never recorded a dream pass yet; do NOT treat it as an error. Pass `host=<your hostname>` to scope the frontier to the current machine — without it the response mixes sessions recorded from every machine the owner has ever used.")]
     public async Task<McpDreamSessionListResult> ListDreamSessions(
         [Description("Optional vendor filter (e.g. claude-code, claude-desktop, codex-cli).")] string? vendor = null,
+        [Description("Optional machine-hostname filter. Dream agents must pass their own hostname so the per-machine processed_conversation_ids frontier stays separated. Omit only when you genuinely want every machine's history (UI / analytics).")] string? host = null,
         [Description("Page size, default 20, capped at 100.")] int? limit = null,
         [Description("Opaque cursor returned as next_cursor by the previous page.")] string? cursor = null,
         CancellationToken cancellationToken = default)
     {
         var page = await listHandler.HandleAsync(
-            new ListDreamSessionsQuery(vendor, limit, cursor),
+            new ListDreamSessionsQuery(vendor, host, limit, cursor),
             cancellationToken);
         return new McpDreamSessionListResult(
             page.Items.Select(DreamSessionMcpMapper.ToReadModel).ToList(),
@@ -59,6 +60,7 @@ public sealed class DreamTools(
     [Description("Append a DreamSession after a completed /dream pass. Records are immutable — there is no edit / delete. processed_conversation_ids must list every dialog id/path the agent actually read so the next pass skips them. proposed_patch_ids should list every InstructionPatch the agent created during this pass. Even if nothing useful was found, still record a session with an empty proposed_patch_ids and a one-line summary explaining why.")]
     public async Task<McpDreamSessionReadModel> RecordDreamSession(
         [Description("Vendor whose conversations were analysed; must be one of the entries returned by get_dream_sources.")] string vendor,
+        [Description("Hostname of the machine that ran this /dream pass (typically `os.hostname()` / `hostname` shell command). Required — the server scopes the per-machine processed_conversation_ids frontier by this value. Max 255 chars, non-empty.")] string host,
         [Description("Opaque agent-side ids / paths of dialogs read this pass. Up to 500 entries.")] IReadOnlyList<string> processed_conversation_ids,
         [Description("3-7 line summary of what was found and proposed in this pass. ≤4000 chars.")] string summary,
         [Description("Inclusive lower bound of the analysed period (RFC 3339); null when the agent took the full history.")] DateTimeOffset? date_from = null,
@@ -70,6 +72,7 @@ public sealed class DreamTools(
         var session = await recordHandler.HandleAsync(
             new RecordDreamSessionCommand(
                 vendor,
+                host,
                 date_from,
                 date_to,
                 processed_conversation_ids ?? Array.Empty<string>(),
@@ -87,6 +90,7 @@ internal static class DreamSessionMcpMapper
         session.Id,
         session.Identity.CreatedAt,
         session.Payload.Vendor,
+        session.Payload.Host,
         session.Payload.DateFrom,
         session.Payload.DateTo,
         session.Payload.ProcessedConversationIds.ToList(),
@@ -103,6 +107,7 @@ public sealed record McpDreamSessionReadModel(
     [property: Description("DreamSession id (32 hex chars).")] string Id,
     [property: Description("Creation timestamp (UTC).")] DateTimeOffset CreatedAt,
     [property: Description("Vendor whose dialogs were analysed.")] string Vendor,
+    [property: Description("Machine hostname the /dream pass ran on. Null only for legacy records written before the field existed.")] string? Host,
     [property: Description("Inclusive lower bound of the analysed period; null when full history.")] DateTimeOffset? DateFrom,
     [property: Description("Inclusive upper bound of the analysed period; null when open-ended.")] DateTimeOffset? DateTo,
     [property: Description("Opaque dialog ids / paths the agent read in this pass.")] IReadOnlyList<string> ProcessedConversationIds,

@@ -24,6 +24,7 @@ public class RecordDreamSessionHandlerTests
         var session = await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "claude-code",
+                Host: "macstudio.local",
                 DateFrom: null,
                 DateTo: null,
                 ProcessedConversationIds: ["conv-1", "conv-2"],
@@ -34,8 +35,31 @@ public class RecordDreamSessionHandlerTests
 
         session.OwnerUserId.Should().Be("user-1");
         session.Payload.Vendor.Should().Be("claude-code");
+        session.Payload.Host.Should().Be("macstudio.local");
         session.Identity.CreatedAt.Should().Be(Now);
         session.Payload.ProcessedConversationIds.Should().Equal("conv-1", "conv-2");
+    }
+
+    [Fact(DisplayName = "RecordDreamSession отвергает пустой host")]
+    public async Task Record_rejects_empty_host()
+    {
+        var handler = NewHandler(Substitute.For<IDreamSessionRepository>());
+
+        var act = async () => await handler.HandleAsync(
+            new RecordDreamSessionCommand(
+                Vendor: "claude-code",
+                Host: "   ",
+                DateFrom: null,
+                DateTo: null,
+                ProcessedConversationIds: [],
+                Summary: "ok",
+                Reflection: null,
+                ProposedPatchIds: []),
+            CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+        ex.Which.Detail.Should().Contain("host");
     }
 
     [Fact(DisplayName = "RecordDreamSession отвергает vendor, которого нет в dream_sources манифеста")]
@@ -46,6 +70,7 @@ public class RecordDreamSessionHandlerTests
         var act = async () => await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "totally-made-up-vendor",
+                Host: "macstudio.local",
                 DateFrom: null,
                 DateTo: null,
                 ProcessedConversationIds: [],
@@ -67,6 +92,7 @@ public class RecordDreamSessionHandlerTests
         var act = async () => await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "claude-code",
+                Host: "macstudio.local",
                 DateFrom: null,
                 DateTo: null,
                 ProcessedConversationIds: [],
@@ -87,6 +113,7 @@ public class RecordDreamSessionHandlerTests
         var act = async () => await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "claude-code",
+                Host: "macstudio.local",
                 DateFrom: Now.AddDays(2),
                 DateTo: Now,
                 ProcessedConversationIds: [],

@@ -8,6 +8,7 @@ namespace Throne.Application.Dreams;
 
 public sealed record RecordDreamSessionCommand(
     string Vendor,
+    string Host,
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     IReadOnlyList<string> ProcessedConversationIds,
@@ -51,6 +52,7 @@ public sealed class RecordDreamSessionHandler(
                 ownerUserId: currentUser.UserId,
                 createdAt: clock.GetUtcNow(),
                 vendor: command.Vendor,
+                host: command.Host,
                 dateFrom: command.DateFrom,
                 dateTo: command.DateTo,
                 processedConversationIds: command.ProcessedConversationIds ?? [],

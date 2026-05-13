@@ -31,6 +31,7 @@ namespace Throne.Domain.Dreams;
 public sealed class DreamSession
 {
     public const int MaxVendorLength = 64;
+    public const int MaxHostLength = 255;
     public const int MaxSummaryLength = 4000;
     public const int MaxReflectionLength = 4000;
     public const int MaxConversationIdLength = 512;
@@ -55,6 +56,7 @@ public sealed class DreamSession
         string ownerUserId,
         DateTimeOffset createdAt,
         string vendor,
+        string host,
         DateTimeOffset? dateFrom,
         DateTimeOffset? dateTo,
         IReadOnlyList<string> processedConversationIds,
@@ -62,14 +64,20 @@ public sealed class DreamSession
         string? reflection,
         IReadOnlyList<string> proposedPatchIds)
         => DreamSessionFactory.Create(new DreamSessionCreateInput(
-            id, ownerUserId, createdAt, vendor, dateFrom, dateTo,
+            id, ownerUserId, createdAt, vendor, host, dateFrom, dateTo,
             processedConversationIds, summary, reflection, proposedPatchIds));
 
+    /// <summary>
+    /// Materialise an existing record from persistence. <paramref name="host"/>
+    /// may be <c>null</c> for legacy sessions written before the host field
+    /// existed; new records must always carry a non-empty host.
+    /// </summary>
     public static DreamSession Restore(
         string id,
         string ownerUserId,
         DateTimeOffset createdAt,
         string vendor,
+        string? host,
         DateTimeOffset? dateFrom,
         DateTimeOffset? dateTo,
         IReadOnlyList<string> processedConversationIds,
@@ -77,7 +85,7 @@ public sealed class DreamSession
         string? reflection,
         IReadOnlyList<string> proposedPatchIds)
         => DreamSessionFactory.Restore(new DreamSessionCreateInput(
-            id, ownerUserId, createdAt, vendor, dateFrom, dateTo,
+            id, ownerUserId, createdAt, vendor, host, dateFrom, dateTo,
             processedConversationIds, summary, reflection, proposedPatchIds));
 }
 
@@ -87,9 +95,16 @@ public sealed record DreamSessionIdentity(
     string OwnerUserId,
     DateTimeOffset CreatedAt);
 
-/// <summary>Mutable-shape payload of a recorded <see cref="DreamSession"/>.</summary>
+/// <summary>
+/// Mutable-shape payload of a recorded <see cref="DreamSession"/>. <see cref="Host"/>
+/// is the agent-reported machine identifier (typically the OS hostname) the
+/// /dream pass ran on; it scopes the «what's already processed» frontier per
+/// machine so a user running dream from home and work doesn't merge state.
+/// May be <c>null</c> only for legacy records written before the field existed.
+/// </summary>
 public sealed record DreamSessionPayload(
     string Vendor,
+    string? Host,
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     IReadOnlyList<string> ProcessedConversationIds,
@@ -107,6 +122,7 @@ public sealed record DreamSessionCreateInput(
     string OwnerUserId,
     DateTimeOffset CreatedAt,
     string Vendor,
+    string? Host,
     DateTimeOffset? DateFrom,
     DateTimeOffset? DateTo,
     IReadOnlyList<string> ProcessedConversationIds,

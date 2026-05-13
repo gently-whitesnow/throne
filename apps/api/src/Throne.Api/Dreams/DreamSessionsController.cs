@@ -17,10 +17,10 @@ public sealed class DreamSessionsController(
     GetDreamSourcesHandler sourcesHandler) : DreamsControllerBase
 {
     public override async Task<ActionResult<DreamSessionPageDto>> ListDreamSessions(
-        string vendor = null!, int? limit = null, string cursor = null!)
+        string vendor = null!, string host = null!, int? limit = null, string cursor = null!)
     {
         var page = await listHandler.HandleAsync(
-            new ListDreamSessionsQuery(vendor, limit, cursor),
+            new ListDreamSessionsQuery(vendor, host, limit, cursor),
             HttpContext.RequestAborted);
         return Ok(DreamSessionDtoMapper.ToPageDto(page));
     }

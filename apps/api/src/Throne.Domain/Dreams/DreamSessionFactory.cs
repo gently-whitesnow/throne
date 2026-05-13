@@ -14,13 +14,14 @@ public static class DreamSessionFactory
             input.Id,
             input.OwnerUserId,
             input.Vendor,
+            input.Host,
             input.DateFrom,
             input.DateTo,
             input.ProcessedConversationIds,
             input.Summary,
             input.Reflection,
             input.ProposedPatchIds);
-        return Materialise(input, vendor: input.Vendor.Trim());
+        return Materialise(input, vendor: input.Vendor.Trim(), host: input.Host!.Trim());
     }
 
     public static DreamSession Restore(DreamSessionCreateInput input)
@@ -32,14 +33,16 @@ public static class DreamSessionFactory
         ArgumentNullException.ThrowIfNull(input.ProcessedConversationIds);
         ArgumentNullException.ThrowIfNull(input.ProposedPatchIds);
         ArgumentNullException.ThrowIfNull(input.Summary);
-        return Materialise(input, vendor: input.Vendor);
+        var host = string.IsNullOrWhiteSpace(input.Host) ? null : input.Host;
+        return Materialise(input, vendor: input.Vendor, host: host);
     }
 
-    private static DreamSession Materialise(DreamSessionCreateInput input, string vendor) =>
+    private static DreamSession Materialise(DreamSessionCreateInput input, string vendor, string? host) =>
         new(
             new DreamSessionIdentity(input.Id, input.OwnerUserId, input.CreatedAt),
             new DreamSessionPayload(
                 vendor,
+                host,
                 input.DateFrom,
                 input.DateTo,
                 [.. input.ProcessedConversationIds],

@@ -4,6 +4,7 @@ namespace Throne.Application.Dreams;
 
 public sealed record ListDreamSessionsQuery(
     string? Vendor,
+    string? Host,
     int? Limit,
     string? Cursor);
 
@@ -31,7 +32,7 @@ public sealed class ListDreamSessionsHandler(IDreamSessionRepository sessions)
         }
 
         return sessions.ListAsync(
-            new DreamSessionListFilter(NullIfEmpty(query.Vendor)),
+            new DreamSessionListFilter(NullIfEmpty(query.Vendor), NullIfEmpty(query.Host)),
             limit,
             query.Cursor,
             ct);

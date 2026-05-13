@@ -30,7 +30,7 @@ public interface IDreamSessionRepository
 /// Optional filter set for <see cref="IDreamSessionRepository.ListAsync"/>.
 /// Null fields mean «do not filter» on that dimension.
 /// </summary>
-public sealed record DreamSessionListFilter(string? Vendor);
+public sealed record DreamSessionListFilter(string? Vendor, string? Host = null);
 
 public sealed record DreamSessionPage(
     IReadOnlyList<DreamSession> Items,

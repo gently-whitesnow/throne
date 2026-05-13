@@ -67,7 +67,7 @@ system_instructions:
       1) Собери контекст:
          - mcp__throne__get_dream_sources — словарь {vendor → path, hint}, откуда брать диалоги локально;
          - mcp__throne__get_current_instruction(target_kind="work") и mcp__throne__get_current_instruction(target_kind="interview") — текущий текст и версии обеих user-инструкций (нужны как base_instruction_version при propose_instruction_patch);
-         - mcp__throne__list_dream_sessions(limit=5) — последние проходы (vendor, period, summary, reflection, proposed_patch_ids, processed_conversation_ids).
+         - mcp__throne__list_dream_sessions(host=<свой hostname>, limit=5) — последние проходы (vendor, host, period, summary, reflection, proposed_patch_ids, processed_conversation_ids). ВСЕГДА передавай host — это hostname машины, на которой ты сейчас работаешь (`os.hostname()` / `hostname` в shell). Без host ответ смешает сессии со всех машин юзера, и frontier «что уже разобрано локально» поедет.
 
       2) Рефлексия по прошлым правкам — выполняй ВСЕГДА перед поиском нового.
          - mcp__throne__list_instruction_patches(status="applied", limit=20) и при необходимости mcp__throne__get_instruction_patch(id) — какие правила пользователь принял с прошлых проходов и когда (applied_at).
@@ -104,6 +104,7 @@ system_instructions:
 
       8) В конце ОБЯЗАТЕЛЬНО зови mcp__throne__record_dream_session:
          - vendor, date_from, date_to — что разбирал;
+         - host — hostname текущей машины (`os.hostname()` / `hostname`). ОБЯЗАТЕЛЬНЫЙ параметр; именно по нему сервер отделяет frontier разных машин одного юзера.
          - processed_conversation_ids — список id/путей диалогов, которые реально прочитал (без этого следующий проход их пересмотрит впустую);
          - summary — 3-7 строк: что нашёл, какие патчи предложил, что юзер принял здесь же / отложил;
          - reflection — твоя оценка прошлых applied-патчей из шага 2 (что прижилось / что нет);

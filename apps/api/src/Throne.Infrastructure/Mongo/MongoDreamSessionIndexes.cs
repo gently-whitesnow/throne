@@ -7,7 +7,8 @@ namespace Throne.Infrastructure.Mongo;
 /// Indexes for the <c>dream_sessions</c> collection. Multi-tenancy filter
 /// (owner_user_id) is the primary key for every read; (owner, created_at desc)
 /// backs paginated listings; (owner, vendor, created_at desc) backs the vendor
-/// filter on the MCP list / HTTP list paths.
+/// filter; (owner, host, created_at desc) backs the per-machine frontier filter
+/// used by the dream-mode agent on the MCP list / HTTP list paths.
 /// </summary>
 internal static class MongoDreamSessionIndexes
 {
@@ -30,6 +31,12 @@ internal static class MongoDreamSessionIndexes
                         .Ascending(x => x.Vendor)
                         .Descending(x => x.CreatedAt),
                     new CreateIndexOptions { Name = "owner_vendor_created" }),
+                new CreateIndexModel<DreamSessionDocument>(
+                    Builders<DreamSessionDocument>.IndexKeys
+                        .Ascending(x => x.OwnerUserId)
+                        .Ascending(x => x.Host)
+                        .Descending(x => x.CreatedAt),
+                    new CreateIndexOptions { Name = "owner_host_created" }),
             ],
             cancellationToken);
     }

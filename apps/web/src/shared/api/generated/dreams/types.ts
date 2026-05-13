@@ -65,6 +65,8 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             vendor: string;
+            /** @description Hostname of the machine the /dream pass ran on. Always set on new records; may be omitted only for legacy sessions written before the field existed. */
+            host?: string;
             /**
              * Format: date-time
              * @description Lower bound of the analysed period (inclusive); null when the agent took the full history.
@@ -120,6 +122,7 @@ export interface operations {
         parameters: {
             query?: {
                 vendor?: string;
+                host?: string;
                 limit?: number;
                 cursor?: string;
             };

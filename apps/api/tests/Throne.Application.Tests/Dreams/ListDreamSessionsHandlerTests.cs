@@ -23,12 +23,36 @@ public class ListDreamSessionsHandlerTests
 
         var handler = new ListDreamSessionsHandler(repo);
         await handler.HandleAsync(
-            new ListDreamSessionsQuery(Vendor: "claude-code", Limit: 10_000, Cursor: null),
+            new ListDreamSessionsQuery(Vendor: "claude-code", Host: null, Limit: 10_000, Cursor: null),
             CancellationToken.None);
 
         captured.Should().NotBeNull();
         captured!.Vendor.Should().Be("claude-code");
         capturedLimit.Should().Be(ListDreamSessionsHandler.MaxLimit);
+    }
+
+    [Fact(DisplayName = "ListDreamSessions прокидывает host-фильтр и нормализует пустой host в null")]
+    public async Task List_passes_and_normalises_host_filter()
+    {
+        var repo = Substitute.For<IDreamSessionRepository>();
+        var captured = new List<DreamSessionListFilter>();
+        repo.ListAsync(
+                Arg.Do<DreamSessionListFilter>(f => captured.Add(f)),
+                Arg.Any<int>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(new DreamSessionPage(Array.Empty<DreamSession>(), null)));
+
+        var handler = new ListDreamSessionsHandler(repo);
+        await handler.HandleAsync(
+            new ListDreamSessionsQuery(Vendor: null, Host: "macstudio.local", Limit: null, Cursor: null),
+            CancellationToken.None);
+        await handler.HandleAsync(
+            new ListDreamSessionsQuery(Vendor: null, Host: "  ", Limit: null, Cursor: null),
+            CancellationToken.None);
+
+        captured[0].Host.Should().Be("macstudio.local");
+        captured[1].Host.Should().BeNull();
     }
 
     [Fact(DisplayName = "ListDreamSessions поднимает limit < 1 до 1")]
@@ -45,7 +69,7 @@ public class ListDreamSessionsHandlerTests
 
         var handler = new ListDreamSessionsHandler(repo);
         await handler.HandleAsync(
-            new ListDreamSessionsQuery(Vendor: null, Limit: 0, Cursor: null),
+            new ListDreamSessionsQuery(Vendor: null, Host: null, Limit: 0, Cursor: null),
             CancellationToken.None);
 
         capturedLimit.Should().Be(1);
@@ -65,7 +89,7 @@ public class ListDreamSessionsHandlerTests
 
         var handler = new ListDreamSessionsHandler(repo);
         await handler.HandleAsync(
-            new ListDreamSessionsQuery(Vendor: "   ", Limit: null, Cursor: null),
+            new ListDreamSessionsQuery(Vendor: "   ", Host: null, Limit: null, Cursor: null),
             CancellationToken.None);
 
         captured!.Vendor.Should().BeNull();
