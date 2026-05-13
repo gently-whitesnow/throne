@@ -1,5 +1,5 @@
 import { Pin, PinOff } from "lucide-react";
-import { useEffect, useState, type DragEvent } from "react";
+import { useState, type DragEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { compareSortKeys, type IntentListItem } from "@/entities/intent";
@@ -51,38 +51,26 @@ export function PinnedSection({
 
   const canAcceptExternal = currentContextTagId !== null;
 
-  // Detect intent drags globally: dataTransfer payload is unreadable during
-  // dragover for security, so we cannot decide "is this an intent drag?" from
-  // the section's own dragover handler — we'd never know to render the
-  // drop-zone in the first place if the section was hidden. A document-level
-  // dragstart listener flips us into "external" the moment any intent row
-  // becomes the drag source.
-  useEffect(() => {
-    const onDragStart = (e: globalThis.DragEvent) => {
-      if (e.dataTransfer?.types.includes(INTENT_DND_MIME)) {
-        setDragMode((prev) =>
-          prev.kind === "none" ? { kind: "external" } : prev
-        );
-      }
-    };
-    const onDragEnd = () => {
-      setDragMode({ kind: "none" });
-      setDropTarget(null);
-    };
-    document.addEventListener("dragstart", onDragStart);
-    document.addEventListener("dragend", onDragEnd);
-    document.addEventListener("drop", onDragEnd);
-    return () => {
-      document.removeEventListener("dragstart", onDragStart);
-      document.removeEventListener("dragend", onDragEnd);
-      document.removeEventListener("drop", onDragEnd);
-    };
-  }, []);
-
+  // The section is always rendered in tag contexts (even with no pins) so it
+  // can serve as a drop target without needing global drag tracking.
+  // `dragover` toggling local "external" state — payload isn't readable here
+  // (security), but `dataTransfer.types` is, which is enough to recognise
+  // intent drags. `movedId` is read at drop time, where getData works.
   const handleSectionDragOver = (e: DragEvent<HTMLElement>) => {
     if (!e.dataTransfer.types.includes(INTENT_DND_MIME)) return;
     if (!canAcceptExternal && dragMode.kind !== "internal") return;
     e.preventDefault();
+    if (dragMode.kind === "none") {
+      setDragMode({ kind: "external" });
+    }
+  };
+
+  const handleSectionDragLeave = (e: DragEvent<HTMLElement>) => {
+    // Only clear on real exit, not when the pointer crosses a child boundary.
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    if (dragMode.kind === "external") {
+      setDragMode({ kind: "none" });
+    }
   };
 
   const handleSectionDrop = async (e: DragEvent<HTMLElement>) => {
@@ -173,9 +161,6 @@ export function PinnedSection({
   };
 
   const isDragging = dragMode.kind !== "none";
-  const showSection = pinnedIntents.length > 0 || isDragging;
-  if (!showSection) return null;
-
   const ordered = [...pinnedIntents].sort((a, b) =>
     compareSortKeys(a.sort_key, b.sort_key)
   );
@@ -187,6 +172,7 @@ export function PinnedSection({
     <section
       aria-label="Запиненные intents"
       onDragOver={handleSectionDragOver}
+      onDragLeave={handleSectionDragLeave}
       onDrop={(e) => {
         void handleSectionDrop(e);
       }}
@@ -272,16 +258,18 @@ export function PinnedSection({
           );
         })}
       </ul>
-      {dragMode.kind === "external" ? (
+      {ordered.length === 0 || dragMode.kind === "external" ? (
         <div
           className={[
             "mt-1 rounded border-2 border-dashed px-2 py-2 text-center text-[11px]",
-            canAcceptExternal
+            dragMode.kind === "external" && canAcceptExternal
               ? "border-primary/50 bg-primary/5 text-primary"
-              : "border-base-content/20 bg-base-300/20 text-base-content/50"
+              : "border-base-content/15 bg-base-200/30 text-base-content/50"
           ].join(" ")}
         >
-          {dropHint}
+          {ordered.length === 0 && dragMode.kind !== "external"
+            ? "Перетащите карточку сюда, чтобы запинить"
+            : dropHint}
         </div>
       ) : null}
     </section>
