@@ -1,4 +1,4 @@
-import { AlertTriangle, Link2 } from "lucide-react";
+import { AlertTriangle, Link2, Plus, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -35,6 +35,7 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
   const [reloadKey, setReloadKey] = useState(0);
   const [sectionDragOver, setSectionDragOver] = useState(false);
   const [pickerPeerId, setPickerPeerId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -203,8 +204,8 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
 
       {grouped.length === 0 ? (
         <p className="m-0 text-[12px] text-base-content/50">
-          Связей пока нет. Перетащите карточку с доски или воспользуйтесь формой
-          ниже.
+          Связей пока нет. Перетащите карточку с доски или нажмите «Новая
+          связь».
         </p>
       ) : (
         <div className="flex flex-col gap-3">
@@ -223,12 +224,42 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
         </div>
       )}
 
-      <div className="mt-1 rounded-md border border-base-300 bg-base-100 p-2.5">
-        <h3 className="m-0 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-base-content/55">
-          Новая связь
-        </h3>
-        <AddLinkForm intentId={intentId} />
-      </div>
+      {addOpen ? (
+        <div className="mt-1 rounded-md border border-base-300 bg-base-100 p-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <h3 className="m-0 text-[11px] font-semibold uppercase tracking-wider text-base-content/55">
+              Новая связь
+            </h3>
+            <button
+              type="button"
+              onClick={() => {
+                setAddOpen(false);
+              }}
+              aria-label="Свернуть форму"
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-base-content/40 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1"
+            >
+              <X size={13} aria-hidden />
+            </button>
+          </div>
+          <AddLinkForm
+            intentId={intentId}
+            autoFocus
+            onCreated={() => {
+              setAddOpen(false);
+            }}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setAddOpen(true);
+          }}
+          className="mt-1 inline-flex w-fit items-center gap-1.5 self-start rounded-md border border-dashed border-base-300 px-2.5 py-1 text-[12px] text-base-content/60 transition-colors hover:border-primary/40 hover:bg-base-200 hover:text-base-content focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-1"
+        >
+          <Plus size={13} aria-hidden /> Новая связь
+        </button>
+      )}
 
       <Popover
         open={pickerPeerId !== null}
