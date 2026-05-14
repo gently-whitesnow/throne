@@ -2,35 +2,88 @@
 version: alpha
 name: Throne
 description: Spec-driven AI engineering control plane for PRD, TECHSPEC, intents, instructions, runs, and review workflows.
+# Canonical color space: OKLCH. Consumers of DESIGN.md generate runtime CSS
+# from these tokens — do not transcribe to hex by hand, drift will follow.
 colors:
-  primary: "#3563F6"
-  primary-strong: "#274DC6"
-  secondary: "#5C49C7"
-  accent: "#1F9D88"
-  accent-strong: "#167565"
-  neutral: "#474B57"
-  neutral-soft: "#F6F7FB"
-  canvas: "#FFFFFF"
-  surface: "#FBFCFE"
-  border: "#E2E6EC"
-  text: "#202531"
-  text-muted: "#4C5567"
-  text-subtle: "#7B8394"
-  info: "#3C78F2"
-  info-soft: "#E8F0FF"
-  success: "#1F8F5F"
-  success-soft: "#E7F5ED"
-  warning: "#A87900"
-  warning-soft: "#FFF3D6"
-  error: "#CF4D4D"
-  error-soft: "#FDEAEA"
+  # Brand action / interactive
+  primary: "oklch(0.5 0.2 255)"
+  primary-content: "oklch(1 0 0)"
+  primary-strong: "oklch(0.42 0.2 255)"
+  secondary: "oklch(0.48 0.14 280)"
+  secondary-content: "oklch(1 0 0)"
+  accent: "oklch(0.56 0.17 168)"
+  accent-content: "oklch(1 0 0)"
+  accent-strong: "oklch(0.48 0.13 168)"
+  neutral: "oklch(0.3 0.006 260)"
+  neutral-content: "oklch(0.96 0 0)"
+  # Surface scale (DaisyUI base-*)
+  base-100: "oklch(1 0 0)"
+  base-200: "oklch(0.97 0.005 250)"
+  base-300: "oklch(0.93 0.005 250)"
+  base-content: "oklch(0.22 0.005 250)"
+  # Semantic surface aliases (landing / public)
+  canvas: "oklch(1 0 0)"
+  surface: "oklch(0.99 0.003 250)"
+  neutral-soft: "oklch(0.97 0.005 250)"
+  border: "oklch(0.93 0.005 250)"
+  text: "oklch(0.22 0.005 250)"
+  text-muted: "oklch(0.39 0.02 257)"
+  text-subtle: "oklch(0.59 0.02 257)"
+  # State
+  info: "oklch(0.58 0.2 240)"
+  info-content: "oklch(1 0 0)"
+  info-soft: "oklch(0.95 0.04 240)"
+  success: "oklch(0.58 0.2 155)"
+  success-content: "oklch(1 0 0)"
+  success-soft: "oklch(0.95 0.05 155)"
+  warning: "oklch(0.68 0.2 70)"
+  warning-content: "oklch(0.15 0 0)"
+  warning-soft: "oklch(0.95 0.06 80)"
+  error: "oklch(0.55 0.24 25)"
+  error-content: "oklch(1 0 0)"
+  error-soft: "oklch(0.95 0.05 25)"
+dark:
+  # throne-dark theme — overrides for [data-theme="throne-dark"]
+  primary: "oklch(0.68 0.17 250)"
+  primary-content: "oklch(0.12 0 0)"
+  primary-strong: "oklch(0.55 0.18 250)"
+  secondary: "oklch(0.62 0.13 280)"
+  secondary-content: "oklch(1 0 0)"
+  accent: "oklch(0.74 0.16 168)"
+  accent-content: "oklch(0.12 0 0)"
+  accent-strong: "oklch(0.6 0.14 168)"
+  neutral: "oklch(0.22 0.005 250)"
+  neutral-content: "oklch(0.85 0 0)"
+  base-100: "oklch(0.17 0.005 260)"
+  base-200: "oklch(0.2 0.005 260)"
+  base-300: "oklch(0.27 0.005 260)"
+  base-content: "oklch(0.88 0.005 250)"
+  canvas: "oklch(0.17 0.005 260)"
+  surface: "oklch(0.19 0.005 260)"
+  neutral-soft: "oklch(0.2 0.005 260)"
+  border: "oklch(0.27 0.005 260)"
+  text: "oklch(0.88 0.005 250)"
+  text-muted: "oklch(0.7 0.02 257)"
+  text-subtle: "oklch(0.55 0.02 257)"
+  info: "oklch(0.72 0.16 240)"
+  info-content: "oklch(0.12 0 0)"
+  info-soft: "oklch(0.25 0.06 240)"
+  success: "oklch(0.74 0.18 155)"
+  success-content: "oklch(0.12 0 0)"
+  success-soft: "oklch(0.25 0.07 155)"
+  warning: "oklch(0.78 0.17 70)"
+  warning-content: "oklch(0.12 0 0)"
+  warning-soft: "oklch(0.28 0.08 80)"
+  error: "oklch(0.68 0.2 25)"
+  error-content: "oklch(1 0 0)"
+  error-soft: "oklch(0.28 0.07 25)"
 surface-scale:
   base-100: "{colors.canvas}"
   base-200: "{colors.neutral-soft}"
   base-300: "{colors.border}"
   base-content: "{colors.text}"
 themes:
-  light: default
+  light: throne-light
   dark: throne-dark
 typography:
   page-title:
@@ -130,7 +183,7 @@ Throne is not a marketing site and not a playful productivity app. It is a comma
 
 The interface should feel precise and intentional. Normal state stays quiet; only actionable changes surface stronger emphasis. The system is light-first; a `throne-dark` theme is shipped and mirrors every token in the same semantic shape.
 
-The public landing in `throne-infra/site` reuses the same tokens, fonts, surface scale, and component shapes as `apps/web`. The site presentation is light-only and a touch more spacious, but the visual language is identical.
+The frontmatter above is the source of truth. `apps/web` and any other consumer regenerate their runtime CSS from these tokens (see `scripts/design/sync_design_tokens.py` for the in-repo generator). Editing token values by hand in CSS files will drift the theme away from this file — don't do it; edit DESIGN.md and re-run the generator.
 
 ## Surface scale
 
@@ -145,7 +198,7 @@ Active emphasis is rendered as a 10 % primary wash (`bg-primary/10`) with `text-
 
 ## Colors
 
-The palette is semantic before decorative.
+The palette is semantic before decorative. Canonical color space is OKLCH so that lightness/chroma can be tuned without breaking hue identity across themes.
 
 - `primary` and `primary-strong` are reserved for the main action path, active navigation, focused controls, and decision-forward UI.
 - `accent` is for relations, enrichment, and supporting structure rather than primary calls to action.
@@ -157,9 +210,9 @@ Avoid pastel hero gradients, candy-colored surfaces, or color usage that looks i
 
 ## Typography
 
-Use `Mona Sans` (variable, latin + latin-ext) as the default UI family and `Monaspace Neon` for code, diffs, IDs, and markdown-like machine text. Both ship as `@fontsource(-variable)` packages in `apps/web` and as the matching `@fontsource` imports in `throne-infra/site` — the public landing must use the same two families, not a generic monospace fallback.
+Use `Mona Sans` (variable, latin + latin-ext) as the default UI family and `Monaspace Neon` for code, diffs, IDs, and markdown-like machine text. Both ship as `@fontsource(-variable)` packages in `apps/web`; downstream consumers of DESIGN.md (public landing, etc.) must use the same two families, not a generic monospace fallback.
 
-- Body copy is compact by default: 14px equivalent inside `apps/web`. The public landing scales body up to 16px, but every heading still references the same `Mona Sans` family at restrained weights (≤ 600).
+- Body copy is compact by default: 14px equivalent inside `apps/web`. Public landings may scale body up to 16px, but every heading still references the same `Mona Sans` family at restrained weights (≤ 600).
 - Meta text can drop to 12px, but only for timestamps, IDs, and secondary annotations.
 - In-app headings should stay restrained. `page-title` is the maximum scale for application chrome.
 - Monospace text should feel editorial and crisp, not terminal-heavy.
