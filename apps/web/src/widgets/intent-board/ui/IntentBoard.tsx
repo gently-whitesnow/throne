@@ -155,14 +155,18 @@ export function IntentBoard() {
   );
   const linksSummary = useLinksSummary(visibleIds);
   const hasAnyLinks = useMemo(() => {
-    for (const entry of linksSummary.values()) {
-      if (
-        entry.blocked_by.length > 0 ||
-        entry.derived_from.length > 0 ||
-        entry.source_of.length > 0 ||
-        entry.relates.length > 0
-      ) {
-        return true;
+    // Рельса рисует ребро только если оба конца — видимые строки. Связь к
+    // невидимому интенту overlay пропускает, поэтому она не должна резервировать
+    // пустое место справа.
+    for (const [ownerId, entry] of linksSummary) {
+      for (const peer of entry.blocked_by) {
+        if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
+      }
+      for (const peer of entry.derived_from) {
+        if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
+      }
+      for (const peer of entry.relates) {
+        if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
       }
     }
     return false;
