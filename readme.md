@@ -16,6 +16,99 @@ Throne — память и постановка задач для человек
 - **Цикл улучшения:** агент по запросу разбирает локальные диалоги → присылает патчи в Throne → человек применяет их → следующий результат ближе к ожиданиям, чем предыдущий.
 - **Цель:** усилить человека. Оцифровка опыта — побочный эффект того, что система помнит предпочтения и решения.
 
+## Запуск
+
+Throne работает локально. Агент общается с ним через тонкий STDIO-прокси — без облака и без авторизации. Три шага до первого Intent.
+
+### 1. Поставить STDIO-прокси
+
+`Throne.Mcp.Stdio` — это [global .NET tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools) в NuGet (`PackageId=Throne.Mcp.Stdio`, команда `throne-mcp-stdio`), нужен .NET 10 SDK. Это единственный поддерживаемый способ подключения внешних MCP-клиентов (Claude Desktop/Code, Cursor, Codex) — пути до локального чекаута и пред-собранные бинари в Releases намеренно не используются (см. [ADR-0009 § Distribution](specs/ADR/0009-cross-process-realtime-fanout.md#distribution)).
+
+**macOS / Linux**
+
+```bash
+dotnet tool install -g Throne.Mcp.Stdio
+
+# GUI-приложения (Claude.app, Cursor) не подхватывают ~/.dotnet/tools.
+# Симлинк в системный PATH делает throne-mcp-stdio видимым везде:
+sudo ln -sf "$HOME/.dotnet/tools/throne-mcp-stdio" /usr/local/bin/throne-mcp-stdio
+```
+
+**Windows**
+
+```bat
+dotnet tool install -g Throne.Mcp.Stdio
+
+REM %USERPROFILE%\.dotnet\tools уже в PATH.
+REM Открой новое окно терминала/IDE, чтобы PATH перечитался.
+```
+
+Обновление — `dotnet tool update -g Throne.Mcp.Stdio`. Публикация в NuGet — workflow [.github/workflows/publish-mcp-stdio.yml](.github/workflows/publish-mcp-stdio.yml) по тегу `v*`.
+
+### 2. Поднять Throne локально
+
+API + UI + Mongo одной командой. UI: `http://localhost:8080`, API: `http://localhost:5008`.
+
+```bash
+git clone https://github.com/gently-whitesnow/throne
+cd throne
+docker compose --profile full up -d
+```
+
+Только MongoDB (replica set `rs0`, порт `27017`):
+
+```bash
+docker compose --profile db up -d
+```
+
+### 3. Прописать сервер в агенте
+
+Команда везде одна — `throne-mcp-stdio`. Откройте свой клиент и вставьте сниппет в указанный конфиг.
+
+**Claude Desktop** — `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) · `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+
+```json
+{
+  "mcpServers": {
+    "throne": {
+      "command": "throne-mcp-stdio"
+    }
+  }
+}
+```
+
+**Claude Code** — через CLI: `claude mcp add throne -s user -- throne-mcp-stdio` · вручную: `~/.claude.json` (`mcpServers`)
+
+```json
+{
+  "mcpServers": {
+    "throne": {
+      "type": "stdio",
+      "command": "throne-mcp-stdio"
+    }
+  }
+}
+```
+
+**Cursor** — `~/.cursor/mcp.json` (macOS/Linux) · `%USERPROFILE%\.cursor\mcp.json` (Windows)
+
+```json
+{
+  "mcpServers": {
+    "throne": {
+      "command": "throne-mcp-stdio"
+    }
+  }
+}
+```
+
+**Codex** — `~/.codex/config.toml` (macOS/Linux) · `%USERPROFILE%\.codex\config.toml` (Windows)
+
+```toml
+[mcp_servers.throne]
+command = "throne-mcp-stdio"
+```
+
 ## Структура
 
 ```
@@ -62,50 +155,6 @@ Api → Infrastructure (только в DI)
 Frontend в `apps/web` строится по FSD 2.0. Структуру и imports защищает Steiger.
 
 См. [ADR-0005](specs/ADR/0005-frontend-foundation-fsd-quality-harness.md).
-
-## Запуск
-
-### Docker Compose
-
-Только MongoDB (replica set `rs0`, порт `27017`):
-
-```bash
-docker compose --profile db up -d
-```
-
-База + API (`http://localhost:5008`) + веб (`http://localhost:8080`):
-
-```bash
-docker compose --profile full up --build
-```
-
-Локально без Docker — см. ниже.
-
-```bash
-cd apps/api
-dotnet restore
-dotnet build
-dotnet test
-```
-
-```bash
-cd apps/web
-pnpm install
-pnpm dev
-pnpm build
-```
-
-### STDIO-прокси для MCP-клиентов
-
-`Throne.Mcp.Stdio` распространяется как [global .NET tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools) в NuGet (`PackageId=Throne.Mcp.Stdio`, команда `throne-mcp-stdio`). Это единственный поддерживаемый способ подключения внешних MCP-клиентов (Claude Desktop/Code, Cursor, Codex) — пути до локального чекаута и пред-собранные бинари в Releases намеренно не используются (см. [ADR-0009 § Distribution](specs/ADR/0009-cross-process-realtime-fanout.md#distribution)).
-
-```bash
-dotnet tool install -g Throne.Mcp.Stdio
-# обновление
-dotnet tool update -g Throne.Mcp.Stdio
-```
-
-Публикация — workflow [.github/workflows/publish-mcp-stdio.yml](.github/workflows/publish-mcp-stdio.yml) по тегу `v*`.
 
 ## Quality gates
 
