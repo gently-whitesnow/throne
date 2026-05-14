@@ -8,58 +8,15 @@
     throne-dark;
 }
 
+/* Theme tokens — generated from DESIGN.md.
+ * Edit DESIGN.md, then: python scripts/design/sync_design_tokens.py
+ */
+@import "./tokens.generated.css";
+
 @theme {
   --font-sans: "Mona Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono:
     "Monaspace Neon", ui-monospace, "Fira Code", "Cascadia Code", monospace;
-}
-
-/* ── Throne Light (DaisyUI tokens, mapped from DESIGN.md) ── */
-[data-theme="throne-light"] {
-  --color-primary: oklch(0.5 0.2 255);
-  --color-primary-content: oklch(1 0 0);
-  --color-secondary: oklch(0.48 0.14 280);
-  --color-secondary-content: oklch(1 0 0);
-  --color-accent: oklch(0.56 0.17 168);
-  --color-accent-content: oklch(1 0 0);
-  --color-neutral: oklch(0.3 0.006 260);
-  --color-neutral-content: oklch(0.96 0 0);
-  --color-base-100: oklch(1 0 0);
-  --color-base-200: oklch(0.97 0.005 250);
-  --color-base-300: oklch(0.93 0.005 250);
-  --color-base-content: oklch(0.22 0.005 250);
-  --color-info: oklch(0.58 0.2 240);
-  --color-info-content: oklch(1 0 0);
-  --color-success: oklch(0.58 0.2 155);
-  --color-success-content: oklch(1 0 0);
-  --color-warning: oklch(0.68 0.2 70);
-  --color-warning-content: oklch(0.15 0 0);
-  --color-error: oklch(0.55 0.24 25);
-  --color-error-content: oklch(1 0 0);
-}
-
-/* ── Throne Dark ── */
-[data-theme="throne-dark"] {
-  --color-primary: oklch(0.68 0.17 250);
-  --color-primary-content: oklch(0.12 0 0);
-  --color-secondary: oklch(0.62 0.13 280);
-  --color-secondary-content: oklch(1 0 0);
-  --color-accent: oklch(0.74 0.16 168);
-  --color-accent-content: oklch(0.12 0 0);
-  --color-neutral: oklch(0.22 0.005 250);
-  --color-neutral-content: oklch(0.85 0 0);
-  --color-base-100: oklch(0.17 0.005 260);
-  --color-base-200: oklch(0.2 0.005 260);
-  --color-base-300: oklch(0.27 0.005 260);
-  --color-base-content: oklch(0.88 0.005 250);
-  --color-info: oklch(0.72 0.16 240);
-  --color-info-content: oklch(0.12 0 0);
-  --color-success: oklch(0.74 0.18 155);
-  --color-success-content: oklch(0.12 0 0);
-  --color-warning: oklch(0.78 0.17 70);
-  --color-warning-content: oklch(0.12 0 0);
-  --color-error: oklch(0.68 0.2 25);
-  --color-error-content: oklch(1 0 0);
 }
 
 /* Toast fade-in */
