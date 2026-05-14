@@ -154,6 +154,19 @@ export function IntentBoard() {
     [visibleItems]
   );
   const linksSummary = useLinksSummary(visibleIds);
+  const hasAnyLinks = useMemo(() => {
+    for (const entry of linksSummary.values()) {
+      if (
+        entry.blocked_by.length > 0 ||
+        entry.derived_from.length > 0 ||
+        entry.source_of.length > 0 ||
+        entry.relates.length > 0
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }, [linksSummary]);
   // Bumps whenever the visible-id sequence changes; drives the overlay's
   // re-measurement without subscribing to scroll/resize events.
   const layoutSignature = useMemo(() => visibleIds.join("|"), [visibleIds]);
@@ -307,7 +320,11 @@ export function IntentBoard() {
         )}
         {state.kind === "ready" && (
           <>
-            <div style={{ paddingRight: LINKS_RAIL_WIDTH }}>
+            <div
+              style={
+                hasAnyLinks ? { paddingRight: LINKS_RAIL_WIDTH } : undefined
+              }
+            >
               <EntityList
                 items={rows}
                 emptyMessage={emptyMessage(context, state.items.length)}
@@ -316,14 +333,16 @@ export function IntentBoard() {
                 rowRef={handleRowRef}
               />
             </div>
-            <IntentLinksOverlay
-              hoveredId={hoveredId}
-              summary={linksSummary}
-              rowRefs={rowRefs.current}
-              containerRef={scrollRef}
-              railWidth={LINKS_RAIL_WIDTH}
-              layoutSignature={layoutSignature}
-            />
+            {hasAnyLinks && (
+              <IntentLinksOverlay
+                hoveredId={hoveredId}
+                summary={linksSummary}
+                rowRefs={rowRefs.current}
+                containerRef={scrollRef}
+                railWidth={LINKS_RAIL_WIDTH}
+                layoutSignature={layoutSignature}
+              />
+            )}
           </>
         )}
       </div>
