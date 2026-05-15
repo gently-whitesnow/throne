@@ -319,6 +319,11 @@
     },
     {
       "kind": "editorconfig",
+      "location": "tests/Throne.Application.Tests/InstructionPatches/ProposeInstructionPatchHandlerTests.cs",
+      "rule": "CA1502"
+    },
+    {
+      "kind": "editorconfig",
       "location": "tests/Throne.Application.Tests/Intents/CreateIntentHandlerTests.cs",
       "rule": "CA1506"
     },
