@@ -90,6 +90,37 @@ public class ProposeInstructionPatchHandlerTests
         await patches.Received(1).CreateAsync(Arg.Any<InstructionPatch>(), null, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Propose с base_instruction_version=0 разрешён, когда у пользователя ещё нет user-инструкции (первичный патч)")]
+    public async Task Propose_allows_base_zero_when_instruction_missing()
+    {
+        var patches = Substitute.For<IInstructionPatchRepository>();
+        patches.CreateAsync(Arg.Any<InstructionPatch>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(new CreateInstructionPatchOutcome(call.Arg<InstructionPatch>())));
+        var handler = NewHandlerWithoutInstruction(patches);
+
+        var result = await handler.HandleAsync(
+            NewCommand(idempotencyKey: null, baseInstructionVersion: 0),
+            CancellationToken.None);
+
+        result.BaseInstructionVersion.Should().Be(0);
+        await patches.Received(1).CreateAsync(Arg.Any<InstructionPatch>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Propose с base_instruction_version=3 на отсутствующей инструкции — 409 needs_rebase (текущая=0)")]
+    public async Task Propose_rejects_non_zero_base_when_instruction_missing()
+    {
+        var patches = Substitute.For<IInstructionPatchRepository>();
+        var handler = NewHandlerWithoutInstruction(patches);
+
+        var act = async () => await handler.HandleAsync(
+            NewCommand(idempotencyKey: null, baseInstructionVersion: 3),
+            CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.InstructionPatchNeedsRebase);
+        ex.Which.Extensions["current_instruction_version"].Should().Be(0);
+    }
+
     [Fact(DisplayName = "CreateInstructionPatchOutcome IsExisting=true не эмитит InstructionPatchProposed")]
     public void Outcome_existing_emits_no_events()
     {
@@ -139,6 +170,20 @@ public class ProposeInstructionPatchHandlerTests
             updatedAt: Now);
         instructions.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Instruction>>(new[] { target }));
+
+        return new ProposeInstructionPatchHandler(
+            patches,
+            instructions,
+            new PassthroughUnitOfWork(),
+            new TestCurrentUserAccessor(),
+            new FakeTimeProvider(Now));
+    }
+
+    private static ProposeInstructionPatchHandler NewHandlerWithoutInstruction(IInstructionPatchRepository patches)
+    {
+        var instructions = Substitute.For<IInstructionRepository>();
+        instructions.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<Instruction>>([]));
 
         return new ProposeInstructionPatchHandler(
             patches,

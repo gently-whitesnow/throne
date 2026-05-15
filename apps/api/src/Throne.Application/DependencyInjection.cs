@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddSingleton<ListInstructionsHandler>();
         services.AddSingleton<GetInstructionHandler>();
         services.AddSingleton<ReplaceInstructionTextHandler>();
+        services.AddSingleton<CreateInstructionHandler>();
         services.AddSingleton<ListInstructionVersionsHandler>();
         services.AddSingleton<PersonalAccessTokenSecretFactory>();
         services.AddSingleton<IPersonalAccessTokenResolver, PersonalAccessTokenResolver>();

@@ -21,4 +21,14 @@ internal static class InstructionsErrorMapper
                 new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
             _ => throw ex,
         };
+
+    public static ActionResult<InstructionDetailDto> MapCreate(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.InstructionAlreadyExists =>
+                new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Instruction already exists", ex)),
+            ErrorCodes.ValidationFailed =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw ex,
+        };
 }

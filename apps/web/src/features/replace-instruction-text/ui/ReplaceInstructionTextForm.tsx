@@ -20,30 +20,53 @@ export function ReplaceInstructionTextForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isInitialCreate = instruction.current_version === 0;
+
   const submit = async () => {
     if (busy) return;
-    const delta = computeMinimalTextDelta(instruction.text, draft);
-    if (delta === null) {
-      onCancel();
+    if (!isInitialCreate) {
+      const delta = computeMinimalTextDelta(instruction.text, draft);
+      if (delta === null) {
+        onCancel();
+        return;
+      }
+      setBusy(true);
+      setError(null);
+      try {
+        const next = await httpPost<InstructionDetail>(
+          instructionsEndpoints.replaceInstructionText(instruction.id),
+          {
+            expected_version: instruction.current_version,
+            old_text: delta.oldText,
+            new_text: delta.newText
+          }
+        );
+        onSaved(next);
+      } catch (err: unknown) {
+        if (err instanceof HttpError) {
+          setError(formatReplaceError(err));
+        } else {
+          setError("Не удалось сохранить.");
+        }
+      } finally {
+        setBusy(false);
+      }
       return;
     }
+
     setBusy(true);
     setError(null);
     try {
       const next = await httpPost<InstructionDetail>(
-        instructionsEndpoints.replaceInstructionText(instruction.id),
-        {
-          expected_version: instruction.current_version,
-          old_text: delta.oldText,
-          new_text: delta.newText
-        }
+        instructionsEndpoints.createInstruction(),
+        { kind: instruction.kind, text: draft }
       );
       onSaved(next);
     } catch (err: unknown) {
       if (err instanceof HttpError) {
-        setError(formatError(err));
+        setError(formatCreateError(err));
       } else {
-        setError("Не удалось сохранить.");
+        setError("Не удалось создать инструкцию.");
       }
     } finally {
       setBusy(false);
@@ -74,7 +97,13 @@ export function ReplaceInstructionTextForm({
       ) : null}
       <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={busy}>
-          {busy ? "Сохраняем…" : "Сохранить"}
+          {busy
+            ? isInitialCreate
+              ? "Создаём…"
+              : "Сохраняем…"
+            : isInitialCreate
+              ? "Создать"
+              : "Сохранить"}
         </Button>
         <Button type="button" onClick={onCancel} disabled={busy}>
           Отмена
@@ -84,7 +113,7 @@ export function ReplaceInstructionTextForm({
   );
 }
 
-function formatError(err: HttpError): string {
+function formatReplaceError(err: HttpError): string {
   if (err.status === 409) {
     return "Версия устарела — обновите страницу и повторите правку.";
   }
@@ -92,4 +121,14 @@ function formatError(err: HttpError): string {
     return "Не удалось применить правку (текст не совпал).";
   }
   return `Ошибка сохранения (${String(err.status)}).`;
+}
+
+function formatCreateError(err: HttpError): string {
+  if (err.status === 409) {
+    return "Инструкция уже существует — обновите страницу и редактируйте имеющуюся.";
+  }
+  if (err.status === 422) {
+    return "Не удалось создать инструкцию (валидация не прошла).";
+  }
+  return `Ошибка создания (${String(err.status)}).`;
 }

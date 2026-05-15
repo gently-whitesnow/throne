@@ -40,6 +40,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<InstructionListItemDto>>> ListInstructions();
 
         /// <summary>
+        /// Create a user-instruction of a given kind for the current user.
+        /// </summary>
+        /// <remarks>
+        /// Used by the web UI to seed an editable user-instruction the first time the user opens an entry that has no Mongo record yet. The server normally auto-seeds all five user-kinds on the first authenticated request, so this path is only the explicit fallback for the «Создать» button in BundlesTree. Returns 409 if a user-instruction with the same kind already exists — in that case the caller should use replaceInstructionText instead.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/instructions", Name = "createInstruction")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<InstructionDetailDto>> CreateInstruction([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CreateInstructionRequest body);
+
+        /// <summary>
         /// Get a single instruction (full text).
         /// </summary>
         /// <param name="id">Instruction identifier (24 hex chars, ObjectId-shaped).</param>

@@ -21,6 +21,42 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/InstructionListItemDto'
+    post:
+      operationId: createInstruction
+      tags: [Instructions]
+      summary: Create a user-instruction of a given kind for the current user.
+      description: >
+        Used by the web UI to seed an editable user-instruction the first time the
+        user opens an entry that has no Mongo record yet. The server normally
+        auto-seeds all five user-kinds on the first authenticated request, so this
+        path is only the explicit fallback for the «Создать» button in BundlesTree.
+        Returns 409 if a user-instruction with the same kind already exists — in
+        that case the caller should use replaceInstructionText instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstructionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructionDetailDto'
+        '409':
+          description: Instruction with the same kind already exists for the current user.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (unknown kind).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/instructions/{id}:
     get:
       operationId: getInstruction
@@ -250,3 +286,15 @@ components:
         updated_at:
           type: string
           format: date-time
+    CreateInstructionRequest:
+      type: object
+      required:
+        - kind
+        - text
+      properties:
+        kind:
+          type: string
+          description: Instruction kind (common | interview | work | dream | transfer).
+        text:
+          type: string
+          description: Initial canonical Instruction.Text. May be empty.
