@@ -52,7 +52,7 @@ API + UI + Mongo одной командой. UI: `http://localhost:8080`, API: 
 ```bash
 git clone https://github.com/gently-whitesnow/throne
 cd throne
-docker compose --profile full up -d
+docker compose --profile full up --build -d
 ```
 
 Только MongoDB (replica set `rs0`, порт `27017`):
