@@ -83,12 +83,11 @@ public sealed class ProposeInstructionPatchHandler(
         }
 
         // Resolve target instruction; verify version matches what the agent saw.
-        var targetInstruction = await FindUserInstructionAsync(ownerUserId, command.TargetKind, ct)
-            ?? throw new ApiException(
-                ErrorCodes.InstructionNotFound,
-                $"User instruction with kind '{command.TargetKind}' not found for the current user.",
-                new Dictionary<string, object?> { ["target_kind"] = command.TargetKind });
-        if (targetInstruction.CurrentVersion != command.BaseInstructionVersion)
+        // Если записи нет — current_version=0 валидно, такой патч позже создаст
+        // Instruction на apply-стороне.
+        var targetInstruction = await FindUserInstructionAsync(ownerUserId, command.TargetKind, ct);
+        var currentVersion = targetInstruction?.CurrentVersion ?? 0;
+        if (currentVersion != command.BaseInstructionVersion)
         {
             throw new ApiException(
                 ErrorCodes.InstructionPatchNeedsRebase,
@@ -97,7 +96,7 @@ public sealed class ProposeInstructionPatchHandler(
                 {
                     ["target_kind"] = command.TargetKind,
                     ["base_instruction_version"] = command.BaseInstructionVersion,
-                    ["current_instruction_version"] = targetInstruction.CurrentVersion,
+                    ["current_instruction_version"] = currentVersion,
                 });
         }
 

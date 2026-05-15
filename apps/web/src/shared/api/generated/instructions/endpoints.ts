@@ -5,6 +5,7 @@
 
 export const instructionsEndpoints = {
   listInstructions: () => "/instructions",
+  createInstruction: () => "/instructions",
   getInstruction: (id: string) => `/instructions/${id}`,
   replaceInstructionText: (id: string) => `/instructions/${id}/replace-text`,
   getBundlesTree: () => "/instructions/bundles-tree",

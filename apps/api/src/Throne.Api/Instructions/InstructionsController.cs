@@ -13,6 +13,7 @@ public sealed class InstructionsController(
     ListInstructionsHandler listHandler,
     GetInstructionHandler getHandler,
     ReplaceInstructionTextHandler replaceHandler,
+    CreateInstructionHandler createHandler,
     ListInstructionVersionsHandler listVersionsHandler,
     GetBundlesTreeHandler bundlesTreeHandler) : InstructionsControllerBase
 {
@@ -31,6 +32,22 @@ public sealed class InstructionsController(
             dtos.Add(InstructionDtoMapper.ToListDto(instruction));
         }
         return Ok(dtos);
+    }
+
+    public override async Task<ActionResult<InstructionDetailDto>> CreateInstruction(CreateInstructionRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        try
+        {
+            var instruction = await createHandler.HandleAsync(
+                new CreateInstructionCommand(body.Kind, body.Text),
+                HttpContext.RequestAborted);
+            return Ok(InstructionDtoMapper.ToDetailDto(instruction));
+        }
+        catch (ApiException ex)
+        {
+            return InstructionsErrorMapper.MapCreate(ex);
+        }
     }
 
     public override async Task<ActionResult<InstructionDetailDto>> GetInstruction(string id)

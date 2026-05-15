@@ -12,6 +12,7 @@ public static class ErrorCodes
     public const string IntentAttachmentLimitExceeded = "intent.attachment.limit_exceeded";
     public const string IntentAttachmentNotFound = "intent.attachment.not_found";
     public const string InstructionNotFound = "instruction.not_found";
+    public const string InstructionAlreadyExists = "instruction.already_exists";
     public const string InstructionVersionConflict = "instruction.version_conflict";
     public const string InstructionTextMatchNotFound = "instruction.text.match_not_found";
     public const string InstructionTextMatchAmbiguous = "instruction.text.match_ambiguous";

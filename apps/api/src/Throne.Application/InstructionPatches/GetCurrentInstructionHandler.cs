@@ -10,6 +10,10 @@ namespace Throne.Application.InstructionPatches;
 /// version of the user's instruction for a given kind so the agent can ground
 /// <c>base_instruction_version</c> in <c>propose_instruction_patch</c>. Owner
 /// scoping is implicit via <see cref="ICurrentUserAccessor"/>.
+///
+/// Если записи нет — возвращается синтетический view с
+/// <c>current_version=0</c> и пустым текстом, чтобы агент мог сразу предложить
+/// первичный патч на пустой инструкции (apply создаст запись лениво).
 /// </summary>
 public sealed class GetCurrentInstructionHandler(
     IInstructionRepository instructions,
@@ -29,10 +33,12 @@ public sealed class GetCurrentInstructionHandler(
         var list = await instructions.GetUserInstructionsByKindsAsync(currentUser.UserId, [targetKind], ct);
         if (list.Count == 0)
         {
-            throw new ApiException(
-                ErrorCodes.InstructionNotFound,
-                $"User instruction with kind '{targetKind}' not found for the current user.",
-                new Dictionary<string, object?> { ["target_kind"] = targetKind });
+            return new CurrentInstructionView(
+                InstructionId: string.Empty,
+                Kind: targetKind,
+                Text: string.Empty,
+                CurrentVersion: 0,
+                UpdatedAt: DateTimeOffset.MinValue);
         }
 
         var instruction = list[0];

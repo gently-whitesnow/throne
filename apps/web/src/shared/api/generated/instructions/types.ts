@@ -17,7 +17,11 @@ export interface paths {
          */
         get: operations["listInstructions"];
         put?: never;
-        post?: never;
+        /**
+         * Create a user-instruction of a given kind for the current user.
+         * @description Used by the web UI to seed an editable user-instruction the first time the user opens an entry that has no Mongo record yet. The server normally auto-seeds all five user-kinds on the first authenticated request, so this path is only the explicit fallback for the «Создать» button in BundlesTree. Returns 409 if a user-instruction with the same kind already exists — in that case the caller should use replaceInstructionText instead.
+         */
+        post: operations["createInstruction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -155,6 +159,12 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        CreateInstructionRequest: {
+            /** @description Instruction kind (common | interview | work | dream | transfer). */
+            kind: string;
+            /** @description Initial canonical Instruction.Text. May be empty. */
+            text: string;
+        };
         ProblemDetails: {
             type: string;
             title: string;
@@ -221,6 +231,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstructionListItemDto"][];
+                };
+            };
+        };
+    };
+    createInstruction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInstructionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstructionDetailDto"];
+                };
+            };
+            /** @description Instruction with the same kind already exists for the current user. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation failed (unknown kind). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

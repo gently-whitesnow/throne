@@ -143,15 +143,6 @@ function EntryBody({ entry, onSaved, onCancel }: EntryBodyProps) {
     );
   }
 
-  if (!entry.present) {
-    return (
-      <p className="m-0 text-[13px] leading-relaxed text-base-content/70">
-        У этого user-kind ещё нет записи в Mongo. Создание user-инструкций из UI
-        пока не поддерживается — они появляются автоматически при инициализации.
-      </p>
-    );
-  }
-
   const detail: InstructionDetail = {
     id: entry.instruction_id ?? "",
     kind: entry.kind,
@@ -173,6 +164,28 @@ function EntryBody({ entry, onSaved, onCancel }: EntryBodyProps) {
           setEditing(false);
         }}
       />
+    );
+  }
+
+  if (!entry.present) {
+    return (
+      <>
+        <p className="m-0 text-[13px] leading-relaxed text-base-content/70">
+          У этого user-kind ещё нет записи. Создайте инструкцию, чтобы
+          dream-агент мог предлагать патчи и UI смог её редактировать.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button onClick={onCancel}>Закрыть</Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditing(true);
+            }}
+          >
+            Создать инструкцию
+          </Button>
+        </div>
+      </>
     );
   }
 
