@@ -193,6 +193,12 @@ dotnet_diagnostic.CA1506.severity = none
 [tests/Throne.Application.Tests/Intents/CreateIntentHandlerTests.cs]
 dotnet_diagnostic.CA1506.severity = none
 
+# intent:a96a19ff6d4d4fd999c7376bc9923923: добавлены кейсы propose на отсутствующей
+# user-инструкции (base=0 → ok, base!=0 → 409 needs_rebase). Per-test классу не стоит
+# дробиться ради проходимости CA1502 — это покрытие одного хендлера.
+[tests/Throne.Application.Tests/InstructionPatches/ProposeInstructionPatchHandlerTests.cs]
+dotnet_diagnostic.CA1502.severity = none
+
 [src/Throne.Api/Auth/AuthOptions.cs]
 dotnet_diagnostic.CA1502.severity = none
 

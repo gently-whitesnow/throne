@@ -55,11 +55,14 @@ internal static class InstructionPatchBudgets
 
     private static void EnsureBaseVersionPositive(int baseInstructionVersion)
     {
-        if (baseInstructionVersion < 1)
+        // 0 — допустимое значение: первичный патч на пользователе, у которого
+        // ещё нет user-инструкции выбранного kind (apply создаст Instruction
+        // лениво с patch.PatchText как v1). Отрицательные значения недопустимы.
+        if (baseInstructionVersion < 0)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(baseInstructionVersion),
-                "base_instruction_version must be ≥ 1.");
+                "base_instruction_version must be ≥ 0.");
         }
     }
 }
