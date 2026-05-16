@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Throne.Api.Auth;
@@ -32,9 +31,9 @@ public static class ProtectedResourceMetadataEndpoint
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        endpoints.MapGet("/.well-known/oauth-protected-resource", (HttpContext ctx) =>
+        endpoints.MapGet("/.well-known/oauth-protected-resource", (HttpContext ctx, IOptions<AuthOptions> options) =>
         {
-            AuthOptions auth = ctx.RequestServices.GetRequiredService<IOptions<AuthOptions>>().Value;
+            AuthOptions auth = options.Value;
             string scheme = ctx.Request.Scheme;
             string host = ctx.Request.Host.ToString();
             string resource = $"{scheme}://{host}{resourcePath}";
