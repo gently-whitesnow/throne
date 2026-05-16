@@ -16,7 +16,7 @@ internal sealed class MongoIntentRepository(
     IMongoDatabase database,
     MongoSessionAccessor sessions,
     ICurrentUserAccessor currentUser,
-    IIntentEventRepository intentEvents) : IIntentRepository
+    IIntentEventRepository intentEvents) : IIntentRepository, IIntentOrderingRepository
 {
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);

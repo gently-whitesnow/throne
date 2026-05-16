@@ -73,6 +73,7 @@ public static class DependencyInjection
         // InstructionPatch handlers (ADR-0021 supersedes ADR-0011): supersede the
         // DreamRun + DreamProposal pair with a flat first-class entity.
         services.AddSingleton<ProposeInstructionPatchHandler>();
+        services.AddSingleton<ApplyInstructionPatchWorkflow>();
         services.AddSingleton<ApplyInstructionPatchHandler>();
         services.AddSingleton<RejectInstructionPatchHandler>();
         services.AddSingleton<ListInstructionPatchesHandler>();

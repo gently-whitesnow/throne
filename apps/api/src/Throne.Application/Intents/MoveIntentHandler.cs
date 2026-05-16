@@ -13,7 +13,7 @@ namespace Throne.Application.Intents;
 public sealed record MoveIntentCommand(string IntentId, string? BeforeId, string? AfterId);
 
 public sealed class MoveIntentHandler(
-    IIntentRepository repository,
+    IIntentOrderingRepository ordering,
     IUnitOfWork unitOfWork)
 {
     public async Task<Intent> HandleAsync(MoveIntentCommand command, CancellationToken ct)
@@ -39,7 +39,7 @@ public sealed class MoveIntentHandler(
         try
         {
             outcome = await unitOfWork.ExecuteAsync(
-                inner => repository.MoveBetweenAsync(id, beforeId, afterId, inner),
+                inner => ordering.MoveBetweenAsync(id, beforeId, afterId, inner),
                 ct);
         }
         catch (ArgumentException ex) when (ex.ParamName is "before" or "beforeId")
