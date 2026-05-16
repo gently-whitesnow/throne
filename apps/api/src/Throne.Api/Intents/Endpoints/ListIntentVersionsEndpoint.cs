@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.TextVersions;
@@ -8,14 +6,13 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class ListIntentVersionsEndpoint
+public sealed class ListIntentVersionsEndpoint(ListIntentVersionsHandler handler)
 {
-    public static async Task<ActionResult<ICollection<TextVersionDto>>> RunAsync(string id, HttpContext http)
+    public async Task<ActionResult<ICollection<TextVersionDto>>> RunAsync(string id, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<ListIntentVersionsHandler>();
         try
         {
-            var versions = await handler.HandleAsync(new ListIntentVersionsQuery(id), http.RequestAborted);
+            var versions = await handler.HandleAsync(new ListIntentVersionsQuery(id), cancellationToken);
             return new OkObjectResult(versions.Select(TextVersionDtoMapper.ToDto).ToList());
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)

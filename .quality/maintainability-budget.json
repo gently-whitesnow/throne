@@ -66,7 +66,16 @@
         "typeMaxPublicMembers": 25,
         "fileMaxFanOut": 30
       },
-      "exclude": []
+      "exclude": [],
+      "pathOverrides": [
+        {
+          "_comment": "REST-контроллеры композируют по одному endpoint-классу на route. С 10+ routes ctor неизбежно держит >8 deps; это арифметика surface area NSwag-generated абстрактного базового класса, а не code smell. Per-method limits остаются.",
+          "glob": "**/Throne.Api/**/*Controller.cs",
+          "limits": {
+            "constructorMaxDependencies": 15
+          }
+        }
+      ]
     }
   }
 }

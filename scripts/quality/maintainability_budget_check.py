@@ -619,7 +619,33 @@ def collect_fan_out(text: str, ignore_prefixes: list[str]) -> set[str]:
     return seen
 
 
-def analyze_file(path: pathlib.Path, limits: dict, fan_out_ignore: list[str]) -> tuple[int, list[Violation]]:
+def effective_limits(
+    base_limits: dict,
+    path: pathlib.Path,
+    path_overrides: list[dict],
+) -> dict:
+    """Merge base profile limits with any pathOverrides whose glob matches the file."""
+    if not path_overrides:
+        return base_limits
+    normalized = path.as_posix()
+    merged = dict(base_limits)
+    for override in path_overrides:
+        glob = override.get("glob")
+        if not glob:
+            continue
+        if not matches_any(normalized, [glob]):
+            continue
+        for key, value in (override.get("limits") or {}).items():
+            merged[key] = value
+    return merged
+
+
+def analyze_file(
+    path: pathlib.Path,
+    limits: dict,
+    fan_out_ignore: list[str],
+    path_overrides: list[dict] | None = None,
+) -> tuple[int, list[Violation]]:
     text = path.read_text(encoding="utf-8-sig")
     lines = text.splitlines()
     tokens = tokenize(text)
@@ -627,6 +653,8 @@ def analyze_file(path: pathlib.Path, limits: dict, fan_out_ignore: list[str]) ->
     type_spans = find_type_spans(tokens, brace_map)
     normalized = path.as_posix()
     violations: list[Violation] = []
+
+    limits = effective_limits(limits, path, path_overrides or [])
 
     file_loc = count_loc(lines)
     file_limit = int(limits["fileMaxLoc"])
@@ -751,13 +779,15 @@ def main() -> int:
         or ["System"]
     )
 
+    path_overrides = list(profile.get("pathOverrides") or config.get("pathOverrides") or [])
+
     roots = resolve_roots(args.roots, config)
     files = find_csharp_files(roots, exclude)
 
     violations: list[Violation] = []
     for path in files:
         try:
-            _file_loc, file_violations = analyze_file(path, limits, fan_out_ignore)
+            _file_loc, file_violations = analyze_file(path, limits, fan_out_ignore, path_overrides)
         except UnicodeDecodeError as exc:
             print(f"Cannot read {path}: {exc}", file=sys.stderr)
             return 65

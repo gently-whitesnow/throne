@@ -9,17 +9,21 @@ namespace Throne.Api.Intents;
 /// <summary>
 /// HTTP controller for /api/v1/intents/{id}/links* and /api/v1/intents/links/summary.
 /// Split from <see cref="IntentsController"/> so each tag-scoped controller stays
-/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint static helpers
+/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint instances
 /// (CreateIntentLinkEndpoint, DeleteIntentLinkEndpoint, ListIntentLinksEndpoint,
-/// GetIntentLinksSummaryEndpoint).
+/// GetIntentLinksSummaryEndpoint) injected via ctor.
 /// </summary>
-public sealed class IntentLinksController : IntentLinksControllerBase
+public sealed class IntentLinksController(
+    CreateIntentLinkEndpoint createIntentLink,
+    DeleteIntentLinkEndpoint deleteIntentLink,
+    ListIntentLinksEndpoint listIntentLinks,
+    GetIntentLinksSummaryEndpoint getIntentLinksSummary) : IntentLinksControllerBase
 {
     public override Task<ActionResult<IntentLinkDto>> CreateIntentLink(string id, CreateIntentLinkRequest body) =>
-        CreateIntentLinkEndpoint.RunAsync(id, body, HttpContext);
+        createIntentLink.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<IActionResult> DeleteIntentLink(string id, string to_id, ContractIntentLinkType type) =>
-        DeleteIntentLinkEndpoint.RunAsync(id, to_id, type, HttpContext);
+        deleteIntentLink.RunAsync(id, to_id, type, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentLinksPageDto>> ListIntentLinks(
         string id,
@@ -27,8 +31,8 @@ public sealed class IntentLinksController : IntentLinksControllerBase
         ContractIntentLinkType? type = null,
         int? limit = null,
         string cursor = null!) =>
-        ListIntentLinksEndpoint.RunAsync(id, direction, type, limit, cursor, HttpContext);
+        listIntentLinks.RunAsync(id, direction, type, limit, cursor, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentLinksSummaryDto>> GetIntentLinksSummary(IEnumerable<string> ids) =>
-        GetIntentLinksSummaryEndpoint.RunAsync(ids, HttpContext);
+        getIntentLinksSummary.RunAsync(ids, HttpContext.RequestAborted);
 }

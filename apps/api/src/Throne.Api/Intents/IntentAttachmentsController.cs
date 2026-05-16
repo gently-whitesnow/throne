@@ -8,22 +8,26 @@ namespace Throne.Api.Intents;
 /// <summary>
 /// HTTP controller for /api/v1/intents/{id}/attachments* — list / upload / download / delete.
 /// Split from <see cref="IntentsController"/> so each tag-scoped controller stays
-/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint static helpers
+/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint instances
 /// (ListIntentAttachmentsEndpoint, UploadIntentAttachmentEndpoint,
-/// DownloadIntentAttachmentEndpoint, DeleteIntentAttachmentEndpoint).
+/// DownloadIntentAttachmentEndpoint, DeleteIntentAttachmentEndpoint) injected via ctor.
 /// </summary>
-public sealed class IntentAttachmentsController : IntentAttachmentsControllerBase
+public sealed class IntentAttachmentsController(
+    ListIntentAttachmentsEndpoint listIntentAttachments,
+    UploadIntentAttachmentEndpoint uploadIntentAttachment,
+    DownloadIntentAttachmentEndpoint downloadIntentAttachment,
+    DeleteIntentAttachmentEndpoint deleteIntentAttachment) : IntentAttachmentsControllerBase
 {
     public override Task<ActionResult<ICollection<IntentAttachmentDto>>> ListIntentAttachments(string id) =>
-        ListIntentAttachmentsEndpoint.RunAsync(id, HttpContext);
+        listIntentAttachments.RunAsync(id, HttpContext.RequestAborted);
 
     [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
     public override Task<ActionResult<IntentAttachmentDto>> UploadIntentAttachment(string id, FileParameter file = default!) =>
-        UploadIntentAttachmentEndpoint.RunAsync(id, HttpContext);
+        uploadIntentAttachment.RunAsync(id, HttpContext.Request, HttpContext.RequestAborted);
 
     public override Task<IActionResult> DownloadIntentAttachment(string id, string attachment_id) =>
-        DownloadIntentAttachmentEndpoint.RunAsync(id, attachment_id, HttpContext);
+        downloadIntentAttachment.RunAsync(id, attachment_id, HttpContext.RequestAborted);
 
     public override Task<IActionResult> DeleteIntentAttachment(string id, string attachment_id) =>
-        DeleteIntentAttachmentEndpoint.RunAsync(id, attachment_id, HttpContext);
+        deleteIntentAttachment.RunAsync(id, attachment_id, HttpContext.RequestAborted);
 }

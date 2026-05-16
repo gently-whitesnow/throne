@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
@@ -8,14 +6,13 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class ListIntentAttachmentsEndpoint
+public sealed class ListIntentAttachmentsEndpoint(ListIntentAttachmentsHandler handler)
 {
-    public static async Task<ActionResult<ICollection<IntentAttachmentDto>>> RunAsync(string id, HttpContext http)
+    public async Task<ActionResult<ICollection<IntentAttachmentDto>>> RunAsync(string id, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<ListIntentAttachmentsHandler>();
         try
         {
-            var attachments = await handler.HandleAsync(new ListIntentAttachmentsQuery(id), http.RequestAborted);
+            var attachments = await handler.HandleAsync(new ListIntentAttachmentsQuery(id), cancellationToken);
             var dtos = new List<IntentAttachmentDto>(attachments.Count);
             foreach (var attachment in attachments)
             {

@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
 using Throne.Domain.Intents.Training;
@@ -8,13 +6,14 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class SetIntentStatusEndpoint
+public sealed class SetIntentStatusEndpoint(SetIntentStatusHandler handler, IntentsApiHelpers helpers)
 {
-    public static async Task<ActionResult<IntentDetailDto>> RunAsync(string id, SetIntentStatusRequest body, HttpContext http)
+    public async Task<ActionResult<IntentDetailDto>> RunAsync(
+        string id,
+        SetIntentStatusRequest body,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(body);
-        var handler = http.RequestServices.GetRequiredService<SetIntentStatusHandler>();
-        var helpers = http.RequestServices.GetRequiredService<IntentsApiHelpers>();
         try
         {
             var intent = await handler.HandleAsync(
@@ -24,8 +23,8 @@ internal static class SetIntentStatusEndpoint
                     body.Reason,
                     IntentTrainingAuthor.User,
                     "http:set_intent_status"),
-                http.RequestAborted);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, http.RequestAborted));
+                cancellationToken);
+            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
         }
         catch (ApiException ex)
         {

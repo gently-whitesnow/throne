@@ -7,17 +7,20 @@ namespace Throne.Api.Intents;
 /// <summary>
 /// HTTP controller for /api/v1/intents/{id}/pin* — pin / unpin / move-pin endpoints.
 /// Split from <see cref="IntentsController"/> so each tag-scoped controller stays
-/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint static helpers
-/// (PinIntentEndpoint, UnpinIntentEndpoint, MovePinEndpoint).
+/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint instances
+/// (PinIntentEndpoint, UnpinIntentEndpoint, MovePinEndpoint) injected via ctor.
 /// </summary>
-public sealed class IntentPinsController : IntentPinsControllerBase
+public sealed class IntentPinsController(
+    PinIntentEndpoint pinIntent,
+    UnpinIntentEndpoint unpinIntent,
+    MovePinEndpoint movePin) : IntentPinsControllerBase
 {
     public override Task<ActionResult<IntentDetailDto>> PinIntent(string id, PinIntentRequest body) =>
-        PinIntentEndpoint.RunAsync(id, body, HttpContext);
+        pinIntent.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> UnpinIntent(string id, UnpinIntentRequest body) =>
-        UnpinIntentEndpoint.RunAsync(id, body, HttpContext);
+        unpinIntent.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> MovePin(string id, MovePinRequest body) =>
-        MovePinEndpoint.RunAsync(id, body, HttpContext);
+        movePin.RunAsync(id, body, HttpContext.RequestAborted);
 }

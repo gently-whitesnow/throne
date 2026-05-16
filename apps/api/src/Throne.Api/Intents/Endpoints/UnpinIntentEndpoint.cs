@@ -1,25 +1,24 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
 using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class UnpinIntentEndpoint
+public sealed class UnpinIntentEndpoint(UnpinIntentHandler handler, IntentsApiHelpers helpers)
 {
-    public static async Task<ActionResult<IntentDetailDto>> RunAsync(string id, UnpinIntentRequest body, HttpContext http)
+    public async Task<ActionResult<IntentDetailDto>> RunAsync(
+        string id,
+        UnpinIntentRequest body,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(body);
-        var handler = http.RequestServices.GetRequiredService<UnpinIntentHandler>();
-        var helpers = http.RequestServices.GetRequiredService<IntentsApiHelpers>();
         try
         {
             var intent = await handler.HandleAsync(
                 new UnpinIntentCommand(id, body.Context_tag_id),
-                http.RequestAborted);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, http.RequestAborted));
+                cancellationToken);
+            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
         }
         catch (ApiException ex)
         {

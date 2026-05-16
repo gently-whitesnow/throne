@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Intents.Linking;
 using Throne.Intents.Contracts.Generated;
 using ContractIntentLinkDirection = Throne.Intents.Contracts.Generated.IntentLinkDirection;
@@ -9,18 +7,16 @@ using DomainIntentLinkDirection = Throne.Application.Ports.IntentLinkDirection;
 
 namespace Throne.Api.Intents;
 
-internal static class ListIntentLinksEndpoint
+public sealed class ListIntentLinksEndpoint(ListIntentLinksHandler handler, IntentsApiHelpers helpers)
 {
-    public static async Task<ActionResult<IntentLinksPageDto>> RunAsync(
+    public async Task<ActionResult<IntentLinksPageDto>> RunAsync(
         string id,
         ContractIntentLinkDirection? direction,
         ContractIntentLinkType? type,
         int? limit,
         string? cursor,
-        HttpContext http)
+        CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<ListIntentLinksHandler>();
-        var helpers = http.RequestServices.GetRequiredService<IntentsApiHelpers>();
         var page = await handler.HandleAsync(
             new ListIntentLinksQuery(
                 id,
@@ -28,11 +24,11 @@ internal static class ListIntentLinksEndpoint
                 type is null ? null : IntentLinkDtoMapper.FromContractLinkType(type.Value),
                 limit ?? ListIntentLinksHandler.DefaultLimit,
                 cursor),
-            http.RequestAborted);
+            cancellationToken);
 
         var tagMap = await helpers.BuildTagMapAsync(
             page.Items.SelectMany(v => v.Other.TagIds),
-            http.RequestAborted);
+            cancellationToken);
 
         var dto = new IntentLinksPageDto
         {
