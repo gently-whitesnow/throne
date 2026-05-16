@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -92,21 +94,104 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
                 McpCallOutcome.Error, "internal_error", ex.Message, ex.GetType().FullName,
                 null, (int)stopwatch.ElapsedMilliseconds, cancellationToken);
             LogToolFailure(_logger, toolName, ex);
-            return McpErrorResultFactory.Internal(toolName);
+            return McpErrorResultFactory.Internal(toolName, ex.Message);
         }
     }
 
-    private static AIFunctionArguments BuildAIFunctionArguments(RequestContext<CallToolRequestParams> request)
+    private AIFunctionArguments BuildAIFunctionArguments(RequestContext<CallToolRequestParams> request)
     {
         var args = new AIFunctionArguments { Services = request.Services };
-        if (request.Params?.Arguments is { } argDict)
+        if (request.Params?.Arguments is not { } argDict)
         {
-            foreach (var (key, value) in argDict)
-            {
-                args[key] = value;
-            }
+            return args;
+        }
+
+        // The SDK auto-generated JSON Schema omits `type` for nullable collection/object parameters
+        // declared as `T? = null` (System.Text.Json schema generator gap). Without that hint the
+        // AIFunction binder fails to convert JsonElement(Array) into the C# parameter type and
+        // throws — the client sees only "An error occurred invoking 'X'.". Pre-deserializing each
+        // argument against the parameter's actual type bypasses the gap for all tools, not just
+        // create_intent.tags.
+        var parameters = GetParameterMap(_aiFunction.UnderlyingMethod);
+        foreach (var (key, value) in argDict)
+        {
+            args[key] = TryConvertArgument(value, key, parameters);
         }
         return args;
+    }
+
+    private object? TryConvertArgument(
+        JsonElement value,
+        string key,
+        IReadOnlyDictionary<string, Type>? parameters)
+    {
+        if (parameters is null || !parameters.TryGetValue(key, out var targetType))
+        {
+            return value;
+        }
+
+        // Some MCP harnesses (and the Anthropic remote-MCP relay) serialize array/object
+        // arguments as JSON-encoded strings when the tool schema lacks an explicit `type` —
+        // e.g. nullable `IReadOnlyList<string>?` whose schema STJ emits without `type`. If the
+        // target is not a string but the wire value is a String, re-parse it as JSON before
+        // deserializing so the binder sees an Array/Object.
+        var effective = value;
+        if (value.ValueKind == JsonValueKind.String && !IsStringLikeTarget(targetType))
+        {
+            var raw = value.GetString();
+            if (!string.IsNullOrEmpty(raw))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(raw);
+                    effective = doc.RootElement.Clone();
+                }
+                catch (JsonException)
+                {
+                    // Not a JSON-encoded payload — fall through and let the regular path try.
+                }
+            }
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize(effective, targetType, _aiFunction.JsonSerializerOptions);
+        }
+        catch (JsonException)
+        {
+            // Let the SDK binder produce its own diagnostic (it will throw on invocation,
+            // which we surface via the catch-all with the real exception message).
+            return value;
+        }
+    }
+
+    private static bool IsStringLikeTarget(Type type)
+    {
+        var underlying = Nullable.GetUnderlyingType(type) ?? type;
+        return underlying == typeof(string) || underlying.IsEnum;
+    }
+
+    private static readonly ConcurrentDictionary<MethodInfo, IReadOnlyDictionary<string, Type>> ParameterTypeCache = new();
+
+    private static IReadOnlyDictionary<string, Type>? GetParameterMap(MethodInfo? method)
+    {
+        if (method is null)
+        {
+            return null;
+        }
+        return ParameterTypeCache.GetOrAdd(method, static m =>
+        {
+            var map = new Dictionary<string, Type>(StringComparer.Ordinal);
+            foreach (var p in m.GetParameters())
+            {
+                if (p.Name is null || p.ParameterType == typeof(CancellationToken))
+                {
+                    continue;
+                }
+                map[p.Name] = p.ParameterType;
+            }
+            return map;
+        });
     }
 
     private async Task TryWriteAuditAsync(

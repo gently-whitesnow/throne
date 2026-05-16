@@ -30,9 +30,14 @@ internal static class McpErrorResultFactory
         };
     }
 
-    public static CallToolResult Internal(string toolName)
+    public static CallToolResult Internal(string toolName, string? detail = null)
     {
-        var message = $"An error occurred invoking '{toolName}'.";
+        // Surface the real exception message to the MCP client: this server is consumed by agents
+        // that need to self-correct their tool calls. The generic "An error occurred invoking 'X'."
+        // string previously hid binding/argument errors completely.
+        var message = string.IsNullOrWhiteSpace(detail)
+            ? $"An error occurred invoking '{toolName}'."
+            : $"An error occurred invoking '{toolName}': {detail}";
         return new CallToolResult
         {
             IsError = true,

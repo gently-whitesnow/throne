@@ -125,8 +125,8 @@ public class AuditingMcpServerToolTests
 
         result.IsError.Should().BeTrue();
         ReadStructuredString(result, "code").Should().Be("internal_error");
-        ReadStructuredString(result, "message").Should().Be("An error occurred invoking 'replace_intent_text'.");
-        ReadFirstText(result).Should().Be("An error occurred invoking 'replace_intent_text'.");
+        ReadStructuredString(result, "message").Should().Contain(MissingParamMsg);
+        ReadFirstText(result).Should().Contain(MissingParamMsg);
         await sink.Received(1).WriteAsync(
             Arg.Is<McpCallLogEntry>(e =>
                 e.Outcome == McpCallOutcome.Error &&
