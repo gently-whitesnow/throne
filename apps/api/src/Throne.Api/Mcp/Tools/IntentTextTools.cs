@@ -26,7 +26,7 @@ public sealed class IntentTextTools(
         read.HandleAsync(new ReadIntentTextQuery(intent_id, start_line, line_count, max_chars), cancellationToken);
 
     [McpServerTool(Name = "replace_intent_text", UseStructuredContent = true)]
-    [Description("Replace one unique byte-exact substring in Intent.text using optimistic concurrency. Prefer this for precise edits; never use it as a casual full-document rewrite.")]
+    [Description("Replace one unique byte-exact substring in Intent.text using optimistic concurrency. Whitespace is literal: NBSP (U+00A0), zero-width characters and line endings must match exactly. If matching fails, call search_intent_text first and use neighbouring context from its result.")]
     public Task<Intent> ReplaceIntentText(
         [Description("Intent id to mutate.")] string intent_id,
         [Description("current_version observed from the latest get_intent, read_intent_text, or write result.")] int expected_version,
