@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents.Events;
@@ -8,14 +6,13 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class ListIntentEventsEndpoint
+public sealed class ListIntentEventsEndpoint(ListIntentEventsHandler handler)
 {
-    public static async Task<ActionResult<ICollection<IntentEventDto>>> RunAsync(string id, HttpContext http)
+    public async Task<ActionResult<ICollection<IntentEventDto>>> RunAsync(string id, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<ListIntentEventsHandler>();
         try
         {
-            var events = await handler.HandleAsync(new ListIntentEventsQuery(id), http.RequestAborted);
+            var events = await handler.HandleAsync(new ListIntentEventsQuery(id), cancellationToken);
             return new OkObjectResult(events.Select(IntentEventDtoMapper.ToEventDto).ToList());
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)

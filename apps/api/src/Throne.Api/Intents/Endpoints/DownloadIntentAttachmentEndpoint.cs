@@ -1,21 +1,18 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
 
 namespace Throne.Api.Intents;
 
-internal static class DownloadIntentAttachmentEndpoint
+public sealed class DownloadIntentAttachmentEndpoint(DownloadIntentAttachmentHandler handler)
 {
-    public static async Task<IActionResult> RunAsync(string id, string attachmentId, HttpContext http)
+    public async Task<IActionResult> RunAsync(string id, string attachmentId, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<DownloadIntentAttachmentHandler>();
         try
         {
             var attachment = await handler.HandleAsync(
-                new DownloadIntentAttachmentQuery(id, attachmentId), http.RequestAborted);
+                new DownloadIntentAttachmentQuery(id, attachmentId), cancellationToken);
             return new FileStreamResult(attachment.Content, attachment.Attachment.ContentType)
             {
                 FileDownloadName = attachment.Attachment.FileName,

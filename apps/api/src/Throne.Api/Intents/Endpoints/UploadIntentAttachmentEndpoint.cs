@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
@@ -8,11 +7,12 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class UploadIntentAttachmentEndpoint
+public sealed class UploadIntentAttachmentEndpoint(UploadIntentAttachmentHandler handler)
 {
-    public static Task<ActionResult<IntentAttachmentDto>> RunAsync(string id, HttpContext http)
+    public Task<ActionResult<IntentAttachmentDto>> RunAsync(string id, HttpRequest request, CancellationToken cancellationToken)
     {
-        if (!http.Request.HasFormContentType)
+        ArgumentNullException.ThrowIfNull(request);
+        if (!request.HasFormContentType)
         {
             return Task.FromResult<ActionResult<IntentAttachmentDto>>(new UnprocessableEntityObjectResult(ApiProblems.Build(
                 StatusCodes.Status422UnprocessableEntity,
@@ -20,10 +20,10 @@ internal static class UploadIntentAttachmentEndpoint
                 new ApiException(
                     ErrorCodes.ValidationFailed,
                     "Request must be multipart/form-data.",
-                    new Dictionary<string, object?> { ["content_type"] = http.Request.ContentType ?? string.Empty }))));
+                    new Dictionary<string, object?> { ["content_type"] = request.ContentType ?? string.Empty }))));
         }
 
-        var formFile = http.Request.Form.Files.GetFile("file");
+        var formFile = request.Form.Files.GetFile("file");
         if (formFile is null || formFile.Length < 1)
         {
             return Task.FromResult<ActionResult<IntentAttachmentDto>>(new UnprocessableEntityObjectResult(ApiProblems.Build(
@@ -35,12 +35,11 @@ internal static class UploadIntentAttachmentEndpoint
                     new Dictionary<string, object?> { ["field"] = "file" }))));
         }
 
-        return UploadCoreAsync(id, formFile, http);
+        return UploadCoreAsync(id, formFile, cancellationToken);
     }
 
-    private static async Task<ActionResult<IntentAttachmentDto>> UploadCoreAsync(string id, IFormFile formFile, HttpContext http)
+    private async Task<ActionResult<IntentAttachmentDto>> UploadCoreAsync(string id, IFormFile formFile, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<UploadIntentAttachmentHandler>();
         try
         {
             await using var stream = formFile.OpenReadStream();
@@ -51,7 +50,7 @@ internal static class UploadIntentAttachmentEndpoint
                     formFile.FileName,
                     formFile.ContentType ?? "application/octet-stream",
                     formFile.Length),
-                http.RequestAborted);
+                cancellationToken);
 
             var location = $"/api/v1/intents/{Uri.EscapeDataString(id)}/attachments/{Uri.EscapeDataString(attachment.Id)}";
             return new CreatedResult(location, IntentDtoMapper.ToAttachmentDto(attachment));

@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
@@ -8,25 +6,24 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-internal static class ListIntentsEndpoint
+public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHelpers helpers)
 {
     public const int TextShortMaxLength = 140;
 
-    public static async Task<ActionResult<ICollection<IntentListItemDto>>> RunAsync(IEnumerable<IntentStatus>? status, HttpContext http)
+    public async Task<ActionResult<ICollection<IntentListItemDto>>> RunAsync(
+        IEnumerable<IntentStatus>? status,
+        CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<ListIntentsHandler>();
-        var helpers = http.RequestServices.GetRequiredService<IntentsApiHelpers>();
-
         var statuses = status?
             .Select(IntentStatusDtoMapper.FromContractStatus)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
         var intents = await handler.HandleAsync(
-            new ListIntentsQuery(statuses is { Length: > 0 } ? statuses : null), http.RequestAborted);
+            new ListIntentsQuery(statuses is { Length: > 0 } ? statuses : null), cancellationToken);
 
-        var tagMap = await helpers.BuildTagMapAsync(intents.SelectMany(i => i.TagIds), http.RequestAborted);
-        var pinnedMap = await helpers.GetPinnedInAsync(intents.Select(i => i.Id.Value).ToList(), http.RequestAborted);
+        var tagMap = await helpers.BuildTagMapAsync(intents.SelectMany(i => i.TagIds), cancellationToken);
+        var pinnedMap = await helpers.GetPinnedInAsync(intents.Select(i => i.Id.Value).ToList(), cancellationToken);
         return new OkObjectResult(MapList(intents, tagMap, pinnedMap));
     }
 

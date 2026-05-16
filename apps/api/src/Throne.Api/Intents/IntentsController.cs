@@ -7,41 +7,51 @@ namespace Throne.Api.Intents;
 
 /// <summary>
 /// HTTP controller for the core /api/v1/intents/* surface (CRUD + status / tags / move / versions / events).
-/// Methods are 1-line trampolines into <see cref="IntentsCoreEndpoints"/> so the
-/// controller type stays well under the CA1502 type-level cyclomatic budget.
+/// Methods are 1-line trampolines into per-endpoint instances injected through the
+/// primary constructor; each endpoint owns its own handler / helper dependencies.
 /// Companion controllers cover pin (IntentPinsController), link (IntentLinksController)
 /// and attachment (IntentAttachmentsController) sub-surfaces; the four-way split mirrors
 /// the OpenAPI tag groups (Intents / IntentPins / IntentLinks / IntentAttachments).
 /// </summary>
-public sealed class IntentsController : IntentsControllerBase
+public sealed class IntentsController(
+    ListIntentsEndpoint listIntents,
+    ListIntentEventsEndpoint listIntentEvents,
+    GetIntentEndpoint getIntent,
+    CreateIntentEndpoint createIntent,
+    SetIntentTagsEndpoint setIntentTags,
+    ReplaceIntentTextEndpoint replaceIntentText,
+    SetIntentStatusEndpoint setIntentStatus,
+    MoveIntentEndpoint moveIntent,
+    DeleteIntentEndpoint deleteIntent,
+    ListIntentVersionsEndpoint listIntentVersions) : IntentsControllerBase
 {
     public override Task<ActionResult<ICollection<IntentListItemDto>>> ListIntents(IEnumerable<IntentStatus> status = null!) =>
-        IntentsCoreEndpoints.ListAsync(status, HttpContext);
+        listIntents.RunAsync(status, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<IntentEventDto>>> ListIntentEvents(string id) =>
-        IntentsCoreEndpoints.ListEventsAsync(id, HttpContext);
+        listIntentEvents.RunAsync(id, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> GetIntent(string id) =>
-        IntentsCoreEndpoints.GetAsync(id, HttpContext);
+        getIntent.RunAsync(id, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> CreateIntent(CreateIntentRequest body) =>
-        IntentsCoreEndpoints.CreateAsync(body, HttpContext, Url);
+        createIntent.RunAsync(body, Url, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> SetIntentTags(string id, SetIntentTagsRequest body) =>
-        IntentsCoreEndpoints.SetTagsAsync(id, body, HttpContext);
+        setIntentTags.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> ReplaceIntentText(string id, ReplaceTextRequest body) =>
-        IntentsCoreEndpoints.ReplaceTextAsync(id, body, HttpContext);
+        replaceIntentText.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> SetIntentStatus(string id, SetIntentStatusRequest body) =>
-        IntentsCoreEndpoints.SetStatusAsync(id, body, HttpContext);
+        setIntentStatus.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> MoveIntent(string id, MoveIntentRequest body) =>
-        IntentsCoreEndpoints.MoveAsync(id, body, HttpContext);
+        moveIntent.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<IActionResult> DeleteIntent(string id) =>
-        IntentsCoreEndpoints.DeleteAsync(id, HttpContext);
+        deleteIntent.RunAsync(id, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<TextVersionDto>>> ListIntentVersions(string id) =>
-        IntentsCoreEndpoints.ListVersionsAsync(id, HttpContext);
+        listIntentVersions.RunAsync(id, HttpContext.RequestAborted);
 }

@@ -1,20 +1,17 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
 
 namespace Throne.Api.Intents;
 
-internal static class DeleteIntentEndpoint
+public sealed class DeleteIntentEndpoint(DeleteIntentHandler handler)
 {
-    public static async Task<IActionResult> RunAsync(string id, HttpContext http)
+    public async Task<IActionResult> RunAsync(string id, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<DeleteIntentHandler>();
         try
         {
-            await handler.HandleAsync(new DeleteIntentCommand(id), http.RequestAborted);
+            await handler.HandleAsync(new DeleteIntentCommand(id), cancellationToken);
             return new NoContentResult();
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)

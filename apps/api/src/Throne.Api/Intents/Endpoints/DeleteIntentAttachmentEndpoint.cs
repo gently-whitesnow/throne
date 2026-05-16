@@ -1,20 +1,17 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
 
 namespace Throne.Api.Intents;
 
-internal static class DeleteIntentAttachmentEndpoint
+public sealed class DeleteIntentAttachmentEndpoint(DeleteIntentAttachmentHandler handler)
 {
-    public static async Task<IActionResult> RunAsync(string id, string attachmentId, HttpContext http)
+    public async Task<IActionResult> RunAsync(string id, string attachmentId, CancellationToken cancellationToken)
     {
-        var handler = http.RequestServices.GetRequiredService<DeleteIntentAttachmentHandler>();
         try
         {
-            await handler.HandleAsync(new DeleteIntentAttachmentCommand(id, attachmentId), http.RequestAborted);
+            await handler.HandleAsync(new DeleteIntentAttachmentCommand(id, attachmentId), cancellationToken);
             return new NoContentResult();
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)

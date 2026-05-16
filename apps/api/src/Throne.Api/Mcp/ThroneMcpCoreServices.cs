@@ -23,11 +23,11 @@ public static class ThroneMcpCoreServices
         services.AddThroneAuth(configuration);
         services.AddThroneRealtime();
         services.AddThroneTools();
-        // Shared helper for the four split Intents controllers (see
-        // IntentsController / IntentPinsController / IntentLinksController /
-        // IntentAttachmentsController). Singleton mirrors the underlying
-        // ITagRepository / IIntentPinRepository handler lifetimes.
-        services.AddSingleton<IntentsApiHelpers>();
+        // Per-endpoint classes + shared IntentsApiHelpers for the four split
+        // Intents controllers (IntentsController / IntentPinsController /
+        // IntentLinksController / IntentAttachmentsController). Endpoints take
+        // ctor deps; Singleton lifetime mirrors the underlying handlers.
+        services.AddThroneIntentEndpoints();
         services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 12 * 1024 * 1024);
         // ForwardedHeaders + IStartupFilter: throne-api за Caddy/nginx, без этого
         // HttpRequest.Scheme = "http" даже на HTTPS-запросе → ломает RFC 9728
