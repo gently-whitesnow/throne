@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -10,14 +10,33 @@ using Throne.Application.Ports;
 
 namespace Throne.Api.Mcp;
 
-internal sealed partial class AuditingMcpServerTool(
-    McpServerTool inner,
-    IMcpCallLogSink callLogSink,
-    ICurrentUserAccessor currentUser,
-    TimeProvider clock,
-    ILogger<AuditingMcpServerTool> logger,
-    ServerVersion serverVersion) : DelegatingMcpServerTool(inner)
+internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
 {
+    private readonly AIFunction _aiFunction;
+    private readonly IMcpCallLogSink _callLogSink;
+    private readonly ICurrentUserAccessor _currentUser;
+    private readonly TimeProvider _clock;
+    private readonly ILogger<AuditingMcpServerTool> _logger;
+    private readonly ServerVersion _serverVersion;
+
+    public AuditingMcpServerTool(
+        McpServerTool inner,
+        AIFunction aiFunction,
+        IMcpCallLogSink callLogSink,
+        ICurrentUserAccessor currentUser,
+        TimeProvider clock,
+        ILogger<AuditingMcpServerTool> logger,
+        ServerVersion serverVersion)
+        : base(inner)
+    {
+        _aiFunction = aiFunction;
+        _callLogSink = callLogSink;
+        _currentUser = currentUser;
+        _clock = clock;
+        _logger = logger;
+        _serverVersion = serverVersion;
+    }
+
     public override async ValueTask<CallToolResult> InvokeAsync(
         RequestContext<CallToolRequestParams> request,
         CancellationToken cancellationToken)
@@ -26,37 +45,39 @@ internal sealed partial class AuditingMcpServerTool(
         var arguments = NormalizeArguments(request.Params?.Arguments);
         var intentId = ExtractIntentId(request.Params?.Arguments);
         var modeHint = ExtractModeHint(toolName, request.Params?.Arguments);
-        var sessionId = ExtractSessionId(request);
-        var userId = currentUser.UserId;
-        var startedAt = clock.GetUtcNow();
+        var sessionId = request.Server.SessionId;
+        var userId = _currentUser.UserId;
+        var startedAt = _clock.GetUtcNow();
         var stopwatch = Stopwatch.StartNew();
+
+        var aiArgs = BuildAIFunctionArguments(request);
 
         try
         {
-            var result = await base.InvokeAsync(request, cancellationToken);
+            var result = await _aiFunction.InvokeAsync(aiArgs, cancellationToken);
             stopwatch.Stop();
 
-            var summary = SummarizeResult(toolName, result);
-            var outcome = result.IsError == true ? McpCallOutcome.Error : McpCallOutcome.Success;
-            var errorCode = outcome == McpCallOutcome.Error ? TryReadErrorCode(result) : null;
-            var errorMessage = outcome == McpCallOutcome.Error ? TryReadErrorMessage(result) : null;
+            var callResult = McpToolResultConverter.ToCallToolResult(result, ProtocolTool, _aiFunction.JsonSerializerOptions);
+            var outcome = callResult.IsError == true ? McpCallOutcome.Error : McpCallOutcome.Success;
+            var errorCode = outcome == McpCallOutcome.Error ? TryReadErrorCode(callResult) : null;
+            var errorMessage = outcome == McpCallOutcome.Error ? TryReadErrorMessage(callResult) : null;
+            var summary = outcome == McpCallOutcome.Success ? McpResultSummarizer.Summarize(toolName, callResult) : null;
 
             await TryWriteAuditAsync(
                 startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
-                outcome, errorCode, errorMessage, null, summary, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
-                ;
+                outcome, errorCode, errorMessage, null, summary, (int)stopwatch.ElapsedMilliseconds, cancellationToken);
 
-            return result;
+            return callResult;
         }
         catch (ApiException ex)
         {
             stopwatch.Stop();
+            var callResult = McpErrorResultFactory.FromApiException(ex);
             await TryWriteAuditAsync(
                 startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, ex.Code, ex.Detail, ex.GetType().FullName,
-                null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
-                ;
-            return BuildErrorResult(ex.Code, ex.Detail);
+                null, (int)stopwatch.ElapsedMilliseconds, cancellationToken);
+            return callResult;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -69,23 +90,24 @@ internal sealed partial class AuditingMcpServerTool(
             await TryWriteAuditAsync(
                 startedAt, sessionId, userId, toolName, arguments, intentId, modeHint,
                 McpCallOutcome.Error, "internal_error", ex.Message, ex.GetType().FullName,
-                null, (int)stopwatch.ElapsedMilliseconds, cancellationToken)
-                ;
-            LogToolFailure(logger, toolName, ex);
-            return BuildErrorResult("internal_error", ex.Message);
+                null, (int)stopwatch.ElapsedMilliseconds, cancellationToken);
+            LogToolFailure(_logger, toolName, ex);
+            return McpErrorResultFactory.Internal(toolName);
         }
     }
 
-    private static CallToolResult BuildErrorResult(string code, string message) => new()
+    private static AIFunctionArguments BuildAIFunctionArguments(RequestContext<CallToolRequestParams> request)
     {
-        IsError = true,
-        Content = [new TextContentBlock { Text = message }],
-        StructuredContent = JsonSerializer.SerializeToElement(new JsonObject
+        var args = new AIFunctionArguments { Services = request.Services };
+        if (request.Params?.Arguments is { } argDict)
         {
-            ["code"] = code,
-            ["message"] = message,
-        }),
-    };
+            foreach (var (key, value) in argDict)
+            {
+                args[key] = value;
+            }
+        }
+        return args;
+    }
 
     private async Task TryWriteAuditAsync(
         DateTimeOffset createdAt,
@@ -119,13 +141,13 @@ internal sealed partial class AuditingMcpServerTool(
                 exceptionType,
                 resultSummary,
                 durationMs,
-                serverVersion.Value);
+                _serverVersion.Value);
 
-            await callLogSink.WriteAsync(entry, ct);
+            await _callLogSink.WriteAsync(entry, ct);
         }
         catch (Exception ex)
         {
-            LogAuditFailure(logger, toolName, ex);
+            LogAuditFailure(_logger, toolName, ex);
         }
     }
 
@@ -171,94 +193,6 @@ internal sealed partial class AuditingMcpServerTool(
             : null;
     }
 
-    private static string? ExtractSessionId(RequestContext<CallToolRequestParams> request) =>
-        request.Server.SessionId;
-
-    private static readonly JsonSerializerOptions SummaryJsonOptions = new(JsonSerializerDefaults.Web);
-
-    private static Dictionary<string, object?>? SummarizeResult(string toolName, CallToolResult result)
-    {
-        if (result.StructuredContent is null)
-        {
-            return null;
-        }
-
-        if (toolName == "get_instruction_bundle")
-        {
-            return SummarizeInstructionBundleResult(result);
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<Dictionary<string, object?>>(
-                result.StructuredContent.Value.GetRawText(),
-                SummaryJsonOptions);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static Dictionary<string, object?>? SummarizeInstructionBundleResult(CallToolResult result)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(result.StructuredContent!.Value.GetRawText());
-            var root = doc.RootElement;
-            var instructions = new List<Dictionary<string, object?>>();
-
-            if (root.TryGetProperty("instructions", out var items) && items.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var item in items.EnumerateArray())
-                {
-                    instructions.Add(new Dictionary<string, object?>
-                    {
-                        ["kind"] = ReadString(item, "kind"),
-                        ["instruction_id"] = ReadString(item, "instruction_id"),
-                        ["version"] = ReadInt(item, "current_version") ?? ReadInt(item, "version"),
-                    });
-                }
-            }
-
-            return new Dictionary<string, object?>
-            {
-                ["intent_id"] = ReadString(root, "intent_id"),
-                ["mode"] = ReadString(root, "mode"),
-                ["instructions"] = instructions,
-                ["missing_kinds"] = ReadStringArray(root, "missing_kinds"),
-            };
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
-    private static string? ReadString(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString()
-            : null;
-
-    private static int? ReadInt(JsonElement element, string propertyName) =>
-        element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.Number &&
-        value.TryGetInt32(out var result)
-            ? result
-            : null;
-
-    private static string[] ReadStringArray(JsonElement element, string propertyName)
-    {
-        if (!element.TryGetProperty(propertyName, out var value) || value.ValueKind != JsonValueKind.Array)
-        {
-            return [];
-        }
-
-        return value.EnumerateArray()
-            .Where(item => item.ValueKind == JsonValueKind.String)
-            .Select(item => item.GetString()!)
-            .ToArray();
-    }
-
     private static string? TryReadErrorCode(CallToolResult result) =>
         TryReadStructuredString(result, "code");
 
@@ -268,22 +202,13 @@ internal sealed partial class AuditingMcpServerTool(
 
     private static string? TryReadStructuredString(CallToolResult result, string propertyName)
     {
-        if (result.StructuredContent is null)
+        if (result.StructuredContent is not { } element || element.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
-
-        try
-        {
-            using var doc = JsonDocument.Parse(result.StructuredContent.Value.GetRawText());
-            return doc.RootElement.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
-                ? value.GetString()
-                : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
     }
 
     private static string? TryReadFirstTextBlock(CallToolResult result)

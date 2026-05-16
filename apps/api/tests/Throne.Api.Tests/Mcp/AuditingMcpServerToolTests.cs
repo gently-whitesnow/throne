@@ -1,6 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -20,8 +23,7 @@ public class AuditingMcpServerToolTests
     public async Task Invoke_records_audit_on_success()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var inner = new StubTool("create_intent", _ => new ValueTask<CallToolResult>(SuccessResult()));
-        var tool = NewWrapper(inner, sink);
+        var tool = NewWrapper("create_intent", _ => SuccessResult(), sink);
 
         var ctx = NewCallContext("create_intent", new Dictionary<string, JsonElement>
         {
@@ -44,8 +46,7 @@ public class AuditingMcpServerToolTests
     public async Task Invoke_records_user_id_from_accessor()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var inner = new StubTool("create_intent", _ => new ValueTask<CallToolResult>(SuccessResult()));
-        var tool = NewWrapper(inner, sink, new StubCurrentUser("user-42"));
+        var tool = NewWrapper("create_intent", _ => SuccessResult(), sink, new StubCurrentUser("user-42"));
 
         await tool.InvokeAsync(NewCallContext("create_intent", new Dictionary<string, JsonElement>()), CancellationToken.None);
 
@@ -58,8 +59,10 @@ public class AuditingMcpServerToolTests
     public async Task Invoke_returns_error_result_on_api_exception()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var inner = new StubTool("get_intent", _ => throw new ApiException(ErrorCodes.IntentNotFound, "Intent 'abc' not found."));
-        var tool = NewWrapper(inner, sink);
+        var tool = NewWrapper(
+            "get_intent",
+            _ => throw new ApiException(ErrorCodes.IntentNotFound, "Intent 'abc' not found."),
+            sink);
 
         var ctx = NewCallContext("get_intent", new Dictionary<string, JsonElement>
         {
@@ -72,13 +75,49 @@ public class AuditingMcpServerToolTests
         await AssertErrorAuditAsync(sink, "get_intent", ErrorCodes.IntentNotFound, "Intent 'abc' not found.", typeof(ApiException), "abc");
     }
 
+    [Fact(DisplayName = "InvokeAsync сериализует ApiException.Extensions в StructuredContent.data — хинт/query_preview не теряются")]
+    public async Task Invoke_returns_api_exception_extensions_in_structured_data()
+    {
+        var sink = Substitute.For<IMcpCallLogSink>();
+        var extensions = new Dictionary<string, object?>
+        {
+            ["intent_id"] = "intent-xyz",
+            ["query_preview"] = "раз два",
+            ["hint"] = "use search_intent_text or extend old_text with neighbouring context to make it unique",
+        };
+        var tool = NewWrapper(
+            "replace_intent_text",
+            _ => throw new ApiException(ErrorCodes.IntentTextMatchNotFound, "old_text was not found in Intent.text.", extensions),
+            sink);
+
+        var ctx = NewCallContext("replace_intent_text", new Dictionary<string, JsonElement>
+        {
+            ["intent_id"] = JsonDocument.Parse("\"intent-xyz\"").RootElement,
+        });
+
+        var result = await tool.InvokeAsync(ctx, CancellationToken.None);
+
+        result.IsError.Should().BeTrue();
+        ReadStructuredString(result, "code").Should().Be(ErrorCodes.IntentTextMatchNotFound);
+        ReadStructuredString(result, "message").Should().Be("old_text was not found in Intent.text.");
+        ReadFirstText(result).Should().Be("old_text was not found in Intent.text.");
+
+        var structured = result.StructuredContent!.Value;
+        structured.TryGetProperty("data", out var data).Should().BeTrue("ApiException.Extensions должны попадать в StructuredContent.data");
+        data.GetProperty("intent_id").GetString().Should().Be("intent-xyz");
+        data.GetProperty("query_preview").GetString().Should().Be("раз два");
+        data.GetProperty("hint").GetString().Should().Contain("search_intent_text");
+    }
+
     [Fact(DisplayName = "InvokeAsync конвертирует unhandled Exception в CallToolResult(IsError=true) с internal_error и пишет audit")]
     public async Task Invoke_returns_error_result_on_unhandled_exception()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
         const string MissingParamMsg = "The arguments dictionary is missing a value for the required parameter 'new_text'.";
-        var inner = new StubTool("replace_intent_text", _ => throw new ArgumentException(MissingParamMsg, "arguments"));
-        var tool = NewWrapper(inner, sink);
+        var tool = NewWrapper(
+            "replace_intent_text",
+            _ => throw new ArgumentException(MissingParamMsg, "arguments"),
+            sink);
 
         var result = await tool.InvokeAsync(
             NewCallContext("replace_intent_text", new Dictionary<string, JsonElement>()),
@@ -86,7 +125,8 @@ public class AuditingMcpServerToolTests
 
         result.IsError.Should().BeTrue();
         ReadStructuredString(result, "code").Should().Be("internal_error");
-        ReadStructuredString(result, "message").Should().Contain("missing a value for the required parameter 'new_text'");
+        ReadStructuredString(result, "message").Should().Be("An error occurred invoking 'replace_intent_text'.");
+        ReadFirstText(result).Should().Be("An error occurred invoking 'replace_intent_text'.");
         await sink.Received(1).WriteAsync(
             Arg.Is<McpCallLogEntry>(e =>
                 e.Outcome == McpCallOutcome.Error &&
@@ -95,6 +135,35 @@ public class AuditingMcpServerToolTests
                 e.ErrorMessage.Contains("missing a value for the required parameter 'new_text'") &&
                 e.ExceptionType == typeof(ArgumentException).FullName),
             Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "AddThroneTool сохраняет CallToolResult как native MCP content при прямом AIFunction-вызове")]
+    public async Task AddThroneTool_preserves_raw_call_tool_result()
+    {
+        var sink = Substitute.For<IMcpCallLogSink>();
+        using var provider = BuildProvider<NativeContentTool>(sink);
+        var tool = provider.GetRequiredService<McpServerTool>();
+
+        var result = await tool.InvokeAsync(
+            NewCallContext("native_content", new Dictionary<string, JsonElement>()),
+            CancellationToken.None);
+
+        result.IsError.Should().BeFalse();
+        result.Content.Should().ContainSingle().Which.Should().BeOfType<ImageContentBlock>();
+        result.StructuredContent.Should().BeNull();
+    }
+
+    private static ServiceProvider BuildProvider<TTool>(IMcpCallLogSink sink)
+        where TTool : class
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(sink);
+        services.AddSingleton<ICurrentUserAccessor>(new StubCurrentUser(CurrentUserIds.LocalDev));
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+        services.AddSingleton<ILogger<AuditingMcpServerTool>>(NullLogger<AuditingMcpServerTool>.Instance);
+        services.AddSingleton(new ServerVersion("test"));
+        services.AddThroneTool<TTool>();
+        return services.BuildServiceProvider();
     }
 
     private static void AssertErrorResult(CallToolResult result, string expectedCode, string expectedMessage)
@@ -142,8 +211,7 @@ public class AuditingMcpServerToolTests
     public async Task Invoke_propagates_cancellation()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var inner = new StubTool("create_intent", _ => throw new OperationCanceledException());
-        var tool = NewWrapper(inner, sink);
+        var tool = NewWrapper("create_intent", _ => throw new OperationCanceledException(), sink);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -160,8 +228,7 @@ public class AuditingMcpServerToolTests
         sink.WriteAsync(Arg.Any<McpCallLogEntry>(), Arg.Any<CancellationToken>())
             .Returns(_ => throw new InvalidOperationException("sink down"));
 
-        var inner = new StubTool("create_intent", _ => new ValueTask<CallToolResult>(SuccessResult()));
-        var tool = NewWrapper(inner, sink);
+        var tool = NewWrapper("create_intent", _ => SuccessResult(), sink);
 
         var ctx = NewCallContext("create_intent", new Dictionary<string, JsonElement>());
 
@@ -174,8 +241,7 @@ public class AuditingMcpServerToolTests
     public async Task Invoke_summarizes_instruction_bundle_use()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var inner = new StubTool("get_instruction_bundle", _ => new ValueTask<CallToolResult>(InstructionBundleResult()));
-        var tool = NewWrapper(inner, sink);
+        var tool = NewWrapper("get_instruction_bundle", _ => InstructionBundleResult(), sink);
 
         var ctx = NewCallContext("get_instruction_bundle", new Dictionary<string, JsonElement>
         {
@@ -196,11 +262,13 @@ public class AuditingMcpServerToolTests
     }
 
     private static AuditingMcpServerTool NewWrapper(
-        McpServerTool inner,
+        string toolName,
+        Func<AIFunctionArguments, object?> handler,
         IMcpCallLogSink sink,
         ICurrentUserAccessor? currentUser = null) =>
         new(
-            inner,
+            new StubMcpServerTool(toolName, hasOutputSchema: true),
+            new StubAIFunction(toolName, handler),
             sink,
             currentUser ?? new StubCurrentUser(CurrentUserIds.LocalDev),
             new FakeTimeProvider(Now),
@@ -282,20 +350,62 @@ public class AuditingMcpServerToolTests
         return true;
     }
 
-    private sealed class StubTool(string name, Func<RequestContext<CallToolRequestParams>, ValueTask<CallToolResult>> handler) : McpServerTool
+    private sealed class StubMcpServerTool(string name, bool hasOutputSchema) : McpServerTool
     {
-        public override Tool ProtocolTool { get; } = new() { Name = name, Description = "stub", InputSchema = JsonDocument.Parse("""{ "type": "object" }""").RootElement };
+        public override Tool ProtocolTool { get; } = new()
+        {
+            Name = name,
+            Description = "stub",
+            InputSchema = JsonDocument.Parse("""{ "type": "object" }""").RootElement,
+            OutputSchema = hasOutputSchema
+                ? JsonDocument.Parse("""{ "type": "object" }""").RootElement
+                : null,
+        };
 
         public override IReadOnlyList<object> Metadata { get; } = Array.Empty<object>();
 
         public override ValueTask<CallToolResult> InvokeAsync(
             RequestContext<CallToolRequestParams> request,
             CancellationToken cancellationToken) =>
-            handler(request);
+            throw new InvalidOperationException(
+                "AuditingMcpServerTool должен инвокать AIFunction напрямую, минуя SDK-обёртку.");
+    }
+
+    private sealed class StubAIFunction(string name, Func<AIFunctionArguments, object?> handler) : AIFunction
+    {
+        public override string Name { get; } = name;
+
+        protected override ValueTask<object?> InvokeCoreAsync(
+            AIFunctionArguments arguments,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return new ValueTask<object?>(handler(arguments));
+        }
     }
 
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    [McpServerToolType]
+    private sealed class NativeContentTool
+    {
+        private readonly byte[] _bytes = [1, 2, 3];
+
+        [McpServerTool(Name = "native_content", ReadOnly = true, UseStructuredContent = false)]
+        public CallToolResult GetNativeContent() => new()
+        {
+            Content =
+            [
+                new ImageContentBlock
+                {
+                    Data = _bytes,
+                    MimeType = "image/png",
+                },
+            ],
+            IsError = false,
+        };
     }
 }
