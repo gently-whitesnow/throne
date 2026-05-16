@@ -22,8 +22,8 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
 
         var loaded = await repo.GetAsync("p-1", CancellationToken.None);
         loaded.Should().NotBeNull();
-        loaded!.OwnerUserId.Should().Be("user-1");
-        loaded.Status.Should().Be(InstructionPatchStatusNames.Proposed);
+        loaded!.Identity.OwnerUserId.Should().Be("user-1");
+        loaded.State.Status.Should().Be(InstructionPatchStatusNames.Proposed);
         loaded.PatchText.Should().Be(patch.PatchText);
     }
 
@@ -54,9 +54,9 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
 
         var stored = await repo.GetAsync("p-1", CancellationToken.None);
         stored.Should().NotBeNull();
-        stored!.Status.Should().Be(InstructionPatchStatusNames.Applied);
-        stored.AppliedInstructionVersion.Should().Be(6);
-        stored.AppliedText.Should().Be(patch.PatchText);
+        stored!.State.Status.Should().Be(InstructionPatchStatusNames.Applied);
+        stored.State.AppliedInstructionVersion.Should().Be(6);
+        stored.State.AppliedText.Should().Be(patch.PatchText);
 
         // Second apply against stale (proposed) snapshot returns AlreadyDecided.
         var stale = MakePatch("p-1");
@@ -79,8 +79,8 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
 
         var stored = await repo.GetAsync("p-1", CancellationToken.None);
         stored.Should().NotBeNull();
-        stored!.Status.Should().Be(InstructionPatchStatusNames.Rejected);
-        stored.RejectComment.Should().Be("operator wrote a long enough reason");
+        stored!.State.Status.Should().Be(InstructionPatchStatusNames.Rejected);
+        stored.State.RejectComment.Should().Be("operator wrote a long enough reason");
     }
 
     [Fact(DisplayName = "Idempotency: повторный Create с тем же ключом возвращает существующий patch (IsExisting=true), второй insert отсутствует")]
@@ -103,12 +103,12 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
             ct => repo.CreateAsync(retry, idempotencyKey: "dream-key-1", ct),
             CancellationToken.None);
         retryOutcome.IsExisting.Should().BeTrue();
-        retryOutcome.Patch.Id.Should().Be("p-1");
+        retryOutcome.Patch.Identity.Id.Should().Be("p-1");
         retryOutcome.Events.Should().BeEmpty();
 
         var direct = await repo.GetByIdempotencyKeyAsync("dream-key-1", CancellationToken.None);
         direct.Should().NotBeNull();
-        direct!.Id.Should().Be("p-1");
+        direct!.Identity.Id.Should().Be("p-1");
     }
 
     [Fact(DisplayName = "Idempotency: ключ скоупится по owner — два разных user могут использовать один и тот же ключ")]
@@ -126,7 +126,7 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
             CancellationToken.None);
 
         u2Outcome.IsExisting.Should().BeFalse();
-        u2Outcome.Patch.Id.Should().Be("u2-p1");
+        u2Outcome.Patch.Identity.Id.Should().Be("u2-p1");
     }
 
     [Fact(DisplayName = "ListAsync owner-scoped + status filter")]

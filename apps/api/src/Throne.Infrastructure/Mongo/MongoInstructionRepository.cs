@@ -119,7 +119,7 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
 
         var instruction = MapToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = instruction.ReplaceText(oldText, newText, newVersionId, now, changedBy);
+        var domainResult = InstructionReplaceTextOperation.Apply(instruction, oldText, newText, newVersionId, now, changedBy);
 
         switch (domainResult)
         {
@@ -161,9 +161,9 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
     private static InstructionDocument MapInstruction(Instruction instruction) => new()
     {
         Id = instruction.Id.Value,
-        Scope = instruction.Scope,
-        UserId = instruction.UserId,
-        Kind = instruction.Kind,
+        Scope = instruction.Descriptor.Scope,
+        UserId = instruction.Descriptor.UserId,
+        Kind = instruction.Descriptor.Kind,
         Text = instruction.Text,
         CurrentVersion = instruction.CurrentVersion,
         CreatedAt = instruction.CreatedAt.UtcDateTime,
@@ -177,16 +177,16 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         OwnerId = v.OwnerId,
         Version = v.Version,
         Kind = v.Kind.ToWire(),
-        Snapshot = v.Snapshot,
-        OldText = v.OldText,
-        NewText = v.NewText,
-        AfterLine = v.AfterLine,
-        InsertText = v.InsertText,
+        Snapshot = v.Delta.Snapshot,
+        OldText = v.Delta.OldText,
+        NewText = v.Delta.NewText,
+        AfterLine = v.Delta.AfterLine,
+        InsertText = v.Delta.InsertText,
         ChangedAt = v.ChangedAt.UtcDateTime,
         ChangedBy = v.ChangedBy.ToWire(),
     };
 
-    private static Instruction MapToDomain(InstructionDocument doc) => Instruction.Restore(
+    private static Instruction MapToDomain(InstructionDocument doc) => InstructionFactory.Restore(
         id: new InstructionId(doc.Id),
         scope: doc.Scope,
         userId: doc.UserId,

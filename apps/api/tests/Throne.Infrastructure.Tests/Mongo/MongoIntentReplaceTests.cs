@@ -27,23 +27,10 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
 
         outcome.Should().BeOfType<ReplaceIntentTextOutcome.Replaced>();
         var intent = ((ReplaceIntentTextOutcome.Replaced)outcome).Intent;
-        intent.Text.Should().Be("hello there");
-        intent.CurrentVersion.Should().Be(2);
+        MongoIntentReplaceAssertions.AssertIntentState(intent, "hello there", 2);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(d => d.Id == id.Value).FirstOrDefaultAsync();
-        stored!.Text.Should().Be("hello there");
-        stored.CurrentVersion.Should().Be(2);
-
-        var events = await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
-            .Find(d => d.IntentId == id.Value).SortBy(d => d.Version).ToListAsync();
-        events.Should().HaveCount(2);
-        events[1].Version.Should().Be(2);
-        events[1].Kind.Should().Be("text_changed");
-        events[1].TextChange!.Kind.Should().Be("replace");
-        events[1].TextChange!.OldText.Should().Be("world");
-        events[1].TextChange!.NewText.Should().Be("there");
-        events[1].TextChange!.Snapshot.Should().BeNull();
+        await MongoIntentReplaceAssertions.AssertStoredAsync(db, id, "hello there", 2);
+        await MongoIntentReplaceAssertions.AssertReplaceEventAsync(db, id, "world", "there");
     }
 
     [Fact(DisplayName = "ReplaceTextAsync с неверным expected_version возвращает VersionConflict без side-effects")]
@@ -162,7 +149,7 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "user-1", text, null, Created);
+        var intent = IntentFactory.Create(id, "user-1", text, null, Created);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(
@@ -175,9 +162,9 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         IntentStatusChange.Create(
             Guid.NewGuid().ToString("N"),
             intent.Id,
-            intent.CurrentVersion,
-            intent.Status,
-            intent.Status,
+            intent.State.CurrentVersion,
+            intent.State.Status,
+            intent.State.Status,
             "test:create",
             Created,
             IntentTrainingAuthor.Agent);

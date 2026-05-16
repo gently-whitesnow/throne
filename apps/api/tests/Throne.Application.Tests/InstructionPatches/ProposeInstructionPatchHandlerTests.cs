@@ -39,7 +39,7 @@ public class ProposeInstructionPatchHandlerTests
 
         var result = await handler.HandleAsync(NewCommand(idempotencyKey: "dream-1"), CancellationToken.None);
 
-        result.Id.Should().Be("p-existing");
+        result.Identity.Id.Should().Be("p-existing");
         await patches.DidNotReceive().CreateAsync(Arg.Any<InstructionPatch>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
@@ -102,7 +102,7 @@ public class ProposeInstructionPatchHandlerTests
             NewCommand(idempotencyKey: null, baseInstructionVersion: 0),
             CancellationToken.None);
 
-        result.BaseInstructionVersion.Should().Be(0);
+        result.Identity.BaseInstructionVersion.Should().Be(0);
         await patches.Received(1).CreateAsync(Arg.Any<InstructionPatch>(), null, Arg.Any<CancellationToken>());
     }
 
@@ -159,7 +159,7 @@ public class ProposeInstructionPatchHandlerTests
         int currentVersion)
     {
         var instructions = Substitute.For<IInstructionRepository>();
-        var target = Instruction.Restore(
+        var target = InstructionFactory.Restore(
             InstructionId.New(),
             scope: InstructionScopeNames.User,
             userId: "user-1",

@@ -109,19 +109,19 @@ public sealed class InstructionPatchTools(
 internal static class InstructionPatchMcpMapper
 {
     public static McpInstructionPatchReadModel ToReadModel(InstructionPatch patch) => new(
-        patch.Id,
-        patch.TargetKind,
-        patch.Status,
+        patch.Identity.Id,
+        patch.Identity.TargetKind,
+        patch.State.Status,
         patch.PatchText,
-        patch.AppliedText,
+        patch.State.AppliedText,
         patch.EvidenceCardIds.ToList(),
         patch.Rationale,
-        patch.RejectComment,
-        patch.BaseInstructionVersion,
-        patch.AppliedInstructionVersion,
-        patch.CreatedAt,
-        patch.UpdatedAt,
-        patch.DecidedAt);
+        patch.State.RejectComment,
+        patch.Identity.BaseInstructionVersion,
+        patch.State.AppliedInstructionVersion,
+        patch.Identity.CreatedAt,
+        patch.State.UpdatedAt,
+        patch.State.DecidedAt);
 }
 
 public sealed record McpInstructionPatchListResult(

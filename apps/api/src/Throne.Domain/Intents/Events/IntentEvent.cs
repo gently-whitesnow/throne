@@ -6,6 +6,8 @@ namespace Throne.Domain.Intents.Events;
 /// <summary>
 /// Append-only event in the canonical history of an Intent (ADR-0019).
 /// Stage-2 kinds: <c>text_changed</c>, <c>link_added</c>, <c>link_removed</c>.
+/// Audit-фасет (when/by) свёрнут в <see cref="IntentEventAudit"/>, чтобы primary
+/// constructor оставался в пределах CTOR_DEPS-бюджета (8 параметров).
 /// </summary>
 public sealed record IntentEvent(
     string Id,
@@ -15,8 +17,7 @@ public sealed record IntentEvent(
     int? Version,
     IntentEventTextChange? TextChange,
     IntentEventLinkPayload? Link,
-    DateTimeOffset CreatedAt,
-    IntentEventAuthor? CreatedBy)
+    IntentEventAudit Audit)
 {
     public static IntentEvent ForText(
         string id,
@@ -31,8 +32,7 @@ public sealed record IntentEvent(
             Version: version.Version,
             TextChange: IntentEventTextChange.From(version),
             Link: null,
-            CreatedAt: createdAt,
-            CreatedBy: AuthorFromTextVersion(version.ChangedBy));
+            Audit: new IntentEventAudit(createdAt, AuthorFromTextVersion(version.ChangedBy)));
 
     public static IntentEvent ForLinkAdded(string id, IntentLink link) =>
         new(
@@ -43,8 +43,7 @@ public sealed record IntentEvent(
             Version: null,
             TextChange: null,
             Link: IntentEventLinkPayload.From(link),
-            CreatedAt: link.CreatedAt,
-            CreatedBy: AuthorFromLinkAuthor(link.Author));
+            Audit: new IntentEventAudit(link.CreatedAt, AuthorFromLinkAuthor(link.Author)));
 
     public static IntentEvent ForLinkRemoved(string id, IntentLink link, DateTimeOffset removedAt) =>
         new(
@@ -55,8 +54,7 @@ public sealed record IntentEvent(
             Version: null,
             TextChange: null,
             Link: IntentEventLinkPayload.From(link),
-            CreatedAt: removedAt,
-            CreatedBy: null);
+            Audit: new IntentEventAudit(removedAt, null));
 
     private static IntentEventAuthor AuthorFromTextVersion(TextVersionAuthor author) => author switch
     {
@@ -73,6 +71,8 @@ public sealed record IntentEvent(
         _ => throw new InvalidOperationException($"Unknown link author: {author}."),
     };
 }
+
+public sealed record IntentEventAudit(DateTimeOffset CreatedAt, IntentEventAuthor? CreatedBy);
 
 public enum IntentEventKind
 {
@@ -98,11 +98,11 @@ public sealed record IntentEventTextChange(
 {
     public static IntentEventTextChange From(TextVersion v) => new(
         Kind: v.Kind,
-        Snapshot: v.Snapshot,
-        OldText: v.OldText,
-        NewText: v.NewText,
-        AfterLine: v.AfterLine,
-        InsertText: v.InsertText);
+        Snapshot: v.Delta.Snapshot,
+        OldText: v.Delta.OldText,
+        NewText: v.Delta.NewText,
+        AfterLine: v.Delta.AfterLine,
+        InsertText: v.Delta.InsertText);
 }
 
 public sealed record IntentEventLinkPayload(

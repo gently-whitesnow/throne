@@ -28,7 +28,7 @@ public abstract record ApplyInstructionPatchPersistenceOutcome : IDomainEventCar
 
     public sealed record Applied(InstructionPatch Patch) : ApplyInstructionPatchPersistenceOutcome
     {
-        public override IReadOnlyList<IDomainEvent> Events => Patch.Status switch
+        public override IReadOnlyList<IDomainEvent> Events => Patch.State.Status switch
         {
             InstructionPatchStatusNames.AppliedEdited => [new InstructionPatchApplied(Patch)],
             _ => [new InstructionPatchApplied(Patch)],

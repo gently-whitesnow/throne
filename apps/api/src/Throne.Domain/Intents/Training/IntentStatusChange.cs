@@ -7,8 +7,7 @@ public sealed record IntentStatusChange(
     string FromStatus,
     string ToStatus,
     string Source,
-    DateTimeOffset CreatedAt,
-    IntentTrainingAuthor CreatedBy,
+    IntentStatusChangeAudit Audit,
     string? Reason)
 {
     public static IntentStatusChange Create(
@@ -43,8 +42,7 @@ public sealed record IntentStatusChange(
             fromStatus,
             toStatus,
             source,
-            createdAt,
-            createdBy,
+            new IntentStatusChangeAudit(createdAt, createdBy),
             normalizedReason);
     }
 
@@ -57,3 +55,5 @@ public sealed record IntentStatusChange(
         }
     }
 }
+
+public sealed record IntentStatusChangeAudit(DateTimeOffset CreatedAt, IntentTrainingAuthor CreatedBy);

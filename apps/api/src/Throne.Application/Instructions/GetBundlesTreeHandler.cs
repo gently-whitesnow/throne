@@ -48,7 +48,7 @@ internal static class UserInstructionLoader
         var userInstructions = await repository.GetUserInstructionsByKindsAsync(userId, allUserKinds, ct);
 
         return userInstructions
-            .GroupBy(i => i.Kind, StringComparer.Ordinal)
+            .GroupBy(i => i.Descriptor.Kind, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.OrderBy(i => i.CreatedAt).First(), StringComparer.Ordinal);
     }
 }

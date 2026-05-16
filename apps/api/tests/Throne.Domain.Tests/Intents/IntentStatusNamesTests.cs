@@ -24,18 +24,18 @@ public class IntentStatusNamesTests
     [Fact(DisplayName = "SetStatus принимает needs_help")]
     public void SetStatus_accepts_needs_help()
     {
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = IntentFactory.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
 
-        intent.SetStatus(IntentStatusNames.NeedsHelp, Now.AddMinutes(5)).Should().BeTrue();
-        intent.Status.Should().Be(IntentStatusNames.NeedsHelp);
+        IntentStatusOperation.SetStatus(intent, IntentStatusNames.NeedsHelp, Now.AddMinutes(5)).Should().BeTrue();
+        intent.State.Status.Should().Be(IntentStatusNames.NeedsHelp);
     }
 
     [Fact(DisplayName = "SetStatus принимает fridge")]
     public void SetStatus_accepts_fridge()
     {
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = IntentFactory.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
 
-        intent.SetStatus(IntentStatusNames.Fridge, Now.AddMinutes(5)).Should().BeTrue();
-        intent.Status.Should().Be(IntentStatusNames.Fridge);
+        IntentStatusOperation.SetStatus(intent, IntentStatusNames.Fridge, Now.AddMinutes(5)).Should().BeTrue();
+        intent.State.Status.Should().Be(IntentStatusNames.Fridge);
     }
 }

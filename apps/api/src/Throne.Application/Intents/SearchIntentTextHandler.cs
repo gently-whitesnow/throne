@@ -37,7 +37,7 @@ public sealed class SearchIntentTextHandler(IIntentRepository repository)
         var contextLines = query.ContextLines ?? DefaultContextLines;
         var limit = Math.Min(query.Limit ?? DefaultLimit, IntentTextSearch.ServerMaxLimit);
 
-        var result = IntentTextSearch.Search(intent.Text, query.Query, contextLines, limit);
+        var result = IntentTextSearch.Search(intent.State.Text, query.Query, contextLines, limit);
 
         int? estimate = result.TotalMatches > result.Matches.Count ? result.TotalMatches : null;
         return new TextSearchResult(result.Matches, estimate);

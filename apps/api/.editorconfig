@@ -65,32 +65,9 @@ dotnet_diagnostic.CA1707.severity = none
 [src/Throne.Api/Mcp/Tools/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 
-# Pre-existing CA1502 violations on aggregate roots / domain types.
-# TODO(intent:84be552145af4ca3bdab3584aa61d46e): декомпозировать и снять suppress.
-# До этого момента per-type cyclomatic threshold для перечисленных файлов выключен,
-# глобальный порог в CodeMetricsConfig.txt остаётся CA1502(Type): 10.
-[src/Throne.Domain/Instructions/Instruction.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Intents/Intent.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Intents/IntentTextSearch.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# Fractional indexing algorithm: branching is the algorithm. Splitting hides intent.
-[src/Throne.Domain/Intents/FractionalIndex.cs]
-dotnet_diagnostic.CA1502.severity = none
-
 # Intent aggregate is wide: list/get/create/edit/move/tag/status/delete are all natural
 # read+write operations. Splitting into role interfaces would shred a single aggregate.
 [src/Throne.Application/Ports/IIntentRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Tags/Tag.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Domain.Tests/Intents/FractionalIndexTests.cs]
 dotnet_diagnostic.CA1502.severity = none
 
 [src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs]
@@ -277,21 +254,6 @@ dotnet_diagnostic.CA1506.severity = none
 # transition helper, and the Mongo repo wraps Builders<T> chains for the
 # owner-scoped list/apply/reject paths. Static factory + transition helpers and
 # the controller fall under the same Builders / dispatch precedents.
-[src/Throne.Domain/Instructions/InstructionPatch.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Instructions/InstructionPatchGuards.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Instructions/InstructionPatchBudgets.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Instructions/InstructionPatchTransitions.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Domain/Instructions/InstructionPatchFactory.cs]
-dotnet_diagnostic.CA1502.severity = none
-
 [src/Throne.Infrastructure/Mongo/Documents/InstructionPatchDocument.cs]
 dotnet_diagnostic.CA1502.severity = none
 

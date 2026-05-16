@@ -15,7 +15,7 @@ public class GetCurrentInstructionHandlerTests
     public async Task Returns_existing_instruction()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        var existing = Instruction.Restore(
+        var existing = InstructionFactory.Restore(
             InstructionId.New(),
             InstructionScopeNames.User,
             "user-1",
@@ -25,7 +25,7 @@ public class GetCurrentInstructionHandlerTests
             createdAt: Now,
             updatedAt: Now);
         repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns([existing]);
+            .Returns(Task.FromResult<IReadOnlyList<Instruction>>(new[] { existing }));
         var handler = new GetCurrentInstructionHandler(repo, new TestCurrentUserAccessor());
 
         var view = await handler.HandleAsync(InstructionKindNames.Work, CancellationToken.None);

@@ -18,7 +18,7 @@ public class CreateIntentHandlerTests
     {
         var repo = Substitute.For<IIntentRepository>();
         var tagRepo = Substitute.For<ITagRepository>();
-        var existing = Tag.Create(TagId.New(), "throne", Now);
+        var existing = TagFactory.Create(TagId.New(), "throne", Now);
         tagRepo.EnsureByNameAsync("throne", Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult<EnsureTagOutcome>(new EnsureTagOutcome.Existed(existing)));
 
@@ -37,27 +37,27 @@ public class CreateIntentHandlerTests
 
         var intent = await handler.HandleAsync(new CreateIntentCommand("hello world", ["throne"], TextVersionAuthor.Agent), CancellationToken.None);
 
-        intent.Text.Should().Be("hello world");
-        intent.Status.Should().Be(IntentStatusNames.Draft);
-        intent.CurrentVersion.Should().Be(1);
+        intent.State.Text.Should().Be("hello world");
+        intent.State.Status.Should().Be(IntentStatusNames.Draft);
+        intent.State.CurrentVersion.Should().Be(1);
         intent.TagIds.Should().Equal(existing.Id);
         intent.CreatedAt.Should().Be(Now);
-        intent.UpdatedAt.Should().Be(Now);
+        intent.State.UpdatedAt.Should().Be(Now);
 
         await repo.Received(1).CreateAsync(
             Arg.Is<Intent>(i =>
-                i.Text == "hello world" &&
-                i.Status == IntentStatusNames.Draft &&
-                i.CurrentVersion == 1),
+                i.State.Text == "hello world" &&
+                i.State.Status == IntentStatusNames.Draft &&
+                i.State.CurrentVersion == 1),
             Arg.Is<TextVersion>(v =>
                 v.Version == 1 &&
                 v.Kind == TextVersionKind.Create &&
                 v.OwnerKind == TextVersionOwnerKind.Intent &&
-                v.Snapshot == "hello world"),
+                v.Delta.Snapshot == "hello world"),
             Arg.Is<IntentStatusChange>(c =>
                 c.FromStatus == IntentStatusNames.Draft &&
                 c.ToStatus == IntentStatusNames.Draft &&
-                c.CreatedBy == IntentTrainingAuthor.Agent),
+                c.Audit.CreatedBy == IntentTrainingAuthor.Agent),
             Arg.Any<IReadOnlyList<Tag>>(),
             Arg.Any<CancellationToken>());
     }
@@ -67,7 +67,7 @@ public class CreateIntentHandlerTests
     {
         var repo = Substitute.For<IIntentRepository>();
         var tagRepo = Substitute.For<ITagRepository>();
-        var newTag = Tag.Create(TagId.New(), "throne", Now);
+        var newTag = TagFactory.Create(TagId.New(), "throne", Now);
         tagRepo.EnsureByNameAsync("throne", Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult<EnsureTagOutcome>(new EnsureTagOutcome.Created(newTag)));
 

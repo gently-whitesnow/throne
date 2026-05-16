@@ -38,20 +38,20 @@ public sealed class ApplyInstructionPatchHandler(
         var patch = await patches.GetAsync(command.PatchId, ct)
             ?? throw NotFound(command.PatchId);
         EnsureOwner(patch);
-        if (patch.Status != InstructionPatchStatusNames.Proposed)
+        if (patch.State.Status != InstructionPatchStatusNames.Proposed)
         {
             throw AlreadyDecided(patch);
         }
 
-        var instruction = await FindUserInstructionAsync(patch.OwnerUserId, patch.TargetKind, ct);
-        if (instruction is null && patch.BaseInstructionVersion != 0)
+        var instruction = await FindUserInstructionAsync(patch.Identity.OwnerUserId, patch.Identity.TargetKind, ct);
+        if (instruction is null && patch.Identity.BaseInstructionVersion != 0)
         {
             throw new ApiException(
                 ErrorCodes.InstructionNotFound,
-                $"User instruction with kind '{patch.TargetKind}' not found.",
-                new Dictionary<string, object?> { ["target_kind"] = patch.TargetKind });
+                $"User instruction with kind '{patch.Identity.TargetKind}' not found.",
+                new Dictionary<string, object?> { ["target_kind"] = patch.Identity.TargetKind });
         }
-        if (instruction is not null && instruction.CurrentVersion != patch.BaseInstructionVersion)
+        if (instruction is not null && instruction.CurrentVersion != patch.Identity.BaseInstructionVersion)
         {
             throw NeedsRebase(patch, instruction.CurrentVersion);
         }
@@ -70,7 +70,7 @@ public sealed class ApplyInstructionPatchHandler(
         {
             var replaceOutcome = await instructions.ReplaceTextAsync(
                 new InstructionId(instruction.Id.Value),
-                patch.BaseInstructionVersion,
+                patch.Identity.BaseInstructionVersion,
                 oldText,
                 newText,
                 TextVersionAuthor.User,
@@ -83,8 +83,8 @@ public sealed class ApplyInstructionPatchHandler(
                 ReplaceInstructionTextOutcome.VersionConflict vc => throw NeedsRebase(patch, vc.CurrentVersion),
                 ReplaceInstructionTextOutcome.NotFound => throw new ApiException(
                     ErrorCodes.InstructionNotFound,
-                    $"User instruction with kind '{patch.TargetKind}' not found.",
-                    new Dictionary<string, object?> { ["target_kind"] = patch.TargetKind }),
+                    $"User instruction with kind '{patch.Identity.TargetKind}' not found.",
+                    new Dictionary<string, object?> { ["target_kind"] = patch.Identity.TargetKind }),
                 ReplaceInstructionTextOutcome.MatchNotFound matchNotFound => throw new ApiException(
                     ErrorCodes.InstructionTextMatchNotFound,
                     "old_text was not found in Instruction.text.",
@@ -111,7 +111,7 @@ public sealed class ApplyInstructionPatchHandler(
             {
                 ApplyInstructionPatchPersistenceOutcome.Applied applied => applied.Patch,
                 ApplyInstructionPatchPersistenceOutcome.AlreadyDecided ad => throw AlreadyDecided(ad.Patch),
-                ApplyInstructionPatchPersistenceOutcome.NotFound => throw NotFound(patch.Id),
+                ApplyInstructionPatchPersistenceOutcome.NotFound => throw NotFound(patch.Identity.Id),
                 _ => throw new InvalidOperationException(
                     $"Unhandled patch apply outcome: {persistOutcome.GetType().Name}"),
             };
@@ -130,11 +130,11 @@ public sealed class ApplyInstructionPatchHandler(
     {
         return await unitOfWork.ExecuteAsync<InstructionPatch>(async inner =>
         {
-            var instruction = Instruction.Create(
+            var instruction = InstructionFactory.Create(
                 id: InstructionId.New(),
                 scope: InstructionScopeNames.User,
-                userId: patch.OwnerUserId,
-                kind: patch.TargetKind,
+                userId: patch.Identity.OwnerUserId,
+                kind: patch.Identity.TargetKind,
                 text: newText,
                 now: now);
             var initialVersion = TextVersion.CreateSnapshot(
@@ -152,7 +152,7 @@ public sealed class ApplyInstructionPatchHandler(
             {
                 ApplyInstructionPatchPersistenceOutcome.Applied applied => applied.Patch,
                 ApplyInstructionPatchPersistenceOutcome.AlreadyDecided ad => throw AlreadyDecided(ad.Patch),
-                ApplyInstructionPatchPersistenceOutcome.NotFound => throw NotFound(patch.Id),
+                ApplyInstructionPatchPersistenceOutcome.NotFound => throw NotFound(patch.Identity.Id),
                 _ => throw new InvalidOperationException(
                     $"Unhandled patch apply outcome: {persistOutcome.GetType().Name}"),
             };
@@ -167,9 +167,9 @@ public sealed class ApplyInstructionPatchHandler(
 
     private void EnsureOwner(InstructionPatch patch)
     {
-        if (!string.Equals(patch.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
+        if (!string.Equals(patch.Identity.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
         {
-            throw NotFound(patch.Id);
+            throw NotFound(patch.Identity.Id);
         }
     }
 
@@ -180,11 +180,11 @@ public sealed class ApplyInstructionPatchHandler(
 
     private static ApiException AlreadyDecided(InstructionPatch patch) => new(
         ErrorCodes.InstructionPatchAlreadyDecided,
-        $"InstructionPatch '{patch.Id}' is in status '{patch.Status}'.",
+        $"InstructionPatch '{patch.Identity.Id}' is in status '{patch.State.Status}'.",
         new Dictionary<string, object?>
         {
-            ["patch_id"] = patch.Id,
-            ["current_status"] = patch.Status,
+            ["patch_id"] = patch.Identity.Id,
+            ["current_status"] = patch.State.Status,
         });
 
     private static ApiException NeedsRebase(InstructionPatch patch, int currentVersion) => new(
@@ -192,9 +192,9 @@ public sealed class ApplyInstructionPatchHandler(
         "Instruction.current_version moved past patch.base_instruction_version.",
         new Dictionary<string, object?>
         {
-            ["patch_id"] = patch.Id,
-            ["target_kind"] = patch.TargetKind,
-            ["base_instruction_version"] = patch.BaseInstructionVersion,
+            ["patch_id"] = patch.Identity.Id,
+            ["target_kind"] = patch.Identity.TargetKind,
+            ["base_instruction_version"] = patch.Identity.BaseInstructionVersion,
             ["current_instruction_version"] = currentVersion,
         });
 }

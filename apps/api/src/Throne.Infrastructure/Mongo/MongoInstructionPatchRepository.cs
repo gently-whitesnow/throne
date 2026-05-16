@@ -151,24 +151,24 @@ internal sealed class MongoInstructionPatchRepository(
         var session = RequireSession(nameof(ApplyAsync));
 
         var filter = Builders<InstructionPatchDocument>.Filter.And(
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Id),
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.OwnerUserId),
+            Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
+            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId),
             Builders<InstructionPatchDocument>.Filter.Eq(x => x.Status, InstructionPatchStatusNames.Proposed));
 
         var update = Builders<InstructionPatchDocument>.Update
-            .Set(x => x.Status, patch.Status)
-            .Set(x => x.AppliedText, patch.AppliedText)
-            .Set(x => x.AppliedInstructionVersion, patch.AppliedInstructionVersion)
-            .Set(x => x.UpdatedAt, patch.UpdatedAt.UtcDateTime)
-            .Set(x => x.DecidedAt, patch.DecidedAt?.UtcDateTime);
+            .Set(x => x.Status, patch.State.Status)
+            .Set(x => x.AppliedText, patch.State.AppliedText)
+            .Set(x => x.AppliedInstructionVersion, patch.State.AppliedInstructionVersion)
+            .Set(x => x.UpdatedAt, patch.State.UpdatedAt.UtcDateTime)
+            .Set(x => x.DecidedAt, patch.State.DecidedAt?.UtcDateTime);
 
         var result = await _collection.UpdateOneAsync(session, filter, update, options: null, ct);
         if (result.ModifiedCount == 0)
         {
             var fresh = await _collection.Find(session,
                 Builders<InstructionPatchDocument>.Filter.And(
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Id),
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.OwnerUserId)))
+                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
+                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId)))
                 .FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new ApplyInstructionPatchPersistenceOutcome.NotFound()
@@ -186,23 +186,23 @@ internal sealed class MongoInstructionPatchRepository(
         var session = RequireSession(nameof(RejectAsync));
 
         var filter = Builders<InstructionPatchDocument>.Filter.And(
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Id),
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.OwnerUserId),
+            Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
+            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId),
             Builders<InstructionPatchDocument>.Filter.Eq(x => x.Status, InstructionPatchStatusNames.Proposed));
 
         var update = Builders<InstructionPatchDocument>.Update
-            .Set(x => x.Status, patch.Status)
-            .Set(x => x.RejectComment, patch.RejectComment)
-            .Set(x => x.UpdatedAt, patch.UpdatedAt.UtcDateTime)
-            .Set(x => x.DecidedAt, patch.DecidedAt?.UtcDateTime);
+            .Set(x => x.Status, patch.State.Status)
+            .Set(x => x.RejectComment, patch.State.RejectComment)
+            .Set(x => x.UpdatedAt, patch.State.UpdatedAt.UtcDateTime)
+            .Set(x => x.DecidedAt, patch.State.DecidedAt?.UtcDateTime);
 
         var result = await _collection.UpdateOneAsync(session, filter, update, options: null, ct);
         if (result.ModifiedCount == 0)
         {
             var fresh = await _collection.Find(session,
                 Builders<InstructionPatchDocument>.Filter.And(
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Id),
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.OwnerUserId)))
+                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
+                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId)))
                 .FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new RejectInstructionPatchPersistenceOutcome.NotFound()
@@ -219,20 +219,20 @@ internal sealed class MongoInstructionPatchRepository(
 
     private static InstructionPatchDocument ToDocument(InstructionPatch patch) => new()
     {
-        Id = patch.Id,
-        OwnerUserId = patch.OwnerUserId,
-        TargetKind = patch.TargetKind,
-        Status = patch.Status,
+        Id = patch.Identity.Id,
+        OwnerUserId = patch.Identity.OwnerUserId,
+        TargetKind = patch.Identity.TargetKind,
+        Status = patch.State.Status,
         PatchText = patch.PatchText,
-        AppliedText = patch.AppliedText,
+        AppliedText = patch.State.AppliedText,
         EvidenceCardIds = patch.EvidenceCardIds.ToList(),
         Rationale = patch.Rationale,
-        RejectComment = patch.RejectComment,
-        BaseInstructionVersion = patch.BaseInstructionVersion,
-        AppliedInstructionVersion = patch.AppliedInstructionVersion,
-        CreatedAt = patch.CreatedAt.UtcDateTime,
-        UpdatedAt = patch.UpdatedAt.UtcDateTime,
-        DecidedAt = patch.DecidedAt?.UtcDateTime,
+        RejectComment = patch.State.RejectComment,
+        BaseInstructionVersion = patch.Identity.BaseInstructionVersion,
+        AppliedInstructionVersion = patch.State.AppliedInstructionVersion,
+        CreatedAt = patch.Identity.CreatedAt.UtcDateTime,
+        UpdatedAt = patch.State.UpdatedAt.UtcDateTime,
+        DecidedAt = patch.State.DecidedAt?.UtcDateTime,
     };
 
     private static InstructionPatch ToDomain(InstructionPatchDocument doc) => InstructionPatch.Restore(

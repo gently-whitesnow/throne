@@ -70,29 +70,7 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
     [Fact(DisplayName = "GET /api/v1/intents возвращает intents с text_short, обрезанным до 140 символов")]
     public async Task Returns_intents_with_text_short_truncated()
     {
-        await using (var scope = _factory.Services.CreateAsyncScope())
-        {
-            var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
-            var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-
-            var shortIntent = Intent.Create(IntentId.New(), "local-dev", "short text", [Throne.Domain.Tags.TagId.New()], Now);
-            var shortVersion = TextVersion.CreateSnapshot(
-                Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, shortIntent.Id.Value,
-                shortIntent.Text, Now, TextVersionAuthor.Agent);
-
-            var longText = new string('x', 200);
-            var longIntent = Intent.Create(IntentId.New(), "local-dev", longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
-            var longVersion = TextVersion.CreateSnapshot(
-                Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, longIntent.Id.Value,
-                longText, Now, TextVersionAuthor.Agent);
-
-            await uow.ExecuteAsync(
-                ct => repo.CreateAsync(shortIntent, shortVersion, InitialStatusChange(shortIntent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
-                CancellationToken.None);
-            await uow.ExecuteAsync(
-                ct => repo.CreateAsync(longIntent, longVersion, InitialStatusChange(longIntent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
-                CancellationToken.None);
-        }
+        await SeedShortAndLongAsync();
 
         var response = await _client.GetAsync(new Uri("/api/v1/intents", UriKind.Relative));
         response.EnsureSuccessStatusCode();
@@ -107,6 +85,31 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
 
         var longItem = items.Single(i => i.TextShort.StartsWith('x'));
         longItem.TextShort.Should().HaveLength(140).And.Be(new string('x', 140));
+    }
+
+    private async Task SeedShortAndLongAsync()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
+        var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+
+        var shortIntent = IntentFactory.Create(IntentId.New(), "local-dev", "short text", [Throne.Domain.Tags.TagId.New()], Now);
+        var shortVersion = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, shortIntent.Id.Value,
+            shortIntent.State.Text, Now, TextVersionAuthor.Agent);
+
+        var longText = new string('x', 200);
+        var longIntent = IntentFactory.Create(IntentId.New(), "local-dev", longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
+        var longVersion = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, longIntent.Id.Value,
+            longText, Now, TextVersionAuthor.Agent);
+
+        await uow.ExecuteAsync(
+            ct => repo.CreateAsync(shortIntent, shortVersion, InitialStatusChange(shortIntent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
+            CancellationToken.None);
+        await uow.ExecuteAsync(
+            ct => repo.CreateAsync(longIntent, longVersion, InitialStatusChange(longIntent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
+            CancellationToken.None);
     }
 
     [Fact(DisplayName = "GET /api/v1/intents?status=... возвращает только intents в указанных статусах")]
@@ -143,10 +146,10 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
 
     private static async Task<Intent> SeedAsync(IIntentRepository repo, IUnitOfWork uow, string text)
     {
-        var intent = Intent.Create(IntentId.New(), "local-dev", text, [Throne.Domain.Tags.TagId.New()], Now);
+        var intent = IntentFactory.Create(IntentId.New(), "local-dev", text, [Throne.Domain.Tags.TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, intent.Id.Value,
-            intent.Text, Now, TextVersionAuthor.Agent);
+            intent.State.Text, Now, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(
             ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
             CancellationToken.None);
@@ -157,9 +160,9 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         IntentStatusChange.Create(
             Guid.NewGuid().ToString("N"),
             intent.Id,
-            intent.CurrentVersion,
-            intent.Status,
-            intent.Status,
+            intent.State.CurrentVersion,
+            intent.State.Status,
+            intent.State.Status,
             "test:create",
             Now,
             IntentTrainingAuthor.Agent);

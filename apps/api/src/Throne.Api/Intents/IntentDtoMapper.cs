@@ -16,13 +16,13 @@ internal static class IntentDtoMapper
         IReadOnlyList<IntentPin>? pinnedIn = null) => new()
         {
             Id = intent.Id.Value,
-            Status = IntentStatusDtoMapper.ToContractStatus(intent.Status),
-            Current_version = intent.CurrentVersion,
+            Status = IntentStatusDtoMapper.ToContractStatus(intent.State.Status),
+            Current_version = intent.State.CurrentVersion,
             Tags = ToTagRefs(intent.TagIds, tagsById),
-            Text = intent.Text,
-            Sort_key = intent.SortKey,
+            Text = intent.State.Text,
+            Sort_key = intent.State.SortKey,
             Created_at = intent.CreatedAt,
-            Updated_at = intent.UpdatedAt,
+            Updated_at = intent.State.UpdatedAt,
             Links = links is null
                 ? new System.Collections.ObjectModel.Collection<IntentLinkViewDto>()
                 : new System.Collections.ObjectModel.Collection<IntentLinkViewDto>([.. links]),
@@ -36,13 +36,13 @@ internal static class IntentDtoMapper
         IReadOnlyList<IntentPin>? pinnedIn = null) => new()
         {
             Id = intent.Id.Value,
-            Status = IntentStatusDtoMapper.ToContractStatus(intent.Status),
-            Current_version = intent.CurrentVersion,
+            Status = IntentStatusDtoMapper.ToContractStatus(intent.State.Status),
+            Current_version = intent.State.CurrentVersion,
             Tags = ToTagRefs(intent.TagIds, tagsById),
-            Text_short = TextShort(intent.Text, textShortMaxLength),
-            Sort_key = intent.SortKey,
+            Text_short = TextShort(intent.State.Text, textShortMaxLength),
+            Sort_key = intent.State.SortKey,
             Created_at = intent.CreatedAt,
-            Updated_at = intent.UpdatedAt,
+            Updated_at = intent.State.UpdatedAt,
             Pinned_in = ToPinnedContexts(pinnedIn),
         };
 
@@ -68,10 +68,10 @@ internal static class IntentDtoMapper
     public static IntentLinkPeerDto ToPeerDto(Intent peer, IReadOnlyDictionary<string, Tag> tagsById) => new()
     {
         Id = peer.Id.Value,
-        Status = IntentStatusDtoMapper.ToContractStatus(peer.Status),
-        Current_version = peer.CurrentVersion,
-        Sort_key = peer.SortKey,
-        Text_short = TextShort(peer.Text, LinkPeerTextShortMaxLength),
+        Status = IntentStatusDtoMapper.ToContractStatus(peer.State.Status),
+        Current_version = peer.State.CurrentVersion,
+        Sort_key = peer.State.SortKey,
+        Text_short = TextShort(peer.State.Text, LinkPeerTextShortMaxLength),
         Tags = ToTagRefs(peer.TagIds, tagsById),
     };
 

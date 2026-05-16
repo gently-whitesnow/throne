@@ -17,7 +17,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
     public async Task Create_persists_canonical_and_v1_snapshot()
     {
         var (db, repo, uow) = await NewScopeAsync();
-        var instruction = Instruction.Create(
+        var instruction = InstructionFactory.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
             "local-dev",
@@ -66,9 +66,9 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
             [InstructionKindNames.Common, InstructionKindNames.Work],
             CancellationToken.None);
 
-        got.Select(i => i.Kind).Should().BeEquivalentTo(
+        got.Select(i => i.Descriptor.Kind).Should().BeEquivalentTo(
             new[] { InstructionKindNames.Common, InstructionKindNames.Work });
-        got.Should().OnlyContain(i => i.UserId == "local-dev" && i.Scope == InstructionScopeNames.User);
+        got.Should().OnlyContain(i => i.Descriptor.UserId == "local-dev" && i.Descriptor.Scope == InstructionScopeNames.User);
     }
 
     [Fact(DisplayName = "GetUserInstructionsByKindsAsync на пустой список kinds возвращает пусто")]
@@ -89,7 +89,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         string kind,
         string text)
     {
-        var instruction = Instruction.Create(InstructionId.New(), InstructionScopeNames.User, userId, kind, text, Now);
+        var instruction = InstructionFactory.Create(InstructionId.New(), InstructionScopeNames.User, userId, kind, text, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"),
             TextVersionOwnerKind.Instruction,

@@ -12,11 +12,11 @@ internal static class TextVersionDtoMapper
         Kind = MapKind(v.Kind),
         Changed_at = v.ChangedAt,
         Changed_by = MapAuthor(v.ChangedBy),
-        Snapshot = v.Snapshot,
-        Old_text = v.OldText,
-        New_text = v.NewText,
-        After_line = v.AfterLine ?? 0,
-        Insert_text = v.InsertText,
+        Snapshot = v.Delta.Snapshot,
+        Old_text = v.Delta.OldText,
+        New_text = v.Delta.NewText,
+        After_line = v.Delta.AfterLine ?? 0,
+        Insert_text = v.Delta.InsertText,
     };
 
     private static TextVersionDtoKind MapKind(TextVersionKind kind) => kind switch

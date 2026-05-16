@@ -316,7 +316,7 @@ internal sealed class MongoIntentPinRepository(
         doc.PinSortKey,
         ToUtc(doc.CreatedAt));
 
-    private static Intent MapToIntent(IntentDocument doc) => Intent.Restore(
+    private static Intent MapToIntent(IntentDocument doc) => IntentFactory.Restore(
         id: new IntentId(doc.Id),
         ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,

@@ -17,7 +17,7 @@ public class ReplaceIntentTextHandlerTests
     [Fact(DisplayName = "ReplaceIntentText возвращает Intent при Replaced outcome")]
     public async Task Replaced_returns_intent()
     {
-        var existing = Intent.Restore(
+        var existing = IntentFactory.Restore(
             new IntentId(IntentIdValue),
             ownerUserId: "user-1",
             "hello there",

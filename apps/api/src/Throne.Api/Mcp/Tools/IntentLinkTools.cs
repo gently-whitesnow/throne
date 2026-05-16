@@ -94,10 +94,10 @@ public sealed class IntentLinkTools(
         view.Link.CreatedAt,
         new McpIntentLinkPeer(
             view.Other.Id.Value,
-            view.Other.Status,
-            view.Other.CurrentVersion,
-            view.Other.SortKey,
-            IntentToolHelpers.BuildPreview(view.Other.Text),
+            view.Other.State.Status,
+            view.Other.State.CurrentVersion,
+            view.Other.State.SortKey,
+            IntentToolHelpers.BuildPreview(view.Other.State.Text),
             view.Other.TagIds
                 .Select(id => tagsById.TryGetValue(id.Value, out var t) ? t : null)
                 .Where(t => t is not null)

@@ -6,13 +6,13 @@ internal static class IntentListItemMapper
 {
     public static McpIntentListItem ToItem(Intent intent, IReadOnlyDictionary<string, McpTagRef> tagsById) => new(
         Id: intent.Id.Value,
-        Status: intent.Status,
-        CurrentVersion: intent.CurrentVersion,
+        Status: intent.State.Status,
+        CurrentVersion: intent.State.CurrentVersion,
         Tags: ResolveTags(intent.TagIds, tagsById),
-        Preview: IntentToolHelpers.BuildPreview(intent.Text),
-        SortKey: intent.SortKey,
+        Preview: IntentToolHelpers.BuildPreview(intent.State.Text),
+        SortKey: intent.State.SortKey,
         CreatedAt: intent.CreatedAt,
-        UpdatedAt: intent.UpdatedAt);
+        UpdatedAt: intent.State.UpdatedAt);
 
     private static List<McpTagRef> ResolveTags(
         IReadOnlyList<Throne.Domain.Tags.TagId> tagIds,

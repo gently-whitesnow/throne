@@ -17,20 +17,8 @@ public static class IntentTextSearch
             throw new ArgumentException("query must not be empty.", nameof(query));
         }
 
-        if (contextLines < 0)
-        {
-            contextLines = 0;
-        }
-
-        if (limit < 1)
-        {
-            limit = 1;
-        }
-
-        if (limit > ServerMaxLimit)
-        {
-            limit = ServerMaxLimit;
-        }
+        contextLines = Math.Max(0, contextLines);
+        limit = Math.Clamp(limit, 1, ServerMaxLimit);
 
         if (text.Length == 0)
         {
@@ -38,7 +26,7 @@ public static class IntentTextSearch
         }
 
         var lines = text.Split('\n');
-        var lineStartOffsets = ComputeLineStartOffsets(text);
+        var lineStartOffsets = IntentTextSearchHelpers.ComputeLineStartOffsets(text);
 
         var matches = new List<TextSearchMatch>();
         var totalMatches = 0;
@@ -54,74 +42,21 @@ public static class IntentTextSearch
             totalMatches++;
             if (matches.Count < limit)
             {
-                var (matchLine, matchColumn) = LineAndColumn(lineStartOffsets, idx);
-                var contextStartLine = Math.Max(1, matchLine - contextLines);
-                var contextEndLine = Math.Min(lines.Length, matchLine + contextLines);
-                var context = JoinLines(lines, contextStartLine, contextEndLine);
-                matches.Add(new TextSearchMatch(matchLine, matchColumn, context, contextStartLine));
+                matches.Add(BuildMatch(idx, lines, lineStartOffsets, contextLines));
             }
-
             from = idx + query.Length;
         }
 
         return new IntentTextSearchResult(matches, totalMatches);
     }
 
-    private static int[] ComputeLineStartOffsets(string text)
+    private static TextSearchMatch BuildMatch(int idx, string[] lines, int[] lineStartOffsets, int contextLines)
     {
-        var offsets = new List<int> { 0 };
-        for (var i = 0; i < text.Length; i++)
-        {
-            if (text[i] == '\n')
-            {
-                offsets.Add(i + 1);
-            }
-        }
-
-        return [.. offsets];
-    }
-
-    private static (int Line, int Column) LineAndColumn(int[] lineStartOffsets, int index)
-    {
-        var lo = 0;
-        var hi = lineStartOffsets.Length - 1;
-        while (lo < hi)
-        {
-            var mid = (lo + hi + 1) / 2;
-            if (lineStartOffsets[mid] <= index)
-            {
-                lo = mid;
-            }
-            else
-            {
-                hi = mid - 1;
-            }
-        }
-
-        var line = lo + 1;
-        var column = index - lineStartOffsets[lo] + 1;
-        return (line, column);
-    }
-
-    private static string JoinLines(string[] lines, int startLine1Indexed, int endLine1Indexed)
-    {
-        if (startLine1Indexed > endLine1Indexed)
-        {
-            return string.Empty;
-        }
-
-        var sb = new System.Text.StringBuilder();
-        for (var i = startLine1Indexed - 1; i <= endLine1Indexed - 1; i++)
-        {
-            if (sb.Length > 0)
-            {
-                sb.Append('\n');
-            }
-
-            sb.Append(lines[i]);
-        }
-
-        return sb.ToString();
+        var (matchLine, matchColumn) = IntentTextSearchHelpers.LineAndColumn(lineStartOffsets, idx);
+        var contextStartLine = Math.Max(1, matchLine - contextLines);
+        var contextEndLine = Math.Min(lines.Length, matchLine + contextLines);
+        var context = IntentTextSearchHelpers.JoinLines(lines, contextStartLine, contextEndLine);
+        return new TextSearchMatch(matchLine, matchColumn, context, contextStartLine);
     }
 }
 

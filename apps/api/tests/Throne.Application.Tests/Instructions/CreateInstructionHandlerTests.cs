@@ -32,8 +32,8 @@ public class CreateInstructionHandlerTests
             CancellationToken.None);
 
         saved.Should().NotBeNull();
-        saved!.Kind.Should().Be(InstructionKindNames.Work);
-        saved.UserId.Should().Be("user-1");
+        saved!.Descriptor.Kind.Should().Be(InstructionKindNames.Work);
+        saved.Descriptor.UserId.Should().Be("user-1");
         saved.Text.Should().Be("hello");
         saved.CurrentVersion.Should().Be(1);
         result.Id.Value.Should().Be(saved.Id.Value);
@@ -43,7 +43,7 @@ public class CreateInstructionHandlerTests
     public async Task Returns_409_when_already_exists()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        var existing = Instruction.Create(
+        var existing = InstructionFactory.Create(
             InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Work, "x", Now);
         repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([existing]);

@@ -16,14 +16,14 @@ public sealed class GetInstructionPatchHandler(
 
         var patch = await patches.GetAsync(patchId, ct)
             ?? throw NotFound(patchId);
-        if (!string.Equals(patch.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
+        if (!string.Equals(patch.Identity.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
         {
             throw NotFound(patchId);
         }
 
         var instructionList = await instructions.GetUserInstructionsByKindsAsync(
-            patch.OwnerUserId,
-            [patch.TargetKind],
+            patch.Identity.OwnerUserId,
+            [patch.Identity.TargetKind],
             ct);
         var instruction = instructionList.Count == 0 ? null : instructionList[0];
 
@@ -31,7 +31,7 @@ public sealed class GetInstructionPatchHandler(
             patch,
             instruction?.Text ?? string.Empty,
             instruction?.CurrentVersion ?? 0,
-            instruction is not null && instruction.CurrentVersion == patch.BaseInstructionVersion);
+            instruction is not null && instruction.CurrentVersion == patch.Identity.BaseInstructionVersion);
     }
 
     private static ApiException NotFound(string patchId) => new(

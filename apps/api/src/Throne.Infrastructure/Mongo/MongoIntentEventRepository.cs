@@ -83,8 +83,8 @@ internal sealed class MongoIntentEventRepository(
             Rationale = e.Link.Rationale,
             CreatedAt = e.Link.CreatedAt.UtcDateTime,
         },
-        CreatedAt = e.CreatedAt.UtcDateTime,
-        CreatedBy = e.CreatedBy?.ToWire(),
+        CreatedAt = e.Audit.CreatedAt.UtcDateTime,
+        CreatedBy = e.Audit.CreatedBy?.ToWire(),
     };
 
     private static IntentEvent MapToDomain(IntentEventDocument d) => new(
@@ -108,8 +108,9 @@ internal sealed class MongoIntentEventRepository(
             Author: IntentLinkAuthorExtensions.FromWire(d.Link.Author),
             Rationale: d.Link.Rationale,
             CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(d.Link.CreatedAt, DateTimeKind.Utc))),
-        CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(d.CreatedAt, DateTimeKind.Utc)),
-        CreatedBy: string.IsNullOrEmpty(d.CreatedBy) ? null : IntentEventKindExtensions.AuthorFromWire(d.CreatedBy));
+        Audit: new IntentEventAudit(
+            CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(d.CreatedAt, DateTimeKind.Utc)),
+            CreatedBy: string.IsNullOrEmpty(d.CreatedBy) ? null : IntentEventKindExtensions.AuthorFromWire(d.CreatedBy)));
 
     private static Throne.Domain.TextVersions.TextVersionKind ParseTextKind(string wire) => wire switch
     {

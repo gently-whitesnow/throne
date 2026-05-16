@@ -55,7 +55,7 @@ internal sealed class RealtimeDomainEventHandler(
             RealtimeEventNames.IntentTagsChanged, IntentDtoMapper.ToDetailDto(tagsChanged.Intent, await ResolveTagMapAsync(tagsChanged.Intent, ct))),
         IntentReordered reordered => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentReordered,
-            new { intent_id = reordered.Intent.Id.Value, sort_key = reordered.Intent.SortKey }),
+            new { intent_id = reordered.Intent.Id.Value, sort_key = reordered.Intent.State.SortKey }),
         IntentPinned pinned => new RealtimeEventEnvelope(
             RealtimeEventNames.IntentPinned,
             new { intent_id = pinned.IntentId, context_tag_id = pinned.ContextTagId, pin_sort_key = pinned.PinSortKey }),

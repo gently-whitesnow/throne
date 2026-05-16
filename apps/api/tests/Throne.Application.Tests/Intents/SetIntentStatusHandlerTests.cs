@@ -21,7 +21,7 @@ public class SetIntentStatusHandlerTests
             new SetIntentStatusCommand("intent-1", IntentStatusNames.ReadyForWork, Reason: null, IntentTrainingAuthor.Agent, "test"),
             CancellationToken.None);
 
-        result.Status.Should().Be(IntentStatusNames.ReadyForWork);
+        result.State.Status.Should().Be(IntentStatusNames.ReadyForWork);
         await repo.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
             IntentStatusNames.ReadyForWork,
@@ -117,7 +117,7 @@ public class SetIntentStatusHandlerTests
                 var intentId = ci.ArgAt<IntentId>(0);
                 var status = ci.ArgAt<string>(1);
                 return new SetIntentStatusOutcome.Updated(
-                    Intent.Restore(intentId, "user-1", "x", status, 1, [], Now, Now));
+                    IntentFactory.Restore(intentId, "user-1", "x", status, 1, [], Now, Now));
             });
 
         var handler = new SetIntentStatusHandler(repo, new PassthroughUnitOfWork(), new FixedClock(Now));

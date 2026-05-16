@@ -15,7 +15,7 @@ public class InsertIntentTextAfterLineHandlerTests
     [Fact(DisplayName = "Inserted → возвращает Intent")]
     public async Task Inserted_returns_intent()
     {
-        var intent = Intent.Restore(
+        var intent = IntentFactory.Restore(
             new IntentId(IntentIdValue),
             ownerUserId: "user-1",
             "a\nX\nb",
