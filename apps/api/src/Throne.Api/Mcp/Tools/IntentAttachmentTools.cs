@@ -1,5 +1,3 @@
-// MCP wire-format requires snake_case parameter names; tools are an API boundary.
-#pragma warning disable CA1707
 using System.ComponentModel;
 using System.Text;
 using ModelContextProtocol.Protocol;

@@ -205,8 +205,19 @@ def cmd_list() -> int:
 
 def cmd_write_baseline() -> int:
     entries = [e for e, _, _ in collect_all()]
+    new_set = set(entries)
+    existing = load_baseline()
+    if existing and len(new_set) > len(existing):
+        print(
+            f"Ratchet REFUSED: suppress baseline вырос с {len(existing)} до {len(new_set)} записей.\n"
+            f"Baseline only-down. Удали suppression в коде вместо re-baseline.\n"
+            f"Если нужна санкция на рост (deliberate intent), позови оператора через\n"
+            f"  set_intent_status(intent_id=<current>, status='needs_help', reason='нужен рост suppress baseline: …').",
+            file=sys.stderr,
+        )
+        return 1
     write_baseline(entries)
-    print(f"Wrote {len(set(entries))} entries to {BASELINE.relative_to(REPO_ROOT)}.")
+    print(f"Wrote {len(new_set)} entries to {BASELINE.relative_to(REPO_ROOT)}.")
     return 0
 
 

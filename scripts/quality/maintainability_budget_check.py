@@ -767,6 +767,17 @@ def main() -> int:
     print_report(profile_name, mode, files, violations, args.max_violations)
 
     if args.write_baseline_snapshot:
+        existing = load_baseline_snapshot(args.write_baseline_snapshot)
+        new_count = len({violation_identity(v) for v in violations})
+        if existing and new_count > len(existing):
+            print(
+                f"Ratchet REFUSED: новый baseline вырос с {len(existing)} до {new_count} записей.\n"
+                f"Baseline maintainability-budget — only-down. Чини root cause перед re-baseline.\n"
+                f"Если нужна санкция на рост (deliberate intent), позови оператора через\n"
+                f"  set_intent_status(intent_id=<current>, status='needs_help', reason='нужен рост maintainability baseline: …').",
+                file=sys.stderr,
+            )
+            return 1
         write_baseline_snapshot(args.write_baseline_snapshot, profile_name, violations)
         print(f"Baseline snapshot written: {args.write_baseline_snapshot} ({len(violations)} violation(s))")
         return 0
