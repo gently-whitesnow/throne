@@ -1,35 +1,41 @@
 using Microsoft.Extensions.DependencyInjection;
-using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace Throne.Mcp.Stdio;
 
 /// <summary>
-/// DI wiring for the STDIO→HTTP MCP proxy. Extracted from <c>Program.cs</c> so the
-/// bootstrap can be exercised by unit tests without spawning a real STDIO process.
-/// In particular the proxy MUST forward upstream <c>ServerInstructions</c>
-/// (the Throne mini-router from ADR-0014) into its own <see cref="McpServerOptions"/>;
-/// without that, STDIO-only clients lose the runtime instruction routing.
+/// DI wiring for the STDIO→HTTP MCP proxy. The downstream MCP server exposes two dynamic
+/// handlers (<c>tools/list</c>, <c>tools/call</c>) that read the live tool snapshot from
+/// <see cref="ResilientUpstreamClient"/> on every request — so the snapshot can change at
+/// any point (e.g. after an upstream redeploy) without rebuilding DI.
+///
+/// <see cref="McpServerOptions.ServerInstructions"/> is fixed at the first-connect value
+/// (ADR-0014 mini-router). On divergence we exit and let the host re-spawn (see
+/// <see cref="ToolsChangedRelay"/>).
 /// </summary>
 public static class StdioProxyBootstrap
 {
     public static IMcpServerBuilder AddStdioProxy(
         this IServiceCollection services,
-        IMcpClient upstream,
-        IEnumerable<McpClientTool> upstreamTools)
+        ResilientUpstreamClient upstream)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(upstream);
-        ArgumentNullException.ThrowIfNull(upstreamTools);
 
         services.AddSingleton(upstream);
+        services.AddSingleton(upstream.Connection.ToolsState);
+        services.AddSingleton(upstream.Connection.InstructionsState);
+        services.AddHostedService<ToolsChangedRelay>();
 
-        foreach (var tool in upstreamTools)
-        {
-            var captured = tool;
-            services.AddSingleton<McpServerTool>(_ => McpServerTool.Create(captured));
-        }
-
-        return services.AddMcpServer(o => o.ServerInstructions = upstream.ServerInstructions);
+        return services
+            .AddMcpServer(o => o.ServerInstructions = upstream.InitialServerInstructions)
+            .WithListToolsHandler((_, _) =>
+                ValueTask.FromResult(new ListToolsResult { Tools = [.. upstream.CurrentTools] }))
+            .WithCallToolHandler((ctx, ct) =>
+            {
+                ArgumentNullException.ThrowIfNull(ctx.Params);
+                return upstream.CallToolAsync(ctx.Params, ct);
+            });
     }
 }

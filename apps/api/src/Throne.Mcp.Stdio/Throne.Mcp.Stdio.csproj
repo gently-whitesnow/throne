@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="ModelContextProtocol.Core" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 

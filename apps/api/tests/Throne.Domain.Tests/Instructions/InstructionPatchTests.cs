@@ -55,7 +55,7 @@ public class InstructionPatchTests
         patch.DecidedAt.Should().BeNull();
     }
 
-    [Fact(DisplayName = "Create отвергает unknown target_kind, base_version<1, evidence>лимита")]
+    [Fact(DisplayName = "Create отвергает unknown target_kind, base_version<0, evidence>лимита")]
     public void Create_validates_inputs()
     {
         var act1 = () => InstructionPatch.Create(
@@ -63,7 +63,7 @@ public class InstructionPatchTests
         act1.Should().Throw<ArgumentOutOfRangeException>();
 
         var act2 = () => InstructionPatch.Create(
-            "id", "user", InstructionKindNames.Work, "text", [], "r", 0, Now);
+            "id", "user", InstructionKindNames.Work, "text", [], "r", -1, Now);
         act2.Should().Throw<ArgumentOutOfRangeException>();
 
         var manyIds = Enumerable.Range(0, InstructionPatch.MaxEvidenceCardIds + 1)

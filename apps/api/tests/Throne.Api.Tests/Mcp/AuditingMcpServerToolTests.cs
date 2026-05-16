@@ -125,8 +125,18 @@ public class AuditingMcpServerToolTests
     private static string? ReadFirstText(CallToolResult result) =>
         result.Content?.OfType<TextContentBlock>().FirstOrDefault()?.Text;
 
-    private static string? ReadStructuredString(CallToolResult result, string property) =>
-        result.StructuredContent?[property]?.GetValue<string>();
+    private static string? ReadStructuredString(CallToolResult result, string property)
+    {
+        if (result.StructuredContent is not { } element || element.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+        if (!element.TryGetProperty(property, out var prop) || prop.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+        return prop.GetString();
+    }
 
     [Fact(DisplayName = "InvokeAsync пробрасывает OperationCanceledException когда токен отменён")]
     public async Task Invoke_propagates_cancellation()
@@ -204,31 +214,30 @@ public class AuditingMcpServerToolTests
 
     private static RequestContext<CallToolRequestParams> NewCallContext(
         string toolName,
-        IReadOnlyDictionary<string, JsonElement> arguments)
+        IDictionary<string, JsonElement> arguments)
     {
-        var server = Substitute.For<IMcpServer>();
+        var server = Substitute.For<McpServer>();
         server.SessionId.Returns("session-1");
-        return new RequestContext<CallToolRequestParams>(server)
+        var jsonRpc = new JsonRpcRequest { Method = "tools/call", JsonRpc = "2.0", Id = new RequestId("1") };
+        var parameters = new CallToolRequestParams
         {
-            Params = new CallToolRequestParams
-            {
-                Name = toolName,
-                Arguments = arguments,
-            },
+            Name = toolName,
+            Arguments = arguments,
         };
+        return new RequestContext<CallToolRequestParams>(server, jsonRpc, parameters);
     }
 
     private static CallToolResult SuccessResult() => new()
     {
         Content = [new TextContentBlock { Text = "{\"ok\":true}" }],
-        StructuredContent = new JsonObject { ["ok"] = true },
+        StructuredContent = JsonSerializer.SerializeToElement(new JsonObject { ["ok"] = true }),
         IsError = false,
     };
 
     private static CallToolResult InstructionBundleResult() => new()
     {
         Content = [new TextContentBlock { Text = "{\"ok\":true}" }],
-        StructuredContent = new JsonObject
+        StructuredContent = JsonSerializer.SerializeToElement(new JsonObject
         {
             ["intent_id"] = "intent_123",
             ["mode"] = "work",
@@ -250,7 +259,7 @@ public class AuditingMcpServerToolTests
                 },
             },
             ["missing_kinds"] = new JsonArray(),
-        },
+        }),
         IsError = false,
     };
 
@@ -276,6 +285,8 @@ public class AuditingMcpServerToolTests
     private sealed class StubTool(string name, Func<RequestContext<CallToolRequestParams>, ValueTask<CallToolResult>> handler) : McpServerTool
     {
         public override Tool ProtocolTool { get; } = new() { Name = name, Description = "stub", InputSchema = JsonDocument.Parse("""{ "type": "object" }""").RootElement };
+
+        public override IReadOnlyList<object> Metadata { get; } = Array.Empty<object>();
 
         public override ValueTask<CallToolResult> InvokeAsync(
             RequestContext<CallToolRequestParams> request,

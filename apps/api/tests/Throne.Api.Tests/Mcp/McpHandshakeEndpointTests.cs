@@ -51,13 +51,13 @@ public sealed class McpHandshakeEndpointTests(MongoFixture mongo) : IAsyncLifeti
     public async Task Initialize_returns_mini_router_instructions()
     {
         var endpoint = new Uri(_client.BaseAddress!, "/mcp");
-        var transport = new SseClientTransport(
-            new SseClientTransportOptions { Endpoint = endpoint, Name = "throne-test" },
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions { Endpoint = endpoint, Name = "throne-test" },
             _client,
             loggerFactory: null,
             ownsHttpClient: false);
 
-        await using var mcp = await McpClientFactory.CreateAsync(
+        await using var mcp = await McpClient.CreateAsync(
             transport,
             clientOptions: null,
             loggerFactory: null);
