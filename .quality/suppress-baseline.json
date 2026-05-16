@@ -4,51 +4,6 @@
   "entries": [
     {
       "kind": "editorconfig",
-      "location": "src/Throne.Api/Auth/AuthOptions.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Auth/PersonalAccessTokenAuthMiddleware.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/InstructionPatches/InstructionPatchDtoMapper.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Intents/IntentDtoMapper.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Intents/IntentsController.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Mcp/AuditingMcpServerTool.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Mcp/Tools/InstructionPatchTools.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Mcp/Tools/IntentAttachmentTools.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs",
-      "rule": "CA1506"
-    },
-    {
-      "kind": "editorconfig",
       "location": "src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs",
       "rule": "CA1502"
     },

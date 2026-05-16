@@ -5,7 +5,8 @@
 #   1. there is a corresponding domain-event record in
 #      apps/api/src/Throne.Application/Events/IntentEvents.cs
 #      (named exactly per the yaml `csharp_event_class` or PascalCase fallback);
-#   2. RealtimeDomainEventHandler maps that domain event to RealtimeEventNames.<Pascal>;
+#   2. some per-aggregate mapper under apps/api/src/Throne.Api/Realtime/ maps
+#      the domain event to RealtimeEventNames.<Pascal>;
 #   3. the frontend has at least one useRealtimeEvent("<name>", ...) call under
 #      apps/web/src/, outside shared/realtime/.
 #
@@ -21,7 +22,7 @@ cd "$ROOT"
 
 YAML="specs/contracts/realtime/events.yaml"
 EVENTS_FILE="apps/api/src/Throne.Application/Events/IntentEvents.cs"
-HANDLER_FILE="apps/api/src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs"
+HANDLER_DIR="apps/api/src/Throne.Api/Realtime"
 WEB_SRC="apps/web/src"
 
 if [[ ! -f "$YAML" ]]; then
@@ -70,9 +71,9 @@ while IFS= read -r name; do
     errors=$((errors + 1))
   fi
 
-  # 2. handler maps the domain event to RealtimeEventNames.<Pascal>
-  if ! grep -qE "RealtimeEventNames\.${pascal}([^A-Za-z0-9_]|$)" "$HANDLER_FILE"; then
-    echo "MISSING handler case for RealtimeEventNames.${pascal} for event '${name}' in ${HANDLER_FILE}" >&2
+  # 2. some per-aggregate mapper under HANDLER_DIR maps the domain event to RealtimeEventNames.<Pascal>
+  if ! grep -RqE --include='*.cs' "RealtimeEventNames\.${pascal}([^A-Za-z0-9_]|$)" "$HANDLER_DIR"; then
+    echo "MISSING handler case for RealtimeEventNames.${pascal} for event '${name}' anywhere under ${HANDLER_DIR}" >&2
     errors=$((errors + 1))
   fi
 
@@ -94,8 +95,9 @@ ERROR: realtime contract coverage failed (${errors} issue(s)).
 Adding a new realtime event requires four moves in the same change:
   1. specs/contracts/realtime/events.yaml entry
   2. domain event record in Throne.Application/Events/IntentEvents.cs
-  3. case in Throne.Api/Realtime/RealtimeDomainEventHandler.cs mapping to
-     RealtimeEventNames.<PascalName>
+  3. case in a per-aggregate mapper under Throne.Api/Realtime/ mapping to
+     RealtimeEventNames.<PascalName> (Intent*RealtimeMapper, TagRealtimeMapper,
+     InstructionPatchRealtimeMapper, DreamRealtimeMapper, …)
   4. useRealtimeEvent("<name>", ...) call in apps/web/src/
 
 The repository raises the event by carrying it on its outcome record; the

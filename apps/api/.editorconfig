@@ -148,12 +148,6 @@ dotnet_diagnostic.CA1502.severity = none
 [src/Throne.Infrastructure/Mongo/MongoTagRepository.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# intent:ea2efea6c36a424c8787e0e85cff8a06: pin support adds a pinned_in collection
-# expression branch to both ToDetailDto and ToListDto, pushing the type-level
-# cyclomatic count one over the threshold. The mapper is still a flat dto-builder.
-[src/Throne.Api/Intents/IntentDtoMapper.cs]
-dotnet_diagnostic.CA1502.severity = none
-
 # intent:ea2efea6c36a424c8787e0e85cff8a06: per-context Intent pins Mongo POCO.
 # CA1502 type-level threshold (10) is structurally too tight for the property
 # fan-out — same precedent as IntentDocument et al.
@@ -175,27 +169,6 @@ dotnet_diagnostic.CA1506.severity = none
 # user-инструкции (base=0 → ok, base!=0 → 409 needs_rebase). Per-test классу не стоит
 # дробиться ради проходимости CA1502 — это покрытие одного хендлера.
 [tests/Throne.Application.Tests/InstructionPatches/ProposeInstructionPatchHandlerTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Api/Auth/AuthOptions.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Api/Auth/PersonalAccessTokenAuthMiddleware.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# IntentsController: 18 routes за одним NSwag-generated `IntentsControllerBase`.
-# Refactor pass intent:7e9e1a282eaa4853b4efdf3269d76c71 вынес error-mapper, DTO-mapper,
-# TextVersion mapper, и сократил inline helpers, но сам тип всё равно за порогом
-# CA1502(Type)=10: каждый action добавляет try/catch/await/foreach (~3 cyclomatic),
-# а 18 routes структурно дают ~50. Дальнейшее снижение требует split на несколько
-# контроллеров (отдельной OpenAPI-секцией), что вне рамок этого pass.
-[src/Throne.Api/Intents/IntentsController.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Api/Mcp/AuditingMcpServerTool.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Api/Mcp/Tools/IntentAttachmentTools.cs]
 dotnet_diagnostic.CA1502.severity = none
 
 [tests/Throne.Infrastructure.Tests/Mongo/MongoIntentRepositoryTests.cs]
@@ -235,14 +208,6 @@ dotnet_diagnostic.CA1502.severity = none
 [tests/Throne.Architecture.Tests/OwnerUserIdRulesTests.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# RealtimeDomainEventHandler is the single switch over all domain events; its
-# fan-out grows by construction every time a new realtime event is added (this
-# file is the «4-way coverage» pivot from the realtime gate). The CA1506
-# threshold is structurally unavoidable here — same precedent as other
-# centralised dispatch/factory types above.
-[src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs]
-dotnet_diagnostic.CA1506.severity = none
-
 # InstructionPatch aggregate (ADR-0021 supersedes ADR-0011). Same precedent as
 # InsightCard / Intent above: the aggregate exposes ≥14 properties (identity +
 # state + EvidenceCardIds + PatchText + Rationale) and a state-machine via the
@@ -255,12 +220,6 @@ dotnet_diagnostic.CA1502.severity = none
 [src/Throne.Infrastructure/Mongo/MongoInstructionPatchRepository.cs]
 dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1506.severity = none
-
-[src/Throne.Api/InstructionPatches/InstructionPatchDtoMapper.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Api/Mcp/Tools/InstructionPatchTools.cs]
-dotnet_diagnostic.CA1502.severity = none
 
 [tests/Throne.Domain.Tests/Instructions/InstructionPatchTests.cs]
 dotnet_diagnostic.CA1502.severity = none

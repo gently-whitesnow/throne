@@ -11,6 +11,7 @@ internal static class RealtimeServices
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddSingleton<IRealtimeEventBroker, InMemoryRealtimeBroker>();
+        services.AddSingleton<IntentLifecycleRealtimeMapper>();
         services.AddSingleton<IDomainEventHandler, RealtimeDomainEventHandler>();
         return services;
     }

@@ -97,6 +97,38 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> MoveIntent([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] MoveIntentRequest body);
 
         /// <summary>
+        /// Replace a unique substring of Intent.text (user-driven).
+        /// </summary>
+        /// <remarks>
+        /// User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version. ChangedBy=user.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/replace-text", Name = "replaceIntentText")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> ReplaceIntentText([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] ReplaceTextRequest body);
+
+        /// <summary>
+        /// List the text-version history of an Intent.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/versions", Name = "listIntentVersions")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListIntentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
+        /// Unified append-only event feed for an intent.
+        /// </summary>
+        /// <remarks>
+        /// Returns the merged history (text + graph) for the intent in chronological order. Backed by `intent_events` (ADR-0019); link events surface on both endpoints of an edge via `peer_intent_id`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/events", Name = "listIntentEvents")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentEventDto>>> ListIntentEvents([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public abstract class IntentPinsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
+    {
+        /// <summary>
         /// Pin an intent in a tag-scoped context.
         /// </summary>
         /// <remarks>
@@ -126,33 +158,11 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/pin/move", Name = "movePin")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> MovePin([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] MovePinRequest body);
 
-        /// <summary>
-        /// Replace a unique substring of Intent.text (user-driven).
-        /// </summary>
-        /// <remarks>
-        /// User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version. ChangedBy=user.
-        /// </remarks>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/replace-text", Name = "replaceIntentText")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> ReplaceIntentText([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] ReplaceTextRequest body);
+    }
 
-        /// <summary>
-        /// List the text-version history of an Intent.
-        /// </summary>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/versions", Name = "listIntentVersions")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListIntentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
-
-        /// <summary>
-        /// Unified append-only event feed for an intent.
-        /// </summary>
-        /// <remarks>
-        /// Returns the merged history (text + graph) for the intent in chronological order. Backed by `intent_events` (ADR-0019); link events surface on both endpoints of an edge via `peer_intent_id`.
-        /// </remarks>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/events", Name = "listIntentEvents")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<IntentEventDto>>> ListIntentEvents([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
-
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public abstract class IntentLinksControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
+    {
         /// <summary>
         /// Batch-fetch link aggregates for a set of intents (board badges + hover overlay).
         /// </summary>
@@ -194,6 +204,11 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/links/{to_id}/{type}", Name = "deleteIntentLink")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntentLink([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string to_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] IntentLinkType type);
 
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public abstract class IntentAttachmentsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
+    {
         /// <summary>
         /// List file attachments for an intent.
         /// </summary>

@@ -26,23 +26,6 @@ public sealed class AuthOptions
     /// </summary>
     public string? MetadataAddress { get; set; }
 
-    public string? Issuer { get; set; }
-
-    /// <summary>
-    /// Основной audience входящих JWT — для REST-сессий (например, <c>"throne"</c>).
-    /// Совместимость со старой конфигурацией.
-    /// </summary>
-    public string? Audience { get; set; }
-
-    /// <summary>
-    /// Дополнительные допустимые audience для OAuth-токенов, выпущенных внешним AS
-    /// на конкретный ресурс (ADR-0016). Каждое значение совпадает с публичным URL
-    /// соответствующего MCP-эндпоинта (например, <c>"https://example.org/mcp"</c>)
-    /// и становится <c>aud</c> access-token'а. При отсутствии массива OAuth-токены
-    /// не принимаются.
-    /// </summary>
-    public List<string> AdditionalAudiences { get; set; } = new();
-
     public bool RequireHttpsMetadata { get; set; } = true;
 }
 

@@ -224,7 +224,7 @@ paths:
   /api/v1/intents/{id}/pin:
     post:
       operationId: pinIntent
-      tags: [Intents]
+      tags: [IntentPins]
       summary: Pin an intent in a tag-scoped context.
       description: >
         Adds a pin record `(intent_id, context_tag_id)`. Pins are bookmarks: they do not
@@ -266,7 +266,7 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
     delete:
       operationId: unpinIntent
-      tags: [Intents]
+      tags: [IntentPins]
       summary: Remove a pin from a tag-scoped context.
       description: >
         Removes the pin record `(intent_id, context_tag_id)`. Idempotent: returns 200
@@ -299,7 +299,7 @@ paths:
   /api/v1/intents/{id}/pin/move:
     post:
       operationId: movePin
-      tags: [Intents]
+      tags: [IntentPins]
       summary: Reorder a pin inside its context's Pinned list.
       description: >
         Drag-and-drop reorder of an existing pin. Behaves like `/move` for intents
@@ -441,7 +441,7 @@ paths:
   /api/v1/intents/links/summary:
     get:
       operationId: getIntentLinksSummary
-      tags: [Intents]
+      tags: [IntentLinks]
       summary: Batch-fetch link aggregates for a set of intents (board badges + hover overlay).
       description: >
         Companion to `listIntents`: instead of bloating the list DTO with graph-join
@@ -479,7 +479,7 @@ paths:
   /api/v1/intents/{id}/links:
     get:
       operationId: listIntentLinks
-      tags: [Intents]
+      tags: [IntentLinks]
       summary: List directional graph edges incident to this intent.
       description: >
         Returns outgoing and incoming `intent_links` for the intent. The `direction` field on
@@ -530,7 +530,7 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
     post:
       operationId: createIntentLink
-      tags: [Intents]
+      tags: [IntentLinks]
       summary: Create one directed edge between two intents (M:N graph).
       description: >
         Creates one directed edge `(from_id=path id, to_id, type)`. Stage 1 supports
@@ -579,7 +579,7 @@ paths:
   /api/v1/intents/{id}/links/{to_id}/{type}:
     delete:
       operationId: deleteIntentLink
-      tags: [Intents]
+      tags: [IntentLinks]
       summary: Delete one directed edge by its natural key.
       description: >
         Idempotent delete by natural key `(from_id=path id, to_id, type)`. Returns 204
@@ -606,7 +606,7 @@ paths:
   /api/v1/intents/{id}/attachments:
     get:
       operationId: listIntentAttachments
-      tags: [Intents]
+      tags: [IntentAttachments]
       summary: List file attachments for an intent.
       parameters:
         - in: path
@@ -632,7 +632,7 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
     post:
       operationId: uploadIntentAttachment
-      tags: [Intents]
+      tags: [IntentAttachments]
       summary: Upload one file attachment for an intent.
       description: >
         Multipart upload of a single file. Separate from create/update intent text.
@@ -685,7 +685,7 @@ paths:
   /api/v1/intents/{id}/attachments/{attachment_id}:
     delete:
       operationId: deleteIntentAttachment
-      tags: [Intents]
+      tags: [IntentAttachments]
       summary: Delete one file attachment from an intent.
       parameters:
         - in: path
@@ -712,7 +712,7 @@ paths:
   /api/v1/intents/{id}/attachments/{attachment_id}/content:
     get:
       operationId: downloadIntentAttachment
-      tags: [Intents]
+      tags: [IntentAttachments]
       summary: Download one file attachment from an intent.
       parameters:
         - in: path

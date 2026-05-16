@@ -19,6 +19,7 @@ public static class AuthServices
         ArgumentNullException.ThrowIfNull(configuration);
 
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
+        services.Configure<AuthAudienceOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.AddHttpContextAccessor();
 
         // ICurrentUserAccessor выбирается по AuthMode на момент резолва (Scoped),
@@ -45,7 +46,9 @@ public static class AuthServices
         return services;
     }
 
-    private sealed class ConfigureJwtBearer(IOptions<AuthOptions> options)
+    private sealed class ConfigureJwtBearer(
+        IOptions<AuthOptions> authOptions,
+        IOptions<AuthAudienceOptions> audienceOptions)
         : IConfigureNamedOptions<JwtBearerOptions>
     {
         public void Configure(JwtBearerOptions options)
@@ -58,7 +61,8 @@ public static class AuthServices
                 return;
             }
 
-            var auth = options.Value;
+            var auth = authOptions.Value;
+            var audience = audienceOptions.Value;
 
             if (!string.IsNullOrWhiteSpace(auth.Authority))
             {
@@ -74,15 +78,15 @@ public static class AuthServices
             o.MapInboundClaims = false;
 
             // Допустимые audience: основной (REST) + дополнительные (OAuth resource URLs, ADR-0016).
-            string[] audiences = (auth.AdditionalAudiences ?? new())
+            string[] audiences = (audience.AdditionalAudiences ?? new())
                 .Where(a => !string.IsNullOrWhiteSpace(a))
-                .Concat(string.IsNullOrWhiteSpace(auth.Audience) ? Array.Empty<string>() : new[] { auth.Audience })
+                .Concat(string.IsNullOrWhiteSpace(audience.Audience) ? Array.Empty<string>() : new[] { audience.Audience })
                 .ToArray();
 
             o.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = !string.IsNullOrWhiteSpace(auth.Issuer),
-                ValidIssuer = auth.Issuer,
+                ValidateIssuer = !string.IsNullOrWhiteSpace(audience.Issuer),
+                ValidIssuer = audience.Issuer,
                 ValidateAudience = audiences.Length > 0,
                 ValidAudiences = audiences,
                 ValidateLifetime = true,
