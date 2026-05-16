@@ -90,7 +90,7 @@ public sealed class IntentTools(
         return new CallToolResult
         {
             Content = [new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) }],
-            StructuredContent = JsonSerializer.SerializeToNode(result, ToolJsonOptions)?.AsObject(),
+            StructuredContent = JsonSerializer.SerializeToElement(result, ToolJsonOptions),
             IsError = false,
         };
     }

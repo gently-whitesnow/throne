@@ -49,7 +49,7 @@ public sealed class IntentAttachmentTools(
             [
                 new ImageContentBlock
                 {
-                    Data = Convert.ToBase64String(bytes),
+                    Data = bytes,
                     MimeType = att.ContentType,
                 },
             ],

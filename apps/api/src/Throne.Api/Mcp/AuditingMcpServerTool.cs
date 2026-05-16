@@ -16,15 +16,13 @@ internal sealed partial class AuditingMcpServerTool(
     ICurrentUserAccessor currentUser,
     TimeProvider clock,
     ILogger<AuditingMcpServerTool> logger,
-    ServerVersion serverVersion) : McpServerTool
+    ServerVersion serverVersion) : DelegatingMcpServerTool(inner)
 {
-    public override Tool ProtocolTool => inner.ProtocolTool;
-
     public override async ValueTask<CallToolResult> InvokeAsync(
         RequestContext<CallToolRequestParams> request,
         CancellationToken cancellationToken)
     {
-        var toolName = request.Params?.Name ?? inner.ProtocolTool.Name;
+        var toolName = request.Params?.Name ?? ProtocolTool.Name;
         var arguments = NormalizeArguments(request.Params?.Arguments);
         var intentId = ExtractIntentId(request.Params?.Arguments);
         var modeHint = ExtractModeHint(toolName, request.Params?.Arguments);
@@ -35,7 +33,7 @@ internal sealed partial class AuditingMcpServerTool(
 
         try
         {
-            var result = await inner.InvokeAsync(request, cancellationToken);
+            var result = await base.InvokeAsync(request, cancellationToken);
             stopwatch.Stop();
 
             var summary = SummarizeResult(toolName, result);
@@ -82,11 +80,11 @@ internal sealed partial class AuditingMcpServerTool(
     {
         IsError = true,
         Content = [new TextContentBlock { Text = message }],
-        StructuredContent = new JsonObject
+        StructuredContent = JsonSerializer.SerializeToElement(new JsonObject
         {
             ["code"] = code,
             ["message"] = message,
-        },
+        }),
     };
 
     private async Task TryWriteAuditAsync(
@@ -140,7 +138,7 @@ internal sealed partial class AuditingMcpServerTool(
     private static partial void LogToolFailure(ILogger logger, string tool, Exception exception);
 
     private static Dictionary<string, object?> NormalizeArguments(
-        IReadOnlyDictionary<string, JsonElement>? arguments)
+        IDictionary<string, JsonElement>? arguments)
     {
         if (arguments is null)
         {
@@ -156,12 +154,12 @@ internal sealed partial class AuditingMcpServerTool(
         return dict;
     }
 
-    private static string? ExtractIntentId(IReadOnlyDictionary<string, JsonElement>? arguments) =>
+    private static string? ExtractIntentId(IDictionary<string, JsonElement>? arguments) =>
         arguments is not null && arguments.TryGetValue("intent_id", out var element) && element.ValueKind == JsonValueKind.String
             ? element.GetString()
             : null;
 
-    private static string? ExtractModeHint(string toolName, IReadOnlyDictionary<string, JsonElement>? arguments)
+    private static string? ExtractModeHint(string toolName, IDictionary<string, JsonElement>? arguments)
     {
         if (toolName != "get_instruction_bundle" || arguments is null)
         {
@@ -193,7 +191,7 @@ internal sealed partial class AuditingMcpServerTool(
         try
         {
             return JsonSerializer.Deserialize<Dictionary<string, object?>>(
-                result.StructuredContent.ToJsonString(),
+                result.StructuredContent.Value.GetRawText(),
                 SummaryJsonOptions);
         }
         catch (JsonException)
@@ -206,7 +204,7 @@ internal sealed partial class AuditingMcpServerTool(
     {
         try
         {
-            using var doc = JsonDocument.Parse(result.StructuredContent!.ToJsonString());
+            using var doc = JsonDocument.Parse(result.StructuredContent!.Value.GetRawText());
             var root = doc.RootElement;
             var instructions = new List<Dictionary<string, object?>>();
 
@@ -277,7 +275,7 @@ internal sealed partial class AuditingMcpServerTool(
 
         try
         {
-            using var doc = JsonDocument.Parse(result.StructuredContent.ToJsonString());
+            using var doc = JsonDocument.Parse(result.StructuredContent.Value.GetRawText());
             return doc.RootElement.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
                 : null;
