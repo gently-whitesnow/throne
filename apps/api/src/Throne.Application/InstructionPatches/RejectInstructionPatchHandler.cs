@@ -1,5 +1,4 @@
 using Throne.Application.Auth;
-using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
 
@@ -23,61 +22,16 @@ public sealed class RejectInstructionPatchHandler(
         ArgumentNullException.ThrowIfNull(command);
 
         var patch = await patches.GetAsync(command.PatchId, ct)
-            ?? throw NotFound(command.PatchId);
-        EnsureOwner(patch);
+            ?? throw InstructionPatchExceptions.NotFound(command.PatchId);
+        InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
 
         var transition = InstructionPatchTransitions.Reject(patch, command.Comment, clock.GetUtcNow());
-        switch (transition)
-        {
-            case InstructionPatchTransitions.RejectResult.AlreadyDecided:
-                throw AlreadyDecided(patch);
-            case InstructionPatchTransitions.RejectResult.CommentTooShort:
-                throw new ApiException(
-                    ErrorCodes.ValidationFailed,
-                    $"reject_comment must be at least {InstructionPatch.MinRejectCommentLength} characters after trimming.",
-                    new Dictionary<string, object?>
-                    {
-                        ["field"] = "reject_comment",
-                        ["min_length"] = InstructionPatch.MinRejectCommentLength,
-                    });
-            case InstructionPatchTransitions.RejectResult.Ok:
-                break;
-            default:
-                throw new InvalidOperationException($"Unhandled reject result: {transition}");
-        }
+        InstructionPatchOutcomeMapper.ThrowForRejectTransition(transition, patch);
 
         var outcome = await unitOfWork.ExecuteAsync(
             inner => patches.RejectAsync(patch, inner),
             ct);
 
-        return outcome switch
-        {
-            RejectInstructionPatchPersistenceOutcome.Rejected rejected => rejected.Patch,
-            RejectInstructionPatchPersistenceOutcome.AlreadyDecided ad => throw AlreadyDecided(ad.Patch),
-            RejectInstructionPatchPersistenceOutcome.NotFound => throw NotFound(command.PatchId),
-            _ => throw new InvalidOperationException($"Unhandled reject outcome: {outcome.GetType().Name}"),
-        };
+        return InstructionPatchOutcomeMapper.UnwrapReject(outcome, command.PatchId);
     }
-
-    private void EnsureOwner(InstructionPatch patch)
-    {
-        if (!string.Equals(patch.Identity.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
-        {
-            throw NotFound(patch.Identity.Id);
-        }
-    }
-
-    private static ApiException NotFound(string patchId) => new(
-        ErrorCodes.InstructionPatchNotFound,
-        $"InstructionPatch '{patchId}' not found.",
-        new Dictionary<string, object?> { ["patch_id"] = patchId });
-
-    private static ApiException AlreadyDecided(InstructionPatch patch) => new(
-        ErrorCodes.InstructionPatchAlreadyDecided,
-        $"InstructionPatch '{patch.Identity.Id}' is in status '{patch.State.Status}'.",
-        new Dictionary<string, object?>
-        {
-            ["patch_id"] = patch.Identity.Id,
-            ["current_status"] = patch.State.Status,
-        });
 }

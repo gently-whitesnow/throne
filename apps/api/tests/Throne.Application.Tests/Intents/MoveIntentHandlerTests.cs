@@ -12,8 +12,8 @@ public class MoveIntentHandlerTests
     [Fact(DisplayName = "MoveIntent без before_id и after_id отдаёт validation_failed (422)")]
     public async Task Move_without_pivots_returns_validation_failed()
     {
-        var repo = Substitute.For<IIntentRepository>();
-        var handler = new MoveIntentHandler(repo, new PassthroughUnitOfWork());
+        var ordering = Substitute.For<IIntentOrderingRepository>();
+        var handler = new MoveIntentHandler(ordering, new PassthroughUnitOfWork());
 
         var act = () => handler.HandleAsync(
             new MoveIntentCommand(IntentId.New().Value, BeforeId: null, AfterId: null),
@@ -21,7 +21,7 @@ public class MoveIntentHandlerTests
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
-        await repo.DidNotReceiveWithAnyArgs().MoveBetweenAsync(default, default, default, default);
+        await ordering.DidNotReceiveWithAnyArgs().MoveBetweenAsync(default, default, default, default);
     }
 
     // Регрессия: на проде фронт сортировал ключи через localeCompare (case-insensitive),
@@ -32,12 +32,12 @@ public class MoveIntentHandlerTests
     [Fact(DisplayName = "MoveIntent при инвертированных пивотах конвертирует ArgumentException в validation_failed")]
     public async Task Move_with_inverted_pivots_returns_validation_failed()
     {
-        var repo = Substitute.For<IIntentRepository>();
-        repo.MoveBetweenAsync(Arg.Any<IntentId>(), Arg.Any<IntentId?>(), Arg.Any<IntentId?>(), Arg.Any<CancellationToken>())
+        var ordering = Substitute.For<IIntentOrderingRepository>();
+        ordering.MoveBetweenAsync(Arg.Any<IntentId>(), Arg.Any<IntentId?>(), Arg.Any<IntentId?>(), Arg.Any<CancellationToken>())
             .Returns<Task<MoveIntentOutcome>>(_ =>
                 throw new ArgumentException("before ('s') must be lexicographically less than after ('V').", "before"));
 
-        var handler = new MoveIntentHandler(repo, new PassthroughUnitOfWork());
+        var handler = new MoveIntentHandler(ordering, new PassthroughUnitOfWork());
 
         var act = () => handler.HandleAsync(
             new MoveIntentCommand(IntentId.New().Value, BeforeId: "before-id", AfterId: "after-id"),

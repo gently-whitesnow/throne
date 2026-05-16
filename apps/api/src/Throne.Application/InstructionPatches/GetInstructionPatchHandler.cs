@@ -1,5 +1,4 @@
 using Throne.Application.Auth;
-using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
 
@@ -15,33 +14,28 @@ public sealed class GetInstructionPatchHandler(
         ArgumentException.ThrowIfNullOrWhiteSpace(patchId);
 
         var patch = await patches.GetAsync(patchId, ct)
-            ?? throw NotFound(patchId);
-        if (!string.Equals(patch.Identity.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
-        {
-            throw NotFound(patchId);
-        }
+            ?? throw InstructionPatchExceptions.NotFound(patchId);
+        InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
 
-        var instructionList = await instructions.GetUserInstructionsByKindsAsync(
+        var instruction = await UserInstructionLookup.FindAsync(
+            instructions,
             patch.Identity.OwnerUserId,
-            [patch.Identity.TargetKind],
+            patch.Identity.TargetKind,
             ct);
-        var instruction = instructionList.Count == 0 ? null : instructionList[0];
 
-        return new InstructionPatchView(
-            patch,
-            instruction?.Text ?? string.Empty,
-            instruction?.CurrentVersion ?? 0,
-            instruction is not null && instruction.CurrentVersion == patch.Identity.BaseInstructionVersion);
+        return InstructionPatchView.From(patch, instruction);
     }
-
-    private static ApiException NotFound(string patchId) => new(
-        ErrorCodes.InstructionPatchNotFound,
-        $"InstructionPatch '{patchId}' not found.",
-        new Dictionary<string, object?> { ["patch_id"] = patchId });
 }
 
 public sealed record InstructionPatchView(
     InstructionPatch Patch,
     string CurrentInstructionText,
     int CurrentInstructionVersion,
-    bool BaseVersionMatchesCurrent);
+    bool BaseVersionMatchesCurrent)
+{
+    public static InstructionPatchView From(InstructionPatch patch, Instruction? instruction) => new(
+        patch,
+        instruction?.Text ?? string.Empty,
+        instruction?.CurrentVersion ?? 0,
+        instruction is not null && instruction.CurrentVersion == patch.Identity.BaseInstructionVersion);
+}

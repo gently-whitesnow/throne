@@ -49,31 +49,6 @@
     },
     {
       "kind": "editorconfig",
-      "location": "src/Throne.Application/InstructionPatches/ApplyInstructionPatchHandler.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Application/InstructionPatches/GetInstructionPatchHandler.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Application/InstructionPatches/ProposeInstructionPatchHandler.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Application/InstructionPatches/RejectInstructionPatchHandler.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Application/Ports/IIntentRepository.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
       "location": "src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs",
       "rule": "CA1502"
     },

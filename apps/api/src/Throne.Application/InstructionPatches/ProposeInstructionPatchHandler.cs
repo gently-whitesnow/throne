@@ -26,10 +26,9 @@ internal static class IdempotencyKeyValidator
         var trimmed = raw.Trim();
         if (trimmed.Length > MaxLength)
         {
-            throw new ApiException(
-                ErrorCodes.ValidationFailed,
-                $"idempotency_key must be ≤{MaxLength} characters.",
-                new Dictionary<string, object?> { ["field"] = "idempotency_key" });
+            throw InstructionPatchExceptions.ValidationFailed(
+                "idempotency_key",
+                $"idempotency_key must be ≤{MaxLength} characters.");
         }
         return trimmed;
     }
@@ -51,20 +50,7 @@ public sealed class ProposeInstructionPatchHandler(
     public async Task<InstructionPatch> HandleAsync(ProposeInstructionPatchCommand command, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (!InstructionKindNames.IsKnown(command.TargetKind))
-        {
-            throw new ApiException(
-                ErrorCodes.ValidationFailed,
-                $"Unknown target_kind: {command.TargetKind}.",
-                new Dictionary<string, object?> { ["field"] = "target_kind" });
-        }
-        if (string.IsNullOrWhiteSpace(command.PatchText))
-        {
-            throw new ApiException(
-                ErrorCodes.ValidationFailed,
-                "patch_text must not be empty.",
-                new Dictionary<string, object?> { ["field"] = "patch_text" });
-        }
+        ProposeInstructionPatchValidator.ValidateCommand(command);
 
         var idempotencyKey = IdempotencyKeyValidator.Normalize(command.IdempotencyKey);
         var ownerUserId = currentUser.UserId;
@@ -85,7 +71,8 @@ public sealed class ProposeInstructionPatchHandler(
         // Resolve target instruction; verify version matches what the agent saw.
         // Если записи нет — current_version=0 валидно, такой патч позже создаст
         // Instruction на apply-стороне.
-        var targetInstruction = await FindUserInstructionAsync(ownerUserId, command.TargetKind, ct);
+        var targetInstruction = await UserInstructionLookup.FindAsync(
+            instructions, ownerUserId, command.TargetKind, ct);
         var currentVersion = targetInstruction?.CurrentVersion ?? 0;
         if (currentVersion != command.BaseInstructionVersion)
         {
@@ -100,26 +87,7 @@ public sealed class ProposeInstructionPatchHandler(
                 });
         }
 
-        InstructionPatch patch;
-        try
-        {
-            patch = InstructionPatch.Create(
-                id: Guid.NewGuid().ToString("N"),
-                ownerUserId: ownerUserId,
-                targetKind: command.TargetKind,
-                patchText: command.PatchText,
-                evidenceCardIds: command.EvidenceCardIds ?? [],
-                rationale: command.Rationale ?? string.Empty,
-                baseInstructionVersion: command.BaseInstructionVersion,
-                now: clock.GetUtcNow());
-        }
-        catch (ArgumentException ex)
-        {
-            throw new ApiException(
-                ErrorCodes.ValidationFailed,
-                ex.Message,
-                new Dictionary<string, object?> { ["field"] = ex.ParamName ?? "patch" });
-        }
+        var patch = ProposeInstructionPatchFactory.Create(command, ownerUserId, clock.GetUtcNow());
 
         // Insert runs outside the UoW transaction: it is a single-doc write
         // (atomic on its own) and the idempotency-retry fallback path needs to
@@ -131,10 +99,47 @@ public sealed class ProposeInstructionPatchHandler(
             ct);
         return outcome.Patch;
     }
+}
 
-    private async Task<Instruction?> FindUserInstructionAsync(string ownerUserId, string kind, CancellationToken ct)
+internal static class ProposeInstructionPatchValidator
+{
+    public static void ValidateCommand(ProposeInstructionPatchCommand command)
     {
-        var list = await instructions.GetUserInstructionsByKindsAsync(ownerUserId, [kind], ct);
-        return list.Count == 0 ? null : list[0];
+        if (!InstructionKindNames.IsKnown(command.TargetKind))
+        {
+            throw InstructionPatchExceptions.UnknownTargetKind(command.TargetKind);
+        }
+        if (string.IsNullOrWhiteSpace(command.PatchText))
+        {
+            throw InstructionPatchExceptions.ValidationFailed("patch_text", "patch_text must not be empty.");
+        }
+    }
+}
+
+internal static class ProposeInstructionPatchFactory
+{
+    public static InstructionPatch Create(
+        ProposeInstructionPatchCommand command,
+        string ownerUserId,
+        DateTimeOffset now)
+    {
+        try
+        {
+            return InstructionPatch.Create(
+                id: Guid.NewGuid().ToString("N"),
+                ownerUserId: ownerUserId,
+                targetKind: command.TargetKind,
+                patchText: command.PatchText,
+                evidenceCardIds: command.EvidenceCardIds ?? [],
+                rationale: command.Rationale ?? string.Empty,
+                baseInstructionVersion: command.BaseInstructionVersion,
+                now: now);
+        }
+        catch (ArgumentException ex)
+        {
+            throw InstructionPatchExceptions.ValidationFailed(
+                ex.ParamName ?? "patch",
+                ex.Message);
+        }
     }
 }

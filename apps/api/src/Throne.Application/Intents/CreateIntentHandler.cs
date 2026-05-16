@@ -13,6 +13,7 @@ public sealed record CreateIntentCommand(
 
 public sealed class CreateIntentHandler(
     IIntentRepository repository,
+    IIntentOrderingRepository ordering,
     IntentTagResolver tagResolver,
     IUnitOfWork unitOfWork,
     ICurrentUserAccessor currentUser,
@@ -59,7 +60,7 @@ public sealed class CreateIntentHandler(
 
     private async Task<string> NextTopSortKeyAsync(CancellationToken ct)
     {
-        var currentMin = await repository.GetMinSortKeyAsync(ct);
+        var currentMin = await ordering.GetMinSortKeyAsync(ct);
         return FractionalIndex.Between(
             before: null,
             after: string.IsNullOrEmpty(currentMin) ? null : currentMin);

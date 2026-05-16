@@ -65,11 +65,6 @@ dotnet_diagnostic.CA1707.severity = none
 [src/Throne.Api/Mcp/Tools/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 
-# Intent aggregate is wide: list/get/create/edit/move/tag/status/delete are all natural
-# read+write operations. Splitting into role interfaces would shred a single aggregate.
-[src/Throne.Application/Ports/IIntentRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-
 [src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs]
 dotnet_diagnostic.CA1502.severity = none
 
@@ -265,18 +260,6 @@ dotnet_diagnostic.CA1506.severity = none
 dotnet_diagnostic.CA1502.severity = none
 
 [src/Throne.Api/Mcp/Tools/InstructionPatchTools.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Application/InstructionPatches/ApplyInstructionPatchHandler.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Application/InstructionPatches/GetInstructionPatchHandler.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Application/InstructionPatches/ProposeInstructionPatchHandler.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Application/InstructionPatches/RejectInstructionPatchHandler.cs]
 dotnet_diagnostic.CA1502.severity = none
 
 [tests/Throne.Domain.Tests/Instructions/InstructionPatchTests.cs]
