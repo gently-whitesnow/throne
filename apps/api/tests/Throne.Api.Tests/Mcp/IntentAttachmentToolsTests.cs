@@ -148,7 +148,7 @@ public class IntentAttachmentToolsTests
         intentRepo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>()).Returns((Intent?)null);
 
         var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
-        var tools = new IntentAttachmentTools(intentRepo, attachmentRepo);
+        var tools = new IntentAttachmentTools(new IntentAttachmentLoader(intentRepo, attachmentRepo));
 
         var act = () => tools.ReadIntentAttachmentImage(intentId.Value, "any", CancellationToken.None);
 
@@ -169,7 +169,7 @@ public class IntentAttachmentToolsTests
         attachmentRepo.OpenContentAsync(Arg.Any<IntentId>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((IntentAttachmentContent?)null);
 
-        var tools = new IntentAttachmentTools(intentRepo, attachmentRepo);
+        var tools = new IntentAttachmentTools(new IntentAttachmentLoader(intentRepo, attachmentRepo));
 
         var act = () => tools.ReadIntentAttachmentImage(intentId.Value, "missing", CancellationToken.None);
 
@@ -200,6 +200,6 @@ public class IntentAttachmentToolsTests
         attachmentRepo.OpenContentAsync(intentId, att.Id, Arg.Any<CancellationToken>())
             .Returns(_ => new IntentAttachmentContent(att, new MemoryStream(bytes)));
 
-        return new IntentAttachmentTools(intentRepo, attachmentRepo);
+        return new IntentAttachmentTools(new IntentAttachmentLoader(intentRepo, attachmentRepo));
     }
 }

@@ -3,11 +3,6 @@
   "version": 1,
   "violations": [
     {
-      "code": "CTOR_DEPS",
-      "path": "apps/api/src/Throne.Api/Intents/IntentsController.cs",
-      "subject": "IntentsController primary constructor"
-    },
-    {
       "code": "TYPE_LOC",
       "path": "apps/api/src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs",
       "subject": "MongoIntentRepository"

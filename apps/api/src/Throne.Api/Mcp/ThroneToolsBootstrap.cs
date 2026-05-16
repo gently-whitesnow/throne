@@ -12,6 +12,8 @@ public static class ThroneToolsBootstrap
         services.AddSingleton(new ServerVersion(
             typeof(ThroneToolsBootstrap).Assembly.GetName().Version?.ToString() ?? "0.0.0"));
 
+        services.AddSingleton<IntentAttachmentLoader>();
+
         services.AddThroneTool<IntentTools>();
         services.AddThroneTool<IntentTextTools>();
         services.AddThroneTool<IntentLinkTools>();

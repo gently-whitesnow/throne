@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Shared;
 using Throne.Application.Errors;
 using Throne.Application.Intents.Linking;
@@ -8,14 +10,9 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-/// <summary>
-/// Companion endpoint to <see cref="IntentsControllerBase.ListIntents"/>. Keeps
-/// the list DTO graph-free and serves the per-intent link aggregates that the
-/// board renders as badges and hover-overlay (ADR-0019 follow-up).
-/// </summary>
-public sealed partial class IntentsController
+internal static class GetIntentLinksSummaryEndpoint
 {
-    public override async Task<ActionResult<IntentLinksSummaryDto>> GetIntentLinksSummary(IEnumerable<string> ids)
+    public static async Task<ActionResult<IntentLinksSummaryDto>> RunAsync(IEnumerable<string> ids, HttpContext http)
     {
         ArgumentNullException.ThrowIfNull(ids);
         var idList = ids
@@ -23,26 +20,34 @@ public sealed partial class IntentsController
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
+        var handler = http.RequestServices.GetRequiredService<GetIntentLinksSummaryHandler>();
+        var helpers = http.RequestServices.GetRequiredService<IntentsApiHelpers>();
         try
         {
-            var summaries = await linksSummaryHandler.HandleAsync(
+            var summaries = await handler.HandleAsync(
                 new GetIntentLinksSummaryQuery(idList),
-                HttpContext.RequestAborted);
+                http.RequestAborted);
 
-            var tagMap = await BuildTagMapAsync(CollectTagIds(summaries), HttpContext.RequestAborted);
-
-            var entries = new System.Collections.ObjectModel.Collection<IntentLinksSummaryEntryDto>();
-            foreach (var summary in summaries)
-            {
-                entries.Add(BuildEntry(summary, tagMap));
-            }
-            return Ok(new IntentLinksSummaryDto { Items = entries });
+            var tagMap = await helpers.BuildTagMapAsync(CollectTagIds(summaries), http.RequestAborted);
+            return new OkObjectResult(new IntentLinksSummaryDto { Items = BuildEntries(summaries, tagMap) });
         }
         catch (ApiException ex) when (ex.Code == ErrorCodes.ValidationFailed)
         {
-            return UnprocessableEntity(ApiProblems.Build(
+            return new UnprocessableEntityObjectResult(ApiProblems.Build(
                 StatusCodes.Status422UnprocessableEntity, "Validation failed", ex));
         }
+    }
+
+    private static System.Collections.ObjectModel.Collection<IntentLinksSummaryEntryDto> BuildEntries(
+        IReadOnlyList<IntentLinksSummary> summaries,
+        IReadOnlyDictionary<string, Tag> tagMap)
+    {
+        var entries = new System.Collections.ObjectModel.Collection<IntentLinksSummaryEntryDto>();
+        foreach (var summary in summaries)
+        {
+            entries.Add(BuildEntry(summary, tagMap));
+        }
+        return entries;
     }
 
     private static IntentLinksSummaryEntryDto BuildEntry(
