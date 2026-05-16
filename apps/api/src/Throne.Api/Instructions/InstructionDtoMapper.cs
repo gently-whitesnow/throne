@@ -10,7 +10,7 @@ internal static class InstructionDtoMapper
     public static InstructionListItemDto ToListDto(Instruction instruction) => new()
     {
         Id = instruction.Id.Value,
-        Kind = instruction.Kind,
+        Kind = instruction.Descriptor.Kind,
         Current_version = instruction.CurrentVersion,
         Text_short = TextShort(instruction.Text),
         Created_at = instruction.CreatedAt,
@@ -20,7 +20,7 @@ internal static class InstructionDtoMapper
     public static InstructionDetailDto ToDetailDto(Instruction instruction) => new()
     {
         Id = instruction.Id.Value,
-        Kind = instruction.Kind,
+        Kind = instruction.Descriptor.Kind,
         Current_version = instruction.CurrentVersion,
         Text = instruction.Text,
         Created_at = instruction.CreatedAt,

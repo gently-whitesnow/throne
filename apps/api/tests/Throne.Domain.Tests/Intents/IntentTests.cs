@@ -11,12 +11,12 @@ public class IntentTests
     [Fact(DisplayName = "Create задаёт current_version = 1 и timestamps")]
     public void Create_starts_at_version_1()
     {
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = IntentFactory.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
 
-        intent.Status.Should().Be(IntentStatusNames.Draft);
-        intent.CurrentVersion.Should().Be(1);
+        intent.State.Status.Should().Be(IntentStatusNames.Draft);
+        intent.State.CurrentVersion.Should().Be(1);
         intent.CreatedAt.Should().Be(Now);
-        intent.UpdatedAt.Should().Be(Now);
+        intent.State.UpdatedAt.Should().Be(Now);
         intent.TagIds.Should().BeEmpty();
     }
 
@@ -25,7 +25,7 @@ public class IntentTests
     {
         var a = TagId.New();
         var b = TagId.New();
-        var intent = Intent.Create(
+        var intent = IntentFactory.Create(
             IntentId.New(),
             "user-1",
             "x",
@@ -38,7 +38,7 @@ public class IntentTests
     [Fact(DisplayName = "Create отвергает пустой text")]
     public void Create_rejects_empty_text()
     {
-        var act = () => Intent.Create(IntentId.New(), "user-1", "", tagIds: null, Now);
+        var act = () => IntentFactory.Create(IntentId.New(), "user-1", "", tagIds: null, Now);
 
         act.Should().Throw<ArgumentException>().WithParameterName("text");
     }
@@ -46,7 +46,7 @@ public class IntentTests
     [Fact(DisplayName = "Restore требует current_version >= 1")]
     public void Restore_rejects_zero_version()
     {
-        var act = () => Intent.Restore(
+        var act = () => IntentFactory.Restore(
             IntentId.New(),
             "user-1",
             "x",
@@ -62,14 +62,14 @@ public class IntentTests
     [Fact(DisplayName = "SetStatus меняет статус и updated_at")]
     public void SetStatus_updates_status_and_timestamp()
     {
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = IntentFactory.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
         var later = Now.AddMinutes(5);
 
-        var changed = intent.SetStatus(IntentStatusNames.Work, later);
+        var changed = IntentStatusOperation.SetStatus(intent, IntentStatusNames.Work, later);
 
         changed.Should().BeTrue();
-        intent.Status.Should().Be(IntentStatusNames.Work);
-        intent.UpdatedAt.Should().Be(later);
+        intent.State.Status.Should().Be(IntentStatusNames.Work);
+        intent.State.UpdatedAt.Should().Be(later);
     }
 
     [Fact(DisplayName = "SetTagIds возвращает true только при реальной смене состава")]
@@ -77,30 +77,30 @@ public class IntentTests
     {
         var a = TagId.New();
         var b = TagId.New();
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", [a], Now);
+        var intent = IntentFactory.Create(IntentId.New(), "user-1", "hello", [a], Now);
         var later = Now.AddMinutes(5);
 
-        var unchanged = intent.SetTagIds([a], later);
+        var unchanged = IntentTagOperation.SetTagIds(intent, [a], later);
         unchanged.Should().BeFalse();
-        intent.UpdatedAt.Should().Be(Now);
+        intent.State.UpdatedAt.Should().Be(Now);
 
-        var changed = intent.SetTagIds([a, b], later);
+        var changed = IntentTagOperation.SetTagIds(intent, [a, b], later);
         changed.Should().BeTrue();
         intent.TagIds.Should().Equal(a, b);
-        intent.UpdatedAt.Should().Be(later);
+        intent.State.UpdatedAt.Should().Be(later);
     }
 
     [Fact(DisplayName = "Create без ownerUserId выбрасывает")]
     public void Create_rejects_empty_owner_user_id()
     {
-        var act = () => Intent.Create(IntentId.New(), "", "text", tagIds: null, Now);
+        var act = () => IntentFactory.Create(IntentId.New(), "", "text", tagIds: null, Now);
         act.Should().Throw<ArgumentException>().WithParameterName("ownerUserId");
     }
 
     [Fact(DisplayName = "OwnerUserId сохраняется")]
     public void Create_stores_owner_user_id()
     {
-        var intent = Intent.Create(IntentId.New(), "alice", "text", tagIds: null, Now);
+        var intent = IntentFactory.Create(IntentId.New(), "alice", "text", tagIds: null, Now);
         intent.OwnerUserId.Should().Be("alice");
     }
 
@@ -108,14 +108,14 @@ public class IntentTests
     public void SetTagIds_dedups_and_keeps_text_version()
     {
         var a = TagId.New();
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
-        var versionBefore = intent.CurrentVersion;
+        var intent = IntentFactory.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var versionBefore = intent.State.CurrentVersion;
 
-        var changed = intent.SetTagIds([a, a], Now.AddSeconds(1));
+        var changed = IntentTagOperation.SetTagIds(intent, [a, a], Now.AddSeconds(1));
 
         changed.Should().BeTrue();
         intent.TagIds.Should().Equal(a);
-        intent.CurrentVersion.Should().Be(versionBefore);
+        intent.State.CurrentVersion.Should().Be(versionBefore);
     }
 
 }

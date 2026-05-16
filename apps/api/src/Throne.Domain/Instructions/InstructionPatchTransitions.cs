@@ -28,33 +28,29 @@ public static class InstructionPatchTransitions
         int appliedInstructionVersion,
         DateTimeOffset now)
     {
-        if (patch.Status != InstructionPatchStatusNames.Proposed)
+        if (patch.State.Status != InstructionPatchStatusNames.Proposed)
         {
             return ApplyResult.AlreadyDecided;
         }
-        if (appliedInstructionVersion < patch.BaseInstructionVersion + 1)
+        if (appliedInstructionVersion < patch.Identity.BaseInstructionVersion + 1)
         {
             return ApplyResult.InvalidAppliedVersion;
         }
 
-        var verbatim = IsVerbatim(editedText, patch.PatchText);
-        var appliedText = verbatim ? patch.PatchText : editedText!;
-        var status = verbatim
-            ? InstructionPatchStatusNames.Applied
-            : InstructionPatchStatusNames.AppliedEdited;
-        patch.ReplaceState(new InstructionPatchState(
+        var (status, appliedText) = ResolveApplied(editedText, patch.PatchText);
+        patch.State = new InstructionPatchState(
             Status: status,
             AppliedText: appliedText,
-            RejectComment: patch.RejectComment,
+            RejectComment: patch.State.RejectComment,
             AppliedInstructionVersion: appliedInstructionVersion,
             UpdatedAt: now,
-            DecidedAt: now));
+            DecidedAt: now);
         return ApplyResult.Ok;
     }
 
     public static RejectResult Reject(InstructionPatch patch, string comment, DateTimeOffset now)
     {
-        if (patch.Status != InstructionPatchStatusNames.Proposed)
+        if (patch.State.Status != InstructionPatchStatusNames.Proposed)
         {
             return RejectResult.AlreadyDecided;
         }
@@ -63,22 +59,22 @@ public static class InstructionPatchTransitions
         {
             return RejectResult.CommentTooShort;
         }
-        patch.ReplaceState(new InstructionPatchState(
+        patch.State = new InstructionPatchState(
             Status: InstructionPatchStatusNames.Rejected,
-            AppliedText: patch.AppliedText,
+            AppliedText: patch.State.AppliedText,
             RejectComment: trimmed,
-            AppliedInstructionVersion: patch.AppliedInstructionVersion,
+            AppliedInstructionVersion: patch.State.AppliedInstructionVersion,
             UpdatedAt: now,
-            DecidedAt: now));
+            DecidedAt: now);
         return RejectResult.Ok;
     }
 
-    private static bool IsVerbatim(string? editedText, string patchText)
+    private static (string Status, string AppliedText) ResolveApplied(string? editedText, string patchText)
     {
-        if (string.IsNullOrEmpty(editedText))
+        if (string.IsNullOrEmpty(editedText) || string.Equals(editedText, patchText, StringComparison.Ordinal))
         {
-            return true;
+            return (InstructionPatchStatusNames.Applied, patchText);
         }
-        return string.Equals(editedText, patchText, StringComparison.Ordinal);
+        return (InstructionPatchStatusNames.AppliedEdited, editedText);
     }
 }

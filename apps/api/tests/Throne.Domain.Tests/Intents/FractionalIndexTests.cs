@@ -19,27 +19,13 @@ public class FractionalIndexTests
         FractionalIndex.Between(null, null).Should().Be(FractionalIndex.Initial());
 
         var prepend = FractionalIndex.Between(null, "V");
-        AssertStrictlyInside(prepend, lower: null, upper: "V");
+        FractionalIndexAssertions.AssertStrictlyInside(prepend, lower: null, upper: "V");
 
         var append = FractionalIndex.Between("V", null);
-        AssertStrictlyInside(append, lower: "V", upper: null);
+        FractionalIndexAssertions.AssertStrictlyInside(append, lower: "V", upper: null);
 
         var midpoint = FractionalIndex.Between("A", "B");
-        AssertStrictlyInside(midpoint, lower: "A", upper: "B");
-    }
-
-    private static void AssertStrictlyInside(string key, string? lower, string? upper)
-    {
-        key.Should().NotBeEmpty();
-        key.Should().NotEndWith("0");
-        if (lower is not null)
-        {
-            string.CompareOrdinal(lower, key).Should().BeLessThan(0);
-        }
-        if (upper is not null)
-        {
-            string.CompareOrdinal(key, upper).Should().BeLessThan(0);
-        }
+        FractionalIndexAssertions.AssertStrictlyInside(midpoint, lower: "A", upper: "B");
     }
 
     [Fact(DisplayName = "Между смежными ключами всегда есть промежуточный — N итераций без коллизий")]

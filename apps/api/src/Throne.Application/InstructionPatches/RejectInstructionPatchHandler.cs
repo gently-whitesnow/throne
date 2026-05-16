@@ -61,9 +61,9 @@ public sealed class RejectInstructionPatchHandler(
 
     private void EnsureOwner(InstructionPatch patch)
     {
-        if (!string.Equals(patch.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
+        if (!string.Equals(patch.Identity.OwnerUserId, currentUser.UserId, StringComparison.Ordinal))
         {
-            throw NotFound(patch.Id);
+            throw NotFound(patch.Identity.Id);
         }
     }
 
@@ -74,10 +74,10 @@ public sealed class RejectInstructionPatchHandler(
 
     private static ApiException AlreadyDecided(InstructionPatch patch) => new(
         ErrorCodes.InstructionPatchAlreadyDecided,
-        $"InstructionPatch '{patch.Id}' is in status '{patch.Status}'.",
+        $"InstructionPatch '{patch.Identity.Id}' is in status '{patch.State.Status}'.",
         new Dictionary<string, object?>
         {
-            ["patch_id"] = patch.Id,
-            ["current_status"] = patch.Status,
+            ["patch_id"] = patch.Identity.Id,
+            ["current_status"] = patch.State.Status,
         });
 }

@@ -121,11 +121,11 @@ public sealed class UserBundleEntries(IInstructionRepository repository, ICurren
             .ToDictionary(x => x.Kind, x => x.idx, StringComparer.Ordinal);
 
         return userInstructions
-            .OrderBy(i => orderIndex.TryGetValue(i.Kind, out var idx) ? idx : int.MaxValue)
+            .OrderBy(i => orderIndex.TryGetValue(i.Descriptor.Kind, out var idx) ? idx : int.MaxValue)
             .ThenBy(i => i.CreatedAt)
             .Select(i => new InstructionWithText(
                 Scope: InstructionScopeNames.User,
-                Kind: i.Kind,
+                Kind: i.Descriptor.Kind,
                 InstructionId: i.Id.Value,
                 CurrentVersion: i.CurrentVersion,
                 Text: i.Text))

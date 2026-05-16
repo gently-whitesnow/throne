@@ -26,11 +26,11 @@ public static class InstructionPatchFactory
             rationale,
             baseInstructionVersion);
         var identity = new InstructionPatchIdentity(id, ownerUserId, targetKind, baseInstructionVersion, now);
-        return InstructionPatch.CreateInternal(
+        return new InstructionPatch(
             identity,
             InstructionPatchState.Initial(now),
             patchText,
-            evidenceCardIds,
+            [.. evidenceCardIds],
             rationale);
     }
 
@@ -44,6 +44,6 @@ public static class InstructionPatchFactory
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(state);
         InstructionPatchGuards.EnsureRestoreInputs(identity.Id, identity.OwnerUserId, identity.TargetKind, state.Status);
-        return InstructionPatch.CreateInternal(identity, state, patchText, evidenceCardIds, rationale);
+        return new InstructionPatch(identity, state, patchText, [.. evidenceCardIds], rationale);
     }
 }

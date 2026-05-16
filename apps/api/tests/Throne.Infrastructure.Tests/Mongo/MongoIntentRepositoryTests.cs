@@ -24,7 +24,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
 
         var id = IntentId.New();
         var tagId = TagId.New();
-        var intent = Intent.Create(id, "user-1", "hello world", [tagId], Now);
+        var intent = IntentFactory.Create(id, "user-1", "hello world", [tagId], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "hello world", Now, TextVersionAuthor.Agent);
@@ -56,7 +56,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var id = IntentId.New();
         var a = TagId.New();
         var b = TagId.New();
-        var intent = Intent.Create(id, "user-1", "body", [a, b], Now);
+        var intent = IntentFactory.Create(id, "user-1", "body", [a, b], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
@@ -65,9 +65,9 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
 
         fetched.Should().NotBeNull();
-        fetched!.Text.Should().Be("body");
-        fetched.Status.Should().Be(IntentStatusNames.Draft);
-        fetched.CurrentVersion.Should().Be(1);
+        fetched!.State.Text.Should().Be("body");
+        fetched.State.Status.Should().Be(IntentStatusNames.Draft);
+        fetched.State.CurrentVersion.Should().Be(1);
         fetched.TagIds.Should().Equal(a, b);
     }
 
@@ -87,7 +87,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "user-1", "body", [TagId.New()], Now);
+        var intent = IntentFactory.Create(id, "user-1", "body", [TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
@@ -106,8 +106,8 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
             CancellationToken.None);
 
         var updated = outcome.Should().BeOfType<SetIntentStatusOutcome.Updated>().Subject.Intent;
-        updated.Status.Should().Be(IntentStatusNames.Work);
-        updated.CurrentVersion.Should().Be(1);
+        updated.State.Status.Should().Be(IntentStatusNames.Work);
+        updated.State.CurrentVersion.Should().Be(1);
 
         var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
             .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
@@ -132,7 +132,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "user-1", "body", [TagId.New()], Now);
+        var intent = IntentFactory.Create(id, "user-1", "body", [TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
@@ -169,7 +169,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (_, repo, _) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "user-1", "x", null, Now);
+        var intent = IntentFactory.Create(id, "user-1", "x", null, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "x", Now, TextVersionAuthor.Agent);
 
@@ -192,9 +192,9 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         IntentStatusChange.Create(
             Guid.NewGuid().ToString("N"),
             intent.Id,
-            intent.CurrentVersion,
-            intent.Status,
-            intent.Status,
+            intent.State.CurrentVersion,
+            intent.State.Status,
+            intent.State.Status,
             "test:create",
             Now,
             IntentTrainingAuthor.Agent);

@@ -25,9 +25,9 @@ public class GetInstructionBundleHandlerTests
     {
         var repo = Substitute.For<IInstructionRepository>();
         var intents = StubIntentRepository();
-        var userCommon = Instruction.Create(
+        var userCommon = InstructionFactory.Create(
             InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Common, "user common text", Now);
-        var userWork = Instruction.Create(
+        var userWork = InstructionFactory.Create(
             InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Work, "user work text", Now);
         repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([userCommon, userWork]);
@@ -175,7 +175,7 @@ public class GetInstructionBundleHandlerTests
                 var intentId = ci.ArgAt<IntentId>(0);
                 var status = ci.ArgAt<string>(1);
                 return new SetIntentStatusOutcome.Updated(
-                    Intent.Restore(intentId, "user-1", "x", status, 1, [], Now, Now));
+                    IntentFactory.Restore(intentId, "user-1", "x", status, 1, [], Now, Now));
             });
 
         return repo;

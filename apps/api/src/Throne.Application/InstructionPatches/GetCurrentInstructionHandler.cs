@@ -44,7 +44,7 @@ public sealed class GetCurrentInstructionHandler(
         var instruction = list[0];
         return new CurrentInstructionView(
             instruction.Id.Value,
-            instruction.Kind,
+            instruction.Descriptor.Kind,
             instruction.Text,
             instruction.CurrentVersion,
             instruction.UpdatedAt);

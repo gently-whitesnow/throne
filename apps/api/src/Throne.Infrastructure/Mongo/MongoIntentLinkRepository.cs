@@ -399,7 +399,7 @@ internal sealed class MongoIntentLinkRepository(
         Rationale: doc.Rationale,
         CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc)));
 
-    private static Intent MapIntentToDomain(IntentDocument doc) => Intent.Restore(
+    private static Intent MapIntentToDomain(IntentDocument doc) => IntentFactory.Restore(
         id: new IntentId(doc.Id),
         ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,

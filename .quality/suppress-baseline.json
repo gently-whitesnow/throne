@@ -74,56 +74,6 @@
     },
     {
       "kind": "editorconfig",
-      "location": "src/Throne.Domain/Instructions/Instruction.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Instructions/InstructionPatch.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Instructions/InstructionPatchBudgets.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Instructions/InstructionPatchFactory.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Instructions/InstructionPatchGuards.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Instructions/InstructionPatchTransitions.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Intents/FractionalIndex.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Intents/Intent.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Intents/IntentTextSearch.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "src/Throne.Domain/Tags/Tag.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
       "location": "src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs",
       "rule": "CA1502"
     },
@@ -350,11 +300,6 @@
     {
       "kind": "editorconfig",
       "location": "tests/Throne.Domain.Tests/Instructions/InstructionPatchTests.cs",
-      "rule": "CA1502"
-    },
-    {
-      "kind": "editorconfig",
-      "location": "tests/Throne.Domain.Tests/Intents/FractionalIndexTests.cs",
       "rule": "CA1502"
     },
     {

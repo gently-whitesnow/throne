@@ -23,7 +23,7 @@ public class ReadIntentTextHandlerTests
         var repo = Substitute.For<IIntentRepository>();
         var id = IntentId.New();
         repo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(id, "user-1", "a\nb\nc\nd\ne", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(IntentFactory.Restore(id, "user-1", "a\nb\nc\nd\ne", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var handler = new ReadIntentTextHandler(repo);
 
@@ -42,7 +42,7 @@ public class ReadIntentTextHandlerTests
         var repo = Substitute.For<IIntentRepository>();
         var id = IntentId.New();
         repo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(id, "user-1", "abc\ndef\nghi", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(IntentFactory.Restore(id, "user-1", "abc\ndef\nghi", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var handler = new ReadIntentTextHandler(repo);
 

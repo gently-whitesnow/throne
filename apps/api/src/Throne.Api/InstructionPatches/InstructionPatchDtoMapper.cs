@@ -17,23 +17,23 @@ public static class InstructionPatchDtoMapper
         ArgumentNullException.ThrowIfNull(patch);
         var dto = new InstructionPatchDto
         {
-            Id = patch.Id,
-            Target_kind = ToTargetKind(patch.TargetKind),
-            Status = ToStatus(patch.Status),
+            Id = patch.Identity.Id,
+            Target_kind = ToTargetKind(patch.Identity.TargetKind),
+            Status = ToStatus(patch.State.Status),
             Patch_text = patch.PatchText,
-            Applied_text = patch.AppliedText,
+            Applied_text = patch.State.AppliedText,
             Evidence_card_ids = patch.EvidenceCardIds.ToList(),
             Rationale = patch.Rationale,
-            Reject_comment = patch.RejectComment,
-            Base_instruction_version = patch.BaseInstructionVersion,
-            Created_at = patch.CreatedAt,
-            Updated_at = patch.UpdatedAt,
+            Reject_comment = patch.State.RejectComment,
+            Base_instruction_version = patch.Identity.BaseInstructionVersion,
+            Created_at = patch.Identity.CreatedAt,
+            Updated_at = patch.State.UpdatedAt,
         };
-        if (patch.AppliedInstructionVersion is { } applied)
+        if (patch.State.AppliedInstructionVersion is { } applied)
         {
             dto.Applied_instruction_version = applied;
         }
-        if (patch.DecidedAt is { } decided)
+        if (patch.State.DecidedAt is { } decided)
         {
             dto.Decided_at = decided;
         }

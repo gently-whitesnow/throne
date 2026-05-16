@@ -31,8 +31,8 @@ public sealed class ReadIntentTextHandler(IIntentRepository repository)
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
         return IntentTextSlicer.Slice(
-            intent.CurrentVersion,
-            intent.Text,
+            intent.State.CurrentVersion,
+            intent.State.Text,
             query.StartLine,
             query.LineCount,
             query.MaxChars);

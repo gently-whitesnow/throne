@@ -26,8 +26,8 @@ public class MongoIntentInsertAfterLineTests(MongoFixture fixture)
             CancellationToken.None);
 
         var inserted = outcome.Should().BeOfType<InsertIntentTextAfterLineOutcome.Inserted>().Subject;
-        inserted.Intent.Text.Should().Be("a\nX\nb");
-        inserted.Intent.CurrentVersion.Should().Be(2);
+        inserted.Intent.State.Text.Should().Be("a\nX\nb");
+        inserted.Intent.State.CurrentVersion.Should().Be(2);
 
         var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
             .Find(d => d.Id == id.Value).FirstOrDefaultAsync();
@@ -95,7 +95,7 @@ public class MongoIntentInsertAfterLineTests(MongoFixture fixture)
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
 
         var id = IntentId.New();
-        var intent = Intent.Create(id, "user-1", text, null, Created);
+        var intent = IntentFactory.Create(id, "user-1", text, null, Created);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(
@@ -108,9 +108,9 @@ public class MongoIntentInsertAfterLineTests(MongoFixture fixture)
         IntentStatusChange.Create(
             Guid.NewGuid().ToString("N"),
             intent.Id,
-            intent.CurrentVersion,
-            intent.Status,
-            intent.Status,
+            intent.State.CurrentVersion,
+            intent.State.Status,
+            intent.State.Status,
             "test:create",
             Created,
             IntentTrainingAuthor.Agent);

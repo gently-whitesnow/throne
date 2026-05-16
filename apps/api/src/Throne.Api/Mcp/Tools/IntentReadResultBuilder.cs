@@ -13,13 +13,13 @@ internal static class IntentReadResultBuilder
         IReadOnlyList<IntentLinkView> links,
         Dictionary<string, McpTagRef> tagsById) => new(
         intent.Id.Value,
-        intent.Text,
-        intent.Status,
-        intent.CurrentVersion,
+        intent.State.Text,
+        intent.State.Status,
+        intent.State.CurrentVersion,
         OwnTags(intent, tagsById),
-        intent.SortKey,
+        intent.State.SortKey,
         intent.CreatedAt,
-        intent.UpdatedAt,
+        intent.State.UpdatedAt,
         attachments.Select(ToAttachmentResult).ToArray(),
         links.Select(v => IntentLinkTools.ToMcpLinkRead(v, tagsById)).ToList());
 

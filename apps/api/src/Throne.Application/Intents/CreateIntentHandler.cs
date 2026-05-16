@@ -31,20 +31,20 @@ public sealed class CreateIntentHandler(
             {
                 var resolved = await tagResolver.EnsureByNamesAsync(command.TagNames, now, inner);
                 var sortKey = await NextTopSortKeyAsync(inner);
-                var intent = Intent.Create(id, ownerUserId, command.Text, resolved.TagIds, now, sortKey: sortKey);
+                var intent = IntentFactory.Create(id, ownerUserId, command.Text, resolved.TagIds, now, sortKey: sortKey);
                 var initialVersion = TextVersion.CreateSnapshot(
                     id: Guid.NewGuid().ToString("N"),
                     ownerKind: TextVersionOwnerKind.Intent,
                     ownerId: id.Value,
-                    snapshot: intent.Text,
+                    snapshot: intent.State.Text,
                     changedAt: now,
                     changedBy: command.Author);
                 var initialStatusChange = IntentStatusChange.Create(
                     id: Guid.NewGuid().ToString("N"),
                     intentId: id,
-                    intentVersionAtWrite: intent.CurrentVersion,
-                    fromStatus: intent.Status,
-                    toStatus: intent.Status,
+                    intentVersionAtWrite: intent.State.CurrentVersion,
+                    fromStatus: intent.State.Status,
+                    toStatus: intent.State.Status,
                     source: "create_intent",
                     createdAt: now,
                     createdBy: TextVersionAuthorMapping.ToTrainingAuthor(command.Author));

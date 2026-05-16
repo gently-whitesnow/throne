@@ -43,13 +43,14 @@ public sealed class ListIntentVersionsHandler(
                 OwnerId: id.Value,
                 Version: e.Version.Value,
                 Kind: e.TextChange.Kind,
-                Snapshot: e.TextChange.Snapshot,
-                OldText: e.TextChange.OldText,
-                NewText: e.TextChange.NewText,
-                AfterLine: e.TextChange.AfterLine,
-                InsertText: e.TextChange.InsertText,
-                ChangedAt: e.CreatedAt,
-                ChangedBy: e.CreatedBy switch
+                Delta: new TextVersionDelta(
+                    Snapshot: e.TextChange.Snapshot,
+                    OldText: e.TextChange.OldText,
+                    NewText: e.TextChange.NewText,
+                    AfterLine: e.TextChange.AfterLine,
+                    InsertText: e.TextChange.InsertText),
+                ChangedAt: e.Audit.CreatedAt,
+                ChangedBy: e.Audit.CreatedBy switch
                 {
                     IntentEventAuthor.User => TextVersionAuthor.User,
                     IntentEventAuthor.Agent => TextVersionAuthor.Agent,

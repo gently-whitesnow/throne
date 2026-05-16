@@ -42,11 +42,7 @@ internal sealed class MongoTextVersionRepository(IMongoDatabase database, MongoS
         OwnerId: doc.OwnerId,
         Version: doc.Version,
         Kind: ParseKind(doc.Kind),
-        Snapshot: doc.Snapshot,
-        OldText: doc.OldText,
-        NewText: doc.NewText,
-        AfterLine: doc.AfterLine,
-        InsertText: doc.InsertText,
+        Delta: new TextVersionDelta(doc.Snapshot, doc.OldText, doc.NewText, doc.AfterLine, doc.InsertText),
         ChangedAt: DateTime.SpecifyKind(doc.ChangedAt, DateTimeKind.Utc),
         ChangedBy: ParseAuthor(doc.ChangedBy));
 

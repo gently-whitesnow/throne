@@ -30,8 +30,8 @@ public class MongoOwnerUserIdIsolationTests(MongoFixture fixture)
         var asUser1 = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor("user-1"), new MongoIntentEventRepository(db, sessions));
         var asUser2 = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor("user-2"), new MongoIntentEventRepository(db, sessions));
 
-        var u1 = Intent.Create(IntentId.New(), "user-1", "u1 intent", null, Now);
-        var u2 = Intent.Create(IntentId.New(), "user-2", "u2 intent", null, Now);
+        var u1 = IntentFactory.Create(IntentId.New(), "user-1", "u1 intent", null, Now);
+        var u2 = IntentFactory.Create(IntentId.New(), "user-2", "u2 intent", null, Now);
 
         await uow.ExecuteAsync(ct => asUser1.CreateAsync(
             u1, Snapshot(u1), Initial(u1), Array.Empty<Throne.Domain.Tags.Tag>(), ct), CancellationToken.None);
@@ -57,7 +57,7 @@ public class MongoOwnerUserIdIsolationTests(MongoFixture fixture)
         var asUser2 = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor("user-2"), new MongoIntentEventRepository(db, sessions));
         var asUser1 = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor("user-1"), new MongoIntentEventRepository(db, sessions));
 
-        var u2 = Intent.Create(IntentId.New(), "user-2", "secret", null, Now);
+        var u2 = IntentFactory.Create(IntentId.New(), "user-2", "secret", null, Now);
         await uow.ExecuteAsync(ct => asUser2.CreateAsync(
             u2, Snapshot(u2), Initial(u2), Array.Empty<Throne.Domain.Tags.Tag>(), ct), CancellationToken.None);
 
@@ -80,7 +80,7 @@ public class MongoOwnerUserIdIsolationTests(MongoFixture fixture)
         var asUser2 = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor("user-2"), new MongoIntentEventRepository(db, sessions));
         var asUser1 = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor("user-1"), new MongoIntentEventRepository(db, sessions));
 
-        var u2 = Intent.Create(IntentId.New(), "user-2", "owned by u2", null, Now);
+        var u2 = IntentFactory.Create(IntentId.New(), "user-2", "owned by u2", null, Now);
         await uow.ExecuteAsync(ct => asUser2.CreateAsync(
             u2, Snapshot(u2), Initial(u2), Array.Empty<Throne.Domain.Tags.Tag>(), ct), CancellationToken.None);
 
@@ -95,16 +95,16 @@ public class MongoOwnerUserIdIsolationTests(MongoFixture fixture)
         Guid.NewGuid().ToString("N"),
         TextVersionOwnerKind.Intent,
         intent.Id.Value,
-        intent.Text,
+        intent.State.Text,
         Now,
         TextVersionAuthor.Agent);
 
     private static IntentStatusChange Initial(Intent intent) => IntentStatusChange.Create(
         Guid.NewGuid().ToString("N"),
         intent.Id,
-        intent.CurrentVersion,
-        intent.Status,
-        intent.Status,
+        intent.State.CurrentVersion,
+        intent.State.Status,
+        intent.State.Status,
         "test:create",
         Now,
         IntentTrainingAuthor.Agent);

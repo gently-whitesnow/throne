@@ -12,7 +12,7 @@ public class InstructionReplaceTextTests
     [Fact(DisplayName = "ReplaceText на пустом тексте с old_text=\"\" заполняет инициально")]
     public void ReplaceText_initial_fill_for_empty_user_instruction()
     {
-        var instr = Instruction.Create(
+        var instr = InstructionFactory.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
             "local-dev",
@@ -20,7 +20,7 @@ public class InstructionReplaceTextTests
             text: string.Empty,
             Created);
 
-        var result = instr.ReplaceText(
+        var result = InstructionReplaceTextOperation.Apply(instr,
             oldText: string.Empty,
             newText: "первый текст",
             newVersionId: "ver-2",
@@ -36,7 +36,7 @@ public class InstructionReplaceTextTests
     [Fact(DisplayName = "ReplaceText с old_text=\"\" на непустом тексте бросает ArgumentException")]
     public void ReplaceText_empty_old_on_nonempty_text_rejected()
     {
-        var instr = Instruction.Create(
+        var instr = InstructionFactory.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
             "local-dev",
@@ -44,7 +44,7 @@ public class InstructionReplaceTextTests
             text: "текущий текст",
             Created);
 
-        var act = () => instr.ReplaceText(
+        var act = () => InstructionReplaceTextOperation.Apply(instr,
             oldText: string.Empty,
             newText: "новый",
             newVersionId: "ver-2",

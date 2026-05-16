@@ -6,11 +6,7 @@ public sealed record TextVersion(
     string OwnerId,
     int Version,
     TextVersionKind Kind,
-    string? Snapshot,
-    string? OldText,
-    string? NewText,
-    int? AfterLine,
-    string? InsertText,
+    TextVersionDelta Delta,
     DateTimeOffset ChangedAt,
     TextVersionAuthor ChangedBy)
 {
@@ -22,7 +18,6 @@ public sealed record TextVersion(
         DateTimeOffset changedAt,
         TextVersionAuthor changedBy) =>
         new(id, ownerKind, ownerId, Version: 1, TextVersionKind.Create,
-            Snapshot: snapshot,
-            OldText: null, NewText: null, AfterLine: null, InsertText: null,
+            Delta: new TextVersionDelta(snapshot, null, null, null, null),
             changedAt, changedBy);
 }

@@ -110,7 +110,7 @@ public class GetIntentLinksSummaryHandlerTests
         summary.BlockedBy.Should().BeEmpty();
     }
 
-    private static Intent MakeIntent(string id) => Intent.Restore(
+    private static Intent MakeIntent(string id) => IntentFactory.Restore(
         id: new IntentId(id),
         ownerUserId: "u-1",
         text: $"text for {id}",

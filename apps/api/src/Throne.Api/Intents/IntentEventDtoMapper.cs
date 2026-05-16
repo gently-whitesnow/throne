@@ -16,8 +16,8 @@ internal static class IntentEventDtoMapper
         Version = e.Version ?? 0,
         Text_change = e.TextChange is null ? null : ToTextChange(e.TextChange),
         Link = e.Link is null ? null : ToLinkPayload(e.Link),
-        Created_at = e.CreatedAt,
-        Created_by = ToCreatedBy(e.CreatedBy),
+        Created_at = e.Audit.CreatedAt,
+        Created_by = ToCreatedBy(e.Audit.CreatedBy),
     };
 
     private static IntentEventDtoKind ToKind(IntentEventKind kind) => kind switch

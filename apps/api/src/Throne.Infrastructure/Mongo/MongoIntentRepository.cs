@@ -186,7 +186,7 @@ internal sealed class MongoIntentRepository(
 
         var intent = MapToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = intent.ReplaceText(oldText, newText, newVersionId, now, changedBy);
+        var domainResult = IntentReplaceTextOperation.Apply(intent, oldText, newText, newVersionId, now, changedBy);
 
         switch (domainResult)
         {
@@ -199,9 +199,9 @@ internal sealed class MongoIntentRepository(
             case ReplaceTextResult.Replaced replaced:
                 {
                     var update = Builders<IntentDocument>.Update
-                        .Set(d => d.Text, intent.Text)
-                        .Set(d => d.CurrentVersion, intent.CurrentVersion)
-                        .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+                        .Set(d => d.Text, intent.State.Text)
+                        .Set(d => d.CurrentVersion, intent.State.CurrentVersion)
+                        .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
                     var updateFilter = Builders<IntentDocument>.Filter.And(
                         byIdAndOwner,
@@ -265,7 +265,7 @@ internal sealed class MongoIntentRepository(
 
         var intent = MapToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = intent.InsertAfterLine(afterLine, insertText, newVersionId, now, TextVersionAuthor.Agent);
+        var domainResult = IntentInsertTextOperation.AfterLine(intent, afterLine, insertText, newVersionId, now, TextVersionAuthor.Agent);
 
         switch (domainResult)
         {
@@ -275,9 +275,9 @@ internal sealed class MongoIntentRepository(
             case InsertTextResult.Inserted inserted:
                 {
                     var update = Builders<IntentDocument>.Update
-                        .Set(d => d.Text, intent.Text)
-                        .Set(d => d.CurrentVersion, intent.CurrentVersion)
-                        .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+                        .Set(d => d.Text, intent.State.Text)
+                        .Set(d => d.CurrentVersion, intent.State.CurrentVersion)
+                        .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
                     var updateFilter = Builders<IntentDocument>.Filter.And(
                         byIdAndOwner,
@@ -505,13 +505,13 @@ internal sealed class MongoIntentRepository(
         }
 
         var intent = MapToDomain(document);
-        var originalVersion = intent.CurrentVersion;
-        var originalStatus = intent.Status;
+        var originalVersion = intent.State.CurrentVersion;
+        var originalStatus = intent.State.Status;
 
         TextVersion? textVersion = null;
         if (!string.IsNullOrEmpty(appendText))
         {
-            var appendResult = intent.AppendText(
+            var appendResult = IntentInsertTextOperation.Append(intent,
                 appendText,
                 Guid.NewGuid().ToString("N"),
                 now,
@@ -525,7 +525,7 @@ internal sealed class MongoIntentRepository(
             textVersion = inserted.Version;
         }
 
-        var statusChanged = intent.SetStatus(status, now);
+        var statusChanged = IntentStatusOperation.SetStatus(intent, status, now);
         var shouldUpdate = statusChanged || textVersion is not null;
         if (!shouldUpdate)
         {
@@ -533,10 +533,10 @@ internal sealed class MongoIntentRepository(
         }
 
         var update = Builders<IntentDocument>.Update
-            .Set(d => d.Text, intent.Text)
-            .Set(d => d.Status, intent.Status)
-            .Set(d => d.CurrentVersion, intent.CurrentVersion)
-            .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+            .Set(d => d.Text, intent.State.Text)
+            .Set(d => d.Status, intent.State.Status)
+            .Set(d => d.CurrentVersion, intent.State.CurrentVersion)
+            .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
         var updateResult = await _intents.UpdateOneAsync(
             session,
@@ -574,9 +574,9 @@ internal sealed class MongoIntentRepository(
             var statusChange = IntentStatusChange.Create(
                 id: Guid.NewGuid().ToString("N"),
                 intentId: id,
-                intentVersionAtWrite: intent.CurrentVersion,
+                intentVersionAtWrite: intent.State.CurrentVersion,
                 fromStatus: originalStatus,
-                toStatus: intent.Status,
+                toStatus: intent.State.Status,
                 source: source,
                 createdAt: now,
                 createdBy: changedBy,
@@ -618,7 +618,7 @@ internal sealed class MongoIntentRepository(
         }
 
         var intent = MapToDomain(document);
-        var changed = intent.SetTagIds(tagIds, now);
+        var changed = IntentTagOperation.SetTagIds(intent, tagIds, now);
         if (!changed)
         {
             return new SetIntentTagsOutcome.Updated(intent, Changed: false);
@@ -627,7 +627,7 @@ internal sealed class MongoIntentRepository(
         var newTagIdValues = intent.TagIds.Select(t => t.Value).ToList();
         var update = Builders<IntentDocument>.Update
             .Set(d => d.TagIds, newTagIdValues)
-            .Set(d => d.UpdatedAt, intent.UpdatedAt.UtcDateTime);
+            .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
         var updateFilter = Builders<IntentDocument>.Filter.And(
             byIdAndOwner,
@@ -667,13 +667,13 @@ internal sealed class MongoIntentRepository(
     {
         Id = intent.Id.Value,
         OwnerUserId = intent.OwnerUserId,
-        Text = intent.Text,
-        Status = intent.Status,
-        CurrentVersion = intent.CurrentVersion,
+        Text = intent.State.Text,
+        Status = intent.State.Status,
+        CurrentVersion = intent.State.CurrentVersion,
         TagIds = intent.TagIds.Select(t => t.Value).ToList(),
-        SortKey = intent.SortKey,
+        SortKey = intent.State.SortKey,
         CreatedAt = intent.CreatedAt.UtcDateTime,
-        UpdatedAt = intent.UpdatedAt.UtcDateTime,
+        UpdatedAt = intent.State.UpdatedAt.UtcDateTime,
     };
 
     private static IntentStatusChangeDocument MapStatusChange(IntentStatusChange change) => new()
@@ -684,12 +684,12 @@ internal sealed class MongoIntentRepository(
         FromStatus = change.FromStatus,
         ToStatus = change.ToStatus,
         Source = change.Source,
-        CreatedAt = change.CreatedAt.UtcDateTime,
-        CreatedBy = change.CreatedBy.ToWire(),
+        CreatedAt = change.Audit.CreatedAt.UtcDateTime,
+        CreatedBy = change.Audit.CreatedBy.ToWire(),
         Reason = change.Reason,
     };
 
-    private static Intent MapToDomain(IntentDocument doc) => Intent.Restore(
+    private static Intent MapToDomain(IntentDocument doc) => IntentFactory.Restore(
         id: new IntentId(doc.Id),
         ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,
