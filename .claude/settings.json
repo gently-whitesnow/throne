@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Edit(.quality/suppress-baseline.json)",
+      "Edit(./.quality/suppress-baseline.json)",
+      "Edit(**/.quality/suppress-baseline.json)",
+      "Write(.quality/suppress-baseline.json)",
+      "Write(./.quality/suppress-baseline.json)",
+      "Write(**/.quality/suppress-baseline.json)",
+      "Edit(.quality/maintainability-baseline.json)",
+      "Edit(./.quality/maintainability-baseline.json)",
+      "Edit(**/.quality/maintainability-baseline.json)",
+      "Write(.quality/maintainability-baseline.json)",
+      "Write(./.quality/maintainability-baseline.json)",
+      "Write(**/.quality/maintainability-baseline.json)",
+      "Edit(.quality/quality.config.json)",
+      "Edit(./.quality/quality.config.json)",
+      "Edit(**/.quality/quality.config.json)",
+      "Write(.quality/quality.config.json)",
+      "Write(./.quality/quality.config.json)",
+      "Write(**/.quality/quality.config.json)"
+    ]
+  }
+}

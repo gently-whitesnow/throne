@@ -371,41 +371,6 @@
       "kind": "editorconfig",
       "location": "tests/Throne.Infrastructure.Tests/Mongo/TransactionRollbackTests.cs",
       "rule": "CA1506"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/DreamTools.cs:3",
-      "rule": "CA1707"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/InstructionPatchTools.cs:2",
-      "rule": "CA1707"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentAttachmentTools.cs:2",
-      "rule": "CA1707"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentLinkTools.cs:2",
-      "rule": "CA1707"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentStatusTools.cs:2",
-      "rule": "CA1707"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentTextTools.cs:2",
-      "rule": "CA1707"
-    },
-    {
-      "kind": "pragma",
-      "location": "apps/api/src/Throne.Api/Mcp/Tools/IntentTools.cs:2",
-      "rule": "CA1707"
     }
   ]
 }
