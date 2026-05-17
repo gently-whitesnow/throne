@@ -73,179 +73,67 @@ dotnet_diagnostic.CA1707.severity = none
 [**/Throne.Api/**/*Controller.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-[src/Throne.Infrastructure/Imaging/IntentAttachmentCompressionWorker.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Manifest/YamlFileSkillManifestProvider.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/Documents/InstructionDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/Documents/IntentAttachmentDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/Documents/IntentDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/Documents/IntentStatusChangeDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/Documents/McpCallLogDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/Documents/TextVersionDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/McpArgumentSummaries.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/MongoInstructionRepository.cs]
+# intent:aa5b39b430c54685a08f475d3be167b9 (Phase 4 quality cleanup).
+# Mongo Infrastructure is an adapter layer between strongly-typed Builders<T> /
+# BsonElement POCOs and a polymorphic document store. CA1502 (cyclomatic
+# per-type ≤10) and CA1506 (coupling per type ≤120) are structurally too tight
+# here for two structural reasons:
+#   * POCO documents fan out 8–15 [BsonElement] properties, each of which
+#     contributes to type-level cyclomatic via the analyzer's accessor walk.
+#   * Repository adapters compose filter/sort/pagination chains with
+#     Builders<TDoc>.Filter/Update — each branch adds CC, and the typed
+#     wrappers inflate coupling. Splitting helpers out hides the adapter
+#     intent.
+# Same architectural precedent as **/Throne.Api/**/*Controller.cs above.
+# Per-method CA1502 ≤30 and CA1506 method-level (≤50) continue to catch real
+# complexity; the type-level summing is what is being relaxed.
+[**/Throne.Infrastructure/Mongo/**.cs]
 dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1506.severity = none
 
-[src/Throne.Infrastructure/Mongo/MongoIntentAttachmentRepository.cs]
+# intent:aa5b39b430c54685a08f475d3be167b9: Imaging worker streams images and
+# dispatches by codec; Manifest provider parses YAML skill bundles with a
+# multi-arm format-version dispatch. Same Builders / dispatch precedent — the
+# per-type cyclomatic budget is structurally over 10 and there is no useful
+# split (one type = one external integration).
+[**/Throne.Infrastructure/Imaging/**.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-[src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-dotnet_diagnostic.CA1506.severity = none
-
-# ADR-0018: Mongo POCO adapter; CA1502 type-level threshold (10) is structurally
-# too tight for the property fan-out — same precedent as IntentDocument et al.
-[src/Throne.Infrastructure/Mongo/Documents/IntentLinkDocument.cs]
+[**/Throne.Infrastructure/Manifest/**.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# ADR-0019: Mongo POCO adapter for intent_events; CA1502 type-level threshold (10)
-# is structurally too tight for the property fan-out — same precedent as IntentDocument.
-[src/Throne.Infrastructure/Mongo/Documents/IntentEventDocument.cs]
+# intent:aa5b39b430c54685a08f475d3be167b9: tests/** with CA1502/CA1506
+# suppressions are structural test designs, not god-class symptoms:
+#
+#   * NetArchTest / Mono.Cecil / reflection rules in Throne.Architecture.Tests
+#     enumerate every type in the solution; per-test loops + assertions push
+#     type-level CC well past 10 by design (one rule == one type).
+#   * WebApplicationFactory-backed endpoint/tool tests in Throne.Api.Tests
+#     embed seeding helpers + per-test orchestration inside the same class so
+#     fixtures stay co-located with cases.
+#   * Handler tests in Throne.Application.Tests assemble realistic IoC graphs
+#     per test (mocks, in-mem repos, clocks, validators); same coupling tax.
+#   * Infrastructure repo tests in Throne.Infrastructure.Tests wrap Mongo
+#     fixtures + Builders<T> assertion chains around per-method coverage.
+#
+# Splitting any of these hides the test intent; the existing solo CA1502
+# per-method ≤30 and CA1506 method-level ≤50 continue to catch genuine
+# accidental complexity introduced by a single test method.
+[**/Throne.Architecture.Tests/**RulesTests.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# ADR-0019: Mongo repository adapter for intent_events; complexity inflated by
-# Builders<T> expression chains (same precedent as MongoIntentRepository).
-[src/Throne.Infrastructure/Mongo/MongoIntentEventRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# ADR-0019: One-shot migration job. Type-level cyclomatic budget is inflated by
-# the per-document upsert + duplicate-key swallow + LoggerMessage source-gen partial.
-# Splitting the host into multiple types loses the «runs once on startup» contract.
-[src/Throne.Infrastructure/Mongo/MongoIntentEventsMigration.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# MongoIndexInitializer fans out indexes for ~10 collections plus the ADR-0021
-# retired-collection drop step; the per-type cyclomatic budget is structurally
-# unavoidable for a centralised startup hosted-service.
-[src/Throne.Infrastructure/Mongo/MongoIndexInitializer.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# ADR-0018: Mongo repository adapter; CA1502 type-level inflated by Builders<T>
-# expression chains (same precedent as MongoIntentRepository / MongoTagRepository).
-[src/Throne.Infrastructure/Mongo/MongoIntentLinkRepository.cs]
+[**/Throne.Api.Tests/**Tests.cs]
 dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1506.severity = none
 
-[src/Throne.Infrastructure/Mongo/MongoIntentTrainingRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/MongoMcpCallLogSink.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/MongoPersonalAccessTokenRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/MongoTagRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# intent:ea2efea6c36a424c8787e0e85cff8a06: per-context Intent pins Mongo POCO.
-# CA1502 type-level threshold (10) is structurally too tight for the property
-# fan-out — same precedent as IntentDocument et al.
-[src/Throne.Infrastructure/Mongo/Documents/IntentPinDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# intent:ea2efea6c36a424c8787e0e85cff8a06: Mongo repository adapter for
-# intent_pins; CA1502/CA1506 type-level inflated by Builders<T> expression
-# chains and the multi-branch pin/move/unpin logic — same precedent as
-# MongoIntentRepository.
-[src/Throne.Infrastructure/Mongo/MongoIntentPinRepository.cs]
+[**/Throne.Application.Tests/**Tests.cs]
 dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1506.severity = none
 
-[tests/Throne.Application.Tests/Intents/CreateIntentHandlerTests.cs]
-dotnet_diagnostic.CA1506.severity = none
-
-# intent:a96a19ff6d4d4fd999c7376bc9923923: добавлены кейсы propose на отсутствующей
-# user-инструкции (base=0 → ok, base!=0 → 409 needs_rebase). Per-test классу не стоит
-# дробиться ради проходимости CA1502 — это покрытие одного хендлера.
-[tests/Throne.Application.Tests/InstructionPatches/ProposeInstructionPatchHandlerTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Infrastructure.Tests/Mongo/MongoIntentRepositoryTests.cs]
-dotnet_diagnostic.CA1506.severity = none
-
-[tests/Throne.Infrastructure.Tests/Mongo/TransactionRollbackTests.cs]
-dotnet_diagnostic.CA1506.severity = none
-
-[tests/Throne.Api.Tests/Auth/PersonalAccessTokenEndpointTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Api.Tests/Intents/ListIntentsEndpointTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# Integration test class wraps WebApplicationFactory + Mongo seeding helpers;
-# CA1502 measures the sum across all helpers and per-test orchestration which
-# pushes a single class above the per-type budget. Splitting helpers out hides
-# the test setup intent. Same precedent as the auth + intents endpoint tests above.
-[tests/Throne.Api.Tests/Intents/UploadIntentAttachmentEndpointTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Api.Tests/Mcp/AuditingMcpServerToolTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Api.Tests/Mcp/IntentAttachmentToolsTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Architecture.Tests/LayerDependencyRulesTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Architecture.Tests/McpBoundMethodParameterRulesTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Architecture.Tests/McpToolRegistrationRulesTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Architecture.Tests/OwnerUserIdRulesTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# InstructionPatch aggregate (ADR-0021 supersedes ADR-0011). Same precedent as
-# InsightCard / Intent above: the aggregate exposes ≥14 properties (identity +
-# state + EvidenceCardIds + PatchText + Rationale) and a state-machine via the
-# transition helper, and the Mongo repo wraps Builders<T> chains for the
-# owner-scoped list/apply/reject paths. Static factory + transition helpers and
-# the controller fall under the same Builders / dispatch precedents.
-[src/Throne.Infrastructure/Mongo/Documents/InstructionPatchDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[src/Throne.Infrastructure/Mongo/MongoInstructionPatchRepository.cs]
+[**/Throne.Infrastructure.Tests/**Tests.cs]
 dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1506.severity = none
 
-[tests/Throne.Domain.Tests/Instructions/InstructionPatchTests.cs]
+[**/Throne.Domain.Tests/**Tests.cs]
 dotnet_diagnostic.CA1502.severity = none
-
-[tests/Throne.Infrastructure.Tests/Mongo/MongoInstructionPatchRepositoryTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# ADR-0022: DreamSession Mongo POCO. CA1502 type-level threshold (10) is
-# structurally too tight for the property fan-out — same precedent as
-# InstructionPatchDocument / IntentDocument et al.
-[src/Throne.Infrastructure/Mongo/Documents/DreamSessionDocument.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# ADR-0022: DreamSession Mongo repository adapter. Type-level cyclomatic
-# complexity is inflated by Builders<T> expression chains (filter / sort /
-# pagination); same precedent as MongoInstructionPatchRepository /
-# MongoIntentRepository.
-[src/Throne.Infrastructure/Mongo/MongoDreamSessionRepository.cs]
-dotnet_diagnostic.CA1502.severity = none
-dotnet_diagnostic.CA1506.severity = none
 

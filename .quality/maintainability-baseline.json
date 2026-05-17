@@ -1,11 +1,5 @@
 {
   "profile": "legacy",
   "version": 1,
-  "violations": [
-    {
-      "code": "TYPE_LOC",
-      "path": "apps/api/src/Throne.Infrastructure/Mongo/MongoIntentRepository.cs",
-      "subject": "MongoIntentRepository"
-    }
-  ]
+  "violations": []
 }
