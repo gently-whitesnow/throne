@@ -54,9 +54,9 @@
       "scope": "backend",
       "enabled": true,
       "config": ".quality/maintainability-budget.json",
-      "profile": "legacy",
+      "profile": "strict",
       "ratchet": ".quality/maintainability-baseline.json",
-      "description": "File/type/method LOC, ctor deps, cyclomatic, fan-out. Advisory + ratchet vs baseline snapshot."
+      "description": "File/type/method LOC, ctor deps, cyclomatic, fan-out. Strict (blocking) + ratchet vs baseline snapshot."
     },
     {
       "id": "backend-duplicates",

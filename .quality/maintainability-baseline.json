@@ -1,5 +1,5 @@
 {
-  "profile": "legacy",
+  "profile": "strict",
   "version": 1,
   "violations": []
 }
