@@ -1,6 +1,6 @@
 {
   "$schema": "https://example.invalid/dotnet-quality-harness/maintainability-budget.schema.json",
-  "defaultProfile": "legacy",
+  "defaultProfile": "strict",
   "scanRoots": [
     "apps/api/src",
     "apps/api/tests"
@@ -41,7 +41,7 @@
   },
   "profiles": {
     "strict": {
-      "description": "Для новых или уже очищенных areas. Можно делать blocking после baseline.",
+      "description": "Default profile. Tight budgets для нового кода + ratchet через baseline. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, Domain primary ctors, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR.",
       "gateMode": "blocking",
       "limits": {
         "fileMaxLoc": 400,
@@ -52,10 +52,116 @@
         "typeMaxPublicMembers": 12,
         "fileMaxFanOut": 15
       },
-      "exclude": []
+      "exclude": [],
+      "pathOverrides": [
+        {
+          "_comment": "intent:4b43b94c4a194a30b8ddb99c67643d7f — NSwag-generated REST controllers compose one abstract override per route, so ctor surface grows linearly with endpoint count.",
+          "glob": "**/Throne.Api/**/*Controller.cs",
+          "limits": {
+            "constructorMaxDependencies": 15
+          }
+        },
+        {
+          "_comment": "MCP tool surfaces ship as one class per tool group and inject the underlying handler/service deps; ctor fan-out is by design (см. specs/AGENTS.local.md MCP tools).",
+          "glob": "**/Throne.Api/Mcp/Tools/*.cs",
+          "limits": {
+            "constructorMaxDependencies": 10
+          }
+        },
+        {
+          "_comment": "intent:aa5b39b430c54685a08f475d3be167b9 — Mongo adapter layer wraps Builders<TDoc> chains + atomic read-then-update sequences. Type/method budgets stay at legacy thresholds; per-method CC ≤25 still catches real complexity. Same precedent as REST controllers above.",
+          "glob": "**/Throne.Infrastructure/Mongo/**.cs",
+          "limits": {
+            "fileMaxLoc": 800,
+            "typeMaxLoc": 500,
+            "methodMaxLoc": 120,
+            "methodMaxCyclomaticComplexity": 25
+          }
+        },
+        {
+          "_comment": "MCP keep-alive middleware embeds a SerializingWriteStream nested type that mirrors the Stream public API.",
+          "glob": "**/Throne.Api/Mcp/McpKeepAliveMiddleware.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
+          "_comment": "Stdio MCP proxy log surface mirrors LoggerMessage source-generated partial methods.",
+          "glob": "**/Throne.Mcp.Stdio/StdioProxyLog.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
+          "_comment": "Domain aggregates + events expose rich state surfaces via primary constructors; ctor arity = identity + state size, not service injection.",
+          "glob": "**/Throne.Domain/**.cs",
+          "limits": {
+            "constructorMaxDependencies": 10
+          }
+        },
+        {
+          "_comment": "DreamSession aggregate exposes the full audit + state surface (ADR-0022).",
+          "glob": "**/Throne.Domain/Dreams/DreamSession.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
+          "_comment": "Application handlers orchestrate UoW + domain calls + persistence; HandleAsync commonly covers a single logical transaction.",
+          "glob": "**/Throne.Application/**Handler.cs",
+          "limits": {
+            "methodMaxLoc": 80,
+            "constructorMaxDependencies": 8
+          }
+        },
+        {
+          "_comment": "Pin/Move handlers ship as one file per command group (ADR-0007), with multiple AddPin/RemovePin/MovePin handlers in the same file.",
+          "glob": "**/Throne.Application/Intents/PinIntentHandlers.cs",
+          "limits": {
+            "methodMaxLoc": 80
+          }
+        },
+        {
+          "_comment": "DI composition root concentrates Application service registrations.",
+          "glob": "**/Throne.Application/DependencyInjection.cs",
+          "limits": {
+            "methodMaxLoc": 80
+          }
+        },
+        {
+          "_comment": "ErrorCodes is a typed registry of wire-string constants; public surface = error catalogue size.",
+          "glob": "**/Throne.Application/Errors/ErrorCodes.cs",
+          "limits": {
+            "typeMaxPublicMembers": 50
+          }
+        },
+        {
+          "_comment": "Mongo POCO documents fan out [BsonElement] properties; public surface = persisted field count.",
+          "glob": "**/Throne.Infrastructure/Mongo/Documents/*.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
+          "_comment": "MongoCollectionNames is a constant registry per Mongo collection (ADR-0009/0019/0021/0022).",
+          "glob": "**/Throne.Infrastructure/Mongo/MongoCollectionNames.cs",
+          "limits": {
+            "typeMaxPublicMembers": 30
+          }
+        },
+        {
+          "_comment": "Test fixtures + WebApplicationFactory orchestration co-locate setup with cases; CA1502 globs cover analyzer side, here we relax LOC/CC for the test type itself.",
+          "glob": "**/tests/**Tests.cs",
+          "limits": {
+            "typeMaxLoc": 500,
+            "methodMaxLoc": 80,
+            "methodMaxCyclomaticComplexity": 15
+          }
+        }
+      ]
     },
     "legacy": {
-      "description": "Для brownfield adoption. Advisory + ratchet через baseline snapshot.",
+      "description": "Сохранён на случай emergency rollback. Default profile — strict.",
       "gateMode": "advisory",
       "limits": {
         "fileMaxLoc": 800,

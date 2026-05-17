@@ -44,6 +44,23 @@ public class OwnerUserIdRulesTests
         "Throne.Infrastructure.Mongo.MongoDreamSessionRepository",
     ];
 
+    // intent:aa5b39b430c54685a08f475d3be167b9: MongoIntentRepository is a slim
+    // facade that delegates owner-scoped reads/writes to feature-area impls in
+    // Throne.Infrastructure.Mongo.Intents.*. The IL-string scan must follow
+    // into those delegates, otherwise the test only sees newobj forwarders.
+    private static readonly Dictionary<string, string[]> RepositoryDelegateTypeNames = new()
+    {
+        ["Throne.Infrastructure.Mongo.MongoIntentRepository"] =
+        [
+            "Throne.Infrastructure.Mongo.Intents.MongoIntentReader",
+            "Throne.Infrastructure.Mongo.Intents.MongoIntentLifecycle",
+            "Throne.Infrastructure.Mongo.Intents.MongoIntentTextEditor",
+            "Throne.Infrastructure.Mongo.Intents.MongoIntentStatusMutator",
+            "Throne.Infrastructure.Mongo.Intents.MongoIntentOrderingMutator",
+            "Throne.Infrastructure.Mongo.Intents.IntentCollectionFilters",
+        ],
+    };
+
     // Handlers, ВЫЗЫВАЮЩИЕ Domain.Create на user-owned агрегате. UploadIntentAttachmentHandler
     // не входит: IntentAttachment не имеет Domain-фабрики, его OwnerUserId проставляется
     // репозиторием (см. UserOwnedRepositories_depend_on_ICurrentUserAccessor).
@@ -127,16 +144,28 @@ public class OwnerUserIdRulesTests
             var type = module.GetType(name);
             type.Should().NotBeNull($"{name} must exist in IL");
 
-            var hits = AllMethodsAndFields(type!)
-                .SelectMany(m => m.HasBody ? m.Body.Instructions : Enumerable.Empty<Instruction>())
-                .Any(i => i.OpCode == OpCodes.Ldstr && (string)i.Operand == "owner_user_id")
-                || AllMethodsAndFields(type!)
-                    .Where(m => m.HasBody)
-                    .SelectMany(m => m.Body.Instructions)
+            var typesToScan = new List<TypeDefinition> { type! };
+            if (RepositoryDelegateTypeNames.TryGetValue(name, out var delegateNames))
+            {
+                foreach (var delegateName in delegateNames)
+                {
+                    var delegateType = module.GetType(delegateName);
+                    delegateType.Should().NotBeNull($"{delegateName} (delegate of {name}) must exist in IL");
+                    typesToScan.Add(delegateType!);
+                }
+            }
+
+            var allInstructions = typesToScan
+                .SelectMany(AllMethodsAndFields)
+                .Where(m => m.HasBody)
+                .SelectMany(m => m.Body.Instructions)
+                .ToList();
+
+            var hits = allInstructions
+                    .Any(i => i.OpCode == OpCodes.Ldstr && (string)i.Operand == "owner_user_id")
+                || allInstructions
                     .Any(i => i.Operand is FieldReference f && f.Name == "OwnerUserId")
-                || AllMethodsAndFields(type!)
-                    .Where(m => m.HasBody)
-                    .SelectMany(m => m.Body.Instructions)
+                || allInstructions
                     .Any(i => i.Operand is MethodReference mr && mr.Name.Contains("OwnerUserId", StringComparison.Ordinal));
 
             hits.Should().BeTrue(
