@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY apps/api/Directory.Build.props apps/api/Directory.Packages.props ./apps/api/
+COPY apps/api/Directory.Build.props apps/api/Directory.Packages.props apps/api/.editorconfig ./apps/api/
 COPY apps/api/src ./apps/api/src
 COPY specs/manifest ./specs/manifest
 
