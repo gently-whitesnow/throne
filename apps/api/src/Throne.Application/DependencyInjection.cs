@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddSingleton(sp => new Lazy<IUnitOfWork>(sp.GetRequiredService<IUnitOfWork>));
         // InstructionPatch handlers (ADR-0021 supersedes ADR-0011): supersede the
         // DreamRun + DreamProposal pair with a flat first-class entity.
+        services.AddSingleton<UserInstructionLookup>();
         services.AddSingleton<ProposeInstructionPatchHandler>();
         services.AddSingleton<ApplyInstructionPatchWorkflow>();
         services.AddSingleton<ApplyInstructionPatchHandler>();

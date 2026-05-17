@@ -25,7 +25,7 @@ public sealed record ApplyInstructionPatchCommand(string PatchId, string? FinalT
 /// </summary>
 public sealed class ApplyInstructionPatchHandler(
     IInstructionPatchRepository patches,
-    IInstructionRepository instructions,
+    UserInstructionLookup userInstructions,
     ApplyInstructionPatchWorkflow workflow,
     ICurrentUserAccessor currentUser,
     TimeProvider clock)
@@ -42,8 +42,8 @@ public sealed class ApplyInstructionPatchHandler(
             throw InstructionPatchExceptions.AlreadyDecided(patch);
         }
 
-        var instruction = await UserInstructionLookup.FindAsync(
-            instructions, patch.Identity.OwnerUserId, patch.Identity.TargetKind, ct);
+        var instruction = await userInstructions.FindAsync(
+            patch.Identity.OwnerUserId, patch.Identity.TargetKind, ct);
         ApplyInstructionPatchValidation.EnsureBaseVersionMatches(patch, instruction);
 
         var newText = command.FinalText ?? patch.PatchText;

@@ -16,7 +16,11 @@ internal static class IntentEndpointServices
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Shared per-request helpers (tag map / pin lookups).
+        // Shared per-request helpers (tag map / pin lookups). The two
+        // collaborators below hold the actual repository dependencies; the
+        // facade exposes only the high-level public methods.
+        services.AddSingleton<IntentsApiTagMap>();
+        services.AddSingleton<IntentsApiPinLookup>();
         services.AddSingleton<IntentsApiHelpers>();
 
         // Core Intents controller surface.

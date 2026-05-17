@@ -1,35 +1,12 @@
-using Throne.Application.Ports;
-using Throne.Domain.Tags;
-
 namespace Throne.Api.Mcp.Tools;
 
+/// <summary>
+/// Pure helpers shared by the Intent MCP tools. Stateless string/collection
+/// utilities only — anything that depends on a repository or other DI service
+/// lives in a separate instance class (e.g. <see cref="IntentToolTagRefs"/>).
+/// </summary>
 internal static class IntentToolHelpers
 {
-    public static async Task<List<McpTagRef>> BuildTagRefsAsync(
-        ITagRepository tagRepository,
-        IEnumerable<TagId> tagIds,
-        CancellationToken ct)
-    {
-        var ids = tagIds as IList<TagId> ?? tagIds.ToList();
-        if (ids.Count == 0)
-        {
-            return [];
-        }
-
-        var all = await tagRepository.ListAllAsync(ct);
-        var refs = new List<McpTagRef>(ids.Count);
-        foreach (var id in ids)
-        {
-            var tag = all.FirstOrDefault(t => t.Id.Value == id.Value);
-            if (tag is null)
-            {
-                continue;
-            }
-            refs.Add(new McpTagRef(tag.Id.Value, tag.Name));
-        }
-        return refs;
-    }
-
     public static string BuildPreview(string text)
     {
         if (string.IsNullOrEmpty(text))

@@ -173,7 +173,7 @@ public class ProposeInstructionPatchHandlerTests
 
         return new ProposeInstructionPatchHandler(
             patches,
-            instructions,
+            new UserInstructionLookup(instructions),
             new PassthroughUnitOfWork(),
             new TestCurrentUserAccessor(),
             new FakeTimeProvider(Now));
@@ -187,7 +187,7 @@ public class ProposeInstructionPatchHandlerTests
 
         return new ProposeInstructionPatchHandler(
             patches,
-            instructions,
+            new UserInstructionLookup(instructions),
             new PassthroughUnitOfWork(),
             new TestCurrentUserAccessor(),
             new FakeTimeProvider(Now));

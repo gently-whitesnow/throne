@@ -3,10 +3,9 @@ using Throne.Domain.Tags;
 
 namespace Throne.Api.Intents;
 
-internal static class IntentsApiTagMap
+public sealed class IntentsApiTagMap(ITagRepository tags)
 {
-    public static async Task<IReadOnlyDictionary<string, Tag>> BuildAsync(
-        ITagRepository tags,
+    public async Task<IReadOnlyDictionary<string, Tag>> BuildAsync(
         IEnumerable<TagId> tagIds,
         CancellationToken ct)
     {

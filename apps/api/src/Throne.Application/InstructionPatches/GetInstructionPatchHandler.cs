@@ -6,7 +6,7 @@ namespace Throne.Application.InstructionPatches;
 
 public sealed class GetInstructionPatchHandler(
     IInstructionPatchRepository patches,
-    IInstructionRepository instructions,
+    UserInstructionLookup userInstructions,
     ICurrentUserAccessor currentUser)
 {
     public async Task<InstructionPatchView> HandleAsync(string patchId, CancellationToken ct)
@@ -17,8 +17,7 @@ public sealed class GetInstructionPatchHandler(
             ?? throw InstructionPatchExceptions.NotFound(patchId);
         InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
 
-        var instruction = await UserInstructionLookup.FindAsync(
-            instructions,
+        var instruction = await userInstructions.FindAsync(
             patch.Identity.OwnerUserId,
             patch.Identity.TargetKind,
             ct);
