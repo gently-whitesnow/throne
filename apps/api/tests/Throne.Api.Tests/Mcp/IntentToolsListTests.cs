@@ -109,5 +109,5 @@ public class IntentToolsListTests
             moveIntentHandler: null!,
             linkRepository: Substitute.For<IIntentLinkRepository>(),
             attachments: Substitute.For<IIntentAttachmentRepository>(),
-            tagRepository: tagRepo);
+            tagRefs: new IntentToolTagRefs(tagRepo));
 }

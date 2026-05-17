@@ -11,7 +11,7 @@ public sealed class IntentLinkTools(
     LinkIntentHandler linkIntentHandler,
     UnlinkIntentHandler unlinkIntentHandler,
     ListIntentLinksHandler listIntentLinksHandler,
-    ITagRepository tagRepository)
+    IntentToolTagRefs tagRefs)
 {
     [McpServerTool(Name = "link_intent", UseStructuredContent = true)]
     [Description("Create one directed edge between two intents in the M:N graph. Stage 1 supports 'relates' (thematic), 'blocks' (dependency), 'derived_from' (causal trace). Mirror roles ('blocked_by', 'source_of') are not separate types — they are inferred from incoming edges via get_intent.links. Self-links and 'duplicate_of' (reserved for stage 3) are rejected. Duplicate (from_id, to_id, type) edges are rejected with 'link.duplicate'.")]
@@ -67,8 +67,8 @@ public sealed class IntentLinkTools(
             cancellationToken);
 
         var tagIds = page.Items.SelectMany(v => v.Other.TagIds).ToList();
-        var tagRefs = await IntentToolHelpers.BuildTagRefsAsync(tagRepository, tagIds, cancellationToken);
-        var tagsById = tagRefs
+        var refs = await tagRefs.BuildAsync(tagIds, cancellationToken);
+        var tagsById = refs
             .GroupBy(t => t.Id, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 

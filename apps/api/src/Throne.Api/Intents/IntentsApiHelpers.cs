@@ -1,4 +1,3 @@
-using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 
@@ -8,24 +7,21 @@ namespace Throne.Api.Intents;
 /// Shared per-request helpers for the four Intents controllers
 /// (IntentsController, IntentPinsController, IntentLinksController,
 /// IntentAttachmentsController). Concentrates tag / pin lookups in a single
-/// Singleton — the controllers and the per-endpoint static helpers resolve
-/// this via the DI container.
+/// Singleton — endpoints resolve this via the DI container and call the
+/// public methods only; the underlying repositories stay encapsulated.
 /// </summary>
-public sealed class IntentsApiHelpers(ITagRepository tags, IIntentPinRepository pinRepository)
+public sealed class IntentsApiHelpers(IntentsApiTagMap tags, IntentsApiPinLookup pins)
 {
-    public ITagRepository Tags => tags;
-    public IIntentPinRepository PinRepository => pinRepository;
-
     public Task<IReadOnlyDictionary<string, Tag>> BuildTagMapAsync(
         IEnumerable<TagId> tagIds,
         CancellationToken ct) =>
-        IntentsApiTagMap.BuildAsync(tags, tagIds, ct);
+        tags.BuildAsync(tagIds, ct);
 
     public Task<IReadOnlyList<IntentPin>> GetPinnedInAsync(string intentId, CancellationToken ct) =>
-        IntentsApiPinLookup.GetSingleAsync(pinRepository, intentId, ct);
+        pins.GetSingleAsync(intentId, ct);
 
     public Task<IReadOnlyDictionary<string, IReadOnlyList<IntentPin>>> GetPinnedInAsync(
         IReadOnlyList<string> intentIds,
         CancellationToken ct) =>
-        pinRepository.GetPinnedInAsync(intentIds, ct);
+        pins.GetManyAsync(intentIds, ct);
 }

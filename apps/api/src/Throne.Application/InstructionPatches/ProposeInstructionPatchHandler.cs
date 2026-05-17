@@ -42,7 +42,7 @@ internal static class IdempotencyKeyValidator
 /// </summary>
 public sealed class ProposeInstructionPatchHandler(
     IInstructionPatchRepository patches,
-    IInstructionRepository instructions,
+    UserInstructionLookup userInstructions,
     IUnitOfWork unitOfWork,
     ICurrentUserAccessor currentUser,
     TimeProvider clock)
@@ -71,8 +71,8 @@ public sealed class ProposeInstructionPatchHandler(
         // Resolve target instruction; verify version matches what the agent saw.
         // Если записи нет — current_version=0 валидно, такой патч позже создаст
         // Instruction на apply-стороне.
-        var targetInstruction = await UserInstructionLookup.FindAsync(
-            instructions, ownerUserId, command.TargetKind, ct);
+        var targetInstruction = await userInstructions.FindAsync(
+            ownerUserId, command.TargetKind, ct);
         var currentVersion = targetInstruction?.CurrentVersion ?? 0;
         if (currentVersion != command.BaseInstructionVersion)
         {

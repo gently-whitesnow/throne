@@ -20,7 +20,7 @@ public sealed class IntentTools(
     MoveIntentHandler moveIntentHandler,
     IIntentLinkRepository linkRepository,
     IIntentAttachmentRepository attachments,
-    ITagRepository tagRepository)
+    IntentToolTagRefs tagRefs)
 {
     private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -66,7 +66,7 @@ public sealed class IntentTools(
             .GroupBy(t => t.Value, StringComparer.Ordinal)
             .Select(g => g.First())
             .ToList();
-        var tagsById = (await IntentToolHelpers.BuildTagRefsAsync(tagRepository, uniqueTagIds, cancellationToken))
+        var tagsById = (await tagRefs.BuildAsync(uniqueTagIds, cancellationToken))
             .ToDictionary(t => t.Id, t => t, StringComparer.Ordinal);
 
         var items = page.Items.Select(i => IntentListItemMapper.ToItem(i, tagsById)).ToList();
@@ -82,7 +82,7 @@ public sealed class IntentTools(
         var intent = await get.HandleAsync(new GetIntentQuery(intent_id), cancellationToken);
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, cancellationToken);
         var links = await linkRepository.ListByIntentAsync(intent.Id, cancellationToken);
-        var tagsById = await IntentReadTagMapBuilder.BuildAsync(tagRepository, intent, links, cancellationToken);
+        var tagsById = await tagRefs.BuildIntentReadMapAsync(intent, links, cancellationToken);
 
         var result = IntentReadResultBuilder.Build(intent, attachmentList, links, tagsById);
         return new CallToolResult

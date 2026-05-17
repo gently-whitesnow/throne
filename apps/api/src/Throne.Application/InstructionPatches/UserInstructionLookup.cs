@@ -8,13 +8,9 @@ namespace Throne.Application.InstructionPatches;
 /// Encapsulates the kinds-list call so handlers don't repeat the
 /// "GetUserInstructionsByKindsAsync → first-or-null" pattern.
 /// </summary>
-internal static class UserInstructionLookup
+public sealed class UserInstructionLookup(IInstructionRepository instructions)
 {
-    public static async Task<Instruction?> FindAsync(
-        IInstructionRepository instructions,
-        string ownerUserId,
-        string kind,
-        CancellationToken ct)
+    public async Task<Instruction?> FindAsync(string ownerUserId, string kind, CancellationToken ct)
     {
         var list = await instructions.GetUserInstructionsByKindsAsync(ownerUserId, [kind], ct);
         return list.Count == 0 ? null : list[0];

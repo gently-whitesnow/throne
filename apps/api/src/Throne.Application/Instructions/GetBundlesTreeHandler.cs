@@ -13,7 +13,7 @@ public sealed class GetBundlesTreeHandler(
     public async Task<BundlesTree> HandleAsync(GetBundlesTreeQuery _, CancellationToken ct)
     {
         var manifest = manifestProvider.Current;
-        var userByKind = await UserInstructionLoader.LoadAsync(manifest, repository, currentUser.UserId, ct);
+        var userByKind = await LoadUserInstructionsAsync(manifest, currentUser.UserId, ct);
 
         var bundles = manifest.Bundles
             .Select(bundle => new BundleNode(
@@ -23,13 +23,9 @@ public sealed class GetBundlesTreeHandler(
 
         return new BundlesTree(bundles);
     }
-}
 
-internal static class UserInstructionLoader
-{
-    public static async Task<IReadOnlyDictionary<string, Instruction>> LoadAsync(
+    private async Task<IReadOnlyDictionary<string, Instruction>> LoadUserInstructionsAsync(
         SkillManifest manifest,
-        IInstructionRepository repository,
         string userId,
         CancellationToken ct)
     {

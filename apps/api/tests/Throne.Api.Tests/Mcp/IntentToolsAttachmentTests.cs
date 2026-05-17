@@ -58,6 +58,6 @@ public class IntentToolsAttachmentTests
             moveIntentHandler: null!,
             linkRepository: linkRepo,
             attachments: attachments,
-            tagRepository: tagRepo);
+            tagRefs: new IntentToolTagRefs(tagRepo));
     }
 }
