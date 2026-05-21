@@ -1,4 +1,4 @@
-import type { LinksSummaryMap } from "./useLinksSummary";
+import type { LinksSummaryMap } from "@/entities/intent";
 
 /**
  * Transitive depth of an intent in the local `blocks`-DAG. Intents with no
