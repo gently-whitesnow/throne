@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   compareSortKeys,
   intentStatusMeta,
+  useLinksSummary,
   type IntentListItem
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
@@ -26,7 +27,6 @@ import {
 } from "../model/board-helpers";
 import { computeFamilyTints } from "../model/family-tint";
 import { computeStepRanks } from "../model/step-rank";
-import { useLinksSummary } from "../model/useLinksSummary";
 import { IntentLinksOverlay } from "./IntentLinksOverlay";
 import { PinnedSection } from "./PinnedSection";
 
