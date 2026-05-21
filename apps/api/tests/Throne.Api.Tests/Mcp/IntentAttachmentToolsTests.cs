@@ -31,7 +31,8 @@ public class IntentAttachmentToolsTests
         result.Content.Should().HaveCount(1);
         var block = result.Content[0].Should().BeOfType<ImageContentBlock>().Subject;
         block.MimeType.Should().Be("image/jpeg");
-        block.Data.ToArray().Should().BeEquivalentTo(bytes);
+        block.DecodedData.ToArray().Should().BeEquivalentTo(bytes);
+        Encoding.UTF8.GetString(block.Data.Span).Should().Be(Convert.ToBase64String(bytes));
     }
 
     [Fact(DisplayName = "read_intent_attachment_image на text-аттаче бросает validation.failed с подсказкой text-tool")]
