@@ -35,14 +35,7 @@ public sealed class IntentAttachmentTools(IntentAttachmentLoader loader)
 
         return new CallToolResult
         {
-            Content =
-            [
-                new ImageContentBlock
-                {
-                    Data = bytes,
-                    MimeType = att.ContentType,
-                },
-            ],
+            Content = [ImageContentBlock.FromBytes(bytes, att.ContentType)],
             IsError = false,
         };
     }
