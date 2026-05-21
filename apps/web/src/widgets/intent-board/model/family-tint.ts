@@ -1,4 +1,4 @@
-import type { LinksSummaryMap } from "./useLinksSummary";
+import type { LinksSummaryMap } from "@/entities/intent";
 
 /**
  * Family-marker colours for intents that share the same `derived_from`
