@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState, type RefObject } from "react";
 
-import type { LinksSummaryMap } from "../model/useLinksSummary";
+import type { LinksSummaryMap } from "@/entities/intent";
 
 interface OverlayProps {
   hoveredId: string | null;
