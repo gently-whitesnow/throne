@@ -302,9 +302,11 @@ public class AuditingMcpServerToolTests
         IsError = false,
     };
 
+    // StructuredContent уже compact на источнике (см. InstructionBundleRenderer и ADR-0003 §8) —
+    // никаких `text` в инструкциях, McpResultSummarizer не выкидывает поля, а просто десериализует.
     private static CallToolResult InstructionBundleResult() => new()
     {
-        Content = [new TextContentBlock { Text = "{\"ok\":true}" }],
+        Content = [new TextContentBlock { Text = "mode=work intent_id=intent_123\n\n===== system:common (v1, id=instr_common_1) =====\n\nfull common text\n" }],
         StructuredContent = JsonSerializer.SerializeToElement(new JsonObject
         {
             ["intent_id"] = "intent_123",
@@ -313,17 +315,17 @@ public class AuditingMcpServerToolTests
             {
                 new JsonObject
                 {
+                    ["scope"] = "system",
                     ["kind"] = "common",
                     ["instruction_id"] = "instr_common_1",
                     ["current_version"] = 2,
-                    ["text"] = "full common text",
                 },
                 new JsonObject
                 {
+                    ["scope"] = "user",
                     ["kind"] = "work",
                     ["instruction_id"] = "instr_light_1",
                     ["current_version"] = 4,
-                    ["text"] = "full light text",
                 },
             },
             ["missing_kinds"] = new JsonArray(),
@@ -335,18 +337,20 @@ public class AuditingMcpServerToolTests
     {
         if (summary is null ||
             !summary.TryGetValue("instructions", out var instructions) ||
-            instructions is not List<Dictionary<string, object?>> refs)
+            instructions is not JsonElement element ||
+            element.ValueKind != JsonValueKind.Array)
         {
             return false;
         }
 
+        var refs = element.EnumerateArray().ToList();
         refs.Should().HaveCount(2);
-        refs[0].Should().ContainKey("kind").WhoseValue.Should().Be("common");
-        refs[0].Should().ContainKey("instruction_id").WhoseValue.Should().Be("instr_common_1");
-        refs[0].Should().ContainKey("version").WhoseValue.Should().Be(2);
-        refs[0].Should().NotContainKey("text");
-        refs[1].Should().ContainKey("kind").WhoseValue.Should().Be("work");
-        refs[1].Should().ContainKey("version").WhoseValue.Should().Be(4);
+        refs[0].GetProperty("kind").GetString().Should().Be("common");
+        refs[0].GetProperty("instruction_id").GetString().Should().Be("instr_common_1");
+        refs[0].GetProperty("current_version").GetInt32().Should().Be(2);
+        refs[0].TryGetProperty("text", out _).Should().BeFalse("StructuredContent для bundle не должен нести instruction text");
+        refs[1].GetProperty("kind").GetString().Should().Be("work");
+        refs[1].GetProperty("current_version").GetInt32().Should().Be(4);
         return true;
     }
 

@@ -1,7 +1,4 @@
 using System.ComponentModel;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
@@ -23,20 +20,16 @@ public sealed class IntentTools(
     IIntentAttachmentRepository attachments,
     IntentToolTagRefs tagRefs)
 {
-    // UnsafeRelaxedJsonEscaping: см. комментарий в ThroneMcpToolSchemaOptions.BuildSerializerOptions.
-    // Без этого кириллица в Intent.text раздувается в ~4× из-за \uXXXX-экранирования внутри TextContentBlock.Text.
-    private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
-
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
-    [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one. If the new Intent arises in the context of another active Intent, consider linking them via link_intent(from_id=new, to_id=source, type=\"derived_from\") — or type=\"relates\" for a thematic connection — so the new Intent does not become an orphan.")]
-    public Task<Intent> CreateIntent(
+    [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one. If the new Intent arises in the context of another active Intent, consider linking them via link_intent(from_id=new, to_id=source, type=\"derived_from\") — or type=\"relates\" for a thematic connection — so the new Intent does not become an orphan. Returns a compact ack; re-read with get_intent if the full body is needed.")]
+    public async Task<McpWriteAck> CreateIntent(
         [Description("Initial canonical Intent.text. Must be non-empty and contain the user's actual intent, not a summary of tool usage.")] string text,
         [Description("Tag names to attach. Pass exactly one entry — the normalized name of the current repository/project (e.g. 'throne'). The server upserts tags by name (existing tag → reused id, new tag → created and linked). Do not pass thematic / technological / feature tags.")] IReadOnlyList<string>? tags = null,
-        CancellationToken cancellationToken = default) =>
-        create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        var intent = await create.HandleAsync(new CreateIntentCommand(text, tags, TextVersionAuthor.Agent), cancellationToken);
+        return new McpWriteAck(intent.Id.Value, intent.State.CurrentVersion, Accepted: true);
+    }
 
     [McpServerTool(Name = "list_intents", ReadOnly = true, UseStructuredContent = true)]
     [Description("List intents owned by the current user with compact previews. Use to discover intent ids before calling get_intent. Filters: tag (slug), status (multi), query (case-insensitive substring of Intent.text). Sort defaults to updated_desc; pagination via opaque next_cursor.")]
@@ -81,7 +74,7 @@ public sealed class IntentTools(
 
     [McpServerTool(Name = "get_intent", ReadOnly = true)]
     [Description("Read canonical Intent state by id, including full text and attachment metadata. Attachment bytes are NOT inlined. For each attachment call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log files). The response also carries 'links' — outgoing + incoming graph edges with the peer intent inlined as a compact preview; agent should inspect 'links' before acting on dependencies (e.g. honour 'incoming blocks' as 'blocked_by').")]
-    public async Task<CallToolResult> GetIntent(
+    public async Task<McpToolPayload> GetIntent(
         [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
         CancellationToken cancellationToken)
     {
@@ -91,34 +84,18 @@ public sealed class IntentTools(
         var tagsById = await tagRefs.BuildIntentReadMapAsync(intent, links, cancellationToken);
 
         var result = IntentReadResultBuilder.Build(intent, attachmentList, links, tagsById);
-        return new CallToolResult
-        {
-            Content = [new TextContentBlock { Text = JsonSerializer.Serialize(result, ToolJsonOptions) }],
-            StructuredContent = JsonSerializer.SerializeToElement(result, ToolJsonOptions),
-            IsError = false,
-        };
+        return IntentReadResultRenderer.Render(result);
     }
 
     [McpServerTool(Name = "get_instruction_bundle")]
     [Description("Read the complete instruction bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work/fix bundles drive transitions on read).")]
-    public async Task<CallToolResult> GetInstructionBundle(
+    public async Task<McpToolPayload> GetInstructionBundle(
         [Description("Runtime mode: interview, work, fix, dream, or transfer. Pick by user intent — see the mini-router instructions returned at MCP initialize.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default)
     {
         var bundle = await getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
-
-        // Полная нагрузка — в Content (модель её и читает). StructuredContent — только refs
-        // (без поля text), чтобы не дублировать данные по wire и не упираться в лимит
-        // tool_result у клиентских харнесов. См. InstructionBundleRenderer.
-        return new CallToolResult
-        {
-            Content = [new TextContentBlock { Text = InstructionBundleRenderer.RenderText(bundle) }],
-            StructuredContent = JsonSerializer.SerializeToElement(
-                InstructionBundleRenderer.RenderStructured(bundle),
-                ToolJsonOptions),
-            IsError = false,
-        };
+        return InstructionBundleRenderer.Render(bundle);
     }
 
     [McpServerTool(Name = "move_intent", UseStructuredContent = true)]

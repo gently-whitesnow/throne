@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Throne.Api.Mcp.Tools;
 using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
@@ -47,8 +48,17 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
             var result = await _aiFunction.InvokeAsync(aiArgs, cancellationToken);
             stopwatch.Stop();
 
+            // ADR-0003 §8.1: prompt-like tools return McpToolPayload — wire goes out as-is
+            // (StructuredContent already null), audit summary travels through the OOB envelope.
+            IReadOnlyDictionary<string, object?>? overrideSummary = null;
+            if (result is McpToolPayload payload)
+            {
+                overrideSummary = payload.AuditSummary;
+                result = payload.Wire;
+            }
+
             var callResult = McpToolResultConverter.ToCallToolResult(result, ProtocolTool, _aiFunction.JsonSerializerOptions);
-            await _audit.WriteFromCallResultAsync(fields, callResult, stopwatch.ElapsedMilliseconds, cancellationToken);
+            await _audit.WriteFromCallResultAsync(fields, callResult, stopwatch.ElapsedMilliseconds, overrideSummary, cancellationToken);
             return callResult;
         }
         catch (ApiException ex)

@@ -10,13 +10,14 @@ internal sealed partial class McpAuditLogger(
     ServerVersion serverVersion)
 {
     public Task WriteFromCallResultAsync(
-        McpCallFields fields, CallToolResult callResult, long elapsedMs, CancellationToken ct)
+        McpCallFields fields,
+        CallToolResult callResult,
+        long elapsedMs,
+        IReadOnlyDictionary<string, object?>? overrideSummary,
+        CancellationToken ct)
     {
-        var outcome = callResult.IsError == true ? McpCallOutcome.Error : McpCallOutcome.Success;
-        var errorCode = outcome == McpCallOutcome.Error ? McpCallResultInspector.TryReadErrorCode(callResult) : null;
-        var errorMessage = outcome == McpCallOutcome.Error ? McpCallResultInspector.TryReadErrorMessage(callResult) : null;
-        var summary = outcome == McpCallOutcome.Success ? McpResultSummarizer.Summarize(fields.ToolName, callResult) : null;
-
+        var (outcome, errorCode, errorMessage, summary) =
+            McpAuditResolution.Resolve(callResult, overrideSummary);
         return TryWriteAsync(fields, outcome, errorCode, errorMessage, null, summary, (int)elapsedMs, ct);
     }
 
