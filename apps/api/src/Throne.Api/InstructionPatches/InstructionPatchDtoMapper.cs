@@ -59,6 +59,7 @@ public static class InstructionPatchDtoMapper
             Current_instruction_text = view.CurrentInstructionText,
             Current_instruction_version = view.CurrentInstructionVersion,
             Base_version_matches_current = view.BaseVersionMatchesCurrent,
+            Base_instruction_text = view.BaseInstructionText,
         };
     }
 
