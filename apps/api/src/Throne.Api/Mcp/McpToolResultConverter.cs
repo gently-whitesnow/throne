@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
+using Throne.Api.Mcp.Tools;
 
 namespace Throne.Api.Mcp;
 
@@ -17,6 +18,12 @@ internal static class McpToolResultConverter
 
         return result switch
         {
+            // ADR-0003 §8.1: prompt-like tools return McpToolPayload so the wire CallToolResult
+            // (with StructuredContent already nulled by the renderer) is passed through verbatim.
+            // The AuditSummary side-channel is unpacked in AuditingMcpServerTool.InvokeAsync;
+            // here we only need to make sure no auto-StructuredContent is synthesised from the
+            // envelope itself.
+            McpToolPayload payload => payload.Wire,
             CallToolResult callToolResult => callToolResult,
             AIContent aiContent => new CallToolResult
             {
@@ -63,7 +70,7 @@ internal static class McpToolResultConverter
         Tool protocolTool,
         JsonSerializerOptions serializerOptions)
     {
-        if (protocolTool.OutputSchema is null || result is CallToolResult)
+        if (protocolTool.OutputSchema is null || result is CallToolResult || result is McpToolPayload)
         {
             return null;
         }

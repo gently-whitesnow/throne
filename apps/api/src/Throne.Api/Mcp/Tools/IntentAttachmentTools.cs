@@ -40,9 +40,9 @@ public sealed class IntentAttachmentTools(IntentAttachmentLoader loader)
         };
     }
 
-    [McpServerTool(Name = "read_intent_attachment_text", ReadOnly = true, UseStructuredContent = true)]
+    [McpServerTool(Name = "read_intent_attachment_text", ReadOnly = true)]
     [Description("Return a UTF-8 slice of a text attachment (logs, JSON, markdown, plain text). Use when the get_intent entry has kind='text'. offset is in bytes; max_chars caps decoded characters (default 50000, absolute max 200000). When truncated=true, call again with offset = returned_bytes_end to continue.")]
-    public async Task<IntentAttachmentTextSlice> ReadIntentAttachmentText(
+    public async Task<McpToolPayload> ReadIntentAttachmentText(
         [Description("Intent id owning the attachment.")] string intent_id,
         [Description("Attachment id from get_intent.attachments[].id.")] string attachment_id,
         [Description("Byte offset to start reading at. Defaults to 0.")] int? offset = null,
@@ -50,7 +50,8 @@ public sealed class IntentAttachmentTools(IntentAttachmentLoader loader)
         CancellationToken cancellationToken = default)
     {
         var (att, bytes) = await loader.LoadAsync(intent_id, attachment_id, AttachmentKind.Text, cancellationToken);
-        return IntentAttachmentTextSlicer.Slice(att.ContentType, bytes, offset, max_chars);
+        var slice = IntentAttachmentTextSlicer.Slice(att.ContentType, bytes, offset, max_chars);
+        return AttachmentTextSliceRenderer.Render(slice);
     }
 }
 

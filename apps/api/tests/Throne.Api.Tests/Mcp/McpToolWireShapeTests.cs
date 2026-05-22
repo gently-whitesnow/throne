@@ -1,0 +1,262 @@
+using System.Text.Json;
+using FluentAssertions;
+using ModelContextProtocol.Protocol;
+using Throne.Api.Mcp.Tools;
+using Throne.Application.InstructionPatches;
+using Throne.Application.Instructions;
+using Throne.Application.Intents;
+using Throne.Domain.Intents;
+
+namespace Throne.Api.Tests.Mcp;
+
+/// <summary>
+/// Regression-гейт на MCP wire-policy (ADR-0003 §8.1, 2026-05 amendment). Для prompt-like
+/// tools на wire едет только Content[]: <c>CallToolResult.StructuredContent</c> обязан
+/// быть <c>null</c>. Compact refs ушли в audit-канал через <c>McpToolPayload.AuditSummary</c>
+/// — там <c>text</c> / <c>content</c> / <c>patch_text</c> / <c>applied_text</c> /
+/// <c>current_instruction_text</c> / <c>base_instruction_text</c> / <c>rationale</c> /
+/// <c>note</c> также запрещены.
+///
+/// Тест ловит регрессию, симметричную 9cc71a8c… (дубль payload) и 6e96cd22… (compact
+/// StructuredContent всё равно перехватывает рендер у structured-aware клиентов).
+/// </summary>
+public class McpToolWireShapeTests
+{
+    private static readonly HashSet<string> BannedFields = new(StringComparer.Ordinal)
+    {
+        "text",
+        "content",
+        "patch_text",
+        "applied_text",
+        "current_instruction_text",
+        "base_instruction_text",
+        "rationale",
+        "note",
+    };
+
+    [Fact(DisplayName = "InstructionBundleRenderer: wire StructuredContent=null, refs только в audit")]
+    public void InstructionBundle_wire_has_null_structured_content()
+    {
+        var bundle = new InstructionBundle(
+            Mode: "work",
+            IntentId: "intent-1",
+            Instructions:
+            [
+                new InstructionWithText("system", "common", "instr-sys-common", 1, "Большой системный текст с кириллицей."),
+                new InstructionWithText("user", "work", "instr-user-work", 7, "User work prompt body."),
+            ],
+            MissingKinds: []);
+
+        var payload = InstructionBundleRenderer.Render(bundle);
+
+        ReadText(payload.Wire).Should().Contain("Большой системный текст с кириллицей.");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "IntentReadResultRenderer: Intent.text в Content, wire StructuredContent=null")]
+    public void IntentReadResult_wire_has_null_structured_content()
+    {
+        var result = new McpIntentReadResult(
+            Id: "intent-42",
+            Text: "Большой текст Intent с переносами\nстрок и кириллицей.",
+            Status: "work",
+            CurrentVersion: 3,
+            Tags: [new McpTagRef("tag-1", "throne")],
+            SortKey: "0000A",
+            CreatedAt: DateTimeOffset.Parse("2026-05-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            UpdatedAt: DateTimeOffset.Parse("2026-05-22T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            Attachments: [],
+            Links: []);
+
+        var payload = IntentReadResultRenderer.Render(result);
+
+        ReadText(payload.Wire).Should().Contain("Большой текст Intent");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "TextSliceRenderer: содержимое slice в Content, wire StructuredContent=null")]
+    public void TextSlice_wire_has_null_structured_content()
+    {
+        var slice = new TextSlice(
+            CurrentVersion: 4,
+            StartLine: 1,
+            EndLine: 3,
+            TotalLines: 10,
+            Content: "линия 1\nлиния 2\nлиния 3",
+            Truncated: true,
+            NextStartLine: 4);
+
+        var payload = TextSliceRenderer.Render(slice);
+
+        ReadText(payload.Wire).Should().Contain("линия 1");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "AttachmentTextSliceRenderer: decoded text в Content, wire StructuredContent=null")]
+    public void AttachmentSlice_wire_has_null_structured_content()
+    {
+        var slice = new IntentAttachmentTextSlice(
+            ContentType: "text/plain",
+            TotalSizeBytes: 1024,
+            ReturnedBytesStart: 0,
+            ReturnedBytesEnd: 100,
+            Truncated: true,
+            Text: "Большой fragment attachment текста.");
+
+        var payload = AttachmentTextSliceRenderer.Render(slice);
+
+        ReadText(payload.Wire).Should().Contain("Большой fragment attachment текста.");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "TextSearchResultRenderer: context excerpts в Content, wire StructuredContent=null")]
+    public void TextSearch_wire_has_null_structured_content()
+    {
+        var search = new TextSearchResult(
+            Matches:
+            [
+                new TextSearchMatch(
+                    MatchLine: 42,
+                    MatchColumn: 5,
+                    Context: "контекстная строка с совпадением",
+                    ContextStartLine: 39),
+            ],
+            TotalMatchesEstimate: null);
+
+        var payload = TextSearchResultRenderer.Render(search);
+
+        ReadText(payload.Wire).Should().Contain("контекстная строка с совпадением");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "CurrentInstructionRenderer: instruction.text в Content, wire StructuredContent=null")]
+    public void CurrentInstruction_wire_has_null_structured_content()
+    {
+        var view = new CurrentInstructionView(
+            InstructionId: "instr-1",
+            Kind: "work",
+            Text: "Полный текст инструкции.",
+            CurrentVersion: 9,
+            UpdatedAt: DateTimeOffset.Parse("2026-05-22T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
+
+        var payload = CurrentInstructionRenderer.Render(view);
+
+        ReadText(payload.Wire).Should().Contain("Полный текст инструкции.");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "InstructionPatchRenderer.RenderDetail: все тела patch в Content, wire StructuredContent=null")]
+    public void InstructionPatchDetail_wire_has_null_structured_content()
+    {
+        var patch = NewPatch();
+        var view = new InstructionPatchView(
+            Patch: null!,
+            CurrentInstructionText: "Current instruction body.",
+            CurrentInstructionVersion: 5,
+            BaseVersionMatchesCurrent: false,
+            BaseInstructionText: "Base instruction body at v4.");
+
+        var payload = InstructionPatchRenderer.RenderDetail(patch, view);
+
+        var text = ReadText(payload.Wire);
+        text.Should().Contain("Patch body proposal.");
+        text.Should().Contain("Applied body after edit.");
+        text.Should().Contain("Current instruction body.");
+        text.Should().Contain("Base instruction body at v4.");
+        text.Should().Contain("Why this matters.");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "InstructionPatchRenderer.RenderProposed: patch_text/applied_text/rationale в Content, wire StructuredContent=null")]
+    public void InstructionPatchProposed_wire_has_null_structured_content()
+    {
+        var payload = InstructionPatchRenderer.RenderProposed(NewPatch());
+
+        ReadText(payload.Wire).Should().Contain("Patch body proposal.");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    [Fact(DisplayName = "InstructionPatchRenderer.RenderList: тело каждого patch в Content, wire StructuredContent=null")]
+    public void InstructionPatchList_wire_has_null_structured_content()
+    {
+        var payload = InstructionPatchRenderer.RenderList([NewPatch(), NewPatch("Second body.")], nextCursor: "cursor-2");
+
+        var text = ReadText(payload.Wire);
+        text.Should().Contain("Patch body proposal.");
+        text.Should().Contain("Second body.");
+        AssertPromptLikeWireShape(payload);
+    }
+
+    private static McpInstructionPatchReadModel NewPatch(string body = "Patch body proposal.") => new(
+        Id: "patch-1",
+        TargetKind: "work",
+        Status: "proposed",
+        PatchText: body,
+        AppliedText: "Applied body after edit.",
+        EvidenceCardIds: ["ev-1", "ev-2"],
+        Rationale: "Why this matters.",
+        RejectComment: null,
+        BaseInstructionVersion: 4,
+        AppliedInstructionVersion: 5,
+        CreatedAt: DateTimeOffset.Parse("2026-05-22T10:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+        UpdatedAt: DateTimeOffset.Parse("2026-05-22T11:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+        DecidedAt: null);
+
+    private static string ReadText(CallToolResult result) =>
+        result.Content?.OfType<TextContentBlock>().FirstOrDefault()?.Text ?? string.Empty;
+
+    private static void AssertPromptLikeWireShape(McpToolPayload payload)
+    {
+        payload.Wire.StructuredContent.Should().BeNull(
+            "ADR-0003 §8.1 (2026-05 amendment): wire StructuredContent must be null for prompt-like tools — иначе structured-aware клиенты прячут Content[] от модели");
+        payload.AuditSummary.Should().NotBeNull("compact refs обязаны попадать в audit-канал через OOB envelope");
+        AssertAuditHasNoBannedKeys(payload.AuditSummary!);
+    }
+
+    private static void AssertAuditHasNoBannedKeys(IReadOnlyDictionary<string, object?> summary)
+    {
+        var path = new Stack<string>();
+        foreach (var (key, value) in summary)
+        {
+            BannedFields.Contains(key).Should().BeFalse(
+                $"AuditSummary не должен содержать '{key}' (путь: $.{key})");
+            path.Push(key);
+            AssertNoBannedKeys(value, path);
+            path.Pop();
+        }
+    }
+
+    private static void AssertNoBannedKeys(object? value, Stack<string> path)
+    {
+        if (value is not JsonElement element)
+        {
+            return;
+        }
+
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    BannedFields.Contains(property.Name).Should().BeFalse(
+                        $"AuditSummary не должен содержать '{property.Name}' (путь: {RenderPath(path)}.{property.Name})");
+                    path.Push(property.Name);
+                    AssertNoBannedKeys(property.Value, path);
+                    path.Pop();
+                }
+                break;
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var item in element.EnumerateArray())
+                {
+                    path.Push($"[{index++}]");
+                    AssertNoBannedKeys(item, path);
+                    path.Pop();
+                }
+                break;
+        }
+    }
+
+    private static string RenderPath(Stack<string> path) =>
+        path.Count == 0 ? "$" : "$." + string.Join(".", path.Reverse());
+}

@@ -119,6 +119,17 @@ dotnet_diagnostic.CA1502.severity = none
 # Splitting any of these hides the test intent; the existing solo CA1502
 # per-method ≤30 and CA1506 method-level ≤50 continue to catch genuine
 # accidental complexity introduced by a single test method.
+# intent:6e96cd2226e843ddbfe08f2502d49cbe — MCP wire-policy renderers
+# (ADR-0003 §8.1) собирают plain-text Content[] + compact StructuredContent refs
+# по каждому tool-результату. Type-level cyclomatic суммируется по Append*
+# хелперам + null-/pattern-checks (опциональный applied_text, reject_comment,
+# decided_at, list-iteration). Каждая ветка маппится 1:1 на опциональное поле
+# wire-формата — разнесение renderer'а по разным файлам прячет wire-policy
+# intent. Тот же архитектурный прецедент, что и `**/Throne.Api/**/*Controller.cs`
+# выше. Per-method CA1502 ≤30 продолжает ловить реальную сложность.
+[**/Throne.Api/Mcp/Tools/*Renderer.cs]
+dotnet_diagnostic.CA1502.severity = none
+
 [**/Throne.Architecture.Tests/**RulesTests.cs]
 dotnet_diagnostic.CA1502.severity = none
 

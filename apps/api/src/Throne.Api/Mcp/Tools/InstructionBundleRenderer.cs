@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using ModelContextProtocol.Protocol;
 using Throne.Application.Instructions;
 
 namespace Throne.Api.Mcp.Tools;
@@ -7,20 +8,26 @@ namespace Throne.Api.Mcp.Tools;
 /// <summary>
 /// Готовит ответ `get_instruction_bundle` без дублирования полезной нагрузки.
 ///
-/// MCP-сервер SDK 1.2.0 при отдаче <see cref="ModelContextProtocol.Protocol.CallToolResult"/> по wire
-/// прогоняет каждый строковый филд через дефолтный <c>JavaScriptEncoder</c>, который экранирует non-ASCII
-/// как <c>\uXXXX</c>. Если положить полный JSON-сериализованный bundle и в <c>TextContentBlock.Text</c>,
-/// и в <c>StructuredContent</c> (поведение SDK-овской авто-конверсии при <c>UseStructuredContent = true</c>),
-/// текст инструкций уезжает по сети дважды и каждый кириллический символ занимает 6 байт. На ~8 КБ полезного
-/// текста ответ доходил до 70 КБ — клиент-харнес отказывался читать tool result.
-///
-/// Согласно обсуждению в csharp-sdk#626 / #962 (PederHP, eiriktsarpalis) идиоматичное решение для tool-ов,
-/// чей потребитель — модель: рендерить читабельный текст в <c>Content</c>, а в <c>StructuredContent</c> класть
-/// только метаданные. <c>Throne.Api.Mcp.McpResultSummarizer</c> читает из StructuredContent только refs
-/// (scope/kind/instruction_id/current_version) и <c>missing_kinds</c> — их и оставляем.
+/// Wire-policy (ADR-0003 §8.1, 2026-05 amendment): полный bundle уезжает только в
+/// <see cref="TextContentBlock.Text"/>, wire <c>StructuredContent</c> = <c>null</c>.
+/// Дубль payload в обе ветки прятал основной текст от structured-aware клиентов
+/// (Claude Code) — incident intents 9cc71a8c… и 6e96cd22…. Compact refs (scope /
+/// kind / instruction_id / current_version + missing_kinds) едут через audit OOB
+/// envelope (<see cref="McpToolPayload.AuditSummary"/>) и попадают в
+/// <c>mcp_call_log.result_summary</c>, не дублируясь по wire.
 /// </summary>
 internal static class InstructionBundleRenderer
 {
+    public static McpToolPayload Render(InstructionBundle bundle) => new(
+        Wire: new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = RenderText(bundle) }],
+            StructuredContent = null,
+            IsError = false,
+        },
+        AuditSummary: McpStructuredContent.ToAuditSummary(RenderStructured(bundle)));
+
+
     public static string RenderText(InstructionBundle bundle)
     {
         ArgumentNullException.ThrowIfNull(bundle);

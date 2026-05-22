@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using FluentAssertions;
 using ModelContextProtocol.Protocol;
 using NSubstitute;
@@ -77,14 +78,16 @@ public class IntentAttachmentToolsTests
 
         var tools = NewTools(intentId, att, bytes);
 
-        var slice = await tools.ReadIntentAttachmentText(
+        var payload = await tools.ReadIntentAttachmentText(
             intentId.Value, "att-txt", offset: 0, max_chars: 10, CancellationToken.None);
 
-        slice.Text.Should().Be("abcdefghij");
-        slice.ReturnedBytesStart.Should().Be(0);
-        slice.ReturnedBytesEnd.Should().Be(10);
-        slice.TotalSizeBytes.Should().Be(bytes.Length);
-        slice.Truncated.Should().BeTrue();
+        ReadContent(payload.Wire).Should().Contain("abcdefghij");
+        payload.Wire.StructuredContent.Should().BeNull("ADR-0003 §8.1: wire StructuredContent for prompt-like tools is null");
+        ReadAuditInt(payload, "returned_bytes_start").Should().Be(0);
+        ReadAuditInt(payload, "returned_bytes_end").Should().Be(10);
+        ReadAuditInt(payload, "total_size_bytes").Should().Be(bytes.Length);
+        ReadAuditBool(payload, "truncated").Should().BeTrue();
+        payload.AuditSummary!.ContainsKey("text").Should().BeFalse("AuditSummary не должен нести decoded text");
     }
 
     [Fact(DisplayName = "read_intent_attachment_text продолжает чтение c offset = returned_bytes_end")]
@@ -96,13 +99,13 @@ public class IntentAttachmentToolsTests
             "att-txt", "user-1", intentId.Value, "f.txt", "text/plain", bytes.Length, Now);
         var tools = NewTools(intentId, att, bytes);
 
-        var slice = await tools.ReadIntentAttachmentText(
+        var payload = await tools.ReadIntentAttachmentText(
             intentId.Value, "att-txt", offset: 6, max_chars: 100, CancellationToken.None);
 
-        slice.Text.Should().Be("WORLD");
-        slice.ReturnedBytesStart.Should().Be(6);
-        slice.ReturnedBytesEnd.Should().Be(11);
-        slice.Truncated.Should().BeFalse();
+        ReadContent(payload.Wire).Should().Contain("WORLD");
+        ReadAuditInt(payload, "returned_bytes_start").Should().Be(6);
+        ReadAuditInt(payload, "returned_bytes_end").Should().Be(11);
+        ReadAuditBool(payload, "truncated").Should().BeFalse();
     }
 
     [Fact(DisplayName = "read_intent_attachment_text дропает обрывок UTF-8 в начале при offset в середине rune")]
@@ -116,12 +119,24 @@ public class IntentAttachmentToolsTests
         var tools = NewTools(intentId, att, bytes);
 
         // offset=1 — середина первого rune. Должно дропнуть continuation-байты и начать с "р".
-        var slice = await tools.ReadIntentAttachmentText(
+        var payload = await tools.ReadIntentAttachmentText(
             intentId.Value, "att-ru", offset: 1, max_chars: 100, CancellationToken.None);
 
-        slice.Text.Should().Be("ривет");
-        slice.ReturnedBytesStart.Should().Be(2);
-        slice.Truncated.Should().BeFalse();
+        ReadContent(payload.Wire).Should().Contain("ривет");
+        ReadAuditInt(payload, "returned_bytes_start").Should().Be(2);
+        ReadAuditBool(payload, "truncated").Should().BeFalse();
+    }
+
+    private static long ReadAuditInt(Throne.Api.Mcp.Tools.McpToolPayload payload, string key)
+    {
+        var raw = payload.AuditSummary![key]!;
+        return raw is JsonElement el ? el.GetInt64() : Convert.ToInt64(raw, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static bool ReadAuditBool(Throne.Api.Mcp.Tools.McpToolPayload payload, string key)
+    {
+        var raw = payload.AuditSummary![key]!;
+        return raw is JsonElement el ? el.GetBoolean() : Convert.ToBoolean(raw, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     [Fact(DisplayName = "read_intent_attachment_text на image-аттаче бросает validation.failed")]
@@ -190,6 +205,9 @@ public class IntentAttachmentToolsTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
+
+    private static string ReadContent(CallToolResult result) =>
+        result.Content?.OfType<TextContentBlock>().FirstOrDefault()?.Text ?? string.Empty;
 
     private static IntentAttachmentTools NewTools(IntentId intentId, IntentAttachment att, byte[] bytes)
     {

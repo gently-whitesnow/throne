@@ -35,9 +35,10 @@ public class IntentToolsAttachmentTests
 
         var result = await tools.GetIntent(intentId.Value, CancellationToken.None);
 
-        result.IsError.Should().BeFalse();
-        result.Content.Should().HaveCount(1);
-        result.Content[0].Should().BeOfType<TextContentBlock>();
+        result.Wire.IsError.Should().BeFalse();
+        result.Wire.Content.Should().HaveCount(1);
+        result.Wire.Content[0].Should().BeOfType<TextContentBlock>();
+        result.Wire.StructuredContent.Should().BeNull("ADR-0003 §8.1: prompt-like tools null out wire StructuredContent");
         await attachments.DidNotReceiveWithAnyArgs()
             .OpenContentAsync(default!, default!, default);
     }
