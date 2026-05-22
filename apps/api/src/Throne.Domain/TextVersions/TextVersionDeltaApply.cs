@@ -19,17 +19,20 @@ internal static class TextVersionDeltaApply
 
     private static string Replace(string text, string? oldText, string? newText)
     {
-        if (string.IsNullOrEmpty(oldText))
-        {
-            return text;
-        }
-        var index = text.IndexOf(oldText, StringComparison.Ordinal);
+        // Empty `old_text` is a legitimate "initial fill" — it is what the
+        // domain writes when the instruction was created with empty text and
+        // the next replace populates it (see InstructionGuards.
+        // EnsureValidOldTextForReplace). string.IndexOf with an empty needle
+        // returns 0 by spec, so this branch correctly produces
+        // `new_text + text` (effectively a prepend / set-from-empty).
+        var needle = oldText ?? string.Empty;
+        var index = text.IndexOf(needle, StringComparison.Ordinal);
         return index < 0
             ? text
             : string.Concat(
                 text.AsSpan(0, index),
                 newText ?? string.Empty,
-                text.AsSpan(index + oldText.Length));
+                text.AsSpan(index + needle.Length));
     }
 
     private static string Insert(string text, int afterLine, string? insertText)
