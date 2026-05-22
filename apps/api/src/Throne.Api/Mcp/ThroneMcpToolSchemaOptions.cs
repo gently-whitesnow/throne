@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -38,9 +39,23 @@ internal static class ThroneMcpToolSchemaOptions
 
     private static JsonSerializerOptions BuildSerializerOptions()
     {
+        // Encoder: эти опции SDK использует ТОЛЬКО для серилизации .NET-объектов в JSON-строку,
+        // которую мы кладём в TextContentBlock.Text (см. McpToolResultConverter и IntentTools.GetIntent).
+        // Wire-сериализацию envelope (JsonRpcMessage) SDK 1.2.0 хардкодит через свой
+        // McpJsonUtilities.JsonContext с дефолтным JavaScriptEncoder — это сознательно, см. csharp-sdk#626.
+        // Менять wire-encoder через рефлексию нельзя: csharp-sdk#64 показывает, что relaxed-режим
+        // ломает отдельных MCP-клиентов на не-ASCII символах. Best-practice (PederHP в csharp-sdk#962):
+        // для tool-ов с большим текстовым выходом не дублировать данные в Content + StructuredContent —
+        // см. InstructionBundleRenderer для get_instruction_bundle.
+        //
+        // UnsafeRelaxedJsonEscaping здесь оставляем для мелких объектов вроде get_intent: кириллица
+        // в Intent.text без него экранируется как \uXXXX уже на первом проходе (×6 байт), плюс SDK
+        // на wire экранирует ещё раз — на больших полях это заметно. Безопасно: получившаяся JSON-строка
+        // всё равно проходит через SDK-овский encoder при отдаче и приводится к консервативному виду.
         var options = new JsonSerializerOptions(McpJsonUtilities.DefaultOptions)
         {
             DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         };
         options.MakeReadOnly();
         return options;
