@@ -88,6 +88,22 @@ public class TextVersionReplayTests
         TextVersionReplay.ReplayTo(new[] { v1, v2 }, 2).Should().Be("hello");
     }
 
+    [Fact(DisplayName = "Replace с пустым old_text после пустого snapshot — initial-fill, корректно подставляет new_text")]
+    public void Replace_empty_old_text_initial_fill()
+    {
+        // Reproduces the Mongo history shape recorded by InstructionRepository
+        // when a user instruction is created with empty text and the next patch
+        // populates it: v1 = create(snapshot=""), v2 = replace(old="", new=…).
+        // InstructionGuards.EnsureValidOldTextForReplace allows this; the
+        // replay must mirror it instead of treating empty old_text as a no-op.
+        var v1 = Snapshot(1, "");
+        var v2 = Replace(2, oldText: "", newText: "first content");
+        var v3 = Replace(3, oldText: "first content", newText: "second content");
+
+        TextVersionReplay.ReplayTo(new[] { v1, v2 }, 2).Should().Be("first content");
+        TextVersionReplay.ReplayTo(new[] { v1, v2, v3 }, 3).Should().Be("second content");
+    }
+
     [Fact(DisplayName = "Replace заменяет только первое вхождение (детерминированно)")]
     public void Replace_first_occurrence_only()
     {
