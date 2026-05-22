@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
 
 import {
-  IntentsViewModeToggle,
+  IntentsViewModeButton,
   type IntentsViewMode
 } from "@/features/switch-intents-view-mode";
 import { IntentBoard } from "@/widgets/intent-board";
@@ -94,15 +94,10 @@ export function IntentsSectionPage() {
   return (
     <div className="flex h-screen overflow-hidden max-md:grid max-md:grid-cols-1 max-md:grid-rows-[minmax(120px,26vh)_minmax(160px,32vh)_1fr]">
       <div
-        className="relative grid min-h-0 min-w-0 max-md:!w-auto"
+        className="grid min-h-0 min-w-0 max-md:!w-auto"
         style={{ width: railWidth, flexShrink: 0 }}
       >
         <IntentContextRail />
-        <div className="pointer-events-none absolute right-2 top-2 z-10 max-md:hidden">
-          <div className="pointer-events-auto">
-            <IntentsViewModeToggle mode={mode} onChange={setMode} />
-          </div>
-        </div>
       </div>
       <ResizeHandle
         ariaLabel="Изменить ширину панели контекстов"
@@ -112,7 +107,19 @@ export function IntentsSectionPage() {
         className="grid min-h-0 min-w-0 max-md:!w-auto"
         style={{ width: middleWidth, flexShrink: 0 }}
       >
-        {mode === "canvas" ? <IntentTreeCanvas /> : <IntentBoard />}
+        {mode === "canvas" ? (
+          <IntentTreeCanvas
+            headerAction={
+              <IntentsViewModeButton mode={mode} onChange={setMode} />
+            }
+          />
+        ) : (
+          <IntentBoard
+            headerAction={
+              <IntentsViewModeButton mode={mode} onChange={setMode} />
+            }
+          />
+        )}
       </div>
       <ResizeHandle
         ariaLabel={

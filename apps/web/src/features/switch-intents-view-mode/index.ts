@@ -1,4 +1,4 @@
 export {
-  IntentsViewModeToggle,
+  IntentsViewModeButton,
   type IntentsViewMode
 } from "./ui/IntentsViewModeToggle";
