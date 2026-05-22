@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   type WheelEvent as ReactWheelEvent
 } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -33,7 +34,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-export function IntentTreeCanvas() {
+interface IntentTreeCanvasProps {
+  headerAction?: ReactNode;
+}
+
+export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
   const navigate = useNavigate();
   const { id: activeId } = useParams<{ id?: string }>();
   const [params] = useSearchParams();
@@ -243,6 +248,7 @@ export function IntentTreeCanvas() {
               {String(edges.length)} связей
             </span>
           ) : null}
+          {headerAction}
           <CreateIntentButton onCreated={handleCreated} />
         </div>
       </div>

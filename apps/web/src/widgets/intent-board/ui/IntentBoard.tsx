@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -37,7 +38,11 @@ type LoadState =
   | { kind: "ready"; items: IntentListItem[] }
   | { kind: "error"; message: string };
 
-export function IntentBoard() {
+interface IntentBoardProps {
+  headerAction?: ReactNode;
+}
+
+export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -293,11 +298,14 @@ export function IntentBoard() {
         <h2 className="m-0 truncate text-[13px] font-bold uppercase tracking-wider text-base-content/60">
           {contextTitle(context)}
         </h2>
-        <CreateIntentButton
-          onCreated={(intent) => {
-            handleCreated(intent.id);
-          }}
-        />
+        <div className="flex items-center gap-2">
+          {headerAction}
+          <CreateIntentButton
+            onCreated={(intent) => {
+              handleCreated(intent.id);
+            }}
+          />
+        </div>
       </div>
       {state.kind === "ready" && isTagContext(context) ? (
         <PinnedSection
