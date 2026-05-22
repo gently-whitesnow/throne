@@ -241,7 +241,12 @@ components:
           description: Opaque continuation token; null when the page exhausted the result set.
     InstructionPatchDetailDto:
       type: object
-      required: [patch, current_instruction_text, current_instruction_version, base_version_matches_current]
+      required:
+        - patch
+        - current_instruction_text
+        - current_instruction_version
+        - base_version_matches_current
+        - base_instruction_text
       properties:
         patch:
           $ref: '#/components/schemas/InstructionPatchDto'
@@ -255,6 +260,15 @@ components:
         base_version_matches_current:
           type: boolean
           description: True when patch.base_instruction_version == current_instruction_version.
+        base_instruction_text:
+          type: string
+          description: >
+            Instruction text reconstructed at `patch.base_instruction_version` — i.e.
+            the text the agent saw when proposing the patch. Empty string when the
+            patch creates the instruction from scratch (`base_instruction_version=0`)
+            or when version history is not available. Used by the operator UI to
+            render a diff `base → patch` (or `base → applied`) regardless of how
+            many further versions have been written on top of the base.
     ApplyInstructionPatchRequest:
       type: object
       properties:

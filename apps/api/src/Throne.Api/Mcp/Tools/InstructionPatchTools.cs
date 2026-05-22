@@ -87,7 +87,8 @@ public sealed class InstructionPatchTools(
             InstructionPatchMcpMapper.ToReadModel(view.Patch),
             view.CurrentInstructionText,
             view.CurrentInstructionVersion,
-            view.BaseVersionMatchesCurrent);
+            view.BaseVersionMatchesCurrent,
+            view.BaseInstructionText);
     }
 
     [McpServerTool(Name = "get_current_instruction", ReadOnly = true, UseStructuredContent = true)]
@@ -147,7 +148,8 @@ public sealed record McpInstructionPatchDetail(
     [property: Description("Patch payload.")] McpInstructionPatchReadModel Patch,
     [property: Description("Current text of the target user instruction; empty when missing.")] string CurrentInstructionText,
     [property: Description("Current Instruction.current_version; 0 when missing.")] int CurrentInstructionVersion,
-    [property: Description("True when patch.base_instruction_version equals current_instruction_version.")] bool BaseVersionMatchesCurrent);
+    [property: Description("True when patch.base_instruction_version equals current_instruction_version.")] bool BaseVersionMatchesCurrent,
+    [property: Description("Instruction text reconstructed at patch.base_instruction_version (what the agent saw when proposing); empty when base_instruction_version=0 or history unavailable.")] string BaseInstructionText);
 
 public sealed record McpCurrentInstructionReadModel(
     [property: Description("Instruction id (24 hex chars, ObjectId-shaped).")] string InstructionId,
