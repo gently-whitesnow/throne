@@ -211,6 +211,14 @@ namespace Throne.InstructionPatches.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("base_version_matches_current")]
         public bool Base_version_matches_current { get; set; }
 
+        /// <summary>
+        /// Instruction text reconstructed at `patch.base_instruction_version` — i.e. the text the agent saw when proposing the patch. Empty string when the patch creates the instruction from scratch (`base_instruction_version=0`) or when version history is not available. Used by the operator UI to render a diff `base → patch` (or `base → applied`) regardless of how many further versions have been written on top of the base.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_instruction_text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Base_instruction_text { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

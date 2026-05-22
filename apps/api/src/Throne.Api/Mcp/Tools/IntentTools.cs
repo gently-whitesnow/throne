@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -22,7 +23,12 @@ public sealed class IntentTools(
     IIntentAttachmentRepository attachments,
     IntentToolTagRefs tagRefs)
 {
-    private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web);
+    // UnsafeRelaxedJsonEscaping: см. комментарий в ThroneMcpToolSchemaOptions.BuildSerializerOptions.
+    // Без этого кириллица в Intent.text раздувается в ~4× из-за \uXXXX-экранирования внутри TextContentBlock.Text.
+    private static readonly JsonSerializerOptions ToolJsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
 
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
     [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one. If the new Intent arises in the context of another active Intent, consider linking them via link_intent(from_id=new, to_id=source, type=\"derived_from\") — or type=\"relates\" for a thematic connection — so the new Intent does not become an orphan.")]
@@ -93,13 +99,27 @@ public sealed class IntentTools(
         };
     }
 
-    [McpServerTool(Name = "get_instruction_bundle", UseStructuredContent = true)]
+    [McpServerTool(Name = "get_instruction_bundle")]
     [Description("Read the complete instruction bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work/fix bundles drive transitions on read).")]
-    public Task<InstructionBundle> GetInstructionBundle(
+    public async Task<CallToolResult> GetInstructionBundle(
         [Description("Runtime mode: interview, work, fix, dream, or transfer. Pick by user intent — see the mini-router instructions returned at MCP initialize.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
-        CancellationToken cancellationToken = default) =>
-        getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        var bundle = await getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
+
+        // Полная нагрузка — в Content (модель её и читает). StructuredContent — только refs
+        // (без поля text), чтобы не дублировать данные по wire и не упираться в лимит
+        // tool_result у клиентских харнесов. См. InstructionBundleRenderer.
+        return new CallToolResult
+        {
+            Content = [new TextContentBlock { Text = InstructionBundleRenderer.RenderText(bundle) }],
+            StructuredContent = JsonSerializer.SerializeToElement(
+                InstructionBundleRenderer.RenderStructured(bundle),
+                ToolJsonOptions),
+            IsError = false,
+        };
+    }
 
     [McpServerTool(Name = "move_intent", UseStructuredContent = true)]
     [Description("Reorder an intent in the user-defined sort order. Supply at least one of before_id (predecessor) or after_id (successor); supplying both pins the intent strictly between them. The server reads the pivots' sort keys and computes the midpoint — the agent never sends keys.")]

@@ -123,6 +123,8 @@ export interface components {
             current_instruction_version: number;
             /** @description True when patch.base_instruction_version == current_instruction_version. */
             base_version_matches_current: boolean;
+            /** @description Instruction text reconstructed at `patch.base_instruction_version` — i.e. the text the agent saw when proposing the patch. Empty string when the patch creates the instruction from scratch (`base_instruction_version=0`) or when version history is not available. Used by the operator UI to render a diff `base → patch` (or `base → applied`) regardless of how many further versions have been written on top of the base. */
+            base_instruction_text: string;
         };
         ApplyInstructionPatchRequest: {
             /** @description Operator-edited text. When omitted, the server uses patch_text verbatim. */
