@@ -170,11 +170,11 @@ export function IntentDetailPage() {
               title={
                 copiedAction === "execute"
                   ? "Скопировано"
-                  : `Скопировать: Прочитай бандл work и выполни интент ${intent.id}`
+                  : `Скопировать: Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`
               }
               onClick={() => {
                 copyToClipboard(
-                  `Прочитай бандл work и выполни интент ${intent.id}`,
+                  `Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`,
                   "execute"
                 );
               }}
@@ -196,11 +196,11 @@ export function IntentDetailPage() {
               title={
                 copiedAction === "interview"
                   ? "Скопировано"
-                  : `Скопировать: Прочитай бандл interview и проведи интервью со мной по интенту ${intent.id}`
+                  : `Скопировать: Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`
               }
               onClick={() => {
                 copyToClipboard(
-                  `Прочитай бандл interview и проведи интервью со мной по интенту ${intent.id}`,
+                  `Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`,
                   "interview"
                 );
               }}
