@@ -8,6 +8,7 @@ using Throne.Application.Git;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Git.GitHubCli;
 using Throne.Infrastructure.Imaging;
@@ -67,6 +68,7 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
+        services.AddSingleton<IPullRequestCommentRepository, MongoPullRequestCommentStore>();
         services.AddHostedService<MongoIndexInitializer>();
         // Run the cut-over backfill after the index initializer so the unique index on
         // (intent_id, version) is in place before the writer ever races a runtime edit.
@@ -109,6 +111,7 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
+        services.AddSingleton<IPullRequestCommentRepository, MongoPullRequestCommentStore>();
         services.AddHostedService<MongoIndexInitializer>();
         // Run the cut-over backfill after the index initializer so the unique index on
         // (intent_id, version) is in place before the writer ever races a runtime edit.
@@ -126,11 +129,16 @@ public static class DependencyInjection
     {
         var workspaceBuilder = services.AddOptions<WorkspaceOptions>();
         var githubBuilder = services.AddOptions<GitHubCliOptions>();
+        var prSyncBuilder = services.AddOptions<PullRequestSyncOptions>();
         if (configuration is not null)
         {
             workspaceBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
             githubBuilder.Bind(configuration.GetSection(GitHubCliOptions.SectionName));
+            prSyncBuilder.Bind(configuration.GetSection(PullRequestSyncOptions.SectionName));
         }
+        // Application layer takes the bound options value directly so its
+        // PullRequestSyncBackoff stays free of Microsoft.Extensions.Options.
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<PullRequestSyncOptions>>().Value);
 
         services.AddSingleton<WorkspaceRootInitializer>();
         services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
@@ -148,5 +156,9 @@ public static class DependencyInjection
         // recovery pass on boot and drains BindingIds pushed by T-08. Workflow + queue
         // live in Application so this Infrastructure type stays thin.
         services.AddHostedService<RepositoryCloneService>();
+        // T-10 PullRequestSyncService: polls open PR bindings on a tick, refreshes
+        // upstream state + comments through the shared sync workflow. Tick body lives
+        // in Application; this host stays a thin BackgroundService wrapper.
+        services.AddHostedService<PullRequestSyncService>();
     }
 }
