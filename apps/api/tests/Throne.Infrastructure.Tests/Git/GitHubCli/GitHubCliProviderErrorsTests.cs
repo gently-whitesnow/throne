@@ -63,12 +63,4 @@ public class GitHubCliProviderErrorsTests
         ex.Kind.Should().Be(GitProviderErrorKind.NetworkError);
     }
 
-    [Fact(DisplayName = "PR-методы бросают NotSupportedException до T-07")]
-    public async Task Pr_methods_are_not_implemented_yet()
-    {
-        await ((Func<Task>)(() => _fx.Provider.GetPullRequestAsync("a", "b", 1, default)))
-            .Should().ThrowAsync<NotSupportedException>();
-        await ((Func<Task>)(() => _fx.Provider.ListPullRequestCommentsAsync("a", "b", 1, etag: null, default)))
-            .Should().ThrowAsync<NotSupportedException>();
-    }
 }

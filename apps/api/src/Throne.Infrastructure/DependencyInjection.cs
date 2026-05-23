@@ -140,6 +140,7 @@ public static class DependencyInjection
         services.AddSingleton<GhRepoSearcher>();
         services.AddSingleton<GhRepoActions>();
         services.AddSingleton<GhAuthProbe>();
+        services.AddSingleton<GhPullRequestActions>();
         services.AddSingleton<IGitProvider, GitHubCliProvider>();
         services.AddSingleton<IGitProviderRegistry, GitProviderRegistry>();
     }
