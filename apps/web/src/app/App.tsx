@@ -5,7 +5,7 @@ import { ImprovementsSectionPage } from "@/pages/improvements-section";
 import { IntentDetailPage } from "@/pages/intent-detail";
 import { IntentsSectionPage } from "@/pages/intents-section";
 import { InstructionsSectionPage } from "@/pages/instructions-section";
-import { McpTokenPage } from "@/pages/me-mcp-token";
+import { SettingsPage } from "@/pages/settings";
 import { TagsSectionPage } from "@/pages/tags-section";
 import { AppShell } from "@/widgets/app-shell";
 
@@ -21,7 +21,7 @@ export function App() {
           <Route path="/tags" element={<TagsSectionPage />} />
           <Route path="/instructions" element={<InstructionsSectionPage />} />
           <Route path="/improvements" element={<ImprovementsSectionPage />} />
-          <Route path="/me/mcp-token" element={<McpTokenPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

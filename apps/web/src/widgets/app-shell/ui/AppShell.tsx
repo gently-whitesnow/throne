@@ -1,4 +1,4 @@
-import { FileText, Hash, KeyRound, Sparkles, Sprout } from "lucide-react";
+import { FileText, Hash, Settings, Sparkles, Sprout } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { to: "/tags", label: "Tags", icon: Hash },
   { to: "/instructions", label: "Instructions", icon: FileText },
   { to: "/improvements", label: "Improvements", icon: Sprout },
-  { to: "/me/mcp-token", label: "MCP Token", icon: KeyRound }
+  { to: "/settings", label: "Settings", icon: Settings }
 ] as const;
 
 export function AppShell() {
