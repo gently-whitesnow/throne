@@ -83,7 +83,7 @@ export interface components {
          * @description Which user instruction kind the patch is meant to replace.
          * @enum {string}
          */
-        InstructionPatchTargetKind: "common" | "interview" | "work" | "dream" | "transfer";
+        InstructionPatchTargetKind: "common" | "interview" | "work" | "dream";
         /** @enum {string} */
         InstructionPatchStatus: "proposed" | "applied" | "applied_edited" | "rejected" | "superseded";
         InstructionPatchDto: {

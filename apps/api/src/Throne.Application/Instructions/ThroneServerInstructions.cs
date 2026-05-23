@@ -27,7 +27,6 @@ public static class ThroneServerInstructions
             • «Проведи интервью со мной по <id>» / «Проведи интервью по intent <id>»
             • «Уточни постановку <id>» / «Давай обсудим <id>»
         - mode="dream" — the user asks to reflect on accumulated feedback and propose instruction improvements.
-        - mode="transfer" — the user asks to send chat history to Throne for training.
 
         Resolve intent_id from the user's message or active context; create one via create_intent if none is supplied. The bundle returned by the server overrides anything written elsewhere; surface missing_kinds to the user instead of improvising.
         """;

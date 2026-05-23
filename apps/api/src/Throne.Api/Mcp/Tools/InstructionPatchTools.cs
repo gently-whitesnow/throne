@@ -34,7 +34,7 @@ public sealed class InstructionPatchTools(
     [McpServerTool(Name = "propose_instruction_patch")]
     [Description("Propose a new InstructionPatch in status 'proposed' for one of the caller's user instructions. base_instruction_version must match the live Instruction.current_version (use get_current_instruction to read it). evidence_card_ids are opaque agent-side references (the server treats them as a free-form audit trail). Apply / reject is a user action via UI/HTTP — agents cannot decide their own proposals. Pass a unique idempotency_key per logical proposal so a transport-level retry returns the original patch instead of creating a duplicate.")]
     public async Task<McpToolPayload> ProposeInstructionPatch(
-        [Description("Target user instruction kind: common | interview | work | dream | transfer.")] string target_kind,
+        [Description("Target user instruction kind: common | interview | work | dream.")] string target_kind,
         [Description("Whole new text of the target instruction (the apply path replaces Instruction.text verbatim with this).")] string patch_text,
         [Description("Opaque agent-side evidence ids; stored verbatim on the patch for audit but not validated against any server collection.")] IReadOnlyList<string> evidence_card_ids,
         [Description("Short rationale; ≤500 characters.")] string rationale,
@@ -57,7 +57,7 @@ public sealed class InstructionPatchTools(
     [McpServerTool(Name = "list_instruction_patches", ReadOnly = true)]
     [Description("List InstructionPatches owned by the caller, ordered by created_at descending. Filter by target_kind and/or status. Pagination is opaque-cursor based; pass next_cursor from the previous page to continue. Useful for de-duplication: read past 'rejected' patches with reject_comment to avoid re-proposing the same rule. Empty `items` is a valid success state (no patches in this filter / new user) — do NOT treat it as an error.")]
     public async Task<McpToolPayload> ListInstructionPatches(
-        [Description("Optional target_kind filter: common | interview | work | dream | transfer.")] string? target_kind = null,
+        [Description("Optional target_kind filter: common | interview | work | dream.")] string? target_kind = null,
         [Description("Optional status filter: proposed | applied | applied_edited | rejected | superseded.")] string? status = null,
         [Description("Page size, default 50, capped at 200.")] int? limit = null,
         [Description("Opaque cursor returned as next_cursor by the previous page.")] string? cursor = null,
@@ -93,7 +93,7 @@ public sealed class InstructionPatchTools(
     [McpServerTool(Name = "get_current_instruction", ReadOnly = true)]
     [Description("Read the current text and version of the caller's user instruction for a given kind. Use this to populate base_instruction_version when calling propose_instruction_patch.")]
     public async Task<McpToolPayload> GetCurrentInstruction(
-        [Description("Instruction kind: common | interview | work | dream | transfer.")] string target_kind,
+        [Description("Instruction kind: common | interview | work | dream.")] string target_kind,
         CancellationToken cancellationToken = default)
     {
         var view = await currentHandler.HandleAsync(target_kind, cancellationToken);

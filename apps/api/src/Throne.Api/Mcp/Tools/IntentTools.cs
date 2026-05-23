@@ -90,7 +90,7 @@ public sealed class IntentTools(
     [McpServerTool(Name = "get_instruction_bundle")]
     [Description("Read the complete instruction bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work/fix bundles drive transitions on read).")]
     public async Task<McpToolPayload> GetInstructionBundle(
-        [Description("Runtime mode: interview, work, fix, dream, or transfer. Pick by user intent — see the mini-router instructions returned at MCP initialize.")] string mode,
+        [Description("Runtime mode: interview, work, or dream. Pick by user intent — see the mini-router instructions returned at MCP initialize.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default)
     {

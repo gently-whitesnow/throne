@@ -160,7 +160,7 @@ export interface components {
             updated_at: string;
         };
         CreateInstructionRequest: {
-            /** @description Instruction kind (common | interview | work | dream | transfer). */
+            /** @description Instruction kind (common | interview | work | dream). */
             kind: string;
             /** @description Initial canonical Instruction.Text. May be empty. */
             text: string;

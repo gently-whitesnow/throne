@@ -6,7 +6,6 @@ public static class InstructionKindNames
     public const string Interview = "interview";
     public const string Work = "work";
     public const string Dream = "dream";
-    public const string Transfer = "transfer";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -14,7 +13,6 @@ public static class InstructionKindNames
         Interview,
         Work,
         Dream,
-        Transfer,
     ];
 
     public static bool IsKnown(string kind) => All.Contains(kind, StringComparer.Ordinal);
