@@ -10,6 +10,7 @@ using Throne.Application.Ports;
 using Throne.Infrastructure.Imaging;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
+using Throne.Infrastructure.Mongo.Repositories;
 using Throne.Infrastructure.Tokenization;
 
 namespace Throne.Infrastructure;
@@ -60,6 +61,7 @@ public static class DependencyInjection
         services.AddHostedService<IntentAttachmentCompressionWorker>();
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
+        services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
         services.AddHostedService<MongoIndexInitializer>();
         // Run the cut-over backfill after the index initializer so the unique index on
         // (intent_id, version) is in place before the writer ever races a runtime edit.
@@ -100,6 +102,7 @@ public static class DependencyInjection
         services.AddOptions<IntentAttachmentCompressionOptions>();
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
+        services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
         services.AddHostedService<MongoIndexInitializer>();
         // Run the cut-over backfill after the index initializer so the unique index on
         // (intent_id, version) is in place before the writer ever races a runtime edit.
