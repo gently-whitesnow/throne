@@ -50,20 +50,28 @@ export function EdgeLayer({
       style={{ overflow: "visible" }}
       aria-hidden
     >
-      {paths.map((p) => (
-        <path
-          key={p.key}
-          d={p.d}
-          fill="none"
-          stroke={
-            p.related
-              ? "var(--color-primary, oklch(0.5 0.2 255))"
-              : "var(--color-base-300, oklch(0.93 0.005 250))"
-          }
-          strokeWidth={p.related ? 1.6 : 1.2}
-          opacity={relatedIds !== null && !p.related ? 0.35 : 1}
-        />
-      ))}
+      {paths.map((p) => {
+        // Without a selection, every edge gets the neutral look at full
+        // opacity. With one, related edges go primary + bright, the rest stay
+        // dimmed but visible so the graph never looks washed out.
+        const hasSelection = relatedIds !== null;
+        const isRelated = hasSelection && p.related;
+        return (
+          <path
+            key={p.key}
+            d={p.d}
+            fill="none"
+            stroke={
+              isRelated
+                ? "var(--color-primary, oklch(0.5 0.2 255))"
+                : "var(--color-base-content, oklch(0.2 0.02 250))"
+            }
+            strokeWidth={isRelated ? 2 : 1.4}
+            opacity={!hasSelection || isRelated ? 0.6 : 0.25}
+            vectorEffect="non-scaling-stroke"
+          />
+        );
+      })}
     </svg>
   );
 }
