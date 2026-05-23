@@ -5,7 +5,7 @@
  */
 
 export const CARD_W = 248;
-export const CARD_H = 86;
+export const CARD_H = 104;
 export const COL_GAP = 96;
 export const ROW_GAP = 22;
 // Gap between the connected DAG and the strip of isolated cards parked below
