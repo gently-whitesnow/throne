@@ -9,6 +9,7 @@ using Throne.Application.Instructions.Manifest;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
 using Throne.Infrastructure.Git;
+using Throne.Infrastructure.Git.GitHubCli;
 using Throne.Infrastructure.Imaging;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
@@ -117,20 +118,29 @@ public static class DependencyInjection
 
     /// <summary>
     /// Git provider shell-out plumbing (ADR-0024 / T-05): workspace root initializer,
-    /// process launcher and provider registry. Slice 1 registers no concrete
-    /// providers — <c>GitHubCliProvider</c> arrives in T-06.
+    /// process launcher, provider registry and concrete providers. T-06 wires up
+    /// <see cref="GitHubCliProvider"/> for the <c>github</c> key; PR operations land
+    /// in T-07 on the same instance.
     /// </summary>
     private static void AddGitInfrastructure(IServiceCollection services, IConfiguration? configuration)
     {
-        var optionsBuilder = services.AddOptions<WorkspaceOptions>();
+        var workspaceBuilder = services.AddOptions<WorkspaceOptions>();
+        var githubBuilder = services.AddOptions<GitHubCliOptions>();
         if (configuration is not null)
         {
-            optionsBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
+            workspaceBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
+            githubBuilder.Bind(configuration.GetSection(GitHubCliOptions.SectionName));
         }
 
         services.AddSingleton<WorkspaceRootInitializer>();
         services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
         services.AddSingleton<IProcessLauncher, ProcessRunner>();
+        services.AddSingleton<GhCliInvoker>();
+        services.AddSingleton<GhRepoListExecutor>();
+        services.AddSingleton<GhRepoSearcher>();
+        services.AddSingleton<GhRepoActions>();
+        services.AddSingleton<GhAuthProbe>();
+        services.AddSingleton<IGitProvider, GitHubCliProvider>();
         services.AddSingleton<IGitProviderRegistry, GitProviderRegistry>();
     }
 }
