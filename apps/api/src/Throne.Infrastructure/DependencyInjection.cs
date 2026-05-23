@@ -134,6 +134,7 @@ public static class DependencyInjection
 
         services.AddSingleton<WorkspaceRootInitializer>();
         services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
+        services.AddSingleton<IWorkspaceRootProvider>(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
         services.AddSingleton<IProcessLauncher, ProcessRunner>();
         services.AddSingleton<GhCliInvoker>();
         services.AddSingleton<GhRepoListExecutor>();

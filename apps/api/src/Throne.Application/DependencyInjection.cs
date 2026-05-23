@@ -8,6 +8,7 @@ using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Application.Tags;
 using Throne.Application.TextVersions;
 
@@ -86,6 +87,12 @@ public static class DependencyInjection
         services.AddSingleton<ListDreamSessionsHandler>();
         services.AddSingleton<GetDreamSessionHandler>();
         services.AddSingleton<GetDreamSourcesHandler>();
+        // T-08 RepositoryBindingService: bind/unbind/list + manual PR sync.
+        // Background clone queue (T-09) and PR-sync polling (T-10) live in Infrastructure.
+        services.AddSingleton<RepositoryBindingResolver>();
+        services.AddSingleton<RepositoryBindingPersistence>();
+        services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
+        services.AddSingleton<RepositoryBindingService>();
         return services;
     }
 }

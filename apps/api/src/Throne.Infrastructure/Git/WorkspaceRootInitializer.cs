@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Throne.Application.Git;
 
 namespace Throne.Infrastructure.Git;
 
@@ -19,7 +20,7 @@ namespace Throne.Infrastructure.Git;
 /// </summary>
 internal sealed class WorkspaceRootInitializer(
     IOptions<WorkspaceOptions> options,
-    ILogger<WorkspaceRootInitializer> log) : IHostedService
+    ILogger<WorkspaceRootInitializer> log) : IHostedService, IWorkspaceRootProvider
 {
     private string? _resolvedRoot;
 

@@ -25,4 +25,11 @@ public static class ErrorCodes
     public const string InstructionPatchAlreadyDecided = "instruction_patch.already_decided";
     public const string InstructionPatchNeedsRebase = "instruction_patch.needs_rebase";
     public const string DreamSessionNotFound = "dream_session.not_found";
+    public const string RepositoryBindingNotFound = "repository_binding.not_found";
+    public const string RepositoryBindingAlreadyExists = "repository_binding.already_exists";
+    public const string RepositoryProviderUnsupported = "repository.provider_unsupported";
+    public const string RepositoryProviderNotAuthenticated = "repository.provider_not_authenticated";
+    public const string RepositoryNotReady = "repository_binding.not_ready";
+    public const string RepositoryPullRequestNotAttached = "repository_binding.pull_request_not_attached";
+    public const string RepositoryUpstreamGone = "repository.upstream_gone";
 }

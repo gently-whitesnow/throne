@@ -1,0 +1,61 @@
+using Throne.Application.Ports;
+using Throne.Domain.Intents;
+using Throne.Domain.Repositories;
+
+namespace Throne.Application.Repositories;
+
+/// <summary>
+/// Persistence-orchestration helper extracted from <see cref="RepositoryBindingService"/>.
+/// Owns construction of fresh bindings (workspace-path layout, factory invocation,
+/// clock) and the create/delete/save/find roundtrips through the unit-of-work + Mongo
+/// port. Keeping these out of the service body lets the service stay inside both the
+/// per-class CA1502 cyclomatic budget and the constructor-deps budget enforced by
+/// <c>scripts/quality/maintainability-budget-check.sh</c>.
+/// </summary>
+public sealed class RepositoryBindingPersistence(
+    IIntentRepositoryBindingRepository bindings,
+    IUnitOfWork unitOfWork,
+    TimeProvider clock)
+{
+    public IntentRepositoryBinding BuildPendingBinding(
+        BindRepositoryCommand command,
+        IntentId intentId,
+        string workspaceRoot)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var coordinate = new RepoCoordinate(command.Provider, command.Owner, command.Repo);
+        var defaultBranch = string.IsNullOrWhiteSpace(command.DefaultBranch) ? "main" : command.DefaultBranch.Trim();
+        var workspacePath = WorkspacePathLayout.Compute(workspaceRoot, intentId, coordinate);
+        return IntentRepositoryBindingFactory.Create(
+            id: BindingId.New(),
+            intentId: intentId,
+            coordinate: coordinate,
+            defaultBranch: defaultBranch,
+            workspacePath: workspacePath,
+            pullRequestNumber: command.PullRequestNumber,
+            now: clock.GetUtcNow());
+    }
+
+    public async Task<IntentRepositoryBinding> CreateAsync(IntentRepositoryBinding binding, CancellationToken ct)
+    {
+        var outcome = await unitOfWork.ExecuteAsync(inner => bindings.CreateAsync(binding, inner), ct);
+        return outcome switch
+        {
+            CreateBindingOutcome.Created c => c.Binding,
+            CreateBindingOutcome.Duplicate dup => throw RepositoryBindingFailures.DuplicateBinding(dup.Existing),
+            _ => throw new InvalidOperationException($"Unhandled outcome: {outcome.GetType().Name}"),
+        };
+    }
+
+    public async Task DeleteAsync(IntentRepositoryBinding binding, CancellationToken ct)
+    {
+        var outcome = await unitOfWork.ExecuteAsync(inner => bindings.DeleteAsync(binding.Id, inner), ct);
+        if (outcome is DeleteBindingOutcome.NotFound)
+        {
+            throw RepositoryBindingFailures.BindingNotFound(binding.IntentId.Value, binding.Id.Value);
+        }
+    }
+
+    public Task<IReadOnlyList<IntentRepositoryBinding>> FindByIntentAsync(IntentId intentId, CancellationToken ct) =>
+        bindings.FindByIntentAsync(intentId, ct);
+}
