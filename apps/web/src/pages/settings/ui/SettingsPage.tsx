@@ -1,0 +1,113 @@
+import { FolderCog, GitBranch, KeyRound } from "lucide-react";
+
+import { McpTokenCard } from "@/widgets/mcp-token-card";
+
+/**
+ * `/settings` — единая страница настроек профиля.
+ *
+ * Три секции:
+ *   * «MCP-токен» — Personal Access Token для MCP-клиентов.
+ *   * «Провайдеры Git» — placeholder, реализация в T-16.
+ *   * «Workspace» — placeholder, реализация в T-17.
+ */
+export function SettingsPage() {
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-8">
+      <header className="flex flex-col gap-1.5">
+        <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
+          Профиль
+        </p>
+        <h1 className="m-0 text-2xl font-bold leading-tight">Настройки</h1>
+        <p className="m-0 max-w-[64ch] text-sm leading-relaxed text-base-content/70">
+          MCP-токен, провайдеры Git и параметры workspace в одном месте.
+        </p>
+      </header>
+
+      <SettingsSection
+        id="mcp-token"
+        title="MCP-токен"
+        icon={KeyRound}
+        description="Personal Access Token для MCP-клиентов: текущая мета, генерация и перевыпуск."
+      >
+        <McpTokenCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="git-providers"
+        title="Провайдеры Git"
+        icon={GitBranch}
+        description="Привязка локальных Git-провайдеров (gh CLI и др.). Реализация появится в следующем проходе."
+      >
+        <SectionPlaceholder label="Секция «Провайдеры Git» ещё не реализована." />
+      </SettingsSection>
+
+      <SettingsSection
+        id="workspace"
+        title="Workspace"
+        icon={FolderCog}
+        description="Параметры workspace: корневая директория клонов репозиториев и связанные настройки. Реализация появится в следующем проходе."
+      >
+        <SectionPlaceholder label="Секция «Workspace» ещё не реализована." />
+      </SettingsSection>
+    </div>
+  );
+}
+
+type LucideIcon = typeof KeyRound;
+
+interface SettingsSectionProps {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  description: string;
+  children: React.ReactNode;
+}
+
+function SettingsSection({
+  id,
+  title,
+  icon: Icon,
+  description,
+  children
+}: SettingsSectionProps) {
+  const headingId = `settings-${id}-title`;
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="flex flex-col gap-3"
+      id={id}
+    >
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <Icon
+            aria-hidden
+            size={18}
+            strokeWidth={2}
+            className="text-base-content/70"
+          />
+          <h2
+            id={headingId}
+            className="m-0 text-lg font-semibold leading-tight"
+          >
+            {title}
+          </h2>
+        </div>
+        <p className="m-0 max-w-[64ch] text-sm leading-relaxed text-base-content/70">
+          {description}
+        </p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function SectionPlaceholder({ label }: { label: string }) {
+  return (
+    <div
+      role="note"
+      className="rounded-md border border-dashed border-base-300 bg-base-200/50 px-4 py-6 text-sm text-base-content/60"
+    >
+      {label}
+    </div>
+  );
+}
