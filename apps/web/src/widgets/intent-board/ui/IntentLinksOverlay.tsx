@@ -147,9 +147,11 @@ function useEdges(
       setEdges(buildEdges(summary, rowRefs, container, railWidth));
     };
     recompute();
-    // Right-pane drag, sidebar collapse and font-zoom all change card widths
-    // without touching summary/layoutSignature. ResizeObserver gives us a
-    // re-measure trigger that is independent of React state churn.
+    // The SVG is a sibling of the list inside a `position: relative` wrapper
+    // whose height grows with the list — so SVG and rows scroll together and
+    // their relative geometry is stable. We still re-measure on container
+    // resize (right-pane drag, sidebar collapse, font-zoom), since those
+    // reshape widths without touching summary / layoutSignature.
     const observer = new ResizeObserver(recompute);
     observer.observe(container);
     return () => {

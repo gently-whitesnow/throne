@@ -190,7 +190,11 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  // Wrapper around the list and the SVG overlay. Together they share one
+  // positioning context that grows with the list height — so when the scroll
+  // container scrolls, SVG and rows translate as a single layer and the
+  // arrow geometry stays glued to the cards without any scroll listener.
+  const listLayerRef = useRef<HTMLDivElement | null>(null);
   const handleRowRef = useCallback((id: string, el: HTMLLIElement | null) => {
     if (el) {
       rowRefs.current.set(id, el);
@@ -316,7 +320,7 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           onMutationFailed={reload}
         />
       ) : null}
-      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {state.kind === "loading" && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Загрузка…
@@ -331,31 +335,29 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           </p>
         )}
         {state.kind === "ready" && (
-          <>
-            <div
-              style={
-                hasAnyLinks ? { paddingRight: LINKS_RAIL_WIDTH } : undefined
-              }
-            >
-              <EntityList
-                items={rows}
-                emptyMessage={emptyMessage(context, state.items.length)}
-                onReorder={handleReorder}
-                onRowHover={setHoveredId}
-                rowRef={handleRowRef}
-              />
-            </div>
+          <div
+            ref={listLayerRef}
+            className="relative"
+            style={hasAnyLinks ? { paddingRight: LINKS_RAIL_WIDTH } : undefined}
+          >
+            <EntityList
+              items={rows}
+              emptyMessage={emptyMessage(context, state.items.length)}
+              onReorder={handleReorder}
+              onRowHover={setHoveredId}
+              rowRef={handleRowRef}
+            />
             {hasAnyLinks && (
               <IntentLinksOverlay
                 hoveredId={hoveredId}
                 summary={linksSummary}
                 rowRefs={rowRefs.current}
-                containerRef={scrollRef}
+                containerRef={listLayerRef}
                 railWidth={LINKS_RAIL_WIDTH}
                 layoutSignature={layoutSignature}
               />
             )}
-          </>
+          </div>
         )}
       </div>
     </section>

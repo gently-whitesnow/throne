@@ -47,7 +47,7 @@ function TreeCardImpl({
       aria-current={active ? "true" : undefined}
       aria-label={`Открыть intent ${title}`}
       className={[
-        "absolute flex items-stretch overflow-hidden rounded-lg bg-base-100 text-left",
+        "absolute flex flex-col overflow-hidden rounded-lg bg-base-100 text-left",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60",
         active
           ? "border-2 border-primary shadow-[0_0_0_4px_oklch(0.5_0.2_255/0.28)]"
@@ -64,18 +64,22 @@ function TreeCardImpl({
         height: CARD_H
       }}
     >
-      {/* Status strip */}
+      {/* Header: status chip on the left, version on the right. */}
       <span
-        className="flex w-[68px] shrink-0 flex-col items-start justify-center border-r border-base-300 px-2 py-2"
+        className="flex items-center justify-between gap-2 border-b border-base-300/70 px-2 py-1"
         style={{ background: status.surface, color: status.ink }}
       >
         <span className="truncate text-[10px] font-semibold uppercase tracking-wide">
           {status.label}
         </span>
+        <span className="shrink-0 text-[10px] tabular-nums opacity-70">
+          v{String(intent.current_version)}
+        </span>
       </span>
 
-      {/* Body */}
-      <span className="flex min-w-0 flex-1 flex-col justify-between px-3 py-2">
+      {/* Body: title + tags row. The title clamps to two lines and the tags
+          row sits at the bottom edge of the card. */}
+      <span className="flex min-h-0 flex-1 flex-col justify-between gap-1 px-3 py-2">
         <span
           className="overflow-hidden text-[12.5px] font-medium leading-snug text-base-content"
           style={{
@@ -86,7 +90,7 @@ function TreeCardImpl({
         >
           {title}
         </span>
-        <span className="flex items-center gap-1.5 truncate">
+        <span className="flex items-center gap-1.5 truncate text-[10px] text-base-content/60">
           {intent.pinned_in.length > 0 ? (
             <Pin
               aria-hidden
@@ -96,20 +100,10 @@ function TreeCardImpl({
             />
           ) : null}
           {intent.tags.slice(0, 3).map((t) => (
-            <span
-              key={t.id}
-              className="truncate text-[10px] text-base-content/60"
-            >
+            <span key={t.id} className="truncate">
               #{t.name}
             </span>
           ))}
-        </span>
-      </span>
-
-      {/* Version */}
-      <span className="flex w-[44px] shrink-0 items-start justify-end px-2 pt-2">
-        <span className="text-[11px] tabular-nums text-base-content/50">
-          v{String(intent.current_version)}
         </span>
       </span>
     </button>
