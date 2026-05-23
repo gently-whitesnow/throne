@@ -77,6 +77,17 @@ public sealed record IntentRepositoryBound(IntentRepositoryBinding Binding) : ID
 
 public sealed record IntentRepositoryUnbound(IntentRepositoryBinding Binding) : IDomainEvent;
 
+/// <summary>
+/// Emitted by the background clone service (T-09) on every <c>clone_status</c> transition
+/// (<c>pending → cloning</c>, <c>cloning → ready</c>, <c>cloning → failed</c>) and by the
+/// startup recovery pass when <c>cloning</c> bindings are flipped to
+/// <c>failed("interrupted")</c>. T-12 translates this into the wire event
+/// <c>intent.repository_clone_progress</c>. The name follows the realtime-coverage
+/// gate's PascalCase convention (<c>intent.repository_clone_progress</c> →
+/// <c>IntentRepositoryCloneProgress</c>) so events.yaml and this record stay in lock-step.
+/// </summary>
+public sealed record IntentRepositoryCloneProgress(IntentRepositoryBinding Binding) : IDomainEvent;
+
 public sealed record RepositoryPullRequestSynced(
     IntentRepositoryBinding Binding,
     int CommentCount) : IDomainEvent;

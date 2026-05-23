@@ -88,11 +88,19 @@ public static class DependencyInjection
         services.AddSingleton<GetDreamSessionHandler>();
         services.AddSingleton<GetDreamSourcesHandler>();
         // T-08 RepositoryBindingService: bind/unbind/list + manual PR sync.
-        // Background clone queue (T-09) and PR-sync polling (T-10) live in Infrastructure.
+        // Background clone queue + worker (T-09) and PR-sync polling (T-10) live in
+        // Infrastructure; the Application-layer queue/workflow types stay here so the
+        // worker can be unit-tested without the BackgroundService rig.
         services.AddSingleton<RepositoryBindingResolver>();
         services.AddSingleton<RepositoryBindingPersistence>();
         services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
         services.AddSingleton<RepositoryBindingService>();
+        services.AddSingleton<RepositoryCloneRequestsChannel>();
+        services.AddSingleton<IRepositoryCloneRequests>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());
+        services.AddSingleton<IRepositoryCloneRequestsReader>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());
+        services.AddSingleton<RepositoryCloneTransitionWriter>();
+        services.AddSingleton<RepositoryCloneWorkflow>();
+        services.AddSingleton<RepositoryCloneRecoveryWorkflow>();
         return services;
     }
 }

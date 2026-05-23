@@ -99,6 +99,20 @@ internal sealed class MongoIntentRepositoryBindingStore(
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
     }
 
+    public async Task<IReadOnlyList<IntentRepositoryBinding>> FindByCloneStatusAsync(
+        string cloneStatus,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cloneStatus);
+        var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.CloneStatus, cloneStatus);
+        var session = sessions.Current;
+        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
+        var docs = await find
+            .SortBy(d => d.CreatedAt)
+            .ToListAsync(ct);
+        return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
+    }
+
     public async Task<SaveBindingOutcome> SaveAsync(IntentRepositoryBinding binding, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(binding);
