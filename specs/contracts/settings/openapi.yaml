@@ -1,0 +1,95 @@
+openapi: "3.1.0"
+info:
+  title: Throne Settings
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Settings.Contracts.Generated
+paths:
+  /api/v1/settings/workspace:
+    get:
+      operationId: getWorkspaceSettings
+      tags: [Settings]
+      summary: Read the workspace root configuration and its current size.
+      description: >
+        Returns the resolved `Throne:Workspace:Root` plus an optional global size on disk.
+        `status=calculating` lets the UI render a skeleton while the size computation runs
+        in the background; `status=ready` means `total_size_bytes` is fresh. Per-intent
+        sizes are out of scope for slice 1 (see parent slice review notes).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSettingsDto'
+  /api/v1/settings/git-providers/status:
+    get:
+      operationId: getGitProvidersStatus
+      tags: [Settings]
+      summary: Authentication status for every configured git provider CLI.
+      description: >
+        Drives the settings page indicator. Throne never persists provider tokens itself —
+        the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Slice 1 returns only the
+        `github` entry; `gitlab` lands in slice 5 alongside `GitLabCliProvider`.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitProvidersStatusDto'
+components:
+  schemas:
+    WorkspaceStatus:
+      type: string
+      enum:
+        - ready
+        - calculating
+      description: >
+        `ready` — `total_size_bytes` reflects the latest scan.
+        `calculating` — background sweep in progress; size will arrive on the next request.
+    WorkspaceSettingsDto:
+      type: object
+      required:
+        - root
+        - status
+      properties:
+        root:
+          type: string
+          minLength: 1
+          description: Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`).
+        total_size_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.
+        status:
+          $ref: '#/components/schemas/WorkspaceStatus'
+    GitProviderAuthStatusDto:
+      type: object
+      required:
+        - authenticated
+      properties:
+        authenticated:
+          type: boolean
+          description: True when the underlying CLI reports a usable session.
+        login:
+          type: string
+          description: Authenticated account login (from `gh api user`).
+        scopes:
+          type: array
+          items:
+            type: string
+          description: OAuth scopes parsed from the `X-OAuth-Scopes` response header.
+        error:
+          type: string
+          description: Last error message from the provider CLI when `authenticated=false`.
+    GitProvidersStatusDto:
+      type: object
+      required:
+        - github
+      properties:
+        github:
+          $ref: '#/components/schemas/GitProviderAuthStatusDto'
+        gitlab:
+          $ref: '#/components/schemas/GitProviderAuthStatusDto'
+          description: Reserved for slice 5. Absent in slice 1 responses.

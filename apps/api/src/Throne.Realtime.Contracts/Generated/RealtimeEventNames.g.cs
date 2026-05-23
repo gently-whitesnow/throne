@@ -24,7 +24,11 @@ public static class RealtimeEventNames
     public const string IntentLinkRemoved = "intent.link_removed";
     public const string IntentPinMoved = "intent.pin_moved";
     public const string IntentPinned = "intent.pinned";
+    public const string IntentPrCommentAdded = "intent.pr_comment_added";
     public const string IntentReordered = "intent.reordered";
+    public const string IntentRepositoryBound = "intent.repository_bound";
+    public const string IntentRepositoryCloneProgress = "intent.repository_clone_progress";
+    public const string IntentRepositoryUnbound = "intent.repository_unbound";
     public const string IntentStatusChanged = "intent.status_changed";
     public const string IntentTagsChanged = "intent.tags_changed";
     public const string IntentTextChanged = "intent.text_changed";
@@ -48,7 +52,11 @@ public static class RealtimeEventNames
         IntentLinkRemoved,
         IntentPinMoved,
         IntentPinned,
+        IntentPrCommentAdded,
         IntentReordered,
+        IntentRepositoryBound,
+        IntentRepositoryCloneProgress,
+        IntentRepositoryUnbound,
         IntentStatusChanged,
         IntentTagsChanged,
         IntentTextChanged,

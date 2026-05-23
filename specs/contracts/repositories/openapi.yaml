@@ -1,0 +1,511 @@
+openapi: "3.1.0"
+info:
+  title: Throne Repositories
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Repositories.Contracts.Generated
+paths:
+  /api/v1/git-providers/github/repositories/search:
+    get:
+      operationId: searchGithubRepositories
+      tags: [GitProviders]
+      summary: Search the current user's accessible GitHub repositories.
+      description: >
+        Two scopes are supported (see ADR-0024). `mine` (default) lists only repositories owned by
+        the authenticated user via `gh repo list --json`. `involved` additionally includes repos
+        where the user is a collaborator or org member via
+        `gh api /user/repos?affiliation=collaborator,organization_member` and de-duplicates by
+        `owner/repo`. Global `gh search repos` is intentionally NOT used.
+      parameters:
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+          description: Optional case-insensitive substring filter applied client-side over `full_name`.
+        - in: query
+          name: scope
+          required: false
+          schema:
+            $ref: '#/components/schemas/RepositorySearchScope'
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitRepositoryRefDto'
+        '422':
+          description: Provider unauthenticated or invalid scope.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/git-providers/github/repositories/my:
+    get:
+      operationId: listMyGithubRepositories
+      tags: [GitProviders]
+      summary: List repositories owned by the authenticated GitHub user.
+      description: >
+        Alias for `searchGithubRepositories` with `scope=mine` and no `q`. Provided as a dedicated
+        endpoint for the modal's default state so the UI can avoid wiring scope/q parameters.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitRepositoryRefDto'
+        '422':
+          description: Provider unauthenticated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories:
+    get:
+      operationId: listIntentRepositories
+      tags: [IntentRepositories]
+      summary: List repository bindings attached to an intent.
+      description: >
+        Full binding cards consumed by the intent page. The MCP `get_intent` response uses
+        a compact projection (see `RepositoryBindingSummary`) of the same source.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryBindingDto'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    post:
+      operationId: bindIntentRepository
+      tags: [IntentRepositories]
+      summary: Bind a repository to an intent and enqueue its clone.
+      description: >
+        Creates an `IntentRepositoryBinding` in `pending` state, returns the binding immediately
+        and lets `RepositoryCloneService` (background) move it through `cloning → ready | failed`.
+        Re-binding the same `(provider, owner, repo)` to the same intent is rejected with 409
+        per ADR-0024 — change PR via unbind + rebind.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindIntentRepositoryRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryBindingDto'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: A binding for the same (provider, owner, repo) already exists.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (e.g. provider unsupported, owner/repo malformed).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}:
+    delete:
+      operationId: unbindIntentRepository
+      tags: [IntentRepositories]
+      summary: Detach a repository binding from an intent.
+      description: >
+        Removes the binding record. The workspace directory on disk is intentionally NOT removed
+        (slice 6 covers cleanup). Idempotent — returns 204 whether or not the binding existed.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted (or already absent).
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/sync:
+    post:
+      operationId: syncIntentRepositoryPullRequest
+      tags: [IntentRepositories]
+      summary: Synchronously refresh PR review comments for a binding.
+      description: >
+        Blocks for the duration of the upstream `gh api` call and returns the freshly observed
+        comments. `intent.pr_comment_added` is also fanned out via SSE for other open clients.
+        Works on closed/merged PRs too — `pull_request_state` is ignored. A 404 from upstream
+        flips the binding to `clone_status=broken` per ADR-0024.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequestSyncResultDto'
+        '404':
+          description: Intent or binding not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/comments:
+    get:
+      operationId: listIntentRepositoryPullRequestComments
+      tags: [IntentRepositories]
+      summary: Read stored PR review comments for a binding.
+      description: >
+        Returns the locally persisted feed of review comments for the binding's PR, ordered
+        ascending by `created_at`. Slice 1 covers review comments only (issue-comments — separate
+        intent post-slice 1). Pagination is intentionally absent in slice 1 (see parent slice
+        decision); the server returns the full feed.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: since
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: When supplied, only comments with `created_at >= since` are returned.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PullRequestCommentDto'
+        '404':
+          description: Intent or binding not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    GitProvider:
+      type: string
+      enum:
+        - github
+      description: >
+        Set of supported git providers. Slice 1 ships only `github`; `gitlab` arrives in slice 5.
+    RepositorySearchScope:
+      type: string
+      enum:
+        - mine
+        - involved
+      description: >
+        `mine` — only repositories owned by the authenticated user (default).
+        `involved` — additionally collaborator / org-member repos.
+    CloneStatus:
+      type: string
+      enum:
+        - pending
+        - cloning
+        - ready
+        - failed
+        - broken
+      description: >
+        Lifecycle of a binding's local clone (see ADR-0024). `broken` means the clone was once
+        `ready` but the upstream repository stopped responding (404).
+    PullRequestState:
+      type: string
+      enum:
+        - open
+        - closed
+        - merged
+      description: Upstream lifecycle state of the linked pull request.
+    GitRepositoryRefDto:
+      type: object
+      required:
+        - provider
+        - owner
+        - repo
+        - full_name
+        - default_branch
+      properties:
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+          minLength: 1
+        repo:
+          type: string
+          minLength: 1
+        full_name:
+          type: string
+          description: '`{owner}/{repo}` — convenience field for UI rendering.'
+        default_branch:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        private:
+          type: boolean
+        html_url:
+          type: string
+          format: uri
+    BindIntentRepositoryRequest:
+      type: object
+      required:
+        - provider
+        - owner
+        - repo
+      properties:
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+          minLength: 1
+        repo:
+          type: string
+          minLength: 1
+        default_branch:
+          type: string
+          minLength: 1
+          description: Optional override; defaults to the upstream's default branch on first clone.
+        pull_request_number:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Optional pull request to track for the PR-comments feed.
+    RepositoryBindingSummary:
+      type: object
+      required:
+        - binding_id
+        - provider
+        - owner
+        - repo
+        - default_branch
+        - workspace_path
+        - clone_status
+      properties:
+        binding_id:
+          type: string
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+        repo:
+          type: string
+        default_branch:
+          type: string
+        workspace_path:
+          type: string
+          description: Absolute path to the cloned working tree on the local filesystem.
+        clone_status:
+          $ref: '#/components/schemas/CloneStatus'
+        pull_request_number:
+          type: integer
+          format: int32
+          minimum: 1
+        pull_request_state:
+          $ref: '#/components/schemas/PullRequestState'
+      description: >
+        Compact projection used by MCP `get_intent.repositories[]` (see T-13). The HTTP
+        `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
+    RepositoryBindingDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - provider
+        - owner
+        - repo
+        - default_branch
+        - workspace_path
+        - clone_status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        intent_id:
+          type: string
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+        repo:
+          type: string
+        default_branch:
+          type: string
+        workspace_path:
+          type: string
+          description: Absolute path of the local clone (see ADR-0024 workspace layout).
+        clone_status:
+          $ref: '#/components/schemas/CloneStatus'
+        clone_error:
+          type: string
+          description: Human-readable error message when `clone_status` is `failed` or `broken`.
+        pull_request_number:
+          type: integer
+          format: int32
+          minimum: 1
+        pull_request_state:
+          $ref: '#/components/schemas/PullRequestState'
+        review_comments_etag:
+          type: string
+          description: >
+            Last ETag observed for the PR review-comments feed. Used for conditional GET on
+            the next polling cycle; slice 1 covers review comments only.
+        last_synced_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PullRequestCommentDto:
+      type: object
+      required:
+        - id
+        - binding_id
+        - author_login
+        - body
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Upstream comment id (stringified for wire stability).
+        binding_id:
+          type: string
+        author_login:
+          type: string
+          description: GitHub login of the comment author.
+        author_avatar_url:
+          type: string
+          format: uri
+        body:
+          type: string
+        html_url:
+          type: string
+          format: uri
+        path:
+          type: string
+          description: File path the review comment is anchored to, when available.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PullRequestSyncResultDto:
+      type: object
+      required:
+        - binding_id
+        - new_comments
+        - total_comments
+        - comments
+      properties:
+        binding_id:
+          type: string
+        new_comments:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of comments newly observed during this sync (those that triggered fanout).
+        total_comments:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Full count of stored review comments for the binding after sync.
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PullRequestCommentDto'
+          description: Full review-comments feed after sync (slice 1 returns it unpaginated).
+        pull_request_state:
+          $ref: '#/components/schemas/PullRequestState'
+        last_synced_at:
+          type: string
+          format: date-time

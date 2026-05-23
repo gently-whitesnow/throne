@@ -15,6 +15,8 @@ GENERATED_PATHS=(
   "apps/api/src/Throne.InstructionPatches.Contracts/Generated/"
   "apps/api/src/Throne.Tags.Contracts/Generated/"
   "apps/api/src/Throne.Me.Contracts/Generated/"
+  "apps/api/src/Throne.Repositories.Contracts/Generated/"
+  "apps/api/src/Throne.Settings.Contracts/Generated/"
   "apps/api/src/Throne.Realtime.Contracts/Generated/"
   "apps/api/src/Throne.Api/Generated/"
   "apps/web/src/shared/api/generated/"

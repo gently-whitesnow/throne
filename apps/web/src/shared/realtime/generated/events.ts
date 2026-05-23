@@ -6,6 +6,7 @@
 import type { components as DreamsComponents } from "@/shared/api/generated/dreams/types";
 import type { components as InstructionPatchesComponents } from "@/shared/api/generated/instruction-patches/types";
 import type { components as IntentsComponents } from "@/shared/api/generated/intents/types";
+import type { components as RepositoriesComponents } from "@/shared/api/generated/repositories/types";
 import type { components as TagsComponents } from "@/shared/api/generated/tags/types";
 
 
@@ -24,7 +25,11 @@ export interface RealtimeEventMap {
   "intent.link_removed": { id: string; from_id: string; to_id: string; type: unknown };
   "intent.pin_moved": { intent_id: string; context_tag_id: string; pin_sort_key: string };
   "intent.pinned": { intent_id: string; context_tag_id: string; pin_sort_key: string };
+  "intent.pr_comment_added": { intent_id: string; binding_id: string; comment: unknown };
   "intent.reordered": { intent_id: string; sort_key: string };
+  "intent.repository_bound": RepositoriesComponents["schemas"]["RepositoryBindingDto"];
+  "intent.repository_clone_progress": { intent_id: string; binding_id: string; status: unknown; error?: string };
+  "intent.repository_unbound": { intent_id: string; binding_id: string };
   "intent.status_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.tags_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.text_changed": IntentsComponents["schemas"]["IntentDetailDto"];
@@ -50,7 +55,11 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "intent.link_removed",
   "intent.pin_moved",
   "intent.pinned",
+  "intent.pr_comment_added",
   "intent.reordered",
+  "intent.repository_bound",
+  "intent.repository_clone_progress",
+  "intent.repository_unbound",
   "intent.status_changed",
   "intent.tags_changed",
   "intent.text_changed",
