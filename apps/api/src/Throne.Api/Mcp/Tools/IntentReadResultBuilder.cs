@@ -1,6 +1,7 @@
 using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Domain.Intents;
 
 namespace Throne.Api.Mcp.Tools;
@@ -11,7 +12,8 @@ internal static class IntentReadResultBuilder
         Intent intent,
         IReadOnlyList<IntentAttachment> attachments,
         IReadOnlyList<IntentLinkView> links,
-        Dictionary<string, McpTagRef> tagsById) => new(
+        Dictionary<string, McpTagRef> tagsById,
+        IReadOnlyList<RepositoryBindingMcpSummary> repositories) => new(
         intent.Id.Value,
         intent.State.Text,
         intent.State.Status,
@@ -21,7 +23,19 @@ internal static class IntentReadResultBuilder
         intent.CreatedAt,
         intent.State.UpdatedAt,
         attachments.Select(ToAttachmentResult).ToArray(),
-        links.Select(v => IntentLinkTools.ToMcpLinkRead(v, tagsById)).ToList());
+        links.Select(v => IntentLinkTools.ToMcpLinkRead(v, tagsById)).ToList(),
+        repositories.Select(ToRepositoryRef).ToList());
+
+    private static McpIntentRepositoryRef ToRepositoryRef(RepositoryBindingMcpSummary s) => new(
+        BindingId: s.BindingId,
+        Provider: s.Provider,
+        Owner: s.Owner,
+        Repo: s.Repo,
+        DefaultBranch: s.DefaultBranch,
+        WorkspacePath: s.WorkspacePath,
+        CloneStatus: s.CloneStatus,
+        PullRequestNumber: s.PullRequestNumber,
+        PullRequestState: s.PullRequestState);
 
     private static List<McpTagRef> OwnTags(Intent intent, Dictionary<string, McpTagRef> tagsById) =>
         intent.TagIds

@@ -96,6 +96,7 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryPullRequestSyncPersistence>();
         services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
         services.AddSingleton<RepositoryBindingService>();
+        services.AddSingleton<IIntentRepositoryBindingReader, IntentRepositoryBindingReader>();
         services.AddSingleton<RepositoryCloneRequestsChannel>();
         services.AddSingleton<IRepositoryCloneRequests>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());
         services.AddSingleton<IRepositoryCloneRequestsReader>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());

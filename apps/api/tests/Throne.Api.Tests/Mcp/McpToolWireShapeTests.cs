@@ -66,7 +66,8 @@ public class McpToolWireShapeTests
             CreatedAt: DateTimeOffset.Parse("2026-05-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             UpdatedAt: DateTimeOffset.Parse("2026-05-22T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             Attachments: [],
-            Links: []);
+            Links: [],
+            Repositories: []);
 
         var payload = IntentReadResultRenderer.Render(result);
 

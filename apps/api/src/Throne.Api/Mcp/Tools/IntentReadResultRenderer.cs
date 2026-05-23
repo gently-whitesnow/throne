@@ -31,6 +31,7 @@ internal static class IntentReadResultRenderer
         AppendTextSection(sb, r.Text);
         AppendAttachments(sb, r.Attachments);
         AppendLinks(sb, r.Links);
+        AppendRepositories(sb, r.Repositories);
         return sb.ToString();
     }
 
@@ -106,6 +107,7 @@ internal static class IntentReadResultRenderer
         ["updated_at"] = FormatTime(r.UpdatedAt),
         ["attachments"] = BuildAttachmentRefs(r.Attachments),
         ["links"] = BuildLinkRefs(r.Links),
+        ["repositories"] = BuildRepositoryRefs(r.Repositories),
     };
 
     private static JsonArray BuildTagRefs(IReadOnlyList<McpTagRef> tags)
@@ -153,8 +155,56 @@ internal static class IntentReadResultRenderer
         return arr;
     }
 
+    private static void AppendRepositories(StringBuilder sb, IReadOnlyList<McpIntentRepositoryRef> repositories)
+    {
+        if (repositories.Count == 0)
+        {
+            return;
+        }
+        sb.Append("\n===== repositories (").Append(repositories.Count).Append(") =====\n");
+        foreach (var r in repositories)
+        {
+            sb.Append("- binding_id=").Append(r.BindingId)
+              .Append(" provider=").Append(r.Provider)
+              .Append(' ').Append(r.Owner).Append('/').Append(r.Repo)
+              .Append(" default_branch=").Append(r.DefaultBranch)
+              .Append(" clone_status=").Append(r.CloneStatus)
+              .Append(" workspace_path=").Append(r.WorkspacePath);
+            if (r.PullRequestNumber is { } pr)
+            {
+                sb.Append(" pull_request_number=").Append(pr.ToString(CultureInfo.InvariantCulture));
+                if (r.PullRequestState is { } prState)
+                {
+                    sb.Append(" pull_request_state=").Append(prState);
+                }
+            }
+            sb.Append('\n');
+        }
+    }
+
+    private static JsonArray BuildRepositoryRefs(IReadOnlyList<McpIntentRepositoryRef> repositories)
+    {
+        var arr = new JsonArray();
+        foreach (var r in repositories)
+        {
+            arr.Add(new JsonObject
+            {
+                ["binding_id"] = r.BindingId,
+                ["provider"] = r.Provider,
+                ["owner"] = r.Owner,
+                ["repo"] = r.Repo,
+                ["default_branch"] = r.DefaultBranch,
+                ["workspace_path"] = r.WorkspacePath,
+                ["clone_status"] = r.CloneStatus,
+                ["pull_request_number"] = r.PullRequestNumber,
+                ["pull_request_state"] = r.PullRequestState,
+            });
+        }
+        return arr;
+    }
+
     private static int EstimateCapacity(McpIntentReadResult r) =>
-        256 + r.Text.Length + (r.Attachments.Count * 192) + (r.Links.Count * 192);
+        256 + r.Text.Length + (r.Attachments.Count * 192) + (r.Links.Count * 192) + (r.Repositories.Count * 192);
 
     private static string FormatTime(DateTimeOffset dt) =>
         dt.ToString("O", CultureInfo.InvariantCulture);
