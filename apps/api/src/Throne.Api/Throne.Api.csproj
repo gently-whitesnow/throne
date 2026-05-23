@@ -10,6 +10,8 @@
     <ProjectReference Include="..\Throne.Me.Contracts\Throne.Me.Contracts.csproj" />
     <ProjectReference Include="..\Throne.InstructionPatches.Contracts\Throne.InstructionPatches.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Dreams.Contracts\Throne.Dreams.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Repositories.Contracts\Throne.Repositories.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Settings.Contracts\Throne.Settings.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
