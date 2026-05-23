@@ -1,5 +1,4 @@
 using Throne.Application.Git;
-using Throne.Application.Ports;
 using Throne.Domain.Repositories;
 
 namespace Throne.Application.Repositories;
@@ -9,23 +8,34 @@ namespace Throne.Application.Repositories;
 /// service body stays inside the per-type CA1502 cyclomatic budget. Lives under the
 /// Application layer alongside the service; not exposed publicly.
 ///
-/// The workflow honours the contract from parent Q5 / ADR-0024 § 6:
+/// The workflow honours the contract from parent Q5 / ADR-0024 § 6 — and is shared
+/// between the manual sync use-case (T-08) and the background poller (T-10) so the
+/// «store new comments → fan out <c>intent.pr_comment_added</c>» pipeline cannot
+/// drift between the two surfaces:
 /// <list type="bullet">
-///   <item>200 Fresh → record <c>etag</c> + <c>last_synced_at</c>, return comments.</item>
-///   <item>304 NotModified → record <c>last_synced_at</c>, keep prior <c>etag</c>, return empty comments + <c>NotModified=true</c>.</item>
-///   <item>404 (provider returns null) → <see cref="IntentRepositoryBindingMutator.MarkBroken"/>, throw <c>repository.upstream_gone</c>.</item>
+///   <item>200 Fresh → persist new comments (idempotent by upstream id), record
+///         <c>etag</c> + <c>last_synced_at</c> on the binding, return the
+///         freshly-inserted records plus the full stored feed.</item>
+///   <item>304 NotModified → record <c>last_synced_at</c>, keep prior <c>etag</c>,
+///         no new comments and no per-comment events; the result still echoes the
+///         previously-stored feed so the caller can render it unchanged.</item>
+///   <item>404 (provider returns null) → <see cref="IntentRepositoryBindingMutator.MarkBroken"/>,
+///         throw <c>repository.upstream_gone</c>.</item>
 /// </list>
+///
+/// Persistence (save binding + insert comments + outcome carriers) is delegated to
+/// <see cref="RepositoryPullRequestSyncPersistence"/> so the workflow body itself stays
+/// inside the per-type cyclomatic budget.
 /// </summary>
-public sealed class RepositoryPullRequestSyncWorkflow(
-    IIntentRepositoryBindingRepository bindings,
-    IUnitOfWork unitOfWork,
-    TimeProvider clock)
+public sealed class RepositoryPullRequestSyncWorkflow(RepositoryPullRequestSyncPersistence persistence)
 {
     public async Task<SyncRepositoryPullRequestResult> SyncAsync(
         IntentRepositoryBinding binding,
         IGitProvider provider,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(binding);
+        ArgumentNullException.ThrowIfNull(provider);
         EnsureReady(binding);
         EnsurePullRequestAttached(binding);
 
@@ -36,50 +46,14 @@ public sealed class RepositoryPullRequestSyncWorkflow(
             etag: binding.State.ReviewCommentsEtag,
             ct: ct);
 
-        return await PersistAsync(binding, page, ct);
-    }
-
-    private async Task<SyncRepositoryPullRequestResult> PersistAsync(
-        IntentRepositoryBinding binding,
-        PullRequestCommentsPage? page,
-        CancellationToken ct)
-    {
-        var now = clock.GetUtcNow();
-
         if (page is null)
         {
-            binding.MarkBroken("pull request not found upstream (404)", now);
-            await SaveAsync(binding, ct);
+            await persistence.MarkBrokenAsync(binding, "pull request not found upstream (404)", ct);
             throw RepositoryBindingFailures.UpstreamGone(binding);
         }
 
-        var snapshot = ProjectSyncSnapshot(page, binding);
-        binding.RecordSync(snapshot.Etag, now);
-        var saved = await SaveAsync(binding, ct);
-        return new SyncRepositoryPullRequestResult(saved, snapshot.Comments, snapshot.NotModified);
+        return await persistence.PersistFreshAsync(binding, page, ct);
     }
-
-    private async Task<IntentRepositoryBinding> SaveAsync(IntentRepositoryBinding binding, CancellationToken ct)
-    {
-        var outcome = await unitOfWork.ExecuteAsync(
-            inner => bindings.SaveAsync(binding, inner),
-            ct);
-        return outcome switch
-        {
-            SaveBindingOutcome.Saved saved => saved.Binding,
-            SaveBindingOutcome.NotFound => throw RepositoryBindingFailures.BindingNotFound(
-                binding.IntentId.Value, binding.Id.Value),
-            _ => throw new InvalidOperationException($"Unhandled outcome: {outcome.GetType().Name}"),
-        };
-    }
-
-    private static SyncSnapshot ProjectSyncSnapshot(PullRequestCommentsPage page, IntentRepositoryBinding binding) =>
-        page switch
-        {
-            PullRequestCommentsPage.Fresh fresh => new SyncSnapshot(fresh.Comments, fresh.Etag, NotModified: false),
-            PullRequestCommentsPage.NotModified => new SyncSnapshot([], binding.State.ReviewCommentsEtag, NotModified: true),
-            _ => throw new InvalidOperationException($"Unhandled page kind: {page.GetType().Name}"),
-        };
 
     private static void EnsureReady(IntentRepositoryBinding binding)
     {
@@ -96,9 +70,4 @@ public sealed class RepositoryPullRequestSyncWorkflow(
             throw RepositoryBindingFailures.PullRequestNotAttached(binding);
         }
     }
-
-    private sealed record SyncSnapshot(
-        IReadOnlyList<PullRequestComment> Comments,
-        string? Etag,
-        bool NotModified);
 }

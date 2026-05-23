@@ -148,6 +148,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);
         await MongoIntentRepositoryBindingIndexes.CreateAsync(database, cancellationToken);
+        await MongoPullRequestCommentIndexes.CreateAsync(database, cancellationToken);
 
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(

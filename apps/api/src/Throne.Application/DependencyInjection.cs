@@ -93,6 +93,7 @@ public static class DependencyInjection
         // worker can be unit-tested without the BackgroundService rig.
         services.AddSingleton<RepositoryBindingResolver>();
         services.AddSingleton<RepositoryBindingPersistence>();
+        services.AddSingleton<RepositoryPullRequestSyncPersistence>();
         services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
         services.AddSingleton<RepositoryBindingService>();
         services.AddSingleton<RepositoryCloneRequestsChannel>();
@@ -101,6 +102,13 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryCloneTransitionWriter>();
         services.AddSingleton<RepositoryCloneWorkflow>();
         services.AddSingleton<RepositoryCloneRecoveryWorkflow>();
+        // T-10 PullRequestSyncService per-tick orchestration. Backoff state is
+        // process-local; the BackgroundService host lives in Infrastructure (see
+        // AddGitInfrastructure) and resolves the tick workflow per iteration.
+        services.AddSingleton<PullRequestSyncBackoff>();
+        services.AddSingleton<PullRequestStateRefresher>();
+        services.AddSingleton<PullRequestSyncBindingVisitor>();
+        services.AddSingleton<PullRequestSyncTickWorkflow>();
         return services;
     }
 }

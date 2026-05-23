@@ -91,3 +91,16 @@ public sealed record IntentRepositoryCloneProgress(IntentRepositoryBinding Bindi
 public sealed record RepositoryPullRequestSynced(
     IntentRepositoryBinding Binding,
     int CommentCount) : IDomainEvent;
+
+/// <summary>
+/// A previously-unseen review comment was observed for the binding's pull request
+/// (either by the background <c>PullRequestSyncService</c> (T-10) or by the manual
+/// sync use-case in T-08, which shares the same persistence pipeline). Carried by
+/// <see cref="Throne.Application.Ports.PersistPullRequestCommentsOutcome"/> so the
+/// dispatching unit-of-work fans the contract event
+/// <c>intent.pr_comment_added</c> (T-12) out after the Mongo write commits — the
+/// service body never touches the realtime emitter directly.
+/// </summary>
+public sealed record IntentPrCommentAdded(
+    IntentRepositoryBinding Binding,
+    PullRequestCommentRecord Comment) : IDomainEvent;
