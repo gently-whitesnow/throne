@@ -144,5 +144,9 @@ public static class DependencyInjection
         services.AddSingleton<GhPullRequestActions>();
         services.AddSingleton<IGitProvider, GitHubCliProvider>();
         services.AddSingleton<IGitProviderRegistry, GitProviderRegistry>();
+        // T-09 RepositoryCloneService: consumer of the clone-on-bind queue, runs the
+        // recovery pass on boot and drains BindingIds pushed by T-08. Workflow + queue
+        // live in Application so this Infrastructure type stays thin.
+        services.AddHostedService<RepositoryCloneService>();
     }
 }

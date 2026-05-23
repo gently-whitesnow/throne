@@ -41,6 +41,16 @@ public interface IIntentRepositoryBindingRepository
     Task<IReadOnlyList<IntentRepositoryBinding>> FindOpenForSyncAsync(CancellationToken ct);
 
     /// <summary>
+    /// All bindings currently parked in <paramref name="cloneStatus"/>. The clone-service
+    /// startup recovery (T-09) calls this with <c>pending</c> to re-queue work the process
+    /// crashed before consuming, and with <c>cloning</c> to flip mid-flight clones to
+    /// <c>failed("interrupted")</c> per ADR-0024 § 5 (parent Q1).
+    /// </summary>
+    Task<IReadOnlyList<IntentRepositoryBinding>> FindByCloneStatusAsync(
+        string cloneStatus,
+        CancellationToken ct);
+
+    /// <summary>
     /// Overwrite the mutable <see cref="IntentRepositoryBinding.State"/> snapshot for an
     /// existing binding. Identity (intent / coordinate / workspace path) is immutable and
     /// is not re-written.
