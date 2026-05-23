@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Throne.Application.Auth;
 using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.Mongo.Repositories;
 
 namespace Throne.Infrastructure.Mongo;
 
@@ -146,6 +147,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         await CreateIntentLinkIndexesAsync(cancellationToken);
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);
+        await MongoIntentRepositoryBindingIndexes.CreateAsync(database, cancellationToken);
 
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(
