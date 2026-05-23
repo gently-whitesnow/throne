@@ -3,6 +3,7 @@ using NSubstitute;
 using Throne.Api.Mcp.Tools;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 using Tag = Throne.Domain.Tags.Tag;
@@ -109,5 +110,7 @@ public class IntentToolsListTests
             moveIntentHandler: null!,
             linkRepository: Substitute.For<IIntentLinkRepository>(),
             attachments: Substitute.For<IIntentAttachmentRepository>(),
-            tagRefs: new IntentToolTagRefs(tagRepo));
+            tagRefs: new IntentToolTagRefs(tagRepo),
+            // list_intents doesn't read bindings — use a stub for the reader.
+            repositoryBindings: Substitute.For<IIntentRepositoryBindingReader>());
 }
