@@ -21,4 +21,13 @@ public sealed record ProviderAuthStatus(
     bool IsAuthenticated,
     string? Account = null,
     string? Host = null,
-    string? Detail = null);
+    string? Detail = null)
+{
+    /// <summary>
+    /// OAuth scopes observed for the active session (parsed from the upstream
+    /// <c>X-OAuth-Scopes</c> response header). Empty when the CLI did not surface
+    /// any scope information. Surfaced as the <c>scopes</c> array in the
+    /// <c>GitProviderAuthStatusDto</c> contract DTO.
+    /// </summary>
+    public IReadOnlyList<string> Scopes { get; init; } = Array.Empty<string>();
+}
