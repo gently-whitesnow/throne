@@ -35,11 +35,5 @@ internal sealed class RealtimeDomainEventHandler(
     }
 
     private async Task<RealtimeEventEnvelope?> ToEnvelopeAsync(IDomainEvent evt, CancellationToken ct) =>
-        await intentLifecycle.TryMapAsync(evt, ct)
-            ?? IntentPinRealtimeMapper.TryMap(evt)
-            ?? IntentLinkRealtimeMapper.TryMap(evt)
-            ?? IntentAttachmentRealtimeMapper.TryMap(evt)
-            ?? TagRealtimeMapper.TryMap(evt)
-            ?? InstructionPatchRealtimeMapper.TryMap(evt)
-            ?? DreamRealtimeMapper.TryMap(evt);
+        await intentLifecycle.TryMapAsync(evt, ct) ?? StaticRealtimeMapperFanout.TryMap(evt);
 }
