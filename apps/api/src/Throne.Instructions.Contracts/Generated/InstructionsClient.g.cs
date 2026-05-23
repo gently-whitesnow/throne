@@ -228,7 +228,7 @@ namespace Throne.Instructions.Contracts.Generated
     {
 
         /// <summary>
-        /// Instruction kind (common | interview | work | dream | transfer).
+        /// Instruction kind (common | interview | work | dream).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

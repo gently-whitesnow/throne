@@ -169,7 +169,7 @@ components:
   schemas:
     InstructionPatchTargetKind:
       type: string
-      enum: [common, interview, work, dream, transfer]
+      enum: [common, interview, work, dream]
       description: Which user instruction kind the patch is meant to replace.
     InstructionPatchStatus:
       type: string

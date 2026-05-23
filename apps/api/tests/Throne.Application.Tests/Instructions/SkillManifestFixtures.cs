@@ -27,7 +27,6 @@ internal static class SkillManifestFixtures
             Bundle(InstructionBundleModeNames.Interview, InstructionKindNames.Interview),
             Bundle(InstructionBundleModeNames.Work, InstructionKindNames.Work),
             Bundle(InstructionBundleModeNames.Dream, InstructionKindNames.Dream),
-            Bundle(InstructionBundleModeNames.Transfer, InstructionKindNames.Transfer),
         };
 
         return new SkillManifest(1, systemInstructions, bundles, Array.Empty<DreamSourceManifestEntry>());

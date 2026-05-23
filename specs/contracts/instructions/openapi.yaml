@@ -294,7 +294,7 @@ components:
       properties:
         kind:
           type: string
-          description: Instruction kind (common | interview | work | dream | transfer).
+          description: Instruction kind (common | interview | work | dream).
         text:
           type: string
           description: Initial canonical Instruction.Text. May be empty.

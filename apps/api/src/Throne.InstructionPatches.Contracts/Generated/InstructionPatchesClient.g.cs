@@ -49,10 +49,6 @@ namespace Throne.InstructionPatches.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"dream")]
         Dream = 3,
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"transfer")]
-        [System.Runtime.Serialization.EnumMember(Value = @"transfer")]
-        Transfer = 4,
-
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

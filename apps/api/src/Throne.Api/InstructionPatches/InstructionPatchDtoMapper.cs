@@ -69,7 +69,6 @@ public static class InstructionPatchDtoMapper
         InstructionKindNames.Interview => InstructionPatchTargetKind.Interview,
         InstructionKindNames.Work => InstructionPatchTargetKind.Work,
         InstructionKindNames.Dream => InstructionPatchTargetKind.Dream,
-        InstructionKindNames.Transfer => InstructionPatchTargetKind.Transfer,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown instruction kind."),
     };
 
@@ -89,7 +88,6 @@ public static class InstructionPatchDtoMapper
         InstructionPatchTargetKind.Interview => InstructionKindNames.Interview,
         InstructionPatchTargetKind.Work => InstructionKindNames.Work,
         InstructionPatchTargetKind.Dream => InstructionKindNames.Dream,
-        InstructionPatchTargetKind.Transfer => InstructionKindNames.Transfer,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown patch target kind."),
     };
 
