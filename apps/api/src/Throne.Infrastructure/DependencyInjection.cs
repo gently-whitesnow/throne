@@ -4,9 +4,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Throne.Application.Events;
+using Throne.Application.Git;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Imaging;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
@@ -27,6 +29,8 @@ public static class DependencyInjection
         services.AddOptions<SkillManifestOptions>()
             .Bind(configuration.GetSection(SkillManifestOptions.SectionName));
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
+
+        AddGitInfrastructure(services, configuration);
 
         services.AddSingleton<IMongoClient>(sp =>
             new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
@@ -80,6 +84,7 @@ public static class DependencyInjection
         services.AddSingleton<IMongoClient>(database.Client);
         services.AddOptions<SkillManifestOptions>();
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
+        AddGitInfrastructure(services, configuration: null);
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<MongoUnitOfWork>();
         services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(
@@ -108,5 +113,24 @@ public static class DependencyInjection
         // (intent_id, version) is in place before the writer ever races a runtime edit.
         services.AddHostedService<MongoIntentEventsMigration>();
         return services;
+    }
+
+    /// <summary>
+    /// Git provider shell-out plumbing (ADR-0024 / T-05): workspace root initializer,
+    /// process launcher and provider registry. Slice 1 registers no concrete
+    /// providers — <c>GitHubCliProvider</c> arrives in T-06.
+    /// </summary>
+    private static void AddGitInfrastructure(IServiceCollection services, IConfiguration? configuration)
+    {
+        var optionsBuilder = services.AddOptions<WorkspaceOptions>();
+        if (configuration is not null)
+        {
+            optionsBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
+        }
+
+        services.AddSingleton<WorkspaceRootInitializer>();
+        services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
+        services.AddSingleton<IProcessLauncher, ProcessRunner>();
+        services.AddSingleton<IGitProviderRegistry, GitProviderRegistry>();
     }
 }
