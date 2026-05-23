@@ -31,12 +31,16 @@ internal static class GhAuthStatusParser
 
         var split = GhHttpResponseSplitter.Split(userCall.StandardOutput);
         var login = TryReadLogin(split.Body);
+        var scopes = GhScopeReader.Read(split.Headers);
         return new ProviderAuthStatus(
             Provider: GitProviderNames.GitHub,
             IsAuthenticated: !string.IsNullOrEmpty(login),
             Account: login,
             Host: host,
-            Detail: BuildScopeDetail(split.Headers));
+            Detail: scopes.Detail)
+        {
+            Scopes = scopes.Values,
+        };
     }
 
     private static string? TryReadLogin(string body)
@@ -56,9 +60,4 @@ internal static class GhAuthStatusParser
             return null;
         }
     }
-
-    private static string? BuildScopeDetail(Dictionary<string, string> headers) =>
-        headers.TryGetValue("X-OAuth-Scopes", out var scopes) && !string.IsNullOrWhiteSpace(scopes)
-            ? $"scopes: {scopes}"
-            : null;
 }
