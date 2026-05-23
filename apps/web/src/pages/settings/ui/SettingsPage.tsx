@@ -1,5 +1,6 @@
 import { FolderCog, GitBranch, KeyRound } from "lucide-react";
 
+import { GitProvidersCard } from "@/widgets/git-providers-card";
 import { McpTokenCard } from "@/widgets/mcp-token-card";
 
 /**
@@ -7,7 +8,7 @@ import { McpTokenCard } from "@/widgets/mcp-token-card";
  *
  * Три секции:
  *   * «MCP-токен» — Personal Access Token для MCP-клиентов.
- *   * «Провайдеры Git» — placeholder, реализация в T-16.
+ *   * «Провайдеры Git» — статус `gh auth status` (T-16).
  *   * «Workspace» — placeholder, реализация в T-17.
  */
 export function SettingsPage() {
@@ -36,9 +37,9 @@ export function SettingsPage() {
         id="git-providers"
         title="Провайдеры Git"
         icon={GitBranch}
-        description="Привязка локальных Git-провайдеров (gh CLI и др.). Реализация появится в следующем проходе."
+        description="Привязка локальных Git-провайдеров: статус gh CLI, авторизация и scopes."
       >
-        <SectionPlaceholder label="Секция «Провайдеры Git» ещё не реализована." />
+        <GitProvidersCard />
       </SettingsSection>
 
       <SettingsSection
