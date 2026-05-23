@@ -2,6 +2,7 @@ import { FolderCog, GitBranch, KeyRound } from "lucide-react";
 
 import { GitProvidersCard } from "@/widgets/git-providers-card";
 import { McpTokenCard } from "@/widgets/mcp-token-card";
+import { WorkspaceCard } from "@/widgets/workspace-card";
 
 /**
  * `/settings` — единая страница настроек профиля.
@@ -9,7 +10,7 @@ import { McpTokenCard } from "@/widgets/mcp-token-card";
  * Три секции:
  *   * «MCP-токен» — Personal Access Token для MCP-клиентов.
  *   * «Провайдеры Git» — статус `gh auth status` (T-16).
- *   * «Workspace» — placeholder, реализация в T-17.
+ *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
  */
 export function SettingsPage() {
   return (
@@ -46,9 +47,9 @@ export function SettingsPage() {
         id="workspace"
         title="Workspace"
         icon={FolderCog}
-        description="Параметры workspace: корневая директория клонов репозиториев и связанные настройки. Реализация появится в следующем проходе."
+        description="Корневая директория клонов репозиториев и её агрегированный размер на диске. Per-intent размеры появятся в отдельных проходах."
       >
-        <SectionPlaceholder label="Секция «Workspace» ещё не реализована." />
+        <WorkspaceCard />
       </SettingsSection>
     </div>
   );
@@ -99,16 +100,5 @@ function SettingsSection({
       </div>
       {children}
     </section>
-  );
-}
-
-function SectionPlaceholder({ label }: { label: string }) {
-  return (
-    <div
-      role="note"
-      className="rounded-md border border-dashed border-base-300 bg-base-200/50 px-4 py-6 text-sm text-base-content/60"
-    >
-      {label}
-    </div>
   );
 }
