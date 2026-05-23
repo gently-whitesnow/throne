@@ -1,38 +1,15 @@
 import { Move } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  type WheelEvent as ReactWheelEvent
-} from "react";
+import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { contextTitle } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 
+import { useCanvasViewport } from "../model/use-canvas-viewport";
 import { useTreeData } from "../model/use-tree-data";
 import { EdgeLayer, type Edge } from "./EdgeLayer";
 import { TreeCard } from "./TreeCard";
 import { ZoomToolbar } from "./ZoomToolbar";
-
-interface Viewport {
-  x: number;
-  y: number;
-  scale: number;
-}
-
-const MIN_SCALE = 0.35;
-const MAX_SCALE = 1.6;
-const FIT_PADDING = 64;
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
 
 interface IntentTreeCanvasProps {
   headerAction?: ReactNode;
@@ -47,19 +24,10 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
 
   const state = useTreeData(context);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const [viewport, setViewport] = useState<Viewport>({
-    x: FIT_PADDING,
-    y: FIT_PADDING,
-    scale: 1
-  });
-  const [isPanning, setIsPanning] = useState(false);
-  const panStateRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    startVx: number;
-    startVy: number;
-  } | null>(null);
+
+  const worldBounds = state.kind === "ready" ? state.model.bounds : null;
+  const { viewport, isPanning, fitToView, zoomIn, zoomOut, handlers } =
+    useCanvasViewport({ stageRef, worldBounds });
 
   // Edges derived from current nodes — child.id ← parent.id pairs.
   const edges = useMemo<Edge[]>(() => {
@@ -111,111 +79,6 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
     return seen;
   }, [activeId, state]);
 
-  const fitToView = useCallback(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    if (state.kind !== "ready") return;
-    const { w, h } = state.model.bounds;
-    if (w === 0 || h === 0) return;
-    const W = stage.clientWidth;
-    const H = stage.clientHeight;
-    if (W === 0 || H === 0) return;
-    const sx = (W - FIT_PADDING * 2) / w;
-    const sy = (H - FIT_PADDING * 2) / h;
-    const scale = clamp(Math.min(sx, sy, 1), MIN_SCALE, MAX_SCALE);
-    const offX = (W - w * scale) / 2;
-    const offY = (H - h * scale) / 2;
-    setViewport({ x: offX, y: offY, scale });
-  }, [state]);
-
-  // Fit when the layout becomes available or its bounds change. The dependency
-  // tracks the bounds object identity so we re-fit when the graph reshapes.
-  const boundsKey =
-    state.kind === "ready"
-      ? `${String(state.model.bounds.w)}x${String(state.model.bounds.h)}`
-      : null;
-  useLayoutEffect(() => {
-    if (boundsKey === null) return;
-    fitToView();
-    // We intentionally re-fit only on bounds changes, not on every viewport tick.
-  }, [boundsKey, fitToView]);
-
-  // Pointer-based pan. Right click is reserved for the browser menu, so pan
-  // on left/middle button drag. TreeCard stops pointerdown propagation so card
-  // clicks don't get treated as a pan start.
-  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 && e.button !== 1) return;
-    panStateRef.current = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startVx: viewport.x,
-      startVy: viewport.y
-    };
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setIsPanning(true);
-  };
-  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const pan = panStateRef.current;
-    if (pan?.pointerId !== e.pointerId) return;
-    setViewport({
-      x: pan.startVx + (e.clientX - pan.startX),
-      y: pan.startVy + (e.clientY - pan.startY),
-      scale: viewport.scale
-    });
-  };
-  const endPan = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const pan = panStateRef.current;
-    if (pan?.pointerId !== e.pointerId) return;
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    panStateRef.current = null;
-    setIsPanning(false);
-  };
-
-  const handleWheel = (e: ReactWheelEvent<HTMLDivElement>) => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const rect = stage.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const factor = Math.exp(-e.deltaY * 0.002);
-      const ns = clamp(viewport.scale * factor, MIN_SCALE, MAX_SCALE);
-      const wx = (sx - viewport.x) / viewport.scale;
-      const wy = (sy - viewport.y) / viewport.scale;
-      setViewport({ scale: ns, x: sx - wx * ns, y: sy - wy * ns });
-      return;
-    }
-    setViewport((p) => ({ ...p, x: p.x - e.deltaX, y: p.y - e.deltaY }));
-  };
-
-  const handleZoomIn = useCallback(() => {
-    setViewport((p) => ({
-      ...p,
-      scale: clamp(p.scale * 1.15, MIN_SCALE, MAX_SCALE)
-    }));
-  }, []);
-  const handleZoomOut = useCallback(() => {
-    setViewport((p) => ({
-      ...p,
-      scale: clamp(p.scale * 0.87, MIN_SCALE, MAX_SCALE)
-    }));
-  }, []);
-
-  // Suppress native page zoom when the user is wheel-zooming the stage.
-  useEffect(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    const preventCtrlWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) e.preventDefault();
-    };
-    stage.addEventListener("wheel", preventCtrlWheel, { passive: false });
-    return () => {
-      stage.removeEventListener("wheel", preventCtrlWheel);
-    };
-  }, []);
-
   const openIntent = useCallback(
     (id: string) => {
       const target =
@@ -258,11 +121,7 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
         data-empty="1"
         className="relative min-h-0 flex-1 overflow-hidden bg-base-200 select-none"
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endPan}
-        onPointerCancel={endPan}
-        onWheel={handleWheel}
+        {...handlers}
       >
         {/* Dot grid */}
         <div
@@ -317,13 +176,16 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
             {state.model.nodes.map((node) => {
               const pos = state.model.positions.get(node.id);
               if (!pos) return null;
+              const isActive = node.id === activeId;
+              const inRelated = relatedIds?.has(node.id) ?? false;
               return (
                 <TreeCard
                   key={node.id}
                   intent={node.intent}
                   pos={pos}
-                  active={node.id === activeId}
-                  dim={relatedIds !== null && !relatedIds.has(node.id)}
+                  active={isActive}
+                  related={!isActive && inRelated}
+                  unrelated={relatedIds !== null && !inRelated}
                   onSelect={openIntent}
                 />
               );
@@ -342,8 +204,8 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
         <div className="pointer-events-none absolute bottom-3 right-3">
           <ZoomToolbar
             scale={viewport.scale}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
             onFit={fitToView}
           />
         </div>

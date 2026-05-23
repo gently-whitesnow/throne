@@ -9,7 +9,10 @@ interface TreeCardProps {
   intent: IntentListItem;
   pos: LayoutPosition;
   active: boolean;
-  dim: boolean;
+  /** True when a selection exists and this card is part of its ancestor/descendant chain. */
+  related: boolean;
+  /** True when a selection exists and this card is *not* in its related set. */
+  unrelated: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -17,7 +20,14 @@ function firstLine(text: string): string {
   return text.split(/\r?\n/, 1)[0] ?? "";
 }
 
-function TreeCardImpl({ intent, pos, active, dim, onSelect }: TreeCardProps) {
+function TreeCardImpl({
+  intent,
+  pos,
+  active,
+  related,
+  unrelated,
+  onSelect
+}: TreeCardProps) {
   const status = intentStatusMeta[intent.status];
   const title = firstLine(intent.text_short) || intent.id;
 
@@ -37,12 +47,15 @@ function TreeCardImpl({ intent, pos, active, dim, onSelect }: TreeCardProps) {
       aria-current={active ? "true" : undefined}
       aria-label={`Открыть intent ${title}`}
       className={[
-        "absolute flex items-stretch overflow-hidden rounded-lg bg-base-100 text-left transition-opacity",
-        "border focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60",
+        "absolute flex items-stretch overflow-hidden rounded-lg bg-base-100 text-left",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary/60",
         active
-          ? "border-primary shadow-[0_0_0_3px_oklch(0.5_0.2_255/0.15)]"
-          : "border-base-300 hover:border-base-content/30",
-        dim ? "opacity-30" : "opacity-100"
+          ? "border-2 border-primary shadow-[0_0_0_4px_oklch(0.5_0.2_255/0.28)]"
+          : related
+            ? "border border-primary/60"
+            : unrelated
+              ? "border border-base-300/70 hover:border-base-content/30"
+              : "border border-base-300 hover:border-base-content/30"
       ].join(" ")}
       style={{
         left: pos.x,
