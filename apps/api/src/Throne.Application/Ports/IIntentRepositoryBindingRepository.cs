@@ -1,3 +1,4 @@
+using Throne.Application.Events;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 
@@ -49,9 +50,16 @@ public interface IIntentRepositoryBindingRepository
     Task<DeleteBindingOutcome> DeleteAsync(BindingId id, CancellationToken ct);
 }
 
-public abstract record CreateBindingOutcome
+public abstract record CreateBindingOutcome : IDomainEventCarrier
 {
-    public sealed record Created(IntentRepositoryBinding Binding) : CreateBindingOutcome;
+    private CreateBindingOutcome() { }
+
+    public virtual IReadOnlyList<IDomainEvent> Events => [];
+
+    public sealed record Created(IntentRepositoryBinding Binding) : CreateBindingOutcome
+    {
+        public override IReadOnlyList<IDomainEvent> Events => [new IntentRepositoryBound(Binding)];
+    }
 
     public sealed record Duplicate(IntentRepositoryBinding Existing) : CreateBindingOutcome;
 }
@@ -63,9 +71,16 @@ public abstract record SaveBindingOutcome
     public sealed record NotFound : SaveBindingOutcome;
 }
 
-public abstract record DeleteBindingOutcome
+public abstract record DeleteBindingOutcome : IDomainEventCarrier
 {
-    public sealed record Deleted(IntentRepositoryBinding Binding) : DeleteBindingOutcome;
+    private DeleteBindingOutcome() { }
+
+    public virtual IReadOnlyList<IDomainEvent> Events => [];
+
+    public sealed record Deleted(IntentRepositoryBinding Binding) : DeleteBindingOutcome
+    {
+        public override IReadOnlyList<IDomainEvent> Events => [new IntentRepositoryUnbound(Binding)];
+    }
 
     public sealed record NotFound : DeleteBindingOutcome;
 }

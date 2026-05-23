@@ -3,6 +3,7 @@ using Throne.Domain.Dreams;
 using Throne.Domain.Instructions;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Linking;
+using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Events;
@@ -60,3 +61,22 @@ public sealed record InstructionPatchSuperseded(InstructionPatch Patch) : IDomai
 /// <see cref="Throne.Application.Ports.CreateDreamSessionOutcome"/>.
 /// </summary>
 public sealed record DreamSessionRecorded(DreamSession Session) : IDomainEvent;
+
+/// <summary>
+/// Intent ↔ repository binding lifecycle events (ADR-0024, slice 1 T-08+). Carried by the
+/// repository outcomes in <see cref="Throne.Application.Ports.IIntentRepositoryBindingRepository"/>
+/// (Bound / Unbound) and by <see cref="Throne.Application.Repositories.SyncRepositoryPullRequestResult"/>
+/// (Synced). T-12 realtime emitters subscribe and translate to the contract-first
+/// <c>intent.repository_bound</c> / <c>intent.repository_unbound</c> /
+/// <c>intent.repository_clone_progress</c> / <c>intent.pr_comment_added</c> wire events.
+/// Per-comment <c>intent.pr_comment_added</c> fanout is owned by the background
+/// poller (T-10) which holds the comment store; manual refresh from T-08 returns
+/// comments synchronously to the caller.
+/// </summary>
+public sealed record IntentRepositoryBound(IntentRepositoryBinding Binding) : IDomainEvent;
+
+public sealed record IntentRepositoryUnbound(IntentRepositoryBinding Binding) : IDomainEvent;
+
+public sealed record RepositoryPullRequestSynced(
+    IntentRepositoryBinding Binding,
+    int CommentCount) : IDomainEvent;
