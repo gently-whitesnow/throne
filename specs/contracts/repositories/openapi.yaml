@@ -327,11 +327,13 @@ components:
           minLength: 1
         description:
           type: string
+          nullable: true
         private:
           type: boolean
         html_url:
           type: string
           format: uri
+          nullable: true
     BindIntentRepositoryRequest:
       type: object
       required:
@@ -344,9 +346,19 @@ components:
         owner:
           type: string
           minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,38}$'
+          description: >
+            GitHub user/org login. Must not contain `..`, `/`, or `__`
+            (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
         repo:
           type: string
           minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
+          description: >
+            GitHub repository slug. Must not contain `..`, `/`, or `__`
+            (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
         default_branch:
           type: string
           minLength: 1
@@ -355,6 +367,7 @@ components:
           type: integer
           format: int32
           minimum: 1
+          nullable: true
           description: Optional pull request to track for the PR-comments feed.
     RepositoryBindingSummary:
       type: object
@@ -386,8 +399,11 @@ components:
           type: integer
           format: int32
           minimum: 1
+          nullable: true
         pull_request_state:
-          $ref: '#/components/schemas/PullRequestState'
+          allOf:
+            - $ref: '#/components/schemas/PullRequestState'
+          nullable: true
       description: >
         Compact projection used by MCP `get_intent.repositories[]` (see T-13). The HTTP
         `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
@@ -424,21 +440,27 @@ components:
           $ref: '#/components/schemas/CloneStatus'
         clone_error:
           type: string
+          nullable: true
           description: Human-readable error message when `clone_status` is `failed` or `broken`.
         pull_request_number:
           type: integer
           format: int32
           minimum: 1
+          nullable: true
         pull_request_state:
-          $ref: '#/components/schemas/PullRequestState'
+          allOf:
+            - $ref: '#/components/schemas/PullRequestState'
+          nullable: true
         review_comments_etag:
           type: string
+          nullable: true
           description: >
             Last ETag observed for the PR review-comments feed. Used for conditional GET on
             the next polling cycle; slice 1 covers review comments only.
         last_synced_at:
           type: string
           format: date-time
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -465,13 +487,16 @@ components:
         author_avatar_url:
           type: string
           format: uri
+          nullable: true
         body:
           type: string
         html_url:
           type: string
           format: uri
+          nullable: true
         path:
           type: string
+          nullable: true
           description: File path the review comment is anchored to, when available.
         created_at:
           type: string
@@ -479,6 +504,7 @@ components:
         updated_at:
           type: string
           format: date-time
+          nullable: true
     PullRequestSyncResultDto:
       type: object
       required:
@@ -505,7 +531,10 @@ components:
             $ref: '#/components/schemas/PullRequestCommentDto'
           description: Full review-comments feed after sync (slice 1 returns it unpaginated).
         pull_request_state:
-          $ref: '#/components/schemas/PullRequestState'
+          allOf:
+            - $ref: '#/components/schemas/PullRequestState'
+          nullable: true
         last_synced_at:
           type: string
           format: date-time
+          nullable: true

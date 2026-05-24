@@ -46,10 +46,12 @@ public static class IntentRepositoryBindingPullRequestMutator
     public static void RecordSync(this IntentRepositoryBinding binding, string? etag, DateTimeOffset at)
     {
         ArgumentNullException.ThrowIfNull(binding);
-        var normalized = string.IsNullOrWhiteSpace(etag) ? null : etag;
+        // Review D5 — sanitize through ReviewCommentsEtagNormalizer (RFC 7230
+        // visible ASCII). Anything off-spec collapses to null so the next poll
+        // does a full fetch instead of echoing an unsafe If-None-Match header.
         binding.State = binding.State with
         {
-            ReviewCommentsEtag = normalized,
+            ReviewCommentsEtag = ReviewCommentsEtagNormalizer.Normalize(etag),
             LastSyncedAt = at,
             UpdatedAt = at,
         };

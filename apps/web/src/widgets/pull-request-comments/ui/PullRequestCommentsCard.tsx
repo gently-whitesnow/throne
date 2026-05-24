@@ -74,8 +74,7 @@ export function PullRequestCommentsCard({
   const fullName = repositoryFullName(binding);
   const prNumber = binding.pull_request_number;
   const prState = binding.pull_request_state;
-  const stateMeta =
-    prState !== undefined ? pullRequestStateMeta[prState] : null;
+  const stateMeta = prState != null ? pullRequestStateMeta[prState] : null;
   const sorted = [...comments].sort(compareComments);
 
   return (

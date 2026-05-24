@@ -24,7 +24,10 @@ export function PullRequestCommentItem({
       data-testid={`pr-comment-${comment.id}`}
       className="flex gap-3 rounded-md border border-base-300 bg-base-100 px-3 py-2.5"
     >
-      <Avatar url={comment.author_avatar_url} login={comment.author_login} />
+      <Avatar
+        url={comment.author_avatar_url ?? undefined}
+        login={comment.author_login}
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
           <span className="font-semibold text-base-content">
@@ -37,7 +40,7 @@ export function PullRequestCommentItem({
           >
             {formatRelativeTime(createdAt)}
           </time>
-          {comment.path !== undefined ? (
+          {comment.path != null ? (
             <span
               className="truncate font-mono text-[11px] text-base-content/60"
               title={comment.path}
@@ -45,7 +48,7 @@ export function PullRequestCommentItem({
               · {comment.path}
             </span>
           ) : null}
-          {comment.html_url !== undefined ? (
+          {comment.html_url != null ? (
             <a
               href={comment.html_url}
               target="_blank"

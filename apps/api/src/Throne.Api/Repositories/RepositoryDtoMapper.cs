@@ -26,7 +26,7 @@ internal static class RepositoryDtoMapper
             Repo = reference.Repo,
             Full_name = reference.FullName,
             Default_branch = reference.DefaultBranch,
-            Description = reference.Description!,
+            Description = reference.Description,
             Private = reference.Private,
             Html_url = PullRequestCommentDtoMapper.ToUri(reference.HtmlUrl),
         };
@@ -45,7 +45,7 @@ internal static class RepositoryDtoMapper
             New_comments = result.NewComments.Count,
             Total_comments = result.AllStored.Count,
             Pull_request_state = RepositoryBindingDtoMapper.WirePullRequestState(binding.State.PullRequestState),
-            Last_synced_at = binding.State.LastSyncedAt ?? default,
+            Last_synced_at = binding.State.LastSyncedAt,
         };
         foreach (var record in result.AllStored)
         {

@@ -166,12 +166,24 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        /// <summary>
+        /// GitHub user/org login. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
+        /// <br/>
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")]
         public string Owner { get; set; }
 
+        /// <summary>
+        /// GitHub repository slug. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
+        /// <br/>
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9._-]+$")]
         public string Repo { get; set; }
 
         /// <summary>
@@ -186,7 +198,7 @@ namespace Throne.Repositories.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pull_request_number")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Pull_request_number { get; set; }
+        public int? Pull_request_number { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -242,11 +254,11 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("pull_request_number")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Pull_request_number { get; set; }
+        public int? Pull_request_number { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("pull_request_state")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestState>))]
-        public PullRequestState Pull_request_state { get; set; }
+        public PullRequestState? Pull_request_state { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -308,11 +320,11 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("pull_request_number")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Pull_request_number { get; set; }
+        public int? Pull_request_number { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("pull_request_state")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestState>))]
-        public PullRequestState Pull_request_state { get; set; }
+        public PullRequestState? Pull_request_state { get; set; }
 
         /// <summary>
         /// Last ETag observed for the PR review-comments feed. Used for conditional GET on the next polling cycle; slice 1 covers review comments only.
@@ -322,7 +334,7 @@ namespace Throne.Repositories.Contracts.Generated
         public string Review_comments_etag { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("last_synced_at")]
-        public System.DateTimeOffset Last_synced_at { get; set; }
+        public System.DateTimeOffset? Last_synced_at { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("created_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -386,7 +398,7 @@ namespace Throne.Repositories.Contracts.Generated
         public System.DateTimeOffset Created_at { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
-        public System.DateTimeOffset Updated_at { get; set; }
+        public System.DateTimeOffset? Updated_at { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -430,10 +442,10 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("pull_request_state")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestState>))]
-        public PullRequestState Pull_request_state { get; set; }
+        public PullRequestState? Pull_request_state { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("last_synced_at")]
-        public System.DateTimeOffset Last_synced_at { get; set; }
+        public System.DateTimeOffset? Last_synced_at { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

@@ -16,7 +16,7 @@ public sealed class GetWorkspaceSettingsEndpoint(WorkspaceSizeProbe probe)
         {
             Root = snapshot.Root,
             Status = snapshot.IsCalculating ? WorkspaceStatus.Calculating : WorkspaceStatus.Ready,
-            Total_size_bytes = snapshot.TotalSizeBytes ?? 0,
+            Total_size_bytes = snapshot.TotalSizeBytes,
         });
     }
 }

@@ -144,8 +144,8 @@ public class PullRequestSyncTickWorkflowTests
             var clock = new FixedClock(Now);
             var comments = new RecordingCommentStore();
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, comments, _uow, clock);
-            var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence);
             var refresher = new PullRequestStateRefresher(Bindings, _uow, clock);
+            var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, refresher);
             var backoff = new PullRequestSyncBackoff(new PullRequestSyncOptions
             {
                 PollIntervalSeconds = 60,

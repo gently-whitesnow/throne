@@ -24,16 +24,16 @@ internal static class RepositoryBindingDtoMapper
             Default_branch = state.DefaultBranch,
             Workspace_path = binding.WorkspacePath,
             Clone_status = RepositoryEnumDtoMapper.ToWireCloneStatus(state.CloneStatus),
-            Clone_error = state.CloneError!,
-            Pull_request_number = state.PullRequestNumber ?? 0,
+            Clone_error = state.CloneError,
+            Pull_request_number = state.PullRequestNumber,
             Pull_request_state = WirePullRequestState(state.PullRequestState),
-            Review_comments_etag = state.ReviewCommentsEtag!,
-            Last_synced_at = state.LastSyncedAt ?? default,
+            Review_comments_etag = state.ReviewCommentsEtag,
+            Last_synced_at = state.LastSyncedAt,
             Created_at = binding.CreatedAt,
             Updated_at = state.UpdatedAt,
         };
     }
 
-    public static PullRequestState WirePullRequestState(string? value) =>
-        value is null ? default : RepositoryEnumDtoMapper.ToWirePullRequestState(value);
+    public static PullRequestState? WirePullRequestState(string? value) =>
+        value is null ? null : RepositoryEnumDtoMapper.ToWirePullRequestState(value);
 }
