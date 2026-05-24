@@ -14,6 +14,7 @@ import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 import { IntentLinksSection } from "@/widgets/intent-links-section";
+import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
 import { RepositoryBindingsList } from "@/widgets/repository-bindings-list";
 
 type LoadState =
@@ -282,6 +283,7 @@ export function IntentDetailPage() {
           )}
           <IntentAttachmentsPanel intentId={intent.id} />
           <RepositoryBindingsList intentId={intent.id} />
+          <PullRequestCommentsSection intentId={intent.id} />
           <IntentLinksSection intentId={intent.id} />
           <section className="mt-6 flex flex-col gap-2">
             <h2 className="m-0 text-sm font-semibold text-base-content">
