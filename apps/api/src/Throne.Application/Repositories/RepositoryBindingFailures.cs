@@ -91,4 +91,14 @@ internal static class RepositoryBindingFailures
                 ["binding_id"] = binding.Id.Value,
                 ["clone_status"] = binding.State.CloneStatus,
             });
+
+    public static ApiException InvalidCoordinate(string owner, string repo, string detail) =>
+        new(
+            ErrorCodes.RepositoryProviderUnsupported,
+            detail,
+            new Dictionary<string, object?>
+            {
+                ["owner"] = owner,
+                ["repo"] = repo,
+            });
 }

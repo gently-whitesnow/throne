@@ -23,7 +23,18 @@ public sealed class RepositoryBindingPersistence(
         string workspaceRoot)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var coordinate = new RepoCoordinate(command.Provider, command.Owner, command.Repo);
+        RepoCoordinate coordinate;
+        try
+        {
+            coordinate = new RepoCoordinate(command.Provider, command.Owner, command.Repo);
+        }
+        catch (ArgumentException ex)
+        {
+            // Surface owner/repo allow-list / length / `..` traversal violations as a
+            // 422 validation failure instead of letting the raw ArgumentException
+            // bubble to ASP.NET's default 500 handler. ADR-0024 § 1 invariant.
+            throw RepositoryBindingFailures.InvalidCoordinate(command.Owner, command.Repo, ex.Message);
+        }
         var defaultBranch = string.IsNullOrWhiteSpace(command.DefaultBranch) ? "main" : command.DefaultBranch.Trim();
         var workspacePath = WorkspacePathLayout.Compute(workspaceRoot, intentId, coordinate);
         return IntentRepositoryBindingFactory.Create(

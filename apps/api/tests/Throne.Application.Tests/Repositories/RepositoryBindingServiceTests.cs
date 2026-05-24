@@ -160,6 +160,10 @@ public class RepositoryBindingServiceTests
         fixture.Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(binding);
         fixture.Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(ci.Arg<IntentRepositoryBinding>())));
+        // Review D2: manual sync now refreshes pull_request_state first — stub the
+        // upstream PR snapshot so the refresh succeeds before the comments fetch.
+        fixture.Provider.GetPullRequestAsync("octo", "hello", 7, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<PullRequestSnapshot?>(new PullRequestSnapshot(7, PullRequestStateNames.Open)));
         var fresh = new[] { new PullRequestComment("c1", "alice", "lgtm", Now) };
         fixture.Provider.ListPullRequestCommentsAsync(
                 "octo", "hello", 7, etag: null, Arg.Any<CancellationToken>())
@@ -188,6 +192,9 @@ public class RepositoryBindingServiceTests
         fixture.Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(binding);
         fixture.Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(ci.Arg<IntentRepositoryBinding>())));
+        // Review D2: manual sync refreshes pull_request_state first.
+        fixture.Provider.GetPullRequestAsync("octo", "hello", 7, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<PullRequestSnapshot?>(new PullRequestSnapshot(7, PullRequestStateNames.Open)));
         fixture.Provider.ListPullRequestCommentsAsync(
                 "octo", "hello", 7, etag: "W/\"old\"", Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<PullRequestCommentsPage?>(new PullRequestCommentsPage.NotModified()));
@@ -287,7 +294,8 @@ public class RepositoryBindingServiceTests
             var persistence = new RepositoryBindingPersistence(Bindings, unitOfWork, clock);
             CommentStore = new RecordingPullRequestCommentStore();
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, CommentStore, unitOfWork, clock);
-            var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence);
+            var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, clock);
+            var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue, Workspace);
         }
 

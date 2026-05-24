@@ -159,14 +159,16 @@ export interface components {
             /** @description `{owner}/{repo}` — convenience field for UI rendering. */
             full_name: string;
             default_branch: string;
-            description?: string;
+            description?: string | null;
             private?: boolean;
             /** Format: uri */
-            html_url?: string;
+            html_url?: string | null;
         };
         BindIntentRepositoryRequest: {
             provider: components["schemas"]["GitProvider"];
+            /** @description GitHub user/org login. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator). */
             owner: string;
+            /** @description GitHub repository slug. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator). */
             repo: string;
             /** @description Optional override; defaults to the upstream's default branch on first clone. */
             default_branch?: string;
@@ -174,7 +176,7 @@ export interface components {
              * Format: int32
              * @description Optional pull request to track for the PR-comments feed.
              */
-            pull_request_number?: number;
+            pull_request_number?: number | null;
         };
         /** @description Compact projection used by MCP `get_intent.repositories[]` (see T-13). The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`. */
         RepositoryBindingSummary: {
@@ -187,8 +189,8 @@ export interface components {
             workspace_path: string;
             clone_status: components["schemas"]["CloneStatus"];
             /** Format: int32 */
-            pull_request_number?: number;
-            pull_request_state?: components["schemas"]["PullRequestState"];
+            pull_request_number?: number | null;
+            pull_request_state?: components["schemas"]["PullRequestState"] | null;
         };
         RepositoryBindingDto: {
             id: string;
@@ -201,14 +203,14 @@ export interface components {
             workspace_path: string;
             clone_status: components["schemas"]["CloneStatus"];
             /** @description Human-readable error message when `clone_status` is `failed` or `broken`. */
-            clone_error?: string;
+            clone_error?: string | null;
             /** Format: int32 */
-            pull_request_number?: number;
-            pull_request_state?: components["schemas"]["PullRequestState"];
+            pull_request_number?: number | null;
+            pull_request_state?: components["schemas"]["PullRequestState"] | null;
             /** @description Last ETag observed for the PR review-comments feed. Used for conditional GET on the next polling cycle; slice 1 covers review comments only. */
-            review_comments_etag?: string;
+            review_comments_etag?: string | null;
             /** Format: date-time */
-            last_synced_at?: string;
+            last_synced_at?: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -221,16 +223,16 @@ export interface components {
             /** @description GitHub login of the comment author. */
             author_login: string;
             /** Format: uri */
-            author_avatar_url?: string;
+            author_avatar_url?: string | null;
             body: string;
             /** Format: uri */
-            html_url?: string;
+            html_url?: string | null;
             /** @description File path the review comment is anchored to, when available. */
-            path?: string;
+            path?: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
-            updated_at?: string;
+            updated_at?: string | null;
         };
         PullRequestSyncResultDto: {
             binding_id: string;
@@ -246,9 +248,9 @@ export interface components {
             total_comments: number;
             /** @description Full review-comments feed after sync (slice 1 returns it unpaginated). */
             comments: components["schemas"]["PullRequestCommentDto"][];
-            pull_request_state?: components["schemas"]["PullRequestState"];
+            pull_request_state?: components["schemas"]["PullRequestState"] | null;
             /** Format: date-time */
-            last_synced_at?: string;
+            last_synced_at?: string | null;
         };
         ProblemDetails: {
             type: string;

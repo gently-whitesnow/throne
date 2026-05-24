@@ -55,6 +55,31 @@ public class IntentRepositoryBindingFactoryTests
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
+    [Theory(DisplayName = "RepoCoordinate отвергает owner с path traversal / разделителем layout / запрещёнными символами")]
+    [InlineData("../..")]
+    [InlineData("foo/bar")]
+    [InlineData("foo__bar")]
+    [InlineData("-leadinghyphen")]
+    [InlineData("with space")]
+    public void Coordinate_rejects_malformed_owner(string owner)
+    {
+        var act = () => new RepoCoordinate(GitProviderNames.GitHub, owner, "throne");
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory(DisplayName = "RepoCoordinate отвергает repo с path traversal / разделителем layout / запрещёнными символами")]
+    [InlineData("..")]
+    [InlineData("foo/bar")]
+    [InlineData("foo__bar")]
+    [InlineData("with space")]
+    public void Coordinate_rejects_malformed_repo(string repo)
+    {
+        var act = () => new RepoCoordinate(GitProviderNames.GitHub, "anthropics", repo);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
     [Fact(DisplayName = "Restore проверяет clone_status и pull_request_state")]
     public void Restore_validates_enum_like_strings()
     {

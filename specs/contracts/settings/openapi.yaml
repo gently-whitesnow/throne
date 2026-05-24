@@ -61,6 +61,7 @@ components:
           type: integer
           format: int64
           minimum: 0
+          nullable: true
           description: Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.
         status:
           $ref: '#/components/schemas/WorkspaceStatus'

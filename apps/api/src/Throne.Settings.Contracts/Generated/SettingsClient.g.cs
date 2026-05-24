@@ -60,7 +60,7 @@ namespace Throne.Settings.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("total_size_bytes")]
         [System.ComponentModel.DataAnnotations.Range(0L, long.MaxValue)]
-        public long Total_size_bytes { get; set; }
+        public long? Total_size_bytes { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

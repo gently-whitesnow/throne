@@ -27,7 +27,9 @@ namespace Throne.Application.Repositories;
 /// <see cref="RepositoryPullRequestSyncPersistence"/> so the workflow body itself stays
 /// inside the per-type cyclomatic budget.
 /// </summary>
-public sealed class RepositoryPullRequestSyncWorkflow(RepositoryPullRequestSyncPersistence persistence)
+public sealed class RepositoryPullRequestSyncWorkflow(
+    RepositoryPullRequestSyncPersistence persistence,
+    PullRequestStateRefresher stateRefresher)
 {
     public async Task<SyncRepositoryPullRequestResult> SyncAsync(
         IntentRepositoryBinding binding,
@@ -53,6 +55,36 @@ public sealed class RepositoryPullRequestSyncWorkflow(RepositoryPullRequestSyncP
         }
 
         return await persistence.PersistFreshAsync(binding, page, ct);
+    }
+
+    /// <summary>
+    /// Review D2 — manual sync (POST .../sync) variant that refreshes
+    /// <c>pull_request_state</c> before fetching comments. The background poller
+    /// (<see cref="PullRequestSyncBindingVisitor"/>) already calls
+    /// <see cref="PullRequestStateRefresher.RefreshAsync"/> itself before invoking
+    /// <see cref="SyncAsync"/>, so the inner pipeline must stay refresh-free to
+    /// avoid double round-trips per tick. Manual sync, on the other hand, used to
+    /// skip the refresh entirely — leaving a binding with stale <c>open</c> state
+    /// when the PR was closed upstream until the next polling tick.
+    /// </summary>
+    public async Task<SyncRepositoryPullRequestResult> RefreshAndSyncAsync(
+        IntentRepositoryBinding binding,
+        IGitProvider provider,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        ArgumentNullException.ThrowIfNull(provider);
+        EnsureReady(binding);
+        EnsurePullRequestAttached(binding);
+
+        var refreshed = await stateRefresher.RefreshAsync(binding, provider, ct);
+        if (refreshed is null)
+        {
+            await persistence.MarkBrokenAsync(binding, "pull request not found upstream (404)", ct);
+            throw RepositoryBindingFailures.UpstreamGone(binding);
+        }
+
+        return await SyncAsync(refreshed, provider, ct);
     }
 
     private static void EnsureReady(IntentRepositoryBinding binding)

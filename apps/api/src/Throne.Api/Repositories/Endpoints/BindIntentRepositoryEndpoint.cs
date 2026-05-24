@@ -27,7 +27,7 @@ public sealed class BindIntentRepositoryEndpoint(RepositoryBindingService servic
                 Owner: body.Owner,
                 Repo: body.Repo,
                 DefaultBranch: body.Default_branch,
-                PullRequestNumber: body.Pull_request_number == 0 ? null : body.Pull_request_number);
+                PullRequestNumber: body.Pull_request_number);
 
             var binding = await service.BindAsync(command, ct);
             var dto = RepositoryDtoMapper.ToBindingDto(binding);

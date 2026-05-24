@@ -132,7 +132,7 @@ function WorkspaceBody({ isLoading, error, settings }: WorkspaceBodyProps) {
           </span>
         ) : (
           <span className="font-mono">
-            {formatWorkspaceSize(settings.total_size_bytes)}
+            {formatWorkspaceSize(settings.total_size_bytes ?? undefined)}
           </span>
         )}
       </dd>

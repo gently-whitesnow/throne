@@ -60,7 +60,7 @@ export interface components {
              * Format: int64
              * @description Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.
              */
-            total_size_bytes?: number;
+            total_size_bytes?: number | null;
             status: components["schemas"]["WorkspaceStatus"];
         };
         GitProviderAuthStatusDto: {

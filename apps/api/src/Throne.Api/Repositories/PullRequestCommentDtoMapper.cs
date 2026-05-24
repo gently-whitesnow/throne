@@ -21,11 +21,11 @@ internal static class PullRequestCommentDtoMapper
             Author_avatar_url = ToUri(record.AuthorAvatarUrl),
             Body = record.Body,
             Html_url = ToUri(record.HtmlUrl),
-            Path = record.Path!,
+            Path = record.Path,
             Created_at = record.CreatedAt,
-            Updated_at = record.UpdatedAt ?? default,
+            Updated_at = record.UpdatedAt,
         };
     }
 
-    internal static Uri ToUri(string? value) => value is null ? null! : new Uri(value);
+    internal static Uri? ToUri(string? value) => value is null ? null : new Uri(value);
 }

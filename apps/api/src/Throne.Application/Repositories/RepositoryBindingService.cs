@@ -79,6 +79,6 @@ public sealed class RepositoryBindingService(
 
         var binding = await resolver.LoadBindingAsync(command.IntentId, command.BindingId, ct);
         var provider = resolver.ResolveProvider(binding.Coordinate.Provider);
-        return await syncWorkflow.SyncAsync(binding, provider, ct);
+        return await syncWorkflow.RefreshAndSyncAsync(binding, provider, ct);
     }
 }
