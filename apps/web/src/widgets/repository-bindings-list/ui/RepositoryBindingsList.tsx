@@ -1,8 +1,8 @@
-import { AlertCircle, FolderGit2, Plus } from "lucide-react";
+import { AlertCircle, FolderGit2 } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { useIntentRepositories } from "@/entities/repository-binding";
-import { Button } from "@/shared/ui";
+import { BindRepositoryButton } from "@/features/bind-repository";
 
 import { RepositoryBindingRow } from "./RepositoryBindingRow";
 
@@ -64,16 +64,7 @@ export function RepositoryBindingsList({
             </span>
           ) : null}
         </div>
-        <Button
-          aria-label="Привязать репозиторий"
-          icon={<Plus aria-hidden size={14} strokeWidth={2} />}
-          // T-19 включит сюда открытие модала. До тех пор кнопка остаётся
-          // визуально частью UI, но disabled, чтобы не давать ложную надежду.
-          disabled
-          title="Будет включено в T-19"
-        >
-          Привязать
-        </Button>
+        <BindRepositoryButton intentId={intentId} />
       </header>
 
       <Body
