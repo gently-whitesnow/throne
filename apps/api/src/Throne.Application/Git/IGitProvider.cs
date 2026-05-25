@@ -55,6 +55,33 @@ public interface IGitProvider
     Task SyncRepositoryAsync(string workspacePath, CancellationToken ct);
 
     /// <summary>
+    /// List branches of <paramref name="owner"/>/<paramref name="repo"/> for the
+    /// typeahead in the bind-repository modal. <paramref name="query"/> is an
+    /// optional case-insensitive substring filter applied to branch name;
+    /// <paramref name="limit"/> caps the page size. The repository's default
+    /// branch is marked on the matching entry (<see cref="GitBranchRef.IsDefault"/>).
+    /// </summary>
+    Task<IReadOnlyList<GitBranchRef>> ListBranchesAsync(
+        string owner,
+        string repo,
+        string? query,
+        int limit,
+        CancellationToken ct);
+
+    /// <summary>
+    /// List open pull requests of <paramref name="owner"/>/<paramref name="repo"/>
+    /// for the typeahead in the bind-repository modal. Only <c>state=open</c>
+    /// is returned; <paramref name="query"/> is an optional case-insensitive
+    /// substring filter over <c>#{number}</c> / title / head ref.
+    /// </summary>
+    Task<IReadOnlyList<GitPullRequestRef>> ListPullRequestsAsync(
+        string owner,
+        string repo,
+        string? query,
+        int limit,
+        CancellationToken ct);
+
+    /// <summary>
     /// Read a single pull request snapshot. Returns <see langword="null"/> when
     /// upstream returns 404 — callers (sync service) translate that into
     /// <c>clone_status=broken</c> per ADR-0024 § 7.

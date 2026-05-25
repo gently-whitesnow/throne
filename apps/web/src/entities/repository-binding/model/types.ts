@@ -9,6 +9,11 @@ export type RepositoryBindingSummary =
 export type GitRepositoryRef =
   RepositoriesComponents["schemas"]["GitRepositoryRefDto"];
 
+export type GitBranchRef = RepositoriesComponents["schemas"]["GitBranchRefDto"];
+
+export type GitPullRequestRef =
+  RepositoriesComponents["schemas"]["GitPullRequestRefDto"];
+
 export type BindRepositoryRequest =
   RepositoriesComponents["schemas"]["BindIntentRepositoryRequest"];
 

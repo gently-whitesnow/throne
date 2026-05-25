@@ -19,6 +19,8 @@ internal static class RepositoryEndpointServices
 
         services.AddSingleton<SearchGithubRepositoriesEndpoint>();
         services.AddSingleton<ListMyGithubRepositoriesEndpoint>();
+        services.AddSingleton<ListGithubRepositoryBranchesEndpoint>();
+        services.AddSingleton<ListGithubRepositoryPullRequestsEndpoint>();
         services.AddSingleton<ListIntentRepositoriesEndpoint>();
         services.AddSingleton<BindIntentRepositoryEndpoint>();
         services.AddSingleton<UnbindIntentRepositoryEndpoint>();

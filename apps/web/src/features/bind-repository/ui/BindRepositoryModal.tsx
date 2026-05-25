@@ -29,7 +29,11 @@ interface BindRepositoryModalProps {
   onBound?: (binding: RepositoryBinding) => void;
 }
 
-const EMPTY_FORM: BindRepositoryFormState = { branch: "", prNumber: "" };
+const EMPTY_FORM: BindRepositoryFormState = {
+  branch: "",
+  prNumber: "",
+  selectedPr: null
+};
 
 /**
  * Modal for `POST /intents/{id}/repositories`.
@@ -102,11 +106,13 @@ export function BindRepositoryModal({
 
   function pickRepository(repo: GitRepositoryRef) {
     setSelected(repo);
-    // Seed branch from upstream on first pick; keep operator's edit afterwards.
-    setForm((prev) => ({
-      ...prev,
-      branch: prev.branch.length === 0 ? repo.default_branch : prev.branch
-    }));
+    // Switching repos resets PR + branch — the previous values are no longer
+    // meaningful for the new repository. Branch defaults to upstream default.
+    setForm({
+      branch: repo.default_branch,
+      prNumber: "",
+      selectedPr: null
+    });
   }
 
   async function handleSubmit() {

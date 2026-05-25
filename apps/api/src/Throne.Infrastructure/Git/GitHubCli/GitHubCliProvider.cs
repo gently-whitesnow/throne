@@ -17,7 +17,8 @@ internal sealed class GitHubCliProvider(
     GhRepoSearcher searcher,
     GhRepoActions actions,
     GhAuthProbe authProbe,
-    GhPullRequestActions pullRequests) : IGitProvider
+    GhPullRequestActions pullRequests,
+    GhRefListers refListers) : IGitProvider
 {
     public string ProviderName => GitProviderNames.GitHub;
 
@@ -30,6 +31,22 @@ internal sealed class GitHubCliProvider(
         int limit,
         CancellationToken ct) =>
         searcher.SearchAsync(scope, query, limit, ct);
+
+    public Task<IReadOnlyList<GitBranchRef>> ListBranchesAsync(
+        string owner,
+        string repo,
+        string? query,
+        int limit,
+        CancellationToken ct) =>
+        refListers.Branches.ListAsync(owner, repo, query, limit, ct);
+
+    public Task<IReadOnlyList<GitPullRequestRef>> ListPullRequestsAsync(
+        string owner,
+        string repo,
+        string? query,
+        int limit,
+        CancellationToken ct) =>
+        refListers.PullRequests.ListAsync(owner, repo, query, limit, ct);
 
     public Task CloneRepositoryAsync(string owner, string repo, string targetPath, CancellationToken ct) =>
         actions.CloneAsync(owner, repo, targetPath, ct);

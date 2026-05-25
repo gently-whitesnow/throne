@@ -75,4 +75,53 @@ public sealed class GitProvidersControllerTests(MongoFixture mongo) : IAsyncLife
         var items = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
         items!.Should().ContainSingle().Which.GetProperty("repo").GetString().Should().Be("alpha");
     }
+
+    [Fact(DisplayName = "GET .../{owner}/{repo}/branches возвращает список веток и маркирует default")]
+    public async Task ListBranches_returns_provider_result()
+    {
+        _fixture.Provider.ListBranchesAsync(
+                "octo", "hello", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<GitBranchRef>>(
+                new[]
+                {
+                    new GitBranchRef("main", true),
+                    new GitBranchRef("feature/x", false),
+                }));
+
+        var response = await _fixture.Client.GetAsync(new Uri(
+            "/api/v1/git-providers/github/repositories/octo/hello/branches?q=feat&limit=10", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var items = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+        items.Should().NotBeNull().And.HaveCount(2);
+        items![0].GetProperty("name").GetString().Should().Be("main");
+        items[0].GetProperty("is_default").GetBoolean().Should().BeTrue();
+        items[1].GetProperty("is_default").GetBoolean().Should().BeFalse();
+        await _fixture.Provider.Received(1).ListBranchesAsync(
+            "octo", "hello", "feat", 10, Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "GET .../{owner}/{repo}/pulls возвращает список открытых PR")]
+    public async Task ListPulls_returns_provider_result()
+    {
+        _fixture.Provider.ListPullRequestsAsync(
+                "octo", "hello", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<GitPullRequestRef>>(
+                new[]
+                {
+                    new GitPullRequestRef(42, "fix: thing", "fix/thing", PullRequestStateNames.Open),
+                }));
+
+        var response = await _fixture.Client.GetAsync(new Uri(
+            "/api/v1/git-providers/github/repositories/octo/hello/pulls?limit=10", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var items = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+        items.Should().NotBeNull().And.ContainSingle();
+        items![0].GetProperty("number").GetInt32().Should().Be(42);
+        items[0].GetProperty("head_ref").GetString().Should().Be("fix/thing");
+        items[0].GetProperty("state").GetString().Should().Be("open");
+        await _fixture.Provider.Received(1).ListPullRequestsAsync(
+            "octo", "hello", null, 10, Arg.Any<CancellationToken>());
+    }
 }

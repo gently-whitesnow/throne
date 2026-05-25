@@ -1,10 +1,16 @@
-import type { GitRepositoryRef } from "@/entities/repository-binding";
+import type {
+  GitPullRequestRef,
+  GitRepositoryRef
+} from "@/entities/repository-binding";
 
 import { parsePrNumber, type PrNumberParse } from "../model/pr-number";
+import { BranchCombobox } from "./BranchCombobox";
+import { PullRequestCombobox } from "./PullRequestCombobox";
 
 export interface BindRepositoryFormState {
-  branch: string;
   prNumber: string;
+  selectedPr: GitPullRequestRef | null;
+  branch: string;
 }
 
 interface BindRepositorySelectionFormProps {
@@ -15,11 +21,10 @@ interface BindRepositorySelectionFormProps {
 }
 
 /**
- * Branch + optional PR number editor for the selected repository. Hidden
- * until the user picks a repo so the modal stays focused on search-first UX.
- *
- * PR-number parsing lives in `model/pr-number` and is also re-used by the
- * parent modal for submit-gating.
+ * PR + Branch editor for the selected repository. Layout puts PR first: if the
+ * operator picks an open PR from suggestions, Branch is locked to that PR's
+ * head ref. If no PR is selected, Branch is editable (combobox + free-text
+ * fallback) and defaults to the upstream default branch.
  */
 export function BindRepositorySelectionForm({
   selected,
@@ -28,8 +33,36 @@ export function BindRepositorySelectionForm({
   disabled
 }: BindRepositorySelectionFormProps) {
   if (selected === null) return null;
+  const repo = selected;
   const prNumberHint: PrNumberParse = parsePrNumber(form.prNumber);
   const prInvalid = prNumberHint.kind === "invalid";
+  const branchLocked = form.selectedPr !== null;
+
+  function setPrSelected(pr: GitPullRequestRef | null) {
+    if (pr !== null) {
+      onChange({
+        ...form,
+        selectedPr: pr,
+        prNumber: String(pr.number),
+        branch: pr.head_ref
+      });
+    } else {
+      onChange({
+        ...form,
+        selectedPr: null,
+        prNumber: "",
+        branch: repo.default_branch
+      });
+    }
+  }
+
+  function setPrNumber(value: string) {
+    onChange({ ...form, prNumber: value });
+  }
+
+  function setBranch(value: string) {
+    onChange({ ...form, branch: value });
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-base-200 bg-base-200/40 p-3">
@@ -40,51 +73,39 @@ export function BindRepositorySelectionForm({
         </span>
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-semibold text-base-content/70">Branch</span>
-          <input
-            type="text"
-            className="input input-bordered input-sm w-full font-mono text-xs"
-            value={form.branch}
-            onChange={(e) => {
-              onChange({ ...form, branch: e.target.value });
-            }}
-            disabled={disabled}
-            aria-label="Branch для клонирования"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-semibold text-base-content/70">
-            PR number (опционально)
-          </span>
-          <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            className={`input input-sm w-full font-mono text-xs ${
-              prInvalid ? "input-bordered border-error" : "input-bordered"
-            }`}
-            value={form.prNumber}
-            onChange={(e) => {
-              onChange({ ...form, prNumber: e.target.value });
-            }}
-            disabled={disabled}
-            placeholder="например 1234"
-            aria-label="Номер PR для отслеживания"
-            aria-invalid={prInvalid}
-            data-testid="bind-repository-pr-number"
-          />
-          {prInvalid ? (
-            <span className="text-error">
-              PR number — целое число больше нуля.
-            </span>
-          ) : (
-            <span className="text-base-content/50">
-              Если оставить пустым — PR не отслеживается.
-            </span>
-          )}
-        </label>
+        <PullRequestCombobox
+          owner={selected.owner}
+          repo={selected.repo}
+          value={form.prNumber}
+          selected={form.selectedPr}
+          onValueChange={setPrNumber}
+          onSelect={setPrSelected}
+          disabled={disabled}
+          invalid={prInvalid}
+        />
+        <BranchCombobox
+          owner={selected.owner}
+          repo={selected.repo}
+          value={form.branch}
+          onValueChange={setBranch}
+          disabled={disabled}
+          locked={branchLocked}
+          lockedHint={
+            form.selectedPr !== null
+              ? `из PR #${String(form.selectedPr.number)}`
+              : null
+          }
+        />
       </div>
+      {prInvalid ? (
+        <span className="text-xs text-error">
+          PR number — целое число больше нуля.
+        </span>
+      ) : (
+        <span className="text-xs text-base-content/50">
+          Если PR не указан — клонируется ветка без отслеживания пул-реквеста.
+        </span>
+      )}
     </div>
   );
 }
