@@ -12,7 +12,9 @@ namespace Throne.Api.Repositories;
 /// </summary>
 public sealed class GitProvidersController(
     SearchGithubRepositoriesEndpoint searchEndpoint,
-    ListMyGithubRepositoriesEndpoint listMyEndpoint) : GitProvidersControllerBase
+    ListMyGithubRepositoriesEndpoint listMyEndpoint,
+    ListGithubRepositoryBranchesEndpoint branchesEndpoint,
+    ListGithubRepositoryPullRequestsEndpoint pullsEndpoint) : GitProvidersControllerBase
 {
     public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> SearchGithubRepositories(
         string q = null!,
@@ -23,4 +25,18 @@ public sealed class GitProvidersController(
     public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> ListMyGithubRepositories(
         int? limit = null) =>
         listMyEndpoint.RunAsync(limit, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<ICollection<GitBranchRefDto>>> ListGithubRepositoryBranches(
+        string owner,
+        string repo,
+        string q = null!,
+        int? limit = null) =>
+        branchesEndpoint.RunAsync(owner, repo, q, limit, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<ICollection<GitPullRequestRefDto>>> ListGithubRepositoryPullRequests(
+        string owner,
+        string repo,
+        string q = null!,
+        int? limit = null) =>
+        pullsEndpoint.RunAsync(owner, repo, q, limit, HttpContext.RequestAborted);
 }

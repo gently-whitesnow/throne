@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/git-providers/github/repositories/{owner}/{repo}/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List branches of a GitHub repository for typeahead.
+         * @description Backs the branch combobox in the bind-repository modal. Shell-outs to `gh api repos/{owner}/{repo}/branches`. Optional `q` is a case-insensitive substring filter applied client-side over branch name; `limit` caps the page size. Symmetric with `searchGithubRepositories`.
+         */
+        get: operations["listGithubRepositoryBranches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/git-providers/github/repositories/{owner}/{repo}/pulls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List open pull requests of a GitHub repository for typeahead.
+         * @description Backs the PR combobox in the bind-repository modal. Shell-outs to `gh pr list --state open --json`. Only `state=open` is returned in this iteration (closed / merged are out of scope). Optional `q` is a case-insensitive substring filter over `#{number}` / `title` / `head_ref`.
+         */
+        get: operations["listGithubRepositoryPullRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/repositories": {
         parameters: {
             query?: never;
@@ -163,6 +203,20 @@ export interface components {
             private?: boolean;
             /** Format: uri */
             html_url?: string | null;
+        };
+        GitBranchRefDto: {
+            /** @description Branch name as reported by upstream (e.g. `main`). */
+            name: string;
+            /** @description Whether this is the repository's default branch. */
+            is_default: boolean;
+        };
+        GitPullRequestRefDto: {
+            /** Format: int32 */
+            number: number;
+            title: string;
+            /** @description Head branch ref of the pull request (source branch). */
+            head_ref: string;
+            state: components["schemas"]["PullRequestState"];
         };
         BindIntentRepositoryRequest: {
             provider: components["schemas"]["GitProvider"];
@@ -327,6 +381,76 @@ export interface operations {
                 };
             };
             /** @description Provider unauthenticated. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listGithubRepositoryBranches: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                owner: string;
+                repo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitBranchRefDto"][];
+                };
+            };
+            /** @description Provider unauthenticated or repository unavailable. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listGithubRepositoryPullRequests: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                owner: string;
+                repo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitPullRequestRefDto"][];
+                };
+            };
+            /** @description Provider unauthenticated or repository unavailable. */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -50,6 +50,26 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/github/repositories/my", Name = "listMyGithubRepositories")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitRepositoryRefDto>>> ListMyGithubRepositories([Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
 
+        /// <summary>
+        /// List branches of a GitHub repository for typeahead.
+        /// </summary>
+        /// <remarks>
+        /// Backs the branch combobox in the bind-repository modal. Shell-outs to `gh api repos/{owner}/{repo}/branches`. Optional `q` is a case-insensitive substring filter applied client-side over branch name; `limit` caps the page size. Symmetric with `searchGithubRepositories`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/github/repositories/{owner}/{repo}/branches", Name = "listGithubRepositoryBranches")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitBranchRefDto>>> ListGithubRepositoryBranches([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
+
+        /// <summary>
+        /// List open pull requests of a GitHub repository for typeahead.
+        /// </summary>
+        /// <remarks>
+        /// Backs the PR combobox in the bind-repository modal. Shell-outs to `gh pr list --state open --json`. Only `state=open` is returned in this iteration (closed / merged are out of scope). Optional `q` is a case-insensitive substring filter over `#{number}` / `title` / `head_ref`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/github/repositories/{owner}/{repo}/pulls", Name = "listGithubRepositoryPullRequests")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitPullRequestRefDto>>> ListGithubRepositoryPullRequests([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

@@ -68,4 +68,20 @@ internal static class RepositoriesErrorMapper
                 new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
+
+    public static ActionResult<ICollection<GitBranchRefDto>> MapListBranches(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.RepositoryProviderUnsupported or ErrorCodes.RepositoryProviderNotAuthenticated =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
+    public static ActionResult<ICollection<GitPullRequestRefDto>> MapListPullRequests(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.RepositoryProviderUnsupported or ErrorCodes.RepositoryProviderNotAuthenticated =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
 }

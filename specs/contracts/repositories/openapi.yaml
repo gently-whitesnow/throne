@@ -82,6 +82,104 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/git-providers/github/repositories/{owner}/{repo}/branches:
+    get:
+      operationId: listGithubRepositoryBranches
+      tags: [GitProviders]
+      summary: List branches of a GitHub repository for typeahead.
+      description: >
+        Backs the branch combobox in the bind-repository modal. Shell-outs to
+        `gh api repos/{owner}/{repo}/branches`. Optional `q` is a case-insensitive
+        substring filter applied client-side over branch name; `limit` caps the
+        page size. Symmetric with `searchGithubRepositories`.
+      parameters:
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitBranchRefDto'
+        '422':
+          description: Provider unauthenticated or repository unavailable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/git-providers/github/repositories/{owner}/{repo}/pulls:
+    get:
+      operationId: listGithubRepositoryPullRequests
+      tags: [GitProviders]
+      summary: List open pull requests of a GitHub repository for typeahead.
+      description: >
+        Backs the PR combobox in the bind-repository modal. Shell-outs to
+        `gh pr list --state open --json`. Only `state=open` is returned in this
+        iteration (closed / merged are out of scope). Optional `q` is a
+        case-insensitive substring filter over `#{number}` / `title` / `head_ref`.
+      parameters:
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GitPullRequestRefDto'
+        '422':
+          description: Provider unauthenticated or repository unavailable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/repositories:
     get:
       operationId: listIntentRepositories
@@ -334,6 +432,39 @@ components:
           type: string
           format: uri
           nullable: true
+    GitBranchRefDto:
+      type: object
+      required:
+        - name
+        - is_default
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Branch name as reported by upstream (e.g. `main`).
+        is_default:
+          type: boolean
+          description: Whether this is the repository's default branch.
+    GitPullRequestRefDto:
+      type: object
+      required:
+        - number
+        - title
+        - head_ref
+        - state
+      properties:
+        number:
+          type: integer
+          format: int32
+          minimum: 1
+        title:
+          type: string
+        head_ref:
+          type: string
+          minLength: 1
+          description: Head branch ref of the pull request (source branch).
+        state:
+          $ref: '#/components/schemas/PullRequestState'
     BindIntentRepositoryRequest:
       type: object
       required:

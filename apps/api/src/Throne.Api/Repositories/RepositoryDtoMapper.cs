@@ -16,6 +16,28 @@ internal static class RepositoryDtoMapper
     public static RepositoryBindingDto ToBindingDto(IntentRepositoryBinding binding) =>
         RepositoryBindingDtoMapper.ToDto(binding);
 
+    public static GitBranchRefDto ToBranchRefDto(GitBranchRef reference)
+    {
+        ArgumentNullException.ThrowIfNull(reference);
+        return new GitBranchRefDto
+        {
+            Name = reference.Name,
+            Is_default = reference.IsDefault,
+        };
+    }
+
+    public static GitPullRequestRefDto ToPullRequestRefDto(GitPullRequestRef reference)
+    {
+        ArgumentNullException.ThrowIfNull(reference);
+        return new GitPullRequestRefDto
+        {
+            Number = reference.Number,
+            Title = reference.Title,
+            Head_ref = reference.HeadRef,
+            State = RepositoryEnumDtoMapper.ToWirePullRequestState(reference.State),
+        };
+    }
+
     public static GitRepositoryRefDto ToRepositoryRefDto(GitRepositoryRef reference)
     {
         ArgumentNullException.ThrowIfNull(reference);

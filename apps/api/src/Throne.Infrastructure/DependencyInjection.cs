@@ -150,6 +150,9 @@ public static class DependencyInjection
         services.AddSingleton<GhRepoActions>();
         services.AddSingleton<GhAuthProbe>();
         services.AddSingleton<GhPullRequestActions>();
+        services.AddSingleton<GhBranchLister>();
+        services.AddSingleton<GhPullRequestLister>();
+        services.AddSingleton<GhRefListers>();
         services.AddSingleton<IGitProvider, GitHubCliProvider>();
         services.AddSingleton<IGitProviderRegistry, GitProviderRegistry>();
         // T-09 RepositoryCloneService: consumer of the clone-on-bind queue, runs the

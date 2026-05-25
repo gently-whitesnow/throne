@@ -2,6 +2,8 @@ export type {
   RepositoryBinding,
   RepositoryBindingSummary,
   GitRepositoryRef,
+  GitBranchRef,
+  GitPullRequestRef,
   BindRepositoryRequest,
   CloneStatus,
   CloneStatusMeta,
@@ -27,8 +29,11 @@ export { requestIntentRepositoriesRefresh } from "./model/refresh-notifier";
 export {
   searchGithubRepositories,
   listMyGithubRepositories,
+  listGithubRepositoryBranches,
+  listGithubRepositoryPullRequests,
   listIntentRepositories,
   bindIntentRepository,
   unbindIntentRepository,
-  type SearchGithubRepositoriesParams
+  type SearchGithubRepositoriesParams,
+  type ListGithubRepositoryRefsParams
 } from "./api/repository-bindings-api";

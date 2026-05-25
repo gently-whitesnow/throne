@@ -7,6 +7,8 @@ import {
 
 import type {
   BindRepositoryRequest,
+  GitBranchRef,
+  GitPullRequestRef,
   GitRepositoryRef,
   RepositoryBinding,
   RepositorySearchScope
@@ -35,6 +37,45 @@ export function searchGithubRepositories(
     params
   )}`;
   return httpGet<GitRepositoryRef[]>(path, signal);
+}
+
+export interface ListGithubRepositoryRefsParams {
+  q?: string;
+  limit?: number;
+}
+
+function buildRefsQuery(params: ListGithubRepositoryRefsParams): string {
+  const search = new URLSearchParams();
+  if (params.q !== undefined && params.q.length > 0) search.set("q", params.q);
+  if (params.limit !== undefined) search.set("limit", String(params.limit));
+  const query = search.toString();
+  return query.length > 0 ? `?${query}` : "";
+}
+
+export function listGithubRepositoryBranches(
+  owner: string,
+  repo: string,
+  params: ListGithubRepositoryRefsParams = {},
+  signal?: AbortSignal
+): Promise<GitBranchRef[]> {
+  const path = `${repositoriesEndpoints.listGithubRepositoryBranches(
+    owner,
+    repo
+  )}${buildRefsQuery(params)}`;
+  return httpGet<GitBranchRef[]>(path, signal);
+}
+
+export function listGithubRepositoryPullRequests(
+  owner: string,
+  repo: string,
+  params: ListGithubRepositoryRefsParams = {},
+  signal?: AbortSignal
+): Promise<GitPullRequestRef[]> {
+  const path = `${repositoriesEndpoints.listGithubRepositoryPullRequests(
+    owner,
+    repo
+  )}${buildRefsQuery(params)}`;
+  return httpGet<GitPullRequestRef[]>(path, signal);
 }
 
 export function listMyGithubRepositories(

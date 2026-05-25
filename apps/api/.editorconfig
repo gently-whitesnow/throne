@@ -102,6 +102,17 @@ dotnet_diagnostic.CA1502.severity = none
 [**/Throne.Infrastructure/Manifest/**.cs]
 dotnet_diagnostic.CA1502.severity = none
 
+# intent:2a8ecca5b990437da9448c73974d27ee — `GitHubCliProvider` is the IGitProvider
+# facade that fans out to per-aspect helpers (search / clone / sync / auth / PR
+# snapshot / PR comments / branches / PR list). Each interface method is a
+# one-line `=> helper.Method(...)` trampoline; type-level cyclomatic is just the
+# arithmetic of the surface area, not real complexity. Same precedent as
+# **/Throne.Api/**/*Controller.cs above (NSwag-generated controllers with many
+# trampoline routes). Per-method CA1502 ≤30 continues to catch real complexity
+# inside each helper.
+[**/Throne.Infrastructure/Git/GitHubCli/GitHubCliProvider.cs]
+dotnet_diagnostic.CA1502.severity = none
+
 # intent:aa5b39b430c54685a08f475d3be167b9: tests/** with CA1502/CA1506
 # suppressions are structural test designs, not god-class symptoms:
 #
