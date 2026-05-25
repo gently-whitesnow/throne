@@ -129,6 +129,21 @@ public class PullRequestSyncTickWorkflowTests
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Tick: initial PR-state null обновляется до open и polling стартует")]
+    public async Task Tick_initial_null_pr_state_refreshes_and_polls()
+    {
+        var fixture = new TickFixture();
+        var binding = fixture.SeedBinding(prState: null);
+        fixture.SeedSnapshot(binding.State.PullRequestNumber!.Value, PullRequestStateNames.Open);
+        fixture.SeedFreshComments(binding, new PullRequestComment("c1", "alice", "ready", Now));
+
+        var report = await fixture.Workflow.RunAsync(CancellationToken.None);
+
+        report.Snapshot.Polled.Should().Be(1);
+        binding.State.PullRequestState.Should().Be(PullRequestStateNames.Open);
+        fixture.Events.OfType<IntentPrCommentAdded>().Should().ContainSingle();
+    }
+
     private sealed class TickFixture
     {
         private readonly RecordingUnitOfWork _uow = new();
@@ -165,7 +180,7 @@ public class PullRequestSyncTickWorkflowTests
         public List<IDomainEvent> Events => _uow.Events;
 
         public IntentRepositoryBinding SeedBinding(
-            string prState,
+            string? prState,
             int pullRequestNumber = 7,
             string? etag = null)
         {

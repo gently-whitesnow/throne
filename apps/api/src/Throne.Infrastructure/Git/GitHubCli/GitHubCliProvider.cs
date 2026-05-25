@@ -34,8 +34,8 @@ internal sealed class GitHubCliProvider(
     public Task CloneRepositoryAsync(string owner, string repo, string targetPath, CancellationToken ct) =>
         actions.CloneAsync(owner, repo, targetPath, ct);
 
-    public Task FetchRepositoryAsync(string workspacePath, CancellationToken ct) =>
-        actions.FetchAsync(workspacePath, ct);
+    public Task SyncRepositoryAsync(string workspacePath, CancellationToken ct) =>
+        actions.SyncAsync(workspacePath, ct);
 
     public Task<ProviderAuthStatus> GetAuthStatusAsync(CancellationToken ct) =>
         authProbe.ProbeAsync(ct);

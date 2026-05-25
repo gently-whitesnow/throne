@@ -50,9 +50,9 @@ public interface IGitProvider
         CancellationToken ct);
 
     /// <summary>
-    /// Run <c>git fetch</c> equivalent inside an already-cloned <paramref name="workspacePath"/>.
+    /// Synchronize an already-cloned <paramref name="workspacePath"/> using the provider CLI.
     /// </summary>
-    Task FetchRepositoryAsync(string workspacePath, CancellationToken ct);
+    Task SyncRepositoryAsync(string workspacePath, CancellationToken ct);
 
     /// <summary>
     /// Read a single pull request snapshot. Returns <see langword="null"/> when

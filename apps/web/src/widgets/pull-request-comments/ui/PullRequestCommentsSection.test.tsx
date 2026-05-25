@@ -123,7 +123,14 @@ describe("PullRequestCommentsSection", () => {
   });
 
   it("рендерит карточку с автором, телом и created_at", async () => {
-    listIntentRepositories.mockResolvedValue([makeBinding()]);
+    listIntentRepositories
+      .mockResolvedValueOnce([makeBinding()])
+      .mockResolvedValueOnce([
+        makeBinding({
+          pull_request_state: "closed",
+          updated_at: "2026-05-22T10:00:00Z"
+        })
+      ]);
     listPullRequestComments.mockResolvedValue([
       makeComment({
         author_login: "alice",
@@ -147,7 +154,14 @@ describe("PullRequestCommentsSection", () => {
   });
 
   it("synthetic SSE-event intent.pr_comment_added добавляет коммент в DOM без рефреша", async () => {
-    listIntentRepositories.mockResolvedValue([makeBinding()]);
+    listIntentRepositories
+      .mockResolvedValueOnce([makeBinding()])
+      .mockResolvedValueOnce([
+        makeBinding({
+          pull_request_state: "closed",
+          updated_at: "2026-05-22T10:00:00Z"
+        })
+      ]);
     listPullRequestComments.mockResolvedValue([
       makeComment({ id: "c1", body: "first" })
     ]);
@@ -197,7 +211,14 @@ describe("PullRequestCommentsSection", () => {
   });
 
   it("кнопка «Обновить» дёргает syncPullRequest и перечитывает список", async () => {
-    listIntentRepositories.mockResolvedValue([makeBinding()]);
+    listIntentRepositories
+      .mockResolvedValueOnce([makeBinding()])
+      .mockResolvedValueOnce([
+        makeBinding({
+          pull_request_state: "closed",
+          updated_at: "2026-05-22T10:00:00Z"
+        })
+      ]);
     listPullRequestComments
       .mockResolvedValueOnce([makeComment({ id: "c1", body: "first" })])
       .mockResolvedValueOnce([
@@ -212,6 +233,7 @@ describe("PullRequestCommentsSection", () => {
       binding_id: "b1",
       new_comments: 1,
       total_comments: 2,
+      pull_request_state: "closed",
       comments: []
     });
 
@@ -232,6 +254,11 @@ describe("PullRequestCommentsSection", () => {
     });
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c2")).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("pr-comments-pr-b1").textContent).toMatch(
+        /Closed/
+      );
     });
   });
 

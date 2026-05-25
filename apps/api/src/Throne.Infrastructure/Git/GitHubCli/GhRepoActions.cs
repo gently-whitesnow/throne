@@ -31,12 +31,10 @@ internal sealed class GhRepoActions(GhCliInvoker gh)
         }
     }
 
-    public async Task FetchAsync(string workspacePath, CancellationToken ct)
+    public async Task SyncAsync(string workspacePath, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
 
-        // ADR-0024 § 3 keeps shell-out behind a single launcher; `gh repo sync`
-        // wraps `git fetch` with the same auth/env that cloned the repo.
         var result = await gh.RunInAsync(workspacePath, ["repo", "sync"], ct);
         if (!result.IsSuccess)
         {

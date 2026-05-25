@@ -86,7 +86,9 @@ internal sealed class MongoIntentRepositoryBindingStore(
         var filter = fb.And(
             fb.Eq(d => d.CloneStatus, CloneStatusNames.Ready),
             fb.Ne(d => d.PullRequestNumber, null),
-            fb.Eq(d => d.PullRequestState, PullRequestStateNames.Open));
+            fb.Or(
+                fb.Eq(d => d.PullRequestState, PullRequestStateNames.Open),
+                fb.Eq(d => d.PullRequestState, null)));
 
         var session = sessions.Current;
         var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);

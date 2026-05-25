@@ -11,7 +11,7 @@ namespace Throne.Infrastructure.Tests.Mongo.IntentRepositoryBindings;
 [Trait("Category", "Integration")]
 public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
 {
-    [Fact(DisplayName = "FindOpenForSyncAsync возвращает только ready + PR + state=open, отсортированные по last_synced_at ASC")]
+    [Fact(DisplayName = "FindOpenForSyncAsync возвращает ready + PR + state=open/null, отсортированные по last_synced_at ASC")]
     public async Task FindOpenForSync_filters_and_orders()
     {
         var scope = await IntentRepositoryBindingTestScope.CreateAsync(fixture);
@@ -25,6 +25,15 @@ public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
             intentId,
             "beta",
             lastSyncedAt: IntentRepositoryBindingTestFactory.Now.AddMinutes(-60));
+        // Eligible: initial bind with PR attached but state not observed yet.
+        var initial = await PersistAsync(
+            scope,
+            intentId,
+            "theta",
+            clone: CloneStatusNames.Ready,
+            prNumber: 1,
+            prState: null,
+            lastSyncedAt: IntentRepositoryBindingTestFactory.Now.AddMinutes(-30));
         // Eligible: polled recently — should come last.
         var openRecent = await PersistReadyOpenAsync(
             scope,
@@ -45,7 +54,7 @@ public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
 
         due.Select(b => b.Id.Value)
             .Should()
-            .Equal(openNew, openOlder, openRecent);
+            .Equal(openNew, openOlder, initial, openRecent);
     }
 
     [Fact(DisplayName = "Уникальный индекс intent_coordinate_unique создан с правильным набором полей")]
