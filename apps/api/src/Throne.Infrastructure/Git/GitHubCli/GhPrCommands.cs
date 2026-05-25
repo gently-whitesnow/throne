@@ -1,12 +1,10 @@
 namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
-/// Argument builders for the <c>gh api</c> calls that back the PR surface
-/// (T-07). All calls use <c>-i</c> so the response status line and headers come
+/// Argument builders for the <c>gh api</c> calls that back the PR surface.
+/// All calls use <c>-i</c> so the response status line and headers come
 /// back on stdout — the ETag header is required for conditional GET (ADR-0024
 /// § 4) and the status line is the only reliable signal for 304.
-/// Kept as a small static helper to keep the per-method classes inside the
-/// CA1502 cyclomatic budget.
 /// </summary>
 internal static class GhPrCommands
 {

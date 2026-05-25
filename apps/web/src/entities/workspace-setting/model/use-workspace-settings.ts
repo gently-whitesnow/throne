@@ -16,7 +16,7 @@ const CALCULATING_POLL_MS = 2_000;
 /**
  * Loads `/settings/workspace` and, while the server reports
  * `status=calculating`, gently polls every couple of seconds until the size
- * settles. There is no realtime event for this in slice 1 — polling is bounded
+ * settles. There is no realtime event for this — polling is bounded
  * by the calculating state, so the network stays quiet after the first ready
  * response.
  */

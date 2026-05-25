@@ -5,9 +5,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// <summary>
 /// Lists branches of a GitHub repository via two parallel <c>gh api</c> calls:
 /// one to <c>/repos/{owner}/{repo}</c> for the upstream default branch and one
-/// to <c>/repos/{owner}/{repo}/branches</c> for the page itself. Splitting args /
-/// parser / filter into dedicated helpers keeps this façade inside the CA1502
-/// cyclomatic budget — mirrors the <see cref="GhRepoSearcher"/> structure.
+/// to <c>/repos/{owner}/{repo}/branches</c> for the page itself.
 /// </summary>
 internal sealed class GhBranchLister(GhCliInvoker gh)
 {

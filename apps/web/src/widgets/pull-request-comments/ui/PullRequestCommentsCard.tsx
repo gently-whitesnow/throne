@@ -33,11 +33,11 @@ interface PullRequestCommentsCardProps {
  *
  * - Список читает entity hook `usePullRequestComments` — он уже подписан на
  *   `intent.pr_comment_added`, поэтому фоновое обновление работает без рефреша.
- * - Кнопка «Обновить» дёргает `POST .../sync` (см. ADR-0024 / T-08): эндпоинт
+ * - Кнопка «Обновить» дёргает `POST .../sync` (ADR-0024): эндпоинт
  *   синхронный и возвращает свежий список, а realtime-фанаут гарантирует, что
  *   другие открытые вкладки получат те же дельты.
  *
- * Виртуализация не нужна — slice 1 ограничен ≤50 review-комментов на PR.
+ * Виртуализация не нужна — surface ограничен ≤50 review-комментов на PR.
  */
 export function PullRequestCommentsCard({
   intentId,

@@ -67,9 +67,8 @@ internal sealed class RepositoriesApiFixture : IAsyncDisposable
 }
 
 /// <summary>
-/// Static helper extracted from <see cref="RepositoriesApiFixture"/> so the
-/// fixture class itself stays under the CA1502 cyclomatic budget. Owns the
-/// host-builder wiring + DI rewrites for the integration tests.
+/// Static helper extracted from <see cref="RepositoriesApiFixture"/>.
+/// Owns the host-builder wiring + DI rewrites for the integration tests.
 /// </summary>
 internal static class RepositoriesTestHostConfigurator
 {

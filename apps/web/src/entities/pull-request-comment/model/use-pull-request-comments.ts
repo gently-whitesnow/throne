@@ -18,7 +18,7 @@ const EMPTY: PullRequestComment[] = [];
 /**
  * Loads + tail-subscribes to the PR review comments feed for one binding.
  *
- * Initial load reads the full feed (slice 1 is unpaginated). Subsequent
+ * Initial load reads the full feed (unpaginated). Subsequent
  * `intent.pr_comment_added` events insert new comments in place — no
  * full refetch, and the realtime payload is also fanned by manual sync
  * so this hook stays consistent regardless of refresh trigger.

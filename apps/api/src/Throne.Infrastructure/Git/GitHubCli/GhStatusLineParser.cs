@@ -2,9 +2,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// Parses the first line of a <c>gh api -i</c> response (e.g.
-/// <c>HTTP/2.0 304 Not Modified</c>) into the numeric status code. Split out
-/// from <see cref="GhHttpStatus"/> so each helper class stays inside the
-/// CA1502 cyclomatic budget.
+/// <c>HTTP/2.0 304 Not Modified</c>) into the numeric status code.
 /// </summary>
 internal static class GhStatusLineParser
 {

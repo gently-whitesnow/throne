@@ -4,8 +4,8 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// Lists open pull requests of a GitHub repository via <c>gh pr list --state open</c>.
-/// Only <c>state=open</c> is in scope for slice 1 of the bind-modal typeahead;
-/// closed and merged PRs are intentionally excluded (see intent postановка).
+/// Only <c>state=open</c> is in scope for the bind-modal typeahead;
+/// closed and merged PRs are intentionally excluded.
 /// </summary>
 internal sealed class GhPullRequestLister(GhCliInvoker gh)
 {

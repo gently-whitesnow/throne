@@ -10,11 +10,11 @@ namespace Throne.Application.Repositories;
 ///   <item>Every binding still in <c>cloning</c> is flipped to
 ///         <c>failed("interrupted")</c> through <see cref="RepositoryCloneWorkflow.MarkInterruptedAsync"/>.
 ///         The previous worker crashed mid-clone; the workspace directory is left
-///         on disk and the user re-binds (slice 6 owns cleanup).</item>
+///         on disk and the user re-binds.</item>
 ///   <item>Every binding still in <c>pending</c> is re-pushed into
 ///         <see cref="IRepositoryCloneRequests"/>. Without this the in-memory
-///         queue would forget any binding that was created by T-08 but never
-///         consumed by the worker before the crash.</item>
+///         queue would forget any binding that was created but never consumed
+///         by the worker before the crash.</item>
 /// </list>
 ///
 /// The pass is idempotent — running it twice on the same database is a no-op the

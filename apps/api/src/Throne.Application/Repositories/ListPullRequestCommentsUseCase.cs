@@ -5,12 +5,10 @@ namespace Throne.Application.Repositories;
 
 /// <summary>
 /// Read-only proxy that fetches PR review comments straight from the binding's
-/// provider. Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server is pointer-only —
-/// the HTTP GET path used by the UI never touches persistence. (MCP callers read
-/// directly via <c>gh</c> against <c>get_intent.repositories</c> coordinates and
-/// don't go through this use-case.)
-/// The binding's stored etag is intentionally not used here: GET must not mutate the
-/// background poller's cursor, and a 304 leaves the caller without comment bodies.
+/// provider. The server is pointer-only — the HTTP GET path used by the UI never
+/// touches persistence. The binding's stored etag is intentionally not used here:
+/// GET must not mutate the background poller's cursor, and a 304 leaves the caller
+/// without comment bodies.
 /// </summary>
 public sealed class ListPullRequestCommentsUseCase(IGitProviderRegistry providers)
 {

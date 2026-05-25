@@ -3,7 +3,7 @@ namespace Throne.Application.Git;
 /// <summary>
 /// Result of <see cref="IGitProvider.GetAuthStatusAsync"/>. Surfaces whether the
 /// vendor CLI (e.g. <c>gh auth status</c>) is installed and authenticated. The
-/// settings page (T-16) renders this as a red/green indicator so the user knows
+/// settings page renders this as a red/green indicator so the user knows
 /// they need to run <c>gh auth login</c>.
 /// </summary>
 /// <param name="Provider">Provider wire-format name (e.g. <c>github</c>).</param>

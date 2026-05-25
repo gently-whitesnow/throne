@@ -5,12 +5,9 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Persistence-orchestration helper extracted from <see cref="RepositoryBindingService"/>.
-/// Owns construction of fresh bindings (workspace-path layout, factory invocation,
-/// clock) and the create/delete/save/find roundtrips through the unit-of-work + Mongo
-/// port. Keeping these out of the service body lets the service stay inside both the
-/// per-class CA1502 cyclomatic budget and the constructor-deps budget enforced by
-/// <c>scripts/quality/maintainability-budget-check.sh</c>.
+/// Persistence-orchestration helper. Owns construction of fresh bindings
+/// (workspace-path layout, factory invocation, clock) and the create/delete/save/find
+/// roundtrips through the unit-of-work + Mongo port.
 /// </summary>
 public sealed class RepositoryBindingPersistence(
     IIntentRepositoryBindingRepository bindings,

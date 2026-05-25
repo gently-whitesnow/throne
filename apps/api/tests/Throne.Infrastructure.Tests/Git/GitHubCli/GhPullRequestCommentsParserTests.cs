@@ -8,7 +8,7 @@ namespace Throne.Infrastructure.Tests.Git.GitHubCli;
 /// end-to-end happy path lives in
 /// <see cref="GitHubCliProviderPullRequestCommentsTests"/>; these tests pin the
 /// defensive parser behaviour (empty body, missing required fields) at the
-/// component level so the polling service (T-10) can trust the contract.
+/// component level so the polling service can trust the contract.
 /// </summary>
 public class GhPullRequestCommentsParserTests
 {

@@ -3,9 +3,7 @@ using System.Text.Json;
 namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
-/// JSON readers for a single GitHub review-comment object. Split out from
-/// <see cref="GhPullRequestCommentProjector"/> so each helper class stays
-/// inside the CA1502 per-type cyclomatic budget.
+/// JSON readers for a single GitHub review-comment object.
 /// </summary>
 internal static class GhPullRequestCommentJson
 {

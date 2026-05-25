@@ -10,9 +10,9 @@ namespace Throne.Infrastructure.Tests.Git.GitHubCli;
 /// Exercises ADR-0024 § 4 conditional-GET semantics: 200 returns a
 /// <see cref="PullRequestCommentsPage.Fresh"/> with the parsed ETag, 304
 /// returns <see cref="PullRequestCommentsPage.NotModified"/>, 404 → null. The
-/// <c>If-None-Match</c> header is only sent when an ETag is provided. Per D3
-/// of the slice review the method tracks ONLY the review-comments feed
-/// (<c>/pulls/{n}/comments</c>) — issue-comments are out of scope for slice 1.
+/// <c>If-None-Match</c> header is only sent when an ETag is provided. The method
+/// tracks ONLY the review-comments feed (<c>/pulls/{n}/comments</c>) —
+/// issue-comments are out of scope.
 /// </summary>
 public class GitHubCliProviderPullRequestCommentsTests
 {

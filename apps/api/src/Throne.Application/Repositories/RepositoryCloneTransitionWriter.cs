@@ -4,10 +4,8 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Save-side helper extracted from <see cref="RepositoryCloneWorkflow"/> so the
-/// workflow itself stays inside the per-class CA1502 cyclomatic budget. Owns the
-/// <c>(transition → save → carrier)</c> pipeline that drives
-/// <see cref="RepositoryCloneTransitionOutcome"/> through
+/// Save-side helper that drives the <c>(transition → save → carrier)</c> pipeline:
+/// pushes <see cref="RepositoryCloneTransitionOutcome"/> through
 /// <see cref="IUnitOfWork.ExecuteAsync"/> so the dispatching unit-of-work fans
 /// <see cref="Events.IntentRepositoryCloneProgress"/> out automatically.
 /// </summary>

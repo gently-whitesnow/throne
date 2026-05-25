@@ -5,8 +5,6 @@ namespace Throne.Api.Repositories;
 
 /// <summary>
 /// Wire-format ↔ Application enum translation for the repositories module.
-/// Extracted out of <see cref="RepositoryDtoMapper"/> so each mapper stays under
-/// the per-class CA1502 cyclomatic budget.
 /// </summary>
 internal static class RepositoryEnumDtoMapper
 {

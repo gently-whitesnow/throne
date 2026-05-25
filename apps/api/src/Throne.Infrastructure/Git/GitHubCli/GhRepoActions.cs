@@ -4,9 +4,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// File-system level git actions (<c>gh repo clone</c>, <c>gh repo sync</c>)
-/// performed by <see cref="GitHubCliProvider"/>. Extracted so the provider stays
-/// inside the CA1502 cyclomatic budget and so the clone-queue (T-09) can stub
-/// just these operations independently of repo search.
+/// performed by <see cref="GitHubCliProvider"/>.
 /// </summary>
 internal sealed class GhRepoActions(GhCliInvoker gh)
 {
@@ -16,9 +14,9 @@ internal sealed class GhRepoActions(GhCliInvoker gh)
         ArgumentException.ThrowIfNullOrWhiteSpace(repo);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
 
-        // unbind не удаляет клон с диска (см. slice 1 Q2 — изоляция бранчей), но
-        // повторный bind на ту же пару должен пройти. Если папка уже git-репо —
-        // переиспользуем её, иначе чистим пустой каталог и клонируем.
+        // unbind не удаляет клон с диска (изоляция бранчей), но повторный bind
+        // на ту же пару должен пройти. Если папка уже git-репо — переиспользуем
+        // её, иначе чистим пустой каталог и клонируем.
         if (TryReuseExistingClone(targetPath))
         {
             return;

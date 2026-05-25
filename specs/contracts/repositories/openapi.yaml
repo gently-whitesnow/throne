@@ -261,8 +261,9 @@ paths:
       tags: [IntentRepositories]
       summary: Detach a repository binding from an intent.
       description: >
-        Removes the binding record. The workspace directory on disk is intentionally NOT removed
-        (slice 6 covers cleanup). Idempotent — returns 204 whether or not the binding existed.
+        Removes the binding record. The workspace directory on disk is intentionally NOT
+        removed (disk cleanup is out of scope). Idempotent — returns 204 whether or not the
+        binding existed.
       parameters:
         - in: path
           name: intent_id
@@ -324,9 +325,8 @@ paths:
       summary: Read stored PR review comments for a binding.
       description: >
         Returns the locally persisted feed of review comments for the binding's PR, ordered
-        ascending by `created_at`. Slice 1 covers review comments only (issue-comments — separate
-        intent post-slice 1). Pagination is intentionally absent in slice 1 (see parent slice
-        decision); the server returns the full feed.
+        ascending by `created_at`. Review comments only (issue-comments are out of scope).
+        Pagination is intentionally absent; the server returns the full feed.
       parameters:
         - in: path
           name: intent_id
@@ -373,7 +373,7 @@ components:
       enum:
         - github
       description: >
-        Set of supported git providers. Slice 1 ships only `github`; `gitlab` arrives in slice 5.
+        Set of supported git providers. Only `github` is shipped today.
     RepositorySearchScope:
       type: string
       enum:
@@ -536,7 +536,7 @@ components:
             - $ref: '#/components/schemas/PullRequestState'
           nullable: true
       description: >
-        Compact projection used by MCP `get_intent.repositories[]` (see T-13). The HTTP
+        Compact projection used by MCP `get_intent.repositories[]`. The HTTP
         `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
     RepositoryBindingDto:
       type: object
@@ -587,7 +587,7 @@ components:
           nullable: true
           description: >
             Last ETag observed for the PR review-comments feed. Used for conditional GET on
-            the next polling cycle; slice 1 covers review comments only.
+            the next polling cycle.
         last_synced_at:
           type: string
           format: date-time
@@ -660,7 +660,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PullRequestCommentDto'
-          description: Full review-comments feed after sync (slice 1 returns it unpaginated).
+          description: Full review-comments feed after sync (unpaginated).
         pull_request_state:
           allOf:
             - $ref: '#/components/schemas/PullRequestState'

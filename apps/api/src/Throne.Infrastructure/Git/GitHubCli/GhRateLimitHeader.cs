@@ -2,8 +2,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// Helpers for the <c>X-RateLimit-Remaining</c> / <c>X-RateLimit-Reset</c>
-/// header pair. Split out from <see cref="GhHttpStatus"/> so each helper class
-/// stays inside the CA1502 cyclomatic budget.
+/// header pair.
 /// </summary>
 internal static class GhRateLimitHeader
 {

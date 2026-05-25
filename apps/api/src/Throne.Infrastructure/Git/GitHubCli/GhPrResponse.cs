@@ -6,8 +6,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// One-shot interpretation of a <c>gh api -i</c> invocation for the PR surface:
 /// splits the response and lifts the status code so callers can read 304 / 404
 /// directly. Rate-limit detection and the success-or-throw decision live in
-/// <see cref="GhPrResponseGuard"/> so this record stays inside the CA1502
-/// per-type cyclomatic budget.
+/// <see cref="GhPrResponseGuard"/>.
 /// </summary>
 internal readonly record struct GhPrResponse(
     int Status,

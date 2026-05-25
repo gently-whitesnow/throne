@@ -6,7 +6,7 @@ namespace Throne.Infrastructure.Mongo.Repositories;
 internal static class MongoIntentRepositoryBindingIndexes
 {
     /// <summary>
-    /// Indexes for <c>intent_repository_bindings</c> per T-04 / ADR-0024:
+    /// Indexes for <c>intent_repository_bindings</c> per ADR-0024:
     /// <list type="bullet">
     ///   <item>
     ///     Unique <c>(intent_id, provider, owner, repo)</c> — enforces «one bind per
@@ -19,8 +19,7 @@ internal static class MongoIntentRepositoryBindingIndexes
     ///   <item>
     ///     Secondary <c>(pull_request_state, last_synced_at)</c> — drives
     ///     <c>FindOpenForSync</c>: filter by <c>state == open</c>, then walk ascending by
-    ///     <c>last_synced_at</c>. Replaces the earlier <c>(pull_request_number,
-    ///     clone_status)</c> composite per the 2026-05-23 review note.
+    ///     <c>last_synced_at</c>.
     ///   </item>
     /// </list>
     /// </summary>

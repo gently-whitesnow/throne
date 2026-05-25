@@ -4,7 +4,7 @@ namespace Throne.Api.Settings;
 /// Cheap recursive size aggregator extracted from <see cref="WorkspaceSizeProbe"/>.
 /// Uses <see cref="DirectoryInfo.EnumerateFiles(string, SearchOption)"/> directly
 /// so we walk in-process without spawning <c>du</c> — Throne already runs cross-
-/// platform and the workspace tree stays small in slice 1 (a clone per intent).
+/// platform and the workspace tree stays small (a clone per intent).
 /// </summary>
 internal static class DirectorySize
 {

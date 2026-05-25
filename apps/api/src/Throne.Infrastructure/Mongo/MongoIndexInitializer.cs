@@ -44,9 +44,8 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         "chat_messages",
         "insight_cards",
         "analysis_jobs",
-        // Pointer-only switch for PR comments — see intent
-        // 9aa2c64ff2a94410b7352eada1350ad0. GitHub is the source of truth; the
-        // local bodies cache is retired.
+        // Pointer-only switch for PR comments: GitHub is the source of truth;
+        // the local bodies cache is retired.
         "pull_request_comments",
     ];
 

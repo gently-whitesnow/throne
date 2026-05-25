@@ -15,9 +15,8 @@ namespace Throne.Api.Realtime;
 ///   5. подписаться через useRealtimeEvent('&lt;name&gt;') на фронте.
 ///
 /// Realtime quality gate (scripts/quality/realtime-verify-coverage.sh)
-/// падает, пока не реализованы все пять шагов. Per-aggregate mappers держат
-/// CA1506 method-coupling под порогом, а добавление нового события не меняет
-/// этот dispatcher — только нужный mapper.
+/// падает, пока не реализованы все пять шагов. Добавление нового события не
+/// меняет этот dispatcher — только нужный per-aggregate mapper.
 /// </summary>
 internal sealed class RealtimeDomainEventHandler(
     IRealtimeEventBroker broker,

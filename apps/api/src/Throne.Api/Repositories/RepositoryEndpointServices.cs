@@ -6,12 +6,6 @@ using Throne.Application.Repositories;
 
 namespace Throne.Api.Repositories;
 
-/// <summary>
-/// DI registration for the per-endpoint classes used by the repositories /
-/// settings HTTP modules (T-11). Mirrors <c>IntentEndpointServices</c>: per-endpoint
-/// instances are Singletons since they wrap singleton application handlers /
-/// services.
-/// </summary>
 internal static class RepositoryEndpointServices
 {
     public static IServiceCollection AddThroneRepositoryEndpoints(this IServiceCollection services)

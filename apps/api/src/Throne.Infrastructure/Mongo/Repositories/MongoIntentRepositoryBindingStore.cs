@@ -7,7 +7,7 @@ using Throne.Infrastructure.Mongo.Documents;
 namespace Throne.Infrastructure.Mongo.Repositories;
 
 /// <summary>
-/// Mongo-backed <see cref="IIntentRepositoryBindingRepository"/> (T-04). All sessions are
+/// Mongo-backed <see cref="IIntentRepositoryBindingRepository"/>. All sessions are
 /// resolved through <see cref="MongoSessionAccessor"/> so calls that run inside
 /// <see cref="IUnitOfWork.ExecuteAsync"/> participate in the transaction; reads outside a
 /// session are still safe (no implicit writes).
@@ -93,8 +93,8 @@ internal sealed class MongoIntentRepositoryBindingStore(
         var session = sessions.Current;
         var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
         // Ascending by LastSyncedAt: Mongo sorts null before non-null values, so bindings
-        // that have never been polled go first — matches the «oldest poll wins» policy of
-        // PullRequestSyncService (T-10).
+        // that have never been polled go first — matches the «oldest poll wins» policy
+        // of PullRequestSyncService.
         var docs = await find
             .Sort(Builders<IntentRepositoryBindingDocument>.Sort.Ascending(d => d.LastSyncedAt))
             .ToListAsync(ct);

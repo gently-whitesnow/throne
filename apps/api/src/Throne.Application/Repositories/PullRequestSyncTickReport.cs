@@ -3,10 +3,9 @@ using Throne.Application.Git;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Per-tick observability surface for the polling loop (T-10). Exposes a single
+/// Per-tick observability surface for the polling loop. Exposes a single
 /// <see cref="Snapshot"/> projection so callers (host logging, tests) get a
-/// strongly-typed view without the report itself growing one accessor per counter
-/// — that would push the type's per-type cyclomatic budget above CA1502's threshold.
+/// strongly-typed view of the counters.
 /// </summary>
 public sealed class PullRequestSyncTickReport
 {
@@ -42,11 +41,6 @@ public sealed record PullRequestSyncTickSnapshot(
     int MarkedBroken,
     int LifecycleClosed);
 
-/// <summary>
-/// Mutable counter bag carried by <see cref="PullRequestSyncTickReport"/>. Internal
-/// so CA1051 doesn't complain about the public-field shape, and so the per-type
-/// cyclomatic walk on the public report stays trivial.
-/// </summary>
 internal sealed class PullRequestSyncCounters
 {
     public int Polled;

@@ -4,18 +4,9 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Per-binding exponential-backoff tracker for the polling loop (T-10). State lives
-/// in-process — the worst case of a process restart is one extra poll attempt against
-/// upstream, which is bounded by the rate-limit guard inside the provider.
-///
-/// <list type="bullet">
-///   <item><see cref="ShouldSkip"/> returns <see langword="true"/> if the binding is
-///         still cooling down from a prior failure.</item>
-///   <item><see cref="RecordSuccess"/> clears the backoff so the next tick polls the
-///         binding again at the base interval.</item>
-///   <item><see cref="RecordFailure"/> doubles the delay (capped at
-///         <c>BackoffMaxSeconds</c>) and stores the «not before» wall-clock instant.</item>
-/// </list>
+/// Per-binding exponential-backoff tracker. State lives in-process — the worst case
+/// of a process restart is one extra poll attempt against upstream, bounded by the
+/// rate-limit guard inside the provider.
 /// </summary>
 public sealed class PullRequestSyncBackoff(PullRequestSyncOptions options)
 {

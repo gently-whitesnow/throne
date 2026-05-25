@@ -7,7 +7,6 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Backs <c>GET /api/v1/git-providers/github/repositories/my</c> (T-11).
 /// Default-state alias for the bind modal — same as search with
 /// <c>scope=mine</c> and no query, but spared the parameter wiring.
 /// </summary>

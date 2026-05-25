@@ -2,8 +2,7 @@ namespace Throne.Domain.Repositories;
 
 /// <summary>
 /// Clone-status transition operations for <see cref="IntentRepositoryBinding"/>. Pull-request
-/// operations live in <see cref="IntentRepositoryBindingPullRequestMutator"/> — splitting by
-/// concern keeps each helper under CA1502 cyclomatic budget.
+/// operations live in <see cref="IntentRepositoryBindingPullRequestMutator"/>.
 /// </summary>
 public static class IntentRepositoryBindingMutator
 {

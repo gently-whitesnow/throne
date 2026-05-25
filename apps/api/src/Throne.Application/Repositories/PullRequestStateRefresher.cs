@@ -5,15 +5,8 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Helper extracted from <see cref="PullRequestSyncBindingVisitor"/> so the visitor
-/// itself stays inside the per-type CA1502 cyclomatic budget. Owns the
-/// «refresh upstream PR state and persist the delta» step (review-note D2 — the
-/// background poller keeps <c>pull_request_state</c> fresh so bindings that flip to
-/// <c>closed</c>/<c>merged</c> drop out of the next <c>FindOpenForSync</c> tick).
-///
-/// Also owns the single-shot <c>SaveAsync</c> helper used by both
-/// <see cref="RefreshAsync"/> and the broken-marker path: keeping it here so the
-/// outcome-switch contributes to this type's budget instead of the visitor's.
+/// Refreshes upstream PR state and persists the delta so bindings that flip to
+/// <c>closed</c>/<c>merged</c> drop out of the next <c>FindOpenForSync</c> tick.
 /// </summary>
 public sealed class PullRequestStateRefresher(
     IIntentRepositoryBindingRepository bindings,

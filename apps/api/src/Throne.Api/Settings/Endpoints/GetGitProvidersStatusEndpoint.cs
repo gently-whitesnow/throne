@@ -6,9 +6,8 @@ using Throne.Settings.Contracts.Generated;
 namespace Throne.Api.Settings.Endpoints;
 
 /// <summary>
-/// Backs <c>GET /api/v1/settings/git-providers/status</c> (T-11, see T-06).
-/// Slice 1 reports only the GitHub provider; the response is shaped so T-16 / T-17
-/// (settings page) can render a row per provider without hard-coding the list.
+/// Currently reports only the GitHub provider; the response is shaped so the
+/// settings page can render a row per provider without hard-coding the list.
 /// </summary>
 public sealed class GetGitProvidersStatusEndpoint(IGitProviderRegistry providers)
 {

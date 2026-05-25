@@ -6,11 +6,10 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Backs <c>GET /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/comments</c>.
-/// Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server is pointer-only: this
-/// endpoint proxies <c>gh api .../pulls/{n}/comments</c> through the binding's
-/// provider and never reads from Mongo. The <c>since</c> filter is honoured against
-/// the upstream-fresh feed; pagination remains intentionally absent (slice 1 contract).
+/// Server is pointer-only: this endpoint proxies <c>gh api .../pulls/{n}/comments</c>
+/// through the binding's provider and never reads from Mongo. The <c>since</c>
+/// filter is honoured against the upstream-fresh feed; pagination is intentionally
+/// absent.
 /// </summary>
 public sealed class ListIntentRepositoryPullRequestCommentsEndpoint(
     RepositoryBindingResolver resolver,

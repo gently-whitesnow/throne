@@ -118,10 +118,8 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Git provider shell-out plumbing (ADR-0024 / T-05): workspace root initializer,
-    /// process launcher, provider registry and concrete providers. T-06 wires up
-    /// <see cref="GitHubCliProvider"/> for the <c>github</c> key; PR operations land
-    /// in T-07 on the same instance.
+    /// Git provider shell-out plumbing (ADR-0024): workspace root initializer,
+    /// process launcher, provider registry and concrete providers.
     /// </summary>
     private static void AddGitInfrastructure(IServiceCollection services, IConfiguration? configuration)
     {
@@ -153,13 +151,7 @@ public static class DependencyInjection
         services.AddSingleton<GhRefListers>();
         services.AddSingleton<IGitProvider, GitHubCliProvider>();
         services.AddSingleton<IGitProviderRegistry, GitProviderRegistry>();
-        // T-09 RepositoryCloneService: consumer of the clone-on-bind queue, runs the
-        // recovery pass on boot and drains BindingIds pushed by T-08. Workflow + queue
-        // live in Application so this Infrastructure type stays thin.
         services.AddHostedService<RepositoryCloneService>();
-        // T-10 PullRequestSyncService: polls open PR bindings on a tick, refreshes
-        // upstream state + comments through the shared sync workflow. Tick body lives
-        // in Application; this host stays a thin BackgroundService wrapper.
         services.AddHostedService<PullRequestSyncService>();
     }
 }

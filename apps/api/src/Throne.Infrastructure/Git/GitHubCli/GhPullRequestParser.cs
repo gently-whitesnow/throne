@@ -10,7 +10,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// <c>"open"</c> or <c>"closed"</c>; a closed PR with <c>merged: true</c> is
 /// mapped to <see cref="PullRequestStateNames.Merged"/> so the binding's
 /// <c>pull_request_state</c> column carries the lifecycle bucket the polling
-/// service (T-10) wants — open keeps polling, closed/merged stop.
+/// service wants — open keeps polling, closed/merged stop.
 /// </summary>
 internal static class GhPullRequestParser
 {

@@ -99,7 +99,7 @@ namespace Throne.Api.Generated
         /// Detach a repository binding from an intent.
         /// </summary>
         /// <remarks>
-        /// Removes the binding record. The workspace directory on disk is intentionally NOT removed (slice 6 covers cleanup). Idempotent — returns 204 whether or not the binding existed.
+        /// Removes the binding record. The workspace directory on disk is intentionally NOT removed (disk cleanup is out of scope). Idempotent — returns 204 whether or not the binding existed.
         /// </remarks>
         /// <returns>Deleted (or already absent).</returns>
         [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}", Name = "unbindIntentRepository")]
@@ -119,7 +119,7 @@ namespace Throne.Api.Generated
         /// Read stored PR review comments for a binding.
         /// </summary>
         /// <remarks>
-        /// Returns the locally persisted feed of review comments for the binding's PR, ordered ascending by `created_at`. Slice 1 covers review comments only (issue-comments — separate intent post-slice 1). Pagination is intentionally absent in slice 1 (see parent slice decision); the server returns the full feed.
+        /// Returns the locally persisted feed of review comments for the binding's PR, ordered ascending by `created_at`. Review comments only (issue-comments are out of scope). Pagination is intentionally absent; the server returns the full feed.
         /// </remarks>
         /// <param name="since">When supplied, only comments with `created_at &gt;= since` are returned.</param>
         /// <returns>OK</returns>

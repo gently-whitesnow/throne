@@ -3,12 +3,8 @@ using Throne.Application.Git;
 namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
-/// Pull-request operations shelled out via <c>gh api -i</c> (T-07). Sits
-/// alongside <see cref="GhRepoActions"/> / <see cref="GhAuthProbe"/> so the
-/// <see cref="GitHubCliProvider"/> façade stays trivial. The conditional-GET
-/// decision tree (304 / 404 / rate-limit / 2xx) lives in
-/// <see cref="GhPrResponse"/> so this orchestration class stays inside the
-/// CA1502 cyclomatic budget.
+/// Pull-request operations shelled out via <c>gh api -i</c>. The conditional-GET
+/// decision tree (304 / 404 / rate-limit / 2xx) lives in <see cref="GhPrResponse"/>.
 /// </summary>
 internal sealed class GhPullRequestActions(GhCliInvoker gh)
 {

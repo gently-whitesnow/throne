@@ -6,11 +6,6 @@ using Throne.Repositories.Contracts.Generated;
 
 namespace Throne.Api.Repositories;
 
-/// <summary>
-/// Centralised error-to-ProblemDetails projection for the repositories HTTP
-/// module (T-11). Mirrors <c>IntentsErrorMapper</c> so each split controller
-/// stays a thin trampoline body without conditional branching.
-/// </summary>
 internal static class RepositoriesErrorMapper
 {
     public static ActionResult<RepositoryBindingDto> MapBind(ApiException ex) =>

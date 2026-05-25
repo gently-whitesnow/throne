@@ -7,9 +7,6 @@ namespace Throne.Domain.Repositories;
 /// mirror GitHub's own allowed character sets and additionally fence the workspace
 /// path layout (ADR-0024 § 1 uses <c>owner__repo</c> as the directory separator —
 /// so neither field may contain the substring <c>__</c>).
-///
-/// Splitting the guards out keeps the value-type ctor body within the per-class
-/// CA1502 budget and makes the rules testable in isolation.
 /// </summary>
 public static partial class RepoCoordinateGuards
 {

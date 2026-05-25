@@ -3,23 +3,17 @@ using Throne.Domain.Intents;
 namespace Throne.Domain.Repositories;
 
 /// <summary>
-/// Aggregate root linking an <see cref="IntentId"/> to a cloned git repository on the
-/// local workspace (see ADR-0024). First-class entity — NOT serialised into
-/// <c>Intent.text</c> and NOT modelled as an <c>intent_links</c> edge (see ADR-0018).
+/// First-class aggregate (see ADR-0024) — NOT serialised into <c>Intent.text</c>
+/// and NOT modelled as an <c>intent_links</c> edge (see ADR-0018).
 ///
 /// Invariants:
 /// <list type="bullet">
 ///   <item>The tuple <c>(IntentId, Provider, Owner, Repo)</c> is unique (enforced by repository).</item>
 ///   <item><see cref="WorkspacePath"/> is immutable after creation.</item>
 ///   <item>Status machine: <c>pending → cloning → ready | failed</c>; <c>ready → broken</c>
-///         only via polling-observed 404 (T-10), not from the bind flow.</item>
+///         only via polling-observed 404, not from the bind flow.</item>
 ///   <item><see cref="AttachPullRequest"/> is valid only when no PR is attached yet.</item>
 /// </list>
-///
-/// Mutating operations are routed through <see cref="IntentRepositoryBindingMutator"/>
-/// (extension methods on this type) so the aggregate stays under CA1502 cyclomatic budget.
-/// All mutable state lives in <see cref="State"/>; immutable identity / workspace lives on
-/// the aggregate itself.
 /// </summary>
 public sealed class IntentRepositoryBinding
 {

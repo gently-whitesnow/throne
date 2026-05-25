@@ -22,9 +22,9 @@ const GH_SETUP_DOCS_URL =
 /**
  * Settings → «Провайдеры Git».
  *
- * Slice 1 показывает один провайдер — GitHub (`gh auth status`). Индикатор
- * рисуется семантическими токенами (success / error), не случайным hex; gitlab
- * добавится в slice 5 и попадёт сюда же по тому же ключу health-мета.
+ * Показывает один провайдер — GitHub (`gh auth status`). Индикатор
+ * рисуется семантическими токенами (success / error), не случайным hex;
+ * gitlab подключится по тому же ключу health-мета.
  */
 export function GitProvidersCard() {
   const { status, isLoading, error, refresh } = useGitProvidersStatus();

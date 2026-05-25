@@ -36,7 +36,7 @@ interface RepositoryBindingRowProps {
  *
  *  - Manual refresh — re-fetches the bindings list so a stuck or just-recovered
  *    clone surfaces without a page reload. This is intentionally cheap; the
- *    PR-comments `POST .../sync` lives in T-20 alongside the comments view.
+ *    PR-comments `POST .../sync` lives in the comments view, not here.
  *  - Unbind — removes the binding via DELETE. The realtime
  *    `intent.repository_unbound` event keeps other clients in sync; the local
  *    list also drops the row optimistically via `onUnbound` so the user sees

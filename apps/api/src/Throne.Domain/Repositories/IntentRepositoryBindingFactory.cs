@@ -7,7 +7,7 @@ public static class IntentRepositoryBindingFactory
     /// <summary>
     /// Create a fresh binding in <see cref="CloneStatusNames.Pending"/>. PR is optional and,
     /// when supplied, is attached eagerly but with <c>pull_request_state = null</c> — the
-    /// PR-sync background service in T-10 records the upstream state on the first probe.
+    /// PR-sync background service records the upstream state on the first probe.
     /// </summary>
     public static IntentRepositoryBinding Create(
         BindingId id,
@@ -36,7 +36,7 @@ public static class IntentRepositoryBindingFactory
     }
 
     /// <summary>
-    /// Rehydrate a binding from persistence (T-04). All invariants on enum-like fields are
+    /// Rehydrate a binding from persistence. All invariants on enum-like fields are
     /// re-checked so a tampered document fails fast.
     /// </summary>
     public static IntentRepositoryBinding Restore(IntentRepositoryBindingSnapshot snapshot)

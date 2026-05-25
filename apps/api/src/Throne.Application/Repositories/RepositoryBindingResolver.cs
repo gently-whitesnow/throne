@@ -5,11 +5,6 @@ using Throne.Domain.Repositories;
 
 namespace Throne.Application.Repositories;
 
-/// <summary>
-/// Resolution helpers for <see cref="RepositoryBindingService"/>. Splitting these out
-/// keeps the service's per-type CA1502 cyclomatic budget within reach without diluting
-/// the workflow's readability.
-/// </summary>
 public sealed class RepositoryBindingResolver(
     IIntentRepository intents,
     IIntentRepositoryBindingRepository bindings,

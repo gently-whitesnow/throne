@@ -10,10 +10,10 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Tests.Repositories;
 
 /// <summary>
-/// Per-tick poll tests for T-10. Drives a single <see cref="PullRequestSyncTickWorkflow.RunAsync"/>
+/// Per-tick poll tests. Drives a single <see cref="PullRequestSyncTickWorkflow.RunAsync"/>
 /// pass with a mocked <see cref="IGitProvider"/> across the four contractual branches:
 /// 200 Fresh, 304 NotModified, 404, и rate-limit / транзиентная ошибка. Также проверяет,
-/// что closed/merged PR выпадает из polling цикла (review-note D2) и что MarkBroken-путь
+/// что closed/merged PR выпадает из polling цикла и что MarkBroken-путь
 /// поднимает событие repository_clone_progress без падения тика.
 /// </summary>
 public class PullRequestSyncTickWorkflowTests

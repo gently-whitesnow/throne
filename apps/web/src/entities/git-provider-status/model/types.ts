@@ -14,8 +14,8 @@ export interface GitProviderHealthMeta {
 
 /**
  * Light-first semantic tokens for the provider health pill on `/settings`.
- * Light = authenticated, dark amber = misconfigured. Slice 1 ships GitHub only
- * (`gitlab` arrives in slice 5) — the meta map is keyed by health, not provider.
+ * Light = authenticated, dark amber = misconfigured. Only GitHub is shipped
+ * today — the meta map is keyed by health, not provider.
  */
 export const gitProviderHealthMeta: Record<
   "ok" | "broken",
