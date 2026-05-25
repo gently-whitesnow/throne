@@ -54,8 +54,10 @@ export interface components {
          */
         WorkspaceStatus: "ready" | "calculating";
         WorkspaceSettingsDto: {
-            /** @description Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`). */
+            /** @description Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`). Inside docker this is the in-container mount point, not a host path. */
             root: string;
+            /** @description Optional host-side path for the workspace, configured via `Throne:Workspace:HostRoot`. Set in compose to expose the bind-mount source to the UI (`~/.throne/workspaces` on the operator's machine). Omitted when running outside docker (no env var set). */
+            host_root?: string | null;
             /**
              * Format: int64
              * @description Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.
