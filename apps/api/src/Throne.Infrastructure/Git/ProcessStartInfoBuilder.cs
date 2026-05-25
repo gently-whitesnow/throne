@@ -6,8 +6,6 @@ namespace Throne.Infrastructure.Git;
 
 /// <summary>
 /// Builds <see cref="ProcessStartInfo"/> from a <see cref="ProcessRunRequest"/>.
-/// Split out of <see cref="ProcessRunner"/> so the runner's per-type cyclomatic
-/// budget (CA1502) stays clean.
 /// </summary>
 internal static class ProcessStartInfoBuilder
 {

@@ -6,9 +6,8 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Backs <c>POST /api/v1/intents/{intent_id}/repositories</c> (T-11).
 /// 201 Created carries the freshly persisted binding in <c>pending</c> state;
-/// background clone (T-09) drives the rest of the lifecycle.
+/// the background clone service drives the rest of the lifecycle.
 /// </summary>
 public sealed class BindIntentRepositoryEndpoint(RepositoryBindingService service)
 {

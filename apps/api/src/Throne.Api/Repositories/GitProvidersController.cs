@@ -5,11 +5,6 @@ using Throne.Repositories.Contracts.Generated;
 
 namespace Throne.Api.Repositories;
 
-/// <summary>
-/// HTTP surface for <c>/api/v1/git-providers/github/*</c> (T-11, ADR-0024).
-/// Wires the generated <c>GitProvidersControllerBase</c> to per-endpoint
-/// instances so the controller body stays a 1-line trampoline per route.
-/// </summary>
 public sealed class GitProvidersController(
     SearchGithubRepositoriesEndpoint searchEndpoint,
     ListMyGithubRepositoriesEndpoint listMyEndpoint,

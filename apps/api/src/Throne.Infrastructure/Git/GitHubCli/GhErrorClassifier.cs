@@ -7,8 +7,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// expose machine-readable error codes, so we sniff stable substrings from
 /// <c>gh</c> 2.x. Kept tiny on purpose: only the categories that change caller
 /// behaviour per ADR-0024 § 5/7 (NotFound → broken, AuthFailed → settings page,
-/// NetworkError → retryable). Patterns live in a table to keep the dispatcher
-/// inside the CA1502 cyclomatic budget.
+/// NetworkError → retryable).
 /// </summary>
 internal static class GhErrorClassifier
 {

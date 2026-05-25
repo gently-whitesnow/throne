@@ -20,7 +20,7 @@ import { Button } from "@/shared/ui";
  * Показывает `Throne:Workspace:Root` (моноширинно) и агрегированный размер.
  * Размер считается лениво на бэке: при `status=calculating` хук `useWorkspaceSettings`
  * сам опрашивает эндпоинт, пока статус не перейдёт в `ready` — здесь только UI.
- * Per-intent размер вне scope slice 1 (Q6 — см. notes интента T-17).
+ * Per-intent размер вне scope.
  */
 export function WorkspaceCard() {
   const { settings, isLoading, error, refresh } = useWorkspaceSettings();

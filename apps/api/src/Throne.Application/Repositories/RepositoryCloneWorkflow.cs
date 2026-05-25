@@ -7,7 +7,7 @@ namespace Throne.Application.Repositories;
 
 /// <summary>
 /// Per-binding clone orchestration consumed by the background
-/// <c>RepositoryCloneService</c> (T-09). Splitting the clone choreography out of
+/// <c>RepositoryCloneService</c>. Splitting the clone choreography out of
 /// the worker keeps the worker focused on the queue loop (cancellation, batching,
 /// logging) and lets us unit-test the actual state-machine transitions without
 /// spinning up a <see cref="Microsoft.Extensions.Hosting.BackgroundService"/>.

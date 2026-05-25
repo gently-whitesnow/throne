@@ -5,8 +5,7 @@ namespace Throne.Infrastructure.Git;
 
 /// <summary>
 /// Captures stdout / stderr from a <see cref="Process"/> into two
-/// <see cref="StringBuilder"/>s. Split out of <see cref="ProcessRunner"/> so the
-/// runner's per-type cyclomatic budget (CA1502) stays clean.
+/// <see cref="StringBuilder"/>s.
 /// </summary>
 internal sealed class ProcessOutputCollector
 {

@@ -5,8 +5,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// <summary>
 /// Executes the two underlying <c>gh</c> calls that back the <c>mine</c> and
 /// <c>involved</c> scopes (<c>gh repo list --json</c> and
-/// <c>gh api /user/repos --paginate</c>). Split out of <see cref="GhRepoSearcher"/>
-/// so the searcher's per-type cyclomatic budget (CA1502) stays clean.
+/// <c>gh api /user/repos --paginate</c>).
 /// </summary>
 internal sealed class GhRepoListExecutor(GhCliInvoker gh)
 {

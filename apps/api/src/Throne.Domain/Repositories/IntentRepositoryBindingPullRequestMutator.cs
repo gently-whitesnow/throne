@@ -1,9 +1,7 @@
 namespace Throne.Domain.Repositories;
 
 /// <summary>
-/// Pull-request / sync operations for <see cref="IntentRepositoryBinding"/>. Separated from
-/// <see cref="IntentRepositoryBindingMutator"/> so each type stays within CA1502 cyclomatic
-/// budget.
+/// Pull-request / sync operations for <see cref="IntentRepositoryBinding"/>.
 /// </summary>
 public static class IntentRepositoryBindingPullRequestMutator
 {

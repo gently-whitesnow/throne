@@ -10,11 +10,11 @@ using Throne.Realtime.Contracts.Generated;
 namespace Throne.Api.Tests.Realtime;
 
 /// <summary>
-/// Smoke-проверки для T-12: mapper должен укладывать 4 события
+/// Smoke-проверки mapper'а: 4 события
 /// (<c>intent.repository_bound</c>, <c>intent.repository_unbound</c>,
 /// <c>intent.repository_clone_progress</c>, <c>intent.pr_comment_added</c>)
-/// в форму, ожидаемую <c>specs/contracts/realtime/events.yaml</c>. JSON-сериализация
-/// идёт теми же опциями, что использует <see cref="RealtimeController"/>,
+/// должны укладываться в форму, ожидаемую <c>specs/contracts/realtime/events.yaml</c>.
+/// JSON-сериализация идёт теми же опциями, что использует <see cref="RealtimeController"/>,
 /// чтобы snake_case-ключи провалидировались на wire-уровне.
 /// </summary>
 public class IntentRepositoryRealtimeMapperTests

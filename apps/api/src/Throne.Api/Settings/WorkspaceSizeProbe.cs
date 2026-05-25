@@ -3,18 +3,13 @@ using Throne.Application.Git;
 namespace Throne.Api.Settings;
 
 /// <summary>
-/// TTL-cached disk-usage probe for <c>Throne:Workspace:Root</c> (D5 of T-11,
-/// ADR-0024 § 1). The first request after a TTL miss kicks off a background
-/// directory walk; concurrent and follow-up requests see
-/// <c>status=calculating</c> with no body size until the walk completes.
-///
-/// Slice 1 only exposes the global aggregate (Q6 — per-intent sizes are out of
-/// scope here, T-17 owns them later). Walk failures (e.g. permission denied on
-/// a nested directory) fall back to "size unknown but ready" so the settings
-/// page can still render a non-blank state.
-///
-/// The class is Singleton so the TTL cache survives across requests; mutations
-/// are guarded by a lock — load is one-walk-per-TTL, no need for finer locking.
+/// TTL-cached disk-usage probe for <c>Throne:Workspace:Root</c> (ADR-0024 § 1).
+/// The first request after a TTL miss kicks off a background directory walk;
+/// concurrent and follow-up requests see <c>status=calculating</c> with no body
+/// size until the walk completes. Walk failures (e.g. permission denied on a
+/// nested directory) fall back to "size unknown but ready" so the settings page
+/// can still render a non-blank state. Singleton so the TTL cache survives
+/// across requests; mutations guarded by a lock.
 /// </summary>
 public sealed class WorkspaceSizeProbe(IWorkspaceRootProvider workspace, TimeProvider clock)
 {

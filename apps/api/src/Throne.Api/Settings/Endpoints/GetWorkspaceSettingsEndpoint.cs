@@ -6,7 +6,6 @@ using Throne.Settings.Contracts.Generated;
 namespace Throne.Api.Settings.Endpoints;
 
 /// <summary>
-/// Backs <c>GET /api/v1/settings/workspace</c> (D5 of T-11).
 /// Returns the resolved workspace root and the most recent disk-usage snapshot.
 /// </summary>
 public sealed class GetWorkspaceSettingsEndpoint(WorkspaceSizeProbe probe, IOptions<WorkspaceOptions> options)

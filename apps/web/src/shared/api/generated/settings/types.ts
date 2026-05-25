@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Read the workspace root configuration and its current size.
-         * @description Returns the resolved `Throne:Workspace:Root` plus an optional global size on disk. `status=calculating` lets the UI render a skeleton while the size computation runs in the background; `status=ready` means `total_size_bytes` is fresh. Per-intent sizes are out of scope for slice 1 (see parent slice review notes).
+         * @description Returns the resolved `Throne:Workspace:Root` plus an optional global size on disk. `status=calculating` lets the UI render a skeleton while the size computation runs in the background; `status=ready` means `total_size_bytes` is fresh. Per-intent sizes are out of scope.
          */
         get: operations["getWorkspaceSettings"];
         put?: never;
@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Authentication status for every configured git provider CLI.
-         * @description Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Slice 1 returns only the `github` entry; `gitlab` lands in slice 5 alongside `GitLabCliProvider`.
+         * @description Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Only the `github` entry is returned today; `gitlab` will land alongside `GitLabCliProvider`.
          */
         get: operations["getGitProvidersStatus"];
         put?: never;
@@ -77,7 +77,7 @@ export interface components {
         };
         GitProvidersStatusDto: {
             github: components["schemas"]["GitProviderAuthStatusDto"];
-            /** @description Reserved for slice 5. Absent in slice 1 responses. */
+            /** @description Reserved for a future GitLab integration. Absent today. */
             gitlab?: components["schemas"]["GitProviderAuthStatusDto"];
         };
     };

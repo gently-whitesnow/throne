@@ -13,7 +13,7 @@ export interface GitProvidersStatusState {
 /**
  * One-shot fetch of the auth status for every configured provider CLI.
  * The settings page calls `refresh` manually after the user runs `gh auth login`
- * — we don't poll. There is no realtime event for auth changes in slice 1.
+ * — we don't poll. There is no realtime event for auth changes.
  */
 export function useGitProvidersStatus(): GitProvidersStatusState {
   const [status, setStatus] = useState<GitProvidersStatus | null>(null);

@@ -8,10 +8,10 @@ namespace Throne.Application.Repositories;
 /// Persistence-side helper for <see cref="RepositoryPullRequestSyncWorkflow"/>. Owns
 /// the binding-state save and the page-kind switch.
 ///
-/// Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server keeps a pointer-only cursor
-/// (<c>review_comments_etag</c> + <c>last_seen_review_comment_at</c>) and never persists
-/// comment bodies. New comments are detected by filtering the upstream-fresh page against
-/// the stored cursor; the carrier returned here fans <see cref="Events.IntentPrCommentAdded"/>
+/// The server keeps a pointer-only cursor (<c>review_comments_etag</c> +
+/// <c>last_seen_review_comment_at</c>) and never persists comment bodies. New
+/// comments are detected by filtering the upstream-fresh page against the stored
+/// cursor; the carrier returned here fans <see cref="Events.IntentPrCommentAdded"/>
 /// out with the full body still in memory.
 /// </summary>
 public sealed class RepositoryPullRequestSyncPersistence(

@@ -5,9 +5,7 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Per-binding step of the polling tick (T-10). Extracted from
-/// <see cref="PullRequestSyncTickWorkflow"/> so the workflow itself stays inside the
-/// per-type CA1502 budget. State-refresh + binding persistence live in
+/// Per-binding step of the polling tick. State-refresh + binding persistence live in
 /// <see cref="PullRequestStateRefresher"/>; this type focuses on the «is this binding
 /// eligible, classify the failure» decision tree.
 /// </summary>

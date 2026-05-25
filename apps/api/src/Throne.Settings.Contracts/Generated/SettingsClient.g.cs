@@ -134,7 +134,7 @@ namespace Throne.Settings.Contracts.Generated
         public GitProviderAuthStatusDto Github { get; set; } = new GitProviderAuthStatusDto();
 
         /// <summary>
-        /// Reserved for slice 5. Absent in slice 1 responses.
+        /// Reserved for a future GitLab integration. Absent today.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("gitlab")]
         public GitProviderAuthStatusDto Gitlab { get; set; }

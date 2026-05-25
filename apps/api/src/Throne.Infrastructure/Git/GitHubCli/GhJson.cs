@@ -4,7 +4,6 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// Tiny helpers over <see cref="JsonElement"/> used by the <c>gh</c> repo parsers.
-/// Extracted so each parser stays inside the CA1502 cyclomatic budget.
 /// </summary>
 internal static class GhJson
 {

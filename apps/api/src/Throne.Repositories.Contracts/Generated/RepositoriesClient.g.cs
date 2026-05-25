@@ -27,7 +27,7 @@ namespace Throne.Repositories.Contracts.Generated
     
 
     /// <summary>
-    /// Set of supported git providers. Slice 1 ships only `github`; `gitlab` arrives in slice 5.
+    /// Set of supported git providers. Only `github` is shipped today.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -275,7 +275,7 @@ namespace Throne.Repositories.Contracts.Generated
     }
 
     /// <summary>
-    /// Compact projection used by MCP `get_intent.repositories[]` (see T-13). The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
+    /// Compact projection used by MCP `get_intent.repositories[]`. The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -390,7 +390,7 @@ namespace Throne.Repositories.Contracts.Generated
         public PullRequestState? Pull_request_state { get; set; }
 
         /// <summary>
-        /// Last ETag observed for the PR review-comments feed. Used for conditional GET on the next polling cycle; slice 1 covers review comments only.
+        /// Last ETag observed for the PR review-comments feed. Used for conditional GET on the next polling cycle.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("review_comments_etag")]
@@ -497,7 +497,7 @@ namespace Throne.Repositories.Contracts.Generated
         public int Total_comments { get; set; }
 
         /// <summary>
-        /// Full review-comments feed after sync (slice 1 returns it unpaginated).
+        /// Full review-comments feed after sync (unpaginated).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("comments")]
         [System.ComponentModel.DataAnnotations.Required]

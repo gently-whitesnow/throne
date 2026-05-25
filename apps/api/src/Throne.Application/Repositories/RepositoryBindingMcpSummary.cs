@@ -4,12 +4,11 @@ namespace Throne.Application.Repositories;
 
 /// <summary>
 /// Compact projection of <see cref="IntentRepositoryBinding"/> for the MCP
-/// <c>get_intent.repositories[]</c> field (T-13). Mirrors the
+/// <c>get_intent.repositories[]</c> field. Mirrors the
 /// <c>RepositoryBindingSummary</c> contract DTO from
 /// <c>specs/contracts/repositories/openapi.yaml</c> — wire fields are returned in
-/// snake_case strings (ADR-0023) so the MCP renderer can serialise without further
-/// mapping. Internal fields (<c>etag</c>, <c>last_synced_at</c>, <c>clone_error</c>)
-/// are intentionally hidden per the slice-1 read-only design.
+/// snake_case strings (ADR-0023). Internal fields (<c>etag</c>, <c>last_synced_at</c>,
+/// <c>clone_error</c>) are intentionally hidden.
 /// </summary>
 public sealed record RepositoryBindingMcpSummary(
     string BindingId,
@@ -24,9 +23,8 @@ public sealed record RepositoryBindingMcpSummary(
 
 /// <summary>
 /// Pure mapper <see cref="IntentRepositoryBinding"/> → <see cref="RepositoryBindingMcpSummary"/>.
-/// Lives in Application so it can be unit-tested without taking the MCP transport
-/// host. The mapper is intentionally lossy — internal fields stay inside the
-/// domain aggregate; full projection is reserved for the HTTP module (T-11).
+/// Intentionally lossy — internal fields stay inside the domain aggregate; full
+/// projection is reserved for the HTTP module.
 /// </summary>
 public static class RepositoryBindingMcpSummaryMapper
 {

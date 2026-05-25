@@ -5,11 +5,6 @@ using Throne.Repositories.Contracts.Generated;
 
 namespace Throne.Api.Repositories;
 
-/// <summary>
-/// HTTP surface for the per-intent <c>/api/v1/intents/{intent_id}/repositories/*</c>
-/// routes (T-11, ADR-0024). Per-endpoint instances own their dependency wiring
-/// so this controller is a thin trampoline.
-/// </summary>
 public sealed class IntentRepositoriesController(
     ListIntentRepositoriesEndpoint listEndpoint,
     BindIntentRepositoryEndpoint bindEndpoint,

@@ -107,10 +107,10 @@ events:
         pin_sort_key:
           type: string
   intent.repository_bound:
-    description: A new repository binding was attached to an intent (slice 1, ADR-0024).
+    description: A new repository binding was attached to an intent (ADR-0024).
     payload_ref: repositories#/components/schemas/RepositoryBindingDto
   intent.repository_unbound:
-    description: A repository binding was detached from an intent. Workspace directory is NOT removed (slice 6).
+    description: A repository binding was detached from an intent. Workspace directory is NOT removed.
     payload:
       type: object
       required: [intent_id, binding_id]

@@ -64,27 +64,20 @@ public sealed record InstructionPatchSuperseded(InstructionPatch Patch) : IDomai
 public sealed record DreamSessionRecorded(DreamSession Session) : IDomainEvent;
 
 /// <summary>
-/// Intent ↔ repository binding lifecycle events (ADR-0024, slice 1 T-08+). Carried by the
-/// repository outcomes in <see cref="Throne.Application.Ports.IIntentRepositoryBindingRepository"/>
-/// (Bound / Unbound) and by <see cref="Throne.Application.Repositories.SyncRepositoryPullRequestResult"/>
-/// (Synced). T-12 realtime emitters subscribe and translate to the contract-first
-/// <c>intent.repository_bound</c> / <c>intent.repository_unbound</c> /
+/// Intent ↔ repository binding lifecycle events (ADR-0024). Translated into the
+/// contract-first <c>intent.repository_bound</c> / <c>intent.repository_unbound</c> /
 /// <c>intent.repository_clone_progress</c> / <c>intent.pr_comment_added</c> wire events.
-/// Per-comment <c>intent.pr_comment_added</c> fanout is owned by the background
-/// poller (T-10) which holds the comment store; manual refresh from T-08 returns
-/// comments synchronously to the caller.
 /// </summary>
 public sealed record IntentRepositoryBound(IntentRepositoryBinding Binding) : IDomainEvent;
 
 public sealed record IntentRepositoryUnbound(IntentRepositoryBinding Binding) : IDomainEvent;
 
 /// <summary>
-/// Emitted by the background clone service (T-09) on every <c>clone_status</c> transition
+/// Emitted on every <c>clone_status</c> transition
 /// (<c>pending → cloning</c>, <c>cloning → ready</c>, <c>cloning → failed</c>) and by the
 /// startup recovery pass when <c>cloning</c> bindings are flipped to
-/// <c>failed("interrupted")</c>. T-12 translates this into the wire event
-/// <c>intent.repository_clone_progress</c>. The name follows the realtime-coverage
-/// gate's PascalCase convention (<c>intent.repository_clone_progress</c> →
+/// <c>failed("interrupted")</c>. Name follows the realtime-coverage gate's
+/// PascalCase convention (<c>intent.repository_clone_progress</c> →
 /// <c>IntentRepositoryCloneProgress</c>) so events.yaml and this record stay in lock-step.
 /// </summary>
 public sealed record IntentRepositoryCloneProgress(IntentRepositoryBinding Binding) : IDomainEvent;
@@ -94,14 +87,9 @@ public sealed record RepositoryPullRequestSynced(
     int CommentCount) : IDomainEvent;
 
 /// <summary>
-/// A previously-unseen review comment was observed for the binding's pull request
-/// (either by the background <c>PullRequestSyncService</c> (T-10) or by the manual
-/// sync use-case in T-08, which shares the same pipeline). Carried by
-/// <see cref="Throne.Application.Repositories.SyncRepositoryPullRequestResult"/> so the
-/// dispatching unit-of-work fans the contract event
-/// <c>intent.pr_comment_added</c> out after the binding-state write commits.
-/// The payload travels with the full upstream-body in-memory and is NOT persisted
-/// in Throne — see intent 9aa2c64ff2a94410b7352eada1350ad0 (pointer-only storage).
+/// Previously-unseen review comment observed for the binding's pull request.
+/// The payload travels with the full upstream body in-memory and is NOT persisted
+/// (pointer-only storage — GitHub is the source of truth).
 /// </summary>
 public sealed record IntentPrCommentAdded(
     IntentRepositoryBinding Binding,

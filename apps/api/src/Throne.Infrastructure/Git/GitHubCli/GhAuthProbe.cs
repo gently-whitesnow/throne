@@ -7,9 +7,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// <summary>
 /// Runs the <c>gh api user -i</c> probe and folds CLI / network failures into
 /// a non-authenticated <see cref="ProviderAuthStatus"/> so the settings page
-/// (T-16) never observes a thrown <see cref="GitProviderException"/>. Extracted
-/// from <see cref="GitHubCliProvider"/> to keep that class under the CA1502
-/// cyclomatic budget.
+/// never observes a thrown <see cref="GitProviderException"/>.
 /// </summary>
 internal sealed class GhAuthProbe(GhCliInvoker gh)
 {

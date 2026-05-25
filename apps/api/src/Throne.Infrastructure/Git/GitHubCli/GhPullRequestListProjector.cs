@@ -4,9 +4,7 @@ using Throne.Application.Git;
 namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
-/// Per-element projector for <see cref="GhPullRequestListParser"/>. Lives in
-/// its own type so the parser's per-class cyclomatic budget (CA1502) stays
-/// clean — same split pattern as <see cref="GhRepoListParser"/>.
+/// Per-element projector for <see cref="GhPullRequestListParser"/>.
 /// </summary>
 internal static class GhPullRequestListProjector
 {

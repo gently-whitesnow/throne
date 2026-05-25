@@ -8,7 +8,7 @@ namespace Throne.Infrastructure.Git;
 
 /// <summary>
 /// <see cref="BackgroundService"/> implementing the polling side of the PR review-comment
-/// sync (ADR-0024 § 6, T-10). Thin host wrapper: the per-tick orchestration lives in
+/// sync (ADR-0024 § 6). Thin host wrapper: the per-tick orchestration lives in
 /// the Application-layer <see cref="PullRequestSyncTickWorkflow"/> so it can be
 /// unit-tested without a hosted-service rig.
 ///

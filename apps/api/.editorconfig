@@ -65,7 +65,7 @@ dotnet_diagnostic.CA1707.severity = none
 [src/Throne.Api/Mcp/Tools/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 
-# intent:4b43b94c4a194a30b8ddb99c67643d7f: CA1502(Type) суммирует cyclomatic по всем
+# CA1502(Type) суммирует cyclomatic по всем
 # членам типа. NSwag-generated REST-контроллер декларирует по одному abstract overrides
 # на route; с 10+ routes type-level sum не помещается под 10 даже при `=> _x.Run(...)`
 # trampoline-телах (каждое тело — минимум 1 CC). Это арифметика surface area, а не
@@ -73,7 +73,6 @@ dotnet_diagnostic.CA1707.severity = none
 [**/Throne.Api/**/*Controller.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# intent:aa5b39b430c54685a08f475d3be167b9 (Phase 4 quality cleanup).
 # Mongo Infrastructure is an adapter layer between strongly-typed Builders<T> /
 # BsonElement POCOs and a polymorphic document store. CA1502 (cyclomatic
 # per-type ≤10) and CA1506 (coupling per type ≤120) are structurally too tight
@@ -91,7 +90,7 @@ dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1506.severity = none
 
-# intent:aa5b39b430c54685a08f475d3be167b9: Imaging worker streams images and
+# Imaging worker streams images and
 # dispatches by codec; Manifest provider parses YAML skill bundles with a
 # multi-arm format-version dispatch. Same Builders / dispatch precedent — the
 # per-type cyclomatic budget is structurally over 10 and there is no useful
@@ -102,7 +101,7 @@ dotnet_diagnostic.CA1502.severity = none
 [**/Throne.Infrastructure/Manifest/**.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# intent:2a8ecca5b990437da9448c73974d27ee — `GitHubCliProvider` is the IGitProvider
+# `GitHubCliProvider` is the IGitProvider
 # facade that fans out to per-aspect helpers (search / clone / sync / auth / PR
 # snapshot / PR comments / branches / PR list). Each interface method is a
 # one-line `=> helper.Method(...)` trampoline; type-level cyclomatic is just the
@@ -113,7 +112,7 @@ dotnet_diagnostic.CA1502.severity = none
 [**/Throne.Infrastructure/Git/GitHubCli/GitHubCliProvider.cs]
 dotnet_diagnostic.CA1502.severity = none
 
-# intent:aa5b39b430c54685a08f475d3be167b9: tests/** with CA1502/CA1506
+# tests/** with CA1502/CA1506
 # suppressions are structural test designs, not god-class symptoms:
 #
 #   * NetArchTest / Mono.Cecil / reflection rules in Throne.Architecture.Tests
@@ -130,7 +129,7 @@ dotnet_diagnostic.CA1502.severity = none
 # Splitting any of these hides the test intent; the existing solo CA1502
 # per-method ≤30 and CA1506 method-level ≤50 continue to catch genuine
 # accidental complexity introduced by a single test method.
-# intent:6e96cd2226e843ddbfe08f2502d49cbe — MCP wire-policy renderers
+# MCP wire-policy renderers
 # (ADR-0003 §8.1) собирают plain-text Content[] + compact StructuredContent refs
 # по каждому tool-результату. Type-level cyclomatic суммируется по Append*
 # хелперам + null-/pattern-checks (опциональный applied_text, reject_comment,

@@ -7,7 +7,7 @@ using Throne.Realtime.Contracts.Generated;
 namespace Throne.Api.Realtime;
 
 /// <summary>
-/// Maps Intent ↔ repository binding lifecycle domain events (ADR-0024, slice 1)
+/// Maps Intent ↔ repository binding lifecycle domain events (ADR-0024)
 /// onto the contract-first realtime envelopes declared in
 /// <c>specs/contracts/realtime/events.yaml</c>:
 /// <list type="bullet">

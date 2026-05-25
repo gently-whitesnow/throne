@@ -6,9 +6,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// <summary>
 /// Per-item projector for a GitHub review-comment JSON object. Best-effort:
 /// missing required fields drop the row rather than throwing — the polling
-/// service (T-10) prefers a partial feed over a poison message. JSON readers
-/// for the individual properties live in <see cref="GhPullRequestCommentJson"/>
-/// so this class stays inside the CA1502 per-type cyclomatic budget.
+/// service prefers a partial feed over a poison message.
 /// </summary>
 internal static class GhPullRequestCommentProjector
 {

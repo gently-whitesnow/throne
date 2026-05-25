@@ -2,8 +2,7 @@ namespace Throne.Application.Git;
 
 /// <summary>
 /// Kinds of upstream failures an <see cref="IGitProvider"/> can surface. The
-/// enum is intentionally small — callers (RepositoryBindingService in T-08,
-/// the clone queue in T-09, the API layer in T-11) only need to distinguish
+/// enum is intentionally small — callers only need to distinguish
 /// «not authenticated», «upstream unreachable / network» and «404» to map them
 /// to user-visible messages and clone-status transitions per ADR-0024 § 5/7.
 /// </summary>
@@ -24,9 +23,8 @@ public enum GitProviderErrorKind
 
 /// <summary>
 /// Structured failure raised by <see cref="IGitProvider"/> implementations.
-/// Wraps the vendor CLI stderr verbatim in <see cref="Detail"/> so the
-/// settings page (T-16) and the binding service (T-08) can render an actionable
-/// message without re-parsing CLI output.
+/// Wraps the vendor CLI stderr verbatim in <see cref="Detail"/> so callers can
+/// render an actionable message without re-parsing CLI output.
 /// </summary>
 public sealed class GitProviderException : Exception
 {

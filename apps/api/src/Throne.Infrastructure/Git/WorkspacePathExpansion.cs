@@ -2,8 +2,7 @@ namespace Throne.Infrastructure.Git;
 
 /// <summary>
 /// Expands a leading <c>~</c> in a configured workspace path to the current
-/// user's home directory. Split out of <see cref="WorkspaceRootInitializer"/>
-/// so the initializer's per-type cyclomatic budget (CA1502) stays clean.
+/// user's home directory.
 /// </summary>
 internal static class WorkspacePathExpansion
 {

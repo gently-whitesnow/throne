@@ -2,7 +2,7 @@ namespace Throne.Application.Git;
 
 /// <summary>
 /// Resolves the right <see cref="IGitProvider"/> for a given provider key.
-/// Slice 1 registers only <c>github</c>; slice 5 adds <c>gitlab</c> without
+/// Only <c>github</c> is registered today; <c>gitlab</c> will plug in without
 /// touching the registry's public surface.
 /// </summary>
 public interface IGitProviderRegistry

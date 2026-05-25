@@ -12,7 +12,7 @@ internal static class IntentRepositoryBindingGuards
     }
 
     /// <summary>
-    /// <c>failed</c> is reachable from either <c>pending</c> (interrupted at restart, T-09) or
+    /// <c>failed</c> is reachable from either <c>pending</c> (interrupted at restart) or
     /// <c>cloning</c> (clone crashed) per ADR-0024 §5.
     /// </summary>
     public static void EnsureFailedTransition(string current)

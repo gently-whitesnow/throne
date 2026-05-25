@@ -4,8 +4,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// Pulls the <c>X-OAuth-Scopes</c> header out of a <c>gh api user -i</c> response
 /// and projects it both as a structured array (for the settings DTO) and as a
 /// human-readable detail string (for the legacy <c>Detail</c> field on
-/// <c>ProviderAuthStatus</c>). Extracted from <see cref="GhAuthStatusParser"/>
-/// so the parser body stays under the CA1502 cyclomatic budget.
+/// <c>ProviderAuthStatus</c>).
 /// </summary>
 internal static class GhScopeReader
 {

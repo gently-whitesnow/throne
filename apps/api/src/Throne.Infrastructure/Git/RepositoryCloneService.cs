@@ -8,7 +8,7 @@ namespace Throne.Infrastructure.Git;
 
 /// <summary>
 /// <see cref="BackgroundService"/> implementing the consumer side of the
-/// clone-on-bind queue (ADR-0024 § 5, T-09).
+/// clone-on-bind queue (ADR-0024 § 5).
 ///
 /// Boot-up sequence:
 /// <list type="number">

@@ -5,9 +5,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// Post-response guards for the PR surface — rate-limit detection and the
-/// «non-2xx → typed exception» mapping. Split out from
-/// <see cref="GhPrResponse"/> so each helper class stays inside the CA1502
-/// per-type cyclomatic budget.
+/// «non-2xx → typed exception» mapping.
 /// </summary>
 internal static class GhPrResponseGuard
 {

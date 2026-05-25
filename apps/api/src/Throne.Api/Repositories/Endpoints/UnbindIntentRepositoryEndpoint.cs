@@ -5,9 +5,9 @@ using Throne.Application.Repositories;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Backs <c>DELETE /api/v1/intents/{intent_id}/repositories/{binding_id}</c>.
 /// Idempotent — a missing binding still answers 204 per the OpenAPI contract.
-/// The on-disk workspace directory is intentionally left alone (slice 6 cleanup).
+/// The on-disk workspace directory is intentionally left alone; disk cleanup
+/// is out of scope.
 /// </summary>
 public sealed class UnbindIntentRepositoryEndpoint(RepositoryBindingService service)
 {

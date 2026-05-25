@@ -2,8 +2,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
 /// Splits a <c>gh api -i</c> raw output (status line + headers + blank line + body)
-/// into a header dictionary and body string. Lives in a dedicated type so
-/// <see cref="GhAuthStatusParser"/> stays under the CA1502 cyclomatic budget.
+/// into a header dictionary and body string.
 /// </summary>
 internal static class GhHttpResponseSplitter
 {

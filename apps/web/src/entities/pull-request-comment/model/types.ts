@@ -7,9 +7,9 @@ export type PullRequestSyncResult =
   RepositoriesComponents["schemas"]["PullRequestSyncResultDto"];
 
 /**
- * Stable ordering for the comments feed (ascending by `created_at`). Slice 1
- * loads the entire feed in one request — server-side pagination is a later
- * intent — so consumers sort once and render.
+ * Stable ordering for the comments feed (ascending by `created_at`). The
+ * entire feed is loaded in one request — server-side pagination is deferred —
+ * so consumers sort once and render.
  */
 export function compareComments(
   a: PullRequestComment,

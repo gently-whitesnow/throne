@@ -4,8 +4,7 @@ namespace Throne.Infrastructure.Git;
 
 /// <summary>
 /// Probes that <paramref name="path"/> is writable by creating and deleting a
-/// throw-away file. Split out of <see cref="WorkspaceRootInitializer"/> so the
-/// initializer's per-type cyclomatic budget (CA1502) stays clean.
+/// throw-away file.
 /// </summary>
 internal static class WorkspaceWritabilityProbe
 {

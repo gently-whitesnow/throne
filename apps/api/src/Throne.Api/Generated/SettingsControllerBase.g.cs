@@ -33,7 +33,7 @@ namespace Throne.Api.Generated
         /// Read the workspace root configuration and its current size.
         /// </summary>
         /// <remarks>
-        /// Returns the resolved `Throne:Workspace:Root` plus an optional global size on disk. `status=calculating` lets the UI render a skeleton while the size computation runs in the background; `status=ready` means `total_size_bytes` is fresh. Per-intent sizes are out of scope for slice 1 (see parent slice review notes).
+        /// Returns the resolved `Throne:Workspace:Root` plus an optional global size on disk. `status=calculating` lets the UI render a skeleton while the size computation runs in the background; `status=ready` means `total_size_bytes` is fresh. Per-intent sizes are out of scope.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/workspace", Name = "getWorkspaceSettings")]
@@ -43,7 +43,7 @@ namespace Throne.Api.Generated
         /// Authentication status for every configured git provider CLI.
         /// </summary>
         /// <remarks>
-        /// Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Slice 1 returns only the `github` entry; `gitlab` lands in slice 5 alongside `GitLabCliProvider`.
+        /// Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Only the `github` entry is returned today; `gitlab` will land alongside `GitLabCliProvider`.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/git-providers/status", Name = "getGitProvidersStatus")]

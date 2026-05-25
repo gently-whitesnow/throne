@@ -3,9 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace Throne.Infrastructure.Git;
 
 /// <summary>
-/// LoggerMessage source-generator host for <see cref="ProcessRunner"/>. Lives
-/// in its own type so the generated delegate-cache code stays out of the
-/// runner's cyclomatic-complexity budget (CA1502).
+/// LoggerMessage source-generator host for <see cref="ProcessRunner"/>.
 /// </summary>
 internal static partial class ProcessRunnerLog
 {

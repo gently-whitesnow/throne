@@ -6,9 +6,7 @@ namespace Throne.Application.Repositories;
 /// <summary>
 /// Save-side outcome of a single clone-state transition. Implements
 /// <see cref="IDomainEventCarrier"/> so the dispatching unit-of-work emits
-/// <see cref="IntentRepositoryCloneProgress"/> after a successful Mongo commit
-/// without the background worker (T-09) calling the event dispatcher by hand.
-///
+/// <see cref="IntentRepositoryCloneProgress"/> after a successful Mongo commit.
 /// <see cref="Vanished"/> is the no-event branch — happens when the binding was
 /// deleted between the worker's <c>GetByIdAsync</c> and <c>SaveAsync</c>.
 /// </summary>

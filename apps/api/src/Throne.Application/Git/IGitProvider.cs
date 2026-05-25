@@ -4,11 +4,8 @@ namespace Throne.Application.Git;
 /// Port for a git hosting provider (GitHub / GitLab / …) as defined in ADR-0024 § 3.
 /// Implementations shell out to vendor CLI tools (<c>gh</c>, <c>glab</c>) via the
 /// <see cref="Ports.IProcessLauncher"/> seam — Throne intentionally does not maintain
-/// its own OAuth client.
-///
-/// All methods return typed DTOs, never raw CLI output, so consumers (clone /
-/// PR-sync background services in slice 1) can be unit-tested without spawning
-/// processes. The matching implementations land in T-06 / T-07.
+/// its own OAuth client. All methods return typed DTOs, never raw CLI output, so
+/// consumers can be unit-tested without spawning processes.
 /// </summary>
 public interface IGitProvider
 {
@@ -107,7 +104,7 @@ public interface IGitProvider
 
     /// <summary>
     /// Probe the vendor CLI's auth state without performing any side effect.
-    /// Used by the settings page (T-16) and the bind-modal precondition check.
+    /// Used by the settings page and the bind-modal precondition check.
     /// </summary>
     Task<ProviderAuthStatus> GetAuthStatusAsync(CancellationToken ct);
 }

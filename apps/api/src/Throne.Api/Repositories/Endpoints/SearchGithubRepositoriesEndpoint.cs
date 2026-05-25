@@ -9,9 +9,6 @@ using WireScope = Throne.Repositories.Contracts.Generated.RepositorySearchScope;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Backs <c>GET /api/v1/git-providers/github/repositories/search</c> (T-11).
-/// Resolves the GitHub provider through <see cref="IGitProviderRegistry"/> and
-/// delegates the search to <see cref="IGitProvider.SearchRepositoriesAsync"/>.
 /// 422 surfaces both <c>provider_unsupported</c> and <c>provider_not_authenticated</c>
 /// per ADR-0024 § 3.
 /// </summary>

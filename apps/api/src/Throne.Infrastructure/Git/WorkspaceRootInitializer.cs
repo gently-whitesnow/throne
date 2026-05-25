@@ -6,17 +6,12 @@ using Throne.Application.Git;
 namespace Throne.Infrastructure.Git;
 
 /// <summary>
-/// Boot-time guard for the workspace root (ADR-0024 § 1 / T-05 ревью D1).
-/// On start:
+/// Boot-time guard for the workspace root (ADR-0024 § 1). On start:
 ///   1) Reads <c>Throne:Workspace:Root</c> (default <c>~/.throne/workspaces</c>).
 ///   2) Expands a leading <c>~</c> via <see cref="WorkspacePathExpansion"/>.
 ///   3) Creates the directory recursively.
 ///   4) Probes write access via <see cref="WorkspaceWritabilityProbe"/>.
 ///   5) Throws on failure — Throne refuses to start without a writable workspace.
-///
-/// The resolved absolute path is exposed via <see cref="ResolvedRoot"/> so other
-/// infrastructure components (T-08 / T-09) can compose binding paths off the
-/// same value the operator sees in logs.
 /// </summary>
 internal sealed class WorkspaceRootInitializer(
     IOptions<WorkspaceOptions> options,

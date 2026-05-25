@@ -1,8 +1,7 @@
 namespace Throne.Domain.Repositories;
 
 /// <summary>
-/// Mutable portion of <see cref="IntentRepositoryBinding"/> grouped into a record so the
-/// aggregate's constructor stays trivial and CA1502 cyclomatic budgets are respected.
+/// Mutable portion of <see cref="IntentRepositoryBinding"/> grouped into a record.
 /// </summary>
 public sealed record IntentRepositoryBindingState(
     string DefaultBranch,

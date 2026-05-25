@@ -120,7 +120,7 @@ export interface paths {
         post?: never;
         /**
          * Detach a repository binding from an intent.
-         * @description Removes the binding record. The workspace directory on disk is intentionally NOT removed (slice 6 covers cleanup). Idempotent — returns 204 whether or not the binding existed.
+         * @description Removes the binding record. The workspace directory on disk is intentionally NOT removed (disk cleanup is out of scope). Idempotent — returns 204 whether or not the binding existed.
          */
         delete: operations["unbindIntentRepository"];
         options?: never;
@@ -157,7 +157,7 @@ export interface paths {
         };
         /**
          * Read stored PR review comments for a binding.
-         * @description Returns the locally persisted feed of review comments for the binding's PR, ordered ascending by `created_at`. Slice 1 covers review comments only (issue-comments — separate intent post-slice 1). Pagination is intentionally absent in slice 1 (see parent slice decision); the server returns the full feed.
+         * @description Returns the locally persisted feed of review comments for the binding's PR, ordered ascending by `created_at`. Review comments only (issue-comments are out of scope). Pagination is intentionally absent; the server returns the full feed.
          */
         get: operations["listIntentRepositoryPullRequestComments"];
         put?: never;
@@ -173,7 +173,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Set of supported git providers. Slice 1 ships only `github`; `gitlab` arrives in slice 5.
+         * @description Set of supported git providers. Only `github` is shipped today.
          * @enum {string}
          */
         GitProvider: "github";
@@ -232,7 +232,7 @@ export interface components {
              */
             pull_request_number?: number | null;
         };
-        /** @description Compact projection used by MCP `get_intent.repositories[]` (see T-13). The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`. */
+        /** @description Compact projection used by MCP `get_intent.repositories[]`. The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`. */
         RepositoryBindingSummary: {
             binding_id: string;
             provider: components["schemas"]["GitProvider"];
@@ -261,7 +261,7 @@ export interface components {
             /** Format: int32 */
             pull_request_number?: number | null;
             pull_request_state?: components["schemas"]["PullRequestState"] | null;
-            /** @description Last ETag observed for the PR review-comments feed. Used for conditional GET on the next polling cycle; slice 1 covers review comments only. */
+            /** @description Last ETag observed for the PR review-comments feed. Used for conditional GET on the next polling cycle. */
             review_comments_etag?: string | null;
             /** Format: date-time */
             last_synced_at?: string | null;
@@ -300,7 +300,7 @@ export interface components {
              * @description Full count of stored review comments for the binding after sync.
              */
             total_comments: number;
-            /** @description Full review-comments feed after sync (slice 1 returns it unpaginated). */
+            /** @description Full review-comments feed after sync (unpaginated). */
             comments: components["schemas"]["PullRequestCommentDto"][];
             pull_request_state?: components["schemas"]["PullRequestState"] | null;
             /** Format: date-time */

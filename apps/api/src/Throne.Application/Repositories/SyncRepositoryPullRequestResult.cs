@@ -15,9 +15,9 @@ namespace Throne.Application.Repositories;
 /// in that case <see cref="NewComments"/> and <see cref="AllStored"/> are empty, no
 /// per-comment events are raised, and HTTP callers reuse their client-side cache.
 ///
-/// Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server never persists comment bodies:
-/// <see cref="AllStored"/> is the upstream-fresh list from the provider call, not a Mongo
-/// projection. The name is preserved for wire-shape continuity with slice 1.
+/// The server never persists comment bodies: <see cref="AllStored"/> is the
+/// upstream-fresh list from the provider call, not a Mongo projection. The
+/// name is preserved for wire-shape continuity.
 ///
 /// The same carrier is returned by both the manual sync use-case
 /// (<c>RepositoryBindingService.SyncPullRequestAsync</c>) and the background poller

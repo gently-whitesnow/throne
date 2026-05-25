@@ -17,12 +17,12 @@ interface RepositoryBindingsListProps {
  * хук уже подписан на `intent.repository_bound`, `intent.repository_unbound`
  * и `intent.repository_clone_progress`, поэтому виджет ничего не дублирует и
  * только рендерит производное состояние списка плюс заголовок с кнопкой
- * «Bind repository» (модал — отдельный T-19).
+ * «Bind repository» (модал живёт отдельно).
  *
  * Per-row «Обновить» дёргает `refresh()` хука (re-fetch списка) — это самая
- * дешёвая консервативная семантика для slice 1. PR-sync вынесен в виджет
- * pull-request-comments (T-20), чтобы не дублировать действие и не мешать
- * двум секциям одной странице.
+ * дешёвая консервативная семантика. PR-sync вынесен в виджет
+ * pull-request-comments, чтобы не дублировать действие и не мешать
+ * двум секциям одной страницы.
  */
 export function RepositoryBindingsList({
   intentId

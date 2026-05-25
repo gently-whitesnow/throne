@@ -46,7 +46,7 @@ const EMPTY_FORM: BindRepositoryFormState = {
  *    the binding as repo-only.
  *  - 409 → human-readable "репозиторий уже привязан" message. On success the
  *    modal closes immediately; the realtime `intent.repository_bound` event
- *    (handled by `useIntentRepositories` in the T-18 list) inserts the row.
+ *    (handled by `useIntentRepositories`) inserts the row.
  */
 export function BindRepositoryModal({
   intentId,

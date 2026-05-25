@@ -6,9 +6,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// <summary>
 /// Parses the JSON body of
 /// <c>GET /repos/{owner}/{repo}/pulls/{number}/comments</c> — the review-comments
-/// feed (D3 review note: slice 1 ships only review-comments, not issue-comments).
-/// Per-item projection lives in <see cref="GhPullRequestCommentProjector"/> so
-/// this parser stays inside the CA1502 cyclomatic budget.
+/// feed only (not issue-comments).
 /// </summary>
 internal static class GhPullRequestCommentsParser
 {

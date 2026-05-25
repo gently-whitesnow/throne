@@ -8,9 +8,9 @@ namespace Throne.Application.Repositories;
 /// poller so the «detect new comments → fan out <c>intent.pr_comment_added</c>»
 /// pipeline cannot drift between the two surfaces.
 ///
-/// Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server is pointer-only: it stores
-/// the <c>review_comments_etag</c> + <c>last_seen_review_comment_at</c> cursor on the
-/// binding and never persists comment bodies.
+/// The server is pointer-only: it stores the <c>review_comments_etag</c> +
+/// <c>last_seen_review_comment_at</c> cursor on the binding and never persists
+/// comment bodies.
 /// <list type="bullet">
 ///   <item>200 Fresh → filter incoming comments against the cursor, raise
 ///         <c>IntentPrCommentAdded</c> per new comment with the full body in the

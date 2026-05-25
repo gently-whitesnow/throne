@@ -25,7 +25,7 @@ public interface IProcessLauncher
 
 /// <summary>
 /// Inputs for a single <see cref="IProcessLauncher.RunAsync"/> call. Inline
-/// stdin is intentionally omitted — slice 1's <c>gh</c> calls never need it.
+/// stdin is intentionally omitted — current <c>gh</c> call surface never needs it.
 /// </summary>
 /// <param name="FileName">Executable name or absolute path (e.g. <c>gh</c>).</param>
 /// <param name="Arguments">

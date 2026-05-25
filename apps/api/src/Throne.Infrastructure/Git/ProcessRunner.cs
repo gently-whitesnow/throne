@@ -9,8 +9,6 @@ namespace Throne.Infrastructure.Git;
 /// Owns: timeouts, capture of stdout/stderr, exit code, cancellation, env merge,
 /// structured logging. Per ADR-0024 § 3 no provider implementation talks to
 /// <see cref="Process"/> directly — they all go through this runner.
-/// Construction helpers live in companion types so this class stays inside the
-/// CA1502 type-level cyclomatic budget.
 /// </summary>
 internal sealed class ProcessRunner(ILogger<ProcessRunner> log) : IProcessLauncher
 {

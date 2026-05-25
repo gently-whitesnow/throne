@@ -3,11 +3,6 @@ using Throne.Repositories.Contracts.Generated;
 
 namespace Throne.Api.Repositories;
 
-/// <summary>
-/// Projects a domain <see cref="IntentRepositoryBinding"/> onto the wire
-/// <see cref="RepositoryBindingDto"/>. Split out of <see cref="RepositoryDtoMapper"/>
-/// so the per-class CA1502 cyclomatic budget holds.
-/// </summary>
 internal static class RepositoryBindingDtoMapper
 {
     public static RepositoryBindingDto ToDto(IntentRepositoryBinding binding)

@@ -9,7 +9,7 @@ import { WorkspaceCard } from "@/widgets/workspace-card";
  *
  * Три секции:
  *   * «MCP-токен» — Personal Access Token для MCP-клиентов.
- *   * «Провайдеры Git» — статус `gh auth status` (T-16).
+ *   * «Провайдеры Git» — статус `gh auth status`.
  *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
  */
 export function SettingsPage() {

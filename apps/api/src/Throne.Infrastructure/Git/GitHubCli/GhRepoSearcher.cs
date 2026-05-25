@@ -6,9 +6,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// Per-scope <c>gh</c> repo enumeration. <c>mine</c> goes through
 /// <c>gh repo list --json</c>; <c>involved</c> overlays
 /// <c>gh api /user/repos?affiliation=collaborator,organization_member</c> per
-/// ADR-0024 § 3 and is deduplicated by <c>{owner}/{repo}</c>. The two CLI
-/// calls live in <see cref="GhRepoListExecutor"/> to keep this class inside the
-/// CA1502 cyclomatic budget.
+/// ADR-0024 § 3 and is deduplicated by <c>{owner}/{repo}</c>.
 /// </summary>
 internal sealed class GhRepoSearcher(GhCliInvoker gh, GhRepoListExecutor executor)
 {

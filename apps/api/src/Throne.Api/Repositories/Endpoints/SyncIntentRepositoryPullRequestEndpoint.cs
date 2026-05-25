@@ -6,10 +6,9 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Backs <c>POST /api/v1/intents/{intent_id}/repositories/{binding_id}/sync</c>.
-/// Synchronous per parent Q5 / ADR-0024 § 6: blocks for the upstream <c>gh api</c>
+/// Synchronous per ADR-0024 § 6: blocks for the upstream <c>gh api</c>
 /// round-trip and returns the freshly-observed comments. Background fanout for
-/// other open clients is handled by the dispatching unit-of-work + T-12 emitters.
+/// other open clients is handled by the dispatching unit-of-work.
 /// </summary>
 public sealed class SyncIntentRepositoryPullRequestEndpoint(RepositoryBindingService service)
 {

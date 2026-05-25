@@ -18,7 +18,7 @@ export function listPullRequestComments(
 }
 
 /**
- * Manual refresh (slice 1, ADR-0024): the endpoint is synchronous, returns the
+ * Manual refresh (ADR-0024): the endpoint is synchronous, returns the
  * full review-comments feed after talking to upstream, and `intent.pr_comment_added`
  * is still fanned out for other open tabs.
  */
