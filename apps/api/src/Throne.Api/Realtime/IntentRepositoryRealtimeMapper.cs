@@ -42,7 +42,7 @@ internal static class IntentRepositoryRealtimeMapper
             {
                 intent_id = commentAdded.Binding.IntentId.Value,
                 binding_id = commentAdded.Binding.Id.Value,
-                comment = PullRequestCommentDtoMapper.ToDto(commentAdded.Comment),
+                comment = PullRequestCommentDtoMapper.ToDto(commentAdded.Comment, commentAdded.Binding.Id),
             }),
         _ => null,
     };

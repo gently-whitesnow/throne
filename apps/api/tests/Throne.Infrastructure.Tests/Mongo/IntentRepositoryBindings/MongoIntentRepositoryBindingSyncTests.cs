@@ -144,7 +144,7 @@ public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
         }
         if (lastSyncedAt is not null)
         {
-            binding.RecordSync(etag: "W/\"abc\"", lastSyncedAt.Value);
+            binding.RecordSync(etag: "W/\"abc\"", lastSeenReviewCommentAt: null, lastSyncedAt.Value);
         }
         await scope.Repository.CreateAsync(binding, CancellationToken.None);
         return binding.Id.Value;

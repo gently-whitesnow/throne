@@ -6,13 +6,16 @@ namespace Throne.Application.Repositories;
 
 /// <summary>
 /// Persistence-side helper for <see cref="RepositoryPullRequestSyncWorkflow"/>. Owns
-/// the «save binding state + store new comments» transaction and the page-kind
-/// switch — keeping the workflow itself focused on the upstream call shape and the
-/// 404 → broken decision so the per-type CA1502 cyclomatic budget holds.
+/// the binding-state save and the page-kind switch.
+///
+/// Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server keeps a pointer-only cursor
+/// (<c>review_comments_etag</c> + <c>last_seen_review_comment_at</c>) and never persists
+/// comment bodies. New comments are detected by filtering the upstream-fresh page against
+/// the stored cursor; the carrier returned here fans <see cref="Events.IntentPrCommentAdded"/>
+/// out with the full body still in memory.
 /// </summary>
 public sealed class RepositoryPullRequestSyncPersistence(
     IIntentRepositoryBindingRepository bindings,
-    IPullRequestCommentRepository comments,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -23,26 +26,25 @@ public sealed class RepositoryPullRequestSyncPersistence(
         PullRequestCommentsPage page,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(binding);
         ArgumentNullException.ThrowIfNull(page);
-        var now = clock.GetUtcNow();
-        var snapshot = ProjectIncoming(page, binding);
-        var records = MapToRecords(snapshot.Comments, binding, now);
 
-        // Wrap save + comment-persist in a single unit of work and return the public
-        // SyncRepositoryPullRequestResult so the dispatching unit-of-work decorator
-        // sees one carrier with both RepositoryPullRequestSynced and the per-comment
-        // IntentPrCommentAdded events. Without this the events would stop at the
-        // inner PersistPullRequestCommentsOutcome and the outer carrier's events
-        // would never reach the realtime fanout (T-12).
+        var snapshot = ProjectIncoming(page, binding);
+        var newComments = PullRequestCommentCursor.FilterNew(snapshot.Comments, binding.State.LastSeenReviewCommentAt);
+        var cursor = PullRequestCommentCursor.Advance(binding.State.LastSeenReviewCommentAt, newComments);
+        var now = clock.GetUtcNow();
+
+        // Wrap binding save in the unit of work so the dispatching decorator sees the
+        // SyncRepositoryPullRequestResult carrier and fans out the per-comment events
+        // after the binding-state write commits.
         return unitOfWork.ExecuteAsync(
             async inner =>
             {
-                var savedBinding = await SaveBindingStateAsync(binding, snapshot.Etag, now, inner);
-                var outcome = await comments.PersistNewAsync(savedBinding, records, inner);
+                var savedBinding = await SaveBindingStateAsync(binding, snapshot.Etag, cursor, now, inner);
                 return new SyncRepositoryPullRequestResult(
-                    Binding: outcome.Binding,
-                    NewComments: outcome.Inserted,
-                    AllStored: outcome.AllStored,
+                    Binding: savedBinding,
+                    NewComments: newComments,
+                    AllStored: snapshot.Comments,
                     NotModified: snapshot.NotModified);
             },
             ct);
@@ -67,10 +69,11 @@ public sealed class RepositoryPullRequestSyncPersistence(
     private async Task<IntentRepositoryBinding> SaveBindingStateAsync(
         IntentRepositoryBinding binding,
         string? etag,
+        DateTimeOffset? cursor,
         DateTimeOffset now,
         CancellationToken ct)
     {
-        binding.RecordSync(etag, now);
+        binding.RecordSync(etag, cursor, now);
         var outcome = await bindings.SaveAsync(binding, ct);
         return outcome switch
         {
@@ -90,25 +93,6 @@ public sealed class RepositoryPullRequestSyncPersistence(
             PullRequestCommentsPage.NotModified => new IncomingPage([], binding.State.ReviewCommentsEtag, NotModified: true),
             _ => throw new InvalidOperationException($"Unhandled page kind: {page.GetType().Name}"),
         };
-
-    private static List<PullRequestCommentRecord> MapToRecords(
-        IReadOnlyList<PullRequestComment> fetched,
-        IntentRepositoryBinding binding,
-        DateTimeOffset observedAt) =>
-        fetched
-            .Select(c => new PullRequestCommentRecord(
-                BindingId: binding.Id,
-                IntentId: binding.IntentId,
-                UpstreamId: c.Id,
-                AuthorLogin: c.AuthorLogin,
-                Body: c.Body,
-                CreatedAt: c.CreatedAt,
-                ObservedAt: observedAt,
-                AuthorAvatarUrl: c.AuthorAvatarUrl,
-                HtmlUrl: c.HtmlUrl,
-                Path: c.Path,
-                UpdatedAt: c.UpdatedAt))
-            .ToList();
 
     private sealed record IncomingPage(
         IReadOnlyList<PullRequestComment> Comments,

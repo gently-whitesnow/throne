@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Throne.Api.Realtime;
 using Throne.Application.Events;
+using Throne.Application.Git;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 using Throne.Realtime.Contracts.Generated;
@@ -102,14 +103,11 @@ public class IntentRepositoryRealtimeMapperTests
     public void Maps_pr_comment_added_with_nested_comment_dto()
     {
         var binding = MakePending(prNumber: 42);
-        var comment = new PullRequestCommentRecord(
-            BindingId: binding.Id,
-            IntentId: binding.IntentId,
-            UpstreamId: "rc-1",
+        var comment = new PullRequestComment(
+            Id: "rc-1",
             AuthorLogin: "octocat",
             Body: "lgtm",
             CreatedAt: Now,
-            ObservedAt: Now.AddSeconds(5),
             AuthorAvatarUrl: "https://example.test/a.png",
             HtmlUrl: "https://example.test/pr/42#rc-1",
             Path: "src/x.cs",

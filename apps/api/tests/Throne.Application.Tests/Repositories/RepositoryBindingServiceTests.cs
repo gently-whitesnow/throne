@@ -174,14 +174,15 @@ public class RepositoryBindingServiceTests
             CancellationToken.None);
 
         result.NotModified.Should().BeFalse();
-        result.NewComments.Select(c => c.UpstreamId).Should().Equal("c1");
-        result.AllStored.Select(c => c.UpstreamId).Should().Equal("c1");
+        result.NewComments.Select(c => c.Id).Should().Equal("c1");
+        result.AllStored.Select(c => c.Id).Should().Equal("c1");
         result.Binding.State.ReviewCommentsEtag.Should().Be("W/\"abc\"");
+        result.Binding.State.LastSeenReviewCommentAt.Should().Be(Now);
         result.Binding.State.LastSyncedAt.Should().Be(Now);
         result.Events.OfType<RepositoryPullRequestSynced>().Should().ContainSingle()
             .Which.CommentCount.Should().Be(1);
         result.Events.OfType<IntentPrCommentAdded>().Should().ContainSingle()
-            .Which.Comment.UpstreamId.Should().Be("c1");
+            .Which.Comment.Id.Should().Be("c1");
     }
 
     [Fact(DisplayName = "SyncPullRequest на 304 не возвращает комментов и обновляет last_synced_at")]
@@ -270,6 +271,7 @@ public class RepositoryBindingServiceTests
             PullRequestNumber: pullRequestNumber,
             PullRequestState: pullRequestNumber is null ? null : PullRequestStateNames.Open,
             ReviewCommentsEtag: etag,
+            LastSeenReviewCommentAt: null,
             LastSyncedAt: null,
             CreatedAt: Now,
             UpdatedAt: Now);
@@ -292,8 +294,7 @@ public class RepositoryBindingServiceTests
             var clock = new FixedClock(Now);
             var resolver = new RepositoryBindingResolver(Intents, Bindings, Providers);
             var persistence = new RepositoryBindingPersistence(Bindings, unitOfWork, clock);
-            CommentStore = new RecordingPullRequestCommentStore();
-            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, CommentStore, unitOfWork, clock);
+            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
             var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, clock);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue, Workspace);
@@ -306,7 +307,6 @@ public class RepositoryBindingServiceTests
         public IWorkspaceRootProvider Workspace { get; }
         public RecordingCloneQueue Queue { get; }
         public RepositoryBindingService Service { get; }
-        public RecordingPullRequestCommentStore CommentStore { get; }
 
         public void IntentExists(string intentIdValue)
         {
@@ -357,28 +357,4 @@ public class RepositoryBindingServiceTests
         public override DateTimeOffset GetUtcNow() => now;
     }
 
-    private sealed class RecordingPullRequestCommentStore : IPullRequestCommentRepository
-    {
-        private readonly Dictionary<string, List<PullRequestCommentRecord>> _byBinding = new(StringComparer.Ordinal);
-
-        public Task<PersistPullRequestCommentsOutcome> PersistNewAsync(
-            IntentRepositoryBinding binding,
-            IReadOnlyList<PullRequestCommentRecord> candidates,
-            CancellationToken ct)
-        {
-            if (!_byBinding.TryGetValue(binding.Id.Value, out var stored))
-            {
-                stored = [];
-                _byBinding[binding.Id.Value] = stored;
-            }
-            var existing = stored.Select(c => c.UpstreamId).ToHashSet(StringComparer.Ordinal);
-            var inserted = candidates.Where(c => existing.Add(c.UpstreamId)).ToList();
-            stored.AddRange(inserted);
-            return Task.FromResult(new PersistPullRequestCommentsOutcome(binding, inserted, stored.ToList()));
-        }
-
-        public Task<IReadOnlyList<PullRequestCommentRecord>> ListByBindingAsync(BindingId bindingId, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<PullRequestCommentRecord>>(
-                _byBinding.TryGetValue(bindingId.Value, out var v) ? v.ToList() : []);
-    }
 }

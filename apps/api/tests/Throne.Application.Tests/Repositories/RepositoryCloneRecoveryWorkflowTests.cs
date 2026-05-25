@@ -67,6 +67,7 @@ public class RepositoryCloneRecoveryWorkflowTests
             PullRequestNumber: null,
             PullRequestState: null,
             ReviewCommentsEtag: null,
+            LastSeenReviewCommentAt: null,
             LastSyncedAt: null,
             CreatedAt: Now,
             UpdatedAt: Now);

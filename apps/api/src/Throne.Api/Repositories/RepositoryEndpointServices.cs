@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Repositories.Endpoints;
 using Throne.Api.Settings;
 using Throne.Api.Settings.Endpoints;
+using Throne.Application.Repositories;
 
 namespace Throne.Api.Repositories;
 
@@ -26,6 +27,7 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<UnbindIntentRepositoryEndpoint>();
         services.AddSingleton<SyncIntentRepositoryPullRequestEndpoint>();
         services.AddSingleton<ListIntentRepositoryPullRequestCommentsEndpoint>();
+        services.AddSingleton<ListPullRequestCommentsUseCase>();
 
         services.AddSingleton<WorkspaceSizeProbe>();
         services.AddSingleton<GetWorkspaceSettingsEndpoint>();

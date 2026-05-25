@@ -143,6 +143,7 @@ public class IntentRepositoryBindingFactoryTests
             PullRequestNumber: pullRequestNumber,
             PullRequestState: pullRequestState,
             ReviewCommentsEtag: reviewCommentsEtag,
+            LastSeenReviewCommentAt: null,
             LastSyncedAt: lastSyncedAt,
             CreatedAt: Now,
             UpdatedAt: Now);

@@ -16,7 +16,7 @@ public sealed record McpIntentReadResult(
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments,
     [property: Description("Outgoing + incoming graph edges incident to this intent. Mirror roles ('blocked_by' for incoming 'blocks', 'source_of' for incoming 'derived_from') are computed projections — the same edge appears once with a 'direction' field.")]
     IReadOnlyList<McpIntentLinkRead> Links,
-    [property: Description("Repository bindings attached to this intent (T-13). Empty when the intent has no bindings. The agent uses 'workspace_path' as the local working tree and 'pull_request_number' to read review comments via list_intent_pr_comments.")]
+    [property: Description("Repository bindings attached to this intent. Empty when the intent has no bindings. The agent uses 'workspace_path' as the local working tree; when 'pull_request_number' is present the agent reads review comments directly via `gh api repos/{owner}/{repo}/pulls/{n}/comments` — Throne does not cache comment bodies.")]
     IReadOnlyList<McpIntentRepositoryRef> Repositories);
 
 public sealed record McpIntentRepositoryRef(
@@ -29,20 +29,6 @@ public sealed record McpIntentRepositoryRef(
     [property: Description("Clone status: 'pending' | 'cloning' | 'ready' | 'failed' | 'broken'. Only 'ready' is safe to operate on.")] string CloneStatus,
     [property: Description("Pull request number attached to the binding when present; null otherwise.")] int? PullRequestNumber,
     [property: Description("Pull request state: 'open' | 'closed' | 'merged' when a PR is attached; null otherwise.")] string? PullRequestState);
-
-public sealed record McpIntentPrCommentsResult(
-    [property: Description("Review comments aggregated across all repository bindings of the intent, ordered by 'created_at' ASC. Empty when the intent has no bindings with attached PRs, or when the 'since' filter excludes everything.")]
-    IReadOnlyList<McpIntentPrComment> Items);
-
-public sealed record McpIntentPrComment(
-    [property: Description("Upstream review-comment id (stringified for wire stability).")] string Id,
-    [property: Description("Owning binding id; agent can map back to a specific repository.")] string BindingId,
-    [property: Description("Provider login of the comment author.")] string AuthorLogin,
-    [property: Description("Comment body (Markdown).")] string Body,
-    [property: Description("UTC timestamp of comment creation upstream. Filtering by 'since' uses this field.")] DateTimeOffset CreatedAt,
-    [property: Description("UTC timestamp of the last upstream edit, when available.")] DateTimeOffset? UpdatedAt,
-    [property: Description("Browser-facing URL of the comment, when the provider exposes one.")] string? HtmlUrl,
-    [property: Description("File path the review comment is anchored to, when available.")] string? Path);
 
 public sealed record McpIntentLinkRead(
     [property: Description("Edge identifier.")] string Id,

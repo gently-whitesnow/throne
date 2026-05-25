@@ -47,6 +47,9 @@ internal sealed class IntentRepositoryBindingDocument
     [BsonElement("review_comments_etag")]
     public string? ReviewCommentsEtag { get; set; }
 
+    [BsonElement("last_seen_review_comment_at")]
+    public DateTime? LastSeenReviewCommentAt { get; set; }
+
     [BsonElement("last_synced_at")]
     public DateTime? LastSyncedAt { get; set; }
 

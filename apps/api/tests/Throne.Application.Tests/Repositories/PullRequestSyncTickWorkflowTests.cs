@@ -37,7 +37,7 @@ public class PullRequestSyncTickWorkflowTests
         snap.NotModified.Should().Be(0);
         fixture.Events.OfType<RepositoryPullRequestSynced>().Should().ContainSingle();
         fixture.Events.OfType<IntentPrCommentAdded>().Should().ContainSingle()
-            .Which.Comment.UpstreamId.Should().Be("c1");
+            .Which.Comment.Id.Should().Be("c1");
     }
 
     [Fact(DisplayName = "Tick на 304 NotModified: snapshot.NotModified++ и NewComments=0, fanout пустой")]
@@ -157,8 +157,7 @@ public class PullRequestSyncTickWorkflowTests
             providers.GetByName(GitProviderNames.GitHub).Returns(Provider);
 
             var clock = new FixedClock(Now);
-            var comments = new RecordingCommentStore();
-            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, comments, _uow, clock);
+            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, _uow, clock);
             var refresher = new PullRequestStateRefresher(Bindings, _uow, clock);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, refresher);
             var backoff = new PullRequestSyncBackoff(new PullRequestSyncOptions
@@ -195,6 +194,7 @@ public class PullRequestSyncTickWorkflowTests
                 PullRequestNumber: pullRequestNumber,
                 PullRequestState: prState,
                 ReviewCommentsEtag: etag,
+                LastSeenReviewCommentAt: null,
                 LastSyncedAt: null,
                 CreatedAt: Now,
                 UpdatedAt: Now);
@@ -219,31 +219,6 @@ public class PullRequestSyncTickWorkflowTests
                     binding.Coordinate.Owner, binding.Coordinate.Repo, binding.State.PullRequestNumber!.Value,
                     etag: Arg.Any<string?>(), Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(page));
-    }
-
-    private sealed class RecordingCommentStore : IPullRequestCommentRepository
-    {
-        private readonly Dictionary<string, List<PullRequestCommentRecord>> _byBinding = new(StringComparer.Ordinal);
-
-        public Task<PersistPullRequestCommentsOutcome> PersistNewAsync(
-            IntentRepositoryBinding binding,
-            IReadOnlyList<PullRequestCommentRecord> candidates,
-            CancellationToken ct)
-        {
-            if (!_byBinding.TryGetValue(binding.Id.Value, out var stored))
-            {
-                stored = [];
-                _byBinding[binding.Id.Value] = stored;
-            }
-            var existing = stored.Select(c => c.UpstreamId).ToHashSet(StringComparer.Ordinal);
-            var inserted = candidates.Where(c => existing.Add(c.UpstreamId)).ToList();
-            stored.AddRange(inserted);
-            return Task.FromResult(new PersistPullRequestCommentsOutcome(binding, inserted, stored.ToList()));
-        }
-
-        public Task<IReadOnlyList<PullRequestCommentRecord>> ListByBindingAsync(BindingId bindingId, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<PullRequestCommentRecord>>(
-                _byBinding.TryGetValue(bindingId.Value, out var v) ? v.ToList() : []);
     }
 
     private sealed class RecordingUnitOfWork : IUnitOfWork

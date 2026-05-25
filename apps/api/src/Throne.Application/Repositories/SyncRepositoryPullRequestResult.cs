@@ -1,28 +1,33 @@
 using Throne.Application.Events;
+using Throne.Application.Git;
 using Throne.Domain.Repositories;
 
 namespace Throne.Application.Repositories;
 
 /// <summary>
 /// Result of <see cref="RepositoryPullRequestSyncWorkflow.SyncAsync"/>. Carries the
-/// refreshed binding (with bumped <c>last_synced_at</c>), the full stored review-comment
-/// feed for the binding after the sync, and the subset of comments that were observed
-/// for the first time on this pass — those drive the <c>intent.pr_comment_added</c>
-/// fanout via the dispatching unit-of-work.
+/// refreshed binding (with bumped <c>last_synced_at</c> + <c>last_seen_review_comment_at</c>),
+/// the upstream-fresh review-comment feed for the binding observed on this pass, and the
+/// subset of comments that were seen for the first time — those drive the
+/// <c>intent.pr_comment_added</c> fanout via the dispatching unit-of-work.
 ///
 /// <see cref="NotModified"/> is <see langword="true"/> when the upstream returned 304 —
-/// in that case <see cref="NewComments"/> is empty, no per-comment events are raised,
-/// and <see cref="AllStored"/> reflects the previously cached feed unchanged.
+/// in that case <see cref="NewComments"/> and <see cref="AllStored"/> are empty, no
+/// per-comment events are raised, and HTTP callers reuse their client-side cache.
 ///
-/// The same carrier is returned by both the manual sync use-case (T-08
-/// <c>RepositoryBindingService.SyncPullRequestAsync</c>) and the background poller
-/// (T-10 <c>PullRequestSyncService</c>), so the persistence + fanout pipeline is
-/// shared and the two paths cannot drift apart.
+/// Per intent 9aa2c64ff2a94410b7352eada1350ad0 the server never persists comment bodies:
+/// <see cref="AllStored"/> is the upstream-fresh list from the provider call, not a Mongo
+/// projection. The name is preserved for wire-shape continuity with slice 1.
+///
+/// The same carrier is returned by both the manual sync use-case
+/// (<c>RepositoryBindingService.SyncPullRequestAsync</c>) and the background poller
+/// (<c>PullRequestSyncService</c>), so the persistence + fanout pipeline is shared and
+/// the two paths cannot drift apart.
 /// </summary>
 public sealed record SyncRepositoryPullRequestResult(
     IntentRepositoryBinding Binding,
-    IReadOnlyList<PullRequestCommentRecord> NewComments,
-    IReadOnlyList<PullRequestCommentRecord> AllStored,
+    IReadOnlyList<PullRequestComment> NewComments,
+    IReadOnlyList<PullRequestComment> AllStored,
     bool NotModified) : IDomainEventCarrier
 {
     public IReadOnlyList<IDomainEvent> Events
