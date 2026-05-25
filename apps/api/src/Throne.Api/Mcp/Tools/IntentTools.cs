@@ -4,6 +4,7 @@ using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Domain.Intents;
 using Throne.Domain.TextVersions;
 
@@ -18,7 +19,8 @@ public sealed class IntentTools(
     MoveIntentHandler moveIntentHandler,
     IIntentLinkRepository linkRepository,
     IIntentAttachmentRepository attachments,
-    IntentToolTagRefs tagRefs)
+    IntentToolTagRefs tagRefs,
+    IIntentRepositoryBindingReader repositoryBindings)
 {
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
     [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one. If the new Intent arises in the context of another active Intent, consider linking them via link_intent(from_id=new, to_id=source, type=\"derived_from\") — or type=\"relates\" for a thematic connection — so the new Intent does not become an orphan. Returns a compact ack; re-read with get_intent if the full body is needed.")]
@@ -73,7 +75,7 @@ public sealed class IntentTools(
     }
 
     [McpServerTool(Name = "get_intent", ReadOnly = true)]
-    [Description("Read canonical Intent state by id, including full text and attachment metadata. Attachment bytes are NOT inlined. For each attachment call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log files). The response also carries 'links' — outgoing + incoming graph edges with the peer intent inlined as a compact preview; agent should inspect 'links' before acting on dependencies (e.g. honour 'incoming blocks' as 'blocked_by').")]
+    [Description("Read canonical Intent state by id, including full text, attachment metadata and repository bindings. Attachment bytes are NOT inlined. For each attachment call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log files). The response also carries 'links' — outgoing + incoming graph edges with the peer intent inlined as a compact preview; agent should inspect 'links' before acting on dependencies (e.g. honour 'incoming blocks' as 'blocked_by'). The 'repositories' field lists every IntentRepositoryBinding attached to this intent (workspace_path + clone_status + optional pull_request_number); to read PR review comments, call `gh api repos/{owner}/{repo}/pulls/{pull_request_number}/comments` directly in the workspace — Throne does not cache comment bodies.")]
     public async Task<McpToolPayload> GetIntent(
         [Description("Intent id returned by create_intent or supplied by the user.")] string intent_id,
         CancellationToken cancellationToken)
@@ -82,8 +84,10 @@ public sealed class IntentTools(
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, cancellationToken);
         var links = await linkRepository.ListByIntentAsync(intent.Id, cancellationToken);
         var tagsById = await tagRefs.BuildIntentReadMapAsync(intent, links, cancellationToken);
+        var bindings = await repositoryBindings.ListByIntentAsync(intent.Id.Value, cancellationToken);
+        var repositories = RepositoryBindingMcpSummaryMapper.ToSummaries(bindings);
 
-        var result = IntentReadResultBuilder.Build(intent, attachmentList, links, tagsById);
+        var result = IntentReadResultBuilder.Build(intent, attachmentList, links, tagsById, repositories);
         return IntentReadResultRenderer.Render(result);
     }
 

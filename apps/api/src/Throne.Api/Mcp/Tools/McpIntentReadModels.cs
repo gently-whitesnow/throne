@@ -15,7 +15,20 @@ public sealed record McpIntentReadResult(
     [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry, call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log).")]
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments,
     [property: Description("Outgoing + incoming graph edges incident to this intent. Mirror roles ('blocked_by' for incoming 'blocks', 'source_of' for incoming 'derived_from') are computed projections — the same edge appears once with a 'direction' field.")]
-    IReadOnlyList<McpIntentLinkRead> Links);
+    IReadOnlyList<McpIntentLinkRead> Links,
+    [property: Description("Repository bindings attached to this intent. Empty when the intent has no bindings. The agent uses 'workspace_path' as the local working tree; when 'pull_request_number' is present the agent reads review comments directly via `gh api repos/{owner}/{repo}/pulls/{n}/comments` — Throne does not cache comment bodies.")]
+    IReadOnlyList<McpIntentRepositoryRef> Repositories);
+
+public sealed record McpIntentRepositoryRef(
+    [property: Description("Binding identifier (used as binding_id in subsequent MCP/HTTP calls).")] string BindingId,
+    [property: Description("Git provider wire name, e.g. 'github'.")] string Provider,
+    [property: Description("Repository owner / org login.")] string Owner,
+    [property: Description("Repository name without owner prefix.")] string Repo,
+    [property: Description("Default branch of the upstream repository.")] string DefaultBranch,
+    [property: Description("Absolute path of the local clone (see ADR-0024 workspace layout). Use this as the agent's working directory.")] string WorkspacePath,
+    [property: Description("Clone status: 'pending' | 'cloning' | 'ready' | 'failed' | 'broken'. Only 'ready' is safe to operate on.")] string CloneStatus,
+    [property: Description("Pull request number attached to the binding when present; null otherwise.")] int? PullRequestNumber,
+    [property: Description("Pull request state: 'open' | 'closed' | 'merged' when a PR is attached; null otherwise.")] string? PullRequestState);
 
 public sealed record McpIntentLinkRead(
     [property: Description("Edge identifier.")] string Id,

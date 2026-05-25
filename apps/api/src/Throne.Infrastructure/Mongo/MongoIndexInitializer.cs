@@ -3,6 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Throne.Application.Auth;
 using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.Mongo.Repositories;
 
 namespace Throne.Infrastructure.Mongo;
 
@@ -43,6 +44,9 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         "chat_messages",
         "insight_cards",
         "analysis_jobs",
+        // Pointer-only switch for PR comments: GitHub is the source of truth;
+        // the local bodies cache is retired.
+        "pull_request_comments",
     ];
 
     private async Task DropRetiredCollectionsAsync(CancellationToken cancellationToken)
@@ -146,6 +150,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         await CreateIntentLinkIndexesAsync(cancellationToken);
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);
+        await MongoIntentRepositoryBindingIndexes.CreateAsync(database, cancellationToken);
 
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(

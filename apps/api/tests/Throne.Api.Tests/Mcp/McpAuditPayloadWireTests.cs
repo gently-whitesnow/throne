@@ -84,7 +84,7 @@ public class McpAuditPayloadWireTests
         {
             () => InstructionBundleRenderer.Render(bundle),
             () => IntentReadResultRenderer.Render(new McpIntentReadResult(
-                "intent-1", "Body.", "work", 1, [], "K", Now, Now, [], [])),
+                "intent-1", "Body.", "work", 1, [], "K", Now, Now, [], [], [])),
             () => TextSliceRenderer.Render(new TextSlice(1, 1, 1, 1, "x", false, null)),
             () => AttachmentTextSliceRenderer.Render(new IntentAttachmentTextSlice("text/plain", 1, 0, 1, false, "x")),
             () => TextSearchResultRenderer.Render(new TextSearchResult([], null)),
