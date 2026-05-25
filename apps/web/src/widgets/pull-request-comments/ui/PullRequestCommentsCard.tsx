@@ -5,10 +5,11 @@ import {
   MessageSquare,
   RefreshCw
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   pullRequestStateMeta,
+  requestIntentRepositoriesRefresh,
   repositoryFullName,
   type RepositoryBinding
 } from "@/entities/repository-binding";
@@ -48,16 +49,31 @@ export function PullRequestCommentsCard({
   );
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncedPrState, setSyncedPrState] = useState(
+    binding.pull_request_state
+  );
+
+  useEffect(() => {
+    setSyncedPrState(binding.pull_request_state);
+  }, [binding.pull_request_state]);
 
   const handleRefresh = useCallback(() => {
     setSyncError(null);
     setSyncing(true);
     void (async () => {
       try {
-        await syncPullRequest(intentId, binding.id);
+        const result = await syncPullRequest(intentId, binding.id);
         // Server fans out `intent.pr_comment_added` for the deltas, но мы
         // дополнительно перечитываем список — это безопаснее, чем полагаться на
         // реалтайм-доставку до завершения POST-запроса.
+        requestIntentRepositoriesRefresh(intentId, {
+          binding_id: result.binding_id,
+          pull_request_state: result.pull_request_state,
+          last_synced_at: result.last_synced_at
+        });
+        if (result.pull_request_state !== undefined) {
+          setSyncedPrState(result.pull_request_state);
+        }
         refresh();
       } catch (err) {
         setSyncError(
@@ -73,7 +89,7 @@ export function PullRequestCommentsCard({
 
   const fullName = repositoryFullName(binding);
   const prNumber = binding.pull_request_number;
-  const prState = binding.pull_request_state;
+  const prState = syncedPrState;
   const stateMeta = prState != null ? pullRequestStateMeta[prState] : null;
   const sorted = [...comments].sort(compareComments);
 

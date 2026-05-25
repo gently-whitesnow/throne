@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRealtimeEvent } from "@/shared/realtime";
 
 import { listIntentRepositories } from "../api/repository-bindings-api";
+import { subscribeIntentRepositoriesRefresh } from "./refresh-notifier";
 import { compareBindings } from "./selectors";
 import type { CloneStatus, RepositoryBinding } from "./types";
 
@@ -62,6 +63,36 @@ export function useIntentRepositories(
       controller.abort();
     };
   }, [intentId, reloadKey]);
+
+  useEffect(() => {
+    if (intentId === null) return undefined;
+    return subscribeIntentRepositoriesRefresh((changedIntentId, patch) => {
+      if (changedIntentId === intentId) {
+        if (patch !== undefined) {
+          setBindings((prev) =>
+            prev
+              .map((b) =>
+                b.id === patch.binding_id
+                  ? {
+                      ...b,
+                      pull_request_state:
+                        patch.pull_request_state !== undefined
+                          ? patch.pull_request_state
+                          : b.pull_request_state,
+                      last_synced_at:
+                        patch.last_synced_at !== undefined
+                          ? patch.last_synced_at
+                          : b.last_synced_at
+                    }
+                  : b
+              )
+              .sort(compareBindings)
+          );
+        }
+        setReloadKey((v) => v + 1);
+      }
+    });
+  }, [intentId]);
 
   const onBound = useCallback(
     (binding: RepositoryBinding) => {

@@ -149,12 +149,12 @@ public class GitHubCliProviderTests
         }
     }
 
-    [Fact(DisplayName = "FetchRepositoryAsync вызывает gh repo sync в workspace_path")]
-    public async Task Fetch_invokes_repo_sync_in_workspace()
+    [Fact(DisplayName = "SyncRepositoryAsync вызывает gh repo sync в workspace_path")]
+    public async Task Sync_invokes_repo_sync_in_workspace()
     {
         _fx.OnRun(_ => GitHubCliProviderFixture.Ok(string.Empty));
 
-        await _fx.Provider.FetchRepositoryAsync("/tmp/ws", default);
+        await _fx.Provider.SyncRepositoryAsync("/tmp/ws", default);
 
         var call = _fx.Calls.Single();
         call.Arguments.Should().BeEquivalentTo(SyncArgs);

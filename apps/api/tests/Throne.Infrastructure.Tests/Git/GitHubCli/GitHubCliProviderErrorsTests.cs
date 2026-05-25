@@ -52,12 +52,12 @@ public class GitHubCliProviderErrorsTests
         ex.Kind.Should().Be(GitProviderErrorKind.NetworkError);
     }
 
-    [Fact(DisplayName = "Fetch мапит сетевую ошибку gh repo sync → NetworkError")]
-    public async Task Fetch_maps_network_failure()
+    [Fact(DisplayName = "Sync мапит сетевую ошибку gh repo sync → NetworkError")]
+    public async Task Sync_maps_network_failure()
     {
         _fx.OnRun(_ => GitHubCliProviderFixture.Fail(exit: 1, stderr: "Could not resolve host: github.com"));
 
-        var act = async () => await _fx.Provider.FetchRepositoryAsync("/tmp/ws", default);
+        var act = async () => await _fx.Provider.SyncRepositoryAsync("/tmp/ws", default);
 
         var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
         ex.Kind.Should().Be(GitProviderErrorKind.NetworkError);
