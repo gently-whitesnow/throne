@@ -109,6 +109,21 @@ docker compose --profile db up -d
 command = "throne-mcp-stdio"
 ```
 
+### Опционально: связь с GitHub (репозитории и PR-комменты)
+
+Для базового Throne (MCP-память, интенты, инструкции) ничего больше не нужно. Если хочется привязывать к интентам репозитории, видеть PR-комменты в UI и работать с клонами на хосте — настрой `gh`:
+
+1. Поставь GitHub CLI на хост: `brew install gh` (macOS) / см. [install_linux.md](https://github.com/cli/cli/blob/trunk/docs/install_linux.md).
+2. Логин **без системного keyring** — токен должен лежать в `~/.config/gh/hosts.yml`, иначе bind-mount в контейнер пробросит только хост без авторизации, и UI покажет `Requires authentication (HTTP 401)`:
+   ```bash
+   gh auth logout -h github.com   # если уже логинился раньше
+   gh auth login --insecure-storage
+   ```
+   На macOS дефолт `gh` — Keychain (видно как `Token: gho_***  (keyring)` в `gh auth status`); контейнер в Keychain не ходит, поэтому нужен plaintext в `hosts.yml` (`0700`-папка `~/.config/gh`).
+3. Перезапусти compose: контейнер API монтирует `~/.config/gh` (read-only), `~/.ssh` (read-only) и клонирует репозитории в `~/.throne/workspaces` на хосте, откуда их видно из любой IDE/терминала. `~/.ssh` нужен, если в `gh auth login` выбран `git_protocol: ssh` (дефолт) — без него `gh repo clone` упадёт на `cannot run ssh: No such file or directory` / `Permission denied (publickey)`. Если ssh-ключ запаролен — `ssh-agent` контейнером не пробрасывается, заведи ключ без passphrase или переключи `gh` на HTTPS (`gh config set git_protocol https -h github.com`).
+
+Без этого секции «Репозитории» и «PR comments» на странице интента просто будут пустыми; остальная функциональность работает.
+
 ## Структура
 
 ```
@@ -173,6 +188,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 
 - .NET 10
 - MongoDB (replica set обязателен — write-tools используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0&directConnection=true`)
+- GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; auth берётся с хоста через bind-mount `~/.config/gh`)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
 - [ModelContextProtocol](https://github.com/modelcontextprotocol/csharp-sdk) (official C# SDK)

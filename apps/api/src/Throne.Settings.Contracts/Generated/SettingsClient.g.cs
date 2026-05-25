@@ -49,11 +49,19 @@ namespace Throne.Settings.Contracts.Generated
     {
 
         /// <summary>
-        /// Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`).
+        /// Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`). Inside docker this is the in-container mount point, not a host path.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("root")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Root { get; set; }
+
+        /// <summary>
+        /// Optional host-side path for the workspace, configured via `Throne:Workspace:HostRoot`. Set in compose to expose the bind-mount source to the UI (`~/.throne/workspaces` on the operator's machine). Omitted when running outside docker (no env var set).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host_root")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Host_root { get; set; }
 
         /// <summary>
         /// Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.

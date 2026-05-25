@@ -91,6 +91,64 @@ public class GitHubCliProviderTests
         _fx.Calls.Single().Arguments.Should().BeEquivalentTo(CloneArgs);
     }
 
+    [Fact(DisplayName = "CloneRepositoryAsync переиспользует существующий клон (no-op при наличии .git)")]
+    public async Task Clone_skips_when_target_already_git_repo()
+    {
+        _fx.OnRun(_ => GitHubCliProviderFixture.Ok(string.Empty));
+        var path = Path.Combine(Path.GetTempPath(), $"throne-clone-reuse-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(path, ".git"));
+        try
+        {
+            await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
+            _fx.Calls.Should().BeEmpty("папка уже содержит .git — gh repo clone не должен вызываться");
+        }
+        finally
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
+    [Fact(DisplayName = "CloneRepositoryAsync удаляет пустой каталог и клонирует")]
+    public async Task Clone_removes_empty_target_then_clones()
+    {
+        _fx.OnRun(_ => GitHubCliProviderFixture.Ok(string.Empty));
+        var path = Path.Combine(Path.GetTempPath(), $"throne-clone-empty-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(path);
+        try
+        {
+            await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
+            _fx.Calls.Single().Arguments.Should()
+                .ContainInOrder("repo", "clone", "alice/throne", path);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, recursive: true);
+            }
+        }
+    }
+
+    [Fact(DisplayName = "CloneRepositoryAsync на непустой не-git папке кидает GitProviderException")]
+    public async Task Clone_throws_when_target_is_dirty_non_git_directory()
+    {
+        _fx.OnRun(_ => GitHubCliProviderFixture.Ok(string.Empty));
+        var path = Path.Combine(Path.GetTempPath(), $"throne-clone-dirty-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(path);
+        await File.WriteAllTextAsync(Path.Combine(path, "stray.txt"), "x");
+        try
+        {
+            var act = async () => await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
+            await act.Should().ThrowAsync<Throne.Application.Git.GitProviderException>()
+                .Where(ex => ex.Message.Contains("is not a git clone", StringComparison.Ordinal));
+            _fx.Calls.Should().BeEmpty();
+        }
+        finally
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
     [Fact(DisplayName = "FetchRepositoryAsync вызывает gh repo sync в workspace_path")]
     public async Task Fetch_invokes_repo_sync_in_workspace()
     {

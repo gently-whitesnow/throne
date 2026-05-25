@@ -16,4 +16,11 @@ public sealed class WorkspaceOptions
     /// <see cref="WorkspaceRootInitializer"/>.
     /// </summary>
     public string Root { get; set; } = "~/.throne/workspaces";
+
+    /// <summary>
+    /// Optional host-side path for <see cref="Root"/>. Set in docker-compose so the UI
+    /// can show the operator where workspace clones live on their machine; empty
+    /// outside docker.
+    /// </summary>
+    public string? HostRoot { get; set; }
 }

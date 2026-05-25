@@ -1,3 +1,5 @@
+using Throne.Application.Git;
+
 namespace Throne.Infrastructure.Git.GitHubCli;
 
 /// <summary>
@@ -13,6 +15,14 @@ internal sealed class GhRepoActions(GhCliInvoker gh)
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
         ArgumentException.ThrowIfNullOrWhiteSpace(repo);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
+
+        // unbind не удаляет клон с диска (см. slice 1 Q2 — изоляция бранчей), но
+        // повторный bind на ту же пару должен пройти. Если папка уже git-репо —
+        // переиспользуем её, иначе чистим пустой каталог и клонируем.
+        if (TryReuseExistingClone(targetPath))
+        {
+            return;
+        }
 
         var result = await gh.RunCloneAsync(["repo", "clone", $"{owner}/{repo}", targetPath], ct);
         if (!result.IsSuccess)
@@ -32,5 +42,29 @@ internal sealed class GhRepoActions(GhCliInvoker gh)
         {
             throw GhExceptions.FromExit($"repo sync in {workspacePath}", result);
         }
+    }
+
+    private static bool TryReuseExistingClone(string targetPath)
+    {
+        if (!Directory.Exists(targetPath))
+        {
+            return false;
+        }
+
+        if (Directory.Exists(Path.Combine(targetPath, ".git")))
+        {
+            return true;
+        }
+
+        // Пустую папку убираем, чтобы gh смог склонировать в неё без exit 128.
+        if (!Directory.EnumerateFileSystemEntries(targetPath).Any())
+        {
+            Directory.Delete(targetPath);
+            return false;
+        }
+
+        throw new GitProviderException(
+            GitProviderErrorKind.CliFailure,
+            $"workspace path '{targetPath}' already exists and is not a git clone; remove it manually before binding the repository again");
     }
 }

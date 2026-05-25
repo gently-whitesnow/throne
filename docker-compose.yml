@@ -48,6 +48,12 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:5008
       Mongo__ConnectionString: mongodb://mongo:27017/?replicaSet=rs0&directConnection=true
       Mongo__Database: throne
+      Throne__Workspace__Root: /workspaces
+      Throne__Workspace__HostRoot: ${HOME}/.throne/workspaces
+    volumes:
+      - ${HOME}/.throne/workspaces:/workspaces
+      - ${HOME}/.config/gh:/root/.config/gh:ro
+      - ${HOME}/.ssh:/root/.ssh:ro
     depends_on:
       mongo-init:
         condition: service_completed_successfully
