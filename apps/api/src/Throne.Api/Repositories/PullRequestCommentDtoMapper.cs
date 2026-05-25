@@ -1,29 +1,31 @@
+using Throne.Application.Git;
 using Throne.Domain.Repositories;
 using Throne.Repositories.Contracts.Generated;
 
 namespace Throne.Api.Repositories;
 
 /// <summary>
-/// Projects a stored <see cref="PullRequestCommentRecord"/> onto the wire
-/// <see cref="PullRequestCommentDto"/>. Split out of <see cref="RepositoryDtoMapper"/>
-/// so the per-class CA1502 cyclomatic budget holds.
+/// Projects an upstream-fresh <see cref="PullRequestComment"/> onto the wire
+/// <see cref="PullRequestCommentDto"/>. Per intent 9aa2c64ff2a94410b7352eada1350ad0
+/// the server does not persist comment bodies — the <see cref="BindingId"/> comes
+/// from the binding context (HTTP path, MCP iteration, realtime fanout).
 /// </summary>
 internal static class PullRequestCommentDtoMapper
 {
-    public static PullRequestCommentDto ToDto(PullRequestCommentRecord record)
+    public static PullRequestCommentDto ToDto(PullRequestComment comment, BindingId bindingId)
     {
-        ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(comment);
         return new PullRequestCommentDto
         {
-            Id = record.UpstreamId,
-            Binding_id = record.BindingId.Value,
-            Author_login = record.AuthorLogin,
-            Author_avatar_url = ToUri(record.AuthorAvatarUrl),
-            Body = record.Body,
-            Html_url = ToUri(record.HtmlUrl),
-            Path = record.Path,
-            Created_at = record.CreatedAt,
-            Updated_at = record.UpdatedAt,
+            Id = comment.Id,
+            Binding_id = bindingId.Value,
+            Author_login = comment.AuthorLogin,
+            Author_avatar_url = ToUri(comment.AuthorAvatarUrl),
+            Body = comment.Body,
+            Html_url = ToUri(comment.HtmlUrl),
+            Path = comment.Path,
+            Created_at = comment.CreatedAt,
+            Updated_at = comment.UpdatedAt,
         };
     }
 

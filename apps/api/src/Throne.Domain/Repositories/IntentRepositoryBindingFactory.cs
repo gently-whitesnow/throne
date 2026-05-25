@@ -28,6 +28,7 @@ public static class IntentRepositoryBindingFactory
             PullRequestNumber: pullRequestNumber,
             PullRequestState: null,
             ReviewCommentsEtag: null,
+            LastSeenReviewCommentAt: null,
             LastSyncedAt: null,
             UpdatedAt: now);
 
@@ -50,6 +51,7 @@ public static class IntentRepositoryBindingFactory
             PullRequestNumber: snapshot.PullRequestNumber,
             PullRequestState: snapshot.PullRequestState,
             ReviewCommentsEtag: snapshot.ReviewCommentsEtag,
+            LastSeenReviewCommentAt: snapshot.LastSeenReviewCommentAt,
             LastSyncedAt: snapshot.LastSyncedAt,
             UpdatedAt: snapshot.UpdatedAt);
 

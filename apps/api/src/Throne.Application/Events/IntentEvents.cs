@@ -1,3 +1,4 @@
+using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Domain.Dreams;
 using Throne.Domain.Instructions;
@@ -95,12 +96,13 @@ public sealed record RepositoryPullRequestSynced(
 /// <summary>
 /// A previously-unseen review comment was observed for the binding's pull request
 /// (either by the background <c>PullRequestSyncService</c> (T-10) or by the manual
-/// sync use-case in T-08, which shares the same persistence pipeline). Carried by
-/// <see cref="Throne.Application.Ports.PersistPullRequestCommentsOutcome"/> so the
+/// sync use-case in T-08, which shares the same pipeline). Carried by
+/// <see cref="Throne.Application.Repositories.SyncRepositoryPullRequestResult"/> so the
 /// dispatching unit-of-work fans the contract event
-/// <c>intent.pr_comment_added</c> (T-12) out after the Mongo write commits — the
-/// service body never touches the realtime emitter directly.
+/// <c>intent.pr_comment_added</c> out after the binding-state write commits.
+/// The payload travels with the full upstream-body in-memory and is NOT persisted
+/// in Throne — see intent 9aa2c64ff2a94410b7352eada1350ad0 (pointer-only storage).
 /// </summary>
 public sealed record IntentPrCommentAdded(
     IntentRepositoryBinding Binding,
-    PullRequestCommentRecord Comment) : IDomainEvent;
+    PullRequestComment Comment) : IDomainEvent;

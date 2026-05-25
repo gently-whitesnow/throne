@@ -43,15 +43,26 @@ public static class IntentRepositoryBindingPullRequestMutator
         binding.State = binding.State with { PullRequestState = state, UpdatedAt = at };
     }
 
-    public static void RecordSync(this IntentRepositoryBinding binding, string? etag, DateTimeOffset at)
+    public static void RecordSync(
+        this IntentRepositoryBinding binding,
+        string? etag,
+        DateTimeOffset? lastSeenReviewCommentAt,
+        DateTimeOffset at)
     {
         ArgumentNullException.ThrowIfNull(binding);
         // Review D5 — sanitize through ReviewCommentsEtagNormalizer (RFC 7230
         // visible ASCII). Anything off-spec collapses to null so the next poll
         // does a full fetch instead of echoing an unsafe If-None-Match header.
+        var prevCursor = binding.State.LastSeenReviewCommentAt;
+        var nextCursor = prevCursor is null
+            ? lastSeenReviewCommentAt
+            : lastSeenReviewCommentAt is null
+                ? prevCursor
+                : lastSeenReviewCommentAt > prevCursor ? lastSeenReviewCommentAt : prevCursor;
         binding.State = binding.State with
         {
             ReviewCommentsEtag = ReviewCommentsEtagNormalizer.Normalize(etag),
+            LastSeenReviewCommentAt = nextCursor,
             LastSyncedAt = at,
             UpdatedAt = at,
         };

@@ -20,6 +20,7 @@ internal static class IntentRepositoryBindingDocumentMapper
         PullRequestNumber = binding.State.PullRequestNumber,
         PullRequestState = binding.State.PullRequestState,
         ReviewCommentsEtag = binding.State.ReviewCommentsEtag,
+        LastSeenReviewCommentAt = binding.State.LastSeenReviewCommentAt?.UtcDateTime,
         LastSyncedAt = binding.State.LastSyncedAt?.UtcDateTime,
         CreatedAt = binding.CreatedAt.UtcDateTime,
         UpdatedAt = binding.State.UpdatedAt.UtcDateTime,
@@ -38,6 +39,9 @@ internal static class IntentRepositoryBindingDocumentMapper
             PullRequestNumber: doc.PullRequestNumber,
             PullRequestState: doc.PullRequestState,
             ReviewCommentsEtag: doc.ReviewCommentsEtag,
+            LastSeenReviewCommentAt: doc.LastSeenReviewCommentAt is null
+                ? null
+                : new DateTimeOffset(DateTime.SpecifyKind(doc.LastSeenReviewCommentAt.Value, DateTimeKind.Utc)),
             LastSyncedAt: doc.LastSyncedAt is null
                 ? null
                 : new DateTimeOffset(DateTime.SpecifyKind(doc.LastSyncedAt.Value, DateTimeKind.Utc)),

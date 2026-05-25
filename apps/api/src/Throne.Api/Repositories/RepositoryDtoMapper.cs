@@ -54,8 +54,8 @@ internal static class RepositoryDtoMapper
         };
     }
 
-    public static PullRequestCommentDto ToCommentDto(PullRequestCommentRecord record) =>
-        PullRequestCommentDtoMapper.ToDto(record);
+    public static PullRequestCommentDto ToCommentDto(PullRequestComment comment, BindingId bindingId) =>
+        PullRequestCommentDtoMapper.ToDto(comment, bindingId);
 
     public static PullRequestSyncResultDto ToSyncResultDto(SyncRepositoryPullRequestResult result)
     {
@@ -69,9 +69,9 @@ internal static class RepositoryDtoMapper
             Pull_request_state = RepositoryBindingDtoMapper.WirePullRequestState(binding.State.PullRequestState),
             Last_synced_at = binding.State.LastSyncedAt,
         };
-        foreach (var record in result.AllStored)
+        foreach (var comment in result.AllStored)
         {
-            dto.Comments.Add(PullRequestCommentDtoMapper.ToDto(record));
+            dto.Comments.Add(PullRequestCommentDtoMapper.ToDto(comment, binding.Id));
         }
         return dto;
     }

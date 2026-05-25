@@ -18,6 +18,7 @@ public sealed record IntentRepositoryBindingSnapshot(
     int? PullRequestNumber,
     string? PullRequestState,
     string? ReviewCommentsEtag,
+    DateTimeOffset? LastSeenReviewCommentAt,
     DateTimeOffset? LastSyncedAt,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

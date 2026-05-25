@@ -72,28 +72,44 @@ public class IntentRepositoryBindingPullRequestTests
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
-    [Fact(DisplayName = "RecordSync сохраняет etag и last_synced_at, обновляет updated_at")]
-    public void RecordSync_persists_etag_and_timestamp()
+    [Fact(DisplayName = "RecordSync сохраняет etag, курсор last_seen_review_comment_at и last_synced_at")]
+    public void RecordSync_persists_etag_cursor_and_timestamp()
     {
         var binding = IntentRepositoryBindingTestBuilder.Ready(prNumber: 1);
         var at = Now.AddSeconds(30);
+        var cursor = Now.AddSeconds(10);
 
-        binding.RecordSync("\"abc123\"", at);
+        binding.RecordSync("\"abc123\"", cursor, at);
 
         binding.State.ReviewCommentsEtag.Should().Be("\"abc123\"");
+        binding.State.LastSeenReviewCommentAt.Should().Be(cursor);
         binding.State.LastSyncedAt.Should().Be(at);
         binding.State.UpdatedAt.Should().Be(at);
     }
 
-    [Fact(DisplayName = "RecordSync с пустым etag сохраняет null, но last_synced_at пишется")]
+    [Fact(DisplayName = "RecordSync с пустым etag сохраняет null, last_synced_at пишется, курсор не двигается назад")]
     public void RecordSync_blank_etag_normalizes_to_null()
     {
         var binding = IntentRepositoryBindingTestBuilder.Ready(prNumber: 1);
         var at = Now.AddSeconds(30);
 
-        binding.RecordSync("   ", at);
+        binding.RecordSync("   ", lastSeenReviewCommentAt: null, at);
 
         binding.State.ReviewCommentsEtag.Should().BeNull();
+        binding.State.LastSeenReviewCommentAt.Should().BeNull();
         binding.State.LastSyncedAt.Should().Be(at);
+    }
+
+    [Fact(DisplayName = "RecordSync не двигает курсор назад: max(prev, new)")]
+    public void RecordSync_advances_cursor_monotonically()
+    {
+        var binding = IntentRepositoryBindingTestBuilder.Ready(prNumber: 1);
+        var earlier = Now.AddSeconds(10);
+        var later = Now.AddSeconds(60);
+
+        binding.RecordSync("\"v1\"", lastSeenReviewCommentAt: later, Now.AddSeconds(70));
+        binding.RecordSync("\"v2\"", lastSeenReviewCommentAt: earlier, Now.AddSeconds(80));
+
+        binding.State.LastSeenReviewCommentAt.Should().Be(later);
     }
 }

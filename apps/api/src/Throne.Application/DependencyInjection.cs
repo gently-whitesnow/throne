@@ -87,10 +87,8 @@ public static class DependencyInjection
         services.AddSingleton<ListDreamSessionsHandler>();
         services.AddSingleton<GetDreamSessionHandler>();
         services.AddSingleton<GetDreamSourcesHandler>();
-        // T-08 RepositoryBindingService: bind/unbind/list + manual PR sync.
-        // Background clone queue + worker (T-09) and PR-sync polling (T-10) live in
-        // Infrastructure; the Application-layer queue/workflow types stay here so the
-        // worker can be unit-tested without the BackgroundService rig.
+        // Repositories slice: bind/unbind/list + PR sync. Background workers live in
+        // Infrastructure; the Application queue/workflow types stay here for unit tests.
         services.AddSingleton<RepositoryBindingResolver>();
         services.AddSingleton<RepositoryBindingPersistence>();
         services.AddSingleton<RepositoryPullRequestSyncPersistence>();
@@ -103,9 +101,7 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryCloneTransitionWriter>();
         services.AddSingleton<RepositoryCloneWorkflow>();
         services.AddSingleton<RepositoryCloneRecoveryWorkflow>();
-        // T-10 PullRequestSyncService per-tick orchestration. Backoff state is
-        // process-local; the BackgroundService host lives in Infrastructure (see
-        // AddGitInfrastructure) and resolves the tick workflow per iteration.
+        // PR-sync per-tick orchestration; BackgroundService host lives in Infrastructure.
         services.AddSingleton<PullRequestSyncBackoff>();
         services.AddSingleton<PullRequestStateRefresher>();
         services.AddSingleton<PullRequestSyncBindingVisitor>();

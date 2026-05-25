@@ -94,6 +94,7 @@ public class RepositoryBindingMcpSummaryMapperTests
             PullRequestNumber: pullRequestNumber,
             PullRequestState: pullRequestState,
             ReviewCommentsEtag: etag,
+            LastSeenReviewCommentAt: null,
             LastSyncedAt: lastSyncedAt,
             CreatedAt: Now,
             UpdatedAt: Now);

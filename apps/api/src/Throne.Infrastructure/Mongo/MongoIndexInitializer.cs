@@ -44,6 +44,10 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         "chat_messages",
         "insight_cards",
         "analysis_jobs",
+        // Pointer-only switch for PR comments — see intent
+        // 9aa2c64ff2a94410b7352eada1350ad0. GitHub is the source of truth; the
+        // local bodies cache is retired.
+        "pull_request_comments",
     ];
 
     private async Task DropRetiredCollectionsAsync(CancellationToken cancellationToken)
@@ -148,7 +152,6 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);
         await MongoIntentRepositoryBindingIndexes.CreateAsync(database, cancellationToken);
-        await MongoPullRequestCommentIndexes.CreateAsync(database, cancellationToken);
 
         var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
         await calls.Indexes.CreateManyAsync(
