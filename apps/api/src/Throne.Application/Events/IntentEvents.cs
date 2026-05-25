@@ -1,8 +1,10 @@
+using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Domain.Dreams;
 using Throne.Domain.Instructions;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Linking;
+using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Events;
@@ -60,3 +62,35 @@ public sealed record InstructionPatchSuperseded(InstructionPatch Patch) : IDomai
 /// <see cref="Throne.Application.Ports.CreateDreamSessionOutcome"/>.
 /// </summary>
 public sealed record DreamSessionRecorded(DreamSession Session) : IDomainEvent;
+
+/// <summary>
+/// Intent ↔ repository binding lifecycle events (ADR-0024). Translated into the
+/// contract-first <c>intent.repository_bound</c> / <c>intent.repository_unbound</c> /
+/// <c>intent.repository_clone_progress</c> / <c>intent.pr_comment_added</c> wire events.
+/// </summary>
+public sealed record IntentRepositoryBound(IntentRepositoryBinding Binding) : IDomainEvent;
+
+public sealed record IntentRepositoryUnbound(IntentRepositoryBinding Binding) : IDomainEvent;
+
+/// <summary>
+/// Emitted on every <c>clone_status</c> transition
+/// (<c>pending → cloning</c>, <c>cloning → ready</c>, <c>cloning → failed</c>) and by the
+/// startup recovery pass when <c>cloning</c> bindings are flipped to
+/// <c>failed("interrupted")</c>. Name follows the realtime-coverage gate's
+/// PascalCase convention (<c>intent.repository_clone_progress</c> →
+/// <c>IntentRepositoryCloneProgress</c>) so events.yaml and this record stay in lock-step.
+/// </summary>
+public sealed record IntentRepositoryCloneProgress(IntentRepositoryBinding Binding) : IDomainEvent;
+
+public sealed record RepositoryPullRequestSynced(
+    IntentRepositoryBinding Binding,
+    int CommentCount) : IDomainEvent;
+
+/// <summary>
+/// Previously-unseen review comment observed for the binding's pull request.
+/// The payload travels with the full upstream body in-memory and is NOT persisted
+/// (pointer-only storage — GitHub is the source of truth).
+/// </summary>
+public sealed record IntentPrCommentAdded(
+    IntentRepositoryBinding Binding,
+    PullRequestComment Comment) : IDomainEvent;

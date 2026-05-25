@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Auth;
 using Throne.Api.Intents;
 using Throne.Api.Realtime;
+using Throne.Api.Repositories;
 using Throne.Application;
 using Throne.Infrastructure;
 
@@ -28,6 +29,7 @@ public static class ThroneMcpCoreServices
         // IntentLinksController / IntentAttachmentsController). Endpoints take
         // ctor deps; Singleton lifetime mirrors the underlying handlers.
         services.AddThroneIntentEndpoints();
+        services.AddThroneRepositoryEndpoints();
         services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 12 * 1024 * 1024);
         // ForwardedHeaders + IStartupFilter: throne-api за Caddy/nginx, без этого
         // HttpRequest.Scheme = "http" даже на HTTPS-запросе → ломает RFC 9728

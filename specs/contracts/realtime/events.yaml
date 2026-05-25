@@ -106,6 +106,48 @@ events:
           type: string
         pin_sort_key:
           type: string
+  intent.repository_bound:
+    description: A new repository binding was attached to an intent (ADR-0024).
+    payload_ref: repositories#/components/schemas/RepositoryBindingDto
+  intent.repository_unbound:
+    description: A repository binding was detached from an intent. Workspace directory is NOT removed.
+    payload:
+      type: object
+      required: [intent_id, binding_id]
+      properties:
+        intent_id:
+          type: string
+        binding_id:
+          type: string
+  intent.repository_clone_progress:
+    description: >
+      The clone lifecycle for a binding advanced. Emitted on every `clone_status` transition
+      (pending → cloning → ready | failed, ready → broken). See ADR-0024.
+    payload:
+      type: object
+      required: [intent_id, binding_id, status]
+      properties:
+        intent_id:
+          type: string
+        binding_id:
+          type: string
+        status:
+          $ref: 'repositories#/components/schemas/CloneStatus'
+        error:
+          type: string
+          description: Human-readable error message when `status` is `failed` or `broken`.
+  intent.pr_comment_added:
+    description: A new review comment was observed on the binding's pull request (polling or manual sync).
+    payload:
+      type: object
+      required: [intent_id, binding_id, comment]
+      properties:
+        intent_id:
+          type: string
+        binding_id:
+          type: string
+        comment:
+          $ref: 'repositories#/components/schemas/PullRequestCommentDto'
   tag.created:
     description: A new tag was created (by user or auto-upsert during create_intent / set_intent_tags).
     payload_ref: tags#/components/schemas/TagDto

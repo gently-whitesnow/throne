@@ -1,0 +1,81 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FluentAssertions;
+using NSubstitute;
+using Throne.Api.Tests.Infrastructure;
+using Throne.Application.Git;
+using Throne.Domain.Repositories;
+
+namespace Throne.Api.Tests.Repositories;
+
+[Collection(nameof(MongoIntegrationFixture))]
+[Trait("Category", "Integration")]
+public sealed class SettingsControllerTests(MongoFixture mongo) : IAsyncLifetime, IDisposable
+{
+    private RepositoriesApiFixture _fixture = null!;
+
+    public Task InitializeAsync()
+    {
+        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create());
+        return Task.CompletedTask;
+    }
+
+    public async Task DisposeAsync() => await _fixture.DisposeAsync();
+
+    void IDisposable.Dispose() { /* IAsyncLifetime.DisposeAsync owns cleanup */ }
+
+    [Fact(DisplayName = "GET /api/v1/settings/git-providers/status возвращает github={authenticated, login, scopes}")]
+    public async Task GitProviders_returns_github_auth_status()
+    {
+        var response = await _fixture.Client.GetAsync(new Uri("/api/v1/settings/git-providers/status", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var github = dto.GetProperty("github");
+        github.GetProperty("authenticated").GetBoolean().Should().BeTrue();
+        github.GetProperty("login").GetString().Should().Be("octocat");
+        github.GetProperty("scopes").EnumerateArray()
+            .Select(e => e.GetString()).Should().Equal("repo", "read:org");
+    }
+
+    [Fact(DisplayName = "GET /api/v1/settings/git-providers/status — unauthenticated github → authenticated=false + error")]
+    public async Task GitProviders_returns_error_when_unauthenticated()
+    {
+        _fixture.Provider.GetAuthStatusAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProviderAuthStatus(
+                Provider: GitProviderNames.GitHub,
+                IsAuthenticated: false,
+                Detail: "gh auth login required")));
+
+        var response = await _fixture.Client.GetAsync(new Uri("/api/v1/settings/git-providers/status", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var github = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("github");
+        github.GetProperty("authenticated").GetBoolean().Should().BeFalse();
+        github.GetProperty("error").GetString().Should().Be("gh auth login required");
+    }
+
+    [Fact(DisplayName = "GET /api/v1/settings/workspace возвращает resolved root + calculating на первом запросе")]
+    public async Task Workspace_first_call_returns_calculating()
+    {
+        var response = await _fixture.Client.GetAsync(new Uri("/api/v1/settings/workspace", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
+        dto.GetProperty("root").GetString().Should().Be(_fixture.WorkspaceRoot);
+        dto.GetProperty("status").GetString().Should().Be("calculating");
+    }
+
+    [Fact(DisplayName = "GET /api/v1/settings/workspace без HostRoot — host_root отсутствует или null")]
+    public async Task Workspace_host_root_omitted_when_not_configured()
+    {
+        var response = await _fixture.Client.GetAsync(new Uri("/api/v1/settings/workspace", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var hasHostRoot = dto.TryGetProperty("host_root", out var hostRoot)
+                         && hostRoot.ValueKind != JsonValueKind.Null;
+        hasHostRoot.Should().BeFalse();
+    }
+}

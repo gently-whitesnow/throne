@@ -8,6 +8,7 @@ using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Application.Tags;
 using Throne.Application.TextVersions;
 
@@ -86,6 +87,25 @@ public static class DependencyInjection
         services.AddSingleton<ListDreamSessionsHandler>();
         services.AddSingleton<GetDreamSessionHandler>();
         services.AddSingleton<GetDreamSourcesHandler>();
+        // Repositories slice: bind/unbind/list + PR sync. Background workers live in
+        // Infrastructure; the Application queue/workflow types stay here for unit tests.
+        services.AddSingleton<RepositoryBindingResolver>();
+        services.AddSingleton<RepositoryBindingPersistence>();
+        services.AddSingleton<RepositoryPullRequestSyncPersistence>();
+        services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
+        services.AddSingleton<RepositoryBindingService>();
+        services.AddSingleton<IIntentRepositoryBindingReader, IntentRepositoryBindingReader>();
+        services.AddSingleton<RepositoryCloneRequestsChannel>();
+        services.AddSingleton<IRepositoryCloneRequests>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());
+        services.AddSingleton<IRepositoryCloneRequestsReader>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());
+        services.AddSingleton<RepositoryCloneTransitionWriter>();
+        services.AddSingleton<RepositoryCloneWorkflow>();
+        services.AddSingleton<RepositoryCloneRecoveryWorkflow>();
+        // PR-sync per-tick orchestration; BackgroundService host lives in Infrastructure.
+        services.AddSingleton<PullRequestSyncBackoff>();
+        services.AddSingleton<PullRequestStateRefresher>();
+        services.AddSingleton<PullRequestSyncBindingVisitor>();
+        services.AddSingleton<PullRequestSyncTickWorkflow>();
         return services;
     }
 }

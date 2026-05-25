@@ -4,7 +4,9 @@ using NSubstitute;
 using Throne.Api.Mcp.Tools;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
+using Throne.Application.Repositories;
 using Throne.Domain.Intents;
+using Throne.Domain.Repositories;
 
 namespace Throne.Api.Tests.Mcp;
 
@@ -51,6 +53,9 @@ public class IntentToolsAttachmentTests
         var linkRepo = Substitute.For<IIntentLinkRepository>();
         linkRepo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns([]);
+        var bindingsReader = Substitute.For<IIntentRepositoryBindingReader>();
+        bindingsReader.ListByIntentAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>([]));
         return new(
             create: null!,
             get: new GetIntentHandler(intentRepo),
@@ -59,6 +64,7 @@ public class IntentToolsAttachmentTests
             moveIntentHandler: null!,
             linkRepository: linkRepo,
             attachments: attachments,
-            tagRefs: new IntentToolTagRefs(tagRepo));
+            tagRefs: new IntentToolTagRefs(tagRepo),
+            repositoryBindings: bindingsReader);
     }
 }
