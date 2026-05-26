@@ -73,14 +73,14 @@ public class InstructionPatchTests
         act3.Should().Throw<ArgumentOutOfRangeException>();
     }
 
-    [Fact(DisplayName = "MarkApplied verbatim переводит в Applied и сохраняет PatchText как AppliedText")]
-    public void MarkApplied_verbatim()
+    [Fact(DisplayName = "Apply verbatim переводит в Applied и сохраняет PatchText как AppliedText")]
+    public void Apply_verbatim()
     {
         var patch = NewPatch();
 
-        var result = InstructionPatchTransitions.Apply(patch, editedText: null, appliedInstructionVersion: 6, Now.AddMinutes(1));
+        var result = patch.Apply(editedText: null, appliedInstructionVersion: 6, Now.AddMinutes(1));
 
-        result.Should().Be(InstructionPatchTransitions.ApplyResult.Ok);
+        result.Should().Be(InstructionPatch.ApplyResult.Ok);
         patch.State.Status.Should().Be(InstructionPatchStatusNames.Applied);
         patch.State.AppliedText.Should().Be("new instruction text");
         patch.State.AppliedInstructionVersion.Should().Be(6);
@@ -88,64 +88,64 @@ public class InstructionPatchTests
         patch.State.DecidedAt.Should().Be(Now.AddMinutes(1));
     }
 
-    [Fact(DisplayName = "MarkApplied с другим текстом переводит в AppliedEdited и сохраняет правку")]
-    public void MarkApplied_edited()
+    [Fact(DisplayName = "Apply с другим текстом переводит в AppliedEdited и сохраняет правку")]
+    public void Apply_edited()
     {
         var patch = NewPatch();
 
-        var result = InstructionPatchTransitions.Apply(patch, editedText: "operator-edited text", appliedInstructionVersion: 6, Now);
+        var result = patch.Apply(editedText: "operator-edited text", appliedInstructionVersion: 6, Now);
 
-        result.Should().Be(InstructionPatchTransitions.ApplyResult.Ok);
+        result.Should().Be(InstructionPatch.ApplyResult.Ok);
         patch.State.Status.Should().Be(InstructionPatchStatusNames.AppliedEdited);
         patch.State.AppliedText.Should().Be("operator-edited text");
     }
 
-    [Fact(DisplayName = "MarkApplied отвергает applied_version <= base_version")]
-    public void MarkApplied_validates_version()
+    [Fact(DisplayName = "Apply отвергает applied_version <= base_version")]
+    public void Apply_validates_version()
     {
         var patch = NewPatch();
 
-        var result = InstructionPatchTransitions.Apply(patch, editedText: null, appliedInstructionVersion: 5, Now);
+        var result = patch.Apply(editedText: null, appliedInstructionVersion: 5, Now);
 
-        result.Should().Be(InstructionPatchTransitions.ApplyResult.InvalidAppliedVersion);
+        result.Should().Be(InstructionPatch.ApplyResult.InvalidAppliedVersion);
         patch.State.Status.Should().Be(InstructionPatchStatusNames.Proposed);
     }
 
-    [Fact(DisplayName = "MarkApplied на уже-Applied возвращает AlreadyDecided без мутации")]
-    public void MarkApplied_idempotent()
+    [Fact(DisplayName = "Apply на уже-Applied возвращает AlreadyDecided без мутации")]
+    public void Apply_idempotent()
     {
         var patch = NewPatch(InstructionPatchStatusNames.Applied);
 
-        var result = InstructionPatchTransitions.Apply(patch, editedText: null, appliedInstructionVersion: 7, Now);
+        var result = patch.Apply(editedText: null, appliedInstructionVersion: 7, Now);
 
-        result.Should().Be(InstructionPatchTransitions.ApplyResult.AlreadyDecided);
+        result.Should().Be(InstructionPatch.ApplyResult.AlreadyDecided);
         patch.State.AppliedInstructionVersion.Should().Be(6);
     }
 
-    [Fact(DisplayName = "MarkRejected требует comment ≥10 символов после trim")]
-    public void MarkRejected_requires_long_comment()
+    [Fact(DisplayName = "Reject требует comment ≥10 символов после trim")]
+    public void Reject_requires_long_comment()
     {
         var patch = NewPatch();
 
-        InstructionPatchTransitions.Reject(patch, "short", Now)
-            .Should().Be(InstructionPatchTransitions.RejectResult.CommentTooShort);
-        InstructionPatchTransitions.Reject(patch, "   .   ", Now)
-            .Should().Be(InstructionPatchTransitions.RejectResult.CommentTooShort);
+        patch.Reject("short", Now)
+            .Should().Be(InstructionPatch.RejectResult.CommentTooShort);
+        patch.Reject("   .   ", Now)
+            .Should().Be(InstructionPatch.RejectResult.CommentTooShort);
         patch.State.Status.Should().Be(InstructionPatchStatusNames.Proposed);
 
-        var ok = InstructionPatchTransitions.Reject(patch, "long enough explanation", Now.AddMinutes(1));
-        ok.Should().Be(InstructionPatchTransitions.RejectResult.Ok);
+        var ok = patch.Reject("long enough explanation", Now.AddMinutes(1));
+        ok.Should().Be(InstructionPatch.RejectResult.Ok);
         patch.State.Status.Should().Be(InstructionPatchStatusNames.Rejected);
         patch.State.RejectComment.Should().Be("long enough explanation");
         patch.State.DecidedAt.Should().Be(Now.AddMinutes(1));
     }
 
-    [Fact(DisplayName = "MarkRejected на уже-rejected возвращает AlreadyDecided")]
-    public void MarkRejected_idempotent()
+    [Fact(DisplayName = "Reject на уже-rejected возвращает AlreadyDecided")]
+    public void Reject_idempotent()
     {
         var patch = NewPatch(InstructionPatchStatusNames.Rejected);
 
-        InstructionPatchTransitions.Reject(patch, "another long comment text", Now)
-            .Should().Be(InstructionPatchTransitions.RejectResult.AlreadyDecided);
+        patch.Reject("another long comment text", Now)
+            .Should().Be(InstructionPatch.RejectResult.AlreadyDecided);
     }
 }

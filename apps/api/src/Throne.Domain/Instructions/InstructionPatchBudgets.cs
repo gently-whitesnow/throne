@@ -1,9 +1,9 @@
 namespace Throne.Domain.Instructions;
 
 /// <summary>
-/// Length and range budgets for <see cref="InstructionPatch"/>. Split from
-/// <see cref="InstructionPatchGuards"/> so each helper class stays under the
-/// per-type CA1502 budget.
+/// Length and range budgets for <see cref="InstructionPatch"/>. Kept as a
+/// separate helper so the budget constants stay close to their enforcement
+/// without bloating the aggregate's surface.
 /// </summary>
 internal static class InstructionPatchBudgets
 {

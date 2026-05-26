@@ -21,7 +21,7 @@ public class OwnerUserIdRulesTests
 {
     private static readonly Type[] UserOwnedAggregates =
     [
-        typeof(Throne.Domain.Intents.IntentFactory),
+        typeof(Throne.Domain.Intents.Intent),
         typeof(Throne.Domain.Auth.PersonalAccessToken),
         typeof(Throne.Domain.Dreams.DreamSession),
     ];

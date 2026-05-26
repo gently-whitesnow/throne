@@ -53,7 +53,7 @@ internal sealed class MongoIntentStatusMutator(
         var originalStatus = intent.State.Status;
 
         var textVersion = ApplyOptionalAppend(intent, appendText, changedBy, now);
-        var statusChanged = IntentStatusOperation.SetStatus(intent, status, now);
+        var statusChanged = intent.SetStatus(status, now);
         if (!statusChanged && textVersion is null)
         {
             return new SetIntentStatusOutcome.Updated(intent);
@@ -115,8 +115,7 @@ internal sealed class MongoIntentStatusMutator(
         {
             return null;
         }
-        var appendResult = IntentInsertTextOperation.Append(
-            intent,
+        var appendResult = intent.AppendText(
             appendText,
             Guid.NewGuid().ToString("N"),
             now,
@@ -160,7 +159,7 @@ internal sealed class MongoIntentStatusMutator(
         }
 
         var intent = IntentDocumentMapper.ToDomain(document);
-        var changed = IntentTagOperation.SetTagIds(intent, tagIds, now);
+        var changed = intent.SetTags(tagIds, now);
         if (!changed)
         {
             return new SetIntentTagsOutcome.Updated(intent, Changed: false);

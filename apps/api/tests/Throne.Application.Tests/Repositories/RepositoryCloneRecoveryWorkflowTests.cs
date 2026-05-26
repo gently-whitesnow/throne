@@ -71,7 +71,7 @@ public class RepositoryCloneRecoveryWorkflowTests
             LastSyncedAt: null,
             CreatedAt: Now,
             UpdatedAt: Now);
-        return IntentRepositoryBindingFactory.Restore(snapshot);
+        return IntentRepositoryBinding.Restore(snapshot);
     }
 
     private sealed class RecoveryFixture

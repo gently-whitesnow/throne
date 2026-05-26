@@ -171,7 +171,7 @@ public class RepositoryCloneWorkflowTests
             LastSyncedAt: null,
             CreatedAt: Now,
             UpdatedAt: Now);
-        return IntentRepositoryBindingFactory.Restore(snapshot);
+        return IntentRepositoryBinding.Restore(snapshot);
     }
 
     private sealed class CapturedTransitions

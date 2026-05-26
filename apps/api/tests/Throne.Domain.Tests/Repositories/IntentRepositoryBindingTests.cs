@@ -4,7 +4,7 @@ using Throne.Domain.Repositories;
 
 namespace Throne.Domain.Tests.Repositories;
 
-public class IntentRepositoryBindingFactoryTests
+public class IntentRepositoryBindingTests
 {
     private static readonly DateTimeOffset Now = IntentRepositoryBindingTestBuilder.Now;
 
@@ -35,7 +35,7 @@ public class IntentRepositoryBindingFactoryTests
     [Fact(DisplayName = "Create отвергает pull_request_number < 1")]
     public void Create_rejects_invalid_pr_number()
     {
-        var act = () => IntentRepositoryBindingFactory.Create(
+        var act = () => IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: new IntentId("i"),
             coordinate: new RepoCoordinate(GitProviderNames.GitHub, "o", "r"),
@@ -83,11 +83,11 @@ public class IntentRepositoryBindingFactoryTests
     [Fact(DisplayName = "Restore проверяет clone_status и pull_request_state")]
     public void Restore_validates_enum_like_strings()
     {
-        var badStatus = () => IntentRepositoryBindingFactory.Restore(
+        var badStatus = () => IntentRepositoryBinding.Restore(
             SnapshotWith(cloneStatus: "weird"));
         badStatus.Should().Throw<ArgumentOutOfRangeException>();
 
-        var badPrState = () => IntentRepositoryBindingFactory.Restore(
+        var badPrState = () => IntentRepositoryBinding.Restore(
             SnapshotWith(cloneStatus: CloneStatusNames.Ready, pullRequestNumber: 1, pullRequestState: "draft"));
         badPrState.Should().Throw<ArgumentOutOfRangeException>();
     }
@@ -95,7 +95,7 @@ public class IntentRepositoryBindingFactoryTests
     [Fact(DisplayName = "Restore запрещает pull_request_state без pull_request_number")]
     public void Restore_requires_pr_number_for_state()
     {
-        var act = () => IntentRepositoryBindingFactory.Restore(
+        var act = () => IntentRepositoryBinding.Restore(
             SnapshotWith(
                 cloneStatus: CloneStatusNames.Ready,
                 pullRequestNumber: null,
@@ -114,7 +114,7 @@ public class IntentRepositoryBindingFactoryTests
             reviewCommentsEtag: "\"abc\"",
             lastSyncedAt: Now.AddMinutes(-5));
 
-        var binding = IntentRepositoryBindingFactory.Restore(snapshot);
+        var binding = IntentRepositoryBinding.Restore(snapshot);
 
         binding.State.CloneStatus.Should().Be(CloneStatusNames.Ready);
         binding.State.PullRequestNumber.Should().Be(7);

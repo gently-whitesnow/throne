@@ -137,7 +137,7 @@ public class IntentRepositoryRealtimeMapperTests
     }
 
     private static IntentRepositoryBinding MakePending(int? prNumber = null) =>
-        IntentRepositoryBindingFactory.Create(
+        IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: new IntentId("intent-abc"),
             coordinate: new RepoCoordinate(GitProviderNames.GitHub, "anthropics", "throne"),

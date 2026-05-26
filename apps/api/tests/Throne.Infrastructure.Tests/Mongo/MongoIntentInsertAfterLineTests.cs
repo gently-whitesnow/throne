@@ -95,7 +95,7 @@ public class MongoIntentInsertAfterLineTests(MongoFixture fixture)
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
 
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", text, null, Created);
+        var intent = Intent.Create(id, "user-1", text, null, Created);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, Created, TextVersionAuthor.Agent);
         await uow.ExecuteAsync(

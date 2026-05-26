@@ -47,7 +47,7 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
         var patch = MakePatch("p-1");
         await uow.ExecuteAsync(ct => repo.CreateAsync(patch, idempotencyKey: null, ct), CancellationToken.None);
 
-        InstructionPatchTransitions.Apply(patch, editedText: null, appliedInstructionVersion: 6, Now);
+        patch.Apply(editedText: null, appliedInstructionVersion: 6, Now);
 
         var first = await uow.ExecuteAsync(ct => repo.ApplyAsync(patch, ct), CancellationToken.None);
         first.Should().BeOfType<ApplyInstructionPatchPersistenceOutcome.Applied>();
@@ -60,7 +60,7 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
 
         // Second apply against stale (proposed) snapshot returns AlreadyDecided.
         var stale = MakePatch("p-1");
-        InstructionPatchTransitions.Apply(stale, editedText: null, appliedInstructionVersion: 6, Now);
+        stale.Apply(editedText: null, appliedInstructionVersion: 6, Now);
         var second = await uow.ExecuteAsync(ct => repo.ApplyAsync(stale, ct), CancellationToken.None);
         second.Should().BeOfType<ApplyInstructionPatchPersistenceOutcome.AlreadyDecided>();
     }
@@ -73,7 +73,7 @@ public class MongoInstructionPatchRepositoryTests(MongoFixture fixture)
         var patch = MakePatch("p-1");
         await uow.ExecuteAsync(ct => repo.CreateAsync(patch, idempotencyKey: null, ct), CancellationToken.None);
 
-        InstructionPatchTransitions.Reject(patch, "operator wrote a long enough reason", Now);
+        patch.Reject("operator wrote a long enough reason", Now);
         var outcome = await uow.ExecuteAsync(ct => repo.RejectAsync(patch, ct), CancellationToken.None);
         outcome.Should().BeOfType<RejectInstructionPatchPersistenceOutcome.Rejected>();
 

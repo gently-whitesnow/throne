@@ -119,7 +119,7 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
 
         var instruction = MapToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = InstructionReplaceTextOperation.Apply(instruction, oldText, newText, newVersionId, now, changedBy);
+        var domainResult = instruction.ReplaceText(oldText, newText, newVersionId, now, changedBy);
 
         switch (domainResult)
         {
@@ -186,7 +186,7 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
         ChangedBy = v.ChangedBy.ToWire(),
     };
 
-    private static Instruction MapToDomain(InstructionDocument doc) => InstructionFactory.Restore(
+    private static Instruction MapToDomain(InstructionDocument doc) => Instruction.Restore(
         id: new InstructionId(doc.Id),
         scope: doc.Scope,
         userId: doc.UserId,

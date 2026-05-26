@@ -98,6 +98,6 @@ public class RepositoryBindingMcpSummaryMapperTests
             LastSyncedAt: lastSyncedAt,
             CreatedAt: Now,
             UpdatedAt: Now);
-        return IntentRepositoryBindingFactory.Restore(snapshot);
+        return IntentRepositoryBinding.Restore(snapshot);
     }
 }

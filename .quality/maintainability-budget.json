@@ -93,17 +93,16 @@
           }
         },
         {
-          "_comment": "Domain aggregates + events expose rich state surfaces via primary constructors; ctor arity = identity + state size, not service injection.",
+          "_comment": "ADR-0025 — Throne.Domain нормативно ведётся в rich-DDD стиле (агрегат сам несёт public static Create/Restore, инварианты инлайн, state-переходы инстансными методами). Lift LOC/member/CC/fan-out лимитов снимает давление харнеса к расщеплению на *Factory/*Guards/*Mutator. Запреты охраняются ADR + ревью и NetArchTest «no internal set в Throne.Domain». Поглощает прежние Domain-override (constructorMaxDependencies:10) и DreamSession-override (typeMaxPublicMembers:20).",
           "glob": "**/Throne.Domain/**.cs",
           "limits": {
-            "constructorMaxDependencies": 10
-          }
-        },
-        {
-          "_comment": "DreamSession aggregate exposes the full audit + state surface (ADR-0022).",
-          "glob": "**/Throne.Domain/Dreams/DreamSession.cs",
-          "limits": {
-            "typeMaxPublicMembers": 20
+            "fileMaxLoc": 9999,
+            "typeMaxLoc": 9999,
+            "methodMaxLoc": 9999,
+            "typeMaxPublicMembers": 9999,
+            "methodMaxCyclomaticComplexity": 9999,
+            "fileMaxFanOut": 9999,
+            "constructorMaxDependencies": 9999
           }
         },
         {

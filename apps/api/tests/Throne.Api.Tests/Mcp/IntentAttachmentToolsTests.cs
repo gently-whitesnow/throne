@@ -179,7 +179,7 @@ public class IntentAttachmentToolsTests
 
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(IntentFactory.Restore(intentId, "user-1", "x", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(intentId, "user-1", "x", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
         attachmentRepo.OpenContentAsync(Arg.Any<IntentId>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -213,7 +213,7 @@ public class IntentAttachmentToolsTests
     {
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(IntentFactory.Restore(intentId, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(intentId, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
         attachmentRepo.OpenContentAsync(intentId, att.Id, Arg.Any<CancellationToken>())

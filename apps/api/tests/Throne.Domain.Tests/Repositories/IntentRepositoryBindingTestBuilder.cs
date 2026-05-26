@@ -8,7 +8,7 @@ internal static class IntentRepositoryBindingTestBuilder
     public static readonly DateTimeOffset Now = new(2026, 5, 23, 12, 0, 0, TimeSpan.Zero);
 
     public static IntentRepositoryBinding Pending(int? prNumber = null) =>
-        IntentRepositoryBindingFactory.Create(
+        IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: new IntentId("intent-abc"),
             coordinate: new RepoCoordinate(GitProviderNames.GitHub, "anthropics", "throne"),

@@ -18,8 +18,8 @@ public class IntentToolsListTests
     public async Task ListIntents_handles_shared_tags_across_intents()
     {
         var sharedTagId = TagId.New();
-        var intentA = IntentFactory.Restore(IntentId.New(), "user-1", "alpha", IntentStatusNames.Draft, 1, [sharedTagId], Now, Now);
-        var intentB = IntentFactory.Restore(IntentId.New(), "user-1", "beta", IntentStatusNames.Draft, 1, [sharedTagId], Now, Now);
+        var intentA = Intent.Restore(IntentId.New(), "user-1", "alpha", IntentStatusNames.Draft, 1, [sharedTagId], Now, Now);
+        var intentB = Intent.Restore(IntentId.New(), "user-1", "beta", IntentStatusNames.Draft, 1, [sharedTagId], Now, Now);
 
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.ListPagedAsync(Arg.Any<IntentListSpec>(), Arg.Any<CancellationToken>())
@@ -27,7 +27,7 @@ public class IntentToolsListTests
 
         var tagRepo = Substitute.For<ITagRepository>();
         tagRepo.ListAllAsync(Arg.Any<CancellationToken>())
-            .Returns([TagFactory.Create(sharedTagId, "shared", Now)]);
+            .Returns([Tag.Create(sharedTagId, "shared", Now)]);
 
         var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
         var tools = NewTools(intentRepo, tagRepo, listHandler);
@@ -46,7 +46,7 @@ public class IntentToolsListTests
     public async Task ListIntents_builds_preview_from_first_nonempty_line()
     {
         var longLine = new string('a', 250);
-        var intent = IntentFactory.Restore(IntentId.New(), "user-1", $"\n\n{longLine}\n", IntentStatusNames.Draft, 1, [], Now, Now);
+        var intent = Intent.Restore(IntentId.New(), "user-1", $"\n\n{longLine}\n", IntentStatusNames.Draft, 1, [], Now, Now);
 
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.ListPagedAsync(Arg.Any<IntentListSpec>(), Arg.Any<CancellationToken>())

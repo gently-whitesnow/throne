@@ -19,7 +19,7 @@ namespace Throne.Application.Repositories;
 ///   <item>304 NotModified → record <c>last_synced_at</c>, keep prior cursor and
 ///         etag, no new comments and no per-comment events; HTTP callers reuse their
 ///         client-side cache.</item>
-///   <item>404 (provider returns null) → <see cref="IntentRepositoryBindingMutator.MarkBroken"/>,
+///   <item>404 (provider returns null) → <see cref="IntentRepositoryBinding.MarkBroken"/>,
 ///         throw <c>repository.upstream_gone</c>.</item>
 /// </list>
 ///

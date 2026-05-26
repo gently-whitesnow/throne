@@ -153,7 +153,7 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
         var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var intent = IntentFactory.Create(IntentId.New(), "local-dev", text, null, Now);
+        var intent = Intent.Create(IntentId.New(), "local-dev", text, null, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"),
             TextVersionOwnerKind.Intent,

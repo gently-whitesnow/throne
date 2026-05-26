@@ -15,18 +15,17 @@ namespace Throne.Domain.Dreams;
 ///     claude-desktop, codex-cli, …); the server does not enumerate known
 ///     vendors at the domain level — validation against <c>dream_sources</c>
 ///     happens in Application;
-///   • <see cref="Summary"/> is required, ≤ <see cref="MaxSummaryLength"/> chars;
-///   • <see cref="Reflection"/> is optional, ≤ <see cref="MaxReflectionLength"/> chars;
-///   • <see cref="ProcessedConversationIds"/> contains at most
-///     <see cref="MaxProcessedConversationIds"/> opaque strings;
-///   • <see cref="ProposedPatchIds"/> contains at most
-///     <see cref="MaxProposedPatchIds"/> opaque strings.
+///   • <see cref="Payload"/>.<see cref="DreamSessionPayload.Summary"/> is
+///     required, ≤ <see cref="MaxSummaryLength"/> chars;
+///   • <see cref="Payload"/>.<see cref="DreamSessionPayload.Reflection"/> is
+///     optional, ≤ <see cref="MaxReflectionLength"/> chars;
+///   • <see cref="Payload"/>.<see cref="DreamSessionPayload.ProcessedConversationIds"/>
+///     contains at most <see cref="MaxProcessedConversationIds"/> opaque strings;
+///   • <see cref="Payload"/>.<see cref="DreamSessionPayload.ProposedPatchIds"/>
+///     contains at most <see cref="MaxProposedPatchIds"/> opaque strings.
 ///
 /// Records are append-only — there is no update path. If a user wants to amend
 /// reflection, the agent records a fresh session.
-///
-/// Construction goes through <see cref="DreamSessionFactory"/> so the aggregate
-/// itself stays inside the per-type CA1502 budget.
 /// </summary>
 public sealed class DreamSession
 {
@@ -39,7 +38,7 @@ public sealed class DreamSession
     public const int MaxPatchIdLength = 64;
     public const int MaxProposedPatchIds = 50;
 
-    internal DreamSession(DreamSessionIdentity identity, DreamSessionPayload payload)
+    private DreamSession(DreamSessionIdentity identity, DreamSessionPayload payload)
     {
         Identity = identity;
         Payload = payload;
@@ -63,9 +62,113 @@ public sealed class DreamSession
         string summary,
         string? reflection,
         IReadOnlyList<string> proposedPatchIds)
-        => DreamSessionFactory.Create(new DreamSessionCreateInput(
-            id, ownerUserId, createdAt, vendor, host, dateFrom, dateTo,
-            processedConversationIds, summary, reflection, proposedPatchIds));
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(vendor);
+        if (vendor.Length > MaxVendorLength)
+        {
+            throw new ArgumentException(
+                $"vendor must be ≤{MaxVendorLength} characters.",
+                nameof(vendor));
+        }
+
+        if (host is null || string.IsNullOrWhiteSpace(host))
+        {
+            throw new ArgumentException("host must not be empty.", nameof(host));
+        }
+        if (host.Length > MaxHostLength)
+        {
+            throw new ArgumentException(
+                $"host must be ≤{MaxHostLength} characters.",
+                nameof(host));
+        }
+
+        if (dateFrom is { } from && dateTo is { } to && from > to)
+        {
+            throw new ArgumentException(
+                "date_from must not be after date_to.",
+                nameof(dateFrom));
+        }
+
+        ArgumentNullException.ThrowIfNull(summary);
+        if (string.IsNullOrWhiteSpace(summary))
+        {
+            throw new ArgumentException("summary must not be empty.", nameof(summary));
+        }
+        if (summary.Length > MaxSummaryLength)
+        {
+            throw new ArgumentException(
+                $"summary must be ≤{MaxSummaryLength} characters.",
+                nameof(summary));
+        }
+
+        if (reflection is not null && reflection.Length > MaxReflectionLength)
+        {
+            throw new ArgumentException(
+                $"reflection must be ≤{MaxReflectionLength} characters.",
+                nameof(reflection));
+        }
+
+        ArgumentNullException.ThrowIfNull(processedConversationIds);
+        if (processedConversationIds.Count > MaxProcessedConversationIds)
+        {
+            throw new ArgumentException(
+                $"processed_conversation_ids must contain at most {MaxProcessedConversationIds} entries.",
+                nameof(processedConversationIds));
+        }
+        foreach (var entry in processedConversationIds)
+        {
+            if (string.IsNullOrWhiteSpace(entry))
+            {
+                throw new ArgumentException(
+                    "processed_conversation_ids entries must be non-empty.",
+                    nameof(processedConversationIds));
+            }
+            if (entry.Length > MaxConversationIdLength)
+            {
+                throw new ArgumentException(
+                    $"processed_conversation_ids entries must be ≤{MaxConversationIdLength} characters.",
+                    nameof(processedConversationIds));
+            }
+        }
+
+        ArgumentNullException.ThrowIfNull(proposedPatchIds);
+        if (proposedPatchIds.Count > MaxProposedPatchIds)
+        {
+            throw new ArgumentException(
+                $"proposed_patch_ids must contain at most {MaxProposedPatchIds} entries.",
+                nameof(proposedPatchIds));
+        }
+        foreach (var entry in proposedPatchIds)
+        {
+            if (string.IsNullOrWhiteSpace(entry))
+            {
+                throw new ArgumentException(
+                    "proposed_patch_ids entries must be non-empty.",
+                    nameof(proposedPatchIds));
+            }
+            if (entry.Length > MaxPatchIdLength)
+            {
+                throw new ArgumentException(
+                    $"proposed_patch_ids entries must be ≤{MaxPatchIdLength} characters.",
+                    nameof(proposedPatchIds));
+            }
+        }
+
+        return new DreamSession(
+            new DreamSessionIdentity(id, ownerUserId, createdAt),
+            new DreamSessionPayload(
+                vendor.Trim(),
+                host.Trim(),
+                dateFrom,
+                dateTo,
+                [.. processedConversationIds],
+                summary,
+                reflection,
+                [.. proposedPatchIds]));
+    }
 
     /// <summary>
     /// Materialise an existing record from persistence. <paramref name="host"/>
@@ -84,9 +187,28 @@ public sealed class DreamSession
         string summary,
         string? reflection,
         IReadOnlyList<string> proposedPatchIds)
-        => DreamSessionFactory.Restore(new DreamSessionCreateInput(
-            id, ownerUserId, createdAt, vendor, host, dateFrom, dateTo,
-            processedConversationIds, summary, reflection, proposedPatchIds));
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(vendor);
+        ArgumentNullException.ThrowIfNull(processedConversationIds);
+        ArgumentNullException.ThrowIfNull(proposedPatchIds);
+        ArgumentNullException.ThrowIfNull(summary);
+
+        var normalisedHost = string.IsNullOrWhiteSpace(host) ? null : host;
+
+        return new DreamSession(
+            new DreamSessionIdentity(id, ownerUserId, createdAt),
+            new DreamSessionPayload(
+                vendor,
+                normalisedHost,
+                dateFrom,
+                dateTo,
+                [.. processedConversationIds],
+                summary,
+                reflection,
+                [.. proposedPatchIds]));
+    }
 }
 
 /// <summary>Identity triple stored on every <see cref="DreamSession"/>.</summary>
@@ -103,24 +225,6 @@ public sealed record DreamSessionIdentity(
 /// May be <c>null</c> only for legacy records written before the field existed.
 /// </summary>
 public sealed record DreamSessionPayload(
-    string Vendor,
-    string? Host,
-    DateTimeOffset? DateFrom,
-    DateTimeOffset? DateTo,
-    IReadOnlyList<string> ProcessedConversationIds,
-    string Summary,
-    string? Reflection,
-    IReadOnlyList<string> ProposedPatchIds);
-
-/// <summary>
-/// All inputs required to materialise a <see cref="DreamSession"/> via the
-/// <see cref="DreamSessionFactory"/>. Folded into a record so the factory's
-/// per-method cyclomatic complexity stays inside CA1502.
-/// </summary>
-public sealed record DreamSessionCreateInput(
-    string Id,
-    string OwnerUserId,
-    DateTimeOffset CreatedAt,
     string Vendor,
     string? Host,
     DateTimeOffset? DateFrom,

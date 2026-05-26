@@ -20,7 +20,7 @@ public class TransactionRollbackTests(MongoFixture fixture)
     {
         var (db, repo, uow) = await NewScopeAsync();
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", "ok", null, Now);
+        var intent = Intent.Create(id, "user-1", "ok", null, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "ok", Now, TextVersionAuthor.Agent);
 
@@ -39,7 +39,7 @@ public class TransactionRollbackTests(MongoFixture fixture)
     {
         var (db, repo, uow) = await NewScopeAsync();
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", "boom", null, Now);
+        var intent = Intent.Create(id, "user-1", "boom", null, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "boom", Now, TextVersionAuthor.Agent);
 

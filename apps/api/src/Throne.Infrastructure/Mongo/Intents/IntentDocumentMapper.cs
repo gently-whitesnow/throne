@@ -35,7 +35,7 @@ internal static class IntentDocumentMapper
         Reason = change.Reason,
     };
 
-    public static Intent ToDomain(IntentDocument doc) => IntentFactory.Restore(
+    public static Intent ToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
         ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,

@@ -90,7 +90,7 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         IReadOnlyList<TagId>? tagIds = null)
     {
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", text, tagIds ?? [TagId.New()], at);
+        var intent = Intent.Create(id, "user-1", text, tagIds ?? [TagId.New()], at);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             text, at, TextVersionAuthor.Agent);

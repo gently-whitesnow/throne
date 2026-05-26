@@ -93,13 +93,13 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var shortIntent = IntentFactory.Create(IntentId.New(), "local-dev", "short text", [Throne.Domain.Tags.TagId.New()], Now);
+        var shortIntent = Intent.Create(IntentId.New(), "local-dev", "short text", [Throne.Domain.Tags.TagId.New()], Now);
         var shortVersion = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, shortIntent.Id.Value,
             shortIntent.State.Text, Now, TextVersionAuthor.Agent);
 
         var longText = new string('x', 200);
-        var longIntent = IntentFactory.Create(IntentId.New(), "local-dev", longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
+        var longIntent = Intent.Create(IntentId.New(), "local-dev", longText, [Throne.Domain.Tags.TagId.New(), Throne.Domain.Tags.TagId.New()], Now);
         var longVersion = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, longIntent.Id.Value,
             longText, Now, TextVersionAuthor.Agent);
@@ -146,7 +146,7 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
 
     private static async Task<Intent> SeedAsync(IIntentRepository repo, IUnitOfWork uow, string text)
     {
-        var intent = IntentFactory.Create(IntentId.New(), "local-dev", text, [Throne.Domain.Tags.TagId.New()], Now);
+        var intent = Intent.Create(IntentId.New(), "local-dev", text, [Throne.Domain.Tags.TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, intent.Id.Value,
             intent.State.Text, Now, TextVersionAuthor.Agent);

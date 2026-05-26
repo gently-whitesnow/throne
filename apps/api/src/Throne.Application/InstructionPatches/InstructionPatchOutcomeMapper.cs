@@ -71,16 +71,16 @@ internal static class InstructionPatchOutcomeMapper
         };
 
     public static void ThrowForRejectTransition(
-        InstructionPatchTransitions.RejectResult transition,
+        InstructionPatch.RejectResult transition,
         InstructionPatch patch)
     {
         switch (transition)
         {
-            case InstructionPatchTransitions.RejectResult.Ok:
+            case InstructionPatch.RejectResult.Ok:
                 return;
-            case InstructionPatchTransitions.RejectResult.AlreadyDecided:
+            case InstructionPatch.RejectResult.AlreadyDecided:
                 throw InstructionPatchExceptions.AlreadyDecided(patch);
-            case InstructionPatchTransitions.RejectResult.CommentTooShort:
+            case InstructionPatch.RejectResult.CommentTooShort:
                 throw InstructionPatchExceptions.CommentTooShort();
             default:
                 throw new InvalidOperationException($"Unhandled reject result: {transition}");

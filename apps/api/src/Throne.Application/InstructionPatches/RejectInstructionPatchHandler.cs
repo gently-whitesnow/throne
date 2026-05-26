@@ -25,7 +25,7 @@ public sealed class RejectInstructionPatchHandler(
             ?? throw InstructionPatchExceptions.NotFound(command.PatchId);
         InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
 
-        var transition = InstructionPatchTransitions.Reject(patch, command.Comment, clock.GetUtcNow());
+        var transition = patch.Reject(command.Comment, clock.GetUtcNow());
         InstructionPatchOutcomeMapper.ThrowForRejectTransition(transition, patch);
 
         var outcome = await unitOfWork.ExecuteAsync(

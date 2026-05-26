@@ -198,7 +198,7 @@ public class PullRequestSyncTickWorkflowTests
                 LastSyncedAt: null,
                 CreatedAt: Now,
                 UpdatedAt: Now);
-            var binding = IntentRepositoryBindingFactory.Restore(snapshot);
+            var binding = IntentRepositoryBinding.Restore(snapshot);
             Bindings.FindOpenForSyncAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>([binding]));
             return binding;

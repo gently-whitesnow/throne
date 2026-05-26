@@ -10,8 +10,8 @@ namespace Throne.Domain.TextVersions;
 /// <c>base_instruction_version</c>.
 ///
 /// The replay is pure: it operates on the same delta semantics that
-/// <c>InstructionReplaceTextOperation</c>, <c>IntentReplaceTextOperation</c>
-/// and <c>IntentInsertTextOperation</c> use when writing the history, so a
+/// <c>Instruction.ReplaceText</c>, <c>Intent.ReplaceText</c> and
+/// <c>Intent.InsertTextAfterLine</c> use when writing the history, so a
 /// well-formed history reconstructs verbatim.
 /// </summary>
 public static class TextVersionReplay

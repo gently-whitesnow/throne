@@ -159,7 +159,7 @@ public sealed class IntentRepositoriesControllerTests(MongoFixture mongo) : IAsy
         await using var scope = _fixture.Services.CreateAsyncScope();
         var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var intent = IntentFactory.Create(IntentId.New(), "local-dev", "intent-for-repo-tests", [Throne.Domain.Tags.TagId.New()], Now);
+        var intent = Intent.Create(IntentId.New(), "local-dev", "intent-for-repo-tests", [Throne.Domain.Tags.TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, intent.Id.Value,
             intent.State.Text, Now, TextVersionAuthor.User);
@@ -174,7 +174,7 @@ public sealed class IntentRepositoriesControllerTests(MongoFixture mongo) : IAsy
         await using var scope = _fixture.Services.CreateAsyncScope();
         var bindings = scope.ServiceProvider.GetRequiredService<IIntentRepositoryBindingRepository>();
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var binding = IntentRepositoryBindingFactory.Create(
+        var binding = IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: intentId,
             coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "hello"),

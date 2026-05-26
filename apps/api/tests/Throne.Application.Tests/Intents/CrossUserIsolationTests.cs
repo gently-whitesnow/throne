@@ -23,7 +23,7 @@ public class CrossUserIsolationTests
     {
         var repo = Substitute.For<IIntentRepository>();
         var id = IntentId.New();
-        var ownIntent = IntentFactory.Restore(id, "user-1", "mine", IntentStatusNames.Draft, 1, [], Now, Now);
+        var ownIntent = Intent.Restore(id, "user-1", "mine", IntentStatusNames.Draft, 1, [], Now, Now);
         repo.GetByIdAsync(id, Arg.Any<CancellationToken>()).Returns(ownIntent);
 
         var handler = new GetIntentHandler(repo);
@@ -36,7 +36,7 @@ public class CrossUserIsolationTests
     public async Task ListIntents_returns_only_repository_filtered_results()
     {
         var repo = Substitute.For<IIntentRepository>();
-        var only = IntentFactory.Restore(IntentId.New(), "user-1", "mine", IntentStatusNames.Draft, 1, [], Now, Now);
+        var only = Intent.Restore(IntentId.New(), "user-1", "mine", IntentStatusNames.Draft, 1, [], Now, Now);
         repo.ListAsync(Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>()).Returns([only]);
 
         var tagRepo = Substitute.For<ITagRepository>();

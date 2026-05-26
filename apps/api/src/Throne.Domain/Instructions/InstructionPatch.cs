@@ -19,11 +19,9 @@ namespace Throne.Domain.Instructions;
 ///     only by the apply path;
 ///   • <see cref="Rationale"/> ≤ 500 characters.
 ///
-/// Status transitions go through <see cref="InstructionPatchTransitions"/> —
-/// the aggregate exposes only state read access plus a single internal
-/// <c>State</c> setter. Construction is funnelled through
-/// <see cref="InstructionPatchFactory"/> so this class is small enough for the
-/// per-type CA1502 budget.
+/// State transitions are exposed as instance methods (<see cref="Apply"/>,
+/// <see cref="Reject"/>) which return the corresponding result enum without
+/// throwing — callers translate the outcome into protocol-level errors.
 /// </summary>
 public sealed class InstructionPatch
 {
@@ -32,7 +30,21 @@ public sealed class InstructionPatch
     public const int MaxPatchTextLength = 32_000;
     public const int MaxEvidenceCardIds = 50;
 
-    internal InstructionPatch(
+    public enum ApplyResult
+    {
+        Ok,
+        AlreadyDecided,
+        InvalidAppliedVersion,
+    }
+
+    public enum RejectResult
+    {
+        Ok,
+        AlreadyDecided,
+        CommentTooShort,
+    }
+
+    private InstructionPatch(
         InstructionPatchIdentity identity,
         InstructionPatchState state,
         string patchText,
@@ -50,7 +62,7 @@ public sealed class InstructionPatch
     public string PatchText { get; }
     public IReadOnlyList<string> EvidenceCardIds { get; }
     public string Rationale { get; }
-    public InstructionPatchState State { get; internal set; }
+    public InstructionPatchState State { get; private set; }
 
     public static InstructionPatch Create(
         string id,
@@ -61,8 +73,21 @@ public sealed class InstructionPatch
         string rationale,
         int baseInstructionVersion,
         DateTimeOffset now)
-        => InstructionPatchFactory.Create(
-            id, ownerUserId, targetKind, patchText, evidenceCardIds, rationale, baseInstructionVersion, now);
+    {
+        EnsureRequiredStringsForCreate(id, ownerUserId, targetKind, rationale);
+        ArgumentNullException.ThrowIfNull(patchText);
+        ArgumentNullException.ThrowIfNull(evidenceCardIds);
+        EnsureKnownKind(targetKind);
+        InstructionPatchBudgets.EnsureAll(patchText, evidenceCardIds, rationale, baseInstructionVersion);
+
+        var identity = new InstructionPatchIdentity(id, ownerUserId, targetKind, baseInstructionVersion, now);
+        return new InstructionPatch(
+            identity,
+            InstructionPatchState.Initial(now),
+            patchText,
+            [.. evidenceCardIds],
+            rationale);
+    }
 
     public static InstructionPatch Restore(
         InstructionPatchIdentity identity,
@@ -70,5 +95,109 @@ public sealed class InstructionPatch
         string patchText,
         IReadOnlyList<string> evidenceCardIds,
         string rationale)
-        => InstructionPatchFactory.Restore(identity, state, patchText, evidenceCardIds, rationale);
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentException.ThrowIfNullOrWhiteSpace(identity.Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(identity.OwnerUserId);
+        EnsureKnownKind(identity.TargetKind);
+        EnsureKnownStatus(state.Status);
+        return new InstructionPatch(identity, state, patchText, [.. evidenceCardIds], rationale);
+    }
+
+    /// <summary>
+    /// User-driven apply transition. Verbatim apply (<paramref name="editedText"/>
+    /// null or equal to <see cref="PatchText"/>) flips status to
+    /// <see cref="InstructionPatchStatusNames.Applied"/>; a divergent
+    /// <paramref name="editedText"/> flips to
+    /// <see cref="InstructionPatchStatusNames.AppliedEdited"/>.
+    /// </summary>
+    public ApplyResult Apply(string? editedText, int appliedInstructionVersion, DateTimeOffset now)
+    {
+        if (State.Status != InstructionPatchStatusNames.Proposed)
+        {
+            return ApplyResult.AlreadyDecided;
+        }
+        if (appliedInstructionVersion < Identity.BaseInstructionVersion + 1)
+        {
+            return ApplyResult.InvalidAppliedVersion;
+        }
+
+        var (status, appliedText) = ResolveApplied(editedText, PatchText);
+        State = new InstructionPatchState(
+            Status: status,
+            AppliedText: appliedText,
+            RejectComment: State.RejectComment,
+            AppliedInstructionVersion: appliedInstructionVersion,
+            UpdatedAt: now,
+            DecidedAt: now);
+        return ApplyResult.Ok;
+    }
+
+    /// <summary>
+    /// User-driven reject transition. Requires a non-empty
+    /// <paramref name="comment"/> with at least <see cref="MinRejectCommentLength"/>
+    /// characters after trimming.
+    /// </summary>
+    public RejectResult Reject(string comment, DateTimeOffset now)
+    {
+        if (State.Status != InstructionPatchStatusNames.Proposed)
+        {
+            return RejectResult.AlreadyDecided;
+        }
+        var trimmed = (comment ?? string.Empty).Trim();
+        if (trimmed.Length < MinRejectCommentLength)
+        {
+            return RejectResult.CommentTooShort;
+        }
+        State = new InstructionPatchState(
+            Status: InstructionPatchStatusNames.Rejected,
+            AppliedText: State.AppliedText,
+            RejectComment: trimmed,
+            AppliedInstructionVersion: State.AppliedInstructionVersion,
+            UpdatedAt: now,
+            DecidedAt: now);
+        return RejectResult.Ok;
+    }
+
+    private static (string Status, string AppliedText) ResolveApplied(string? editedText, string patchText)
+    {
+        if (string.IsNullOrEmpty(editedText) || string.Equals(editedText, patchText, StringComparison.Ordinal))
+        {
+            return (InstructionPatchStatusNames.Applied, patchText);
+        }
+        return (InstructionPatchStatusNames.AppliedEdited, editedText);
+    }
+
+    private static void EnsureRequiredStringsForCreate(
+        string id,
+        string ownerUserId,
+        string targetKind,
+        string rationale)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetKind);
+        ArgumentException.ThrowIfNullOrWhiteSpace(rationale);
+    }
+
+    private static void EnsureKnownKind(string kind)
+    {
+        if (!InstructionKindNames.IsKnown(kind))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                $"Unknown instruction kind: {kind}.");
+        }
+    }
+
+    private static void EnsureKnownStatus(string status)
+    {
+        if (!InstructionPatchStatusNames.IsKnown(status))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(status),
+                $"Unknown InstructionPatch status: {status}.");
+        }
+    }
 }
