@@ -90,6 +90,7 @@ export function IntentsSectionPage() {
 
   const middleWidth = mode === "canvas" ? canvasWidth : boardWidth;
   const startMiddleDrag = mode === "canvas" ? startCanvasDrag : startBoardDrag;
+  const detailOpen = Boolean(id);
 
   return (
     <div className="flex h-screen overflow-hidden max-md:grid max-md:grid-cols-1 max-md:grid-rows-[minmax(120px,26vh)_minmax(160px,32vh)_1fr]">
@@ -104,8 +105,12 @@ export function IntentsSectionPage() {
         onPointerDown={startRailDrag}
       />
       <div
-        className="grid min-h-0 min-w-0 max-md:!w-auto"
-        style={{ width: middleWidth, flexShrink: 0 }}
+        className={
+          detailOpen
+            ? "grid min-h-0 min-w-0 max-md:!w-auto"
+            : "grid min-h-0 min-w-0 flex-1 max-md:!w-auto"
+        }
+        style={detailOpen ? { width: middleWidth, flexShrink: 0 } : undefined}
       >
         {mode === "canvas" ? (
           <IntentTreeCanvas
@@ -121,29 +126,24 @@ export function IntentsSectionPage() {
           />
         )}
       </div>
-      <ResizeHandle
-        ariaLabel={
-          mode === "canvas"
-            ? "Изменить ширину канваса"
-            : "Изменить ширину списка intents"
-        }
-        onPointerDown={startMiddleDrag}
-      />
-      <section
-        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-        aria-label="Детали Intent"
-      >
-        {id ? (
-          <Outlet />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-sm text-base-content/60">
-            <p className="m-0">Выберите Intent в списке</p>
-            <p className="m-0 text-xs text-base-content/60">
-              Слева — контексты, рядом — intents выбранного контекста.
-            </p>
-          </div>
-        )}
-      </section>
+      {detailOpen ? (
+        <>
+          <ResizeHandle
+            ariaLabel={
+              mode === "canvas"
+                ? "Изменить ширину канваса"
+                : "Изменить ширину списка intents"
+            }
+            onPointerDown={startMiddleDrag}
+          />
+          <section
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            aria-label="Детали Intent"
+          >
+            <Outlet />
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }
