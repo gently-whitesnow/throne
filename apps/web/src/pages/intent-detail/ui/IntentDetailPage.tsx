@@ -1,6 +1,6 @@
-import { Check, Copy, MessagesSquare, Play } from "lucide-react";
+import { Check, Copy, MessagesSquare, Play, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { type IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
@@ -25,6 +25,7 @@ type LoadState =
 export function IntentDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState(false);
   const [activityKey, setActivityKey] = useState(0);
@@ -253,11 +254,31 @@ export function IntentDetailPage() {
               void navigate("/intents");
             }}
           />
+          <button
+            type="button"
+            aria-label="Закрыть панель"
+            title="Закрыть"
+            onClick={() => {
+              void navigate({
+                pathname: "/intents",
+                search: location.search
+              });
+            }}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <X aria-hidden size={16} strokeWidth={2} />
+          </button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4">
+        <div
+          className={
+            editing
+              ? "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-4"
+              : "min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4"
+          }
+        >
           <IntentTagsInline
             intent={intent}
             onSaved={(next) => {
@@ -277,23 +298,25 @@ export function IntentDetailPage() {
               }}
             />
           ) : (
-            <pre className="m-0 whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-base-content">
-              {intent.text}
-            </pre>
+            <>
+              <pre className="m-0 whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-base-content">
+                {intent.text}
+              </pre>
+              <IntentAttachmentsPanel intentId={intent.id} />
+              <RepositoryBindingsList intentId={intent.id} />
+              <PullRequestCommentsSection intentId={intent.id} />
+              <IntentLinksSection intentId={intent.id} />
+              <section className="mt-6 flex flex-col gap-2">
+                <h2 className="m-0 text-sm font-semibold text-base-content">
+                  Активность
+                </h2>
+                <IntentActivityTimeline
+                  intentId={intent.id}
+                  reloadKey={activityKey}
+                />
+              </section>
+            </>
           )}
-          <IntentAttachmentsPanel intentId={intent.id} />
-          <RepositoryBindingsList intentId={intent.id} />
-          <PullRequestCommentsSection intentId={intent.id} />
-          <IntentLinksSection intentId={intent.id} />
-          <section className="mt-6 flex flex-col gap-2">
-            <h2 className="m-0 text-sm font-semibold text-base-content">
-              Активность
-            </h2>
-            <IntentActivityTimeline
-              intentId={intent.id}
-              reloadKey={activityKey}
-            />
-          </section>
         </div>
       </div>
     </>

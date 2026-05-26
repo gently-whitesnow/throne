@@ -19,6 +19,16 @@
     "Monaspace Neon", ui-monospace, "Fira Code", "Cascadia Code", monospace;
 }
 
+/* Лочим document-level scroll: внутри каждого раздела свой скролл-контейнер
+ * (например, overflow-y-auto в IntentDetailPage / Settings / Improvements).
+ * Без этого wheel над rail/board/canvas докручивал html и уезжал весь layout. */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* Toast fade-in */
 @keyframes fade-in {
   from {

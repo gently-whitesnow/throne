@@ -14,7 +14,7 @@ const NAV_ITEMS = [
 export function AppShell() {
   const proposedPatches = useProposedPatchesCount();
   return (
-    <div className="grid min-h-screen grid-rows-[auto_1fr] md:grid-cols-[56px_1fr] md:grid-rows-1">
+    <div className="grid h-screen grid-rows-[auto_1fr] overflow-hidden md:grid-cols-[56px_1fr] md:grid-rows-1">
       <aside
         className="flex gap-2 overflow-x-auto border-b border-base-300 bg-base-200 px-2 py-2 md:flex-col md:items-center md:gap-3 md:overflow-visible md:border-b-0 md:border-r md:px-2 md:py-3"
         aria-label="Основная навигация"
@@ -48,7 +48,7 @@ export function AppShell() {
           ))}
         </nav>
       </aside>
-      <main className="min-h-screen min-w-0 bg-base-100">
+      <main className="min-h-0 min-w-0 overflow-y-auto bg-base-100">
         <Outlet />
       </main>
     </div>

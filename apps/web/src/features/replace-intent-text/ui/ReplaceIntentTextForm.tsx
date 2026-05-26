@@ -81,16 +81,15 @@ export function ReplaceIntentTextForm({
         e.preventDefault();
         void submit();
       }}
-      className="flex flex-col gap-3"
+      className="flex min-h-0 flex-1 flex-col gap-3"
     >
       <textarea
-        className="textarea textarea-bordered min-h-80 w-full font-mono text-[13px] leading-relaxed"
+        className="textarea textarea-bordered min-h-0 w-full flex-1 resize-none font-mono text-[13px] leading-relaxed"
         value={draft}
         onChange={(e) => {
           setDraft(e.target.value);
         }}
         onPaste={handlePaste}
-        rows={20}
         aria-label="Текст intent"
       />
       <p className="m-0 text-[11px] text-base-content/60">

@@ -7,7 +7,7 @@ import {
   type IntentListItem
 } from "@/entities/intent";
 import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
-import { useRealtimeEvent } from "@/shared/realtime";
+import { useRealtimeEvent, type RealtimeEventMap } from "@/shared/realtime";
 
 import { layoutTree } from "./layout";
 import { parentsFromSummary } from "./parents";
@@ -42,15 +42,85 @@ export function useTreeData(context: string | null): TreeLoadState {
     setReloadKey((v) => v + 1);
   }, []);
 
+  // Patch одной карточки в items, чтобы не дёргать полный refetch+layout —
+  // иначе viewport канваса (zoom/pan) сбрасывался бы при каждой смене статуса.
+  const patchItem = useCallback(
+    (id: string, change: (item: IntentListItem) => IntentListItem) => {
+      setItems((prev) =>
+        prev === null
+          ? prev
+          : prev.map((it) => (it.id === id ? change(it) : it))
+      );
+    },
+    []
+  );
+
+  const onStatusChanged = useCallback<
+    (payload: RealtimeEventMap["intent.status_changed"]) => void
+  >(
+    (payload) => {
+      patchItem(payload.id, (it) => ({
+        ...it,
+        status: payload.status,
+        current_version: payload.current_version,
+        updated_at: payload.updated_at
+      }));
+    },
+    [patchItem]
+  );
+
+  const onTagsChanged = useCallback<
+    (payload: RealtimeEventMap["intent.tags_changed"]) => void
+  >(
+    (payload) => {
+      patchItem(payload.id, (it) => ({
+        ...it,
+        tags: payload.tags,
+        current_version: payload.current_version,
+        updated_at: payload.updated_at
+      }));
+    },
+    [patchItem]
+  );
+
+  const onPinUpserted = useCallback<
+    (payload: RealtimeEventMap["intent.pinned"]) => void
+  >(
+    (payload) => {
+      patchItem(payload.intent_id, (it) => ({
+        ...it,
+        pinned_in: upsertPin(
+          it.pinned_in,
+          payload.context_tag_id,
+          payload.pin_sort_key
+        )
+      }));
+    },
+    [patchItem]
+  );
+
+  const onUnpinned = useCallback<
+    (payload: RealtimeEventMap["intent.unpinned"]) => void
+  >(
+    (payload) => {
+      patchItem(payload.intent_id, (it) => ({
+        ...it,
+        pinned_in: it.pinned_in.filter(
+          (p) => p.context_tag_id !== payload.context_tag_id
+        )
+      }));
+    },
+    [patchItem]
+  );
+
   useRealtimeEvent("intent.created", reload);
   useRealtimeEvent("intent.deleted", reload);
   useRealtimeEvent("intent.text_changed", reload);
-  useRealtimeEvent("intent.status_changed", reload);
-  useRealtimeEvent("intent.tags_changed", reload);
-  // Pin events change badges on the cards even though they don't move the DAG.
-  useRealtimeEvent("intent.pinned", reload);
-  useRealtimeEvent("intent.unpinned", reload);
-  useRealtimeEvent("intent.pin_moved", reload);
+  useRealtimeEvent("intent.status_changed", onStatusChanged);
+  useRealtimeEvent("intent.tags_changed", onTagsChanged);
+  useRealtimeEvent("intent.pinned", onPinUpserted);
+  useRealtimeEvent("intent.pin_moved", onPinUpserted);
+  useRealtimeEvent("intent.unpinned", onUnpinned);
 
   // Stable ordering — same byte-wise sort_key compare the board uses.
   const ordered = useMemo<IntentListItem[]>(() => {
@@ -88,4 +158,17 @@ export function useTreeData(context: string | null): TreeLoadState {
       model: { nodes, byId, positions: pos, bounds }
     };
   }, [error, items, linksSummary, visible, visibleIds]);
+}
+
+function upsertPin(
+  pins: IntentListItem["pinned_in"],
+  contextTagId: string,
+  pinSortKey: string
+): IntentListItem["pinned_in"] {
+  const idx = pins.findIndex((p) => p.context_tag_id === contextTagId);
+  const entry = { context_tag_id: contextTagId, pin_sort_key: pinSortKey };
+  if (idx < 0) return [...pins, entry];
+  const next = pins.slice();
+  next[idx] = entry;
+  return next;
 }

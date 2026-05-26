@@ -90,31 +90,31 @@ export function useCanvasViewport({
     startVy: number;
   } | null>(null);
 
+  // Зависим от примитивов w/h, а не от объекта worldBounds: иначе любой
+  // ререндер с новой ref (например, точечный setItems в useTreeData) менял бы
+  // identity fitToView и useLayoutEffect ниже сбрасывал бы viewport.
+  const worldW = worldBounds?.w ?? 0;
+  const worldH = worldBounds?.h ?? 0;
+
   const fitToView = useCallback(() => {
     const stage = stageRef.current;
-    if (!stage || !worldBounds) return;
-    const { w, h } = worldBounds;
-    if (w === 0 || h === 0) return;
+    if (!stage || worldW === 0 || worldH === 0) return;
     const W = stage.clientWidth;
     const H = stage.clientHeight;
     if (W === 0 || H === 0) return;
-    const sx = (W - FIT_PADDING * 2) / w;
-    const sy = (H - FIT_PADDING * 2) / h;
+    const sx = (W - FIT_PADDING * 2) / worldW;
+    const sy = (H - FIT_PADDING * 2) / worldH;
     const scale = clamp(Math.min(sx, sy, 1), MIN_SCALE, MAX_SCALE);
-    const offX = (W - w * scale) / 2;
-    const offY = (H - h * scale) / 2;
+    const offX = (W - worldW * scale) / 2;
+    const offY = (H - worldH * scale) / 2;
     setViewport({ x: offX, y: offY, scale });
-  }, [stageRef, worldBounds]);
+  }, [stageRef, worldW, worldH]);
 
-  // Re-fit when bounds reshape — tracked via stable string key on dims so we
-  // don't re-fit on every viewport tick.
-  const boundsKey = worldBounds
-    ? `${String(worldBounds.w)}x${String(worldBounds.h)}`
-    : null;
+  // Re-fit только когда реально меняются размеры мира.
   useLayoutEffect(() => {
-    if (boundsKey === null) return;
+    if (worldW === 0 || worldH === 0) return;
     fitToView();
-  }, [boundsKey, fitToView]);
+  }, [worldW, worldH, fitToView]);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.button !== 1) return;
@@ -172,7 +172,7 @@ export function useCanvasViewport({
       const rect = stage.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
-      const factor = Math.exp(-e.deltaY * 0.002);
+      const factor = Math.exp(-e.deltaY * 0.005);
       const ns = clamp(viewport.scale * factor, MIN_SCALE, MAX_SCALE);
       const wx = (sx - viewport.x) / viewport.scale;
       const wy = (sy - viewport.y) / viewport.scale;
