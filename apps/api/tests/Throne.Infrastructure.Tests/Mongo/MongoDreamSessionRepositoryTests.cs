@@ -24,7 +24,7 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
         loaded.Should().NotBeNull();
         loaded!.OwnerUserId.Should().Be("user-1");
         loaded.Payload.Vendor.Should().Be("claude-code");
-        loaded.Payload.Host.Should().Be("macstudio.local");
+        loaded.Payload.Host.Should().Be("host-a.local");
         loaded.Payload.Summary.Should().Be("hello");
         loaded.Payload.ProcessedConversationIds.Should().Equal("a", "b");
     }
@@ -34,17 +34,17 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
     {
         var (_, repo, uow) = await NewScopeAsync("user-1");
 
-        var mac = MakeSession("d-mac", "user-1", host: "macstudio.local", at: Now);
-        var laptop = MakeSession("d-laptop", "user-1", host: "laptop.local", at: Now.AddMinutes(5));
-        await uow.ExecuteAsync(ct => repo.CreateAsync(mac, ct), CancellationToken.None);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(laptop, ct), CancellationToken.None);
+        var hostA = MakeSession("d-host-a", "user-1", host: "host-a.local", at: Now);
+        var hostB = MakeSession("d-host-b", "user-1", host: "host-b.local", at: Now.AddMinutes(5));
+        await uow.ExecuteAsync(ct => repo.CreateAsync(hostA, ct), CancellationToken.None);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(hostB, ct), CancellationToken.None);
 
-        var onlyMac = await repo.ListAsync(
-            new DreamSessionListFilter(Vendor: null, Host: "macstudio.local"),
+        var onlyHostA = await repo.ListAsync(
+            new DreamSessionListFilter(Vendor: null, Host: "host-a.local"),
             limit: 50,
             cursor: null,
             CancellationToken.None);
-        onlyMac.Items.Should().ContainSingle().Which.Id.Should().Be("d-mac");
+        onlyHostA.Items.Should().ContainSingle().Which.Id.Should().Be("d-host-a");
 
         var all = await repo.ListAsync(
             new DreamSessionListFilter(Vendor: null),
@@ -98,7 +98,7 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
         string id,
         string ownerUserId,
         string vendor = "claude-code",
-        string host = "macstudio.local",
+        string host = "host-a.local",
         DateTimeOffset? at = null) =>
         DreamSession.Create(
             id: id,
