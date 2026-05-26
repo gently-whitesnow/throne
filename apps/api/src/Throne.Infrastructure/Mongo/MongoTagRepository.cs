@@ -62,7 +62,7 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
             return new EnsureTagOutcome.Existed(existing);
         }
 
-        var tag = TagFactory.Create(TagId.New(), normalizedName, now);
+        var tag = Tag.Create(TagId.New(), normalizedName, now);
         var doc = MapToDocument(tag);
 
         try
@@ -101,7 +101,7 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
             return new CreateTagOutcome.NameTaken(existing);
         }
 
-        var tag = TagFactory.Create(TagId.New(), normalized, now);
+        var tag = Tag.Create(TagId.New(), normalized, now);
         try
         {
             await _tags.InsertOneAsync(session, MapToDocument(tag), options: null, ct);
@@ -252,14 +252,14 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         UpdatedAt = tag.UpdatedAt.UtcDateTime,
     };
 
-    private static Tag MapToDomain(TagDocument doc) => TagFactory.Restore(
+    private static Tag MapToDomain(TagDocument doc) => Tag.Restore(
         id: new TagId(doc.Id),
         name: doc.Name,
         currentVersion: doc.CurrentVersion,
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
         updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
 
-    private static Intent MapIntentToDomain(IntentDocument doc) => IntentFactory.Restore(
+    private static Intent MapIntentToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
         ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId)
             ? Throne.Application.Auth.CurrentUserIds.LocalDev

@@ -17,7 +17,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
     public async Task Create_persists_canonical_and_v1_snapshot()
     {
         var (db, repo, uow) = await NewScopeAsync();
-        var instruction = InstructionFactory.Create(
+        var instruction = Instruction.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
             "local-dev",
@@ -89,7 +89,7 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         string kind,
         string text)
     {
-        var instruction = InstructionFactory.Create(InstructionId.New(), InstructionScopeNames.User, userId, kind, text, Now);
+        var instruction = Instruction.Create(InstructionId.New(), InstructionScopeNames.User, userId, kind, text, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"),
             TextVersionOwnerKind.Instruction,

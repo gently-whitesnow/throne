@@ -42,7 +42,7 @@ internal static class IntentRepositoryBindingTestFactory
         string repo = "throne",
         int? prNumber = null,
         DateTimeOffset? at = null) =>
-        IntentRepositoryBindingFactory.Create(
+        IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: intentId,
             coordinate: new RepoCoordinate(GitProviderNames.GitHub, owner, repo),

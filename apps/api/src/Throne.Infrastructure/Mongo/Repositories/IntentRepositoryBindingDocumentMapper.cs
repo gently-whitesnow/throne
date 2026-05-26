@@ -48,6 +48,6 @@ internal static class IntentRepositoryBindingDocumentMapper
             CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc)),
             UpdatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc)));
 
-        return IntentRepositoryBindingFactory.Restore(snapshot);
+        return IntentRepositoryBinding.Restore(snapshot);
     }
 }

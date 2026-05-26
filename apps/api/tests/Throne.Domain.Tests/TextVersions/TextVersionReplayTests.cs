@@ -94,8 +94,8 @@ public class TextVersionReplayTests
         // Reproduces the Mongo history shape recorded by InstructionRepository
         // when a user instruction is created with empty text and the next patch
         // populates it: v1 = create(snapshot=""), v2 = replace(old="", new=…).
-        // InstructionGuards.EnsureValidOldTextForReplace allows this; the
-        // replay must mirror it instead of treating empty old_text as a no-op.
+        // Instruction.ReplaceText allows this initial-fill shape; the replay
+        // must mirror it instead of treating empty old_text as a no-op.
         var v1 = Snapshot(1, "");
         var v2 = Replace(2, oldText: "", newText: "first content");
         var v3 = Replace(3, oldText: "first content", newText: "second content");

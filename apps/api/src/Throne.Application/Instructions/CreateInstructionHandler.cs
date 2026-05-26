@@ -46,7 +46,7 @@ public sealed class CreateInstructionHandler(
         }
 
         var now = clock.GetUtcNow();
-        var instruction = InstructionFactory.Create(
+        var instruction = Instruction.Create(
             id: InstructionId.New(),
             scope: InstructionScopeNames.User,
             userId: ownerUserId,

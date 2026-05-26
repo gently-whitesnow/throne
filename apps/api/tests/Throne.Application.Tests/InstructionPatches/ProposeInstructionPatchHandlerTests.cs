@@ -159,7 +159,7 @@ public class ProposeInstructionPatchHandlerTests
         int currentVersion)
     {
         var instructions = Substitute.For<IInstructionRepository>();
-        var target = InstructionFactory.Restore(
+        var target = Instruction.Restore(
             InstructionId.New(),
             scope: InstructionScopeNames.User,
             userId: "user-1",

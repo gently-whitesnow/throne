@@ -24,7 +24,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
 
         var id = IntentId.New();
         var tagId = TagId.New();
-        var intent = IntentFactory.Create(id, "user-1", "hello world", [tagId], Now);
+        var intent = Intent.Create(id, "user-1", "hello world", [tagId], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "hello world", Now, TextVersionAuthor.Agent);
@@ -56,7 +56,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var id = IntentId.New();
         var a = TagId.New();
         var b = TagId.New();
-        var intent = IntentFactory.Create(id, "user-1", "body", [a, b], Now);
+        var intent = Intent.Create(id, "user-1", "body", [a, b], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
@@ -87,7 +87,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", "body", [TagId.New()], Now);
+        var intent = Intent.Create(id, "user-1", "body", [TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
@@ -132,7 +132,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (db, repo, uow) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", "body", [TagId.New()], Now);
+        var intent = Intent.Create(id, "user-1", "body", [TagId.New()], Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             "body", Now, TextVersionAuthor.Agent);
@@ -169,7 +169,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         var (_, repo, _) = await NewScopeAsync();
 
         var id = IntentId.New();
-        var intent = IntentFactory.Create(id, "user-1", "x", null, Now);
+        var intent = Intent.Create(id, "user-1", "x", null, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, "x", Now, TextVersionAuthor.Agent);
 

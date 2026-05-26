@@ -19,7 +19,7 @@ public class GetIntentHandlerTests
         var id = IntentId.New();
         var tagId = TagId.New();
         repo.GetByIdAsync(Arg.Is<IntentId>(x => x.Value == id.Value), Arg.Any<CancellationToken>())
-            .Returns(IntentFactory.Restore(id, "user-1", "body", IntentStatusNames.Draft, currentVersion: 3, [tagId], Now, Now));
+            .Returns(Intent.Restore(id, "user-1", "body", IntentStatusNames.Draft, currentVersion: 3, [tagId], Now, Now));
 
         var handler = new GetIntentHandler(repo);
 

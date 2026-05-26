@@ -22,7 +22,7 @@ public class SearchIntentTextHandlerTests
     [Fact(DisplayName = "Search возвращает совпадения и не выставляет TotalMatchesEstimate, если все влезли")]
     public async Task Returns_matches_without_estimate_when_under_limit()
     {
-        var intent = IntentFactory.Restore(
+        var intent = Intent.Restore(
             new IntentId(IntentIdValue),
             ownerUserId: "user-1",
             "alpha\nbeta\ngamma",
@@ -45,7 +45,7 @@ public class SearchIntentTextHandlerTests
     [Fact(DisplayName = "Search выставляет TotalMatchesEstimate, если число совпадений > limit")]
     public async Task Sets_estimate_when_total_exceeds_limit()
     {
-        var intent = IntentFactory.Restore(
+        var intent = Intent.Restore(
             new IntentId(IntentIdValue),
             ownerUserId: "user-1",
             "x\nx\nx\nx\nx",

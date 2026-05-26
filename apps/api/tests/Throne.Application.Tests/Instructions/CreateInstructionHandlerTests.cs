@@ -43,7 +43,7 @@ public class CreateInstructionHandlerTests
     public async Task Returns_409_when_already_exists()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        var existing = InstructionFactory.Create(
+        var existing = Instruction.Create(
             InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Work, "x", Now);
         repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([existing]);

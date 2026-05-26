@@ -34,7 +34,7 @@ public sealed class RepositoryBindingPersistence(
         }
         var defaultBranch = string.IsNullOrWhiteSpace(command.DefaultBranch) ? "main" : command.DefaultBranch.Trim();
         var workspacePath = WorkspacePathLayout.Compute(workspaceRoot, intentId, coordinate);
-        return IntentRepositoryBindingFactory.Create(
+        return IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: intentId,
             coordinate: coordinate,

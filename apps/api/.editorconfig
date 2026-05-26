@@ -112,6 +112,22 @@ dotnet_diagnostic.CA1502.severity = none
 [**/Throne.Infrastructure/Git/GitHubCli/GitHubCliProvider.cs]
 dotnet_diagnostic.CA1502.severity = none
 
+# ADR-0025: Throne.Domain нормативно ведётся в rich-DDD стиле — агрегат сам
+# несёт Create/Restore, инварианты инлайн и state-переходы инстансными методами.
+# Type-level CA1501/CA1502/CA1505/CA1506 структурно несовместимы со стилем:
+#   * Create/Restore выполняют все инварианты внутри агрегата (раньше — в *Guards);
+#   * 5–7 state-переходов лежат инстансными методами одного типа (раньше — в *Mutator/*Operation);
+#   * каждое slot-property + переход добавляют 1+ CC к сумме по типу.
+# Лимиты Roslyn-аналайзеров здесь работают зеркально к `**/Throne.Domain/**.cs`
+# pathOverride в `.quality/maintainability-budget.json` (ADR-0025 §2). Реальную
+# сложность ловит per-method CA1502 ≤30 и NetArchTest «no internal set в
+# Throne.Domain» (вводится отдельным PR после миграции 6 агрегатов).
+[**/Throne.Domain/**.cs]
+dotnet_diagnostic.CA1501.severity = none
+dotnet_diagnostic.CA1502.severity = none
+dotnet_diagnostic.CA1505.severity = none
+dotnet_diagnostic.CA1506.severity = none
+
 # tests/** with CA1502/CA1506
 # suppressions are structural test designs, not god-class symptoms:
 #

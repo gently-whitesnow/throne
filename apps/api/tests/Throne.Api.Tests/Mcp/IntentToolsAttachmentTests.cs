@@ -20,7 +20,7 @@ public class IntentToolsAttachmentTests
         var intentId = IntentId.New();
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(IntentFactory.Restore(intentId, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(intentId, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var attachments = Substitute.For<IIntentAttachmentRepository>();
         attachments.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())

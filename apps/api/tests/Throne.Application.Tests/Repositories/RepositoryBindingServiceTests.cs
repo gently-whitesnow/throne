@@ -275,7 +275,7 @@ public class RepositoryBindingServiceTests
             LastSyncedAt: null,
             CreatedAt: Now,
             UpdatedAt: Now);
-        return IntentRepositoryBindingFactory.Restore(snapshot);
+        return IntentRepositoryBinding.Restore(snapshot);
     }
 
     private sealed class ServiceFixture
@@ -310,7 +310,7 @@ public class RepositoryBindingServiceTests
 
         public void IntentExists(string intentIdValue)
         {
-            var intent = IntentFactory.Restore(
+            var intent = Intent.Restore(
                 new IntentId(intentIdValue), "user-1", "x", IntentStatusNames.Work, 1, [], Now, Now);
             Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == intentIdValue), Arg.Any<CancellationToken>())
                 .Returns(intent);

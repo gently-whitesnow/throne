@@ -47,7 +47,7 @@ internal sealed class MongoIntentTextEditor(
 
         var intent = IntentDocumentMapper.ToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = IntentReplaceTextOperation.Apply(intent, oldText, newText, newVersionId, now, changedBy);
+        var domainResult = intent.ReplaceText(oldText, newText, newVersionId, now, changedBy);
 
         return domainResult switch
         {
@@ -119,7 +119,7 @@ internal sealed class MongoIntentTextEditor(
 
         var intent = IntentDocumentMapper.ToDomain(document);
         var newVersionId = Guid.NewGuid().ToString("N");
-        var domainResult = IntentInsertTextOperation.AfterLine(intent, afterLine, insertText, newVersionId, now, TextVersionAuthor.Agent);
+        var domainResult = intent.InsertTextAfterLine(afterLine, insertText, newVersionId, now, TextVersionAuthor.Agent);
 
         return domainResult switch
         {

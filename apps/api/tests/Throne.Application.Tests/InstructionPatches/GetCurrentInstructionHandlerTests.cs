@@ -15,7 +15,7 @@ public class GetCurrentInstructionHandlerTests
     public async Task Returns_existing_instruction()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        var existing = InstructionFactory.Restore(
+        var existing = Instruction.Restore(
             InstructionId.New(),
             InstructionScopeNames.User,
             "user-1",

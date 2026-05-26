@@ -18,7 +18,7 @@ public class CreateIntentHandlerTests
     {
         var repo = Substitute.For<IIntentRepository>();
         var tagRepo = Substitute.For<ITagRepository>();
-        var existing = TagFactory.Create(TagId.New(), "throne", Now);
+        var existing = Tag.Create(TagId.New(), "throne", Now);
         tagRepo.EnsureByNameAsync("throne", Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult<EnsureTagOutcome>(new EnsureTagOutcome.Existed(existing)));
 
@@ -67,7 +67,7 @@ public class CreateIntentHandlerTests
     {
         var repo = Substitute.For<IIntentRepository>();
         var tagRepo = Substitute.For<ITagRepository>();
-        var newTag = TagFactory.Create(TagId.New(), "throne", Now);
+        var newTag = Tag.Create(TagId.New(), "throne", Now);
         tagRepo.EnsureByNameAsync("throne", Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult<EnsureTagOutcome>(new EnsureTagOutcome.Created(newTag)));
 

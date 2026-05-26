@@ -128,7 +128,7 @@ public class GetInstructionPatchHandlerTests
             now: Now);
 
     private static Instruction MakeInstruction(string id, string currentText, int currentVersion) =>
-        InstructionFactory.Restore(
+        Instruction.Restore(
             new InstructionId(id),
             scope: InstructionScopeNames.User,
             userId: "user-1",

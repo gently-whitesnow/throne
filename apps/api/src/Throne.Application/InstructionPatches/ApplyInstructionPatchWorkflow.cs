@@ -54,7 +54,7 @@ public sealed class ApplyInstructionPatchWorkflow(
         CancellationToken ct) =>
         unitOfWork.ExecuteAsync<InstructionPatch>(async inner =>
         {
-            var instruction = InstructionFactory.Create(
+            var instruction = Instruction.Create(
                 id: InstructionId.New(),
                 scope: InstructionScopeNames.User,
                 userId: patch.Identity.OwnerUserId,
@@ -80,7 +80,7 @@ public sealed class ApplyInstructionPatchWorkflow(
         DateTimeOffset now,
         CancellationToken ct)
     {
-        InstructionPatchTransitions.Apply(patch, newText, appliedInstructionVersion, now);
+        patch.Apply(newText, appliedInstructionVersion, now);
         var outcome = await patches.ApplyAsync(patch, ct);
         return InstructionPatchOutcomeMapper.UnwrapApply(outcome, patch.Identity.Id);
     }

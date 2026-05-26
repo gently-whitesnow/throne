@@ -32,7 +32,7 @@ public sealed class CreateIntentHandler(
             {
                 var resolved = await tagResolver.EnsureByNamesAsync(command.TagNames, now, inner);
                 var sortKey = await NextTopSortKeyAsync(inner);
-                var intent = IntentFactory.Create(id, ownerUserId, command.Text, resolved.TagIds, now, sortKey: sortKey);
+                var intent = Intent.Create(id, ownerUserId, command.Text, resolved.TagIds, now, sortKey: sortKey);
                 var initialVersion = TextVersion.CreateSnapshot(
                     id: Guid.NewGuid().ToString("N"),
                     ownerKind: TextVersionOwnerKind.Intent,
