@@ -8,9 +8,9 @@ import { WorkspaceCard } from "@/widgets/workspace-card";
  * `/settings` — единая страница настроек профиля.
  *
  * Три секции:
- *   * «MCP-токен» — Personal Access Token для MCP-клиентов.
  *   * «Провайдеры Git» — статус `gh auth status`.
  *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
+ *   * «MCP-токен» — Personal Access Token для MCP-клиентов (нужен только при production-развёртывании на сервере).
  */
 export function SettingsPage() {
   return (
@@ -21,18 +21,9 @@ export function SettingsPage() {
         </p>
         <h1 className="m-0 text-2xl font-bold leading-tight">Настройки</h1>
         <p className="m-0 max-w-[64ch] text-sm leading-relaxed text-base-content/70">
-          MCP-токен, провайдеры Git и параметры workspace в одном месте.
+          Провайдеры Git, параметры workspace и MCP-токен в одном месте.
         </p>
       </header>
-
-      <SettingsSection
-        id="mcp-token"
-        title="MCP-токен"
-        icon={KeyRound}
-        description="Personal Access Token для MCP-клиентов: текущая мета, генерация и перевыпуск."
-      >
-        <McpTokenCard />
-      </SettingsSection>
 
       <SettingsSection
         id="git-providers"
@@ -50,6 +41,15 @@ export function SettingsPage() {
         description="Корневая директория клонов репозиториев и её агрегированный размер на диске. Per-intent размеры появятся в отдельных проходах."
       >
         <WorkspaceCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="mcp-token"
+        title="MCP-токен"
+        icon={KeyRound}
+        description="Нужен только при production-развёртывании Throne на сервере: MCP-клиенты подключаются по Bearer-токену. Локально выпускать токен смысла нет — MCP ходит в локальный процесс без авторизации."
+      >
+        <McpTokenCard />
       </SettingsSection>
     </div>
   );
