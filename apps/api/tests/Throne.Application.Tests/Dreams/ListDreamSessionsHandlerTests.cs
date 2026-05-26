@@ -45,13 +45,13 @@ public class ListDreamSessionsHandlerTests
 
         var handler = new ListDreamSessionsHandler(repo);
         await handler.HandleAsync(
-            new ListDreamSessionsQuery(Vendor: null, Host: "macstudio.local", Limit: null, Cursor: null),
+            new ListDreamSessionsQuery(Vendor: null, Host: "laptop-1.local", Limit: null, Cursor: null),
             CancellationToken.None);
         await handler.HandleAsync(
             new ListDreamSessionsQuery(Vendor: null, Host: "  ", Limit: null, Cursor: null),
             CancellationToken.None);
 
-        captured[0].Host.Should().Be("macstudio.local");
+        captured[0].Host.Should().Be("laptop-1.local");
         captured[1].Host.Should().BeNull();
     }
 

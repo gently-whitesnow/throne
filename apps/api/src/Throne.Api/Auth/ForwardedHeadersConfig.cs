@@ -7,11 +7,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Throne.Api.Auth;
 
 /// <summary>
-/// Caddy/nginx терминируют TLS снаружи и шлют <c>X-Forwarded-Proto</c> в throne-api.
-/// По умолчанию <see cref="ForwardedHeadersMiddleware"/> доверяет этим заголовкам
-/// только от loopback — в docker-сети прокси на отдельном IP, поэтому очищаем
-/// known networks/proxies. throne-api не экспонирован наружу, только через
-/// reverse-proxy (см. throne-infra/compose.yml + Caddyfile).
+/// Reverse-proxy (Caddy / nginx / etc.) терминирует TLS снаружи и шлёт
+/// <c>X-Forwarded-Proto</c> в throne-api. По умолчанию
+/// <see cref="ForwardedHeadersMiddleware"/> доверяет этим заголовкам только от
+/// loopback — в docker-сети прокси на отдельном IP, поэтому очищаем
+/// known networks/proxies. Предполагается deployment, где throne-api не
+/// экспонирован наружу напрямую, только через reverse-proxy.
 ///
 /// Без этого <c>HttpRequest.Scheme</c> равен <c>"http"</c> даже на HTTPS-запросе,
 /// что ломает RFC 9728 metadata (resource URL должен быть <c>https://</c>) и

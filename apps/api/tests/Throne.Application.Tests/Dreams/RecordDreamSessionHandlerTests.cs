@@ -24,7 +24,7 @@ public class RecordDreamSessionHandlerTests
         var session = await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "claude-code",
-                Host: "macstudio.local",
+                Host: "laptop-1.local",
                 DateFrom: null,
                 DateTo: null,
                 ProcessedConversationIds: ["conv-1", "conv-2"],
@@ -35,7 +35,7 @@ public class RecordDreamSessionHandlerTests
 
         session.OwnerUserId.Should().Be("user-1");
         session.Payload.Vendor.Should().Be("claude-code");
-        session.Payload.Host.Should().Be("macstudio.local");
+        session.Payload.Host.Should().Be("laptop-1.local");
         session.Identity.CreatedAt.Should().Be(Now);
         session.Payload.ProcessedConversationIds.Should().Equal("conv-1", "conv-2");
     }
@@ -70,7 +70,7 @@ public class RecordDreamSessionHandlerTests
         var act = async () => await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "totally-made-up-vendor",
-                Host: "macstudio.local",
+                Host: "laptop-1.local",
                 DateFrom: null,
                 DateTo: null,
                 ProcessedConversationIds: [],
@@ -92,7 +92,7 @@ public class RecordDreamSessionHandlerTests
         var act = async () => await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "claude-code",
-                Host: "macstudio.local",
+                Host: "laptop-1.local",
                 DateFrom: null,
                 DateTo: null,
                 ProcessedConversationIds: [],
@@ -113,7 +113,7 @@ public class RecordDreamSessionHandlerTests
         var act = async () => await handler.HandleAsync(
             new RecordDreamSessionCommand(
                 Vendor: "claude-code",
-                Host: "macstudio.local",
+                Host: "laptop-1.local",
                 DateFrom: Now.AddDays(2),
                 DateTo: Now,
                 ProcessedConversationIds: [],
