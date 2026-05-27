@@ -1,20 +1,9 @@
-import { httpGet, httpPost, terminalEndpoints } from "@/shared/api";
-import { capabilitiesEndpoints } from "@/shared/api";
+import { httpPost, terminalEndpoints } from "@/shared/api";
 
 import type {
-  CapabilityDto,
   RunIntentTerminalResponse,
   TerminalRunMode
 } from "../model/types";
-
-export function listCapabilities(
-  signal?: AbortSignal
-): Promise<CapabilityDto[]> {
-  return httpGet<CapabilityDto[]>(
-    capabilitiesEndpoints.listCapabilities(),
-    signal
-  );
-}
 
 export function runIntentTerminal(
   intentId: string,

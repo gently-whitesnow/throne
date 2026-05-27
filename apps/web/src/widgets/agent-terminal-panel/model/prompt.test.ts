@@ -25,7 +25,7 @@ describe("buildAgentPrompt", () => {
 });
 
 describe("buildClaudeCliCommand", () => {
-  it("оборачивает промпт в `claude \"…\"`", () => {
+  it('оборачивает промпт в `claude "…"`', () => {
     expect(buildClaudeCliCommand("test prompt")).toBe('claude "test prompt"');
   });
 

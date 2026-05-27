@@ -1,16 +1,13 @@
 import { AlertCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
+import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import {
   isCloneReady,
   useIntentRepositories
 } from "@/entities/repository-binding";
 
 import { buildAgentPrompt, buildClaudeCliCommand } from "../model/prompt";
-import {
-  isCapabilityEnabled,
-  useCapabilities
-} from "../model/use-capabilities";
 import { useTerminalSession } from "../model/use-terminal-session";
 import type { TerminalRunMode } from "../model/types";
 

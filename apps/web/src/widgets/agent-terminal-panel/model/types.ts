@@ -1,9 +1,4 @@
-import type { CapabilitiesComponents, TerminalComponents } from "@/shared/api";
-
-export type CapabilityDto = CapabilitiesComponents["schemas"]["CapabilityDto"];
-
-export type CapabilityName =
-  CapabilitiesComponents["schemas"]["CapabilityName"];
+import type { TerminalComponents } from "@/shared/api";
 
 export type TerminalRunMode = TerminalComponents["schemas"]["TerminalRunMode"];
 
