@@ -27,14 +27,14 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         var c = await Seed(repo, uow, "gamma", Base.AddMinutes(2));
 
         var first = await repo.ListPagedAsync(
-            new IntentListSpec(Statuses: null, TagId: null, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 2, Cursor: null),
+            new IntentListSpec(Statuses: null, TagId: null, Untagged: false, Pinned: false, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 2, Cursor: null),
             CancellationToken.None);
 
         first.Items.Select(i => i.Id.Value).Should().Equal(c.Id.Value, b.Id.Value);
         first.NextCursor.Should().NotBeNull();
 
         var second = await repo.ListPagedAsync(
-            new IntentListSpec(Statuses: null, TagId: null, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 2, Cursor: first.NextCursor),
+            new IntentListSpec(Statuses: null, TagId: null, Untagged: false, Pinned: false, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 2, Cursor: first.NextCursor),
             CancellationToken.None);
 
         second.Items.Select(i => i.Id.Value).Should().Equal(a.Id.Value);
@@ -56,12 +56,12 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         await Seed(repo, uow, "untagged-other", Base.AddMinutes(3), [otherTag]);
 
         var byTag = await repo.ListPagedAsync(
-            new IntentListSpec(Statuses: null, TagId: sharedTag, Query: null, Sort: IntentListSort.CreatedAsc, Limit: 50, Cursor: null),
+            new IntentListSpec(Statuses: null, TagId: sharedTag, Untagged: false, Pinned: false, Query: null, Sort: IntentListSort.CreatedAsc, Limit: 50, Cursor: null),
             CancellationToken.None);
         byTag.Items.Select(i => i.Id.Value).Should().BeEquivalentTo(new[] { draft.Id.Value, doneIntent.Id.Value });
 
         var byStatus = await repo.ListPagedAsync(
-            new IntentListSpec(Statuses: ["done"], TagId: null, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
+            new IntentListSpec(Statuses: ["done"], TagId: null, Untagged: false, Pinned: false, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
             CancellationToken.None);
         byStatus.Items.Should().HaveCount(1);
         byStatus.Items[0].Id.Value.Should().Be(doneIntent.Id.Value);
@@ -75,11 +75,54 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         await Seed(repo, uow, "unrelated", Base.AddMinutes(1));
 
         var page = await repo.ListPagedAsync(
-            new IntentListSpec(Statuses: null, TagId: null, Query: "mcp tools", Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
+            new IntentListSpec(Statuses: null, TagId: null, Untagged: false, Pinned: false, Query: "mcp tools", Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
             CancellationToken.None);
 
         page.Items.Should().HaveCount(1);
         page.Items[0].Id.Value.Should().Be(match.Id.Value);
+    }
+
+    [Fact(DisplayName = "ListPagedAsync с untagged=true возвращает только интенты без тегов")]
+    public async Task Filters_untagged()
+    {
+        var (repo, uow) = await NewScopeAsync();
+        var bare = await Seed(repo, uow, "no tags", Base, Array.Empty<TagId>());
+        await Seed(repo, uow, "has tag", Base.AddMinutes(1), [TagId.New()]);
+
+        var page = await repo.ListPagedAsync(
+            new IntentListSpec(Statuses: null, TagId: null, Untagged: true, Pinned: false, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
+            CancellationToken.None);
+
+        page.Items.Select(i => i.Id.Value).Should().Equal(bare.Id.Value);
+    }
+
+    [Fact(DisplayName = "ListPagedAsync с pinned=true возвращает только закреплённые интенты")]
+    public async Task Filters_pinned()
+    {
+        var name = $"throne_test_{Guid.NewGuid():N}";
+        await fixture.Client.DropDatabaseAsync(name);
+        var db = fixture.Client.GetDatabase(name);
+        var sessions = new MongoSessionAccessor();
+        var user = new TestCurrentUserAccessor();
+        var repo = new MongoIntentRepository(db, sessions, user, new MongoIntentEventRepository(db, sessions));
+        var uow = new MongoUnitOfWork(fixture.Client, sessions);
+        var tags = new MongoTagRepository(db, sessions);
+        var pins = new MongoIntentPinRepository(db, sessions, user);
+
+        var pinned = await Seed(repo, uow, "pinned", Base);
+        await Seed(repo, uow, "loose", Base.AddMinutes(1));
+
+        await uow.ExecuteAsync(async ct =>
+        {
+            var created = (CreateTagOutcome.Created)await tags.CreateAsync("ctx", Base, ct);
+            await pins.PinAsync(pinned.Id, created.Tag.Id, null, null, Base, ct);
+        }, CancellationToken.None);
+
+        var page = await repo.ListPagedAsync(
+            new IntentListSpec(Statuses: null, TagId: null, Untagged: false, Pinned: true, Query: null, Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
+            CancellationToken.None);
+
+        page.Items.Select(i => i.Id.Value).Should().Equal(pinned.Id.Value);
     }
 
     private static async Task<Intent> Seed(

@@ -25,6 +25,7 @@ internal static class IntentEndpointServices
 
         // Core Intents controller surface.
         services.AddSingleton<ListIntentsEndpoint>();
+        services.AddSingleton<GetIntentContextsEndpoint>();
         services.AddSingleton<ListIntentEventsEndpoint>();
         services.AddSingleton<GetIntentEndpoint>();
         services.AddSingleton<CreateIntentEndpoint>();

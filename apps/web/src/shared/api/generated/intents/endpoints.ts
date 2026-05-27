@@ -6,6 +6,7 @@
 export const intentsEndpoints = {
   listIntents: () => "/intents",
   createIntent: () => "/intents",
+  getIntentContexts: () => "/intents/contexts",
   getIntent: (id: string) => `/intents/${id}`,
   deleteIntent: (id: string) => `/intents/${id}`,
   setIntentStatus: (id: string) => `/intents/${id}/status`,

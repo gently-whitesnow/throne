@@ -1,10 +1,11 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
   PullRequestComment,
   PullRequestSyncResult
 } from "@/entities/pull-request-comment";
+import { renderWithQuery } from "@/app/test-utils";
 import type { RepositoryBinding } from "@/entities/repository-binding";
 
 import { PullRequestCommentsSection } from "./PullRequestCommentsSection";
@@ -111,7 +112,7 @@ describe("PullRequestCommentsSection", () => {
         pull_request_state: undefined
       })
     ]);
-    const { container } = render(
+    const { container } = renderWithQuery(
       <PullRequestCommentsSection intentId="intent-1" />
     );
     await waitFor(() => {
@@ -138,7 +139,7 @@ describe("PullRequestCommentsSection", () => {
         created_at: "2026-05-21T10:00:00Z"
       })
     ]);
-    render(<PullRequestCommentsSection intentId="intent-1" />);
+    renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comments-card-b1")).toBeTruthy();
@@ -165,7 +166,7 @@ describe("PullRequestCommentsSection", () => {
     listPullRequestComments.mockResolvedValue([
       makeComment({ id: "c1", body: "first" })
     ]);
-    render(<PullRequestCommentsSection intentId="intent-1" />);
+    renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c1")).toBeTruthy();
@@ -193,7 +194,7 @@ describe("PullRequestCommentsSection", () => {
   it("intent.pr_comment_added для чужого binding'а игнорируется", async () => {
     listIntentRepositories.mockResolvedValue([makeBinding()]);
     listPullRequestComments.mockResolvedValue([makeComment()]);
-    render(<PullRequestCommentsSection intentId="intent-1" />);
+    renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c1")).toBeTruthy();
@@ -237,7 +238,7 @@ describe("PullRequestCommentsSection", () => {
       comments: []
     });
 
-    render(<PullRequestCommentsSection intentId="intent-1" />);
+    renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c1")).toBeTruthy();
     });
@@ -265,7 +266,7 @@ describe("PullRequestCommentsSection", () => {
   it("показывает empty state, если у PR пока нет комментариев", async () => {
     listIntentRepositories.mockResolvedValue([makeBinding()]);
     listPullRequestComments.mockResolvedValue([]);
-    render(<PullRequestCommentsSection intentId="intent-1" />);
+    renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comments-empty-b1")).toBeTruthy();

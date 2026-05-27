@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
+  dreamsQueryKeys,
   type DreamSession,
-  type DreamSessionPage,
-  listDreamSessions
+  useDreamSessionsList
 } from "@/entities/dream-session";
-import { useRealtimeEvent } from "@/shared/realtime";
 
 type LoadState =
   | { kind: "loading" }
@@ -16,39 +16,22 @@ export function useDreamSessions(): {
   state: LoadState;
   reload: () => void;
 } {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    listDreamSessions({ limit: 50 }, controller.signal)
-      .then((page: DreamSessionPage) => {
-        setState({
-          kind: "ready",
-          items: page.items,
-          nextCursor: page.next_cursor
-        });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof Error
-              ? err.message
-              : "Не удалось загрузить DreamSessions."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
+  const qc = useQueryClient();
+  const query = useDreamSessionsList({ limit: 50 });
 
   const reload = useCallback(() => {
-    setReloadKey((v) => v + 1);
-  }, []);
+    void qc.invalidateQueries({ queryKey: dreamsQueryKeys.all });
+  }, [qc]);
 
-  useRealtimeEvent("dream_session.recorded", reload);
+  const state: LoadState = query.isPending
+    ? { kind: "loading" }
+    : query.error
+      ? { kind: "error", message: query.error.message }
+      : {
+          kind: "ready",
+          items: query.data.items,
+          nextCursor: query.data.next_cursor
+        };
 
   return { state, reload };
 }

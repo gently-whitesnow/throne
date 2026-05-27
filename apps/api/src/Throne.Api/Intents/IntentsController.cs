@@ -15,6 +15,7 @@ namespace Throne.Api.Intents;
 /// </summary>
 public sealed class IntentsController(
     ListIntentsEndpoint listIntents,
+    GetIntentContextsEndpoint getIntentContexts,
     ListIntentEventsEndpoint listIntentEvents,
     GetIntentEndpoint getIntent,
     CreateIntentEndpoint createIntent,
@@ -25,8 +26,19 @@ public sealed class IntentsController(
     DeleteIntentEndpoint deleteIntent,
     ListIntentVersionsEndpoint listIntentVersions) : IntentsControllerBase
 {
-    public override Task<ActionResult<ICollection<IntentListItemDto>>> ListIntents(IEnumerable<IntentStatus> status = null!) =>
-        listIntents.RunAsync(status, HttpContext.RequestAborted);
+    public override Task<ActionResult<IntentListPageDto>> ListIntents(
+        string cursor = null!,
+        int? limit = null,
+        IEnumerable<IntentStatus> status = null!,
+        string tag = null!,
+        bool? untagged = null,
+        bool? pinned = null,
+        string query = null!,
+        IntentListSort? sort = null) =>
+        listIntents.RunAsync(cursor, limit, status, tag, untagged, pinned, query, sort, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<IntentContextCountsDto>> GetIntentContexts() =>
+        getIntentContexts.RunAsync(HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<IntentEventDto>>> ListIntentEvents(string id) =>
         listIntentEvents.RunAsync(id, HttpContext.RequestAborted);

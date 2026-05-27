@@ -1,9 +1,6 @@
-import { useEffect, useState } from "react";
-
 import {
   type DreamSource,
-  type DreamSourcePage,
-  listDreamSources
+  useDreamSourcesList
 } from "@/entities/dream-session";
 
 type LoadState =
@@ -12,28 +9,13 @@ type LoadState =
   | { kind: "error"; message: string };
 
 export function useDreamSources(): { state: LoadState } {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const query = useDreamSourcesList();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    listDreamSources(controller.signal)
-      .then((page: DreamSourcePage) => {
-        setState({ kind: "ready", items: page.items });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof Error
-              ? err.message
-              : "Не удалось загрузить dream sources."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  const state: LoadState = query.isPending
+    ? { kind: "loading" }
+    : query.error
+      ? { kind: "error", message: query.error.message }
+      : { kind: "ready", items: query.data.items };
 
   return { state };
 }

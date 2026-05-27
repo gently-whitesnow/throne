@@ -1,3 +1,5 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { HomePage } from "@/pages/home";
@@ -9,21 +11,28 @@ import { SettingsPage } from "@/pages/settings";
 import { TagsSectionPage } from "@/pages/tags-section";
 import { AppShell } from "@/widgets/app-shell";
 
+import { createQueryClient } from "./query-client";
+import { RealtimeQueryBridge } from "./realtime-query-bridge";
+
 export function App() {
+  const [queryClient] = useState(createQueryClient);
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/intents" element={<IntentsSectionPage />}>
-            <Route path=":id" element={<IntentDetailPage />} />
+    <QueryClientProvider client={queryClient}>
+      <RealtimeQueryBridge />
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/intents" element={<IntentsSectionPage />}>
+              <Route path=":id" element={<IntentDetailPage />} />
+            </Route>
+            <Route path="/tags" element={<TagsSectionPage />} />
+            <Route path="/instructions" element={<InstructionsSectionPage />} />
+            <Route path="/improvements" element={<ImprovementsSectionPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
-          <Route path="/tags" element={<TagsSectionPage />} />
-          <Route path="/instructions" element={<InstructionsSectionPage />} />
-          <Route path="/improvements" element={<ImprovementsSectionPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }

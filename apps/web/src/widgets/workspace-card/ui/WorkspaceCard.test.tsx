@@ -2,13 +2,17 @@ import {
   act,
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { renderWithQuery } from "@/app/test-utils";
+
 import { WorkspaceCard } from "./WorkspaceCard";
+
+const render = (ui: React.ReactElement) =>
+  renderWithQuery(ui, { withBridge: false });
 
 const fetchWorkspaceSettings = vi.fn<() => Promise<unknown>>();
 

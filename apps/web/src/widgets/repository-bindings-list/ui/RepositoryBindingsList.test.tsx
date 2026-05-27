@@ -1,6 +1,7 @@
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { renderWithQuery } from "@/app/test-utils";
 import type { RepositoryBinding } from "@/entities/repository-binding";
 
 import { RepositoryBindingsList } from "./RepositoryBindingsList";
@@ -72,7 +73,7 @@ describe("RepositoryBindingsList", () => {
 
   it("показывает пустое состояние, когда binding'ов нет", async () => {
     listIntentRepositories.mockResolvedValue([]);
-    render(<RepositoryBindingsList intentId="intent-1" />);
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
     await waitFor(() => {
       expect(screen.getByText(/Репозитории не привязаны/)).toBeTruthy();
     });
@@ -86,7 +87,7 @@ describe("RepositoryBindingsList", () => {
         pull_request_state: "open"
       })
     ]);
-    render(<RepositoryBindingsList intentId="intent-1" />);
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
     await waitFor(() => {
       expect(screen.getByText("octocat/hello-world")).toBeTruthy();
     });
@@ -100,7 +101,7 @@ describe("RepositoryBindingsList", () => {
     listIntentRepositories.mockResolvedValue([
       makeBinding({ clone_status: "cloning" })
     ]);
-    render(<RepositoryBindingsList intentId="intent-1" />);
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
 
     await waitFor(() => {
       const pill = screen.getByTestId("binding-clone-status-b1");
@@ -123,7 +124,7 @@ describe("RepositoryBindingsList", () => {
 
   it("intent.repository_unbound для другого интента не трогает список", async () => {
     listIntentRepositories.mockResolvedValue([makeBinding()]);
-    render(<RepositoryBindingsList intentId="intent-1" />);
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
     await waitFor(() => {
       expect(screen.getByText("octocat/hello-world")).toBeTruthy();
     });
@@ -145,7 +146,7 @@ describe("RepositoryBindingsList", () => {
         clone_error: "permission denied"
       })
     ]);
-    render(<RepositoryBindingsList intentId="intent-1" />);
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
     await waitFor(() => {
       expect(screen.getByTestId("binding-error-b1").textContent).toMatch(
         /permission denied/
@@ -154,8 +155,12 @@ describe("RepositoryBindingsList", () => {
   });
 
   it("intent.repository_bound добавляет новую строку", async () => {
-    listIntentRepositories.mockResolvedValue([]);
-    render(<RepositoryBindingsList intentId="intent-1" />);
+    listIntentRepositories
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        makeBinding({ id: "b2", repo: "new-repo", clone_status: "pending" })
+      ]);
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
     await waitFor(() => {
       expect(screen.getByText(/Репозитории не привязаны/)).toBeTruthy();
     });

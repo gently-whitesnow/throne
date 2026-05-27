@@ -7,5 +7,8 @@ export type {
 export {
   listDreamSessions,
   listDreamSources,
-  type ListDreamSessionsQuery
+  type ListDreamSessionsQuery,
+  dreamsQueryKeys,
+  useDreamSessionsList,
+  useDreamSourcesList
 } from "./api";

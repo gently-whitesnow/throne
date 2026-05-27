@@ -344,6 +344,57 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Sort order applied to the list page. `sort_key_asc` (default) reflects the user-defined fractional sort_key — same order the board renders.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IntentListSort
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"sort_key_asc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"sort_key_asc")]
+        Sort_key_asc = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"updated_desc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"updated_desc")]
+        Updated_desc = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"created_desc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"created_desc")]
+        Created_desc = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"created_asc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"created_asc")]
+        Created_asc = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentListPageDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentListItemDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<IntentListItemDto>();
+
+        /// <summary>
+        /// Opaque continuation token; absent on the final page.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("next_cursor")]
+        public string Next_cursor { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentListItemDto
     {
@@ -403,6 +454,114 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("pinned_in")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PinnedContextDto> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<PinnedContextDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentContextTagCountDto
+    {
+
+        /// <summary>
+        /// Tag display name (slug).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tag")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Tag { get; set; }
+
+        /// <summary>
+        /// Number of intents in the bucket carrying this tag.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Count { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentContextCountsDto
+    {
+
+        /// <summary>
+        /// Intents in status `ready_for_review` (inbox «жду ревью»).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inbox_review")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Inbox_review { get; set; }
+
+        /// <summary>
+        /// Intents in status `needs_help` (inbox «нужна помощь»).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inbox_help")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Inbox_help { get; set; }
+
+        /// <summary>
+        /// Intents in the `fridge` bucket.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fridge")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Fridge { get; set; }
+
+        /// <summary>
+        /// Intents in archive statuses (`done` + `reject`).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("archive")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Archive { get; set; }
+
+        /// <summary>
+        /// Distinct intents pinned into at least one context.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pinned")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Pinned { get; set; }
+
+        /// <summary>
+        /// Active intents (non-archive, non-fridge) carrying no tags.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("untagged")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Untagged { get; set; }
+
+        /// <summary>
+        /// Archive intents carrying no tags.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("archive_untagged")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Archive_untagged { get; set; }
+
+        /// <summary>
+        /// Per-tag counts across active intents (non-archive, non-fridge), sorted by count desc then tag name asc. An intent with N tags contributes to each tag.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tags")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentContextTagCountDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextTagCountDto>();
+
+        /// <summary>
+        /// Per-tag counts across archive intents, sorted by count desc then tag name asc.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("archive_tags")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentContextTagCountDto> Archive_tags { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextTagCountDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

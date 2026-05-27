@@ -12,8 +12,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List intents (metadata + short text preview).
-         * @description Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Full text must be fetched via a dedicated read endpoint. Optional `status` query parameter narrows the result to intents in the specified statuses; repeat the parameter for multiple values (e.g. `?status=interview&status=work`).
+         * List intents (cursor-paginated metadata + short text preview).
+         * @description Returns a single page of intent metadata (id, current_version, tags, timestamps) with a short text preview. Full text must be fetched via a dedicated read endpoint. Pagination is opaque-cursor (server-encoded); `next_cursor` is absent on the final page. Default page size is 50, capped at 100. Filters (status, tag, untagged, pinned, query) and sort order are server-driven so clients don't keep the full result set in memory.
          */
         get: operations["listIntents"];
         put?: never;
@@ -22,6 +22,26 @@ export interface paths {
          * @description Creates an Intent and seeds v1 of its text. ChangedBy=user.
          */
         post: operations["createIntent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/contexts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aggregate intent counts per context bucket (rail sidebar).
+         * @description Single-shot aggregate for the context rail: counts per inbox status, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active and archive scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+         */
+        get: operations["getIntentContexts"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -396,6 +416,16 @@ export interface components {
             /** @description Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason. */
             reason?: string;
         };
+        /**
+         * @description Sort order applied to the list page. `sort_key_asc` (default) reflects the user-defined fractional sort_key — same order the board renders.
+         * @enum {string}
+         */
+        IntentListSort: "sort_key_asc" | "updated_desc" | "created_desc" | "created_asc";
+        IntentListPageDto: {
+            items: components["schemas"]["IntentListItemDto"][];
+            /** @description Opaque continuation token; absent on the final page. */
+            next_cursor?: string;
+        };
         IntentListItemDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
             id: string;
@@ -417,6 +447,56 @@ export interface components {
             updated_at: string;
             /** @description Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order. */
             pinned_in: components["schemas"]["PinnedContextDto"][];
+        };
+        IntentContextTagCountDto: {
+            /** @description Tag display name (slug). */
+            tag: string;
+            /**
+             * Format: int32
+             * @description Number of intents in the bucket carrying this tag.
+             */
+            count: number;
+        };
+        IntentContextCountsDto: {
+            /**
+             * Format: int32
+             * @description Intents in status `ready_for_review` (inbox «жду ревью»).
+             */
+            inbox_review: number;
+            /**
+             * Format: int32
+             * @description Intents in status `needs_help` (inbox «нужна помощь»).
+             */
+            inbox_help: number;
+            /**
+             * Format: int32
+             * @description Intents in the `fridge` bucket.
+             */
+            fridge: number;
+            /**
+             * Format: int32
+             * @description Intents in archive statuses (`done` + `reject`).
+             */
+            archive: number;
+            /**
+             * Format: int32
+             * @description Distinct intents pinned into at least one context.
+             */
+            pinned: number;
+            /**
+             * Format: int32
+             * @description Active intents (non-archive, non-fridge) carrying no tags.
+             */
+            untagged: number;
+            /**
+             * Format: int32
+             * @description Archive intents carrying no tags.
+             */
+            archive_untagged: number;
+            /** @description Per-tag counts across active intents (non-archive, non-fridge), sorted by count desc then tag name asc. An intent with N tags contributes to each tag. */
+            tags: components["schemas"]["IntentContextTagCountDto"][];
+            /** @description Per-tag counts across archive intents, sorted by count desc then tag name asc. */
+            archive_tags: components["schemas"]["IntentContextTagCountDto"][];
         };
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
@@ -627,8 +707,20 @@ export interface operations {
     listIntents: {
         parameters: {
             query?: {
+                cursor?: string;
+                /** @description Page size, default 50, capped at 100. */
+                limit?: number;
                 /** @description Filter by one or more workflow statuses. Omit to return all intents. */
                 status?: components["schemas"]["IntentStatus"][];
+                /** @description Filter to intents that carry this tag (slug-style name). */
+                tag?: string;
+                /** @description When true, return only intents that carry no tags at all. Mutually exclusive with `tag` (combining them yields an empty page). */
+                untagged?: boolean;
+                /** @description When true, return only intents pinned into at least one context. Server-side equivalent of the client "pinned" bucket. */
+                pinned?: boolean;
+                /** @description Case-insensitive substring filter against Intent.text. */
+                query?: string;
+                sort?: components["schemas"]["IntentListSort"];
             };
             header?: never;
             path?: never;
@@ -642,7 +734,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IntentListItemDto"][];
+                    "application/json": components["schemas"]["IntentListPageDto"];
                 };
             };
         };
@@ -667,6 +759,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+        };
+    };
+    getIntentContexts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentContextCountsDto"];
                 };
             };
         };

@@ -6,59 +6,21 @@ import {
   Lock,
   Pencil
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { instructionKindLabel } from "@/entities/instruction";
-import { HttpError, httpGet, instructionsEndpoints } from "@/shared/api";
+import { HttpError } from "@/shared/api";
 
-import type {
-  BundleEntryNode,
-  BundleNode,
-  BundlesTreeData,
-  SelectedNode
-} from "../model/types";
+import { bundlesTreeQueryKeys, useBundlesTreeQuery } from "../model/queries";
+import type { BundleEntryNode, BundleNode, SelectedNode } from "../model/types";
 import { NodeDetailDialog } from "./NodeDetailDialog";
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; tree: BundlesTreeData }
-  | { kind: "error"; message: string };
-
 export function BundlesTree() {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const qc = useQueryClient();
+  const query = useBundlesTreeQuery();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [reloadKey, setReloadKey] = useState(0);
   const [selected, setSelected] = useState<SelectedNode | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setState({ kind: "loading" });
-    httpGet<BundlesTreeData>(
-      instructionsEndpoints.getBundlesTree(),
-      controller.signal
-    )
-      .then((tree) => {
-        setState({ kind: "ready", tree });
-        setExpanded((prev) => {
-          const next = { ...prev };
-          for (const bundle of tree.bundles) {
-            next[bundleKey(bundle)] = next[bundleKey(bundle)] ?? true;
-          }
-          return next;
-        });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        const message =
-          err instanceof HttpError
-            ? `Не удалось загрузить дерево бандлов (${String(err.status)}).`
-            : "Не удалось загрузить дерево бандлов.";
-        setState({ kind: "error", message });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
 
   const toggle = useCallback((key: string) => {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -66,13 +28,26 @@ export function BundlesTree() {
 
   const handleSaved = useCallback(() => {
     setSelected(null);
-    setReloadKey((k) => k + 1);
-  }, []);
+    void qc.invalidateQueries({ queryKey: bundlesTreeQueryKeys.current() });
+  }, [qc]);
 
-  const bundles = useMemo(
-    () => (state.kind === "ready" ? state.tree.bundles : []),
-    [state]
-  );
+  const bundles = useMemo(() => query.data?.bundles ?? [], [query.data]);
+
+  // Авто-раскрытие новых bundle при первом приходе данных.
+  const expandedKeys = useMemo(() => {
+    const next = { ...expanded };
+    for (const bundle of bundles) {
+      const key = bundleKey(bundle);
+      if (!(key in next)) next[key] = true;
+    }
+    return next;
+  }, [bundles, expanded]);
+
+  const errorMessage = query.error
+    ? query.error instanceof HttpError
+      ? `Не удалось загрузить дерево бандлов (${String(query.error.status)}).`
+      : "Не удалось загрузить дерево бандлов."
+    : null;
 
   return (
     <section
@@ -95,26 +70,26 @@ export function BundlesTree() {
       </header>
 
       <div className="rounded-lg border border-base-300 bg-base-100 p-2">
-        {state.kind === "loading" && (
+        {query.isPending && (
           <p className="m-0 p-4 text-[13px] text-base-content/60">Загрузка…</p>
         )}
-        {state.kind === "error" && (
+        {errorMessage && (
           <p role="alert" className="m-0 p-4 text-[13px] text-base-content/60">
-            {state.message}
+            {errorMessage}
           </p>
         )}
-        {state.kind === "ready" && bundles.length === 0 && (
+        {!query.isPending && !errorMessage && bundles.length === 0 && (
           <p className="m-0 p-4 text-[13px] text-base-content/60">
             В манифесте нет ни одного бандла.
           </p>
         )}
-        {state.kind === "ready" && bundles.length > 0 && (
+        {!query.isPending && !errorMessage && bundles.length > 0 && (
           <ul className="m-0 list-none p-0" role="tree">
             {bundles.map((bundle) => (
               <BundleRow
                 key={bundle.mode}
                 bundle={bundle}
-                expanded={expanded}
+                expanded={expandedKeys}
                 onToggle={toggle}
                 onOpen={(node) => {
                   setSelected(node);

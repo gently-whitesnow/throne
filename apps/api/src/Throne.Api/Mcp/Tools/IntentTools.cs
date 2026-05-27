@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
+using Throne.Api.Intents;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;

@@ -12,7 +12,25 @@ import {
   isPinnedContext
 } from "@/shared/lib";
 
-import { ARCHIVE_STATUSES, FRIDGE_STATUS, type IntentListItem } from "./types";
+import type { IntentListParams } from "../api/intents-queries";
+
+import {
+  ARCHIVE_STATUSES,
+  FRIDGE_STATUS,
+  type IntentListItem,
+  type IntentStatus
+} from "./types";
+
+const ACTIVE_STATUSES: IntentStatus[] = [
+  "draft",
+  "interview",
+  "ready_for_work",
+  "work",
+  "ready_for_review",
+  "needs_help"
+];
+
+const ARCHIVE_STATUS_LIST: IntentStatus[] = ["done", "reject"];
 
 /**
  * Does this intent belong to the supplied context bucket? Mirrors the rules
@@ -49,6 +67,34 @@ export function matchesContext(
     return item.tags.length === 0;
   }
   return item.tags.some((t) => t.name === context);
+}
+
+/**
+ * Translate a context bucket into server-side filter params for
+ * `/api/v1/intents`. Every bucket is now fully expressible server-side
+ * (status / tag / untagged / pinned), so callers fetch only the matching
+ * subset instead of pulling the whole list and filtering in memory.
+ */
+export function contextToParams(context: string | null): IntentListParams {
+  if (!context) return {};
+  if (isPinnedContext(context)) return { pinned: true };
+  if (isArchiveContext(context)) {
+    const subTag = archiveContextTag(context);
+    if (subTag === null) return { status: ARCHIVE_STATUS_LIST };
+    if (subTag === UNTAGGED_CONTEXT)
+      return { status: ARCHIVE_STATUS_LIST, untagged: true };
+    return { status: ARCHIVE_STATUS_LIST, tag: subTag };
+  }
+  if (isFridgeContext(context)) return { status: [FRIDGE_STATUS] };
+  if (isInboxContext(context)) {
+    if (context === INBOX_REVIEW_CONTEXT)
+      return { status: ["ready_for_review"] };
+    if (context === INBOX_HELP_CONTEXT) return { status: ["needs_help"] };
+    return {};
+  }
+  if (context === UNTAGGED_CONTEXT)
+    return { status: ACTIVE_STATUSES, untagged: true };
+  return { status: ACTIVE_STATUSES, tag: context };
 }
 
 /** Human-readable label of the supplied context bucket. */

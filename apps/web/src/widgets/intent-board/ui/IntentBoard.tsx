@@ -1,42 +1,32 @@
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import type { VirtualItem } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import {
-  compareSortKeys,
-  intentStatusMeta,
-  useLinksSummary,
-  type IntentListItem
-} from "@/entities/intent";
+import { intentsQueryKeys, useLinksSummary } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { HttpError, type IntentsComponents } from "@/shared/api";
 import { isTagContext } from "@/shared/lib";
-import { useRealtimeEvent } from "@/shared/realtime";
-import {
-  EntityList,
-  type EntityListReorder,
-  type EntityListRow
-} from "@/shared/ui";
+import { VirtualEntityList, type EntityListReorder } from "@/shared/ui";
 
 import {
   contextTitle,
   emptyMessage,
-  firstLine,
-  matchesContext,
   synthesizeSortKey
 } from "../model/board-helpers";
 import { computeFamilyTints } from "../model/family-tint";
 import { computeStepRanks } from "../model/step-rank";
+import { useBoardItems } from "../model/use-board-items";
+import { useBoardRows } from "../model/use-board-rows";
 import { IntentLinksOverlay } from "./IntentLinksOverlay";
 import { PinnedSection } from "./PinnedSection";
 
-const LINKS_RAIL_WIDTH = 36;
+type IntentListPage = IntentsComponents["schemas"]["IntentListPageDto"];
+type IntentListInfinite = InfiniteData<IntentListPage, string | undefined>;
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; items: IntentListItem[] }
-  | { kind: "error"; message: string };
+const LINKS_RAIL_WIDTH = 36;
 
 interface IntentBoardProps {
   headerAction?: ReactNode;
@@ -45,94 +35,27 @@ interface IntentBoardProps {
 export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
-
+  const queryClient = useQueryClient();
   const context = params.get("context");
 
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
-      .then((items) => {
-        setState({ kind: "ready", items });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof HttpError
-              ? `Не удалось загрузить intents (${String(err.status)}).`
-              : "Не удалось загрузить intents."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
+  const {
+    allItems,
+    visibleItems,
+    isPending,
+    isSuccess,
+    isError,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage
+  } = useBoardItems(context);
 
-  const reload = useCallback(() => {
-    setReloadKey((v) => v + 1);
-  }, []);
+  const errorMessage = isError
+    ? error instanceof HttpError
+      ? `Не удалось загрузить intents (${String(error.status)}).`
+      : "Не удалось загрузить intents."
+    : null;
 
-  useRealtimeEvent("intent.created", reload);
-  useRealtimeEvent("intent.deleted", reload);
-  useRealtimeEvent("intent.text_changed", reload);
-  useRealtimeEvent("intent.status_changed", reload);
-  useRealtimeEvent("intent.tags_changed", reload);
-  // Pin events change the `pinned_in` field on the affected intent; the cheapest
-  // path is a list refetch since this is also the source of the Pinned section.
-  useRealtimeEvent("intent.pinned", reload);
-  useRealtimeEvent("intent.unpinned", reload);
-  useRealtimeEvent("intent.pin_moved", reload);
-  // Link mutations are handled by useLinksSummary (separate cache); list does
-  // not refetch on link_added/link_removed — keeps list-cache and links-cache
-  // independent.
-
-  // intent.reordered is positional only — patch sort_key in place to keep the list
-  // in the new order without a full refetch (the server sends the freshly assigned key).
-  const onReordered = useCallback(
-    (payload: { intent_id: string; sort_key: string }) => {
-      setState((prev) => {
-        if (prev.kind !== "ready") return prev;
-        return {
-          ...prev,
-          items: prev.items.map((i) =>
-            i.id === payload.intent_id
-              ? { ...i, sort_key: payload.sort_key }
-              : i
-          )
-        };
-      });
-    },
-    []
-  );
-  useRealtimeEvent("intent.reordered", onReordered);
-
-  // Server-defined order is sort_key ASC, ordinal. Use compareSortKeys (byte-wise)
-  // — never localeCompare, see entities/intent/model/sortKey.ts for why.
-  const orderedItems = useMemo(
-    () =>
-      state.kind === "ready"
-        ? [...state.items].sort((a, b) =>
-            compareSortKeys(a.sort_key, b.sort_key)
-          )
-        : [],
-    [state]
-  );
-
-  const visibleItems = useMemo(() => {
-    if (state.kind !== "ready") return [] as IntentListItem[];
-    return orderedItems.filter((i) => matchesContext(i, context));
-  }, [context, orderedItems, state.kind]);
-
-  // Pinned section: only meaningful inside a tag context (a real Tag id is
-  // needed to scope drop-to-pin / movePin / unpin). Pinned items are filtered
-  // to those pinned in the *current* tag.
-  const allItems = useMemo<IntentListItem[]>(
-    () => (state.kind === "ready" ? state.items : []),
-    [state]
-  );
   const tagNameToId = useMemo(() => {
     const map = new Map<string, string>();
     for (const item of allItems) {
@@ -154,11 +77,25 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     [allItems, currentContextTagId]
   );
 
-  const visibleIds = useMemo(
-    () => visibleItems.map((i) => i.id),
-    [visibleItems]
+  // Виртуализатор сообщает viewport — только эти id нужны для рисования
+  // связей и подсветки. Без ограничения id'шников запрос links-summary раздувал
+  // querystring и упирался в 414.
+  const [visibleVirtual, setVisibleVirtual] = useState<readonly VirtualItem[]>(
+    []
   );
-  const linksSummary = useLinksSummary(visibleIds);
+  const viewportIds = useMemo(() => {
+    if (visibleVirtual.length === 0) return [] as string[];
+    const ids: string[] = [];
+    for (const v of visibleVirtual) {
+      // Виртуализатор может на 1 тик отстать от items при смене контекста —
+      // index может выйти за длину массива. Защищаемся явной проверкой.
+      if (v.index >= visibleItems.length) continue;
+      ids.push(visibleItems[v.index].id);
+    }
+    return ids;
+  }, [visibleItems, visibleVirtual]);
+
+  const linksSummary = useLinksSummary(viewportIds);
   const hasAnyLinks = useMemo(() => {
     // Рельса рисует ребро только если оба конца — видимые строки. Связь к
     // невидимому интенту overlay пропускает, поэтому она не должна резервировать
@@ -178,22 +115,19 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   }, [linksSummary]);
   // Bumps whenever the visible-id sequence changes; drives the overlay's
   // re-measurement without subscribing to scroll/resize events.
-  const layoutSignature = useMemo(() => visibleIds.join("|"), [visibleIds]);
+  const layoutSignature = useMemo(() => viewportIds.join("|"), [viewportIds]);
   const stepRanks = useMemo(
-    () => computeStepRanks(visibleIds, linksSummary),
-    [linksSummary, visibleIds]
+    () => computeStepRanks(viewportIds, linksSummary),
+    [linksSummary, viewportIds]
   );
   const familyTints = useMemo(
-    () => computeFamilyTints(visibleIds, linksSummary),
-    [linksSummary, visibleIds]
+    () => computeFamilyTints(viewportIds, linksSummary),
+    [linksSummary, viewportIds]
   );
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
-  // Wrapper around the list and the SVG overlay. Together they share one
-  // positioning context that grows with the list height — so when the scroll
-  // container scrolls, SVG and rows translate as a single layer and the
-  // arrow geometry stays glued to the cards without any scroll listener.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const listLayerRef = useRef<HTMLDivElement | null>(null);
   const handleRowRef = useCallback((id: string, el: HTMLLIElement | null) => {
     if (el) {
@@ -214,48 +148,17 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     ]);
   }, [hoveredId, linksSummary]);
 
-  const rows = useMemo<EntityListRow[]>(() => {
-    const search = new URLSearchParams(params).toString();
-    return visibleItems.map((i) => {
-      const status = intentStatusMeta[i.status];
-      const tagNames = i.tags.map((t) => t.name);
-      const href =
-        search.length > 0 ? `/intents/${i.id}?${search}` : `/intents/${i.id}`;
-      const summary = linksSummary.get(i.id);
-      const blockedCount = summary?.blocked_by.length ?? 0;
-      const step = stepRanks.get(i.id) ?? 1;
-      const isPeer = hoverPeerIds.has(i.id);
-      return {
-        id: i.id,
-        title: firstLine(i.text_short) || i.id,
-        subtitle: tagNames.length > 0 ? `#${tagNames.join(" #")}` : undefined,
-        meta: `v${String(i.current_version)}`,
-        badge: status.label,
-        badgeColor: status.surface,
-        badgeTextColor: status.ink,
-        href,
-        // Step rank surfaces only when something blocks this card. Step 1 is
-        // «do it now» — implicit, no chip needed.
-        warning: step > 1 ? `Шаг ${String(step)}` : undefined,
-        warningTitle:
-          step > 1
-            ? `Можно начать после ${String(step - 1)} ${pluralizeSteps(step - 1)} зависимостей (всего блокирующих здесь: ${String(blockedCount)}).`
-            : undefined,
-        outline: isPeer
-          ? "outline outline-2 outline-primary/40 outline-offset-[-2px] z-10"
-          : undefined,
-        tint: familyTints.get(i.id),
-        pinned: i.pinned_in.length > 0
-      };
-    });
-  }, [
-    familyTints,
-    hoverPeerIds,
+  const rows = useBoardRows({
+    visibleItems,
     linksSummary,
-    params,
     stepRanks,
-    visibleItems
-  ]);
+    familyTints,
+    hoverPeerIds
+  });
+
+  const invalidateList = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
+  }, [queryClient]);
 
   const handleReorder = useCallback(
     ({ movedId, beforeId, afterId }: EntityListReorder) => {
@@ -263,28 +166,32 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
       // Optimistic: place a synthetic sort_key between the neighbours so the local
       // ordering matches the dropped position immediately. The realtime event with
       // the authoritative key arrives later and replaces this placeholder.
-      const items = state.kind === "ready" ? state.items : [];
-      const placeholder = synthesizeSortKey(items, beforeId, afterId);
-      setState((prev) => {
-        if (prev.kind !== "ready") return prev;
-        return {
-          ...prev,
-          items: prev.items.map((i) =>
-            i.id === movedId ? { ...i, sort_key: placeholder } : i
-          )
-        };
-      });
+      const placeholder = synthesizeSortKey(allItems, beforeId, afterId);
+      queryClient.setQueriesData<IntentListInfinite>(
+        { queryKey: intentsQueryKeys.lists() },
+        (prev) => {
+          if (!prev) return prev;
+          const pages = prev.pages.map((page) => {
+            const idx = page.items.findIndex((it) => it.id === movedId);
+            if (idx < 0) return page;
+            const next = page.items.slice();
+            next[idx] = { ...next[idx], sort_key: placeholder };
+            return { ...page, items: next };
+          });
+          const changed = pages.some((page, i) => page !== prev.pages[i]);
+          return changed ? { ...prev, pages } : prev;
+        }
+      );
 
       moveIntent({ intentId: movedId, beforeId, afterId }).catch(() => {
-        // Rollback on failure: pull a fresh authoritative list.
-        reload();
+        invalidateList();
       });
     },
-    [reload, state]
+    [allItems, invalidateList, queryClient]
   );
 
   const handleCreated = (intentId: string) => {
-    reload();
+    invalidateList();
     const search = params.toString();
     const target =
       search.length > 0
@@ -292,6 +199,10 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
         : `/intents/${intentId}`;
     void navigate(target);
   };
+
+  const handleReachEnd = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
     <section
@@ -311,41 +222,44 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           />
         </div>
       </div>
-      {state.kind === "ready" && isTagContext(context) ? (
+      {isSuccess && isTagContext(context) ? (
         <PinnedSection
           items={allItems}
           currentContextTagId={currentContextTagId}
           currentContextLabel={context ?? ""}
           pinnedIntents={pinnedIntents}
-          onMutationFailed={reload}
+          onMutationFailed={invalidateList}
         />
       ) : null}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {state.kind === "loading" && (
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
+        {isPending && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Загрузка…
           </p>
         )}
-        {state.kind === "error" && (
+        {errorMessage !== null && (
           <p
             role="alert"
             className="m-0 px-3.5 py-4 text-[13px] text-base-content/60"
           >
-            {state.message}
+            {errorMessage}
           </p>
         )}
-        {state.kind === "ready" && (
+        {isSuccess && (
           <div
             ref={listLayerRef}
             className="relative"
             style={hasAnyLinks ? { paddingRight: LINKS_RAIL_WIDTH } : undefined}
           >
-            <EntityList
+            <VirtualEntityList
               items={rows}
-              emptyMessage={emptyMessage(context, state.items.length)}
+              emptyMessage={emptyMessage(context, allItems.length)}
+              scrollParentRef={scrollContainerRef}
               onReorder={handleReorder}
               onRowHover={setHoveredId}
               rowRef={handleRowRef}
+              onVisibleItemsChange={setVisibleVirtual}
+              onReachEnd={handleReachEnd}
             />
             {hasAnyLinks && (
               <IntentLinksOverlay
@@ -359,14 +273,12 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
             )}
           </div>
         )}
+        {isFetchingNextPage && (
+          <p className="m-0 px-3.5 py-2 text-[11px] text-base-content/50">
+            Подгружаем…
+          </p>
+        )}
       </div>
     </section>
   );
-}
-
-function pluralizeSteps(n: number): string {
-  // Russian pluralisation: 1 — «шага», 2..4 — «шагов», 5+ — «шагов». Keep it
-  // simple: «шага» for 1, «шагов» for the rest. This text only appears in a
-  // tooltip so a perfect form isn't worth a library dependency.
-  return n === 1 ? "шага" : "шагов";
 }
