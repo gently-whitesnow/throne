@@ -130,11 +130,13 @@ public static class DependencyInjection
         var workspaceBuilder = services.AddOptions<WorkspaceOptions>();
         var githubBuilder = services.AddOptions<GitHubCliOptions>();
         var prSyncBuilder = services.AddOptions<PullRequestSyncOptions>();
+        var cloneRunnerBuilder = services.AddOptions<CloneRunnerOptions>();
         if (configuration is not null)
         {
             workspaceBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
             githubBuilder.Bind(configuration.GetSection(GitHubCliOptions.SectionName));
             prSyncBuilder.Bind(configuration.GetSection(PullRequestSyncOptions.SectionName));
+            cloneRunnerBuilder.Bind(configuration.GetSection(CloneRunnerOptions.SectionName));
         }
         // Application layer takes the bound options value directly so its
         // PullRequestSyncBackoff stays free of Microsoft.Extensions.Options.

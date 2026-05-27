@@ -22,7 +22,14 @@ internal sealed class GhRepoActions(GhCliInvoker gh)
             return;
         }
 
-        var result = await gh.RunCloneAsync(["repo", "clone", $"{owner}/{repo}", targetPath], ct);
+        // ADR-0026 §5: partial clone (`--filter=blob:none`). Метаданные + история тянутся
+        // мгновенно, blob'ы — on-demand при `git checkout`/`bisect`/open. Без этого Run
+        // pre-flight на больших monorepo блокирует tmux-spawn на минуты.
+        // `gh repo clone owner/repo path -- --filter=blob:none` — флаги после `--`
+        // прокидываются в `git clone` без обёртки.
+        var result = await gh.RunCloneAsync(
+            ["repo", "clone", $"{owner}/{repo}", targetPath, "--", "--filter=blob:none"],
+            ct);
         if (!result.IsSuccess)
         {
             throw GhExceptions.FromExit($"repo clone {owner}/{repo}", result);

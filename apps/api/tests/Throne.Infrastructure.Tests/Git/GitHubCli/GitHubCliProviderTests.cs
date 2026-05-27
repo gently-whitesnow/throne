@@ -22,7 +22,7 @@ public class GitHubCliProviderTests
         [{"name":"shared","owner":{"login":"orgA"},"default_branch":"main","private":true}]
         """;
 
-    private static readonly string[] CloneArgs = ["repo", "clone", "alice/throne", "/tmp/x"];
+    private static readonly string[] CloneArgs = ["repo", "clone", "alice/throne", "/tmp/x", "--", "--filter=blob:none"];
     private static readonly string[] SyncArgs = ["repo", "sync"];
     private static readonly string[] AuthArgs = ["api", "user", "-i"];
 
@@ -118,7 +118,7 @@ public class GitHubCliProviderTests
         {
             await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
             _fx.Calls.Single().Arguments.Should()
-                .ContainInOrder("repo", "clone", "alice/throne", path);
+                .ContainInOrder("repo", "clone", "alice/throne", path, "--", "--filter=blob:none");
         }
         finally
         {
