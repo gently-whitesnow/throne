@@ -1,14 +1,15 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, MessagesSquare, Play, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { type IntentDetail } from "@/entities/intent";
+import { intentsQueryKeys, useIntent } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { IntentTagsInline } from "@/features/set-intent-tags";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { HttpError } from "@/shared/api";
 import { formatRelativeTime } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
@@ -17,20 +18,13 @@ import { IntentLinksSection } from "@/widgets/intent-links-section";
 import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
 import { RepositoryBindingsList } from "@/widgets/repository-bindings-list";
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; intent: IntentDetail }
-  | { kind: "error"; status?: number; message: string };
-
 export function IntentDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const queryClient = useQueryClient();
+  const intentQuery = useIntent(id || null);
   const [editing, setEditing] = useState(false);
-  const [activityKey, setActivityKey] = useState(0);
-
-  const [refreshKey, setRefreshKey] = useState(0);
   const [copiedAction, setCopiedAction] = useState<
     "id" | "execute" | "interview" | null
   >(null);
@@ -53,82 +47,36 @@ export function IntentDetailPage() {
   };
 
   useEffect(() => {
-    if (!id) return;
-    const controller = new AbortController();
-    setState({ kind: "loading" });
     setEditing(false);
-    httpGet<IntentDetail>(intentsEndpoints.getIntent(id), controller.signal)
-      .then((intent) => {
-        setState({ kind: "ready", intent });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        if (err instanceof HttpError) {
-          setState({
-            kind: "error",
-            status: err.status,
-            message:
-              err.status === 404
-                ? "Intent не найден."
-                : `Ошибка загрузки (${String(err.status)}).`
-          });
-          return;
-        }
-        setState({ kind: "error", message: "Ошибка загрузки." });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [id, refreshKey]);
+  }, [id]);
 
-  const refreshIfMatch = useCallback(
-    (intentId: string) => {
-      if (intentId === id) setRefreshKey((k) => k + 1);
-    },
-    [id]
-  );
-
-  useRealtimeEvent("intent.text_changed", (payload) => {
-    refreshIfMatch(payload.id);
-  });
-  useRealtimeEvent("intent.status_changed", (payload) => {
-    refreshIfMatch(payload.id);
-  });
-  useRealtimeEvent("intent.tags_changed", (payload) => {
-    refreshIfMatch(payload.id);
-  });
   useRealtimeEvent("intent.deleted", (payload) => {
     if (payload.intent_id === id) {
       void navigate("/intents");
     }
   });
-  // Refresh the activity timeline on link events. Сама секция «Связи» уже
-  // слушает realtime и тянет свежий `links[]` отдельным запросом.
-  useRealtimeEvent("intent.link_added", (payload) => {
-    if (payload.from_id === id || payload.to_id === id) {
-      setActivityKey((k) => k + 1);
-    }
-  });
-  useRealtimeEvent("intent.link_removed", (payload) => {
-    if (payload.from_id === id || payload.to_id === id) {
-      setActivityKey((k) => k + 1);
-    }
-  });
 
-  if (state.kind === "loading") {
+  if (!id || intentQuery.isPending) {
     return (
       <p className="px-6 py-4 text-[13px] text-base-content/60">Загрузка…</p>
     );
   }
-  if (state.kind === "error") {
+  if (intentQuery.isError) {
+    const err = intentQuery.error;
+    const message =
+      err instanceof HttpError
+        ? err.status === 404
+          ? "Intent не найден."
+          : `Ошибка загрузки (${String(err.status)}).`
+        : "Ошибка загрузки.";
     return (
       <p role="alert" className="px-6 py-4 text-[13px] text-error">
-        {state.message}
+        {message}
       </p>
     );
   }
 
-  const intent = state.intent;
+  const intent = intentQuery.data;
   const title = firstLine(intent.text) || intent.id;
   const updatedDate = new Date(intent.updated_at);
 
@@ -220,8 +168,10 @@ export function IntentDetailPage() {
             <SetIntentStatusForm
               intent={intent}
               onSaved={(next) => {
-                setState({ kind: "ready", intent: next });
-                setActivityKey((k) => k + 1);
+                queryClient.setQueryData(
+                  intentsQueryKeys.detail(intent.id),
+                  next
+                );
               }}
             />
             <span className="tabular-nums font-semibold text-base-content/70">
@@ -282,16 +232,21 @@ export function IntentDetailPage() {
           <IntentTagsInline
             intent={intent}
             onSaved={(next) => {
-              setState({ kind: "ready", intent: next });
+              queryClient.setQueryData(
+                intentsQueryKeys.detail(intent.id),
+                next
+              );
             }}
           />
           {editing ? (
             <ReplaceIntentTextForm
               intent={intent}
               onSaved={(next) => {
-                setState({ kind: "ready", intent: next });
+                queryClient.setQueryData(
+                  intentsQueryKeys.detail(intent.id),
+                  next
+                );
                 setEditing(false);
-                setActivityKey((k) => k + 1);
               }}
               onCancel={() => {
                 setEditing(false);
@@ -310,10 +265,7 @@ export function IntentDetailPage() {
                 <h2 className="m-0 text-sm font-semibold text-base-content">
                   Активность
                 </h2>
-                <IntentActivityTimeline
-                  intentId={intent.id}
-                  reloadKey={activityKey}
-                />
+                <IntentActivityTimeline intentId={intent.id} />
               </section>
             </>
           )}

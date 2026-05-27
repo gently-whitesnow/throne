@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { IntentListItem } from "@/entities/intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useIntents } from "@/entities/intent";
+import { HttpError } from "@/shared/api";
 import { Button } from "@/shared/ui";
 
 import { createIntentLink } from "../api/intent-links-api";
@@ -34,7 +34,14 @@ export function AddLinkForm({
   autoFocus = false,
   onCreated
 }: AddLinkFormProps) {
-  const [allIntents, setAllIntents] = useState<IntentListItem[] | null>(null);
+  const intentsQuery = useIntents();
+  const allIntents = useMemo(
+    () =>
+      intentsQuery.data
+        ? intentsQuery.data.filter((i) => i.id !== intentId)
+        : null,
+    [intentsQuery.data, intentId]
+  );
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [type, setType] = useState<IntentLinkType>("relates");
@@ -46,20 +53,6 @@ export function AddLinkForm({
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
-      .then((items) => {
-        setAllIntents(items.filter((i) => i.id !== intentId));
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setAllIntents([]);
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [intentId]);
 
   const matches = useMemo(() => {
     if (!allIntents) return [];

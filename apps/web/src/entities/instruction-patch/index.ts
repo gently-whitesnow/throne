@@ -8,5 +8,8 @@ export type {
 export {
   listInstructionPatches,
   getInstructionPatch,
-  type ListInstructionPatchesQuery
+  type ListInstructionPatchesQuery,
+  instructionPatchesQueryKeys,
+  useInstructionPatchesList,
+  useProposedInstructionPatchesCount
 } from "./api";

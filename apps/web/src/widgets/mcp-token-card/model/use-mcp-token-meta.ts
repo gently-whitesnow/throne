@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import type { McpTokenMeta } from "@/entities/mcp-token";
-import { fetchMcpTokenMeta } from "@/entities/mcp-token";
+import {
+  mcpTokenQueryKeys,
+  useMcpTokenMetaQuery,
+  type McpTokenMeta
+} from "@/entities/mcp-token";
 import { HttpError } from "@/shared/api";
 
 export type McpTokenMetaState =
@@ -14,35 +18,31 @@ export function useMcpTokenMeta(): {
   setMeta: (meta: McpTokenMeta) => void;
   refresh: () => void;
 } {
-  const [state, setState] = useState<McpTokenMetaState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
+  const qc = useQueryClient();
+  const query = useMcpTokenMetaQuery();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchMcpTokenMeta(controller.signal)
-      .then((data) => {
-        setState({ kind: "ready", data });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        const message =
-          err instanceof HttpError
-            ? `Не удалось загрузить токен (${String(err.status)}).`
-            : "Не удалось загрузить токен.";
-        setState({ kind: "error", message });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
-
-  const setMeta = useCallback((meta: McpTokenMeta) => {
-    setState({ kind: "ready", data: meta });
-  }, []);
+  const setMeta = useCallback(
+    (meta: McpTokenMeta) => {
+      qc.setQueryData<McpTokenMeta>(mcpTokenQueryKeys.meta(), meta);
+    },
+    [qc]
+  );
 
   const refresh = useCallback(() => {
-    setReloadKey((k) => k + 1);
-  }, []);
+    void qc.invalidateQueries({ queryKey: mcpTokenQueryKeys.meta() });
+  }, [qc]);
+
+  const state: McpTokenMetaState = query.isPending
+    ? { kind: "loading" }
+    : query.error
+      ? {
+          kind: "error",
+          message:
+            query.error instanceof HttpError
+              ? `Не удалось загрузить токен (${String(query.error.status)}).`
+              : "Не удалось загрузить токен."
+        }
+      : { kind: "ready", data: query.data };
 
   return { state, setMeta, refresh };
 }

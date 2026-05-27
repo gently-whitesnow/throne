@@ -8,3 +8,4 @@ export {
   deleteTag,
   fetchTagUsage
 } from "./api/tags-api";
+export { useTags, tagsQueryKeys } from "./api/tags-queries";
