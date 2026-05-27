@@ -1,7 +1,13 @@
 import type { TagsComponents } from "@/shared/api";
-import { httpDelete, httpGet, httpPost, tagsEndpoints } from "@/shared/api";
+import {
+  httpDelete,
+  httpGet,
+  httpPost,
+  httpPut,
+  tagsEndpoints
+} from "@/shared/api";
 
-import type { Tag } from "../model/types";
+import type { Tag, TagDefaultRepository, TagDetail } from "../model/types";
 
 type CreateTagBody = TagsComponents["schemas"]["CreateTagRequest"];
 type RenameTagBody = TagsComponents["schemas"]["RenameTagRequest"];
@@ -53,4 +59,23 @@ export async function deleteTag(
 ): Promise<void> {
   const path = `${tagsEndpoints.deleteTag(id)}?detach=${detach ? "true" : "false"}`;
   await httpDelete(path, signal);
+}
+
+export function fetchTag(id: string, signal?: AbortSignal): Promise<TagDetail> {
+  return httpGet<TagDetail>(tagsEndpoints.getTag(id), signal);
+}
+
+export function setTagDefaultRepositories(
+  id: string,
+  body: {
+    expected_version: number;
+    default_repositories: TagDefaultRepository[];
+  },
+  signal?: AbortSignal
+): Promise<TagDetail> {
+  return httpPut<TagDetail>(
+    tagsEndpoints.setTagDefaultRepositories(id),
+    body,
+    signal
+  );
 }

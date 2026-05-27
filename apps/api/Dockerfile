@@ -15,12 +15,15 @@ RUN dotnet publish src/Throne.Api/Throne.Api.csproj -c Release -o /app --no-rest
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 
-# git + gh CLI runtime dependency.
-# gh приходит из официального apt-репозитория GitHub (в Debian main его нет).
-# Источник: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+# git + gh CLI + tmux runtime dependencies.
+# - gh приходит из официального apt-репозитория GitHub (в Debian main его нет).
+#   Источник: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+# - tmux нужен для embedded-terminal'а (Slice 2 / ADR-0026 § 2). VS Code (`code` CLI)
+#   намеренно не ставим: это desktop-binary хоста, в контейнере он бесполезен —
+#   capability `vscode` отрапортует `detected=false`, фронт скроет кнопки.
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl gnupg git openssh-client; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg git openssh-client tmux; \
     install -d -m 0755 /etc/apt/keyrings; \
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
         | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg; \

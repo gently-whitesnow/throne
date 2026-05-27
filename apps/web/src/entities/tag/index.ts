@@ -1,11 +1,18 @@
-export type { Tag, TagRef } from "./model/types";
+export type {
+  Tag,
+  TagDefaultRepository,
+  TagDetail,
+  TagRef
+} from "./model/types";
 export { TagBadge } from "./ui/TagBadge";
 export { useTagPicker } from "./model/use-tag-picker";
 export {
   fetchTags,
+  fetchTag,
   createTag,
   renameTag,
   deleteTag,
-  fetchTagUsage
+  fetchTagUsage,
+  setTagDefaultRepositories
 } from "./api/tags-api";
-export { useTags, tagsQueryKeys } from "./api/tags-queries";
+export { useTag, useTags, tagsQueryKeys } from "./api/tags-queries";

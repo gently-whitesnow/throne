@@ -13,6 +13,7 @@ using Throne.Application.Tags;
 using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
 using Throne.Application.TextVersions;
+using Throne.Application.Vscode;
 
 namespace Throne.Application;
 
@@ -97,6 +98,11 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightOrchestrator>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
+        // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by
+        // `capabilities.vscode` (toggle + live `code --version` probe).
+        services.AddSingleton<VscodeCapabilityGuard>();
+        services.AddSingleton<VscodeSpawner>();
+        services.AddSingleton<OpenInVscodeService>();
         return services;
     }
 
