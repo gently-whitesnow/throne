@@ -28,6 +28,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/contexts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Aggregate intent counts per context bucket (rail sidebar).
+         * @description Single-shot aggregate for the context rail: counts per inbox status, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active and archive scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+         */
+        get: operations["getIntentContexts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}": {
         parameters: {
             query?: never;
@@ -428,6 +448,56 @@ export interface components {
             /** @description Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order. */
             pinned_in: components["schemas"]["PinnedContextDto"][];
         };
+        IntentContextTagCountDto: {
+            /** @description Tag display name (slug). */
+            tag: string;
+            /**
+             * Format: int32
+             * @description Number of intents in the bucket carrying this tag.
+             */
+            count: number;
+        };
+        IntentContextCountsDto: {
+            /**
+             * Format: int32
+             * @description Intents in status `ready_for_review` (inbox «жду ревью»).
+             */
+            inbox_review: number;
+            /**
+             * Format: int32
+             * @description Intents in status `needs_help` (inbox «нужна помощь»).
+             */
+            inbox_help: number;
+            /**
+             * Format: int32
+             * @description Intents in the `fridge` bucket.
+             */
+            fridge: number;
+            /**
+             * Format: int32
+             * @description Intents in archive statuses (`done` + `reject`).
+             */
+            archive: number;
+            /**
+             * Format: int32
+             * @description Distinct intents pinned into at least one context.
+             */
+            pinned: number;
+            /**
+             * Format: int32
+             * @description Active intents (non-archive, non-fridge) carrying no tags.
+             */
+            untagged: number;
+            /**
+             * Format: int32
+             * @description Archive intents carrying no tags.
+             */
+            archive_untagged: number;
+            /** @description Per-tag counts across active intents (non-archive, non-fridge), sorted by count desc then tag name asc. An intent with N tags contributes to each tag. */
+            tags: components["schemas"]["IntentContextTagCountDto"][];
+            /** @description Per-tag counts across archive intents, sorted by count desc then tag name asc. */
+            archive_tags: components["schemas"]["IntentContextTagCountDto"][];
+        };
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
             id: string;
@@ -689,6 +759,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+        };
+    };
+    getIntentContexts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentContextCountsDto"];
                 };
             };
         };

@@ -14,14 +14,17 @@ export {
 export { fetchIntentLinksSummary } from "./api/links-summary";
 export {
   intentsQueryKeys,
+  intentContextsQueryKeys,
   useIntent,
   useIntentAttachments,
   useIntents,
+  useIntentContexts,
   useInfiniteIntents
 } from "./api/intents-queries";
 export type {
   IntentListParams,
   IntentListSort,
+  IntentContextCounts,
   UseFlatIntentsResult
 } from "./api/intents-queries";
 export {

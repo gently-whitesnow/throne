@@ -23,36 +23,12 @@ public static class DependencyInjection
         services.AddSingleton<TagNameEnsurer>();
         services.AddSingleton<TagIdLookup>();
         services.AddSingleton<IntentTagResolver>();
-        services.AddSingleton<CreateIntentHandler>();
-        services.AddSingleton<GetIntentHandler>();
-        services.AddSingleton<ReadIntentTextHandler>();
-        services.AddSingleton<ReplaceIntentTextHandler>();
-        services.AddSingleton<DeleteIntentHandler>();
-        services.AddSingleton<UploadIntentAttachmentHandler>();
-        services.AddSingleton<ListIntentAttachmentsHandler>();
-        services.AddSingleton<DownloadIntentAttachmentHandler>();
-        services.AddSingleton<DeleteIntentAttachmentHandler>();
-        services.AddSingleton<SearchIntentTextHandler>();
-        services.AddSingleton<InsertIntentTextAfterLineHandler>();
-        services.AddSingleton<ListIntentsHandler>();
-        services.AddSingleton<SetIntentStatusHandler>();
-        services.AddSingleton<SetIntentTagsHandler>();
-        services.AddSingleton<MoveIntentHandler>();
-        services.AddSingleton<PinIntentHandler>();
-        services.AddSingleton<UnpinIntentHandler>();
-        services.AddSingleton<MovePinHandler>();
-        services.AddSingleton<LinkIntentHandler>();
-        services.AddSingleton<UnlinkIntentHandler>();
-        services.AddSingleton<ListIntentLinksHandler>();
-        services.AddSingleton<GetIntentLinksSummaryHandler>();
-        services.AddSingleton<ListIntentEventsHandler>();
+        services.AddIntentHandlers();
         services.AddSingleton<ListTagsHandler>();
         services.AddSingleton<CreateTagHandler>();
         services.AddSingleton<RenameTagHandler>();
         services.AddSingleton<DeleteTagHandler>();
         services.AddSingleton<GetTagUsageHandler>();
-        services.AddSingleton<ListIntentVersionsHandler>();
-        services.AddSingleton<IntentStatusAutoTransition>();
         services.AddSingleton<UserBundleEntries>();
         services.AddSingleton<GetInstructionBundleHandler>();
         services.AddSingleton<GetBundlesTreeHandler>();
@@ -106,6 +82,37 @@ public static class DependencyInjection
         services.AddSingleton<PullRequestStateRefresher>();
         services.AddSingleton<PullRequestSyncBindingVisitor>();
         services.AddSingleton<PullRequestSyncTickWorkflow>();
+        return services;
+    }
+
+    private static IServiceCollection AddIntentHandlers(this IServiceCollection services)
+    {
+        services.AddSingleton<CreateIntentHandler>();
+        services.AddSingleton<GetIntentHandler>();
+        services.AddSingleton<ReadIntentTextHandler>();
+        services.AddSingleton<ReplaceIntentTextHandler>();
+        services.AddSingleton<DeleteIntentHandler>();
+        services.AddSingleton<UploadIntentAttachmentHandler>();
+        services.AddSingleton<ListIntentAttachmentsHandler>();
+        services.AddSingleton<DownloadIntentAttachmentHandler>();
+        services.AddSingleton<DeleteIntentAttachmentHandler>();
+        services.AddSingleton<SearchIntentTextHandler>();
+        services.AddSingleton<InsertIntentTextAfterLineHandler>();
+        services.AddSingleton<ListIntentsHandler>();
+        services.AddSingleton<GetIntentContextsHandler>();
+        services.AddSingleton<SetIntentStatusHandler>();
+        services.AddSingleton<SetIntentTagsHandler>();
+        services.AddSingleton<MoveIntentHandler>();
+        services.AddSingleton<PinIntentHandler>();
+        services.AddSingleton<UnpinIntentHandler>();
+        services.AddSingleton<MovePinHandler>();
+        services.AddSingleton<LinkIntentHandler>();
+        services.AddSingleton<UnlinkIntentHandler>();
+        services.AddSingleton<ListIntentLinksHandler>();
+        services.AddSingleton<GetIntentLinksSummaryHandler>();
+        services.AddSingleton<ListIntentEventsHandler>();
+        services.AddSingleton<ListIntentVersionsHandler>();
+        services.AddSingleton<IntentStatusAutoTransition>();
         return services;
     }
 }

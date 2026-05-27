@@ -11,11 +11,9 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
-  ARCHIVE_STATUSES,
   FRIDGE_STATUS,
-  INBOX_STATUSES,
   intentStatusMeta,
-  useIntents,
+  useIntentContexts,
   type IntentStatus
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
@@ -38,11 +36,7 @@ interface ContextRow {
 }
 
 export function IntentContextRail() {
-  // TODO follow-up: counts endpoint for context rail — сейчас рейл вынужден
-  // подтянуть весь список через useIntents (facade, который автодобирает все
-  // страницы), чтобы посчитать теги/архив/inbox. На больших датасетах это
-  // деградирует — нужен отдельный /api/v1/intents/contexts с агрегатами.
-  const intentsQuery = useIntents();
+  const contextsQuery = useIntentContexts();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -85,9 +79,9 @@ export function IntentContextRail() {
     />
   );
 
-  const errorMessage = intentsQuery.isError
-    ? intentsQuery.error instanceof HttpError
-      ? `Не удалось загрузить контексты (${String(intentsQuery.error.status)}).`
+  const errorMessage = contextsQuery.isError
+    ? contextsQuery.error instanceof HttpError
+      ? `Не удалось загрузить контексты (${String(contextsQuery.error.status)}).`
       : "Не удалось загрузить контексты."
     : null;
 
@@ -101,86 +95,35 @@ export function IntentContextRail() {
     inboxReviewCount,
     inboxHelpCount
   } = useMemo(() => {
-    const items = intentsQuery.data;
-    if (!items) {
-      return {
-        tagRows: [] as ContextRow[],
-        untaggedCount: 0,
-        archiveCount: 0,
-        archiveTagRows: [] as ContextRow[],
-        archiveUntaggedCount: 0,
-        fridgeCount: 0,
-        inboxReviewCount: 0,
-        inboxHelpCount: 0
-      };
-    }
-    const counts = new Map<string, number>();
-    const archiveCounts = new Map<string, number>();
-    let untagged = 0;
-    let archive = 0;
-    let archiveUntagged = 0;
-    let fridge = 0;
-    let inboxReview = 0;
-    let inboxHelp = 0;
-    for (const item of items) {
-      if (INBOX_STATUSES.has(item.status)) {
-        if (item.status === "ready_for_review") inboxReview += 1;
-        else if (item.status === "needs_help") inboxHelp += 1;
-      }
-      if (item.status === FRIDGE_STATUS) {
-        fridge += 1;
-        continue;
-      }
-      const isArchive = ARCHIVE_STATUSES.has(item.status);
-      if (isArchive) {
-        archive += 1;
-        if (item.tags.length === 0) {
-          archiveUntagged += 1;
-        } else {
-          for (const tag of item.tags) {
-            archiveCounts.set(tag.name, (archiveCounts.get(tag.name) ?? 0) + 1);
-          }
-        }
-        continue;
-      }
-      if (item.tags.length === 0) {
-        untagged += 1;
-        continue;
-      }
-      for (const tag of item.tags) {
-        counts.set(tag.name, (counts.get(tag.name) ?? 0) + 1);
-      }
-    }
-    const sortRows = (entries: Iterable<[string, number]>): ContextRow[] =>
-      [...entries]
-        .map(([name, count]) => ({
-          key: name,
-          label: name,
-          count,
-          icon: "tag" as const
-        }))
-        .sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count;
-          return a.label.localeCompare(b.label);
-        });
+    const counts = contextsQuery.data;
+    // Server already orders tag breakdowns by count desc then name asc.
+    const toRows = (
+      rows: readonly { tag: string; count: number }[]
+    ): ContextRow[] =>
+      rows.map((row) => ({
+        key: row.tag,
+        label: row.tag,
+        count: row.count,
+        icon: "tag" as const
+      }));
     return {
-      tagRows: sortRows(counts.entries()),
-      untaggedCount: untagged,
-      archiveCount: archive,
-      archiveTagRows: sortRows(archiveCounts.entries()),
-      archiveUntaggedCount: archiveUntagged,
-      fridgeCount: fridge,
-      inboxReviewCount: inboxReview,
-      inboxHelpCount: inboxHelp
+      tagRows: counts ? toRows(counts.tags) : [],
+      untaggedCount: counts?.untagged ?? 0,
+      archiveCount: counts?.archive ?? 0,
+      archiveTagRows: counts ? toRows(counts.archive_tags) : [],
+      archiveUntaggedCount: counts?.archive_untagged ?? 0,
+      fridgeCount: counts?.fridge ?? 0,
+      inboxReviewCount: counts?.inbox_review ?? 0,
+      inboxHelpCount: counts?.inbox_help ?? 0
     };
-  }, [intentsQuery.data]);
+  }, [contextsQuery.data]);
 
   const currentContext = params.get("context");
   const inboxTotal = inboxReviewCount + inboxHelpCount;
 
   // Auto-pick a default context once data is available.
   useEffect(() => {
-    if (!intentsQuery.isSuccess) return;
+    if (!contextsQuery.isSuccess) return;
     if (currentContext) return;
     let next: string | null = null;
     if (inboxTotal > 0) {
@@ -200,7 +143,7 @@ export function IntentContextRail() {
     inboxHelpCount,
     inboxReviewCount,
     inboxTotal,
-    intentsQuery.isSuccess,
+    contextsQuery.isSuccess,
     params,
     setParams,
     tagRows,
@@ -221,7 +164,7 @@ export function IntentContextRail() {
       className="flex min-h-0 min-w-0 flex-col overflow-hidden border-base-300 bg-base-100 max-md:border-b md:border-r"
       aria-label="Контексты Intents"
     >
-      {intentsQuery.isSuccess && inboxTotal > 0 ? (
+      {contextsQuery.isSuccess && inboxTotal > 0 ? (
         <InboxWidget
           reviewCount={inboxReviewCount}
           helpCount={inboxHelpCount}
@@ -241,7 +184,7 @@ export function IntentContextRail() {
         className="min-h-0 flex-1 overflow-y-auto py-1"
         aria-label="Список контекстов"
       >
-        {intentsQuery.isPending ? (
+        {contextsQuery.isPending ? (
           <p className="m-0 px-3.5 py-3 text-[13px] text-base-content/60">
             Загрузка…
           </p>
@@ -254,7 +197,7 @@ export function IntentContextRail() {
             {errorMessage}
           </p>
         ) : null}
-        {intentsQuery.isSuccess ? (
+        {contextsQuery.isSuccess ? (
           <ul className="m-0 flex list-none flex-col p-0">
             {tagRows.map((row) => (
               <li key={row.key}>
