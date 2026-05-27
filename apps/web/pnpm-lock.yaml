@@ -22,6 +22,12 @@ importers:
       "@tanstack/react-virtual":
         specifier: ^3.13.26
         version: 3.13.26(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      "@xterm/addon-fit":
+        specifier: ^0.10.0
+        version: 0.10.0(@xterm/xterm@5.5.0)
+      "@xterm/xterm":
+        specifier: ^5.5.0
+        version: 5.5.0
       daisyui:
         specifier: ^5.5.19
         version: 5.5.19
@@ -1399,6 +1405,20 @@ packages:
     resolution:
       {
         integrity: sha512-5vR2QIlmaLG77Ygd4pMP6+SGQ5yox9VhtnbDWTy9DzMzdmeLxZ1QqxrywEZ9sa1AVubfIJyaCG3ytyWU81ufcQ==
+      }
+
+  "@xterm/addon-fit@0.10.0":
+    resolution:
+      {
+        integrity: sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ==
+      }
+    peerDependencies:
+      "@xterm/xterm": ^5.0.0
+
+  "@xterm/xterm@5.5.0":
+    resolution:
+      {
+        integrity: sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A==
       }
 
   acorn-jsx@5.3.2:
@@ -4478,6 +4498,12 @@ snapshots:
       "@vue/shared": 3.5.33
 
   "@vue/shared@3.5.33": {}
+
+  "@xterm/addon-fit@0.10.0(@xterm/xterm@5.5.0)":
+    dependencies:
+      "@xterm/xterm": 5.5.0
+
+  "@xterm/xterm@5.5.0": {}
 
   acorn-jsx@5.3.2(acorn@8.16.0):
     dependencies:
