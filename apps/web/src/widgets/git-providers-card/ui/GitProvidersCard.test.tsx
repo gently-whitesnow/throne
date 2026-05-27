@@ -1,13 +1,12 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { renderWithQuery } from "@/app/test-utils";
+
 import { GitProvidersCard } from "./GitProvidersCard";
+
+const render = (ui: React.ReactElement) =>
+  renderWithQuery(ui, { withBridge: false });
 
 const fetchGitProvidersStatus = vi.fn<() => Promise<unknown>>();
 

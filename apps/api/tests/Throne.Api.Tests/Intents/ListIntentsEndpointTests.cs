@@ -63,8 +63,10 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         var response = await _client.GetAsync(new Uri("/api/v1/intents", UriKind.Relative));
 
         response.EnsureSuccessStatusCode();
-        var items = await response.Content.ReadFromJsonAsync<List<IntentListItemView>>();
-        items.Should().NotBeNull().And.BeEmpty();
+        var page = await response.Content.ReadFromJsonAsync<IntentListPageView>();
+        page.Should().NotBeNull();
+        page!.Items.Should().BeEmpty();
+        page.NextCursor.Should().BeNull();
     }
 
     [Fact(DisplayName = "GET /api/v1/intents возвращает intents с text_short, обрезанным до 140 символов")]
@@ -75,9 +77,10 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         var response = await _client.GetAsync(new Uri("/api/v1/intents", UriKind.Relative));
         response.EnsureSuccessStatusCode();
 
-        var raw = await response.Content.ReadFromJsonAsync<List<IntentListItemView>>();
-        raw.Should().NotBeNull().And.HaveCount(2);
-        var items = raw!;
+        var page = await response.Content.ReadFromJsonAsync<IntentListPageView>();
+        page.Should().NotBeNull();
+        page!.Items.Should().HaveCount(2);
+        var items = page.Items;
 
         var shortItem = items.Single(i => i.TextShort == "short text");
         shortItem.Status.Should().Be("draft");
@@ -139,9 +142,9 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         var response = await _client.GetAsync(new Uri("/api/v1/intents?status=done&status=reject", UriKind.Relative));
         response.EnsureSuccessStatusCode();
 
-        var items = await response.Content.ReadFromJsonAsync<List<IntentListItemView>>();
-        items.Should().NotBeNull();
-        items!.Select(i => i.Status).Should().BeEquivalentTo(["done", "reject"]);
+        var page = await response.Content.ReadFromJsonAsync<IntentListPageView>();
+        page.Should().NotBeNull();
+        page!.Items.Select(i => i.Status).Should().BeEquivalentTo(["done", "reject"]);
     }
 
     private static async Task<Intent> SeedAsync(IIntentRepository repo, IUnitOfWork uow, string text)
@@ -166,6 +169,15 @@ public sealed class ListIntentsEndpointTests(MongoFixture mongo) : IAsyncLifetim
             "test:create",
             Now,
             IntentTrainingAuthor.Agent);
+
+    private sealed class IntentListPageView
+    {
+        [JsonPropertyName("items")]
+        public IReadOnlyList<IntentListItemView> Items { get; init; } = [];
+
+        [JsonPropertyName("next_cursor")]
+        public string? NextCursor { get; init; }
+    }
 
     private sealed class IntentListItemView
     {

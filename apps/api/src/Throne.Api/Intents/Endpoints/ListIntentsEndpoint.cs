@@ -3,6 +3,7 @@ using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 using Throne.Intents.Contracts.Generated;
+using DtoIntentListSort = Throne.Intents.Contracts.Generated.IntentListSort;
 
 namespace Throne.Api.Intents;
 
@@ -10,8 +11,15 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
 {
     public const int TextShortMaxLength = 140;
 
-    public async Task<ActionResult<ICollection<IntentListItemDto>>> RunAsync(
+    public async Task<ActionResult<IntentListPageDto>> RunAsync(
+        string? cursor,
+        int? limit,
         IEnumerable<IntentStatus>? status,
+        string? tag,
+        bool? untagged,
+        bool? pinned,
+        string? query,
+        DtoIntentListSort? sort,
         CancellationToken cancellationToken)
     {
         var statuses = status?
@@ -19,20 +27,34 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        var intents = await handler.HandleAsync(
-            new ListIntentsQuery(statuses is { Length: > 0 } ? statuses : null), cancellationToken);
+        var pagedQuery = new ListIntentsPagedQuery(
+            Statuses: statuses is { Length: > 0 } ? statuses : null,
+            TagName: string.IsNullOrWhiteSpace(tag) ? null : tag,
+            Untagged: untagged.GetValueOrDefault(),
+            Pinned: pinned.GetValueOrDefault(),
+            Query: string.IsNullOrWhiteSpace(query) ? null : query,
+            Sort: IntentListSortDtoMapper.FromContractSort(sort),
+            Limit: limit ?? ListIntentsHandler.DefaultLimit,
+            Cursor: IntentListCursorCodec.Parse(cursor));
 
-        var tagMap = await helpers.BuildTagMapAsync(intents.SelectMany(i => i.TagIds), cancellationToken);
-        var pinnedMap = await helpers.GetPinnedInAsync(intents.Select(i => i.Id.Value).ToList(), cancellationToken);
-        return new OkObjectResult(MapList(intents, tagMap, pinnedMap));
+        var page = await handler.HandleAsync(pagedQuery, cancellationToken);
+
+        var tagMap = await helpers.BuildTagMapAsync(page.Items.SelectMany(i => i.TagIds), cancellationToken);
+        var pinnedMap = await helpers.GetPinnedInAsync(page.Items.Select(i => i.Id.Value).ToList(), cancellationToken);
+
+        return new OkObjectResult(new IntentListPageDto
+        {
+            Items = MapItems(page.Items, tagMap, pinnedMap),
+            Next_cursor = IntentListCursorCodec.Encode(page.NextCursor),
+        });
     }
 
-    private static List<IntentListItemDto> MapList(
+    private static System.Collections.ObjectModel.Collection<IntentListItemDto> MapItems(
         IReadOnlyList<Intent> intents,
         IReadOnlyDictionary<string, Tag> tagMap,
         IReadOnlyDictionary<string, IReadOnlyList<IntentPin>> pinnedMap)
     {
-        var dtos = new List<IntentListItemDto>(intents.Count);
+        var dtos = new System.Collections.ObjectModel.Collection<IntentListItemDto>();
         foreach (var intent in intents)
         {
             dtos.Add(IntentDtoMapper.ToListDto(

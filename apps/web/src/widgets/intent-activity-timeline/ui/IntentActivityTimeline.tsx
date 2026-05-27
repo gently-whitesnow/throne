@@ -1,21 +1,15 @@
 import { Bot, Cog, Link2, Link2Off, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import type { IntentEvent } from "@/entities/intent-event";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useIntentEvents, type IntentEvent } from "@/entities/intent-event";
+import { HttpError } from "@/shared/api";
 import { dayKey, formatDateLabel, formatRelativeTime } from "@/shared/lib";
 
 import { type ActivityFeedItem, buildActivityFeed } from "../model/types";
 
 interface IntentActivityTimelineProps {
   intentId: string;
-  reloadKey?: number;
 }
-
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; items: ActivityFeedItem[] }
-  | { kind: "error"; message: string };
 
 const authorLabel: Record<NonNullable<IntentEvent["created_by"]>, string> = {
   user: "Пользователь",
@@ -31,39 +25,19 @@ const linkTypeLabel: Record<string, string> = {
 };
 
 export function IntentActivityTimeline({
-  intentId,
-  reloadKey = 0
+  intentId
 }: IntentActivityTimelineProps) {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setState({ kind: "loading" });
-    httpGet<IntentEvent[]>(
-      intentsEndpoints.listIntentEvents(intentId),
-      controller.signal
-    )
-      .then((events) => {
-        setState({ kind: "ready", items: buildActivityFeed(events) });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        const message =
-          err instanceof HttpError
-            ? `Не удалось загрузить активность (${String(err.status)}).`
-            : "Не удалось загрузить активность.";
-        setState({ kind: "error", message });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [intentId, reloadKey]);
+  const eventsQuery = useIntentEvents(intentId);
+  const items: ActivityFeedItem[] = useMemo(
+    () => (eventsQuery.data ? buildActivityFeed(eventsQuery.data) : []),
+    [eventsQuery.data]
+  );
 
   const grouped = useMemo(() => {
-    if (state.kind !== "ready") return [];
+    if (!eventsQuery.isSuccess) return [];
     const groups: { key: string; label: string; items: ActivityFeedItem[] }[] =
       [];
-    for (const item of state.items) {
+    for (const item of items) {
       const key = dayKey(item.event.created_at);
       const last = groups.at(-1);
       if (last?.key === key) {
@@ -77,23 +51,28 @@ export function IntentActivityTimeline({
       }
     }
     return groups;
-  }, [state]);
+  }, [eventsQuery.isSuccess, items]);
 
-  if (state.kind === "loading") {
+  if (eventsQuery.isPending) {
     return (
       <p className="m-0 text-xs text-base-content/60">
         Активность загружается…
       </p>
     );
   }
-  if (state.kind === "error") {
+  if (eventsQuery.isError) {
+    const err = eventsQuery.error;
+    const message =
+      err instanceof HttpError
+        ? `Не удалось загрузить активность (${String(err.status)}).`
+        : "Не удалось загрузить активность.";
     return (
       <p role="alert" className="m-0 text-xs text-error">
-        {state.message}
+        {message}
       </p>
     );
   }
-  if (state.items.length === 0) {
+  if (items.length === 0) {
     return (
       <p className="m-0 text-xs text-base-content/60">Активности пока нет.</p>
     );

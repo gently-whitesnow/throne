@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-
-import type { IntentDetail } from "@/entities/intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useIntent } from "@/entities/intent";
+import { HttpError } from "@/shared/api";
 
 import { LinkAttachmentsReadOnly } from "./LinkAttachmentsReadOnly";
 
@@ -9,37 +7,10 @@ interface LinkExpandedViewProps {
   peerId: string;
 }
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; intent: IntentDetail }
-  | { kind: "error"; message: string };
-
 export function LinkExpandedView({ peerId }: LinkExpandedViewProps) {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const intentQuery = useIntent(peerId);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setState({ kind: "loading" });
-    httpGet<IntentDetail>(intentsEndpoints.getIntent(peerId), controller.signal)
-      .then((intent) => {
-        setState({ kind: "ready", intent });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof HttpError
-              ? `Ошибка загрузки (${String(err.status)}).`
-              : "Не удалось загрузить связанный intent."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [peerId]);
-
-  if (state.kind === "loading") {
+  if (intentQuery.isPending) {
     return (
       <div
         aria-busy="true"
@@ -53,15 +24,20 @@ export function LinkExpandedView({ peerId }: LinkExpandedViewProps) {
       </div>
     );
   }
-  if (state.kind === "error") {
+  if (intentQuery.isError) {
+    const err = intentQuery.error;
+    const message =
+      err instanceof HttpError
+        ? `Ошибка загрузки (${String(err.status)}).`
+        : "Не удалось загрузить связанный intent.";
     return (
       <p role="alert" className="m-0 text-[12px] text-error">
-        {state.message}
+        {message}
       </p>
     );
   }
 
-  const { intent } = state;
+  const intent = intentQuery.data;
   return (
     <div className="flex flex-col gap-3">
       {intent.tags.length > 0 && (

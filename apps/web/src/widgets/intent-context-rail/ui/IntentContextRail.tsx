@@ -7,19 +7,17 @@ import {
   Snowflake
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
-  ARCHIVE_STATUSES,
   FRIDGE_STATUS,
-  INBOX_STATUSES,
   intentStatusMeta,
-  type IntentListItem,
+  useIntentContexts,
   type IntentStatus
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { HttpError } from "@/shared/api";
 import {
   ARCHIVE_CONTEXT,
   FRIDGE_CONTEXT,
@@ -29,12 +27,6 @@ import {
   archiveSubContext,
   isArchiveContext
 } from "@/shared/lib";
-import { useRealtimeEvent } from "@/shared/realtime";
-
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; items: IntentListItem[] }
-  | { kind: "error"; message: string };
 
 interface ContextRow {
   key: string;
@@ -44,8 +36,7 @@ interface ContextRow {
 }
 
 export function IntentContextRail() {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
+  const contextsQuery = useIntentContexts();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -88,35 +79,11 @@ export function IntentContextRail() {
     />
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
-      .then((items) => {
-        setState({ kind: "ready", items });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof HttpError
-              ? `Не удалось загрузить контексты (${String(err.status)}).`
-              : "Не удалось загрузить контексты."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
-
-  const reload = useCallback(() => {
-    setReloadKey((k) => k + 1);
-  }, []);
-
-  useRealtimeEvent("intent.created", reload);
-  useRealtimeEvent("intent.deleted", reload);
-  useRealtimeEvent("intent.tags_changed", reload);
-  useRealtimeEvent("intent.status_changed", reload);
+  const errorMessage = contextsQuery.isError
+    ? contextsQuery.error instanceof HttpError
+      ? `Не удалось загрузить контексты (${String(contextsQuery.error.status)}).`
+      : "Не удалось загрузить контексты."
+    : null;
 
   const {
     tagRows,
@@ -128,85 +95,35 @@ export function IntentContextRail() {
     inboxReviewCount,
     inboxHelpCount
   } = useMemo(() => {
-    if (state.kind !== "ready") {
-      return {
-        tagRows: [] as ContextRow[],
-        untaggedCount: 0,
-        archiveCount: 0,
-        archiveTagRows: [] as ContextRow[],
-        archiveUntaggedCount: 0,
-        fridgeCount: 0,
-        inboxReviewCount: 0,
-        inboxHelpCount: 0
-      };
-    }
-    const counts = new Map<string, number>();
-    const archiveCounts = new Map<string, number>();
-    let untagged = 0;
-    let archive = 0;
-    let archiveUntagged = 0;
-    let fridge = 0;
-    let inboxReview = 0;
-    let inboxHelp = 0;
-    for (const item of state.items) {
-      if (INBOX_STATUSES.has(item.status)) {
-        if (item.status === "ready_for_review") inboxReview += 1;
-        else if (item.status === "needs_help") inboxHelp += 1;
-      }
-      if (item.status === FRIDGE_STATUS) {
-        fridge += 1;
-        continue;
-      }
-      const isArchive = ARCHIVE_STATUSES.has(item.status);
-      if (isArchive) {
-        archive += 1;
-        if (item.tags.length === 0) {
-          archiveUntagged += 1;
-        } else {
-          for (const tag of item.tags) {
-            archiveCounts.set(tag.name, (archiveCounts.get(tag.name) ?? 0) + 1);
-          }
-        }
-        continue;
-      }
-      if (item.tags.length === 0) {
-        untagged += 1;
-        continue;
-      }
-      for (const tag of item.tags) {
-        counts.set(tag.name, (counts.get(tag.name) ?? 0) + 1);
-      }
-    }
-    const sortRows = (entries: Iterable<[string, number]>): ContextRow[] =>
-      [...entries]
-        .map(([name, count]) => ({
-          key: name,
-          label: name,
-          count,
-          icon: "tag" as const
-        }))
-        .sort((a, b) => {
-          if (b.count !== a.count) return b.count - a.count;
-          return a.label.localeCompare(b.label);
-        });
+    const counts = contextsQuery.data;
+    // Server already orders tag breakdowns by count desc then name asc.
+    const toRows = (
+      rows: readonly { tag: string; count: number }[]
+    ): ContextRow[] =>
+      rows.map((row) => ({
+        key: row.tag,
+        label: row.tag,
+        count: row.count,
+        icon: "tag" as const
+      }));
     return {
-      tagRows: sortRows(counts.entries()),
-      untaggedCount: untagged,
-      archiveCount: archive,
-      archiveTagRows: sortRows(archiveCounts.entries()),
-      archiveUntaggedCount: archiveUntagged,
-      fridgeCount: fridge,
-      inboxReviewCount: inboxReview,
-      inboxHelpCount: inboxHelp
+      tagRows: counts ? toRows(counts.tags) : [],
+      untaggedCount: counts?.untagged ?? 0,
+      archiveCount: counts?.archive ?? 0,
+      archiveTagRows: counts ? toRows(counts.archive_tags) : [],
+      archiveUntaggedCount: counts?.archive_untagged ?? 0,
+      fridgeCount: counts?.fridge ?? 0,
+      inboxReviewCount: counts?.inbox_review ?? 0,
+      inboxHelpCount: counts?.inbox_help ?? 0
     };
-  }, [state]);
+  }, [contextsQuery.data]);
 
   const currentContext = params.get("context");
   const inboxTotal = inboxReviewCount + inboxHelpCount;
 
   // Auto-pick a default context once data is available.
   useEffect(() => {
-    if (state.kind !== "ready") return;
+    if (!contextsQuery.isSuccess) return;
     if (currentContext) return;
     let next: string | null = null;
     if (inboxTotal > 0) {
@@ -226,9 +143,9 @@ export function IntentContextRail() {
     inboxHelpCount,
     inboxReviewCount,
     inboxTotal,
+    contextsQuery.isSuccess,
     params,
     setParams,
-    state.kind,
     tagRows,
     untaggedCount
   ]);
@@ -247,7 +164,7 @@ export function IntentContextRail() {
       className="flex min-h-0 min-w-0 flex-col overflow-hidden border-base-300 bg-base-100 max-md:border-b md:border-r"
       aria-label="Контексты Intents"
     >
-      {state.kind === "ready" && inboxTotal > 0 ? (
+      {contextsQuery.isSuccess && inboxTotal > 0 ? (
         <InboxWidget
           reviewCount={inboxReviewCount}
           helpCount={inboxHelpCount}
@@ -267,20 +184,20 @@ export function IntentContextRail() {
         className="min-h-0 flex-1 overflow-y-auto py-1"
         aria-label="Список контекстов"
       >
-        {state.kind === "loading" ? (
+        {contextsQuery.isPending ? (
           <p className="m-0 px-3.5 py-3 text-[13px] text-base-content/60">
             Загрузка…
           </p>
         ) : null}
-        {state.kind === "error" ? (
+        {errorMessage !== null ? (
           <p
             role="alert"
             className="m-0 px-3.5 py-3 text-[13px] text-base-content/60"
           >
-            {state.message}
+            {errorMessage}
           </p>
         ) : null}
-        {state.kind === "ready" ? (
+        {contextsQuery.isSuccess ? (
           <ul className="m-0 flex list-none flex-col p-0">
             {tagRows.map((row) => (
               <li key={row.key}>

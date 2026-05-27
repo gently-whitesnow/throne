@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-
-import type { IntentListItem } from "@/entities/intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useIntent } from "@/entities/intent";
+import { HttpError } from "@/shared/api";
 import { Button } from "@/shared/ui";
 
 import { BUCKET_ORDER, bucketLabel, type DisplayBucket } from "../model/types";
@@ -25,29 +23,15 @@ export function LinkTypePicker({
   onCancel,
   disabledBuckets
 }: LinkTypePickerProps) {
-  const [peer, setPeer] = useState<IntentListItem | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const peerQuery = useIntent(peerId);
+  const peer = peerQuery.data ?? null;
+  const error = peerQuery.isError
+    ? peerQuery.error instanceof HttpError
+      ? `Ошибка (${String(peerQuery.error.status)}).`
+      : "Не удалось загрузить intent."
+    : null;
 
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
-      .then((items) => {
-        setPeer(items.find((i) => i.id === peerId) ?? null);
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(
-          err instanceof HttpError
-            ? `Ошибка (${String(err.status)}).`
-            : "Не удалось загрузить intent."
-        );
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [peerId]);
-
-  const title = peer?.text_short.split(/\r?\n/, 1)[0] ?? peerId;
+  const title = peer?.text.split(/\r?\n/, 1)[0] ?? peerId;
 
   return (
     <div className="flex flex-col gap-2">

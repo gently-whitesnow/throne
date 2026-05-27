@@ -51,7 +51,6 @@ export function WorkspaceCard() {
         </div>
         <Button
           aria-label="Перепроверить размер workspace"
-          disabled={isLoading}
           icon={
             <RefreshCw
               aria-hidden

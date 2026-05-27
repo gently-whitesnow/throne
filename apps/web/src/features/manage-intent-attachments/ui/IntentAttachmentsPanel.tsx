@@ -1,70 +1,48 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Image, ImagePlus, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { IntentAttachment } from "@/entities/intent";
+import {
+  intentsQueryKeys,
+  useIntentAttachments,
+  type IntentAttachment
+} from "@/entities/intent";
 import {
   HttpError,
   INTENT_ATTACHMENTS_CHANGED_EVENT,
   apiUrl,
   httpDelete,
-  httpGet,
   httpGetBlob,
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
 import { filesFromClipboard } from "@/shared/lib";
-import { useRealtimeEvent } from "@/shared/realtime";
 
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const EMPTY_ATTACHMENTS: readonly IntentAttachment[] = [];
 
 interface IntentAttachmentsPanelProps {
   intentId: string;
 }
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; attachments: IntentAttachment[] }
-  | { kind: "error"; message: string };
-
 export function IntentAttachmentsPanel({
   intentId
 }: IntentAttachmentsPanelProps) {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
+  const queryClient = useQueryClient();
+  const attachmentsQuery = useIntentAttachments(intentId);
+  const attachments: readonly IntentAttachment[] =
+    attachmentsQuery.data ?? EMPTY_ATTACHMENTS;
   const [busyDeleteId, setBusyDeleteId] = useState<string | null>(null);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Partial<Record<string, string>>>({});
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setState({ kind: "loading" });
-    setActionError(null);
-    httpGet<IntentAttachment[]>(
-      intentsEndpoints.listIntentAttachments(intentId),
-      controller.signal
-    )
-      .then((attachments) => {
-        setState({ kind: "ready", attachments });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        const message =
-          err instanceof HttpError
-            ? `Не удалось загрузить вложения (${String(err.status)}).`
-            : "Не удалось загрузить вложения.";
-        setState({ kind: "error", message });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [intentId, reloadKey]);
-
-  const attachments = useMemo(
-    () => (state.kind === "ready" ? state.attachments : []),
-    [state]
-  );
+  const invalidateAttachments = () => {
+    void queryClient.invalidateQueries({
+      queryKey: intentsQueryKeys.attachments(intentId)
+    });
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,26 +78,16 @@ export function IntentAttachmentsPanel({
       if (detail.error) {
         setActionError(detail.error);
       }
-      setReloadKey((key) => key + 1);
+      void queryClient.invalidateQueries({
+        queryKey: intentsQueryKeys.attachments(intentId)
+      });
     };
 
     window.addEventListener(INTENT_ATTACHMENTS_CHANGED_EVENT, listener);
     return () => {
       window.removeEventListener(INTENT_ATTACHMENTS_CHANGED_EVENT, listener);
     };
-  }, [intentId]);
-
-  const onAttachmentChanged = useCallback(
-    (payload: { intent_id: string }) => {
-      if (payload.intent_id === intentId) {
-        setReloadKey((key) => key + 1);
-      }
-    },
-    [intentId]
-  );
-
-  useRealtimeEvent("intent.attachment_added", onAttachmentChanged);
-  useRealtimeEvent("intent.attachment_deleted", onAttachmentChanged);
+  }, [intentId, queryClient]);
 
   const deleteAttachment = async (attachment: IntentAttachment) => {
     if (!window.confirm(`Удалить вложение «${attachment.file_name}»?`)) {
@@ -132,7 +100,7 @@ export function IntentAttachmentsPanel({
       await httpDelete(
         intentsEndpoints.deleteIntentAttachment(intentId, attachment.id)
       );
-      setReloadKey((key) => key + 1);
+      invalidateAttachments();
     } catch (err: unknown) {
       const message =
         err instanceof HttpError
@@ -145,12 +113,12 @@ export function IntentAttachmentsPanel({
   };
 
   const uploadFiles = async (nextFiles: Iterable<File> | null) => {
-    if (!nextFiles || state.kind !== "ready") return;
+    if (!nextFiles || !attachmentsQuery.isSuccess) return;
 
     const files = Array.from(nextFiles);
     const accepted: File[] = [];
     const problems: string[] = [];
-    const remainingSlots = MAX_ATTACHMENTS - state.attachments.length;
+    const remainingSlots = MAX_ATTACHMENTS - attachments.length;
 
     for (const file of files) {
       if (accepted.length >= remainingSlots) {
@@ -182,7 +150,7 @@ export function IntentAttachmentsPanel({
           intentsEndpoints.uploadIntentAttachment(intentId),
           form
         );
-        setReloadKey((key) => key + 1);
+        invalidateAttachments();
       } catch (err: unknown) {
         const message =
           err instanceof HttpError
@@ -196,9 +164,15 @@ export function IntentAttachmentsPanel({
   };
 
   const canUpload =
-    state.kind === "ready" &&
-    state.attachments.length < MAX_ATTACHMENTS &&
+    attachmentsQuery.isSuccess &&
+    attachments.length < MAX_ATTACHMENTS &&
     uploadingCount === 0;
+
+  const loadErrorMessage = attachmentsQuery.isError
+    ? attachmentsQuery.error instanceof HttpError
+      ? `Не удалось загрузить вложения (${String(attachmentsQuery.error.status)}).`
+      : "Не удалось загрузить вложения."
+    : null;
 
   return (
     <section
@@ -226,9 +200,9 @@ export function IntentAttachmentsPanel({
           </p>
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
-          {state.kind === "ready" ? (
+          {attachmentsQuery.isSuccess ? (
             <span className="badge badge-sm bg-primary/10 text-primary">
-              {String(state.attachments.length)}/10
+              {String(attachments.length)}/10
             </span>
           ) : null}
           <label
@@ -252,12 +226,12 @@ export function IntentAttachmentsPanel({
         </div>
       </div>
 
-      {state.kind === "loading" ? (
+      {attachmentsQuery.isPending ? (
         <p className="m-0 text-sm text-base-content/60">Загружаем вложения…</p>
       ) : null}
-      {state.kind === "error" ? (
+      {loadErrorMessage ? (
         <p role="alert" className="m-0 text-sm text-error">
-          {state.message}
+          {loadErrorMessage}
         </p>
       ) : null}
       {actionError ? (
@@ -265,15 +239,15 @@ export function IntentAttachmentsPanel({
           {actionError}
         </p>
       ) : null}
-      {state.kind === "ready" && state.attachments.length === 0 ? (
+      {attachmentsQuery.isSuccess && attachments.length === 0 ? (
         <p className="m-0 text-sm text-base-content/60">Пока нет вложений.</p>
       ) : null}
-      {state.kind === "ready" && state.attachments.length > 0 ? (
+      {attachmentsQuery.isSuccess && attachments.length > 0 ? (
         <ul
           className="m-0 grid list-none gap-3 p-0 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]"
           aria-label="Вложения intent"
         >
-          {state.attachments.map((attachment) => {
+          {attachments.map((attachment) => {
             const preview = previews[attachment.id];
             const contentUrl =
               preview ??

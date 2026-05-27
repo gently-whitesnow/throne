@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { IntentListItem } from "@/entities/intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { useInfiniteIntents } from "@/entities/intent";
+import { HttpError } from "@/shared/api";
+import { useDebouncedValue } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { createIntentLink } from "../api/intent-links-api";
@@ -27,6 +28,9 @@ const linkTypeOptions: { value: IntentLinkType; label: string }[] = [
   { value: "derived_from", label: "Происходит из" }
 ];
 
+const SEARCH_LIMIT = 20;
+const SEARCH_DEBOUNCE_MS = 200;
+
 export function AddLinkForm({
   intentId,
   presetBucket,
@@ -34,8 +38,20 @@ export function AddLinkForm({
   autoFocus = false,
   onCreated
 }: AddLinkFormProps) {
-  const [allIntents, setAllIntents] = useState<IntentListItem[] | null>(null);
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
+  // useInfiniteIntents даёт первую страницу без авто-пагинации; для
+  // autocomplete'а нам её достаточно, лишние страницы только дёргают сеть.
+  const intentsQuery = useInfiniteIntents({
+    query: debouncedQuery.length > 0 ? debouncedQuery : undefined,
+    limit: SEARCH_LIMIT
+  });
+  const matches = useMemo(() => {
+    const firstPage = intentsQuery.data?.pages[0]?.items;
+    if (!firstPage) return [];
+    return firstPage.filter((i) => i.id !== intentId).slice(0, SEARCH_LIMIT);
+  }, [intentId, intentsQuery.data]);
+
   const [selected, setSelected] = useState<string | null>(null);
   const [type, setType] = useState<IntentLinkType>("relates");
   const [rationale, setRationale] = useState("");
@@ -46,33 +62,6 @@ export function AddLinkForm({
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
-      .then((items) => {
-        setAllIntents(items.filter((i) => i.id !== intentId));
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setAllIntents([]);
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [intentId]);
-
-  const matches = useMemo(() => {
-    if (!allIntents) return [];
-    const q = query.trim().toLowerCase();
-    if (!q) return allIntents.slice(0, 8);
-    return allIntents
-      .filter(
-        (i) =>
-          i.text_short.toLowerCase().includes(q) ||
-          i.tags.some((t) => t.name.toLowerCase().includes(q))
-      )
-      .slice(0, 8);
-  }, [allIntents, query]);
 
   const reset = () => {
     setQuery("");
@@ -115,6 +104,8 @@ export function AddLinkForm({
       });
   };
 
+  const loading = intentsQuery.isPending || intentsQuery.isFetching;
+
   return (
     <div className="flex flex-col gap-2">
       {!presetBucket && (
@@ -148,7 +139,7 @@ export function AddLinkForm({
       <ul className="m-0 max-h-40 list-none overflow-y-auto p-0 text-[12px]">
         {matches.length === 0 && (
           <li className="px-1 py-0.5 text-base-content/50">
-            {allIntents === null ? "Загрузка…" : "Не найдено"}
+            {loading ? "Загрузка…" : "Не найдено"}
           </li>
         )}
         {matches.map((i) => (

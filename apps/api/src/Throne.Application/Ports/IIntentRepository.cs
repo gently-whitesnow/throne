@@ -38,6 +38,8 @@ public interface IIntentRepository
 
     Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct);
 
+    Task<IntentContextCounts> GetContextCountsAsync(CancellationToken ct);
+
     Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct);
 
     Task<SetIntentStatusOutcome> SetStatusAsync(

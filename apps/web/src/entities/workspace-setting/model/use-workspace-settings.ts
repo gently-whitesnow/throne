@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 
-import { fetchWorkspaceSettings } from "../api/workspace-settings-api";
-import { isWorkspaceCalculating } from "./types";
+import { useWorkspaceSettingsQuery } from "../api/workspace-settings-queries";
 import type { WorkspaceSettings } from "./types";
 
 export interface WorkspaceSettingsState {
@@ -11,60 +10,22 @@ export interface WorkspaceSettingsState {
   refresh: () => void;
 }
 
-const CALCULATING_POLL_MS = 2_000;
-
 /**
- * Loads `/settings/workspace` and, while the server reports
- * `status=calculating`, gently polls every couple of seconds until the size
- * settles. There is no realtime event for this — polling is bounded
- * by the calculating state, so the network stays quiet after the first ready
- * response.
+ * Тонкая обёртка над react-query — публичный контракт `{ settings, isLoading,
+ * error, refresh }` сохраняется, чтобы виджеты не пришлось трогать. Поллинг при
+ * `status=calculating` живёт внутри `useWorkspaceSettingsQuery` через
+ * `refetchInterval`; realtime-события на этот ресурс не приходят.
  */
 export function useWorkspaceSettings(): WorkspaceSettingsState {
-  const [settings, setSettings] = useState<WorkspaceSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-
-    const tick = (): void => {
-      fetchWorkspaceSettings(controller.signal)
-        .then((next) => {
-          if (cancelled) return;
-          setSettings(next);
-          setIsLoading(false);
-          if (isWorkspaceCalculating(next.status)) {
-            timerRef.current = setTimeout(tick, CALCULATING_POLL_MS);
-          }
-        })
-        .catch((err: unknown) => {
-          if (controller.signal.aborted || cancelled) return;
-          setError(err instanceof Error ? err : new Error(String(err)));
-          setIsLoading(false);
-        });
-    };
-
-    tick();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [reloadKey]);
-
+  const query = useWorkspaceSettingsQuery();
   const refresh = useCallback(() => {
-    setReloadKey((v) => v + 1);
-  }, []);
+    void query.refetch();
+  }, [query]);
 
-  return { settings, isLoading, error, refresh };
+  return {
+    settings: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error,
+    refresh
+  };
 }

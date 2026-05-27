@@ -20,6 +20,8 @@
     "@fontsource-variable/mona-sans": "^5.2.8",
     "@fontsource/monaspace-neon": "^5.2.5",
     "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/react-query": "^5.100.14",
+    "@tanstack/react-virtual": "^3.13.26",
     "daisyui": "^5.5.19",
     "diff": "^9.0.0",
     "lucide-react": "^0.468.0",
