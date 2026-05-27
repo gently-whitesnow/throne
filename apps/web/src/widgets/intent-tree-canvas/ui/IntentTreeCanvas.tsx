@@ -6,6 +6,7 @@ import { contextTitle } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 
 import { useCanvasViewport } from "../model/use-canvas-viewport";
+import { useShowResolved } from "../model/use-show-resolved";
 import { useTreeData } from "../model/use-tree-data";
 import { EdgeLayer, type Edge } from "./EdgeLayer";
 import { TreeCard } from "./TreeCard";
@@ -22,7 +23,8 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
   const context = params.get("context");
   const search = params.toString();
 
-  const state = useTreeData(context);
+  const [showResolved, toggleResolved] = useShowResolved();
+  const state = useTreeData(context, showResolved);
   const stageRef = useRef<HTMLDivElement | null>(null);
 
   const worldBounds = state.kind === "ready" ? state.model.bounds : null;
@@ -186,6 +188,7 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
                   active={isActive}
                   related={!isActive && inRelated}
                   unrelated={relatedIds !== null && !inRelated}
+                  resolved={node.resolved}
                   onSelect={openIntent}
                 />
               );
@@ -207,6 +210,8 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
             onFit={fitToView}
+            showResolved={showResolved}
+            onToggleResolved={toggleResolved}
           />
         </div>
       </div>
