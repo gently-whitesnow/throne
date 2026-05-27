@@ -13,6 +13,7 @@ import { HttpError } from "@/shared/api";
 import { formatRelativeTime } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
+import { AgentTerminalPanel } from "@/widgets/agent-terminal-panel";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 import { IntentLinksSection } from "@/widgets/intent-links-section";
 import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
@@ -267,6 +268,7 @@ export function IntentDetailPage() {
                 </h2>
                 <IntentActivityTimeline intentId={intent.id} />
               </section>
+              <AgentTerminalPanel intentId={intent.id} />
             </>
           )}
         </div>
