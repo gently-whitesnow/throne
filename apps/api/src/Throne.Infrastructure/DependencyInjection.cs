@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
+        services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
         services.AddHostedService<MongoIndexInitializer>();
         // Run the cut-over backfill after the index initializer so the unique index on
         // (intent_id, version) is in place before the writer ever races a runtime edit.
@@ -110,6 +111,7 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
+        services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
         services.AddHostedService<MongoIndexInitializer>();
         // Run the cut-over backfill after the index initializer so the unique index on
         // (intent_id, version) is in place before the writer ever races a runtime edit.
