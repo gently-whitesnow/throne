@@ -156,6 +156,127 @@ namespace Throne.Tags.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Mirror of `repositories#/components/schemas/GitProvider`. Duplicated locally so the tags contract generator never reaches across files (NSwag does not resolve relative `$ref` between OpenAPI documents). Keep enum values in sync — see ADR-0024 for the canonical list.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TagDefaultGitProvider
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"github")]
+        [System.Runtime.Serialization.EnumMember(Value = @"github")]
+        Github = 0,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TagDefaultRepositoryDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("provider")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TagDefaultGitProvider>))]
+        public TagDefaultGitProvider Provider { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("owner")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")]
+        public string Owner { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("repo")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9._-]+$")]
+        public string Repo { get; set; }
+
+        /// <summary>
+        /// Optional branch hint for the Run pre-flight; falls back to upstream's default branch on first clone (ADR-0024 § 1).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_branch")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Default_branch { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TagDetailDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(40, MinimumLength = 1)]
+        public string Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("current_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Current_version { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created_at { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Updated_at { get; set; }
+
+        /// <summary>
+        /// Repositories the Slice 2 Run pre-flight auto-binds for every intent that carries this tag. Uniqueness is enforced on `(provider, owner, repo)`.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_repositories")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TagDefaultRepositoryDto> Default_repositories { get; set; } = new System.Collections.ObjectModel.Collection<TagDefaultRepositoryDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetTagDefaultRepositoriesRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Expected_version { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("default_repositories")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TagDefaultRepositoryDto> Default_repositories { get; set; } = new System.Collections.ObjectModel.Collection<TagDefaultRepositoryDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProblemDetails
     {

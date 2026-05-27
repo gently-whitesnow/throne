@@ -90,4 +90,12 @@ public sealed class TagsController(
             return TagsErrorMapper.Map<TagUsageDto>(ex);
         }
     }
+
+    // ADR-0026 (Slice 2): contract published in this task; handler + mapper wired up in the Application/HTTP task.
+    public override Task<ActionResult<TagDetailDto>> GetTag(string id) =>
+        throw new NotImplementedException("ADR-0026: getTag wiring lands with the Slice 2 Application + HTTP task.");
+
+    // ADR-0026 (Slice 2): contract published in this task; handler + mapper wired up in the Application/HTTP task.
+    public override Task<ActionResult<TagDetailDto>> SetTagDefaultRepositories(string id, SetTagDefaultRepositoriesRequest body) =>
+        throw new NotImplementedException("ADR-0026: setTagDefaultRepositories wiring lands with the Slice 2 Application + HTTP task.");
 }

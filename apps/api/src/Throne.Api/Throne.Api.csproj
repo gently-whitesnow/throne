@@ -12,6 +12,8 @@
     <ProjectReference Include="..\Throne.Dreams.Contracts\Throne.Dreams.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Repositories.Contracts\Throne.Repositories.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Settings.Contracts\Throne.Settings.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Capabilities.Contracts\Throne.Capabilities.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Terminal.Contracts\Throne.Terminal.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

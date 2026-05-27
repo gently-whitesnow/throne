@@ -49,6 +49,32 @@ paths:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/tags/{id}:
+    get:
+      operationId: getTag
+      tags: [Tags]
+      summary: Read a tag including its default repositories list.
+      description: >
+        Returns full tag state with the `default_repositories[]` collection used by
+        the Slice 2 Run pre-flight (auto-bind union across the intent's tags).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
     patch:
       operationId: renameTag
       tags: [Tags]
@@ -151,6 +177,53 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/tags/{id}/default-repositories:
+    put:
+      operationId: setTagDefaultRepositories
+      tags: [Tags]
+      summary: Replace the tag's default repositories list.
+      description: >
+        Whole-list replace (no PATCH). The server normalizes by deduplicating on
+        `(provider, owner, repo)`. Empty array is accepted and clears the list.
+        Existing intent bindings are not touched — the pre-flight pipeline only
+        runs when the operator presses Run.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetTagDefaultRepositoriesRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (provider unsupported, owner/repo malformed).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     TagDto:
@@ -225,3 +298,85 @@ components:
           type: integer
           format: int32
           minimum: 0
+    TagDefaultGitProvider:
+      type: string
+      enum:
+        - github
+      description: >
+        Mirror of `repositories#/components/schemas/GitProvider`. Duplicated locally so
+        the tags contract generator never reaches across files (NSwag does not resolve
+        relative `$ref` between OpenAPI documents). Keep enum values in sync — see
+        ADR-0024 for the canonical list.
+    TagDefaultRepositoryDto:
+      type: object
+      required:
+        - provider
+        - owner
+        - repo
+      properties:
+        provider:
+          $ref: '#/components/schemas/TagDefaultGitProvider'
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,38}$'
+        repo:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
+        default_branch:
+          type: string
+          minLength: 1
+          nullable: true
+          description: >
+            Optional branch hint for the Run pre-flight; falls back to upstream's
+            default branch on first clone (ADR-0024 § 1).
+    TagDetailDto:
+      type: object
+      required:
+        - id
+        - name
+        - current_version
+        - created_at
+        - updated_at
+        - default_repositories
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        default_repositories:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagDefaultRepositoryDto'
+          description: >
+            Repositories the Slice 2 Run pre-flight auto-binds for every intent that
+            carries this tag. Uniqueness is enforced on `(provider, owner, repo)`.
+    SetTagDefaultRepositoriesRequest:
+      type: object
+      required:
+        - expected_version
+        - default_repositories
+      properties:
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 1
+        default_repositories:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagDefaultRepositoryDto'
