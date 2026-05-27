@@ -1,40 +1,32 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import type { VirtualItem } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import {
-  compareSortKeys,
-  intentsQueryKeys,
-  intentStatusMeta,
-  useIntents,
-  useLinksSummary,
-  type IntentListItem
-} from "@/entities/intent";
+import { intentsQueryKeys, useLinksSummary } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
-import { HttpError } from "@/shared/api";
+import { HttpError, type IntentsComponents } from "@/shared/api";
 import { isTagContext } from "@/shared/lib";
-import {
-  EntityList,
-  type EntityListReorder,
-  type EntityListRow
-} from "@/shared/ui";
+import { VirtualEntityList, type EntityListReorder } from "@/shared/ui";
 
 import {
   contextTitle,
   emptyMessage,
-  firstLine,
-  matchesContext,
   synthesizeSortKey
 } from "../model/board-helpers";
 import { computeFamilyTints } from "../model/family-tint";
 import { computeStepRanks } from "../model/step-rank";
+import { useBoardItems } from "../model/use-board-items";
+import { useBoardRows } from "../model/use-board-rows";
 import { IntentLinksOverlay } from "./IntentLinksOverlay";
 import { PinnedSection } from "./PinnedSection";
 
+type IntentListPage = IntentsComponents["schemas"]["IntentListPageDto"];
+type IntentListInfinite = InfiniteData<IntentListPage, string | undefined>;
+
 const LINKS_RAIL_WIDTH = 36;
-const EMPTY_ITEMS: readonly IntentListItem[] = [];
 
 interface IntentBoardProps {
   headerAction?: ReactNode;
@@ -44,33 +36,26 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
-  const intentsQuery = useIntents();
-
   const context = params.get("context");
 
-  const allItems: readonly IntentListItem[] = intentsQuery.data ?? EMPTY_ITEMS;
-  const errorMessage = intentsQuery.isError
-    ? intentsQuery.error instanceof HttpError
-      ? `Не удалось загрузить intents (${String(intentsQuery.error.status)}).`
+  const {
+    allItems,
+    visibleItems,
+    isPending,
+    isSuccess,
+    isError,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage
+  } = useBoardItems(context);
+
+  const errorMessage = isError
+    ? error instanceof HttpError
+      ? `Не удалось загрузить intents (${String(error.status)}).`
       : "Не удалось загрузить intents."
     : null;
 
-  // Realtime-инвалидация всех ключей intents выполняется централизованно в
-  // app/realtime-query-bridge.tsx. Locally — только optimistic update в
-  // handleReorder; авторитетный sort_key прилетает событием
-  // `intent.reordered` и заменяет placeholder.
-
-  // Server-defined order is sort_key ASC, ordinal. Use compareSortKeys (byte-wise)
-  // — never localeCompare, see entities/intent/model/sortKey.ts for why.
-  const orderedItems = useMemo(
-    () => [...allItems].sort((a, b) => compareSortKeys(a.sort_key, b.sort_key)),
-    [allItems]
-  );
-
-  const visibleItems = useMemo(
-    () => orderedItems.filter((i) => matchesContext(i, context)),
-    [context, orderedItems]
-  );
   const tagNameToId = useMemo(() => {
     const map = new Map<string, string>();
     for (const item of allItems) {
@@ -92,11 +77,25 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     [allItems, currentContextTagId]
   );
 
-  const visibleIds = useMemo(
-    () => visibleItems.map((i) => i.id),
-    [visibleItems]
+  // Виртуализатор сообщает viewport — только эти id нужны для рисования
+  // связей и подсветки. Без ограничения id'шников запрос links-summary раздувал
+  // querystring и упирался в 414.
+  const [visibleVirtual, setVisibleVirtual] = useState<readonly VirtualItem[]>(
+    []
   );
-  const linksSummary = useLinksSummary(visibleIds);
+  const viewportIds = useMemo(() => {
+    if (visibleVirtual.length === 0) return [] as string[];
+    const ids: string[] = [];
+    for (const v of visibleVirtual) {
+      // Виртуализатор может на 1 тик отстать от items при смене контекста —
+      // index может выйти за длину массива. Защищаемся явной проверкой.
+      if (v.index >= visibleItems.length) continue;
+      ids.push(visibleItems[v.index].id);
+    }
+    return ids;
+  }, [visibleItems, visibleVirtual]);
+
+  const linksSummary = useLinksSummary(viewportIds);
   const hasAnyLinks = useMemo(() => {
     // Рельса рисует ребро только если оба конца — видимые строки. Связь к
     // невидимому интенту overlay пропускает, поэтому она не должна резервировать
@@ -116,22 +115,19 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   }, [linksSummary]);
   // Bumps whenever the visible-id sequence changes; drives the overlay's
   // re-measurement without subscribing to scroll/resize events.
-  const layoutSignature = useMemo(() => visibleIds.join("|"), [visibleIds]);
+  const layoutSignature = useMemo(() => viewportIds.join("|"), [viewportIds]);
   const stepRanks = useMemo(
-    () => computeStepRanks(visibleIds, linksSummary),
-    [linksSummary, visibleIds]
+    () => computeStepRanks(viewportIds, linksSummary),
+    [linksSummary, viewportIds]
   );
   const familyTints = useMemo(
-    () => computeFamilyTints(visibleIds, linksSummary),
-    [linksSummary, visibleIds]
+    () => computeFamilyTints(viewportIds, linksSummary),
+    [linksSummary, viewportIds]
   );
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
-  // Wrapper around the list and the SVG overlay. Together they share one
-  // positioning context that grows with the list height — so when the scroll
-  // container scrolls, SVG and rows translate as a single layer and the
-  // arrow geometry stays glued to the cards without any scroll listener.
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const listLayerRef = useRef<HTMLDivElement | null>(null);
   const handleRowRef = useCallback((id: string, el: HTMLLIElement | null) => {
     if (el) {
@@ -152,51 +148,16 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     ]);
   }, [hoveredId, linksSummary]);
 
-  const rows = useMemo<EntityListRow[]>(() => {
-    const search = new URLSearchParams(params).toString();
-    return visibleItems.map((i) => {
-      const status = intentStatusMeta[i.status];
-      const tagNames = i.tags.map((t) => t.name);
-      const href =
-        search.length > 0 ? `/intents/${i.id}?${search}` : `/intents/${i.id}`;
-      const summary = linksSummary.get(i.id);
-      const blockedCount = summary?.blocked_by.length ?? 0;
-      const step = stepRanks.get(i.id) ?? 1;
-      const isPeer = hoverPeerIds.has(i.id);
-      return {
-        id: i.id,
-        title: firstLine(i.text_short) || i.id,
-        subtitle: tagNames.length > 0 ? `#${tagNames.join(" #")}` : undefined,
-        meta: `v${String(i.current_version)}`,
-        badge: status.label,
-        badgeColor: status.surface,
-        badgeTextColor: status.ink,
-        href,
-        // Step rank surfaces only when something blocks this card. Step 1 is
-        // «do it now» — implicit, no chip needed.
-        warning: step > 1 ? `Шаг ${String(step)}` : undefined,
-        warningTitle:
-          step > 1
-            ? `Можно начать после ${String(step - 1)} ${pluralizeSteps(step - 1)} зависимостей (всего блокирующих здесь: ${String(blockedCount)}).`
-            : undefined,
-        outline: isPeer
-          ? "outline outline-2 outline-primary/40 outline-offset-[-2px] z-10"
-          : undefined,
-        tint: familyTints.get(i.id),
-        pinned: i.pinned_in.length > 0
-      };
-    });
-  }, [
-    familyTints,
-    hoverPeerIds,
+  const rows = useBoardRows({
+    visibleItems,
     linksSummary,
-    params,
     stepRanks,
-    visibleItems
-  ]);
+    familyTints,
+    hoverPeerIds
+  });
 
   const invalidateList = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: intentsQueryKeys.list() });
+    void queryClient.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
   }, [queryClient]);
 
   const handleReorder = useCallback(
@@ -206,12 +167,20 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
       // ordering matches the dropped position immediately. The realtime event with
       // the authoritative key arrives later and replaces this placeholder.
       const placeholder = synthesizeSortKey(allItems, beforeId, afterId);
-      queryClient.setQueryData<IntentListItem[]>(
-        intentsQueryKeys.list(),
-        (prev) =>
-          prev?.map((i) =>
-            i.id === movedId ? { ...i, sort_key: placeholder } : i
-          ) ?? prev
+      queryClient.setQueriesData<IntentListInfinite>(
+        { queryKey: intentsQueryKeys.lists() },
+        (prev) => {
+          if (!prev) return prev;
+          const pages = prev.pages.map((page) => {
+            const idx = page.items.findIndex((it) => it.id === movedId);
+            if (idx < 0) return page;
+            const next = page.items.slice();
+            next[idx] = { ...next[idx], sort_key: placeholder };
+            return { ...page, items: next };
+          });
+          const changed = pages.some((page, i) => page !== prev.pages[i]);
+          return changed ? { ...prev, pages } : prev;
+        }
       );
 
       moveIntent({ intentId: movedId, beforeId, afterId }).catch(() => {
@@ -231,6 +200,10 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     void navigate(target);
   };
 
+  const handleReachEnd = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
   return (
     <section
       className="flex min-h-0 min-w-0 flex-col overflow-hidden border-base-300 bg-base-100 max-md:border-b md:border-r"
@@ -249,7 +222,7 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           />
         </div>
       </div>
-      {intentsQuery.isSuccess && isTagContext(context) ? (
+      {isSuccess && isTagContext(context) ? (
         <PinnedSection
           items={allItems}
           currentContextTagId={currentContextTagId}
@@ -258,8 +231,8 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           onMutationFailed={invalidateList}
         />
       ) : null}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {intentsQuery.isPending && (
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
+        {isPending && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Загрузка…
           </p>
@@ -272,18 +245,21 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
             {errorMessage}
           </p>
         )}
-        {intentsQuery.isSuccess && (
+        {isSuccess && (
           <div
             ref={listLayerRef}
             className="relative"
             style={hasAnyLinks ? { paddingRight: LINKS_RAIL_WIDTH } : undefined}
           >
-            <EntityList
+            <VirtualEntityList
               items={rows}
               emptyMessage={emptyMessage(context, allItems.length)}
+              scrollParentRef={scrollContainerRef}
               onReorder={handleReorder}
               onRowHover={setHoveredId}
               rowRef={handleRowRef}
+              onVisibleItemsChange={setVisibleVirtual}
+              onReachEnd={handleReachEnd}
             />
             {hasAnyLinks && (
               <IntentLinksOverlay
@@ -297,14 +273,12 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
             )}
           </div>
         )}
+        {isFetchingNextPage && (
+          <p className="m-0 px-3.5 py-2 text-[11px] text-base-content/50">
+            Подгружаем…
+          </p>
+        )}
       </div>
     </section>
   );
-}
-
-function pluralizeSteps(n: number): string {
-  // Russian pluralisation: 1 — «шага», 2..4 — «шагов», 5+ — «шагов». Keep it
-  // simple: «шага» for 1, «шагов» for the rest. This text only appears in a
-  // tooltip so a perfect form isn't worth a library dependency.
-  return n === 1 ? "шага" : "шагов";
 }

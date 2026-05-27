@@ -16,7 +16,13 @@ export {
   intentsQueryKeys,
   useIntent,
   useIntentAttachments,
-  useIntents
+  useIntents,
+  useInfiniteIntents
+} from "./api/intents-queries";
+export type {
+  IntentListParams,
+  IntentListSort,
+  UseFlatIntentsResult
 } from "./api/intents-queries";
 export { matchesContext, contextTitle } from "./model/context-filter";
 export type {

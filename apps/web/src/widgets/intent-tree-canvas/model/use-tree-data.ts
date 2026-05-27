@@ -14,6 +14,10 @@ import { parentsFromSummary } from "./parents";
 import type { TreeLoadState, TreeNode } from "./tree-data";
 
 export function useTreeData(context: string | null): TreeLoadState {
+  // TODO follow-up: subtree endpoint for tree canvas — нынешняя реализация
+  // тянет ВСЕ интенты через useIntents (facade, автодобирает страницы), потом
+  // фильтрует по контексту в памяти. На больших датасетах это деградирует —
+  // нужен серверный endpoint, отдающий нужный подграф со связями.
   const intentsQuery = useIntents();
   const items = intentsQuery.data ?? null;
 

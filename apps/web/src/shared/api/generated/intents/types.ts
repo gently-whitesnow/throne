@@ -12,8 +12,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List intents (metadata + short text preview).
-         * @description Returns intent metadata (id, current_version, tags, timestamps) and a short text preview. Full text must be fetched via a dedicated read endpoint. Optional `status` query parameter narrows the result to intents in the specified statuses; repeat the parameter for multiple values (e.g. `?status=interview&status=work`).
+         * List intents (cursor-paginated metadata + short text preview).
+         * @description Returns a single page of intent metadata (id, current_version, tags, timestamps) with a short text preview. Full text must be fetched via a dedicated read endpoint. Pagination is opaque-cursor (server-encoded); `next_cursor` is absent on the final page. Default page size is 50, capped at 100. Filters (status, tag, query) and sort order are server-driven so clients don't keep the full result set in memory.
          */
         get: operations["listIntents"];
         put?: never;
@@ -396,6 +396,16 @@ export interface components {
             /** @description Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason. */
             reason?: string;
         };
+        /**
+         * @description Sort order applied to the list page. `sort_key_asc` (default) reflects the user-defined fractional sort_key — same order the board renders.
+         * @enum {string}
+         */
+        IntentListSort: "sort_key_asc" | "updated_desc" | "created_desc" | "created_asc";
+        IntentListPageDto: {
+            items: components["schemas"]["IntentListItemDto"][];
+            /** @description Opaque continuation token; absent on the final page. */
+            next_cursor?: string;
+        };
         IntentListItemDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
             id: string;
@@ -627,8 +637,16 @@ export interface operations {
     listIntents: {
         parameters: {
             query?: {
+                cursor?: string;
+                /** @description Page size, default 50, capped at 100. */
+                limit?: number;
                 /** @description Filter by one or more workflow statuses. Omit to return all intents. */
                 status?: components["schemas"]["IntentStatus"][];
+                /** @description Filter to intents that carry this tag (slug-style name). */
+                tag?: string;
+                /** @description Case-insensitive substring filter against Intent.text. */
+                query?: string;
+                sort?: components["schemas"]["IntentListSort"];
             };
             header?: never;
             path?: never;
@@ -642,7 +660,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IntentListItemDto"][];
+                    "application/json": components["schemas"]["IntentListPageDto"];
                 };
             };
         };

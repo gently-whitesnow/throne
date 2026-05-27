@@ -1,4 +1,4 @@
-import { useIntents } from "@/entities/intent";
+import { useIntent } from "@/entities/intent";
 import { HttpError } from "@/shared/api";
 import { Button } from "@/shared/ui";
 
@@ -23,15 +23,15 @@ export function LinkTypePicker({
   onCancel,
   disabledBuckets
 }: LinkTypePickerProps) {
-  const intentsQuery = useIntents();
-  const peer = intentsQuery.data?.find((i) => i.id === peerId) ?? null;
-  const error = intentsQuery.isError
-    ? intentsQuery.error instanceof HttpError
-      ? `Ошибка (${String(intentsQuery.error.status)}).`
+  const peerQuery = useIntent(peerId);
+  const peer = peerQuery.data ?? null;
+  const error = peerQuery.isError
+    ? peerQuery.error instanceof HttpError
+      ? `Ошибка (${String(peerQuery.error.status)}).`
       : "Не удалось загрузить intent."
     : null;
 
-  const title = peer?.text_short.split(/\r?\n/, 1)[0] ?? peerId;
+  const title = peer?.text.split(/\r?\n/, 1)[0] ?? peerId;
 
   return (
     <div className="flex flex-col gap-2">

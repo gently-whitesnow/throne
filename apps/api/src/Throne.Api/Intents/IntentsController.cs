@@ -25,8 +25,14 @@ public sealed class IntentsController(
     DeleteIntentEndpoint deleteIntent,
     ListIntentVersionsEndpoint listIntentVersions) : IntentsControllerBase
 {
-    public override Task<ActionResult<ICollection<IntentListItemDto>>> ListIntents(IEnumerable<IntentStatus> status = null!) =>
-        listIntents.RunAsync(status, HttpContext.RequestAborted);
+    public override Task<ActionResult<IntentListPageDto>> ListIntents(
+        string cursor = null!,
+        int? limit = null,
+        IEnumerable<IntentStatus> status = null!,
+        string tag = null!,
+        string query = null!,
+        IntentListSort? sort = null) =>
+        listIntents.RunAsync(cursor, limit, status, tag, query, sort, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<IntentEventDto>>> ListIntentEvents(string id) =>
         listIntentEvents.RunAsync(id, HttpContext.RequestAborted);

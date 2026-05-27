@@ -1,6 +1,6 @@
 using Throne.Application.Intents;
 
-namespace Throne.Api.Mcp.Tools;
+namespace Throne.Api.Intents;
 
 internal static class IntentListSortParser
 {
