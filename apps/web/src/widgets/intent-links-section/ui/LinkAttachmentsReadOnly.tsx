@@ -1,61 +1,29 @@
 import { Image } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import type { IntentAttachment } from "@/entities/intent";
-import {
-  HttpError,
-  apiUrl,
-  httpGet,
-  httpGetBlob,
-  intentsEndpoints
-} from "@/shared/api";
+import { useIntentAttachments, type IntentAttachment } from "@/entities/intent";
+import { HttpError, apiUrl, httpGetBlob, intentsEndpoints } from "@/shared/api";
 
 interface LinkAttachmentsReadOnlyProps {
   intentId: string;
 }
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; attachments: IntentAttachment[] }
-  | { kind: "error"; message: string };
+const EMPTY_ATTACHMENTS: readonly IntentAttachment[] = [];
 
 export function LinkAttachmentsReadOnly({
   intentId
 }: LinkAttachmentsReadOnlyProps) {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const attachmentsQuery = useIntentAttachments(intentId);
+  const attachments: readonly IntentAttachment[] =
+    attachmentsQuery.data ?? EMPTY_ATTACHMENTS;
   const [previews, setPreviews] = useState<Partial<Record<string, string>>>({});
 
   useEffect(() => {
-    const controller = new AbortController();
-    setState({ kind: "loading" });
-    httpGet<IntentAttachment[]>(
-      intentsEndpoints.listIntentAttachments(intentId),
-      controller.signal
-    )
-      .then((attachments) => {
-        setState({ kind: "ready", attachments });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof HttpError
-              ? `Не удалось загрузить вложения (${String(err.status)}).`
-              : "Не удалось загрузить вложения."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [intentId]);
-
-  useEffect(() => {
-    if (state.kind !== "ready") return;
+    if (!attachmentsQuery.isSuccess) return;
     const controller = new AbortController();
     const urls: string[] = [];
     setPreviews({});
-    for (const attachment of state.attachments) {
+    for (const attachment of attachments) {
       if (!attachment.content_type.startsWith("image/")) continue;
       httpGetBlob(
         intentsEndpoints.downloadIntentAttachment(intentId, attachment.id),
@@ -74,28 +42,33 @@ export function LinkAttachmentsReadOnly({
       controller.abort();
       for (const url of urls) URL.revokeObjectURL(url);
     };
-  }, [intentId, state]);
+  }, [intentId, attachmentsQuery.isSuccess, attachments]);
 
-  if (state.kind === "loading") {
+  if (attachmentsQuery.isPending) {
     return (
       <p className="m-0 text-[12px] text-base-content/50">Загрузка вложений…</p>
     );
   }
-  if (state.kind === "error") {
+  if (attachmentsQuery.isError) {
+    const err = attachmentsQuery.error;
+    const message =
+      err instanceof HttpError
+        ? `Не удалось загрузить вложения (${String(err.status)}).`
+        : "Не удалось загрузить вложения.";
     return (
       <p role="alert" className="m-0 text-[12px] text-error">
-        {state.message}
+        {message}
       </p>
     );
   }
-  if (state.attachments.length === 0) return null;
+  if (attachments.length === 0) return null;
 
   return (
     <ul
       className="m-0 grid list-none gap-2 p-0 [grid-template-columns:repeat(auto-fill,minmax(140px,1fr))]"
       aria-label="Вложения связанного intent"
     >
-      {state.attachments.map((attachment) => {
+      {attachments.map((attachment) => {
         const preview = previews[attachment.id];
         const contentUrl =
           preview ??

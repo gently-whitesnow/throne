@@ -25,7 +25,10 @@ export {
   useIntentRepositories,
   type IntentRepositoriesState
 } from "./model/use-intent-repositories";
-export { requestIntentRepositoriesRefresh } from "./model/refresh-notifier";
+export {
+  intentRepositoriesQueryKeys,
+  useIntentRepositoriesQuery
+} from "./api/intent-repositories-queries";
 export {
   searchGithubRepositories,
   listMyGithubRepositories,

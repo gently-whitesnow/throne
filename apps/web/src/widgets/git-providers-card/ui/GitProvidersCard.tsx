@@ -52,7 +52,6 @@ export function GitProvidersCard() {
         </div>
         <Button
           aria-label="Перепроверить статус провайдеров Git"
-          disabled={isLoading}
           icon={
             <RefreshCw
               aria-hidden

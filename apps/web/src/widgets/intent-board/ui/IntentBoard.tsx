@@ -1,18 +1,20 @@
+import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   compareSortKeys,
+  intentsQueryKeys,
   intentStatusMeta,
+  useIntents,
   useLinksSummary,
   type IntentListItem
 } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
+import { HttpError } from "@/shared/api";
 import { isTagContext } from "@/shared/lib";
-import { useRealtimeEvent } from "@/shared/realtime";
 import {
   EntityList,
   type EntityListReorder,
@@ -32,11 +34,7 @@ import { IntentLinksOverlay } from "./IntentLinksOverlay";
 import { PinnedSection } from "./PinnedSection";
 
 const LINKS_RAIL_WIDTH = 36;
-
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; items: IntentListItem[] }
-  | { kind: "error"; message: string };
+const EMPTY_ITEMS: readonly IntentListItem[] = [];
 
 interface IntentBoardProps {
   headerAction?: ReactNode;
@@ -45,93 +43,33 @@ interface IntentBoardProps {
 export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
+  const queryClient = useQueryClient();
+  const intentsQuery = useIntents();
 
   const context = params.get("context");
 
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentListItem[]>(intentsEndpoints.listIntents(), controller.signal)
-      .then((items) => {
-        setState({ kind: "ready", items });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof HttpError
-              ? `Не удалось загрузить intents (${String(err.status)}).`
-              : "Не удалось загрузить intents."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
+  const allItems: readonly IntentListItem[] = intentsQuery.data ?? EMPTY_ITEMS;
+  const errorMessage = intentsQuery.isError
+    ? intentsQuery.error instanceof HttpError
+      ? `Не удалось загрузить intents (${String(intentsQuery.error.status)}).`
+      : "Не удалось загрузить intents."
+    : null;
 
-  const reload = useCallback(() => {
-    setReloadKey((v) => v + 1);
-  }, []);
-
-  useRealtimeEvent("intent.created", reload);
-  useRealtimeEvent("intent.deleted", reload);
-  useRealtimeEvent("intent.text_changed", reload);
-  useRealtimeEvent("intent.status_changed", reload);
-  useRealtimeEvent("intent.tags_changed", reload);
-  // Pin events change the `pinned_in` field on the affected intent; the cheapest
-  // path is a list refetch since this is also the source of the Pinned section.
-  useRealtimeEvent("intent.pinned", reload);
-  useRealtimeEvent("intent.unpinned", reload);
-  useRealtimeEvent("intent.pin_moved", reload);
-  // Link mutations are handled by useLinksSummary (separate cache); list does
-  // not refetch on link_added/link_removed — keeps list-cache and links-cache
-  // independent.
-
-  // intent.reordered is positional only — patch sort_key in place to keep the list
-  // in the new order without a full refetch (the server sends the freshly assigned key).
-  const onReordered = useCallback(
-    (payload: { intent_id: string; sort_key: string }) => {
-      setState((prev) => {
-        if (prev.kind !== "ready") return prev;
-        return {
-          ...prev,
-          items: prev.items.map((i) =>
-            i.id === payload.intent_id
-              ? { ...i, sort_key: payload.sort_key }
-              : i
-          )
-        };
-      });
-    },
-    []
-  );
-  useRealtimeEvent("intent.reordered", onReordered);
+  // Realtime-инвалидация всех ключей intents выполняется централизованно в
+  // app/realtime-query-bridge.tsx. Locally — только optimistic update в
+  // handleReorder; авторитетный sort_key прилетает событием
+  // `intent.reordered` и заменяет placeholder.
 
   // Server-defined order is sort_key ASC, ordinal. Use compareSortKeys (byte-wise)
   // — never localeCompare, see entities/intent/model/sortKey.ts for why.
   const orderedItems = useMemo(
-    () =>
-      state.kind === "ready"
-        ? [...state.items].sort((a, b) =>
-            compareSortKeys(a.sort_key, b.sort_key)
-          )
-        : [],
-    [state]
+    () => [...allItems].sort((a, b) => compareSortKeys(a.sort_key, b.sort_key)),
+    [allItems]
   );
 
-  const visibleItems = useMemo(() => {
-    if (state.kind !== "ready") return [] as IntentListItem[];
-    return orderedItems.filter((i) => matchesContext(i, context));
-  }, [context, orderedItems, state.kind]);
-
-  // Pinned section: only meaningful inside a tag context (a real Tag id is
-  // needed to scope drop-to-pin / movePin / unpin). Pinned items are filtered
-  // to those pinned in the *current* tag.
-  const allItems = useMemo<IntentListItem[]>(
-    () => (state.kind === "ready" ? state.items : []),
-    [state]
+  const visibleItems = useMemo(
+    () => orderedItems.filter((i) => matchesContext(i, context)),
+    [context, orderedItems]
   );
   const tagNameToId = useMemo(() => {
     const map = new Map<string, string>();
@@ -257,34 +195,34 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     visibleItems
   ]);
 
+  const invalidateList = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: intentsQueryKeys.list() });
+  }, [queryClient]);
+
   const handleReorder = useCallback(
     ({ movedId, beforeId, afterId }: EntityListReorder) => {
       if (!beforeId && !afterId) return;
       // Optimistic: place a synthetic sort_key between the neighbours so the local
       // ordering matches the dropped position immediately. The realtime event with
       // the authoritative key arrives later and replaces this placeholder.
-      const items = state.kind === "ready" ? state.items : [];
-      const placeholder = synthesizeSortKey(items, beforeId, afterId);
-      setState((prev) => {
-        if (prev.kind !== "ready") return prev;
-        return {
-          ...prev,
-          items: prev.items.map((i) =>
+      const placeholder = synthesizeSortKey(allItems, beforeId, afterId);
+      queryClient.setQueryData<IntentListItem[]>(
+        intentsQueryKeys.list(),
+        (prev) =>
+          prev?.map((i) =>
             i.id === movedId ? { ...i, sort_key: placeholder } : i
-          )
-        };
-      });
+          ) ?? prev
+      );
 
       moveIntent({ intentId: movedId, beforeId, afterId }).catch(() => {
-        // Rollback on failure: pull a fresh authoritative list.
-        reload();
+        invalidateList();
       });
     },
-    [reload, state]
+    [allItems, invalidateList, queryClient]
   );
 
   const handleCreated = (intentId: string) => {
-    reload();
+    invalidateList();
     const search = params.toString();
     const target =
       search.length > 0
@@ -311,30 +249,30 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           />
         </div>
       </div>
-      {state.kind === "ready" && isTagContext(context) ? (
+      {intentsQuery.isSuccess && isTagContext(context) ? (
         <PinnedSection
           items={allItems}
           currentContextTagId={currentContextTagId}
           currentContextLabel={context ?? ""}
           pinnedIntents={pinnedIntents}
-          onMutationFailed={reload}
+          onMutationFailed={invalidateList}
         />
       ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {state.kind === "loading" && (
+        {intentsQuery.isPending && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Загрузка…
           </p>
         )}
-        {state.kind === "error" && (
+        {errorMessage !== null && (
           <p
             role="alert"
             className="m-0 px-3.5 py-4 text-[13px] text-base-content/60"
           >
-            {state.message}
+            {errorMessage}
           </p>
         )}
-        {state.kind === "ready" && (
+        {intentsQuery.isSuccess && (
           <div
             ref={listLayerRef}
             className="relative"
@@ -342,7 +280,7 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
           >
             <EntityList
               items={rows}
-              emptyMessage={emptyMessage(context, state.items.length)}
+              emptyMessage={emptyMessage(context, allItems.length)}
               onReorder={handleReorder}
               onRowHover={setHoveredId}
               rowRef={handleRowRef}

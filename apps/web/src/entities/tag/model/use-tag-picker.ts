@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
 
 import { HttpError } from "@/shared/api";
 
-import { createTag, fetchTags } from "../api/tags-api";
+import { createTag } from "../api/tags-api";
+import { tagsQueryKeys, useTags } from "../api/tags-queries";
 import type { Tag } from "./types";
 
 interface TagPickerState {
@@ -12,50 +14,48 @@ interface TagPickerState {
 }
 
 export function useTagPicker(): TagPickerState {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const tagsQuery = useTags();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTags(controller.signal)
-      .then((next) => {
-        setTags(next);
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setLoadError(
-          err instanceof HttpError
-            ? `Не удалось загрузить теги (${String(err.status)}).`
-            : "Не удалось загрузить теги."
-        );
-      });
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  const loadError = useMemo(() => {
+    if (!tagsQuery.isError) return null;
+    const err = tagsQuery.error;
+    return err instanceof HttpError
+      ? `Не удалось загрузить теги (${String(err.status)}).`
+      : "Не удалось загрузить теги.";
+  }, [tagsQuery.isError, tagsQuery.error]);
 
-  const createOrAdopt = useCallback(async (slug: string): Promise<string> => {
-    try {
-      const created = await createTag({ name: slug });
-      setTags((current) =>
-        current.some((t) => t.id === created.id)
-          ? current
-          : [...current, created]
-      );
-      return created.name;
-    } catch (err: unknown) {
-      // 409 = already exists; treat as adoptable
-      if (err instanceof HttpError && err.status === 409) {
-        return slug;
+  const createOrAdopt = useCallback(
+    async (slug: string): Promise<string> => {
+      try {
+        const created = await createTag({ name: slug });
+        // Оптимистичный апдейт кеша: realtime tag.created долетит позже и
+        // повторно инвалидирует, но UI не ждёт сети.
+        queryClient.setQueryData<Tag[]>(tagsQueryKeys.list(), (prev) => {
+          if (!prev) return prev;
+          if (prev.some((t) => t.id === created.id)) return prev;
+          return [...prev, created];
+        });
+        return created.name;
+      } catch (err: unknown) {
+        if (err instanceof HttpError && err.status === 409) {
+          return slug;
+        }
+        throw err instanceof HttpError
+          ? new Error(`Не удалось создать тег (${String(err.status)}).`)
+          : new Error("Не удалось создать тег.");
       }
-      throw err instanceof HttpError
-        ? new Error(`Не удалось создать тег (${String(err.status)}).`)
-        : new Error("Не удалось создать тег.");
-    }
-  }, []);
+    },
+    [queryClient]
+  );
+
+  const availableTags = useMemo(
+    () => (tagsQuery.data ?? []).map((t) => t.name),
+    [tagsQuery.data]
+  );
 
   return {
-    availableTags: tags.map((t) => t.name),
+    availableTags,
     loadError,
     createTag: createOrAdopt
   };

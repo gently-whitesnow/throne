@@ -1,15 +1,8 @@
 import { AlertTriangle, Link2, Plus, X } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type DragEvent
-} from "react";
+import { useMemo, useState, type DragEvent } from "react";
 
-import type { IntentDetail } from "@/entities/intent";
-import { HttpError, httpGet, intentsEndpoints } from "@/shared/api";
-import { useRealtimeEvent } from "@/shared/realtime";
+import { useIntent } from "@/entities/intent";
+import { HttpError } from "@/shared/api";
 import { INTENT_DND_MIME } from "@/shared/ui";
 
 import { createIntentLink, deleteIntentLink } from "../api/intent-links-api";
@@ -29,47 +22,23 @@ interface IntentLinksSectionProps {
   intentId: string;
 }
 
+const EMPTY_LINKS: readonly IntentLinkView[] = [];
+
 export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
-  const [links, setLinks] = useState<IntentLinkView[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
+  const intentQuery = useIntent(intentId);
+  const links: readonly IntentLinkView[] =
+    intentQuery.data?.links ?? EMPTY_LINKS;
+  const [actionError, setActionError] = useState<string | null>(null);
   const [sectionDragOver, setSectionDragOver] = useState(false);
   const [pickerPeerId, setPickerPeerId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    httpGet<IntentDetail>(
-      intentsEndpoints.getIntent(intentId),
-      controller.signal
-    )
-      .then((d) => {
-        setLinks(d.links);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(
-          err instanceof HttpError
-            ? `Ошибка (${String(err.status)}).`
-            : "Не удалось загрузить связи."
-        );
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [intentId, reloadKey]);
-
-  const refresh = useCallback(() => {
-    setReloadKey((k) => k + 1);
-  }, []);
-
-  useRealtimeEvent("intent.link_added", (payload) => {
-    if (payload.from_id === intentId || payload.to_id === intentId) refresh();
-  });
-  useRealtimeEvent("intent.link_removed", (payload) => {
-    if (payload.from_id === intentId || payload.to_id === intentId) refresh();
-  });
+  const loadError = intentQuery.isError
+    ? intentQuery.error instanceof HttpError
+      ? `Ошибка (${String(intentQuery.error.status)}).`
+      : "Не удалось загрузить связи."
+    : null;
+  const error = actionError ?? loadError;
 
   const grouped = useMemo(() => {
     const map = new Map<DisplayBucket, IntentLinkView[]>();
@@ -99,7 +68,7 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
     const fromId = view.direction === "outgoing" ? intentId : peerId;
     const toId = view.direction === "outgoing" ? peerId : intentId;
     deleteIntentLink(fromId, toId, view.link.type).catch((err: unknown) => {
-      setError(
+      setActionError(
         err instanceof HttpError
           ? `Ошибка удаления (${String(err.status)}).`
           : "Не удалось удалить связь."
@@ -114,7 +83,7 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
       type: params.type
     }).catch((err: unknown) => {
       const code = err instanceof HttpError ? err.code : undefined;
-      setError(
+      setActionError(
         code === "link.duplicate"
           ? "Такая связь уже существует."
           : code === "link.self_link"

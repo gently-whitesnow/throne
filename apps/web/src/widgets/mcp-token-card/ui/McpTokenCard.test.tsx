@@ -1,26 +1,19 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { renderWithQuery } from "@/app/test-utils";
+
 import { McpTokenCard } from "./McpTokenCard";
+
+const render = (ui: React.ReactElement) =>
+  renderWithQuery(ui, { withBridge: false });
 
 const fetchMcpTokenMeta = vi.fn<() => Promise<unknown>>();
 const issueMcpToken = vi.fn<() => Promise<unknown>>();
 
-vi.mock("@/entities/mcp-token", () => ({
+vi.mock("@/entities/mcp-token/api/mcp-tokens-api", () => ({
   fetchMcpTokenMeta: () => fetchMcpTokenMeta(),
   issueMcpToken: () => issueMcpToken()
-}));
-
-vi.mock("@/shared/api", () => ({
-  HttpError: class HttpError extends Error {
-    status = 500;
-  }
 }));
 
 describe("McpTokenCard", () => {

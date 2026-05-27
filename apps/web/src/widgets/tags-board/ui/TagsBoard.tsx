@@ -1,55 +1,21 @@
 import { Trash2, Pencil, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   type Tag,
   createTag,
   deleteTag,
   fetchTagUsage,
-  fetchTags,
-  renameTag
+  renameTag,
+  useTags
 } from "@/entities/tag";
-import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
 
-type LoadState =
-  | { kind: "loading" }
-  | { kind: "ready"; items: Tag[] }
-  | { kind: "error"; message: string };
-
 export function TagsBoard() {
-  const [state, setState] = useState<LoadState>({ kind: "loading" });
-  const [reloadKey, setReloadKey] = useState(0);
+  const tagsQuery = useTags();
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchTags(controller.signal)
-      .then((items) => {
-        setState({ kind: "ready", items });
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        setState({
-          kind: "error",
-          message:
-            err instanceof Error ? err.message : "Не удалось загрузить теги."
-        });
-      });
-    return () => {
-      controller.abort();
-    };
-  }, [reloadKey]);
-
-  const reload = useCallback(() => {
-    setReloadKey((v) => v + 1);
-  }, []);
-
-  useRealtimeEvent("tag.created", reload);
-  useRealtimeEvent("tag.updated", reload);
-  useRealtimeEvent("tag.deleted", reload);
 
   const handleCreate = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -140,27 +106,29 @@ export function TagsBoard() {
         </p>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {state.kind === "loading" && (
+        {tagsQuery.isPending && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Загрузка…
           </p>
         )}
-        {state.kind === "error" && (
+        {tagsQuery.isError && (
           <p
             role="alert"
             className="m-0 px-3.5 py-4 text-[13px] text-base-content/60"
           >
-            {state.message}
+            {tagsQuery.error instanceof Error
+              ? tagsQuery.error.message
+              : "Не удалось загрузить теги."}
           </p>
         )}
-        {state.kind === "ready" && state.items.length === 0 && (
+        {tagsQuery.isSuccess && tagsQuery.data.length === 0 && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Нет тегов.
           </p>
         )}
-        {state.kind === "ready" && state.items.length > 0 && (
+        {tagsQuery.isSuccess && tagsQuery.data.length > 0 && (
           <ul className="m-0 flex list-none flex-col p-0">
-            {state.items.map((tag) => (
+            {tagsQuery.data.map((tag) => (
               <li
                 key={tag.id}
                 className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 last:border-b-0"

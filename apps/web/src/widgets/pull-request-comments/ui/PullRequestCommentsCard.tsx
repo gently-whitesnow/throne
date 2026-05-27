@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   GitPullRequest,
@@ -8,8 +9,8 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  intentRepositoriesQueryKeys,
   pullRequestStateMeta,
-  requestIntentRepositoriesRefresh,
   repositoryFullName,
   type RepositoryBinding
 } from "@/entities/repository-binding";
@@ -43,6 +44,7 @@ export function PullRequestCommentsCard({
   intentId,
   binding
 }: PullRequestCommentsCardProps) {
+  const queryClient = useQueryClient();
   const { comments, isLoading, error, refresh } = usePullRequestComments(
     intentId,
     binding.id
@@ -66,10 +68,27 @@ export function PullRequestCommentsCard({
         // Server fans out `intent.pr_comment_added` for the deltas, но мы
         // дополнительно перечитываем список — это безопаснее, чем полагаться на
         // реалтайм-доставку до завершения POST-запроса.
-        requestIntentRepositoriesRefresh(intentId, {
-          binding_id: result.binding_id,
-          pull_request_state: result.pull_request_state,
-          last_synced_at: result.last_synced_at
+        queryClient.setQueryData<RepositoryBinding[]>(
+          intentRepositoriesQueryKeys.list(intentId),
+          (prev) =>
+            prev?.map((b) =>
+              b.id === result.binding_id
+                ? {
+                    ...b,
+                    pull_request_state:
+                      result.pull_request_state !== undefined
+                        ? result.pull_request_state
+                        : b.pull_request_state,
+                    last_synced_at:
+                      result.last_synced_at !== undefined
+                        ? result.last_synced_at
+                        : b.last_synced_at
+                  }
+                : b
+            )
+        );
+        void queryClient.invalidateQueries({
+          queryKey: intentRepositoriesQueryKeys.list(intentId)
         });
         if (result.pull_request_state !== undefined) {
           setSyncedPrState(result.pull_request_state);
@@ -85,7 +104,7 @@ export function PullRequestCommentsCard({
         setSyncing(false);
       }
     })();
-  }, [intentId, binding.id, refresh]);
+  }, [intentId, binding.id, refresh, queryClient]);
 
   const fullName = repositoryFullName(binding);
   const prNumber = binding.pull_request_number;
