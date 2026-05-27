@@ -18,4 +18,7 @@ internal sealed class TagDocument
 
     [BsonElement("updated_at")]
     public DateTime UpdatedAt { get; set; }
+
+    [BsonElement("default_repositories")]
+    public List<TagDefaultRepositoryDocument> DefaultRepositories { get; set; } = [];
 }

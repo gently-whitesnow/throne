@@ -16,6 +16,19 @@ public interface ITagRepository
 
     Task<RenameTagOutcome> RenameAsync(TagId id, int expectedVersion, string rawName, DateTimeOffset now, CancellationToken ct);
 
+    /// <summary>
+    /// Whole-list replace of the tag's <c>default_repositories</c> (Slice 2). Caller passes
+    /// <paramref name="expectedVersion"/> for optimistic concurrency. Dedup on
+    /// <c>(provider, owner, repo)</c> is enforced by the aggregate. Must run inside
+    /// <see cref="IUnitOfWork.ExecuteAsync(System.Func{System.Threading.CancellationToken, System.Threading.Tasks.Task}, System.Threading.CancellationToken)"/>.
+    /// </summary>
+    Task<SetTagDefaultRepositoriesOutcome> SetDefaultRepositoriesAsync(
+        TagId id,
+        int expectedVersion,
+        IReadOnlyList<TagDefaultRepository> defaultRepositories,
+        DateTimeOffset now,
+        CancellationToken ct);
+
     Task<TagUsage> GetUsageAsync(TagId id, CancellationToken ct);
 
     /// <summary>

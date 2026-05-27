@@ -1,6 +1,7 @@
 using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
+using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
 using Throne.Infrastructure.Mongo.Documents;
 using Tag = Throne.Domain.Tags.Tag;
@@ -189,6 +190,62 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         return new RenameTagOutcome.Renamed(tag);
     }
 
+    public async Task<SetTagDefaultRepositoriesOutcome> SetDefaultRepositoriesAsync(
+        TagId id,
+        int expectedVersion,
+        IReadOnlyList<TagDefaultRepository> defaultRepositories,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(defaultRepositories);
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoTagRepository.SetDefaultRepositoriesAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var doc = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        if (doc is null)
+        {
+            return new SetTagDefaultRepositoriesOutcome.NotFound();
+        }
+
+        if (doc.CurrentVersion != expectedVersion)
+        {
+            return new SetTagDefaultRepositoriesOutcome.VersionConflict(doc.CurrentVersion);
+        }
+
+        var tag = MapToDomain(doc);
+        var changed = tag.ReplaceDefaultRepositories(defaultRepositories, now);
+        if (!changed)
+        {
+            return new SetTagDefaultRepositoriesOutcome.NoChange(tag);
+        }
+
+        var subdocuments = tag.DefaultRepositories.Count == 0
+            ? []
+            : tag.DefaultRepositories.Select(MapDefaultRepositoryToDocument).ToList();
+        var update = Builders<TagDocument>.Update
+            .Set(d => d.DefaultRepositories, subdocuments)
+            .Set(d => d.CurrentVersion, tag.CurrentVersion)
+            .Set(d => d.UpdatedAt, tag.UpdatedAt.UtcDateTime);
+
+        var updateResult = await _tags.UpdateOneAsync(
+            session,
+            d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
+            update,
+            options: null,
+            ct);
+
+        if (updateResult.ModifiedCount == 0)
+        {
+            var fresh = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            return fresh is null
+                ? new SetTagDefaultRepositoriesOutcome.NotFound()
+                : new SetTagDefaultRepositoriesOutcome.VersionConflict(fresh.CurrentVersion);
+        }
+
+        return new SetTagDefaultRepositoriesOutcome.Updated(tag);
+    }
+
     public async Task<TagUsage> GetUsageAsync(TagId id, CancellationToken ct)
     {
         var session = sessions.Current;
@@ -250,6 +307,9 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         CurrentVersion = tag.CurrentVersion,
         CreatedAt = tag.CreatedAt.UtcDateTime,
         UpdatedAt = tag.UpdatedAt.UtcDateTime,
+        DefaultRepositories = tag.DefaultRepositories.Count == 0
+            ? []
+            : [.. tag.DefaultRepositories.Select(MapDefaultRepositoryToDocument)],
     };
 
     private static Tag MapToDomain(TagDocument doc) => Tag.Restore(
@@ -257,7 +317,21 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         name: doc.Name,
         currentVersion: doc.CurrentVersion,
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
-        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
+        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc),
+        defaultRepositories: doc.DefaultRepositories.Count == 0
+            ? []
+            : [.. doc.DefaultRepositories.Select(MapDefaultRepositoryToDomain)]);
+
+    private static TagDefaultRepositoryDocument MapDefaultRepositoryToDocument(TagDefaultRepository entry) => new()
+    {
+        Provider = entry.Coordinate.Provider,
+        Owner = entry.Coordinate.Owner,
+        Repo = entry.Coordinate.Repo,
+        DefaultBranch = entry.DefaultBranch,
+    };
+
+    private static TagDefaultRepository MapDefaultRepositoryToDomain(TagDefaultRepositoryDocument doc) =>
+        new(new RepoCoordinate(doc.Provider, doc.Owner, doc.Repo), doc.DefaultBranch);
 
     private static Intent MapIntentToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
