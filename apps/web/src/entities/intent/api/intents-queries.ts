@@ -21,6 +21,8 @@ import type {
 
 type IntentListPage = IntentsComponents["schemas"]["IntentListPageDto"];
 export type IntentListSort = IntentsComponents["schemas"]["IntentListSort"];
+export type IntentContextCounts =
+  IntentsComponents["schemas"]["IntentContextCountsDto"];
 
 export interface IntentListParams {
   status?: readonly IntentStatus[];
@@ -41,6 +43,10 @@ export const intentsQueryKeys = {
   detail: (id: string) => [...intentsQueryKeys.details(), id] as const,
   attachments: (id: string) =>
     [...intentsQueryKeys.detail(id), "attachments"] as const
+};
+
+export const intentContextsQueryKeys = {
+  all: ["intent-contexts"] as const
 };
 
 function normalizeParams(params: IntentListParams): IntentListParams {
@@ -149,6 +155,20 @@ export function useIntents(
     // Все страницы стянуты — иначе данные неполные.
     isSuccess: query.isSuccess && !hasNextPage
   };
+}
+
+/**
+ * Агрегаты по контекстам одним запросом (`GET /api/v1/intents/contexts`).
+ * Считает счётчики бакетов на сервере — рейл больше не вычитывает весь список
+ * через `useIntents`, чтобы их посчитать. Инвалидируется realtime'ом через
+ * `RealtimeQueryBridge` при создании/удалении/смене статуса/тегов/пина.
+ */
+export function useIntentContexts(): UseQueryResult<IntentContextCounts> {
+  return useQuery({
+    queryKey: intentContextsQueryKeys.all,
+    queryFn: ({ signal }) =>
+      httpGet<IntentContextCounts>(intentsEndpoints.getIntentContexts(), signal)
+  });
 }
 
 export function useIntent(id: string | null): UseQueryResult<IntentDetail> {

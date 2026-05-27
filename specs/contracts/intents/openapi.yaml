@@ -101,6 +101,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntentDetailDto'
+  /api/v1/intents/contexts:
+    get:
+      operationId: getIntentContexts
+      tags: [Intents]
+      summary: Aggregate intent counts per context bucket (rail sidebar).
+      description: >
+        Single-shot aggregate for the context rail: counts per inbox status, fridge,
+        archive, pinned and untagged buckets plus per-tag breakdowns for the active and
+        archive scopes. Computed server-side (Mongo aggregation) so the rail never pulls
+        the full intent list just to render counters. Bucket semantics mirror the
+        `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentContextCountsDto'
   /api/v1/intents/{id}:
     get:
       operationId: getIntent
@@ -1003,6 +1021,80 @@ components:
           items:
             $ref: '#/components/schemas/PinnedContextDto'
           description: Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order.
+    IntentContextTagCountDto:
+      type: object
+      required:
+        - tag
+        - count
+      properties:
+        tag:
+          type: string
+          description: Tag display name (slug).
+        count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of intents in the bucket carrying this tag.
+    IntentContextCountsDto:
+      type: object
+      required:
+        - inbox_review
+        - inbox_help
+        - fridge
+        - archive
+        - pinned
+        - untagged
+        - archive_untagged
+        - tags
+        - archive_tags
+      properties:
+        inbox_review:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Intents in status `ready_for_review` (inbox «жду ревью»).
+        inbox_help:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Intents in status `needs_help` (inbox «нужна помощь»).
+        fridge:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Intents in the `fridge` bucket.
+        archive:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Intents in archive statuses (`done` + `reject`).
+        pinned:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Distinct intents pinned into at least one context.
+        untagged:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Active intents (non-archive, non-fridge) carrying no tags.
+        archive_untagged:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Archive intents carrying no tags.
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentContextTagCountDto'
+          description: >
+            Per-tag counts across active intents (non-archive, non-fridge), sorted by
+            count desc then tag name asc. An intent with N tags contributes to each tag.
+        archive_tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentContextTagCountDto'
+          description: Per-tag counts across archive intents, sorted by count desc then tag name asc.
     IntentDetailDto:
       type: object
       required:

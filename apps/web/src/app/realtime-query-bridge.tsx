@@ -7,6 +7,7 @@ import {
 import { dreamsQueryKeys } from "@/entities/dream-session";
 import { instructionPatchesQueryKeys } from "@/entities/instruction-patch";
 import {
+  intentContextsQueryKeys,
   intentLinksSummaryQueryKeys,
   intentsQueryKeys,
   type IntentListItem
@@ -131,10 +132,12 @@ export function RealtimeQueryBridge() {
 
   useRealtimeEvent("intent.created", () => {
     void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
   });
   useRealtimeEvent("intent.deleted", (payload) => {
     removeListItem(qc, payload.intent_id);
     qc.removeQueries({ queryKey: intentsQueryKeys.detail(payload.intent_id) });
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
   });
   useRealtimeEvent("intent.text_changed", (payload) => {
     patchListItem(qc, payload.id, (it) => ({
@@ -160,6 +163,7 @@ export function RealtimeQueryBridge() {
     // отфильтрованные кэши (status=work и т.п.) могут нуждаться в пересчёте
     // принадлежности странице. Инвалидируем — TanStack довытащит с сервера.
     void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
   });
   useRealtimeEvent("intent.tags_changed", (payload) => {
     patchListItem(qc, payload.id, (it) => ({
@@ -170,6 +174,7 @@ export function RealtimeQueryBridge() {
     }));
     qc.setQueryData(intentsQueryKeys.detail(payload.id), payload);
     void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
   });
   useRealtimeEvent("intent.pinned", (payload) => {
     patchListItem(qc, payload.intent_id, (it) => ({
@@ -180,6 +185,8 @@ export function RealtimeQueryBridge() {
         payload.pin_sort_key
       )
     }));
+    // pinned bucket counts distinct pinned intents — a new pin can change it.
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
   });
   useRealtimeEvent("intent.pin_moved", (payload) => {
     patchListItem(qc, payload.intent_id, (it) => ({
@@ -198,6 +205,7 @@ export function RealtimeQueryBridge() {
         (p) => p.context_tag_id !== payload.context_tag_id
       )
     }));
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
   });
   useRealtimeEvent("intent.reordered", (payload) => {
     patchListItem(qc, payload.intent_id, (it) => ({

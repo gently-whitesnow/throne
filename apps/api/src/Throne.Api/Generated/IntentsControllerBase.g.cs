@@ -56,6 +56,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> CreateIntent([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CreateIntentRequest body);
 
         /// <summary>
+        /// Aggregate intent counts per context bucket (rail sidebar).
+        /// </summary>
+        /// <remarks>
+        /// Single-shot aggregate for the context rail: counts per inbox status, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active and archive scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/contexts", Name = "getIntentContexts")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentContextCountsDto>> GetIntentContexts();
+
+        /// <summary>
         /// Get a single intent (full text).
         /// </summary>
         /// <remarks>

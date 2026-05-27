@@ -14,6 +14,7 @@ namespace Throne.Infrastructure.Mongo;
 internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrderingRepository
 {
     private readonly MongoIntentReader _reader;
+    private readonly MongoIntentContextReader _contextReader;
     private readonly MongoIntentLifecycle _lifecycle;
     private readonly MongoIntentTextEditor _text;
     private readonly MongoIntentStatusMutator _status;
@@ -26,6 +27,7 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
         IIntentEventRepository intentEvents)
     {
         _reader = new MongoIntentReader(database, sessions, currentUser);
+        _contextReader = new MongoIntentContextReader(database, sessions, currentUser);
         _lifecycle = new MongoIntentLifecycle(database, sessions, currentUser, intentEvents);
         _text = new MongoIntentTextEditor(database, sessions, currentUser, intentEvents);
         _status = new MongoIntentStatusMutator(database, sessions, currentUser, intentEvents);
@@ -68,6 +70,9 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
     public Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct) =>
         _reader.ListPagedAsync(spec, ct);
 
+    public Task<IntentContextCounts> GetContextCountsAsync(CancellationToken ct) =>
+        _contextReader.GetContextCountsAsync(ct);
+
     public Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct) =>
         _lifecycle.DeleteAsync(id, ct);
 
@@ -90,10 +95,12 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
         CancellationToken ct) =>
         _status.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
 
-    public Task<string?> GetMinSortKeyAsync(CancellationToken ct) =>
+    // Ordering surface is consumed only via IIntentOrderingRepository (split out to keep the
+    // CRUD type under the per-type budget) — implement explicitly so it stays off the public face.
+    Task<string?> IIntentOrderingRepository.GetMinSortKeyAsync(CancellationToken ct) =>
         _reader.GetMinSortKeyAsync(ct);
 
-    public Task<MoveIntentOutcome> MoveBetweenAsync(
+    Task<MoveIntentOutcome> IIntentOrderingRepository.MoveBetweenAsync(
         IntentId id,
         IntentId? beforeId,
         IntentId? afterId,
