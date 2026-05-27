@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * List intents (cursor-paginated metadata + short text preview).
-         * @description Returns a single page of intent metadata (id, current_version, tags, timestamps) with a short text preview. Full text must be fetched via a dedicated read endpoint. Pagination is opaque-cursor (server-encoded); `next_cursor` is absent on the final page. Default page size is 50, capped at 100. Filters (status, tag, query) and sort order are server-driven so clients don't keep the full result set in memory.
+         * @description Returns a single page of intent metadata (id, current_version, tags, timestamps) with a short text preview. Full text must be fetched via a dedicated read endpoint. Pagination is opaque-cursor (server-encoded); `next_cursor` is absent on the final page. Default page size is 50, capped at 100. Filters (status, tag, untagged, pinned, query) and sort order are server-driven so clients don't keep the full result set in memory.
          */
         get: operations["listIntents"];
         put?: never;
@@ -644,6 +644,10 @@ export interface operations {
                 status?: components["schemas"]["IntentStatus"][];
                 /** @description Filter to intents that carry this tag (slug-style name). */
                 tag?: string;
+                /** @description When true, return only intents that carry no tags at all. Mutually exclusive with `tag` (combining them yields an empty page). */
+                untagged?: boolean;
+                /** @description When true, return only intents pinned into at least one context. Server-side equivalent of the client "pinned" bucket. */
+                pinned?: boolean;
                 /** @description Case-insensitive substring filter against Intent.text. */
                 query?: string;
                 sort?: components["schemas"]["IntentListSort"];

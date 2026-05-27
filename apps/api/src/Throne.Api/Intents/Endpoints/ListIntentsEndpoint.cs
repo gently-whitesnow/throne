@@ -16,6 +16,8 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
         int? limit,
         IEnumerable<IntentStatus>? status,
         string? tag,
+        bool? untagged,
+        bool? pinned,
         string? query,
         DtoIntentListSort? sort,
         CancellationToken cancellationToken)
@@ -28,6 +30,8 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
         var pagedQuery = new ListIntentsPagedQuery(
             Statuses: statuses is { Length: > 0 } ? statuses : null,
             TagName: string.IsNullOrWhiteSpace(tag) ? null : tag,
+            Untagged: untagged.GetValueOrDefault(),
+            Pinned: pinned.GetValueOrDefault(),
             Query: string.IsNullOrWhiteSpace(query) ? null : query,
             Sort: IntentListSortDtoMapper.FromContractSort(sort),
             Limit: limit ?? ListIntentsHandler.DefaultLimit,

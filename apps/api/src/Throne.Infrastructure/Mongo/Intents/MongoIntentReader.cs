@@ -14,6 +14,9 @@ internal sealed class MongoIntentReader(
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
 
+    private readonly IMongoCollection<IntentPinDocument> _pins =
+        database.GetCollection<IntentPinDocument>(MongoCollectionNames.IntentPins);
+
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
@@ -70,6 +73,21 @@ internal sealed class MongoIntentReader(
             clauses.Add(fb.AnyEq(d => d.TagIds, spec.TagId.Value.Value));
         }
 
+        if (spec.Untagged)
+        {
+            clauses.Add(fb.Size(d => d.TagIds, 0));
+        }
+
+        if (spec.Pinned)
+        {
+            var pinnedIds = await ListPinnedIntentIdsAsync(session, ct);
+            if (pinnedIds.Count == 0)
+            {
+                return new IntentListPage([], NextCursor: null);
+            }
+            clauses.Add(fb.In(d => d.Id, pinnedIds));
+        }
+
         if (!string.IsNullOrEmpty(spec.Query))
         {
             // Case-insensitive substring match. Uses regex with collection scan; OK for MVP scale.
@@ -108,6 +126,20 @@ internal sealed class MongoIntentReader(
         }
 
         return new IntentListPage(items, next);
+    }
+
+    // Distinct intent ids the owner has pinned into any context. Pins live in a
+    // separate collection (intent_pins) with no denormalised flag on the intent,
+    // so the "pinned" list filter resolves the (bounded) id set first.
+    private async Task<IReadOnlyList<string>> ListPinnedIntentIdsAsync(
+        IClientSessionHandle? session,
+        CancellationToken ct)
+    {
+        var ownerFilter = Builders<IntentPinDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
+        var ids = session is null
+            ? await _pins.Distinct(d => d.IntentId, ownerFilter, cancellationToken: ct).ToListAsync(ct)
+            : await _pins.Distinct(session, d => d.IntentId, ownerFilter, cancellationToken: ct).ToListAsync(ct);
+        return ids;
     }
 
     public async Task<string?> GetMinSortKeyAsync(CancellationToken ct)
