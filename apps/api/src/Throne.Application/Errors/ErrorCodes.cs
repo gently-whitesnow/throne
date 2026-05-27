@@ -32,4 +32,11 @@ public static class ErrorCodes
     public const string RepositoryNotReady = "repository_binding.not_ready";
     public const string RepositoryPullRequestNotAttached = "repository_binding.pull_request_not_attached";
     public const string RepositoryUpstreamGone = "repository.upstream_gone";
+    public const string CapabilityNotFound = "capability.not_found";
+    public const string CapabilityDisabled = "capability.disabled";
+    public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
+    public const string TerminalRunPreflightBlocked = "terminal.run_preflight_blocked";
+    public const string TerminalSpawnFailed = "terminal.spawn_failed";
+    public const string TerminalCloneWaitTimeout = "terminal.clone_wait_timeout";
+    public const string TerminalModeInvalid = "terminal.mode_invalid";
 }

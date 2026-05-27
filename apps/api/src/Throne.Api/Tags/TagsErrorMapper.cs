@@ -18,8 +18,8 @@ internal static class TagsErrorMapper
                 new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Tag version conflict", ex)),
             ErrorCodes.TagInUse =>
                 new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Tag in use", ex)),
-            ErrorCodes.TagNameInvalid =>
-                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Invalid tag name", ex)),
+            ErrorCodes.TagNameInvalid or ErrorCodes.ValidationFailed =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 }

@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
 using Throne.Infrastructure.Terminals.Capabilities;
+// RunPreflightOptions binding pulls Throne.Application.Terminals into the Infrastructure
+// composition root — Application-only DI cannot bind IConfiguration sections directly.
 
 namespace Throne.Infrastructure.Terminals;
 
@@ -22,15 +25,21 @@ public static class TerminalsModule
     {
         var tmuxBuilder = services.AddOptions<TmuxOptions>();
         var capabilitiesBuilder = services.AddOptions<CapabilityDetectionOptions>();
+        var runPreflightBuilder = services.AddOptions<RunPreflightOptions>();
         if (configuration is not null)
         {
             tmuxBuilder.Bind(configuration.GetSection(TmuxOptions.SectionName));
             capabilitiesBuilder.Bind(configuration.GetSection(CapabilityDetectionOptions.SectionName));
+            runPreflightBuilder.Bind(configuration.GetSection(RunPreflightOptions.SectionName));
         }
 
         services.AddSingleton<TmuxCli>();
         services.AddSingleton<ITmuxSessionManager, TmuxSessionManager>();
         services.AddSingleton<ITerminalStreamBridge, TmuxStreamBridge>();
+        // Application orchestrators consume the bare options instance (see
+        // PullRequestSyncBackoff for the same pattern) so Throne.Application
+        // does not need a reference to Microsoft.Extensions.Options.
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<RunPreflightOptions>>().Value);
 
         services.AddSingleton<ICapabilityProbe, TmuxCapabilityProbe>();
         services.AddSingleton<ICapabilityProbe, VsCodeCapabilityProbe>();

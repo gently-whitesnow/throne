@@ -1,0 +1,56 @@
+using Throne.Application.Errors;
+
+namespace Throne.Application.Terminals;
+
+/// <summary>
+/// Centralised <see cref="ApiException"/> factory for terminal/Run pre-flight failures.
+/// Keeps controllers + orchestrator free of error-payload boilerplate.
+/// </summary>
+internal static class TerminalFailures
+{
+    public static ApiException CapabilityDisabled(string capability) =>
+        new(
+            ErrorCodes.CapabilityDisabled,
+            $"Capability '{capability}' is disabled — enable it in /settings before retrying.",
+            new Dictionary<string, object?> { ["capability"] = capability });
+
+    public static ApiException ModeInvalid(string mode) =>
+        new(
+            ErrorCodes.TerminalModeInvalid,
+            $"Unknown terminal run mode '{mode}'. Allowed: work | interview | dream.",
+            new Dictionary<string, object?> { ["mode"] = mode });
+
+    public static ApiException SessionAlreadyRunning(string intentId, string sessionName) =>
+        new(
+            ErrorCodes.TerminalSessionAlreadyRunning,
+            $"tmux session '{sessionName}' for intent '{intentId}' is already running — use /restart instead.",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["session_name"] = sessionName,
+            });
+
+    public static ApiException SpawnFailed(string intentId, string sessionName, string? detail) =>
+        new(
+            ErrorCodes.TerminalSpawnFailed,
+            detail ?? $"tmux refused to spawn session '{sessionName}'.",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["session_name"] = sessionName,
+            });
+
+    public static ApiException CloneWaitTimeout(
+        string intentId,
+        int waitedSeconds,
+        IReadOnlyList<string> pendingBindings) =>
+        new(
+            ErrorCodes.TerminalCloneWaitTimeout,
+            $"Pre-flight gave up waiting for clones after {waitedSeconds}s; bindings still in progress: {string.Join(", ", pendingBindings)}.",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["waited_seconds"] = waitedSeconds,
+                ["pending_bindings"] = pendingBindings,
+            });
+}
