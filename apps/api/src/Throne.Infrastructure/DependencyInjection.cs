@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
 
         AddGitInfrastructure(services, configuration);
+        Throne.Infrastructure.Terminals.TerminalsModule.AddThroneTerminalsInfrastructure(services, configuration);
 
         services.AddSingleton<IMongoClient>(sp =>
             new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
@@ -88,6 +89,7 @@ public static class DependencyInjection
         services.AddOptions<SkillManifestOptions>();
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
         AddGitInfrastructure(services, configuration: null);
+        Throne.Infrastructure.Terminals.TerminalsModule.AddThroneTerminalsInfrastructure(services, configuration: null);
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<MongoUnitOfWork>();
         services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(
