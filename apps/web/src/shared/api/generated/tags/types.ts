@@ -32,7 +32,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Read a tag including its default repositories list.
+         * @description Returns full tag state with the `default_repositories[]` collection used by the Slice 2 Run pre-flight (auto-bind union across the intent's tags).
+         */
+        get: operations["getTag"];
         put?: never;
         post?: never;
         /**
@@ -56,6 +60,26 @@ export interface paths {
         /** Count of intents currently referencing the tag. */
         get: operations["getTagUsage"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags/{id}/default-repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the tag's default repositories list.
+         * @description Whole-list replace (no PATCH). The server normalizes by deduplicating on `(provider, owner, repo)`. Empty array is accepted and clears the list. Existing intent bindings are not touched — the pre-flight pipeline only runs when the operator presses Run.
+         */
+        put: operations["setTagDefaultRepositories"];
         post?: never;
         delete?: never;
         options?: never;
@@ -96,6 +120,35 @@ export interface components {
             tag_id: string;
             /** Format: int32 */
             intents_detached: number;
+        };
+        /**
+         * @description Mirror of `repositories#/components/schemas/GitProvider`. Duplicated locally so the tags contract generator never reaches across files (NSwag does not resolve relative `$ref` between OpenAPI documents). Keep enum values in sync — see ADR-0024 for the canonical list.
+         * @enum {string}
+         */
+        TagDefaultGitProvider: "github";
+        TagDefaultRepositoryDto: {
+            provider: components["schemas"]["TagDefaultGitProvider"];
+            owner: string;
+            repo: string;
+            /** @description Optional branch hint for the Run pre-flight; falls back to upstream's default branch on first clone (ADR-0024 § 1). */
+            default_branch?: string | null;
+        };
+        TagDetailDto: {
+            id: string;
+            name: string;
+            /** Format: int32 */
+            current_version: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** @description Repositories the Slice 2 Run pre-flight auto-binds for every intent that carries this tag. Uniqueness is enforced on `(provider, owner, repo)`. */
+            default_repositories: components["schemas"]["TagDefaultRepositoryDto"][];
+        };
+        SetTagDefaultRepositoriesRequest: {
+            /** Format: int32 */
+            expected_version: number;
+            default_repositories: components["schemas"]["TagDefaultRepositoryDto"][];
         };
         ProblemDetails: {
             type: string;
@@ -170,6 +223,37 @@ export interface operations {
             };
             /** @description Invalid tag name */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -297,6 +381,59 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    setTagDefaultRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetTagDefaultRepositoriesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Version conflict. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation failed (provider unsupported, owner/repo malformed). */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
