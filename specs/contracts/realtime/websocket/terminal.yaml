@@ -15,11 +15,13 @@ version: 1
 # HTTP+WS endpoints simultaneously.
 #
 # Lifecycle:
-#   - Server opens an xterm-compatible PTY attach (`tmux attach -t throne-{intent_id}`
-#     via Pty.Net) per accepted connection.
-#   - On disconnect the attach wrapper exits; the tmux session keeps running
-#     (its daemon owns the process). The next connect reattaches and the user
-#     sees the live tmux scrollback.
+#   - Server bridges the per-intent tmux session to the socket via the tmux CLI
+#     (`tmux pipe-pane` + FIFO for output, `tmux send-keys -H` for input,
+#     `tmux refresh-client -S` for resize) — no PTY allocation on the server
+#     side, tmux already owns the PTY around `claude`.
+#   - On disconnect the pipe-pane/FIFO wrapper exits; the tmux session keeps
+#     running (its daemon owns the process). The next connect re-bridges and
+#     the user sees the live tmux scrollback via `tmux capture-pane`.
 #   - On tmux session exit (`claude` exited) the server closes the socket with
 #     code 1000 ("normal closure") so the client can render
 #     "session ended → Run again" without reconnect storms.
