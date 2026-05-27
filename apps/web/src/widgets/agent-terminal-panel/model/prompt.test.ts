@@ -17,9 +17,9 @@ describe("buildAgentPrompt", () => {
     );
   });
 
-  it("формирует фразу «проведи dream-проход по» для режима dream", () => {
+  it("формирует фразу «проведи /dream по» для режима dream", () => {
     expect(buildAgentPrompt("dream", "abc123")).toBe(
-      "Прочитай бандл dream и проведи dream-проход по интент abc123"
+      "Прочитай бандл dream и проведи /dream по интент abc123"
     );
   });
 });
