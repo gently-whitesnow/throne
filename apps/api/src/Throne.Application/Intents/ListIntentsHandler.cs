@@ -25,6 +25,8 @@ public sealed record ListIntentsQuery(IReadOnlyList<string>? Statuses = null);
 public sealed record ListIntentsPagedQuery(
     IReadOnlyList<string>? Statuses = null,
     string? TagName = null,
+    bool Untagged = false,
+    bool Pinned = false,
     string? Query = null,
     IntentListSort Sort = IntentListSort.SortKeyAsc,
     int Limit = 50,
@@ -35,6 +37,8 @@ public sealed record IntentListPage(IReadOnlyList<Intent> Items, IntentListCurso
 public sealed record IntentListSpec(
     IReadOnlyList<string>? Statuses,
     TagId? TagId,
+    bool Untagged,
+    bool Pinned,
     string? Query,
     IntentListSort Sort,
     int Limit,
@@ -74,6 +78,8 @@ public sealed class ListIntentsHandler(IIntentRepository repository, ITagReposit
         var spec = new IntentListSpec(
             Statuses: query.Statuses,
             TagId: tagId,
+            Untagged: query.Untagged,
+            Pinned: query.Pinned,
             Query: string.IsNullOrWhiteSpace(query.Query) ? null : query.Query,
             Sort: query.Sort,
             Limit: clampedLimit,

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import {
   compareSortKeys,
-  matchesContext,
+  contextToParams,
   useIntents,
   useLinksSummary,
   type IntentListItem
@@ -14,11 +14,12 @@ import { parentsFromSummary } from "./parents";
 import type { TreeLoadState, TreeNode } from "./tree-data";
 
 export function useTreeData(context: string | null): TreeLoadState {
-  // TODO follow-up: subtree endpoint for tree canvas — нынешняя реализация
-  // тянет ВСЕ интенты через useIntents (facade, автодобирает страницы), потом
-  // фильтрует по контексту в памяти. На больших датасетах это деградирует —
-  // нужен серверный endpoint, отдающий нужный подграф со связями.
-  const intentsQuery = useIntents();
+  // Контекст целиком выражается серверными фильтрами, поэтому канвас тянет
+  // только нужный бакет (а не весь список) через тот же list-эндпоинт, что и
+  // доска. useIntents — facade поверх курсорной пагинации, добирает страницы
+  // отфильтрованного контекста.
+  const params = useMemo(() => contextToParams(context), [context]);
+  const intentsQuery = useIntents(params);
   const items = intentsQuery.data ?? null;
 
   const error = intentsQuery.isError
@@ -33,16 +34,12 @@ export function useTreeData(context: string | null): TreeLoadState {
   // смене статуса. List-shape события (created/deleted) инвалидируют список
   // целиком и приводят к полному рефетчу.
 
-  // Stable ordering — same byte-wise sort_key compare the board uses.
-  const ordered = useMemo<IntentListItem[]>(() => {
+  // Stable ordering — same byte-wise sort_key compare the board uses. Items are
+  // already scoped to the context server-side, so this is the full visible set.
+  const visible = useMemo<IntentListItem[]>(() => {
     if (!items) return [];
     return [...items].sort((a, b) => compareSortKeys(a.sort_key, b.sort_key));
   }, [items]);
-
-  const visible = useMemo<IntentListItem[]>(
-    () => ordered.filter((i) => matchesContext(i, context)),
-    [context, ordered]
-  );
 
   const visibleIds = useMemo(() => visible.map((i) => i.id), [visible]);
   const linksSummary = useLinksSummary(visibleIds);

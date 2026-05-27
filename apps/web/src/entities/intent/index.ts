@@ -24,7 +24,11 @@ export type {
   IntentListSort,
   UseFlatIntentsResult
 } from "./api/intents-queries";
-export { matchesContext, contextTitle } from "./model/context-filter";
+export {
+  matchesContext,
+  contextTitle,
+  contextToParams
+} from "./model/context-filter";
 export type {
   IntentPreview,
   IntentStatus,

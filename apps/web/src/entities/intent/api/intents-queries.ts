@@ -25,6 +25,8 @@ export type IntentListSort = IntentsComponents["schemas"]["IntentListSort"];
 export interface IntentListParams {
   status?: readonly IntentStatus[];
   tag?: string;
+  untagged?: boolean;
+  pinned?: boolean;
   query?: string;
   sort?: IntentListSort;
   limit?: number;
@@ -56,6 +58,8 @@ function normalizeParams(params: IntentListParams): IntentListParams {
       trimmedTag !== undefined && trimmedTag.length > 0
         ? trimmedTag
         : undefined,
+    untagged: params.untagged ? true : undefined,
+    pinned: params.pinned ? true : undefined,
     query:
       trimmedQuery !== undefined && trimmedQuery.length > 0
         ? trimmedQuery
@@ -74,6 +78,8 @@ function buildListUrl(
   if (params.limit !== undefined) qs.set("limit", String(params.limit));
   for (const s of params.status ?? []) qs.append("status", s);
   if (params.tag) qs.set("tag", params.tag);
+  if (params.untagged) qs.set("untagged", "true");
+  if (params.pinned) qs.set("pinned", "true");
   if (params.query) qs.set("query", params.query);
   if (params.sort) qs.set("sort", params.sort);
   const base = intentsEndpoints.listIntents();

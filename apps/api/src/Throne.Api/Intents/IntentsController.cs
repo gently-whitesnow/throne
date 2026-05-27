@@ -30,9 +30,11 @@ public sealed class IntentsController(
         int? limit = null,
         IEnumerable<IntentStatus> status = null!,
         string tag = null!,
+        bool? untagged = null,
+        bool? pinned = null,
         string query = null!,
         IntentListSort? sort = null) =>
-        listIntents.RunAsync(cursor, limit, status, tag, query, sort, HttpContext.RequestAborted);
+        listIntents.RunAsync(cursor, limit, status, tag, untagged, pinned, query, sort, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<IntentEventDto>>> ListIntentEvents(string id) =>
         listIntentEvents.RunAsync(id, HttpContext.RequestAborted);

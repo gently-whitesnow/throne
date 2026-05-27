@@ -13,8 +13,8 @@ paths:
         Returns a single page of intent metadata (id, current_version, tags, timestamps)
         with a short text preview. Full text must be fetched via a dedicated read endpoint.
         Pagination is opaque-cursor (server-encoded); `next_cursor` is absent on the final page.
-        Default page size is 50, capped at 100. Filters (status, tag, query) and sort order
-        are server-driven so clients don't keep the full result set in memory.
+        Default page size is 50, capped at 100. Filters (status, tag, untagged, pinned, query)
+        and sort order are server-driven so clients don't keep the full result set in memory.
       parameters:
         - in: query
           name: cursor
@@ -48,6 +48,22 @@ paths:
             type: string
             minLength: 1
           description: Filter to intents that carry this tag (slug-style name).
+        - in: query
+          name: untagged
+          required: false
+          schema:
+            type: boolean
+          description: >
+            When true, return only intents that carry no tags at all. Mutually
+            exclusive with `tag` (combining them yields an empty page).
+        - in: query
+          name: pinned
+          required: false
+          schema:
+            type: boolean
+          description: >
+            When true, return only intents pinned into at least one context.
+            Server-side equivalent of the client "pinned" bucket.
         - in: query
           name: query
           required: false
