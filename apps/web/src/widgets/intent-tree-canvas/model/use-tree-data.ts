@@ -12,8 +12,12 @@ import { HttpError } from "@/shared/api";
 import { layoutTree } from "./layout";
 import { parentsFromSummary } from "./parents";
 import type { TreeLoadState, TreeNode } from "./tree-data";
+import { useResolvedExpansion } from "./use-resolved-expansion";
 
-export function useTreeData(context: string | null): TreeLoadState {
+export function useTreeData(
+  context: string | null,
+  showResolved: boolean
+): TreeLoadState {
   // Контекст целиком выражается серверными фильтрами, поэтому канвас тянет
   // только нужный бакет (а не весь список) через тот же list-эндпоинт, что и
   // доска. useIntents — facade поверх курсорной пагинации, добирает страницы
@@ -43,21 +47,53 @@ export function useTreeData(context: string | null): TreeLoadState {
 
   const visibleIds = useMemo(() => visible.map((i) => i.id), [visible]);
   const linksSummary = useLinksSummary(visibleIds);
+  // Resolved (done) neighbours, transitively expanded from the visible set.
+  // Disabled (zero fetches) while the toggle is off.
+  const expansion = useResolvedExpansion(showResolved, visibleIds);
 
   return useMemo<TreeLoadState>(() => {
     if (error !== null) return { kind: "error", message: error };
     if (items === null) return { kind: "loading" };
 
-    const visibleSet = new Set(visibleIds);
+    const activeIdSet = new Set(visibleIds);
+
+    // Resolved (done) neighbours pulled in by the toggle, sorted for a stable
+    // layout. Drop any that somehow collide with a live id.
+    const resolvedNodes = showResolved
+      ? [...expansion.items.values()]
+          .filter((d) => !activeIdSet.has(d.id))
+          .sort((a, b) => compareSortKeys(a.sort_key, b.sort_key))
+      : [];
+
+    // Combined visible set lets `parentsFromSummary` keep edges that cross
+    // between live and resolved nodes (both directions) instead of dropping
+    // them as it does for genuinely off-canvas peers.
+    const combinedVisible = new Set<string>(activeIdSet);
+    for (const node of resolvedNodes) combinedVisible.add(node.id);
+
     const nodes: TreeNode[] = visible.map((intent) => ({
       id: intent.id,
       intent,
+      resolved: false,
       parents: parentsFromSummary(
         linksSummary.get(intent.id),
-        visibleSet,
+        combinedVisible,
         intent.id
       )
     }));
+    for (const intent of resolvedNodes) {
+      nodes.push({
+        id: intent.id,
+        intent,
+        resolved: true,
+        parents: parentsFromSummary(
+          expansion.summaries.get(intent.id),
+          combinedVisible,
+          intent.id
+        )
+      });
+    }
+
     const { pos, bounds } = layoutTree(nodes);
     const byId = new Map<string, TreeNode>();
     for (const node of nodes) byId.set(node.id, node);
@@ -65,5 +101,13 @@ export function useTreeData(context: string | null): TreeLoadState {
       kind: "ready",
       model: { nodes, byId, positions: pos, bounds }
     };
-  }, [error, items, linksSummary, visible, visibleIds]);
+  }, [
+    error,
+    items,
+    linksSummary,
+    visible,
+    visibleIds,
+    showResolved,
+    expansion
+  ]);
 }

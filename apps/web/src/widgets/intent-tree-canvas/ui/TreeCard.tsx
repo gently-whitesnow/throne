@@ -1,18 +1,21 @@
 import { Pin } from "lucide-react";
 import { memo, type MouseEvent, type PointerEvent } from "react";
 
-import { intentStatusMeta, type IntentListItem } from "@/entities/intent";
+import { intentStatusMeta } from "@/entities/intent";
 
 import { CARD_H, CARD_W, type LayoutPosition } from "../model/layout";
+import type { CanvasCardIntent } from "../model/tree-data";
 
 interface TreeCardProps {
-  intent: IntentListItem;
+  intent: CanvasCardIntent;
   pos: LayoutPosition;
   active: boolean;
   /** True when a selection exists and this card is part of its ancestor/descendant chain. */
   related: boolean;
   /** True when a selection exists and this card is *not* in its related set. */
   unrelated: boolean;
+  /** Resolved (done) neighbour shown via the «show resolved» toggle — rendered as a muted «ghost». */
+  resolved: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -26,6 +29,7 @@ function TreeCardImpl({
   active,
   related,
   unrelated,
+  resolved,
   onSelect
 }: TreeCardProps) {
   const status = intentStatusMeta[intent.status];
@@ -55,7 +59,10 @@ function TreeCardImpl({
             ? "border border-primary/60"
             : unrelated
               ? "border border-base-300/70 hover:border-base-content/30"
-              : "border border-base-300 hover:border-base-content/30"
+              : "border border-base-300 hover:border-base-content/30",
+        // Resolved (done) ghosts read as quiet background context: dashed border
+        // and muted opacity, unless the card is the active selection.
+        resolved && !active ? "border-dashed opacity-70" : ""
       ].join(" ")}
       style={{
         left: pos.x,
