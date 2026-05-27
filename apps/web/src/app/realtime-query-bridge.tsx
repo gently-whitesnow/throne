@@ -1,4 +1,8 @@
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  useQueryClient,
+  type InfiniteData,
+  type QueryClient
+} from "@tanstack/react-query";
 
 import { dreamsQueryKeys } from "@/entities/dream-session";
 import { instructionPatchesQueryKeys } from "@/entities/instruction-patch";
@@ -13,8 +17,12 @@ import {
   type CloneStatus,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import type { IntentsComponents } from "@/shared/api";
 import { tagsQueryKeys } from "@/entities/tag";
 import { useRealtimeEvent } from "@/shared/realtime";
+
+type IntentListPage = IntentsComponents["schemas"]["IntentListPageDto"];
+type IntentListInfinite = InfiniteData<IntentListPage, string | undefined>;
 
 /**
  * Маппинг realtime-событий в инвалидацию / точечный апдейт react-query кеша.
@@ -31,13 +39,47 @@ import { useRealtimeEvent } from "@/shared/realtime";
  */
 const TEXT_SHORT_LEN = 140;
 
+/**
+ * Patches one row across every cached list-query — board, rail, tree share the
+ * `intentsQueryKeys.lists()` prefix but each has its own filter combo. Without
+ * walking all of them an update would silently miss the views the user is not
+ * looking at right now.
+ */
 function patchListItem(
   qc: QueryClient,
   intentId: string,
   change: (item: IntentListItem) => IntentListItem
 ): void {
-  qc.setQueryData<IntentListItem[]>(intentsQueryKeys.list(), (prev) =>
-    prev ? prev.map((it) => (it.id === intentId ? change(it) : it)) : prev
+  qc.setQueriesData<IntentListInfinite>(
+    { queryKey: intentsQueryKeys.lists() },
+    (prev) => {
+      if (!prev) return prev;
+      const pages = prev.pages.map((page) => {
+        const idx = page.items.findIndex((it) => it.id === intentId);
+        if (idx < 0) return page;
+        const next = page.items.slice();
+        next[idx] = change(next[idx]);
+        return { ...page, items: next };
+      });
+      const changed = pages.some((page, i) => page !== prev.pages[i]);
+      return changed ? { ...prev, pages } : prev;
+    }
+  );
+}
+
+function removeListItem(qc: QueryClient, intentId: string): void {
+  qc.setQueriesData<IntentListInfinite>(
+    { queryKey: intentsQueryKeys.lists() },
+    (prev) => {
+      if (!prev) return prev;
+      const pages = prev.pages.map((page) => {
+        const items = page.items.filter((it) => it.id !== intentId);
+        if (items.length === page.items.length) return page;
+        return { ...page, items };
+      });
+      const changed = pages.some((page, i) => page !== prev.pages[i]);
+      return changed ? { ...prev, pages } : prev;
+    }
   );
 }
 
@@ -91,9 +133,7 @@ export function RealtimeQueryBridge() {
     void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
   });
   useRealtimeEvent("intent.deleted", (payload) => {
-    qc.setQueryData<IntentListItem[]>(intentsQueryKeys.list(), (prev) =>
-      prev ? prev.filter((it) => it.id !== payload.intent_id) : prev
-    );
+    removeListItem(qc, payload.intent_id);
     qc.removeQueries({ queryKey: intentsQueryKeys.detail(payload.intent_id) });
   });
   useRealtimeEvent("intent.text_changed", (payload) => {
@@ -116,6 +156,10 @@ export function RealtimeQueryBridge() {
       updated_at: payload.updated_at
     }));
     qc.setQueryData(intentsQueryKeys.detail(payload.id), payload);
+    // Статус — фильтрующее поле: точечный патч обновит видимую строку, но
+    // отфильтрованные кэши (status=work и т.п.) могут нуждаться в пересчёте
+    // принадлежности странице. Инвалидируем — TanStack довытащит с сервера.
+    void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
   });
   useRealtimeEvent("intent.tags_changed", (payload) => {
     patchListItem(qc, payload.id, (it) => ({
@@ -125,6 +169,7 @@ export function RealtimeQueryBridge() {
       updated_at: payload.updated_at
     }));
     qc.setQueryData(intentsQueryKeys.detail(payload.id), payload);
+    void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
   });
   useRealtimeEvent("intent.pinned", (payload) => {
     patchListItem(qc, payload.intent_id, (it) => ({

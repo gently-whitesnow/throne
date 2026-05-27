@@ -1,71 +1,82 @@
-import { useState, type DragEvent, type ReactNode } from "react";
+import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
+import { useEffect, useState, type DragEvent, type RefObject } from "react";
 
+import {
+  INTENT_DND_MIME,
+  type EntityListReorder,
+  type EntityListRow
+} from "./EntityList";
 import { EntityListRowContent } from "./EntityListRow";
 
-/**
- * Custom MIME used to mark drags of intent rows from this list. Foreign drop
- * targets (например, секция «Связи» или Pinned в сайдбаре) сниффят его в
- * dragover через `dataTransfer.types`, чтобы подсветить drop-зону без чтения
- * payload.
- */
-export const INTENT_DND_MIME = "application/x-throne-intent-id";
-
-export interface EntityListRow {
-  id: string;
-  title: string;
-  subtitle?: string;
-  meta?: string;
-  badge?: string;
-  badgeColor?: string;
-  badgeTextColor?: string;
-  href: string;
-  /** Optional warning chip rendered after `meta` (e.g. "⚠ blocked by 2"). */
-  warning?: string;
-  warningTitle?: string;
-  /** Optional outline class applied to the row wrapper (used for peer-highlight). */
-  outline?: string;
-  /** Optional accent colour for a thin left-edge stripe on the row (e.g. family-grouping marker). */
-  tint?: string;
-  /** Extra inline content rendered after the warning chip (e.g. link badges). */
-  trailing?: ReactNode;
-  /** When true, renders a pin marker next to the title. Bookmarks the row in some context. */
-  pinned?: boolean;
-}
-
-/**
- * Pivot identifiers describing where a dragged item should land. The list passes
- * these to the host, which is expected to send them to a server move endpoint
- * (e.g. POST /intents/{id}/move) — the server resolves them into a sort key.
- */
-export interface EntityListReorder {
-  movedId: string;
-  beforeId: string | null;
-  afterId: string | null;
-}
-
-interface EntityListProps {
+interface VirtualEntityListProps {
   items: readonly EntityListRow[];
   emptyMessage?: string;
+  /** Element that scrolls the list — virtualizer measures viewport from it. */
+  scrollParentRef: RefObject<HTMLElement | null>;
+  /** Pixel estimate per row (real heights are measured after mount). */
+  estimateSize?: number;
+  /** Rows to render outside the viewport on either side. */
+  overscan?: number;
+  /** Called once the last visible index reaches the tail — for cursor pagination. */
+  onReachEnd?: () => void;
   /** When set, rows become draggable and this fires after a successful drop. */
   onReorder?: (move: EntityListReorder) => void;
   /** Fires when the pointer enters/leaves a row (enter delivers row id; leave delivers null). */
   onRowHover?: (id: string | null) => void;
   /** Receives the live `<li>` element for each row; lets the host position overlays. */
   rowRef?: (id: string, el: HTMLLIElement | null) => void;
+  /** Bumps whenever the host needs to know which rows are currently in the viewport. */
+  onVisibleItemsChange?: (items: readonly VirtualItem[]) => void;
 }
 
-export function EntityList({
+/**
+ * Виртуализованный аналог `EntityList`. Рендерит только видимое окно через
+ * `@tanstack/react-virtual`, сохраняя DnD/hover/rowRef-контракт оригинала.
+ *
+ * `scrollParentRef` обязателен: вирту нужен фактический scroll-контейнер, чтобы
+ * считать viewport и обновляться на скролле; без него все строки попадут в кадр
+ * (overscan=Infinity), теряя смысл виртуализации.
+ */
+export function VirtualEntityList({
   items,
   emptyMessage,
+  scrollParentRef,
+  estimateSize = 40,
+  overscan = 8,
+  onReachEnd,
   onReorder,
   onRowHover,
-  rowRef
-}: EntityListProps) {
+  rowRef,
+  onVisibleItemsChange
+}: VirtualEntityListProps) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{
     id: string;
     position: "before" | "after";
   } | null>(null);
+
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollParentRef.current,
+    estimateSize: () => estimateSize,
+    overscan
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
+
+  // Сообщаем хосту, какие строки сейчас видны — нужно для useLinksSummary
+  // и подобных «зависим только от viewport» запросов.
+  useEffect(() => {
+    onVisibleItemsChange?.(virtualItems);
+  }, [onVisibleItemsChange, virtualItems]);
+
+  // Сентинел подгрузки: достигли хвоста — просим следующую страницу.
+  useEffect(() => {
+    if (!onReachEnd || virtualItems.length === 0) return;
+    const last = virtualItems[virtualItems.length - 1];
+    if (last.index >= items.length - 1) onReachEnd();
+  }, [items.length, onReachEnd, virtualItems]);
 
   if (items.length === 0) {
     return (
@@ -105,8 +116,6 @@ export function EntityList({
 
     const targetIndex = items.findIndex((i) => i.id === id);
     if (targetIndex < 0) return;
-    // For "before target", neighbours are (targetIndex-1, targetIndex). For "after",
-    // they are (targetIndex, targetIndex+1). Skip the moved item if it sits in either slot.
     let beforeIdx =
       target.position === "before" ? targetIndex - 1 : targetIndex;
     let afterIdx = target.position === "before" ? targetIndex : targetIndex + 1;
@@ -126,8 +135,14 @@ export function EntityList({
   };
 
   return (
-    <ul className="flex flex-col py-1" role="list">
-      {items.map((row) => {
+    <ul
+      className="m-0 flex list-none flex-col p-0"
+      role="list"
+      style={{ height: totalSize, position: "relative" }}
+    >
+      {virtualItems.map((virtualRow) => {
+        if (virtualRow.index >= items.length) return null;
+        const row = items[virtualRow.index];
         const isDragging = draggingId === row.id;
         const showLineBefore =
           dropTarget?.id === row.id && dropTarget.position === "before";
@@ -136,7 +151,9 @@ export function EntityList({
         return (
           <li
             key={row.id}
+            data-index={virtualRow.index}
             ref={(el) => {
+              virtualizer.measureElement(el);
               rowRef?.(row.id, el);
             }}
             draggable={draggable}
@@ -177,7 +194,7 @@ export function EntityList({
                 : undefined
             }
             className={[
-              "relative",
+              "absolute left-0 top-0 w-full",
               row.outline ?? "",
               isDragging ? "opacity-50" : "",
               showLineBefore
@@ -189,6 +206,7 @@ export function EntityList({
             ]
               .filter(Boolean)
               .join(" ")}
+            style={{ transform: `translateY(${String(virtualRow.start)}px)` }}
           >
             <EntityListRowContent row={row} />
           </li>

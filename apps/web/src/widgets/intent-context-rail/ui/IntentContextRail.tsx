@@ -38,6 +38,10 @@ interface ContextRow {
 }
 
 export function IntentContextRail() {
+  // TODO follow-up: counts endpoint for context rail — сейчас рейл вынужден
+  // подтянуть весь список через useIntents (facade, который автодобирает все
+  // страницы), чтобы посчитать теги/архив/inbox. На больших датасетах это
+  // деградирует — нужен отдельный /api/v1/intents/contexts с агрегатами.
   const intentsQuery = useIntents();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();

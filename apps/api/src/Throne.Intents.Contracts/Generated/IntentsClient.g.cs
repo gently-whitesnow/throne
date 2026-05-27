@@ -344,6 +344,57 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Sort order applied to the list page. `sort_key_asc` (default) reflects the user-defined fractional sort_key — same order the board renders.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum IntentListSort
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"sort_key_asc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"sort_key_asc")]
+        Sort_key_asc = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"updated_desc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"updated_desc")]
+        Updated_desc = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"created_desc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"created_desc")]
+        Created_desc = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"created_asc")]
+        [System.Runtime.Serialization.EnumMember(Value = @"created_asc")]
+        Created_asc = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentListPageDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentListItemDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<IntentListItemDto>();
+
+        /// <summary>
+        /// Opaque continuation token; absent on the final page.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("next_cursor")]
+        public string Next_cursor { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentListItemDto
     {

@@ -129,6 +129,21 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                         .Ascending(x => x.OwnerUserId)
                         .Ascending(x => x.SortKey),
                     new CreateIndexOptions { Name = "owner_sort_key" }),
+                // Powers sort=updated_desc with `(updated_at desc, id asc)` keyset
+                // pagination (intent 99a2e347 — list-page performance at 100k scale).
+                new CreateIndexModel<IntentDocument>(
+                    Builders<IntentDocument>.IndexKeys
+                        .Ascending(x => x.OwnerUserId)
+                        .Descending(x => x.UpdatedAt)
+                        .Ascending(x => x.Id),
+                    new CreateIndexOptions { Name = "owner_updated_at_id" }),
+                // Powers sort=created_desc / created_asc.
+                new CreateIndexModel<IntentDocument>(
+                    Builders<IntentDocument>.IndexKeys
+                        .Ascending(x => x.OwnerUserId)
+                        .Ascending(x => x.CreatedAt)
+                        .Ascending(x => x.Id),
+                    new CreateIndexOptions { Name = "owner_created_at_id" }),
             ],
             cancellationToken);
 
