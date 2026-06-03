@@ -10,6 +10,7 @@ namespace Throne.Application.Terminals;
 public sealed class RunPreflightOrchestrator(
     RunPreflightGuards guards,
     RunPreflightAutoBind autoBind,
+    RunPreflightCloneScheduler cloneQueue,
     RunPreflightCloneWait cloneWait,
     RunPreflightSpawn spawner)
 {
@@ -27,6 +28,7 @@ public sealed class RunPreflightOrchestrator(
         await guards.EnsureSessionSlotAsync(intent.Id.Value, sessionName, restart, ct);
 
         await autoBind.ApplyAsync(intent, ct);
+        await cloneQueue.EnqueuePendingAndFailedAsync(intent.Id, ct);
         var waitResult = await cloneWait.WaitAsync(intent.Id, ct);
         RunPreflightSession.EnsureWaitDidNotTimeOut(intent.Id.Value, waitResult);
 

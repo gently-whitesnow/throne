@@ -35,9 +35,9 @@ export function AgentTerminalPanel({ intentId }: AgentTerminalPanelProps) {
   const [mode, setMode] = useState<TerminalRunMode>("work");
   const { capabilities, isLoading: capabilitiesLoading } = useCapabilities();
   const { bindings } = useIntentRepositories(intentId);
-  const session = useTerminalSession(intentId);
 
   const terminalEnabled = isCapabilityEnabled(capabilities, "terminal");
+  const session = useTerminalSession(intentId, terminalEnabled);
   const sessionLive =
     session.state === "running" || session.state === "spawning";
 

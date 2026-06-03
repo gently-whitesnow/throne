@@ -7,7 +7,9 @@ using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Terminals;
 
-public sealed class TerminalController(RunPreflightOrchestrator orchestrator) : TerminalControllerBase
+public sealed class TerminalController(
+    RunPreflightOrchestrator orchestrator,
+    TerminalSessionStatusService statusService) : TerminalControllerBase
 {
     public override Task<ActionResult<RunIntentTerminalResponse>> RunIntentTerminal(
         string intent_id,
@@ -18,6 +20,19 @@ public sealed class TerminalController(RunPreflightOrchestrator orchestrator) : 
         string intent_id,
         RunIntentTerminalRequest body) =>
         ExecuteAsync(intent_id, body, restart: true);
+
+    public override async Task<ActionResult<RunIntentTerminalResponse>> GetIntentTerminalSession(string intent_id)
+    {
+        try
+        {
+            var result = await statusService.GetAsync(intent_id, HttpContext.RequestAborted);
+            return Ok(TerminalRunResponseMapper.ToDto(result));
+        }
+        catch (ApiException ex)
+        {
+            return TerminalErrorMapper.Map(ex);
+        }
+    }
 
     private async Task<ActionResult<RunIntentTerminalResponse>> ExecuteAsync(
         string intentId,

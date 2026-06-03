@@ -73,6 +73,42 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/terminal/session:
+    get:
+      operationId: getIntentTerminalSession
+      tags: [Terminal]
+      summary: Observe the current tmux session state for an intent.
+      description: >
+        Read-only status probe used by the intent page on mount/reload. It does not
+        auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted
+        session state. `tmux has-session -t throne-{intent_id}` remains the source
+        of truth; when it returns true the UI can immediately attach the WebSocket
+        to the existing session and show tmux scrollback.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current terminal session snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunIntentTerminalResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability `terminal` disabled.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/terminal/restart:
     post:
       operationId: restartIntentTerminal

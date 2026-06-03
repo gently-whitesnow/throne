@@ -53,6 +53,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> RunIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] RunIntentTerminalRequest body);
 
         /// <summary>
+        /// Observe the current tmux session state for an intent.
+        /// </summary>
+        /// <remarks>
+        /// Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted session state. `tmux has-session -t throne-{intent_id}` remains the source of truth; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback.
+        /// </remarks>
+        /// <returns>Current terminal session snapshot.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/session", Name = "getIntentTerminalSession")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> GetIntentTerminalSession([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
+
+        /// <summary>
         /// Kill the live tmux session and re-run the pre-flight pipeline.
         /// </summary>
         /// <remarks>

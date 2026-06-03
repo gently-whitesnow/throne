@@ -67,21 +67,21 @@ public class RunPreflightOrchestratorTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Run с failed-binding возвращает blocked и не спавнит tmux")]
-    public async Task Run_blocked_when_binding_failed()
+    [Fact(DisplayName = "Run с broken-binding возвращает blocked и не спавнит tmux")]
+    public async Task Run_blocked_when_binding_broken()
     {
-        var failed = NewBinding(cloneStatus: CloneStatusNames.Failed);
+        var broken = NewBinding(cloneStatus: CloneStatusNames.Broken);
         var fixture = new Fixture().Setup(
             capabilityEnabled: true,
             intentExists: true,
             hasSession: false,
-            bindings: [failed]);
+            bindings: [broken]);
 
         var result = await fixture.Orchestrator.RunAsync(
             IntentIdValue, TerminalRunModes.Work, restart: false, CancellationToken.None);
 
         result.SessionState.Should().Be(TerminalSessionStates.Blocked);
-        result.BlockingBindings.Should().ContainSingle().Which.Should().Be(failed.Id.Value);
+        result.BlockingBindings.Should().ContainSingle().Which.Should().Be(broken.Id.Value);
         await fixture.Tmux.DidNotReceive().SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
     }
 
@@ -193,19 +193,22 @@ public class RunPreflightOrchestratorTests
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clockShared);
             var stateRefresher = new PullRequestStateRefresher(Bindings, uow, clockShared);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
+            var cloneQueue = Substitute.For<IRepositoryCloneRequests>();
             var bindingService = new RepositoryBindingService(
                 resolver,
                 persistence,
                 syncWorkflow,
-                Substitute.For<IRepositoryCloneRequests>(),
+                cloneQueue,
                 workspace);
 
             var union = new TagDefaultsUnion(Tags);
+            var transitions = new RepositoryCloneTransitionWriter(Bindings, uow, clockShared);
             var autoBind = new RunPreflightAutoBind(union, Bindings, bindingService);
+            var queue = new RunPreflightCloneScheduler(Bindings, cloneQueue, transitions);
             var cloneWait = new RunPreflightCloneWait(Bindings, new RunPreflightOptions(), clockShared);
             var spawn = new RunPreflightSpawn(Tmux, workspace);
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
-            Orchestrator = new RunPreflightOrchestrator(guards, autoBind, cloneWait, spawn);
+            Orchestrator = new RunPreflightOrchestrator(guards, autoBind, queue, cloneWait, spawn);
         }
 
         public IIntentRepository Intents { get; }

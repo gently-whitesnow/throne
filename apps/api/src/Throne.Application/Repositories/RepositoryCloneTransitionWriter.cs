@@ -18,6 +18,10 @@ public sealed class RepositoryCloneTransitionWriter(
         IntentRepositoryBinding binding, CancellationToken ct) =>
         SaveAsync(binding, b => b.MarkCloning(clock.GetUtcNow()), ct);
 
+    public Task<RepositoryCloneTransitionOutcome> MarkPendingRetryAsync(
+        IntentRepositoryBinding binding, CancellationToken ct) =>
+        SaveAsync(binding, b => b.MarkPendingRetry(clock.GetUtcNow()), ct);
+
     public Task<RepositoryCloneTransitionOutcome> MarkReadyAsync(
         IntentRepositoryBinding binding, CancellationToken ct) =>
         SaveAsync(binding, b => b.MarkReady(clock.GetUtcNow()), ct);

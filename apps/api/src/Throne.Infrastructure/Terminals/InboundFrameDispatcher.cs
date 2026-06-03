@@ -1,10 +1,11 @@
+using System.Globalization;
 using System.Text;
 
 namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Maps a parsed <see cref="ClientFrame"/> to the matching tmux subcommand
-/// (<c>send-keys -H</c> for input bytes, <c>refresh-client -C</c> for resize).
+/// (<c>send-keys -H</c> for input bytes, <c>resize-window</c> for geometry).
 /// Lives in its own type so <see cref="TerminalInboundPump"/> keeps a flat shape.
 /// </summary>
 internal sealed class InboundFrameDispatcher(TmuxCli tmux)
@@ -33,5 +34,11 @@ internal sealed class InboundFrameDispatcher(TmuxCli tmux)
     }
 
     private async Task SendResizeAsync(string sessionName, int cols, int rows, CancellationToken ct) =>
-        await tmux.RunAsync(["refresh-client", "-t", sessionName, "-C", $"{cols}x{rows}"], ct);
+        await tmux.RunAsync(
+            [
+                "resize-window", "-t", sessionName,
+                "-x", cols.ToString(CultureInfo.InvariantCulture),
+                "-y", rows.ToString(CultureInfo.InvariantCulture),
+            ],
+            ct);
 }
