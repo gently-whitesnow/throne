@@ -17,7 +17,7 @@ version: 1
 # Lifecycle:
 #   - Server bridges the per-intent tmux session to the socket via the tmux CLI
 #     (`tmux pipe-pane` + FIFO for output, `tmux send-keys -H` for input,
-#     `tmux refresh-client -S` for resize) — no PTY allocation on the server
+#     `tmux resize-window` for resize) — no PTY allocation on the server
 #     side, tmux already owns the PTY around `claude`.
 #   - On disconnect the pipe-pane/FIFO wrapper exits; the tmux session keeps
 #     running (its daemon owns the process). The next connect re-bridges and

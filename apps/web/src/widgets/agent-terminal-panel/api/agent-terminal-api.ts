@@ -1,4 +1,4 @@
-import { httpPost, terminalEndpoints } from "@/shared/api";
+import { httpGet, httpPost, terminalEndpoints } from "@/shared/api";
 
 import type {
   RunIntentTerminalResponse,
@@ -13,6 +13,16 @@ export function runIntentTerminal(
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.runIntentTerminal(intentId),
     { mode },
+    signal
+  );
+}
+
+export function getIntentTerminalSession(
+  intentId: string,
+  signal?: AbortSignal
+): Promise<RunIntentTerminalResponse> {
+  return httpGet<RunIntentTerminalResponse>(
+    terminalEndpoints.getIntentTerminalSession(intentId),
     signal
   );
 }

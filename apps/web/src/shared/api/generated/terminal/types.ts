@@ -37,6 +37,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/terminal/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Observe the current tmux session state for an intent.
+         * @description Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted session state. `tmux has-session -t throne-{intent_id}` remains the source of truth; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback.
+         */
+        get: operations["getIntentTerminalSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/terminal/restart": {
         parameters: {
             query?: never;
@@ -158,6 +178,46 @@ export interface operations {
                 };
             };
             /** @description Capability `terminal` disabled, prerequisite missing, or invalid mode. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getIntentTerminalSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current terminal session snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunIntentTerminalResponse"];
+                };
+            };
+            /** @description Intent not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Capability `terminal` disabled. */
             422: {
                 headers: {
                     [name: string]: unknown;

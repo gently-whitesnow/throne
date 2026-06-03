@@ -12,7 +12,7 @@ public class RepositoryCloneServiceParallelRunnerTests
     [Fact(DisplayName = "Параллельный runner соблюдает MaxParallel=2 для четырёх pending-binding'ов")]
     public async Task Runner_respects_max_parallel_limit()
     {
-        await using var harness = await CloneRunnerHarness.StartAsync(maxParallel: 2, pendingCount: 4);
+        await using var harness = await CloneRunnerHarnessStarter.StartAsync(maxParallel: 2, pendingCount: 4);
 
         // 4 binding'а в очереди + лимит 2 → должно подняться ровно два одновременно.
         await harness.WaitForInFlightAsync(2);
@@ -20,8 +20,10 @@ public class RepositoryCloneServiceParallelRunnerTests
 
         // Освобождаем по одному и убеждаемся, что освобождённый слот тут же берёт следующий.
         await harness.ReleaseOneAsync();
+        await harness.WaitForCompletedAsync(1);
         await harness.WaitForInFlightAsync(2);
         await harness.ReleaseOneAsync();
+        await harness.WaitForCompletedAsync(2);
         await harness.WaitForInFlightAsync(2);
         harness.ReleaseRemaining();
         await harness.WaitForAllCompletedAsync();
@@ -32,7 +34,7 @@ public class RepositoryCloneServiceParallelRunnerTests
     [Fact(DisplayName = "MaxParallel=1 даёт последовательную обработку")]
     public async Task Runner_serialises_when_max_parallel_is_one()
     {
-        await using var harness = await CloneRunnerHarness.StartAsync(maxParallel: 1, pendingCount: 3);
+        await using var harness = await CloneRunnerHarnessStarter.StartAsync(maxParallel: 1, pendingCount: 3);
 
         // Каждый раз ждём, когда runner поднимет следующий клон, отпускаем его,
         // повторяем три раза. Это и проверяет лимит 1, и гарантирует drain очереди.

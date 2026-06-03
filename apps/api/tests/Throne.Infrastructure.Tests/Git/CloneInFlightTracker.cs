@@ -3,20 +3,16 @@ using FluentAssertions;
 
 namespace Throne.Infrastructure.Tests.Git;
 
-/// <summary>
-/// Счётчик активных «клонов» + бэк-канал releases. BeginAsync вызывается stub'ом
-/// внутри теста; gate берётся из bag'а через <see cref="ReleaseOneAsync"/> с
-/// polling'ом (между BeginAsync соседних клонов есть микро-окно, когда
-/// gate ещё не добавлен).
-/// </summary>
 internal sealed class CloneInFlightTracker
 {
     private readonly ConcurrentBag<TaskCompletionSource> _gates = new();
     private readonly Lock _maxLock = new();
     private int _inFlight;
+    private int _completed;
     private int _maxObserved;
 
     public int InFlight => Volatile.Read(ref _inFlight);
+    public int Completed => Volatile.Read(ref _completed);
 
     public int MaxObserved
     {
@@ -33,18 +29,16 @@ internal sealed class CloneInFlightTracker
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _gates.Add(gate);
-        var current = Interlocked.Increment(ref _inFlight);
-        UpdateMax(current);
+        UpdateMax(Interlocked.Increment(ref _inFlight));
         return gate.Task.ContinueWith(
-            _ => Interlocked.Decrement(ref _inFlight),
+            _ =>
+            {
+                Interlocked.Decrement(ref _inFlight);
+                Interlocked.Increment(ref _completed);
+            },
             TaskContinuationOptions.ExecuteSynchronously);
     }
 
-    /// <summary>
-    /// Между Interlocked.Decrement в ContinueWith и Interlocked.Increment следующего
-    /// BeginAsync есть микро-окно: InFlight уже &gt;= expected, но новый gate ещё не в
-    /// bag'е. Поэтому пытаемся забрать gate с polling'ом.
-    /// </summary>
     public bool TryTakeGate(out TaskCompletionSource gate) => _gates.TryTake(out gate!);
 
     private void UpdateMax(int current)
@@ -96,6 +90,17 @@ internal static class CloneInFlightWaits
         }
         tracker.InFlight.Should().BeGreaterOrEqualTo(expected,
             $"runner должен был поднять минимум {expected} клонов в параллель");
+    }
+
+    public static async Task WaitForCompletedAsync(this CloneInFlightTracker tracker, int expected, TimeSpan budget)
+    {
+        var deadline = DateTime.UtcNow + budget;
+        while (tracker.Completed < expected && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10);
+        }
+        tracker.Completed.Should().BeGreaterOrEqualTo(expected,
+            $"runner должен был завершить минимум {expected} клонов");
     }
 
     public static async Task WaitForAllCompletedAsync(this CloneInFlightTracker tracker, TimeSpan budget)

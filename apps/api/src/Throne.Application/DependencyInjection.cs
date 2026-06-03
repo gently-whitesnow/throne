@@ -92,10 +92,12 @@ public static class DependencyInjection
         services.AddSingleton<CapabilitiesService>();
         services.AddSingleton<TagDefaultsUnion>();
         services.AddSingleton<RunPreflightAutoBind>();
+        services.AddSingleton<RunPreflightCloneScheduler>();
         services.AddSingleton<RunPreflightCloneWait>();
         services.AddSingleton<RunPreflightSpawn>();
         services.AddSingleton<RunPreflightGuards>();
         services.AddSingleton<RunPreflightOrchestrator>();
+        services.AddSingleton<TerminalSessionStatusService>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
         // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by

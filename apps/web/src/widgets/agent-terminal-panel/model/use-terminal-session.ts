@@ -1,8 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { HttpError } from "@/shared/api";
 
 import {
+  getIntentTerminalSession,
   restartIntentTerminal,
   runIntentTerminal
 } from "../api/agent-terminal-api";
@@ -48,35 +49,57 @@ const INITIAL: InternalState = {
   startedAt: null
 };
 
-export function useTerminalSession(intentId: string): TerminalSessionView {
+export function useTerminalSession(
+  intentId: string,
+  terminalEnabled: boolean
+): TerminalSessionView {
   const [internal, setInternal] = useState<InternalState>(INITIAL);
   const [isStarting, setIsStarting] = useState(false);
-  const [attempt, setAttempt] = useState(0);
 
   const apply = useCallback(
-    (response: RunIntentTerminalResponse) => {
-      const nextAttempt =
-        response.session_state === "running" ||
-        response.session_state === "spawning"
-          ? attempt + 1
-          : attempt;
-      setAttempt(nextAttempt);
-      setInternal({
-        state: response.session_state,
-        lastResponse: response,
-        error:
-          response.session_state === "blocked"
-            ? "Клон части репозиториев не готов — спавн агента невозможен."
-            : null,
-        startedAt:
+    (response: RunIntentTerminalResponse, fromProbe = false) => {
+      setInternal((prev) => {
+        const hasLiveSession =
           response.session_state === "running" ||
-          response.session_state === "spawning"
+          response.session_state === "spawning";
+        const nextAttempt = hasLiveSession
+          ? (prev.startedAt?.attempt ?? 0) + 1
+          : (prev.startedAt?.attempt ?? 0);
+        return {
+          state:
+            fromProbe && response.session_state === "exited"
+              ? "idle"
+              : response.session_state,
+          lastResponse: response,
+          error:
+            response.session_state === "blocked"
+              ? "Клон части репозиториев не готов — спавн агента невозможен."
+              : null,
+          startedAt: hasLiveSession
             ? { attempt: nextAttempt, sessionName: response.session_name }
             : null
+        };
       });
     },
-    [attempt]
+    []
   );
+
+  useEffect(() => {
+    if (!terminalEnabled) return;
+    const abort = new AbortController();
+    void (async () => {
+      try {
+        const response = await getIntentTerminalSession(intentId, abort.signal);
+        apply(response, true);
+      } catch (err) {
+        if (abort.signal.aborted) return;
+        setInternal((prev) => ({ ...prev, error: deriveErrorMessage(err) }));
+      }
+    })();
+    return () => {
+      abort.abort();
+    };
+  }, [intentId, terminalEnabled, apply]);
 
   const runImpl = useCallback(
     async (mode: TerminalRunMode, restart: boolean) => {

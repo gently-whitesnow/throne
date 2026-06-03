@@ -18,7 +18,7 @@ public sealed class TmuxOptions
     /// <summary>
     /// Maximum wall-clock for any single tmux subcommand (`new`, `has-session`,
     /// `kill-session`, `ls`, `send-keys`, `capture-pane`, `pipe-pane`,
-    /// `refresh-client`). 10s is comfortable — most calls return in single-digit ms.
+    /// `resize-window`). 10s is comfortable — most calls return in single-digit ms.
     /// </summary>
     public TimeSpan CommandTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
