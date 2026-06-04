@@ -103,15 +103,15 @@ function CapabilityRow({ capability }: { capability: Capability }) {
       data-detected={capability.detected}
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 p-4"
     >
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
           <span
             aria-hidden
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
           >
             <Icon size={18} strokeWidth={2} />
           </span>
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1">
             <h3 className="m-0 text-base font-semibold leading-tight">
               {capability.title}
             </h3>
@@ -122,6 +122,7 @@ function CapabilityRow({ capability }: { capability: Capability }) {
         </div>
         <ToggleSwitch
           name={capability.name}
+          title={capability.title}
           checked={capability.enabled}
           disabled={toggle.isPending}
           onChange={handleToggle}
@@ -193,6 +194,7 @@ function PrerequisiteRow({ capability }: { capability: Capability }) {
 
 interface ToggleSwitchProps {
   name: CapabilityName;
+  title: string;
   checked: boolean;
   disabled: boolean;
   onChange: (next: boolean) => void;
@@ -200,28 +202,38 @@ interface ToggleSwitchProps {
 
 function ToggleSwitch({
   name,
+  title,
   checked,
   disabled,
   onChange
 }: ToggleSwitchProps) {
   return (
     <label
-      className="flex select-none items-center gap-2 text-xs font-medium text-base-content/70"
+      className="flex shrink-0 cursor-pointer select-none items-center gap-2"
       htmlFor={`capability-toggle-${name}`}
     >
-      <span className="sr-only">Включить возможность</span>
+      <span className="sr-only">{`${title} — включить возможность`}</span>
+      <span
+        aria-hidden
+        className={
+          checked
+            ? "text-xs font-semibold uppercase tracking-wide text-primary"
+            : "text-xs font-semibold uppercase tracking-wide text-base-content/50"
+        }
+      >
+        {checked ? "Вкл" : "Выкл"}
+      </span>
       <input
         id={`capability-toggle-${name}`}
         data-testid={`capability-toggle-${name}`}
         type="checkbox"
-        className="toggle toggle-sm toggle-primary"
+        className="toggle toggle-primary"
         checked={checked}
         disabled={disabled}
         onChange={(event) => {
           onChange(event.target.checked);
         }}
       />
-      <span>{checked ? "вкл." : "выкл."}</span>
     </label>
   );
 }
