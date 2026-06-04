@@ -16,8 +16,10 @@ public class RepositoryBindingServiceTests
     private const string WorkspaceRoot = "/tmp/throne-test-workspaces";
     private const string IntentIdValue = "intent-1";
 
-    [Fact(DisplayName = "Bind создаёт binding, считает workspace_path и пушит в clone-queue")]
-    public async Task Bind_persists_binding_and_enqueues_clone()
+    [Theory(DisplayName = "Bind создаёт binding, считает workspace_path и пушит в clone-queue по флагу enqueueClone")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Bind_persists_binding_and_enqueues_clone(bool enqueueClone)
     {
         var fixture = new ServiceFixture();
         fixture.IntentExists(IntentIdValue);
@@ -26,7 +28,8 @@ public class RepositoryBindingServiceTests
 
         var binding = await fixture.Service.BindAsync(
             new BindRepositoryCommand(IntentIdValue, GitProviderNames.GitHub, "octo", "hello", DefaultBranch: null, PullRequestNumber: 42),
-            CancellationToken.None);
+            CancellationToken.None,
+            enqueueClone: enqueueClone);
 
         binding.Coordinate.Provider.Should().Be(GitProviderNames.GitHub);
         binding.WorkspacePath.Should().Be($"{WorkspaceRoot}/intents/{IntentIdValue}/octo__hello");
@@ -36,7 +39,16 @@ public class RepositoryBindingServiceTests
         await fixture.Bindings.Received(1).CreateAsync(
             Arg.Is<IntentRepositoryBinding>(b => b.Coordinate.Owner == "octo" && b.Coordinate.Repo == "hello"),
             Arg.Any<CancellationToken>());
-        fixture.Queue.Enqueued.Should().ContainSingle().Which.Should().Be(binding.Id);
+        // enqueueClone:false — авто-байнд Run pre-flight: клон ставит в очередь следующий шаг
+        // (RunPreflightCloneScheduler), а не сам bind, иначе binding попадёт в очередь дважды.
+        if (enqueueClone)
+        {
+            fixture.Queue.Enqueued.Should().ContainSingle().Which.Should().Be(binding.Id);
+        }
+        else
+        {
+            fixture.Queue.Enqueued.Should().BeEmpty();
+        }
     }
 
     [Fact(DisplayName = "Bind на повторный (owner, repo) даёт 409 repository_binding.already_exists")]

@@ -19,7 +19,15 @@ public sealed class RepositoryBindingService(
     RepositoryPullRequestSyncWorkflow syncWorkflow,
     IRepositoryCloneRequests cloneQueue)
 {
-    public async Task<IntentRepositoryBinding> BindAsync(BindRepositoryCommand command, CancellationToken ct)
+    /// <param name="enqueueClone">
+    /// Schedule the clone right after persisting the binding. The standalone manual-bind
+    /// endpoint passes <c>true</c> so the clone starts immediately. The Run pre-flight
+    /// auto-bind passes <c>false</c>: <see cref="Terminals.RunPreflightCloneScheduler"/> runs
+    /// in the very next orchestrator step and enqueues every <c>pending</c> binding, so a
+    /// bind-time enqueue here would queue the same binding twice for one Run.
+    /// </param>
+    public async Task<IntentRepositoryBinding> BindAsync(
+        BindRepositoryCommand command, CancellationToken ct, bool enqueueClone = true)
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -29,7 +37,10 @@ public sealed class RepositoryBindingService(
 
         var binding = persistence.BuildPendingBinding(command, intentId);
         var created = await persistence.CreateAsync(binding, ct);
-        await cloneQueue.EnqueueAsync(created.Id, ct);
+        if (enqueueClone)
+        {
+            await cloneQueue.EnqueueAsync(created.Id, ct);
+        }
         return created;
     }
 

@@ -52,6 +52,24 @@ public class RepositoryCloneWorkflowTests
         binding.State.CloneError.Should().Be("gh exit 128: not found");
     }
 
+    [Fact(DisplayName = "RunAsync: проигран claim (конкурентный воркер) — AlreadyProcessed без клона")]
+    public async Task RunAsync_lost_claim_skips_clone()
+    {
+        var fixture = new WorkflowFixture();
+        var binding = fixture.SeedPendingBinding();
+        // The CAS matched no row: another worker already flipped pending → cloning.
+        fixture.Bindings.ClaimCloningAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.NotFound()));
+
+        var result = await fixture.Workflow.RunAsync(binding.Id, CancellationToken.None);
+
+        result.Should().Be(CloneRunResult.AlreadyProcessed);
+        await fixture.Provider.DidNotReceive().CloneRepositoryAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await fixture.Bindings.DidNotReceive().SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
+        fixture.Events.OfType<IntentRepositoryCloneProgress>().Should().BeEmpty();
+    }
+
     [Fact(DisplayName = "RunAsync: уже не pending — no-op без save")]
     public async Task RunAsync_non_pending_is_noop()
     {
@@ -120,6 +138,15 @@ public class RepositoryCloneWorkflowTests
 
             Captured = new CapturedTransitions();
             Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
+                .Returns(ci =>
+                {
+                    var b = ci.Arg<IntentRepositoryBinding>();
+                    Captured.Statuses.Add(b.State.CloneStatus);
+                    return Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(b));
+                });
+            // pending → cloning goes through the atomic claim. Default: claim is won.
+            // Tests that simulate a lost race override this with NotFound.
+            Bindings.ClaimCloningAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
                 .Returns(ci =>
                 {
                     var b = ci.Arg<IntentRepositoryBinding>();

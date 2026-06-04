@@ -51,6 +51,9 @@ public sealed class RunPreflightAutoBind(
         string intentId,
         TagDefaultRepository defaultRepo,
         CancellationToken ct) =>
+        // enqueueClone: false — RunPreflightCloneScheduler runs in the next orchestrator step
+        // and enqueues every pending binding, so enqueuing here too would queue this binding
+        // twice for a single Run (and race two `gh clone` into the same workspace path).
         bindingService.BindAsync(
             new BindRepositoryCommand(
                 IntentId: intentId,
@@ -59,5 +62,6 @@ public sealed class RunPreflightAutoBind(
                 Repo: defaultRepo.Coordinate.Repo,
                 DefaultBranch: defaultRepo.DefaultBranch,
                 PullRequestNumber: null),
-            ct);
+            ct,
+            enqueueClone: false);
 }

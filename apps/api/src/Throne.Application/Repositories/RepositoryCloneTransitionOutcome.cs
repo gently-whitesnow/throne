@@ -16,6 +16,13 @@ public abstract record RepositoryCloneTransitionOutcome : IDomainEventCarrier
 
     public virtual IReadOnlyList<IDomainEvent> Events => [];
 
+    /// <summary>
+    /// <c>true</c> when the transition hit a row (event emitted). For the cloning claim a
+    /// <c>false</c> here means the CAS was lost / the binding vanished — the caller must not
+    /// proceed with the clone.
+    /// </summary>
+    public bool WasPersisted => this is PersistedOutcome;
+
     public static RepositoryCloneTransitionOutcome Persisted(IntentRepositoryBinding binding) =>
         new PersistedOutcome(binding);
 
