@@ -7,8 +7,9 @@ using Microsoft.Extensions.Logging;
 namespace Throne.Api.Mcp;
 
 /// <summary>
-/// Periodically writes an SSE keep-alive comment frame onto the GET <c>/mcp</c> server→client
-/// stream so intermediate proxies and the client's HTTP layer (e.g. mcp-remote / undici on
+/// Periodically writes an SSE keep-alive comment frame onto any long-lived <c>/mcp</c>
+/// streamable-HTTP response (the GET listening stream and the SSE-bodied POST responses)
+/// so intermediate proxies and the client's HTTP layer (e.g. mcp-remote / undici on
 /// Node.js, which raises <c>UND_ERR_HEADERS_TIMEOUT</c> after ~5 min of idle) do not abort the
 /// long-lived connection. Mirrors the keep-alive pattern in
 /// <see cref="Realtime.RealtimeController"/>; ModelContextProtocol.AspNetCore 0.3.0-preview.4
@@ -35,8 +36,9 @@ public sealed partial class McpKeepAliveMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (!HttpMethods.IsGet(context.Request.Method) ||
-            !context.Request.Path.Equals("/mcp", StringComparison.OrdinalIgnoreCase))
+        // Cover every /mcp request, not just GET: streamable-HTTP keeps the server→client
+        // SSE stream open on POST responses too, so a method gate would leave those hanging.
+        if (!context.Request.Path.Equals("/mcp", StringComparison.OrdinalIgnoreCase))
         {
             await _next(context);
             return;

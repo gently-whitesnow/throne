@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Auth;
+using Throne.Api.Hosting;
 using Throne.Api.Intents;
 using Throne.Api.Realtime;
 using Throne.Api.Repositories;
@@ -37,6 +38,9 @@ public static class ThroneMcpCoreServices
         // HttpRequest.Scheme = "http" даже на HTTPS-запросе → ломает RFC 9728
         // metadata и resource_metadata в WWW-Authenticate (см. ForwardedHeadersConfig).
         services.AddTrustedReverseProxyForwarding();
+        // Bound the graceful-shutdown backstop (default 30s → 10s); long-lived
+        // connections still unwind promptly on ApplicationStopping themselves.
+        services.AddBoundedGracefulShutdown();
         return services;
     }
 }

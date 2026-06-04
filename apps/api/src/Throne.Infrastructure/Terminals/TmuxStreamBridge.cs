@@ -81,7 +81,7 @@ internal sealed class TmuxStreamBridge(
         while (!ct.IsCancellationRequested)
         {
             await Task.Delay(SessionPollInterval, ct);
-            if (!await sessions.HasSessionAsync(intentId, CancellationToken.None))
+            if (!await sessions.HasSessionAsync(intentId, ct))
             {
                 return;
             }
