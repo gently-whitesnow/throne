@@ -103,19 +103,19 @@ function CapabilityRow({ capability }: { capability: Capability }) {
       data-detected={capability.detected}
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 p-4"
     >
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <span
             aria-hidden
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
           >
             <Icon size={18} strokeWidth={2} />
           </span>
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1">
             <h3 className="m-0 text-base font-semibold leading-tight">
               {capability.title}
             </h3>
-            <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
+            <p className="m-0 text-sm leading-relaxed text-base-content/70">
               {capability.description}
             </p>
           </div>
@@ -206,22 +206,32 @@ function ToggleSwitch({
 }: ToggleSwitchProps) {
   return (
     <label
-      className="flex select-none items-center gap-2 text-xs font-medium text-base-content/70"
+      className="flex shrink-0 cursor-pointer select-none items-center gap-2"
       htmlFor={`capability-toggle-${name}`}
     >
-      <span className="sr-only">Включить возможность</span>
+      <span
+        aria-hidden
+        className={
+          checked
+            ? "text-xs font-semibold text-primary"
+            : "text-xs font-medium text-base-content/45"
+        }
+      >
+        {checked ? "вкл." : "выкл."}
+      </span>
       <input
         id={`capability-toggle-${name}`}
         data-testid={`capability-toggle-${name}`}
         type="checkbox"
-        className="toggle toggle-sm toggle-primary"
+        role="switch"
+        aria-label="Включить возможность"
+        className="toggle toggle-primary"
         checked={checked}
         disabled={disabled}
         onChange={(event) => {
           onChange(event.target.checked);
         }}
       />
-      <span>{checked ? "вкл." : "выкл."}</span>
     </label>
   );
 }
