@@ -4,6 +4,7 @@ using Throne.Api.Mcp.Tools;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
+using Throne.Application.Terminals;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 using Tag = Throne.Domain.Tags.Tag;
@@ -29,7 +30,7 @@ public class IntentToolsListTests
         tagRepo.ListAllAsync(Arg.Any<CancellationToken>())
             .Returns([Tag.Create(sharedTagId, "shared", Now)]);
 
-        var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
+        var listHandler = new ListIntentsHandler(intentRepo, tagRepo, Substitute.For<ITmuxSessionManager>());
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
         var result = await tools.ListIntents(
@@ -55,7 +56,7 @@ public class IntentToolsListTests
         var tagRepo = Substitute.For<ITagRepository>();
         tagRepo.ListAllAsync(Arg.Any<CancellationToken>()).Returns([]);
 
-        var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
+        var listHandler = new ListIntentsHandler(intentRepo, tagRepo, Substitute.For<ITmuxSessionManager>());
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
         var result = await tools.ListIntents(
@@ -71,7 +72,7 @@ public class IntentToolsListTests
     {
         var intentRepo = Substitute.For<IIntentRepository>();
         var tagRepo = Substitute.For<ITagRepository>();
-        var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
+        var listHandler = new ListIntentsHandler(intentRepo, tagRepo, Substitute.For<ITmuxSessionManager>());
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
         var act = () => tools.ListIntents(
@@ -87,7 +88,7 @@ public class IntentToolsListTests
     {
         var intentRepo = Substitute.For<IIntentRepository>();
         var tagRepo = Substitute.For<ITagRepository>();
-        var listHandler = new ListIntentsHandler(intentRepo, tagRepo);
+        var listHandler = new ListIntentsHandler(intentRepo, tagRepo, Substitute.For<ITmuxSessionManager>());
         var tools = NewTools(intentRepo, tagRepo, listHandler);
 
         var act = () => tools.ListIntents(

@@ -214,6 +214,18 @@ export function RealtimeQueryBridge() {
     }));
   });
 
+  // tmux liveness hints (Slice 2). Membership in the "terminal running" bucket is
+  // server-derived from tmux, so we can't patch a row locally — invalidate the contexts
+  // counter and any list filtered by terminal_running so both refetch from the live set.
+  useRealtimeEvent("terminal.session_started", () => {
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
+    void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
+  });
+  useRealtimeEvent("terminal.session_stopped", () => {
+    void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
+    void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
+  });
+
   useRealtimeEvent("intent.attachment_added", (payload) => {
     void qc.invalidateQueries({
       queryKey: intentsQueryKeys.attachments(payload.intent_id)

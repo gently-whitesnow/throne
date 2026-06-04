@@ -78,6 +78,14 @@ internal sealed class MongoIntentReader(
             clauses.Add(fb.Size(d => d.TagIds, 0));
         }
 
+        // Restrict to an externally-resolved id set (the live tmux session set for the
+        // `terminal_running` filter). The handler short-circuits an empty set, so an empty
+        // list here would only ever come from a caller passing one intentionally.
+        if (spec.Ids is { Count: > 0 })
+        {
+            clauses.Add(fb.In(d => d.Id, spec.Ids));
+        }
+
         if (spec.Pinned)
         {
             var pinnedIds = await ListPinnedIntentIdsAsync(session, ct);

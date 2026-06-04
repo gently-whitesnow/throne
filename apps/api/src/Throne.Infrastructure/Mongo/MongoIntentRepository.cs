@@ -70,8 +70,9 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
     public Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct) =>
         _reader.ListPagedAsync(spec, ct);
 
-    public Task<IntentContextCounts> GetContextCountsAsync(CancellationToken ct) =>
-        _contextReader.GetContextCountsAsync(ct);
+    public Task<IntentContextCounts> GetContextCountsAsync(
+        IReadOnlyList<string> runningTerminalIds, CancellationToken ct) =>
+        _contextReader.GetContextCountsAsync(runningTerminalIds, ct);
 
     public Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct) =>
         _lifecycle.DeleteAsync(id, ct);

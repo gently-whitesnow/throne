@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
 using Throne.Infrastructure.Terminals;
@@ -80,6 +81,31 @@ public class TmuxSessionManagerTests
         killed.Should().BeFalse();
     }
 
+    [Fact(DisplayName = "KillSession эмитит TerminalSessionStopped при успехе и молчит при провале")]
+    public async Task KillSession_emits_stopped_only_on_success()
+    {
+        var events = Substitute.For<IDomainEventDispatcher>();
+
+        var okLauncher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(okLauncher);
+        await NewManager(okLauncher, events).KillSessionAsync(IntentId, CancellationToken.None);
+
+        await events.Received(1).DispatchAsync(
+            Arg.Is<TerminalSessionStopped>(e => e.IntentId == IntentId), Arg.Any<CancellationToken>());
+
+        events.ClearReceivedCalls();
+        var failLauncher = Substitute.For<IProcessLauncher>();
+        failLauncher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(
+                ExitCode: 1,
+                StandardOutput: string.Empty,
+                StandardError: "no session",
+                Elapsed: TimeSpan.Zero)));
+        await NewManager(failLauncher, events).KillSessionAsync(IntentId, CancellationToken.None);
+
+        await events.DidNotReceive().DispatchAsync(Arg.Any<IDomainEvent>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "ListThroneSessions фильтрует список по префиксу 'throne-'")]
     public async Task ListThroneSessions_filters_prefix()
     {
@@ -105,10 +131,14 @@ public class TmuxSessionManagerTests
                 StandardError: string.Empty,
                 Elapsed: TimeSpan.Zero)));
 
-    private static TmuxSessionManager NewManager(IProcessLauncher launcher)
+    private static TmuxSessionManager NewManager(IProcessLauncher launcher) =>
+        NewManager(launcher, Substitute.For<IDomainEventDispatcher>());
+
+    private static TmuxSessionManager NewManager(IProcessLauncher launcher, IDomainEventDispatcher events)
     {
         var options = Options.Create(new TmuxOptions());
         var cli = new TmuxCli(launcher, options);
-        return new TmuxSessionManager(cli, NullLogger<TmuxSessionManager>.Instance);
+        return new TmuxSessionManager(
+            cli, NullLogger<TmuxSessionManager>.Instance, events);
     }
 }

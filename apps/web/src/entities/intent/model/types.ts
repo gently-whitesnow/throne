@@ -59,8 +59,10 @@ export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
   },
   work: {
     label: "В работе",
-    ink: "#1F9D88",
-    surface: "#E7F5ED"
+    // Purple (design-system `secondary` oklch(0.48 0.14 280)) so `work` reads
+    // apart from the green `done` status instead of a near-identical teal.
+    ink: "#5351AA",
+    surface: "#ECEAFB"
   },
   ready_for_review: {
     label: "Жду ревью",

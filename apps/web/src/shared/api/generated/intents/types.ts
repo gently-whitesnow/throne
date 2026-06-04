@@ -493,6 +493,11 @@ export interface components {
              * @description Archive intents carrying no tags.
              */
             archive_untagged: number;
+            /**
+             * Format: int32
+             * @description Intents with a live embedded-terminal tmux session right now (cross-context, independent of tag/status). Read live from tmux on every request — there is no DB mirror, so the counter self-heals if a realtime hint is lost.
+             */
+            terminal_running: number;
             /** @description Per-tag counts across active intents (non-archive, non-fridge), sorted by count desc then tag name asc. An intent with N tags contributes to each tag. */
             tags: components["schemas"]["IntentContextTagCountDto"][];
             /** @description Per-tag counts across archive intents, sorted by count desc then tag name asc. */
@@ -718,6 +723,8 @@ export interface operations {
                 untagged?: boolean;
                 /** @description When true, return only intents pinned into at least one context. Server-side equivalent of the client "pinned" bucket. */
                 pinned?: boolean;
+                /** @description When true, return only intents that currently have a live embedded-terminal session (a `throne-{intent_id}` tmux session). The set is read live from tmux (no DB mirror); an empty tmux server yields an empty page. */
+                terminal_running?: boolean;
                 /** @description Case-insensitive substring filter against Intent.text. */
                 query?: string;
                 sort?: components["schemas"]["IntentListSort"];

@@ -4,7 +4,8 @@ import {
   Hash,
   Inbox,
   Plus,
-  Snowflake
+  Snowflake,
+  Terminal
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo } from "react";
@@ -23,6 +24,7 @@ import {
   FRIDGE_CONTEXT,
   INBOX_HELP_CONTEXT,
   INBOX_REVIEW_CONTEXT,
+  TERMINAL_RUNNING_CONTEXT,
   UNTAGGED_CONTEXT,
   archiveSubContext,
   isArchiveContext
@@ -93,7 +95,8 @@ export function IntentContextRail() {
     archiveUntaggedCount,
     fridgeCount,
     inboxReviewCount,
-    inboxHelpCount
+    inboxHelpCount,
+    terminalRunningCount
   } = useMemo(() => {
     const counts = contextsQuery.data;
     // Server already orders tag breakdowns by count desc then name asc.
@@ -114,7 +117,8 @@ export function IntentContextRail() {
       archiveUntaggedCount: counts?.archive_untagged ?? 0,
       fridgeCount: counts?.fridge ?? 0,
       inboxReviewCount: counts?.inbox_review ?? 0,
-      inboxHelpCount: counts?.inbox_help ?? 0
+      inboxHelpCount: counts?.inbox_help ?? 0,
+      terminalRunningCount: counts?.terminal_running ?? 0
     };
   }, [contextsQuery.data]);
 
@@ -164,10 +168,12 @@ export function IntentContextRail() {
       className="flex min-h-0 min-w-0 flex-col overflow-hidden border-base-300 bg-base-100 max-md:border-b md:border-r"
       aria-label="Контексты Intents"
     >
-      {contextsQuery.isSuccess && inboxTotal > 0 ? (
+      {contextsQuery.isSuccess &&
+      (inboxTotal > 0 || terminalRunningCount > 0) ? (
         <InboxWidget
           reviewCount={inboxReviewCount}
           helpCount={inboxHelpCount}
+          terminalRunningCount={terminalRunningCount}
           activeContext={currentContext}
           onSelect={select}
         />
@@ -323,6 +329,7 @@ export function IntentContextRail() {
 interface InboxWidgetProps {
   reviewCount: number;
   helpCount: number;
+  terminalRunningCount: number;
   activeContext: string | null;
   onSelect: (key: string) => void;
 }
@@ -330,11 +337,15 @@ interface InboxWidgetProps {
 function InboxWidget({
   reviewCount,
   helpCount,
+  terminalRunningCount,
   activeContext,
   onSelect
 }: InboxWidgetProps) {
   const reviewMeta = intentStatusMeta.ready_for_review;
   const helpMeta = intentStatusMeta.needs_help;
+  // A live terminal is an agent actively working — reuse the purple `work` token so the
+  // bucket reads as "work in progress" and stays in lock-step with the status colour.
+  const terminalMeta = intentStatusMeta.work;
   return (
     <section
       aria-label="Inbox: intents, ждущие действия оператора"
@@ -371,6 +382,21 @@ function InboxWidget({
               active={activeContext === INBOX_HELP_CONTEXT}
               onSelect={() => {
                 onSelect(INBOX_HELP_CONTEXT);
+              }}
+            />
+          </li>
+        ) : null}
+        {terminalRunningCount > 0 ? (
+          <li>
+            <InboxRow
+              label="Терминал запущен"
+              count={terminalRunningCount}
+              ink={terminalMeta.ink}
+              surface={terminalMeta.surface}
+              icon={<Terminal aria-hidden size={14} strokeWidth={2} />}
+              active={activeContext === TERMINAL_RUNNING_CONTEXT}
+              onSelect={() => {
+                onSelect(TERMINAL_RUNNING_CONTEXT);
               }}
             />
           </li>

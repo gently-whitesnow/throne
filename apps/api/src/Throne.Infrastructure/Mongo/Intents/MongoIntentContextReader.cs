@@ -34,7 +34,8 @@ internal sealed class MongoIntentContextReader(
         IntentStatusNames.Done, IntentStatusNames.Reject,
     ];
 
-    public async Task<IntentContextCounts> GetContextCountsAsync(CancellationToken ct)
+    public async Task<IntentContextCounts> GetContextCountsAsync(
+        IReadOnlyList<string> runningTerminalIds, CancellationToken ct)
     {
         var session = sessions.Current;
 
@@ -64,10 +65,11 @@ internal sealed class MongoIntentContextReader(
         var facet = await cursor.FirstOrDefaultAsync(ct);
 
         var pinned = await CountPinnedAsync(session, ct);
+        var terminalRunning = await CountByIdsAsync(session, runningTerminalIds, ct);
 
         if (facet is null)
         {
-            return new IntentContextCounts(0, 0, 0, 0, pinned, 0, 0, [], []);
+            return new IntentContextCounts(0, 0, 0, 0, pinned, 0, 0, [], [], terminalRunning);
         }
 
         var byStatus = ReadStatusCounts(facet["byStatus"].AsBsonArray);
@@ -81,7 +83,25 @@ internal sealed class MongoIntentContextReader(
             Untagged: ReadCount(facet["activeUntagged"].AsBsonArray),
             ArchiveUntagged: ReadCount(facet["archiveUntagged"].AsBsonArray),
             Tags: ReadTagCounts(facet["activeTags"].AsBsonArray),
-            ArchiveTags: ReadTagCounts(facet["archiveTags"].AsBsonArray));
+            ArchiveTags: ReadTagCounts(facet["archiveTags"].AsBsonArray),
+            TerminalRunning: terminalRunning);
+    }
+
+    // Owner-scoped count of intents whose id is in the live tmux session set (empty set → 0).
+    private async Task<int> CountByIdsAsync(
+        IClientSessionHandle? session, IReadOnlyList<string> ids, CancellationToken ct)
+    {
+        if (ids.Count == 0)
+        {
+            return 0;
+        }
+        var filter = Builders<IntentDocument>.Filter.And(
+            IntentCollectionFilters.Owner(currentUser.UserId),
+            Builders<IntentDocument>.Filter.In(d => d.Id, ids));
+        var count = session is null
+            ? await _intents.CountDocumentsAsync(filter, cancellationToken: ct)
+            : await _intents.CountDocumentsAsync(session, filter, cancellationToken: ct);
+        return (int)count;
     }
 
     private static BsonArray UntaggedFacet(string[] statuses) => new()

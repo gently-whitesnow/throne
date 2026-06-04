@@ -33,9 +33,11 @@ public sealed class IntentsController(
         string tag = null!,
         bool? untagged = null,
         bool? pinned = null,
+        bool? terminal_running = null,
         string query = null!,
         IntentListSort? sort = null) =>
-        listIntents.RunAsync(cursor, limit, status, tag, untagged, pinned, query, sort, HttpContext.RequestAborted);
+        listIntents.RunAsync(
+            cursor, limit, status, tag, untagged, pinned, terminal_running, query, sort, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentContextCountsDto>> GetIntentContexts() =>
         getIntentContexts.RunAsync(HttpContext.RequestAborted);
