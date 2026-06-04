@@ -56,6 +56,7 @@ export function TagDefaultRepositoriesSection({
     provider: "github";
     owner: string;
     repo: string;
+    default_branch: string;
   }) => {
     if (isDuplicate(repos, pick)) return;
     const next: TagDefaultRepository[] = [...repos, pick];

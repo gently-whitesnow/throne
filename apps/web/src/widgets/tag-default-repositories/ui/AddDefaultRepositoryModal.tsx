@@ -13,14 +13,20 @@ import { Button } from "@/shared/ui";
 interface AddDefaultRepositoryModalProps {
   open: boolean;
   onClose: () => void;
-  onPicked: (pick: { provider: "github"; owner: string; repo: string }) => void;
+  onPicked: (pick: {
+    provider: "github";
+    owner: string;
+    repo: string;
+    default_branch: string;
+  }) => void;
 }
 
 /**
  * Модалка добавления репозитория в `Tag.default_repositories`. Переиспользует
  * Slice 1 search-стек (`useRepositorySearch` + `BindRepositorySearchControls` +
- * `RepositorySearchList`); собственного branch/PR-поля нет, сервер сам подберёт
- * default branch на момент Run pre-flight'а (ADR-0024 § 1).
+ * `RepositorySearchList`); собственного branch/PR-поля нет — фиксируем upstream
+ * default branch выбранного репозитория, чтобы Run pre-flight binding не падал на
+ * угаданный `main` для репозитория с trunk `master` (ADR-0024 § 1).
  */
 export function AddDefaultRepositoryModal({
   open,
@@ -116,7 +122,8 @@ export function AddDefaultRepositoryModal({
               onPicked({
                 provider: "github",
                 owner: repo.owner,
-                repo: repo.repo
+                repo: repo.repo,
+                default_branch: repo.default_branch
               });
               onClose();
             }}
