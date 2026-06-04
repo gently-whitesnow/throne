@@ -32,7 +32,7 @@ export function SettingsPage() {
         id="capabilities"
         title="Возможности"
         icon={ToggleRight}
-        description="Фичи Throne с внешними зависимостями (gh, tmux, code). Default OFF: включите тогл осознанно после того, как установлен соответствующий CLI."
+        description="Фичи Throne с внешними зависимостями (gh, tmux, code). Default OFF: включите тогл осознанно после того, как установлен соответствующий CLI. Терминал, Run, «Open in VS Code» и репозитории требуют доступа к хосту: бэкенд надо запускать нативно на хосте (профиль «только web+db», docker-compose.host.yml) — в контейнерном режиме они не детектятся и остаются выключены."
       >
         <CapabilitiesCard />
       </SettingsSection>
