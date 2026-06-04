@@ -29,7 +29,7 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
 
   const worldBounds = state.kind === "ready" ? state.model.bounds : null;
   const { viewport, isPanning, fitToView, zoomIn, zoomOut, handlers } =
-    useCanvasViewport({ stageRef, worldBounds });
+    useCanvasViewport({ stageRef, worldBounds, fitKey: context ?? "" });
 
   // Edges derived from current nodes — child.id ← parent.id pairs.
   const edges = useMemo<Edge[]>(() => {

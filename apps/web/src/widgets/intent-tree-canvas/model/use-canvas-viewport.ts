@@ -55,6 +55,10 @@ function clampPan(
 interface UseCanvasViewportArgs {
   stageRef: RefObject<HTMLDivElement | null>;
   worldBounds: WorldBounds | null;
+  // Идентичность графа (контекст канваса). Авто-fit срабатывает один раз на
+  // каждое новое значение; смена статуса/прилёт SSE меняют bounds, но не
+  // fitKey — значит viewport пользователя не сбрасывается.
+  fitKey: string;
 }
 
 interface UseCanvasViewportResult {
@@ -74,7 +78,8 @@ interface UseCanvasViewportResult {
 
 export function useCanvasViewport({
   stageRef,
-  worldBounds
+  worldBounds,
+  fitKey
 }: UseCanvasViewportArgs): UseCanvasViewportResult {
   const [viewport, setViewport] = useState<Viewport>({
     x: FIT_PADDING,
@@ -110,11 +115,17 @@ export function useCanvasViewport({
     setViewport({ x: offX, y: offY, scale });
   }, [stageRef, worldW, worldH]);
 
-  // Re-fit только когда реально меняются размеры мира.
+  // Авто-fit один раз на каждый граф (fitKey = контекст): первая загрузка и
+  // переключение контекста. Последующие изменения bounds от realtime-апдейтов
+  // (intent → done, прилёт SSE) НЕ должны дёргать viewport — иначе pan/zoom
+  // пользователя сбрасывается на каждую смену статуса.
+  const fittedKeyRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     if (worldW === 0 || worldH === 0) return;
+    if (fittedKeyRef.current === fitKey) return;
+    fittedKeyRef.current = fitKey;
     fitToView();
-  }, [worldW, worldH, fitToView]);
+  }, [worldW, worldH, fitToView, fitKey]);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.button !== 1) return;
