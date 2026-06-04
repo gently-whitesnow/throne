@@ -35,7 +35,7 @@ type IncomingFrame = OutputFrame;
 
 const MIN_TERMINAL_HEIGHT = 200;
 const MAX_TERMINAL_HEIGHT = 1000;
-const DEFAULT_TERMINAL_HEIGHT = 288;
+const DEFAULT_TERMINAL_HEIGHT = 576;
 
 /**
  * Тонкая обёртка над xterm.js + WebSocket-bridge'ом к
