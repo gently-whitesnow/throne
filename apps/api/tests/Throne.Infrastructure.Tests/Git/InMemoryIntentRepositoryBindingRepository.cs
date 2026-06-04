@@ -22,8 +22,11 @@ internal sealed class InMemoryIntentRepositoryBindingRepository : IIntentReposit
         return Task.FromResult<CreateBindingOutcome>(new CreateBindingOutcome.Created(binding));
     }
 
-    public Task<IntentRepositoryBinding?> GetByIdAsync(BindingId id, CancellationToken ct) =>
-        Task.FromResult(_byId.TryGetValue(id, out var b) ? b : null);
+    public Task<IntentRepositoryBinding?> GetByIdAsync(BindingId id, CancellationToken ct)
+    {
+        _byId.TryGetValue(id, out var b);
+        return Task.FromResult(b);
+    }
 
     public Task<IReadOnlyList<IntentRepositoryBinding>> FindByIntentAsync(IntentId intentId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>(
@@ -41,6 +44,13 @@ internal sealed class InMemoryIntentRepositoryBindingRepository : IIntentReposit
         _byId[binding.Id] = binding;
         return Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(binding));
     }
+
+    // The harness never races two workers on the *same* binding (parallel runner test uses
+    // distinct pending bindings), so the fake doesn't model the lost-claim branch — that is
+    // covered against an NSubstitute mock in RepositoryCloneWorkflowTests. Here a claim always
+    // wins, identical to SaveAsync.
+    public Task<SaveBindingOutcome> ClaimCloningAsync(IntentRepositoryBinding binding, CancellationToken ct) =>
+        SaveAsync(binding, ct);
 
     public Task<DeleteBindingOutcome> DeleteAsync(BindingId id, CancellationToken ct)
     {
