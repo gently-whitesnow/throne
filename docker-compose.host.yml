@@ -1,0 +1,66 @@
+# Host-backend режим (ADR-0027): в контейнере живут только web + mongo, а API
+# запускается нативно на хосте (dotnet run) — тогда он наследует хостовый PATH,
+# спавнит code/claude/gh/git/tmux напрямую, ходит в OS keychain и ssh-agent сам
+# через CLI, и host-capabilities (terminal / Run / vscode / repositories) загораются.
+#
+# Запуск (две независимые команды, без оркестрации — см. интент-решение):
+#   1) контейнеры web + mongo:
+#        docker compose -f docker-compose.host.yml up --build -d
+#   2) нативный API на хосте (из корня репо):
+#        ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
+#      0.0.0.0 обязателен: web-контейнер ходит в API через host.docker.internal,
+#      это не loopback. Auth по умолчанию Disabled, Mongo — localhost:27017,
+#      Throne:Workspace:Root — ~/.throne/workspaces (реальный хостовый путь,
+#      без HostRoot-трансляции — она контейнерный артефакт).
+#
+# UI: http://localhost:8080, API: http://localhost:5008.
+
+services:
+  mongo:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  mongo-init:
+    image: mongo:7
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: on-failure
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        set -e
+        mongosh "mongodb://mongo:27017" --quiet --eval 'try { rs.status(); } catch (e) { rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] }); }'
+        for i in $$(seq 1 40); do
+          ok=$$(mongosh "mongodb://mongo:27017" --quiet --eval "try { rs.status().ok } catch (e) { 0 }" | tr -d "[:space:]")
+          if [ "$$ok" = "1" ]; then exit 0; fi
+          sleep 1
+        done
+        echo "replica set not ready in time" >&2
+        exit 1
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      # nginx проксирует /api/ на нативный API хоста (см. default.conf.template).
+      THRONE_API_UPSTREAM: host.docker.internal:5008
+    # host.docker.internal на Docker Desktop резолвится сам; на Linux нужен маппинг.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mongo_data:

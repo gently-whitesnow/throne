@@ -1,18 +1,18 @@
 # Throne
 
-Облако рабочих единиц пользователя (`Intent`, `Instruction`) с MCP-интерфейсом.
+Кокпит цикла разработки вокруг намерения (`Intent`) для человека в связке с AI-агентами. MCP-интерфейс + веб-UI.
 
 ## Миссия
 
-Throne — память и постановка задач для человека, который работает в связке с AI-агентами. Хранит намерения и предпочтения, выдаёт их любому агенту по запросу и учится на каждом диалоге, чтобы результат был ближе к ожиданиям. Помогает держать и переключать контекст между несколькими задачами.
+Throne — кокпит цикла разработки для человека, работающего в связке с AI-агентами. Вокруг намерения (Intent) он сводит в одно окно постановку, память и предпочтения, запуск агента, репозитории и ревью результата — и учится на каждом диалоге, чтобы следующий проход был ближе к ожиданиям.
 
 ## Контекст
 
 - **Кто пользователь:** человек, который сочетает свои сильные стороны (вкус, воля, семантическое понимание, persistent memory) с сильными сторонами AI (пропускная способность, неутомимость, механическая согласованность).
 - **Аудитория:** инфраструктура для класса ai-разработчиков, не персональный инструмент одного автора.
 - **Первичный артефакт:** предпочтения человека. Решения и командные артефакты — в будущем.
-- **Намерения (Intent):** единица намерения, куда приносится работа — руками или автоматически из jira, мессенджеров, багтрекеров. Throne помогает раскрыть намерение и передать его агенту вместе с предпочтениями.
-- **Граница:** Throne не заменяет IDE и агентов. Это слой памяти и постановки, к которому подключаются любые агенты в любых средах.
+- **Намерения (Intent):** единица намерения, куда приносится работа — руками или автоматически из jira, мессенджеров, багтрекеров. Вокруг неё Throne сводит постановку, запуск агента, репозитории и ревью результата.
+- **Граница:** Throne оркестрирует инструменты и агентов вокруг намерения, но не подменяет их собой: код пишут агенты в своих средах, правит человек в своём IDE. Throne — это управляющий контур (постановка → агент → PR → ревью → доработка), а не ещё один редактор или агент.
 - **Цикл улучшения:** агент по запросу разбирает локальные диалоги → присылает патчи в Throne → человек применяет их → следующий результат ближе к ожиданиям, чем предыдущий.
 - **Цель:** усилить человека. Оцифровка опыта — побочный эффект того, что система помнит предпочтения и решения.
 
@@ -47,13 +47,33 @@ REM Открой новое окно терминала/IDE, чтобы PATH п�
 
 ### 2. Поднять Throne локально
 
-API + UI + Mongo одной командой. UI: `http://localhost:8080`, API: `http://localhost:5008`.
+У Throne два режима запуска (см. [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). Базовая работа (MCP-память, интенты, инструкции) одинакова в обоих; различие — где живёт backend и доступны ли host-фичи (терминал, Run, «Open in VS Code», репозитории).
+
+UI: `http://localhost:8080`, API: `http://localhost:5008`.
 
 ```bash
 git clone https://github.com/gently-whitesnow/throne
 cd throne
+```
+
+**Контейнерный режим (дефолт).** Весь стек в контейнере, host-фичи выключены (им нужен доступ к хосту, которого у контейнера нет).
+
+```bash
 docker compose --profile full up --build -d
 ```
+
+**Host-backend режим (продвинутый).** Контейнер поднимает только web + Mongo, а API запускается нативно на хосте — тогда он наследует хостовый PATH, спавнит `code`/`claude`/`gh`/`git`/`tmux` напрямую, ходит в OS keychain через сами CLI (без plaintext-экспорта токенов) и использует реальный `ssh-agent`. Host-фичи в Settings загораются. Две независимые команды:
+
+```bash
+# 1. web + mongo в контейнере
+docker compose -f docker-compose.host.yml up --build -d
+
+# 2. нативный API на хосте (нужен .NET 10 SDK)
+#    0.0.0.0 обязателен — web-контейнер ходит в API через host.docker.internal.
+ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
+```
+
+Дефолты host-режима подобраны так, что ничего больше настраивать не нужно: `Auth:Mode=Disabled` (local-first), Mongo — `localhost:27017`, workspace — `~/.throne/workspaces`.
 
 Только MongoDB (replica set `rs0`, порт `27017`):
 
@@ -109,35 +129,17 @@ docker compose --profile db up -d
 command = "throne-mcp-stdio"
 ```
 
-### Опционально: связь с GitHub (репозитории и PR-комменты)
+### Host-фичи: репозитории, агент-терминал, VS Code
 
-Для базового Throne (MCP-память, интенты, инструкции) ничего больше не нужно. Если хочется привязывать к интентам репозитории, видеть PR-комменты в UI и работать с клонами на хосте — настрой `gh`:
+Терминал агента, кнопка Run, «Open in VS Code» и привязка репозиториев требуют доступа к хосту, поэтому работают только в **host-backend режиме** (нативный API на хосте, см. шаг 2 и [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). В контейнерном режиме эти capability недетектятся и остаются выключены — секции «Репозитории» / «PR comments» / «Терминал» просто не появляются, остальное работает.
 
-1. Поставь GitHub CLI на хост: `brew install gh` (macOS) / см. [install_linux.md](https://github.com/cli/cli/blob/trunk/docs/install_linux.md).
-2. Логин **без системного keyring** — токен должен лежать в `~/.config/gh/hosts.yml`, иначе bind-mount в контейнер пробросит только хост без авторизации, и UI покажет `Requires authentication (HTTP 401)`:
-   ```bash
-   gh auth logout -h github.com   # если уже логинился раньше
-   gh auth login --insecure-storage
-   ```
-   На macOS дефолт `gh` — Keychain (видно как `Token: gho_***  (keyring)` в `gh auth status`); контейнер в Keychain не ходит, поэтому нужен plaintext в `hosts.yml` (`0700`-папка `~/.config/gh`).
-3. Перезапусти compose: контейнер API монтирует `~/.config/gh` (read-only), `~/.ssh` (read-only) и клонирует репозитории в `~/.throne/workspaces` на хосте, откуда их видно из любой IDE/терминала. `~/.ssh` нужен, если в `gh auth login` выбран `git_protocol: ssh` (дефолт) — без него `gh repo clone` упадёт на `cannot run ssh: No such file or directory` / `Permission denied (publickey)`. Если ssh-ключ запаролен — `ssh-agent` контейнером не пробрасывается, заведи ключ без passphrase или переключи `gh` на HTTPS (`gh config set git_protocol https -h github.com`).
+В host-режиме настройка тривиальна, потому что API — обычный хостовый процесс и пользуется CLI напрямую, без plaintext-выгрузки токенов:
 
-Без этого секции «Репозитории» и «PR comments» на странице интента просто будут пустыми; остальная функциональность работает.
+- **Репозитории и PR-комменты.** Поставь GitHub CLI (`brew install gh` / [install_linux.md](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)) и `gh auth login` как обычно — Keychain/secret-store подходит, нативный API ходит в `gh` сам. SSH-ключи работают через твой `ssh-agent` (запароленные тоже). Клоны ложатся в `~/.throne/workspaces`.
+- **Агент-терминал и Run.** Поставь `tmux` (`brew install tmux`) и залогинь Claude Code на хосте (`claude` → `/login`). Кнопка «Запустить агента» поднимает `tmux`-сессию `throne-{intent_id}` с `claude` под твоим аккаунтом и стримит её в браузер; сессия живёт в tmux-демоне и переживает рестарт Throne.
+- **Open in VS Code.** Поставь команду `code` в PATH (VS Code → Command Palette → «Shell Command: Install 'code' command in PATH»); capability `vscode` загорится.
 
-### Опционально: встроенный агент-терминал
-
-Кнопка «Запустить агента» на странице интента поднимает в контейнере `tmux`-сессию с `claude` и стримит её в браузер. Тулчейн (`tmux`/`git`/`claude`) — Linux-нативный и живёт в образе API; «хостовость» означает, что он работает поверх **хостового состояния**, которое compose монтирует bind-mount'ами. Чтобы агент авторизовался под твоим аккаунтом:
-
-1. Поставь и залогинь Claude Code на хосте хотя бы раз (`claude` → `/login`) — чтобы появились `~/.claude/` и `~/.claude.json`.
-2. Авторизация **без системного keyring** — токен должен лежать в `~/.claude/.credentials.json`, иначе bind-mount пробросит в контейнер состояние без кред, и агент попросит логин внутри терминала. На macOS дефолт — Keychain (контейнер в него не ходит), поэтому выгрузи токен в файл:
-   ```bash
-   security find-generic-password -s "Claude Code-credentials" -w \
-     > ~/.claude/.credentials.json
-   chmod 600 ~/.claude/.credentials.json
-   ```
-3. Перезапусти compose: API монтирует `~/.claude` (rw — claude пишет историю/настройки) и `~/.claude.json`, и запускает агента под твоим аккаунтом в `~/.throne/workspaces` на хосте.
-
-Кнопки «Открыть в VS Code» намеренно нет в контейнерном профиле: `code` — desktop-бинарь хоста, capability `vscode` репортует `detected=false`.
+Включаются фичи тоглами в `/settings` → «Возможности» (default OFF — explicit opt-in после установки соответствующего CLI).
 
 ## Структура
 
@@ -203,7 +205,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 
 - .NET 10
 - MongoDB (replica set обязателен — write-tools используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0&directConnection=true`)
-- GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; auth берётся с хоста через bind-mount `~/.config/gh`)
+- GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; нативный хостовый `gh auth`, см. host-backend режим)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
 - [ModelContextProtocol](https://github.com/modelcontextprotocol/csharp-sdk) (official C# SDK)
