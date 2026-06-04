@@ -25,6 +25,11 @@ internal static class RepositoriesErrorMapper
         {
             ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound =>
                 new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.RepositoryWorkspaceRemovalFailed =>
+                new ObjectResult(ApiProblems.Build(StatusCodes.Status500InternalServerError, "Workspace removal failed", ex))
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                },
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 

@@ -189,7 +189,8 @@ public class RunPreflightOrchestratorTests
             var clockShared = new FixedClock(Now);
             var uow = new PassthroughUnitOfWork();
             var resolver = new RepositoryBindingResolver(Intents, Bindings, providers);
-            var persistence = new RepositoryBindingPersistence(Bindings, uow, clockShared);
+            var persistence = new RepositoryBindingPersistence(
+                Bindings, uow, clockShared, workspace, Substitute.For<IWorkspaceDirectoryRemover>());
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clockShared);
             var stateRefresher = new PullRequestStateRefresher(Bindings, uow, clockShared);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
@@ -198,8 +199,7 @@ public class RunPreflightOrchestratorTests
                 resolver,
                 persistence,
                 syncWorkflow,
-                cloneQueue,
-                workspace);
+                cloneQueue);
 
             var union = new TagDefaultsUnion(Tags);
             var transitions = new RepositoryCloneTransitionWriter(Bindings, uow, clockShared);

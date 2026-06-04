@@ -96,10 +96,10 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryBindingDto>> BindIntentRepository([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] BindIntentRepositoryRequest body);
 
         /// <summary>
-        /// Detach a repository binding from an intent.
+        /// Delete a repository binding from an intent.
         /// </summary>
         /// <remarks>
-        /// Removes the binding record. The workspace directory on disk is intentionally NOT removed (disk cleanup is out of scope). Idempotent — returns 204 whether or not the binding existed.
+        /// Removes the binding record AND its on-disk workspace directory. Idempotent — returns 204 whether or not the binding existed. If the directory cannot be deleted (locked / permission denied) the binding is kept and a 500 is returned so the operation can be retried.
         /// </remarks>
         /// <returns>Deleted (or already absent).</returns>
         [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}", Name = "unbindIntentRepository")]

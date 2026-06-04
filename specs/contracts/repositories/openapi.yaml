@@ -259,11 +259,12 @@ paths:
     delete:
       operationId: unbindIntentRepository
       tags: [IntentRepositories]
-      summary: Detach a repository binding from an intent.
+      summary: Delete a repository binding from an intent.
       description: >
-        Removes the binding record. The workspace directory on disk is intentionally NOT
-        removed (disk cleanup is out of scope). Idempotent — returns 204 whether or not the
-        binding existed.
+        Removes the binding record AND its on-disk workspace directory. Idempotent —
+        returns 204 whether or not the binding existed. If the directory cannot be
+        deleted (locked / permission denied) the binding is kept and a 500 is returned
+        so the operation can be retried.
       parameters:
         - in: path
           name: intent_id
@@ -278,6 +279,12 @@ paths:
       responses:
         '204':
           description: Deleted (or already absent).
+        '500':
+          description: The workspace directory could not be removed; binding left intact.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/repositories/{binding_id}/sync:
     post:
       operationId: syncIntentRepositoryPullRequest

@@ -119,6 +119,8 @@ public class RepositoryBindingServiceTests
         await fixture.Service.UnbindAsync(new UnbindRepositoryCommand(IntentIdValue, binding.Id.Value), CancellationToken.None);
 
         await fixture.Bindings.Received(1).DeleteAsync(binding.Id, Arg.Any<CancellationToken>());
+        fixture.Remover.Removed.Should().ContainSingle()
+            .Which.Should().Be($"{WorkspaceRoot}/intents/{IntentIdValue}/octo__hello");
         var outcome = new DeleteBindingOutcome.Deleted(binding);
         outcome.Events.Should().ContainSingle().Which.Should().BeOfType<IntentRepositoryUnbound>();
     }
@@ -289,15 +291,16 @@ public class RepositoryBindingServiceTests
             Provider.ProviderName.Returns(GitProviderNames.GitHub);
             Providers.GetByName(GitProviderNames.GitHub).Returns(Provider);
             Workspace = new StubWorkspaceRoot(WorkspaceRoot);
+            Remover = new RecordingWorkspaceRemover();
             Queue = new RecordingCloneQueue();
             var unitOfWork = new PassthroughUnitOfWork();
             var clock = new FixedClock(Now);
             var resolver = new RepositoryBindingResolver(Intents, Bindings, Providers);
-            var persistence = new RepositoryBindingPersistence(Bindings, unitOfWork, clock);
+            var persistence = new RepositoryBindingPersistence(Bindings, unitOfWork, clock, Workspace, Remover);
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
             var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, clock);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
-            Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue, Workspace);
+            Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue);
         }
 
         public IIntentRepository Intents { get; }
@@ -305,6 +308,7 @@ public class RepositoryBindingServiceTests
         public IGitProviderRegistry Providers { get; }
         public IGitProvider Provider { get; }
         public IWorkspaceRootProvider Workspace { get; }
+        public RecordingWorkspaceRemover Remover { get; }
         public RecordingCloneQueue Queue { get; }
         public RepositoryBindingService Service { get; }
 
@@ -330,6 +334,17 @@ public class RepositoryBindingServiceTests
     private sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider
     {
         public string ResolvedRoot { get; } = root;
+    }
+
+    private sealed class RecordingWorkspaceRemover : IWorkspaceDirectoryRemover
+    {
+        public List<string> Removed { get; } = [];
+
+        public Task RemoveAsync(string absolutePath, CancellationToken ct)
+        {
+            Removed.Add(absolutePath);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class RecordingCloneQueue : IRepositoryCloneRequests

@@ -5,9 +5,9 @@ using Throne.Application.Repositories;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Idempotent — a missing binding still answers 204 per the OpenAPI contract.
-/// The on-disk workspace directory is intentionally left alone; disk cleanup
-/// is out of scope.
+/// Deletes the binding and its on-disk workspace directory. Idempotent — a missing
+/// binding still answers 204 per the OpenAPI contract. A failed directory delete
+/// surfaces as 500 with the binding left intact for a retry.
 /// </summary>
 public sealed class UnbindIntentRepositoryEndpoint(RepositoryBindingService service)
 {
