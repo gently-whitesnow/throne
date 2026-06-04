@@ -17,17 +17,26 @@ public sealed class RunPreflightSpawn(
     {
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intentId.Value);
         var prompt = AgentPromptBuilder.Build(mode, intentId.Value);
+        var isFree = mode == TerminalRunModes.Free;
+
+        // Free mode boots claude bare and pre-types the prompt instead of passing it as argv —
+        // an argv prompt auto-runs, but free mode hands an editable starter line to the operator.
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
                 WorkingDirectory: workspacePath,
                 Command: AgentCommand,
-                Arguments: [prompt]),
+                Arguments: isFree ? [] : [prompt]),
             ct);
 
         if (!spawn.IsAlive)
         {
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
+        }
+
+        if (isFree)
+        {
+            await tmux.SendLiteralTextAsync(intentId.Value, prompt, ct);
         }
     }
 

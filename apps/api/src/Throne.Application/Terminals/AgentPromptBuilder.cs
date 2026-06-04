@@ -7,10 +7,20 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public static class AgentPromptBuilder
 {
+    /// <summary>Placeholder the operator erases and replaces with their own question in free mode.</summary>
+    public const string FreeQuestionPlaceholder = "<твой вопрос>";
+
     public static string Build(string mode, string intentId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+
+        // Free mode reads no bundle — the phrase intentionally omits «бандл» so MiniRouter
+        // does not lock onto a mode; the operator finishes the question themselves.
+        if (mode == TerminalRunModes.Free)
+        {
+            return $"прочитай интент {intentId} и {FreeQuestionPlaceholder}";
+        }
 
         var verb = mode switch
         {

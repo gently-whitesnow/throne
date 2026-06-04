@@ -28,6 +28,7 @@ internal static class TerminalRunResponseMapper
         TerminalRunMode.Work => TerminalRunModes.Work,
         TerminalRunMode.Interview => TerminalRunModes.Interview,
         TerminalRunMode.Dream => TerminalRunModes.Dream,
+        TerminalRunMode.Free => TerminalRunModes.Free,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), $"Unknown terminal run mode '{mode}'."),
     };
 
