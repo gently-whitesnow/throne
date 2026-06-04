@@ -158,10 +158,13 @@ components:
         - work
         - interview
         - dream
+        - free
       description: >
-        Bundle-mode the spawned `claude` process is asked to read. Hardcoded into the
-        prompt template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2
-        decisions Q8 (`feedback_throne_bundle_prompt`).
+        Bundle-mode the spawned `claude` process is asked to read. For `work`/`interview`/`dream`
+        the prompt is hardcoded into the template `Прочитай бандл {mode} и {verb} интент {id}` —
+        see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`). `free` reads no bundle: claude
+        is spawned bare and the editable text `прочитай интент {id} и <твой вопрос>` is pre-typed
+        into the prompt (not submitted) so the operator finishes the question themselves.
     TerminalSessionState:
       type: string
       enum:
