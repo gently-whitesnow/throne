@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Throne.Api.Mcp;
@@ -20,11 +21,16 @@ public sealed partial class McpKeepAliveMiddleware
 
     private readonly RequestDelegate _next;
     private readonly ILogger<McpKeepAliveMiddleware> _logger;
+    private readonly IHostApplicationLifetime _lifetime;
 
-    public McpKeepAliveMiddleware(RequestDelegate next, ILogger<McpKeepAliveMiddleware> logger)
+    public McpKeepAliveMiddleware(
+        RequestDelegate next,
+        ILogger<McpKeepAliveMiddleware> logger,
+        IHostApplicationLifetime lifetime)
     {
         _next = next;
         _logger = logger;
+        _lifetime = lifetime;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -35,6 +41,14 @@ public sealed partial class McpKeepAliveMiddleware
             await _next(context);
             return;
         }
+
+        // The MCP SDK's streamable-HTTP handler blocks inside `_next` for the life of the
+        // connection and only unwinds on RequestAborted. Kestrel does not abort active
+        // requests on graceful shutdown until the host's ShutdownTimeout elapses, so without
+        // this the process would hang for the full timeout per open MCP stream. Aborting the
+        // connection on ApplicationStopping makes shutdown prompt.
+        using var stopReg = _lifetime.ApplicationStopping.Register(
+            static state => ((HttpContext)state!).Abort(), context);
 
         var gate = new SemaphoreSlim(1, 1);
         var originalBody = context.Response.Body;
