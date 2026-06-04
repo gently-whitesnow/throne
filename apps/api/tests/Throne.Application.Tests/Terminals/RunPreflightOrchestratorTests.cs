@@ -67,6 +67,29 @@ public class RunPreflightOrchestratorTests
             Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Free-режим спавнит claude без prompt-аргумента и предзаполняет терминал текстом")]
+    public async Task Run_free_mode_pretypes_prompt()
+    {
+        var fixture = new Fixture().Setup(
+            capabilityEnabled: true,
+            intentExists: true,
+            hasSession: false,
+            bindings: [NewBinding(cloneStatus: CloneStatusNames.Ready)],
+            spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
+
+        var result = await fixture.Orchestrator.RunAsync(
+            IntentIdValue, TerminalRunModes.Free, restart: false, CancellationToken.None);
+
+        result.SessionState.Should().Be(TerminalSessionStates.Running);
+        await fixture.Tmux.Received(1).SpawnAsync(
+            Arg.Is<TmuxSpawnRequest>(r => r.Command == "claude" && r.Arguments.Count == 0),
+            Arg.Any<CancellationToken>());
+        await fixture.Tmux.Received(1).SendLiteralTextAsync(
+            IntentIdValue,
+            $"прочитай интент {IntentIdValue} и <твой вопрос>",
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "Run с broken-binding возвращает blocked и не спавнит tmux")]
     public async Task Run_blocked_when_binding_broken()
     {

@@ -2,6 +2,7 @@ import { AlertCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
 import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
+import type { IntentStatus } from "@/entities/intent";
 import {
   isCloneReady,
   useIntentRepositories
@@ -9,6 +10,7 @@ import {
 
 import { buildAgentPrompt, buildClaudeCliCommand } from "../model/prompt";
 import { useTerminalSession } from "../model/use-terminal-session";
+import { defaultRunModeForStatus } from "../model/types";
 import type { TerminalRunMode } from "../model/types";
 
 import { PreflightProgress } from "./PreflightProgress";
@@ -17,6 +19,7 @@ import { TerminalView } from "./TerminalView";
 
 interface AgentTerminalPanelProps {
   intentId: string;
+  intentStatus: IntentStatus;
 }
 
 /**
@@ -31,8 +34,13 @@ interface AgentTerminalPanelProps {
  * - Live-сессия (`tmux has-session` → true): dropdown и Copy prompt
  *   замораживаются, появляется Restart-кнопка.
  */
-export function AgentTerminalPanel({ intentId }: AgentTerminalPanelProps) {
-  const [mode, setMode] = useState<TerminalRunMode>("interview");
+export function AgentTerminalPanel({
+  intentId,
+  intentStatus
+}: AgentTerminalPanelProps) {
+  const [mode, setMode] = useState<TerminalRunMode>(() =>
+    defaultRunModeForStatus(intentStatus)
+  );
   const { capabilities, isLoading: capabilitiesLoading } = useCapabilities();
   const { bindings } = useIntentRepositories(intentId);
 

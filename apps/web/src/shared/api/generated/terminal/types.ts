@@ -82,10 +82,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Bundle-mode the spawned `claude` process is asked to read. Hardcoded into the prompt template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`).
+         * @description Bundle-mode the spawned `claude` process is asked to read. For `work`/`interview`/`dream` the prompt is hardcoded into the template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`). `free` reads no bundle: claude is spawned bare and the editable text `прочитай интент {id} и <твой вопрос>` is pre-typed into the prompt (not submitted) so the operator finishes the question themselves.
          * @enum {string}
          */
-        TerminalRunMode: "work" | "interview" | "dream";
+        TerminalRunMode: "work" | "interview" | "dream" | "free";
         /**
          * @description Lifecycle of the per-intent tmux session, derived from `tmux has-session` at observation time.
          *     `spawning` — pre-flight finished, `tmux new -ADs` not yet observed alive. `running` — session is alive. `blocked` — at least one binding is `failed` / `broken`; spawn was skipped. `exited` — session was alive previously but has since been torn down.

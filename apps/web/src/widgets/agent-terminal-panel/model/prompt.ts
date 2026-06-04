@@ -9,13 +9,22 @@ import type { TerminalRunMode } from "./types";
 const MODE_VERB: Record<TerminalRunMode, string> = {
   work: "выполни",
   interview: "проведи интервью по",
-  dream: "проведи дрим по"
+  dream: "проведи дрим по",
+  free: ""
 };
+
+/** Заглушка, которую оператор стирает и дописывает своим вопросом в free-режиме. */
+export const FREE_QUESTION_PLACEHOLDER = "<твой вопрос>";
 
 export function buildAgentPrompt(
   mode: TerminalRunMode,
   intentId: string
 ): string {
+  // free не читает бандл — фраза намеренно без «бандл», чтобы MiniRouter не цеплялся
+  // за режим; оператор сам дописывает вопрос вместо плейсхолдера.
+  if (mode === "free") {
+    return `прочитай интент ${intentId} и ${FREE_QUESTION_PLACEHOLDER}`;
+  }
   return `Прочитай бандл ${mode} и ${MODE_VERB[mode]} интент ${intentId}`;
 }
 
