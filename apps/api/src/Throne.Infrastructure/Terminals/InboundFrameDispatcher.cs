@@ -29,8 +29,21 @@ internal sealed class InboundFrameDispatcher(TmuxCli tmux)
         {
             return;
         }
-        var hex = Convert.ToHexString(Encoding.UTF8.GetBytes(data));
-        await tmux.RunAsync(["send-keys", "-t", sessionName, "-H", hex], ct);
+
+        // tmux send-keys -H трактует КАЖДЫЙ аргумент как один key-код. Многобайтовый
+        // UTF-8 (кириллица и т.п.) нужно слать побайтово — один аргумент на байт.
+        // Склейка в "D0B4" читается tmux как код 0xD0B4 и молча отбрасывается,
+        // из-за чего проходил только однобайтовый ASCII.
+        var bytes = Encoding.UTF8.GetBytes(data);
+        var args = new List<string>(capacity: 4 + bytes.Length)
+        {
+            "send-keys", "-t", sessionName, "-H",
+        };
+        foreach (var b in bytes)
+        {
+            args.Add(b.ToString("X2", CultureInfo.InvariantCulture));
+        }
+        await tmux.RunAsync(args, ct);
     }
 
     private async Task SendResizeAsync(string sessionName, int cols, int rows, CancellationToken ct) =>

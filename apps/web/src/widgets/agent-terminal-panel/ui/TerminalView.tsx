@@ -2,7 +2,8 @@ import "@xterm/xterm/css/xterm.css";
 
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
-import { useEffect, useRef } from "react";
+import { GripHorizontal } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiUrl } from "@/shared/api";
 import { terminalWebSocketEndpoints } from "@/shared/realtime";
@@ -32,6 +33,10 @@ interface OutputFrame {
 
 type IncomingFrame = OutputFrame;
 
+const MIN_TERMINAL_HEIGHT = 200;
+const MAX_TERMINAL_HEIGHT = 1000;
+const DEFAULT_TERMINAL_HEIGHT = 288;
+
 /**
  * Тонкая обёртка над xterm.js + WebSocket-bridge'ом к
  * `/api/v1/intents/{id}/terminal/ws` (см. `specs/contracts/realtime/websocket/terminal.yaml`).
@@ -44,6 +49,38 @@ export function TerminalView({
   onClosed
 }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [height, setHeight] = useState(DEFAULT_TERMINAL_HEIGHT);
+  const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  const handlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      dragRef.current = { startY: event.clientY, startHeight: height };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [height]
+  );
+
+  const handlePointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      if (drag === null) return;
+      // Тянем ручку вверх (clientY уменьшается) → окно растёт вверх.
+      const next = drag.startHeight + (drag.startY - event.clientY);
+      setHeight(
+        Math.min(Math.max(next, MIN_TERMINAL_HEIGHT), MAX_TERMINAL_HEIGHT)
+      );
+    },
+    []
+  );
+
+  const handlePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      dragRef.current = null;
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    },
+    []
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -138,11 +175,26 @@ export function TerminalView({
   }, [intentId, attempt, onClosed]);
 
   return (
-    <div
-      ref={containerRef}
-      data-testid="agent-terminal-xterm"
-      className="h-72 w-full overflow-hidden rounded-md border border-base-300 bg-[#0F1217] p-2"
-    />
+    <div className="flex flex-col">
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Изменить высоту терминала"
+        data-testid="agent-terminal-resize-handle"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        className="flex cursor-ns-resize items-center justify-center rounded-t-md border border-b-0 border-base-300 bg-base-200 py-1 text-base-content/40 hover:text-base-content/70 touch-none select-none"
+      >
+        <GripHorizontal aria-hidden size={16} strokeWidth={2} />
+      </div>
+      <div
+        ref={containerRef}
+        data-testid="agent-terminal-xterm"
+        style={{ height }}
+        className="w-full overflow-hidden rounded-b-md border border-base-300 bg-[#0F1217] p-2"
+      />
+    </div>
   );
 }
 
