@@ -65,6 +65,15 @@ paths:
             When true, return only intents pinned into at least one context.
             Server-side equivalent of the client "pinned" bucket.
         - in: query
+          name: terminal_running
+          required: false
+          schema:
+            type: boolean
+          description: >
+            When true, return only intents that currently have a live embedded-terminal
+            session (a `throne-{intent_id}` tmux session). The set is read live from tmux
+            (no DB mirror); an empty tmux server yields an empty page.
+        - in: query
           name: query
           required: false
           schema:
@@ -1045,6 +1054,7 @@ components:
         - pinned
         - untagged
         - archive_untagged
+        - terminal_running
         - tags
         - archive_tags
       properties:
@@ -1083,6 +1093,14 @@ components:
           format: int32
           minimum: 0
           description: Archive intents carrying no tags.
+        terminal_running:
+          type: integer
+          format: int32
+          minimum: 0
+          description: >
+            Intents with a live embedded-terminal tmux session right now (cross-context,
+            independent of tag/status). Read live from tmux on every request — there is no
+            DB mirror, so the counter self-heals if a realtime hint is lost.
         tags:
           type: array
           items:

@@ -177,3 +177,26 @@ events:
   dream_session.recorded:
     description: A frontier agent recorded a DreamSession at the end of a /dream pass (ADR-0022).
     payload_ref: dreams#/components/schemas/DreamSessionDto
+  terminal.session_started:
+    description: >
+      A tmux terminal session (throne-{intent_id}) was confirmed alive after a spawn.
+      tmux is the source of truth for liveness; this event is a best-effort hint so the
+      "terminal running" sidebar bucket updates without polling — the counter self-heals
+      from tmux on the next /intents/contexts refresh if the event is lost.
+    payload:
+      type: object
+      required: [intent_id]
+      properties:
+        intent_id:
+          type: string
+  terminal.session_stopped:
+    description: >
+      A tmux terminal session ended — either killed (restart flow) or exited naturally
+      (the agent process terminated). Best-effort like session_started; the sidebar bucket
+      self-heals from tmux on the next refresh.
+    payload:
+      type: object
+      required: [intent_id]
+      properties:
+        intent_id:
+          type: string

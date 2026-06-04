@@ -1,3 +1,4 @@
+using Throne.Application.Events;
 using Throne.Application.Git;
 using Throne.Domain.Intents;
 
@@ -9,7 +10,8 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public sealed class RunPreflightSpawn(
     ITmuxSessionManager tmux,
-    IWorkspaceRootProvider workspaceRoot)
+    IWorkspaceRootProvider workspaceRoot,
+    IDomainEventDispatcher events)
 {
     private const string AgentCommand = "claude";
 
@@ -38,6 +40,8 @@ public sealed class RunPreflightSpawn(
         {
             await tmux.SendLiteralTextAsync(intentId.Value, prompt, ct);
         }
+
+        await events.DispatchAsync(new TerminalSessionStarted(intentId.Value), ct);
     }
 
     public Task<bool> HasSessionAsync(string intentId, CancellationToken ct) =>

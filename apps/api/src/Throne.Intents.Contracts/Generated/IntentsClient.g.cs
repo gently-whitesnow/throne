@@ -549,6 +549,14 @@ namespace Throne.Intents.Contracts.Generated
         public int Archive_untagged { get; set; }
 
         /// <summary>
+        /// Intents with a live embedded-terminal tmux session right now (cross-context, independent of tag/status). Read live from tmux on every request — there is no DB mirror, so the counter self-heals if a realtime hint is lost.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("terminal_running")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Terminal_running { get; set; }
+
+        /// <summary>
         /// Per-tag counts across active intents (non-archive, non-fridge), sorted by count desc then tag name asc. An intent with N tags contributes to each tag.
         /// <br/>
         /// </summary>

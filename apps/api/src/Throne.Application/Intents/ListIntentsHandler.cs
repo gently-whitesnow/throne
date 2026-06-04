@@ -1,4 +1,5 @@
 using Throne.Application.Ports;
+using Throne.Application.Terminals;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 
@@ -27,6 +28,7 @@ public sealed record ListIntentsPagedQuery(
     string? TagName = null,
     bool Untagged = false,
     bool Pinned = false,
+    bool TerminalRunning = false,
     string? Query = null,
     IntentListSort Sort = IntentListSort.SortKeyAsc,
     int Limit = 50,
@@ -42,9 +44,13 @@ public sealed record IntentListSpec(
     string? Query,
     IntentListSort Sort,
     int Limit,
-    IntentListCursor? Cursor);
+    IntentListCursor? Cursor,
+    IReadOnlyList<string>? Ids = null);
 
-public sealed class ListIntentsHandler(IIntentRepository repository, ITagRepository tagRepository)
+public sealed class ListIntentsHandler(
+    IIntentRepository repository,
+    ITagRepository tagRepository,
+    ITmuxSessionManager tmux)
 {
     public const int DefaultLimit = 50;
     public const int MaxLimit = 100;
@@ -71,6 +77,16 @@ public sealed class ListIntentsHandler(IIntentRepository repository, ITagReposit
             tagId = tag.Id;
         }
 
+        IReadOnlyList<string>? ids = null;
+        if (query.TerminalRunning)
+        {
+            ids = await RunningTerminalIds.ResolveAsync(tmux, ct);
+            if (ids.Count == 0)
+            {
+                return new IntentListPage([], NextCursor: null);
+            }
+        }
+
         var clampedLimit = query.Limit <= 0
             ? DefaultLimit
             : Math.Min(query.Limit, MaxLimit);
@@ -83,7 +99,8 @@ public sealed class ListIntentsHandler(IIntentRepository repository, ITagReposit
             Query: string.IsNullOrWhiteSpace(query.Query) ? null : query.Query,
             Sort: query.Sort,
             Limit: clampedLimit,
-            Cursor: query.Cursor);
+            Cursor: query.Cursor,
+            Ids: ids);
 
         return await repository.ListPagedAsync(spec, ct);
     }

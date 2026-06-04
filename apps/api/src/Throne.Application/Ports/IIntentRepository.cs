@@ -38,7 +38,11 @@ public interface IIntentRepository
 
     Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct);
 
-    Task<IntentContextCounts> GetContextCountsAsync(CancellationToken ct);
+    /// <param name="runningTerminalIds">
+    /// Intent ids with a live tmux terminal session (resolved from tmux by the caller); the
+    /// aggregate intersects them with the owner's intents to fill <c>TerminalRunning</c>.
+    /// </param>
+    Task<IntentContextCounts> GetContextCountsAsync(IReadOnlyList<string> runningTerminalIds, CancellationToken ct);
 
     Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct);
 

@@ -29,6 +29,7 @@ export interface IntentListParams {
   tag?: string;
   untagged?: boolean;
   pinned?: boolean;
+  terminalRunning?: boolean;
   query?: string;
   sort?: IntentListSort;
   limit?: number;
@@ -66,6 +67,7 @@ function normalizeParams(params: IntentListParams): IntentListParams {
         : undefined,
     untagged: params.untagged ? true : undefined,
     pinned: params.pinned ? true : undefined,
+    terminalRunning: params.terminalRunning ? true : undefined,
     query:
       trimmedQuery !== undefined && trimmedQuery.length > 0
         ? trimmedQuery
@@ -86,6 +88,7 @@ function buildListUrl(
   if (params.tag) qs.set("tag", params.tag);
   if (params.untagged) qs.set("untagged", "true");
   if (params.pinned) qs.set("pinned", "true");
+  if (params.terminalRunning) qs.set("terminal_running", "true");
   if (params.query) qs.set("query", params.query);
   if (params.sort) qs.set("sort", params.sort);
   const base = intentsEndpoints.listIntents();

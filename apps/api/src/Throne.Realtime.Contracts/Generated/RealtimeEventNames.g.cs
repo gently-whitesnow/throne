@@ -36,6 +36,8 @@ public static class RealtimeEventNames
     public const string TagCreated = "tag.created";
     public const string TagDeleted = "tag.deleted";
     public const string TagUpdated = "tag.updated";
+    public const string TerminalSessionStarted = "terminal.session_started";
+    public const string TerminalSessionStopped = "terminal.session_stopped";
 
     public static readonly System.Collections.Generic.IReadOnlyList<string> All = new[]
     {
@@ -64,5 +66,7 @@ public static class RealtimeEventNames
         TagCreated,
         TagDeleted,
         TagUpdated,
+        TerminalSessionStarted,
+        TerminalSessionStopped,
     };
 }

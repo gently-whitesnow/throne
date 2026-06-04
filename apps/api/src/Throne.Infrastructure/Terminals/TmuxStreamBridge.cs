@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Throne.Application.Events;
 using Throne.Application.Terminals;
 
 namespace Throne.Infrastructure.Terminals;
@@ -22,9 +23,11 @@ internal sealed class TmuxStreamBridge(
     TmuxCli tmux,
     ITmuxSessionManager sessions,
     IOptions<TmuxOptions> options,
+    IDomainEventDispatcher events,
     ILogger<TmuxStreamBridge> log) : ITerminalStreamBridge
 {
     private static readonly TimeSpan SessionPollInterval = TimeSpan.FromSeconds(2);
+    private const string SessionEndedReason = "session_ended";
 
     public async Task RunAsync(string intentId, ITerminalSocket connection, CancellationToken ct)
     {
@@ -69,6 +72,14 @@ internal sealed class TmuxStreamBridge(
         var reason = TerminalBridgeShutdown.Classify(finished, inboundTask, outboundTask, aliveTask);
         await StopPipeAsync(sessionName);
         await connection.CloseAsync(reason.CloseCode, reason.Reason, CancellationToken.None);
+
+        // The liveness watcher winning the race means tmux reported the session gone — a
+        // natural agent exit. A client disconnect (inbound/outbound) leaves the session
+        // alive, so it must NOT emit stopped. Manual kills are covered in KillSessionAsync.
+        if (reason.Reason == SessionEndedReason)
+        {
+            await events.DispatchAsync(new TerminalSessionStopped(intentId), CancellationToken.None);
+        }
 
         TerminalsLog.BridgeDetached(log, sessionName, reason.CloseCode, reason.Reason);
         await TerminalBridgeShutdown.SilenceAsync(inboundTask);
