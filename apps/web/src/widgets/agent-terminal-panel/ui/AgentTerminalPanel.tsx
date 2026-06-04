@@ -32,7 +32,7 @@ interface AgentTerminalPanelProps {
  *   замораживаются, появляется Restart-кнопка.
  */
 export function AgentTerminalPanel({ intentId }: AgentTerminalPanelProps) {
-  const [mode, setMode] = useState<TerminalRunMode>("work");
+  const [mode, setMode] = useState<TerminalRunMode>("interview");
   const { capabilities, isLoading: capabilitiesLoading } = useCapabilities();
   const { bindings } = useIntentRepositories(intentId);
 
