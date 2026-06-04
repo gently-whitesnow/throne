@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Terminals;
 
@@ -20,7 +21,7 @@ public static class TerminalEndpointsRegistration
         ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.Map(
-            "/api/v1/intents/{intent_id}/terminal/ws",
+            TerminalWebSocketRoutes.IntentsTerminalWs,
             static (HttpContext context, string intent_id, TerminalWebSocketEndpoint endpoint) =>
                 endpoint.HandleAsync(context, intent_id));
 

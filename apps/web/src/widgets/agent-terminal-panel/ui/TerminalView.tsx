@@ -5,6 +5,7 @@ import { Terminal } from "@xterm/xterm";
 import { useEffect, useRef } from "react";
 
 import { apiUrl } from "@/shared/api";
+import { terminalWebSocketEndpoints } from "@/shared/realtime";
 
 interface TerminalViewProps {
   intentId: string;
@@ -159,7 +160,9 @@ function parseFrame(raw: unknown): IncomingFrame | null {
 }
 
 function toWebSocketUrl(intentId: string): string {
-  const httpUrl = apiUrl(`/intents/${intentId}/terminal/ws`);
+  const httpUrl = apiUrl(
+    terminalWebSocketEndpoints.intentsTerminalWs(intentId)
+  );
   if (httpUrl.startsWith("http://") || httpUrl.startsWith("https://")) {
     return httpUrl.replace(/^http/, "ws");
   }

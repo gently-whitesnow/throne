@@ -56,6 +56,12 @@ services:
       - ${HOME}/.throne/workspaces:/workspaces
       - ${HOME}/.config/gh:/root/.config/gh:ro
       - ${HOME}/.ssh:/root/.ssh:ro
+      # Хостовое состояние агента: авторизация (~/.claude/.credentials.json) и
+      # onboarding/trust (~/.claude.json) для встроенного claude. rw — claude пишет
+      # историю/настройки. Оба пути должны существовать на хосте (хотя бы раз запусти
+      # claude локально); на macOS креды надо выгрузить из Keychain — см. readme.
+      - ${HOME}/.claude:/root/.claude
+      - ${HOME}/.claude.json:/root/.claude.json
     depends_on:
       mongo-init:
         condition: service_completed_successfully

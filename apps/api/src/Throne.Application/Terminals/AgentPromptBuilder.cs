@@ -16,7 +16,7 @@ public static class AgentPromptBuilder
         {
             TerminalRunModes.Work => "выполни",
             TerminalRunModes.Interview => "проведи интервью по",
-            TerminalRunModes.Dream => "проведи /dream по",
+            TerminalRunModes.Dream => "проведи дрим по",
             _ => throw new ArgumentOutOfRangeException(nameof(mode), $"Unknown terminal mode '{mode}'."),
         };
 

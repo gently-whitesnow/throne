@@ -9,7 +9,7 @@ import type { TerminalRunMode } from "./types";
 const MODE_VERB: Record<TerminalRunMode, string> = {
   work: "выполни",
   interview: "проведи интервью по",
-  dream: "проведи /dream по"
+  dream: "проведи дрим по"
 };
 
 export function buildAgentPrompt(
