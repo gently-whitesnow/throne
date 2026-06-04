@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
 using Throne.Application.Errors;
 using Throne.Application.Tags;
+using Throne.Domain.Tags;
 using Throne.Tags.Contracts.Generated;
 
 namespace Throne.Api.Tags;
@@ -11,7 +12,9 @@ public sealed class TagsController(
     CreateTagHandler createHandler,
     RenameTagHandler renameHandler,
     DeleteTagHandler deleteHandler,
-    GetTagUsageHandler usageHandler) : TagsControllerBase
+    GetTagUsageHandler usageHandler,
+    GetTagHandler getHandler,
+    SetTagDefaultRepositoriesHandler setDefaultsHandler) : TagsControllerBase
 {
     public override async Task<ActionResult<ICollection<TagDto>>> ListTags()
     {
@@ -88,6 +91,50 @@ public sealed class TagsController(
         catch (ApiException ex)
         {
             return TagsErrorMapper.Map<TagUsageDto>(ex);
+        }
+    }
+
+    public override async Task<ActionResult<TagDetailDto>> GetTag(string id)
+    {
+        try
+        {
+            var tag = await getHandler.HandleAsync(new GetTagQuery(id), HttpContext.RequestAborted);
+            return Ok(TagDtoMapper.ToDetailDto(tag));
+        }
+        catch (ApiException ex)
+        {
+            return TagsErrorMapper.Map<TagDetailDto>(ex);
+        }
+    }
+
+    public override async Task<ActionResult<TagDetailDto>> SetTagDefaultRepositories(
+        string id,
+        SetTagDefaultRepositoriesRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        IReadOnlyList<Domain.Tags.TagDefaultRepository> domain;
+        try
+        {
+            domain = body.Default_repositories.Select(TagDtoMapper.FromDefaultRepoDto).ToArray();
+        }
+        catch (ArgumentException ex)
+        {
+            return new UnprocessableEntityObjectResult(Throne.Api.Shared.ApiProblems.Build(
+                Microsoft.AspNetCore.Http.StatusCodes.Status422UnprocessableEntity,
+                "Validation failed",
+                new ApiException(ErrorCodes.ValidationFailed, ex.Message)));
+        }
+
+        try
+        {
+            var tag = await setDefaultsHandler.HandleAsync(
+                new SetTagDefaultRepositoriesCommand(id, body.Expected_version, domain),
+                HttpContext.RequestAborted);
+            return Ok(TagDtoMapper.ToDetailDto(tag));
+        }
+        catch (ApiException ex)
+        {
+            return TagsErrorMapper.Map<TagDetailDto>(ex);
         }
     }
 }

@@ -56,7 +56,7 @@ export interface components {
         WorkspaceSettingsDto: {
             /** @description Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`). Inside docker this is the in-container mount point, not a host path. */
             root: string;
-            /** @description Optional host-side path for the workspace, configured via `Throne:Workspace:HostRoot`. Set in compose to expose the bind-mount source to the UI (`~/.throne/workspaces` on the operator's machine). Omitted when running outside docker (no env var set). */
+            /** @description Optional host-side path for the workspace, configured via `Throne:Workspace:HostRoot`. Relevant only when the API runs inside a container whose `root` is a bind-mount, so the UI can show where clones live on the operator's machine. Empty in the native host-backend mode (ADR-0027), where `root` is already the real host path. */
             host_root?: string | null;
             /**
              * Format: int64

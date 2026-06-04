@@ -30,6 +30,7 @@ app.UseMcpRequiresBearer("/mcp");
 app.UseMiddleware<McpKeepAliveMiddleware>();
 
 app.MapControllers();
+app.MapThroneEndpoints();
 app.MapMcp("/mcp").AllowAnonymous();
 app.MapOAuthProtectedResource("/mcp");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();

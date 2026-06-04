@@ -6,7 +6,9 @@
 export const tagsEndpoints = {
   listTags: () => "/tags",
   createTag: () => "/tags",
+  getTag: (id: string) => `/tags/${id}`,
   renameTag: (id: string) => `/tags/${id}`,
   deleteTag: (id: string) => `/tags/${id}`,
   getTagUsage: (id: string) => `/tags/${id}/usage`,
+  setTagDefaultRepositories: (id: string) => `/tags/${id}/default-repositories`,
 } as const;

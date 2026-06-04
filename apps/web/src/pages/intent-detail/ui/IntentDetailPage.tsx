@@ -3,9 +3,11 @@ import { Check, Copy, MessagesSquare, Play, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { useCapabilityEnabled } from "@/entities/capability";
 import { intentsQueryKeys, useIntent } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
+import { OpenIntentInVscodeButton } from "@/features/open-in-vscode";
 import { ReplaceIntentTextForm } from "@/features/replace-intent-text";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { IntentTagsInline } from "@/features/set-intent-tags";
@@ -13,6 +15,7 @@ import { HttpError } from "@/shared/api";
 import { formatRelativeTime } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 import { Button } from "@/shared/ui";
+import { AgentTerminalPanel } from "@/widgets/agent-terminal-panel";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 import { IntentLinksSection } from "@/widgets/intent-links-section";
 import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
@@ -24,6 +27,7 @@ export function IntentDetailPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const intentQuery = useIntent(id || null);
+  const repositoriesEnabled = useCapabilityEnabled("repositories");
   const [editing, setEditing] = useState(false);
   const [copiedAction, setCopiedAction] = useState<
     "id" | "execute" | "interview" | null
@@ -189,14 +193,17 @@ export function IntentDetailPage() {
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
           {!editing && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditing(true);
-              }}
-            >
-              Редактировать
-            </Button>
+            <>
+              <OpenIntentInVscodeButton intentId={intent.id} />
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setEditing(true);
+                }}
+              >
+                Редактировать
+              </Button>
+            </>
           )}
           <DeleteIntentButton
             intentId={intent.id}
@@ -258,8 +265,12 @@ export function IntentDetailPage() {
                 {intent.text}
               </pre>
               <IntentAttachmentsPanel intentId={intent.id} />
-              <RepositoryBindingsList intentId={intent.id} />
-              <PullRequestCommentsSection intentId={intent.id} />
+              {repositoriesEnabled ? (
+                <>
+                  <RepositoryBindingsList intentId={intent.id} />
+                  <PullRequestCommentsSection intentId={intent.id} />
+                </>
+              ) : null}
               <IntentLinksSection intentId={intent.id} />
               <section className="mt-6 flex flex-col gap-2">
                 <h2 className="m-0 text-sm font-semibold text-base-content">
@@ -267,6 +278,7 @@ export function IntentDetailPage() {
                 </h2>
                 <IntentActivityTimeline intentId={intent.id} />
               </section>
+              <AgentTerminalPanel intentId={intent.id} />
             </>
           )}
         </div>

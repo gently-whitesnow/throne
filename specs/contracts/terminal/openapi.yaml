@@ -1,0 +1,243 @@
+openapi: "3.1.0"
+info:
+  title: Throne Terminal
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Terminal.Contracts.Generated
+  description: >
+    REST surface for the embedded agent terminal. Spawns and restarts a `tmux`-backed
+    session per intent. The bidirectional WebSocket channel for PTY frames lives
+    outside OpenAPI — see `specs/contracts/realtime/websocket/terminal.yaml` and the
+    Slice 2 ADR for rationale (`realtime/events.yaml` is SSE-only by ADR-0008).
+paths:
+  /api/v1/intents/{intent_id}/terminal/run:
+    post:
+      operationId: runIntentTerminal
+      tags: [Terminal]
+      summary: Pre-flight workspace and spawn the agent in a tmux session.
+      description: >
+        Single trigger for the Slice 2 Run pipeline (no MCP equivalent — bundle reads
+        stay idempotent). The server stages the workspace before the session starts:
+
+        1. Stateless auto-bind: union `Tag.default_repositories` across the intent's
+           tags, dedupe by `(provider, owner, repo)`, bind whatever is missing.
+        2. For every binding still `pending` or `failed`, enqueue a partial clone
+           (`--filter=blob:none`) into `RepositoryCloneService`. Clones run in parallel
+           up to `Throne:Clone:MaxParallel` (default 4).
+        3. Wait until every binding reaches `clone_status=ready`. If anything settles
+           on `failed` / `broken`, the spawn is skipped and `session_state=blocked`
+           with `blocking_bindings` populated.
+        4. Spawn `tmux new -ADs throne-{intent_id} -- claude "{prompt}"` only after
+           all bindings are ready. `tmux has-session -t throne-{intent_id}` is the
+           single source of truth — Throne persists nothing about the session.
+
+        Status is 202 because clones may still be running when the response is
+        written; the UI subscribes to `intent.repository_clone_progress` (SSE) for
+        per-binding progress and re-fetches `session_state` from the next `run` /
+        `restart` response (Slice 2 keeps realtime SSE additions out of scope —
+        session-state delivery via response is sufficient for the local-only,
+        single-user surface).
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunIntentTerminalRequest'
+      responses:
+        '202':
+          description: Pre-flight accepted. Inspect `session_state` and `bindings` for current progress.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunIntentTerminalResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: A tmux session for this intent is already running — call `restart` instead.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability `terminal` disabled, prerequisite missing, or invalid mode.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/terminal/session:
+    get:
+      operationId: getIntentTerminalSession
+      tags: [Terminal]
+      summary: Observe the current tmux session state for an intent.
+      description: >
+        Read-only status probe used by the intent page on mount/reload. It does not
+        auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted
+        session state. `tmux has-session -t throne-{intent_id}` remains the source
+        of truth; when it returns true the UI can immediately attach the WebSocket
+        to the existing session and show tmux scrollback.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current terminal session snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunIntentTerminalResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability `terminal` disabled.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/terminal/restart:
+    post:
+      operationId: restartIntentTerminal
+      tags: [Terminal]
+      summary: Kill the live tmux session and re-run the pre-flight pipeline.
+      description: >
+        `tmux kill-session -t throne-{intent_id}` followed by the same staged
+        pre-flight as `run`. Pre-flight is idempotent — a ready workspace produces
+        an immediate spawn. The user is fully responsible for interrupting whatever
+        was running inside the session; the server does NOT confirm.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunIntentTerminalRequest'
+      responses:
+        '202':
+          description: Restart accepted; same payload shape as `run`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunIntentTerminalResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability `terminal` disabled, prerequisite missing, or invalid mode.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    TerminalRunMode:
+      type: string
+      enum:
+        - work
+        - interview
+        - dream
+      description: >
+        Bundle-mode the spawned `claude` process is asked to read. Hardcoded into the
+        prompt template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2
+        decisions Q8 (`feedback_throne_bundle_prompt`).
+    TerminalSessionState:
+      type: string
+      enum:
+        - spawning
+        - running
+        - blocked
+        - exited
+      description: >
+        Lifecycle of the per-intent tmux session, derived from `tmux has-session` at
+        observation time.
+
+        `spawning` — pre-flight finished, `tmux new -ADs` not yet observed alive.
+        `running` — session is alive.
+        `blocked` — at least one binding is `failed` / `broken`; spawn was skipped.
+        `exited` — session was alive previously but has since been torn down.
+    RunIntentTerminalRequest:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/TerminalRunMode'
+    BindingCloneStatus:
+      type: string
+      enum:
+        - pending
+        - cloning
+        - ready
+        - failed
+        - broken
+      description: >
+        Mirror of `repositories#/components/schemas/CloneStatus`. Duplicated here so this
+        contract generator never reaches out across files (NSwag does not resolve
+        relative `$ref` between OpenAPI documents). Keep enum values in sync — see
+        ADR-0024 § 5 for the lifecycle.
+    RunIntentBindingStatusDto:
+      type: object
+      required:
+        - binding_id
+        - clone_status
+      properties:
+        binding_id:
+          type: string
+        clone_status:
+          $ref: '#/components/schemas/BindingCloneStatus'
+        clone_error:
+          type: string
+          nullable: true
+    RunIntentTerminalResponse:
+      type: object
+      required:
+        - intent_id
+        - session_name
+        - session_state
+        - bindings
+      properties:
+        intent_id:
+          type: string
+        session_name:
+          type: string
+          minLength: 1
+          description: Deterministic tmux session name `throne-{intent_id}`.
+        session_state:
+          $ref: '#/components/schemas/TerminalSessionState'
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunIntentBindingStatusDto'
+          description: >
+            Compact snapshot of every binding attached to the intent after the auto-bind
+            step. Full binding cards live under `listIntentRepositories` (Repositories
+            module); the UI joins by `binding_id`.
+        blocking_bindings:
+          type: array
+          items:
+            type: string
+          description: >
+            IDs of bindings whose `clone_status` is `failed` or `broken`. Present when
+            `session_state=blocked`; the UI uses them to render an actionable error per row.
