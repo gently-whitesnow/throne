@@ -13,8 +13,8 @@ public sealed record BindRepositoryCommand(
     int? PullRequestNumber);
 
 /// <summary>
-/// Unbind a previously bound repository. Workspace directory is NOT removed —
-/// disk cleanup is out of scope (ADR-0024 § 1).
+/// Delete a previously bound repository: removes the binding record AND its on-disk
+/// workspace directory (ADR-0024 § 1, revised).
 /// </summary>
 public sealed record UnbindRepositoryCommand(string IntentId, string BindingId);
 

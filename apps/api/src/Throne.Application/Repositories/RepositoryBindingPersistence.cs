@@ -1,3 +1,5 @@
+using Throne.Application.Errors;
+using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
@@ -7,17 +9,19 @@ namespace Throne.Application.Repositories;
 /// <summary>
 /// Persistence-orchestration helper. Owns construction of fresh bindings
 /// (workspace-path layout, factory invocation, clock) and the create/delete/save/find
-/// roundtrips through the unit-of-work + Mongo port.
+/// roundtrips through the unit-of-work + Mongo port. Delete also removes the binding's
+/// on-disk workspace directory — the folder is part of the binding's lifecycle.
 /// </summary>
 public sealed class RepositoryBindingPersistence(
     IIntentRepositoryBindingRepository bindings,
     IUnitOfWork unitOfWork,
-    TimeProvider clock)
+    TimeProvider clock,
+    IWorkspaceRootProvider workspace,
+    IWorkspaceDirectoryRemover workspaceRemover)
 {
     public IntentRepositoryBinding BuildPendingBinding(
         BindRepositoryCommand command,
-        IntentId intentId,
-        string workspaceRoot)
+        IntentId intentId)
     {
         ArgumentNullException.ThrowIfNull(command);
         RepoCoordinate coordinate;
@@ -33,7 +37,7 @@ public sealed class RepositoryBindingPersistence(
             throw RepositoryBindingFailures.InvalidCoordinate(command.Owner, command.Repo, ex.Message);
         }
         var defaultBranch = string.IsNullOrWhiteSpace(command.DefaultBranch) ? "main" : command.DefaultBranch.Trim();
-        var workspacePath = WorkspacePathLayout.Compute(workspaceRoot, intentId, coordinate);
+        var workspacePath = WorkspacePathLayout.Compute(workspace.ResolvedRoot, intentId, coordinate);
         return IntentRepositoryBinding.Create(
             id: BindingId.New(),
             intentId: intentId,
@@ -55,8 +59,35 @@ public sealed class RepositoryBindingPersistence(
         };
     }
 
+    /// <summary>
+    /// Remove the on-disk workspace directory first, then the record. A failed
+    /// directory delete keeps the record so the user can retry instead of being
+    /// left with an orphaned folder and no row to act on.
+    /// </summary>
     public async Task DeleteAsync(IntentRepositoryBinding binding, CancellationToken ct)
     {
+        // Recompute against the live root, not binding.WorkspacePath: the persisted path
+        // embeds the root in effect at clone-time and goes stale on a runtime model
+        // switch (container ↔ native host, ADR-0027) — same reasoning as OpenInVscode.
+        var workspacePath = WorkspacePathLayout.Compute(
+            workspace.ResolvedRoot, binding.IntentId, binding.Coordinate);
+        try
+        {
+            await workspaceRemover.RemoveAsync(workspacePath, ct);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new ApiException(
+                ErrorCodes.RepositoryWorkspaceRemovalFailed,
+                $"Не удалось удалить папку репозитория на диске ('{workspacePath}'): {ex.Message}. "
+                    + "Репозиторий не удалён — закройте процессы, держащие папку, и повторите.",
+                new Dictionary<string, object?>
+                {
+                    ["binding_id"] = binding.Id.Value,
+                    ["workspace_path"] = workspacePath,
+                });
+        }
+
         var outcome = await unitOfWork.ExecuteAsync(inner => bindings.DeleteAsync(binding.Id, inner), ct);
         if (outcome is DeleteBindingOutcome.NotFound)
         {

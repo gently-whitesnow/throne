@@ -38,7 +38,8 @@ interface RepositoryBindingRowProps {
  *  - Manual refresh — re-fetches the bindings list so a stuck or just-recovered
  *    clone surfaces without a page reload. This is intentionally cheap; the
  *    PR-comments `POST .../sync` lives in the comments view, not here.
- *  - Unbind — removes the binding via DELETE. The realtime
+ *  - Delete — removes the binding AND its on-disk workspace folder via DELETE,
+ *    after a confirm that spells out the data loss. The realtime
  *    `intent.repository_unbound` event keeps other clients in sync; the local
  *    list also drops the row optimistically via `onUnbound` so the user sees
  *    immediate feedback even before the SSE round-trip.
@@ -59,7 +60,10 @@ export function RepositoryBindingRow({
 
   async function handleUnbind() {
     const confirmed = window.confirm(
-      `Отвязать репозиторий ${fullName} от интента?`
+      `Удалить репозиторий ${fullName}?\n\n` +
+        "Рабочая папка этого репозитория будет удалена с диска без возможности " +
+        "восстановления. Несохранённые изменения, локальные ветки и файлы, " +
+        "которых нет на GitHub, пропадут.\n\nПродолжить удаление?"
     );
     if (!confirmed) return;
     setUnbinding(true);
@@ -70,8 +74,8 @@ export function RepositoryBindingRow({
     } catch (err) {
       setUnbindError(
         err instanceof HttpError
-          ? `Не удалось отвязать (${String(err.status)}).`
-          : "Не удалось отвязать репозиторий."
+          ? `Не удалось удалить (${String(err.status)}). Папка могла быть занята — закройте процессы и повторите.`
+          : "Не удалось удалить репозиторий."
       );
       setUnbinding(false);
     }
@@ -148,14 +152,14 @@ export function RepositoryBindingRow({
             Обновить
           </Button>
           <Button
-            aria-label={`Отвязать ${fullName}`}
+            aria-label={`Удалить ${fullName}`}
             disabled={unbinding}
             icon={<Trash2 aria-hidden size={14} strokeWidth={2} />}
             onClick={() => {
               void handleUnbind();
             }}
           >
-            {unbinding ? "Отвязываем…" : "Отвязать"}
+            {unbinding ? "Удаляем…" : "Удалить"}
           </Button>
         </div>
       </div>

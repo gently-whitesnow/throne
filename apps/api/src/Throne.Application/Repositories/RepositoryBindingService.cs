@@ -1,14 +1,13 @@
 using Throne.Application.Events;
-using Throne.Application.Git;
 using Throne.Application.Ports;
-using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 
 namespace Throne.Application.Repositories;
 
 /// <summary>
 /// MCP write-surface is intentionally NOT exposed for this aggregate (ADR-0024 § 8).
-/// Unbind leaves the workspace directory on disk — cleanup is out of scope here.
+/// Unbind ("delete repository") removes the binding record AND its on-disk workspace
+/// directory (the directory delete lives in <see cref="RepositoryBindingPersistence"/>).
 /// Realtime emission flows through the dispatching unit-of-work
 /// (<see cref="DomainEventDispatchingUnitOfWork"/>): outcome carriers raise
 /// <see cref="IntentRepositoryBound"/> / <see cref="IntentRepositoryUnbound"/> /
@@ -18,8 +17,7 @@ public sealed class RepositoryBindingService(
     RepositoryBindingResolver resolver,
     RepositoryBindingPersistence persistence,
     RepositoryPullRequestSyncWorkflow syncWorkflow,
-    IRepositoryCloneRequests cloneQueue,
-    IWorkspaceRootProvider workspace)
+    IRepositoryCloneRequests cloneQueue)
 {
     public async Task<IntentRepositoryBinding> BindAsync(BindRepositoryCommand command, CancellationToken ct)
     {
@@ -29,7 +27,7 @@ public sealed class RepositoryBindingService(
         var provider = resolver.ResolveProvider(command.Provider);
         await RepositoryBindingResolver.EnsureProviderAuthenticatedAsync(provider, ct);
 
-        var binding = persistence.BuildPendingBinding(command, intentId, workspace.ResolvedRoot);
+        var binding = persistence.BuildPendingBinding(command, intentId);
         var created = await persistence.CreateAsync(binding, ct);
         await cloneQueue.EnqueueAsync(created.Id, ct);
         return created;

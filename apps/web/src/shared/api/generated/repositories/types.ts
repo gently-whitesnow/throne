@@ -119,8 +119,8 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * Detach a repository binding from an intent.
-         * @description Removes the binding record. The workspace directory on disk is intentionally NOT removed (disk cleanup is out of scope). Idempotent — returns 204 whether or not the binding existed.
+         * Delete a repository binding from an intent.
+         * @description Removes the binding record AND its on-disk workspace directory. Idempotent — returns 204 whether or not the binding existed. If the directory cannot be deleted (locked / permission denied) the binding is kept and a 500 is returned so the operation can be retried.
          */
         delete: operations["unbindIntentRepository"];
         options?: never;
@@ -563,6 +563,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description The workspace directory could not be removed; binding left intact. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

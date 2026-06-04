@@ -32,6 +32,7 @@ public static class ErrorCodes
     public const string RepositoryNotReady = "repository_binding.not_ready";
     public const string RepositoryPullRequestNotAttached = "repository_binding.pull_request_not_attached";
     public const string RepositoryUpstreamGone = "repository.upstream_gone";
+    public const string RepositoryWorkspaceRemovalFailed = "repository_binding.workspace_removal_failed";
     public const string CapabilityNotFound = "capability.not_found";
     public const string CapabilityDisabled = "capability.disabled";
     public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
