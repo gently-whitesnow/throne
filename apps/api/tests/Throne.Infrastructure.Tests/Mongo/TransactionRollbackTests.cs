@@ -1,4 +1,5 @@
 using FluentAssertions;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -55,6 +56,33 @@ public class TransactionRollbackTests(MongoFixture fixture)
             .Find(x => x.Id == id.Value).AnyAsync()).Should().BeFalse();
         (await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
             .Find(x => x.IntentId == id.Value).AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "ExecuteAsync ретраит WriteConflict: конкурентные транзакции на одном документе все коммитятся")]
+    public async Task Retries_write_conflict_under_concurrency()
+    {
+        var (db, _, _) = await NewScopeAsync();
+        var sessions = new MongoSessionAccessor();
+        var uow = new MongoUnitOfWork(fixture.Client, sessions);
+        var counters = db.GetCollection<BsonDocument>("counters");
+        var byId = Builders<BsonDocument>.Filter.Eq("_id", "c");
+        await counters.InsertOneAsync(new BsonDocument { { "_id", "c" }, { "v", 0 } });
+
+        // 8 транзакций делают read-modify-write одного документа: под snapshot-изоляцией
+        // они конфликтуют (WriteConflict), и пройти все могут только через клиентский retry.
+        const int writers = 8;
+        var tasks = Enumerable.Range(0, writers).Select(_ => Task.Run(() =>
+            uow.ExecuteAsync(async ct =>
+            {
+                var session = sessions.Current!;
+                var doc = await counters.Find(session, byId).FirstAsync(ct);
+                await counters.UpdateOneAsync(
+                    session, byId, Builders<BsonDocument>.Update.Set("v", doc["v"].AsInt32 + 1), cancellationToken: ct);
+            }, CancellationToken.None))).ToArray();
+
+        await Task.WhenAll(tasks);
+
+        (await counters.Find(byId).FirstAsync())["v"].AsInt32.Should().Be(writers);
     }
 
     private async Task<(IMongoDatabase Db, MongoIntentRepository Repo, IUnitOfWork Uow)> NewScopeAsync()

@@ -25,29 +25,16 @@ internal sealed class MongoUnitOfWork(IMongoClient client, MongoSessionAccessor 
         }
 
         using var session = await client.StartSessionAsync(cancellationToken: ct);
-        session.StartTransaction();
         using var scope = accessor.BeginScope(session);
 
-        T result;
-        try
-        {
-            result = await work(ct);
-        }
-        catch
-        {
-            try
-            {
-                await session.AbortTransactionAsync(CancellationToken.None);
-            }
-            catch
-            {
-                // best-effort abort; original exception is more relevant
-            }
-            throw;
-        }
-
-        await session.CommitTransactionAsync(ct);
-        return result;
+        // WithTransactionAsync — клиентский retry, который MongoDB штатно ожидает:
+        // на TransientTransactionError повторяется весь callback (например, WriteConflict
+        // или каталоговая гонка SnapshotUnavailable при неявном создании коллекций),
+        // на UnknownTransactionCommitResult — сам commit. Иначе эти транзиентные ошибки
+        // пробрасываются наружу и дают недетерминированную флакость.
+        return await session.WithTransactionAsync(
+            async (_, innerCt) => await work(innerCt),
+            cancellationToken: ct);
     }
 
     public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct)
