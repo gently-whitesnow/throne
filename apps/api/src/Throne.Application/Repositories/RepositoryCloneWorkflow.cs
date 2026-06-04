@@ -53,7 +53,15 @@ public sealed class RepositoryCloneWorkflow(
             return CloneRunResult.ProviderMissing;
         }
 
-        await writer.MarkCloningAsync(binding, ct);
+        var claim = await writer.MarkCloningAsync(binding, ct);
+        if (!claim.WasPersisted)
+        {
+            // Lost the pending → cloning CAS to a concurrent worker (the same binding is
+            // enqueued twice per Run pre-flight) or the binding vanished. The winner owns
+            // the `gh clone`, so skipping here is what prevents the second clone from
+            // failing with «destination path already exists».
+            return CloneRunResult.AlreadyProcessed;
+        }
         return await ExecuteCloneAsync(binding, provider, ct);
     }
 

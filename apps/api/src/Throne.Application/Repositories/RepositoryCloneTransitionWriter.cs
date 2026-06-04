@@ -14,9 +14,15 @@ public sealed class RepositoryCloneTransitionWriter(
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
+    /// <summary>
+    /// Claims the binding for cloning via the atomic <c>pending → cloning</c> CAS
+    /// (<see cref="IIntentRepositoryBindingRepository.ClaimCloningAsync"/>). A non-persisted
+    /// outcome (<see cref="RepositoryCloneTransitionOutcome.WasPersisted"/> false) means a
+    /// concurrent worker already owns the clone — the caller must skip it.
+    /// </summary>
     public Task<RepositoryCloneTransitionOutcome> MarkCloningAsync(
         IntentRepositoryBinding binding, CancellationToken ct) =>
-        SaveAsync(binding, b => b.MarkCloning(clock.GetUtcNow()), ct);
+        PersistAsync(binding, b => b.MarkCloning(clock.GetUtcNow()), bindings.ClaimCloningAsync, ct);
 
     public Task<RepositoryCloneTransitionOutcome> MarkPendingRetryAsync(
         IntentRepositoryBinding binding, CancellationToken ct) =>
@@ -33,13 +39,20 @@ public sealed class RepositoryCloneTransitionWriter(
     private Task<RepositoryCloneTransitionOutcome> SaveAsync(
         IntentRepositoryBinding binding,
         Action<IntentRepositoryBinding> transition,
+        CancellationToken ct) =>
+        PersistAsync(binding, transition, bindings.SaveAsync, ct);
+
+    private Task<RepositoryCloneTransitionOutcome> PersistAsync(
+        IntentRepositoryBinding binding,
+        Action<IntentRepositoryBinding> transition,
+        Func<IntentRepositoryBinding, CancellationToken, Task<SaveBindingOutcome>> persist,
         CancellationToken ct)
     {
         transition(binding);
         return unitOfWork.ExecuteAsync(
             async inner =>
             {
-                var outcome = await bindings.SaveAsync(binding, inner);
+                var outcome = await persist(binding, inner);
                 return outcome switch
                 {
                     SaveBindingOutcome.Saved saved => RepositoryCloneTransitionOutcome.Persisted(saved.Binding),

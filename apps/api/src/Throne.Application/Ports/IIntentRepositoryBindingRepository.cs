@@ -50,6 +50,20 @@ public interface IIntentRepositoryBindingRepository
     /// </summary>
     Task<SaveBindingOutcome> SaveAsync(IntentRepositoryBinding binding, CancellationToken ct);
 
+    /// <summary>
+    /// Atomically claim a binding for cloning: flip <c>pending → cloning</c> only while the
+    /// <em>stored</em> <c>clone_status</c> is still <c>pending</c> (compare-and-swap). The
+    /// same binding can land in the clone queue twice from a single Run pre-flight — once
+    /// from <c>RunPreflightAutoBind</c> (bind auto-enqueues) and again from
+    /// <c>RunPreflightCloneScheduler</c> — and the queue is drained concurrently. Without
+    /// this CAS both workers read <c>pending</c> and both start <c>gh clone</c> into the same
+    /// workspace path, so the second fails with «destination path already exists». The loser
+    /// gets <see cref="SaveBindingOutcome.NotFound"/> (the row is gone <em>or</em> already
+    /// past <c>pending</c>) and must skip the clone. <paramref name="binding"/> already
+    /// carries the <c>cloning</c> state; the precondition is checked against the DB value.
+    /// </summary>
+    Task<SaveBindingOutcome> ClaimCloningAsync(IntentRepositoryBinding binding, CancellationToken ct);
+
     Task<DeleteBindingOutcome> DeleteAsync(BindingId id, CancellationToken ct);
 }
 
