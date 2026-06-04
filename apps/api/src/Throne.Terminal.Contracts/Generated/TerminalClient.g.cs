@@ -27,7 +27,7 @@ namespace Throne.Terminal.Contracts.Generated
     
 
     /// <summary>
-    /// Bundle-mode the spawned `claude` process is asked to read. Hardcoded into the prompt template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`).
+    /// Bundle-mode the spawned `claude` process is asked to read. For `work`/`interview`/`dream` the prompt is hardcoded into the template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`). `free` reads no bundle: claude is spawned bare and the editable text `прочитай интент {id} и &lt;твой вопрос&gt;` is pre-typed into the prompt (not submitted) so the operator finishes the question themselves.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -45,6 +45,10 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"dream")]
         [System.Runtime.Serialization.EnumMember(Value = @"dream")]
         Dream = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"free")]
+        [System.Runtime.Serialization.EnumMember(Value = @"free")]
+        Free = 3,
 
     }
 

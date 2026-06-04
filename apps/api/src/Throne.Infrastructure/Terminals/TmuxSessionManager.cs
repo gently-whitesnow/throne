@@ -44,4 +44,11 @@ internal sealed class TmuxSessionManager(TmuxCli tmux, ILogger<TmuxSessionManage
         var outcome = await tmux.RunAsync(["list-sessions", "-F", "#S"], ct);
         return TmuxSessionListParser.ParseThroneSessions(outcome);
     }
+
+    public async Task SendLiteralTextAsync(string intentId, string text, CancellationToken ct)
+    {
+        var sessionName = TmuxSessionName.For(intentId);
+        // -l: treat the argument as literal UTF-8 text, not a key name; no trailing Enter.
+        await tmux.RunAsync(["send-keys", "-t", sessionName, "-l", text], ct);
+    }
 }

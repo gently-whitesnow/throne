@@ -40,6 +40,14 @@ public interface ITmuxSessionManager
     /// running a server or the binary is missing.
     /// </summary>
     Task<IReadOnlyList<string>> ListThroneSessionsAsync(CancellationToken ct);
+
+    /// <summary>
+    /// <c>tmux send-keys -t throne-{intent_id} -l {text}</c>: pre-type literal text into the
+    /// pane without submitting it (no Enter). Used by free mode so the boot-time claude prompt
+    /// shows an editable starter phrase the operator finishes. Bytes buffered by the pane tty
+    /// are drained by claude once its TUI starts reading stdin.
+    /// </summary>
+    Task SendLiteralTextAsync(string intentId, string text, CancellationToken ct);
 }
 
 /// <summary>

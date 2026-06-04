@@ -22,6 +22,12 @@ describe("buildAgentPrompt", () => {
       "Прочитай бандл dream и проведи дрим по интент abc123"
     );
   });
+
+  it("в режиме free не читает бандл и оставляет плейсхолдер вопроса", () => {
+    expect(buildAgentPrompt("free", "abc123")).toBe(
+      "прочитай интент abc123 и <твой вопрос>"
+    );
+  });
 });
 
 describe("buildClaudeCliCommand", () => {

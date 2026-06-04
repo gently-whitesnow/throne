@@ -278,7 +278,10 @@ export function IntentDetailPage() {
                 </h2>
                 <IntentActivityTimeline intentId={intent.id} />
               </section>
-              <AgentTerminalPanel intentId={intent.id} />
+              <AgentTerminalPanel
+                intentId={intent.id}
+                intentStatus={intent.status}
+              />
             </>
           )}
         </div>
