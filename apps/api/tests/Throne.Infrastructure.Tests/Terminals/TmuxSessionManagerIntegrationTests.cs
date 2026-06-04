@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using NSubstitute;
+using Throne.Application.Events;
 using Throne.Application.Terminals;
 using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Terminals;
@@ -54,6 +56,7 @@ public class TmuxSessionManagerIntegrationTests
     {
         var launcher = new ProcessRunner(NullLogger<ProcessRunner>.Instance);
         var cli = new TmuxCli(launcher, Options.Create(new TmuxOptions()));
-        return new TmuxSessionManager(cli, NullLogger<TmuxSessionManager>.Instance);
+        return new TmuxSessionManager(
+            cli, NullLogger<TmuxSessionManager>.Instance, Substitute.For<IDomainEventDispatcher>());
     }
 }

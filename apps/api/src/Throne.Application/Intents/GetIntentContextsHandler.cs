@@ -1,4 +1,5 @@
 using Throne.Application.Ports;
+using Throne.Application.Terminals;
 
 namespace Throne.Application.Intents;
 
@@ -8,6 +9,8 @@ public sealed record IntentTagCount(string TagId, int Count);
 /// <summary>
 /// Aggregate counts powering the context rail. Tag breakdowns carry tag ids (not names);
 /// name resolution and final ordering happen in the API layer to match the list DTO mapping.
+/// <c>TerminalRunning</c> is computed outside the Mongo aggregation (it intersects the live
+/// tmux session set with the owner's intents) — the repository leaves it 0.
 /// </summary>
 public sealed record IntentContextCounts(
     int InboxReview,
@@ -18,10 +21,14 @@ public sealed record IntentContextCounts(
     int Untagged,
     int ArchiveUntagged,
     IReadOnlyList<IntentTagCount> Tags,
-    IReadOnlyList<IntentTagCount> ArchiveTags);
+    IReadOnlyList<IntentTagCount> ArchiveTags,
+    int TerminalRunning = 0);
 
-public sealed class GetIntentContextsHandler(IIntentRepository repository)
+public sealed class GetIntentContextsHandler(IIntentRepository repository, ITmuxSessionManager tmux)
 {
-    public Task<IntentContextCounts> HandleAsync(CancellationToken ct) =>
-        repository.GetContextCountsAsync(ct);
+    public async Task<IntentContextCounts> HandleAsync(CancellationToken ct)
+    {
+        var runningIds = await RunningTerminalIds.ResolveAsync(tmux, ct);
+        return await repository.GetContextCountsAsync(runningIds, ct);
+    }
 }

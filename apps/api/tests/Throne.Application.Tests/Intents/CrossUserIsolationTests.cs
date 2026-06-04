@@ -2,6 +2,7 @@ using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
+using Throne.Application.Terminals;
 using Throne.Domain.Intents;
 
 namespace Throne.Application.Tests.Intents;
@@ -40,7 +41,7 @@ public class CrossUserIsolationTests
         repo.ListAsync(Arg.Any<IReadOnlyList<string>?>(), Arg.Any<CancellationToken>()).Returns([only]);
 
         var tagRepo = Substitute.For<ITagRepository>();
-        var handler = new ListIntentsHandler(repo, tagRepo);
+        var handler = new ListIntentsHandler(repo, tagRepo, Substitute.For<ITmuxSessionManager>());
         var list = await handler.HandleAsync(new ListIntentsQuery(), CancellationToken.None);
 
         list.Should().HaveCount(1);
