@@ -142,6 +142,35 @@ internal sealed class MongoIntentRepositoryBindingStore(
         return new SaveBindingOutcome.Saved(binding);
     }
 
+    public async Task<SaveBindingOutcome> ClaimCloningAsync(IntentRepositoryBinding binding, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+
+        // CAS: the precondition `clone_status == pending` lives in the *filter*, so the update
+        // matches at most one worker even when the same binding was dequeued twice. The loser's
+        // MatchedCount == 0 ⇒ NotFound ⇒ skip the clone (see IIntentRepositoryBindingRepository).
+        var fb = Builders<IntentRepositoryBindingDocument>.Filter;
+        var filter = fb.And(
+            fb.Eq(d => d.Id, binding.Id.Value),
+            fb.Eq(d => d.CloneStatus, CloneStatusNames.Pending));
+
+        var update = Builders<IntentRepositoryBindingDocument>.Update
+            .Set(d => d.CloneStatus, binding.State.CloneStatus)
+            .Set(d => d.CloneError, binding.State.CloneError)
+            .Set(d => d.UpdatedAt, binding.State.UpdatedAt.UtcDateTime);
+
+        var session = sessions.Current;
+        var result = session is null
+            ? await _bindings.UpdateOneAsync(filter, update, options: null, ct)
+            : await _bindings.UpdateOneAsync(session, filter, update, options: null, ct);
+
+        if (result.MatchedCount == 0)
+        {
+            return new SaveBindingOutcome.NotFound();
+        }
+        return new SaveBindingOutcome.Saved(binding);
+    }
+
     public async Task<DeleteBindingOutcome> DeleteAsync(BindingId id, CancellationToken ct)
     {
         var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.Id, id.Value);

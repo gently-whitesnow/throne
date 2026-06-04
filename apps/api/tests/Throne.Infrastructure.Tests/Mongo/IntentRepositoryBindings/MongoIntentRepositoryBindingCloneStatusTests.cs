@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 
@@ -50,6 +51,25 @@ public class MongoIntentRepositoryBindingCloneStatusTests(MongoFixture fixture)
         var cloning = await scope.Repository.FindByCloneStatusAsync(CloneStatusNames.Cloning, CancellationToken.None);
 
         cloning.Select(b => b.Id.Value).Should().Equal(stuck);
+    }
+
+    [Fact(DisplayName = "ClaimCloningAsync: CAS — первый воркер забирает pending→cloning, второй (DB уже cloning) получает NotFound")]
+    public async Task ClaimCloning_is_atomic_pending_to_cloning()
+    {
+        var scope = await IntentRepositoryBindingTestScope.CreateAsync(fixture);
+        var binding = IntentRepositoryBindingTestFactory.NewBinding(IntentId.New());
+        await scope.Repository.CreateAsync(binding, CancellationToken.None);
+
+        // Same binding dequeued twice (auto-bind + Run-preflight). Both workers carry the
+        // cloning state in-memory; the DB precondition `clone_status == pending` decides the winner.
+        binding.MarkCloning(IntentRepositoryBindingTestFactory.Now);
+        var first = await scope.Repository.ClaimCloningAsync(binding, CancellationToken.None);
+        var second = await scope.Repository.ClaimCloningAsync(binding, CancellationToken.None);
+
+        first.Should().BeOfType<SaveBindingOutcome.Saved>();
+        second.Should().BeOfType<SaveBindingOutcome.NotFound>();
+        var stored = await scope.Repository.GetByIdAsync(binding.Id, CancellationToken.None);
+        stored!.State.CloneStatus.Should().Be(CloneStatusNames.Cloning);
     }
 
     private static async Task<string> PersistAsync(
