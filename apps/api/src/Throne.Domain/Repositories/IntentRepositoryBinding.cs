@@ -117,6 +117,17 @@ public sealed class IntentRepositoryBinding
         };
     }
 
+    public void MarkPendingRetry(DateTimeOffset at)
+    {
+        EnsureTransition(State.CloneStatus, CloneStatusNames.Failed, CloneStatusNames.Pending);
+        State = State with
+        {
+            CloneStatus = CloneStatusNames.Pending,
+            CloneError = null,
+            UpdatedAt = at,
+        };
+    }
+
     public void MarkReady(DateTimeOffset at)
     {
         EnsureTransition(State.CloneStatus, CloneStatusNames.Cloning, CloneStatusNames.Ready);

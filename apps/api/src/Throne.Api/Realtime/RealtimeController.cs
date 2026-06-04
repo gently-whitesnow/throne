@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using Throne.Realtime.Contracts;
 
 namespace Throne.Api.Realtime;
@@ -25,10 +26,12 @@ public sealed class RealtimeController : ControllerBase
     private static readonly TimeSpan KeepAliveInterval = TimeSpan.FromSeconds(15);
 
     private readonly IRealtimeEventBroker _broker;
+    private readonly IHostApplicationLifetime _lifetime;
 
-    public RealtimeController(IRealtimeEventBroker broker)
+    public RealtimeController(IRealtimeEventBroker broker, IHostApplicationLifetime lifetime)
     {
         _broker = broker;
+        _lifetime = lifetime;
     }
 
     [HttpGet("stream")]
@@ -38,19 +41,26 @@ public sealed class RealtimeController : ControllerBase
         Response.Headers["Cache-Control"] = "no-cache, no-transform";
         Response.Headers["X-Accel-Buffering"] = "no";
 
+        // Kestrel does not abort active requests on graceful shutdown until the host's
+        // ShutdownTimeout elapses; without this the SSE loop would keep the process
+        // alive for the full timeout. Cancelling on ApplicationStopping closes the
+        // stream promptly so shutdown is fast.
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.ApplicationStopping);
+        var streamCt = linked.Token;
+
         using var subscription = _broker.Subscribe();
 
-        var keepAlive = WriteKeepAliveLoopAsync(ct);
+        var keepAlive = WriteKeepAliveLoopAsync(streamCt);
         try
         {
-            await foreach (var envelope in subscription.ReadAllAsync(ct))
+            await foreach (var envelope in subscription.ReadAllAsync(streamCt))
             {
-                await WriteEventAsync(envelope, ct);
+                await WriteEventAsync(envelope, streamCt);
             }
         }
         catch (OperationCanceledException)
         {
-            // client disconnect — normal
+            // client disconnect or graceful shutdown — normal
         }
         finally
         {

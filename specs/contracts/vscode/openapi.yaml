@@ -1,0 +1,96 @@
+openapi: "3.1.0"
+info:
+  title: Throne VS Code shell-out
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Vscode.Contracts.Generated
+  description: >
+    REST surface for the "Open in VS Code" buttons (Slice 2, ADR-0026 § 7). Two
+    granularities: the aggregate intent workspace (`intents/{id}/`) and a single
+    repository binding workspace. Both shell-out to the host `code` CLI through
+    the existing `IProcessLauncher`; capability `vscode` must be both `enabled`
+    and `detected` (the docker-compose API container has no `code` binary, so the
+    UI hides the buttons there).
+paths:
+  /api/v1/intents/{intent_id}/open-in-vscode:
+    post:
+      operationId: openIntentInVscode
+      tags: [Vscode]
+      summary: Open the intent's aggregate workspace in VS Code.
+      description: >
+        Runs `code "{Throne:Workspace:Root}/intents/{intent_id}/"` on the host.
+        VS Code opens a single-root window with the cloned repositories as
+        subfolders (Slice 2 Q4 — no generated `.code-workspace`).
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Spawn accepted. Body carries the executed command for debugging.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenInVscodeResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability `vscode` disabled or `code` CLI not available on host.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/open-in-vscode:
+    post:
+      operationId: openBindingInVscode
+      tags: [Vscode]
+      summary: Open a single repository binding's workspace in VS Code.
+      description: >
+        Runs `code "{binding.workspace_path}"`. The clone must be ready
+        (`clone_status=ready`); otherwise responds 422.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Spawn accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenInVscodeResponse'
+        '404':
+          description: Binding or intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability disabled, `code` CLI missing, or clone not ready.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    OpenInVscodeResponse:
+      type: object
+      required:
+        - workspace_path
+      properties:
+        workspace_path:
+          type: string
+          minLength: 1
+          description: Absolute path passed to the `code` CLI.

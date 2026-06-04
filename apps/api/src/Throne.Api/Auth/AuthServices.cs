@@ -22,9 +22,13 @@ public static class AuthServices
         services.Configure<AuthAudienceOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.AddHttpContextAccessor();
 
-        // ICurrentUserAccessor выбирается по AuthMode на момент резолва (Scoped),
-        // что совместимо с lazy-конфигом WebApplicationFactory в тестах.
-        services.AddScoped<ICurrentUserAccessor>(sp =>
+        // Singleton: обе реализации stateless. HttpContextCurrentUserAccessor читает
+        // пользователя текущего запроса через AsyncLocal-backed IHttpContextAccessor,
+        // LocalDevCurrentUserAccessor отдаёт константу. AuthMode фиксируется на старте,
+        // поэтому ветка фабрики стабильна. Singleton избегает captive dependency: весь
+        // репо-слой (и singleton MCP-инструменты/эндпоинты) потребляет этот accessor, и
+        // Scoped-регистрация ломала ValidateOnBuild в Development (захват scoped из singleton).
+        services.AddSingleton<ICurrentUserAccessor>(sp =>
         {
             var mode = sp.GetRequiredService<IOptions<AuthOptions>>().Value.Mode;
             return mode switch

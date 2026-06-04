@@ -6,3 +6,4 @@ export type {
   RealtimeEventName
 } from "./generated/events";
 export { realtimeEventNames } from "./generated/events";
+export { terminalWebSocketEndpoints } from "./generated/terminal-routes";

@@ -17,6 +17,7 @@ import {
   unbindIntentRepository,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
 import { HttpError } from "@/shared/api";
 import { Button } from "@/shared/ui";
 
@@ -132,6 +133,12 @@ export function RepositoryBindingRow({
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
+          <OpenBindingInVscodeButton
+            intentId={intentId}
+            bindingId={binding.id}
+            fullName={fullName}
+            disabled={binding.clone_status !== "ready"}
+          />
           <Button
             aria-label={`Обновить статус ${fullName}`}
             disabled={unbinding}

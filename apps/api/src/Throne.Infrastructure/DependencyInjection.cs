@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
 
         AddGitInfrastructure(services, configuration);
+        Throne.Infrastructure.Terminals.TerminalsModule.AddThroneTerminalsInfrastructure(services, configuration);
 
         services.AddSingleton<IMongoClient>(sp =>
             new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
@@ -68,52 +69,9 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
+        services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
         services.AddHostedService<MongoIndexInitializer>();
-        // Run the cut-over backfill after the index initializer so the unique index on
-        // (intent_id, version) is in place before the writer ever races a runtime edit.
-        services.AddHostedService<MongoIntentEventsMigration>();
 
-        return services;
-    }
-
-    public static IServiceCollection AddThroneInfrastructureWithDatabase(
-        this IServiceCollection services,
-        IMongoDatabase database)
-    {
-        ArgumentNullException.ThrowIfNull(database);
-
-        services.AddSingleton(database);
-        services.AddSingleton<IMongoClient>(database.Client);
-        services.AddOptions<SkillManifestOptions>();
-        services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
-        AddGitInfrastructure(services, configuration: null);
-        services.AddSingleton<MongoSessionAccessor>();
-        services.AddSingleton<MongoUnitOfWork>();
-        services.AddSingleton<IUnitOfWork>(sp => new DomainEventDispatchingUnitOfWork(
-            sp.GetRequiredService<MongoUnitOfWork>(),
-            sp.GetRequiredService<IDomainEventDispatcher>()));
-        services.AddSingleton<MongoIntentRepository>();
-        services.AddSingleton<IIntentRepository>(sp => sp.GetRequiredService<MongoIntentRepository>());
-        services.AddSingleton<IIntentOrderingRepository>(sp => sp.GetRequiredService<MongoIntentRepository>());
-        services.AddSingleton<IIntentPinRepository, MongoIntentPinRepository>();
-        services.AddSingleton<IIntentLinkRepository, MongoIntentLinkRepository>();
-        services.AddSingleton<ITagRepository, MongoTagRepository>();
-        services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
-        services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
-        services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
-        services.AddSingleton<IIntentEventRepository, MongoIntentEventRepository>();
-        services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
-        services.AddSingleton<IPersonalAccessTokenRepository, MongoPersonalAccessTokenRepository>();
-        services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
-        services.AddSingleton<IImageDownscaler, ImageSharpDownscaler>();
-        services.AddOptions<IntentAttachmentCompressionOptions>();
-        services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
-        services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
-        services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
-        services.AddHostedService<MongoIndexInitializer>();
-        // Run the cut-over backfill after the index initializer so the unique index on
-        // (intent_id, version) is in place before the writer ever races a runtime edit.
-        services.AddHostedService<MongoIntentEventsMigration>();
         return services;
     }
 
@@ -126,11 +84,13 @@ public static class DependencyInjection
         var workspaceBuilder = services.AddOptions<WorkspaceOptions>();
         var githubBuilder = services.AddOptions<GitHubCliOptions>();
         var prSyncBuilder = services.AddOptions<PullRequestSyncOptions>();
+        var cloneRunnerBuilder = services.AddOptions<CloneRunnerOptions>();
         if (configuration is not null)
         {
             workspaceBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
             githubBuilder.Bind(configuration.GetSection(GitHubCliOptions.SectionName));
             prSyncBuilder.Bind(configuration.GetSection(PullRequestSyncOptions.SectionName));
+            cloneRunnerBuilder.Bind(configuration.GetSection(CloneRunnerOptions.SectionName));
         }
         // Application layer takes the bound options value directly so its
         // PullRequestSyncBackoff stays free of Microsoft.Extensions.Options.

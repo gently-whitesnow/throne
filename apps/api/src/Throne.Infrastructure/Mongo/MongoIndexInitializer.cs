@@ -1,79 +1,17 @@
 using Microsoft.Extensions.Hosting;
-using MongoDB.Bson;
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Infrastructure.Mongo.Documents;
 using Throne.Infrastructure.Mongo.Repositories;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedService
+internal sealed class MongoIndexInitializer(IMongoDatabase database) : BackgroundService
 {
-    public Task StartAsync(CancellationToken cancellationToken) =>
-        ExecuteWhenPrimaryAsync(async ct =>
-        {
-            await DropRetiredCollectionsAsync(ct);
-            await BackfillOwnerUserIdAsync(ct);
-            await CreateIndexesAsync(ct);
-        }, cancellationToken);
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    private static readonly IReadOnlyList<string> UserOwnedCollections =
-    [
-        MongoCollectionNames.Intents,
-        MongoCollectionNames.IntentAttachments,
-        MongoCollectionNames.PersonalAccessTokens,
-        MongoCollectionNames.InstructionPatches,
-        MongoCollectionNames.DreamSessions,
-        MongoCollectionNames.IntentPins,
-    ];
-
-    /// <summary>
-    /// Collections retired by ADR-0021 (DreamRun aggregate replaced by
-    /// InstructionPatch) and by the ADR-0022 demolition of the insight pipeline
-    /// (chat_uploads / chat_conversations / insight_cards / analysis_jobs).
-    /// Drop happens at boot inside the same primary-only hosted-service so it
-    /// runs exactly once per deployment.
-    /// </summary>
-    private static readonly IReadOnlyList<string> RetiredCollections =
-    [
-        "dream_runs",
-        "chat_uploads",
-        "chat_conversations",
-        "chat_messages",
-        "insight_cards",
-        "analysis_jobs",
-        // Pointer-only switch for PR comments: GitHub is the source of truth;
-        // the local bodies cache is retired.
-        "pull_request_comments",
-    ];
-
-    private async Task DropRetiredCollectionsAsync(CancellationToken cancellationToken)
-    {
-        var existing = await database
-            .ListCollectionNames(cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
-        foreach (var name in RetiredCollections)
-        {
-            if (existing.Contains(name, StringComparer.Ordinal))
-            {
-                await database.DropCollectionAsync(name, cancellationToken);
-            }
-        }
-    }
-
-    private async Task BackfillOwnerUserIdAsync(CancellationToken cancellationToken)
-    {
-        var filter = new BsonDocument("owner_user_id", new BsonDocument("$exists", false));
-        var update = new BsonDocument("$set", new BsonDocument("owner_user_id", CurrentUserIds.LocalDev));
-        foreach (var name in UserOwnedCollections)
-        {
-            var collection = database.GetCollection<BsonDocument>(name);
-            await collection.UpdateManyAsync(filter, update, cancellationToken: cancellationToken);
-        }
-    }
-
+    // Runs off the startup critical path: index creation is idempotent (the driver
+    // no-ops indexes that already exist), so the host can start listening before it
+    // finishes instead of blocking "Application started" on a round-trip per index.
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        ExecuteWhenPrimaryAsync(CreateIndexesAsync, stoppingToken);
 
     private async Task CreateIndexesAsync(CancellationToken cancellationToken)
     {
@@ -197,7 +135,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
         var intentEvents = database.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents);
         await intentEvents.Indexes.CreateManyAsync(
             [
-                // Primary lookup for the per-intent feed and migration idempotency.
+                // Primary lookup for the per-intent feed.
                 new CreateIndexModel<IntentEventDocument>(
                     Builders<IntentEventDocument>.IndexKeys
                         .Ascending(x => x.IntentId)
@@ -208,9 +146,9 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : IHostedSe
                 new CreateIndexModel<IntentEventDocument>(
                     Builders<IntentEventDocument>.IndexKeys.Ascending(x => x.PeerIntentId),
                     new CreateIndexOptions { Name = "peer_intent_id" }),
-                // Migration idempotency: skip insert if (intent_id, version) already
-                // exists for kind=text_changed. The unique index also prevents accidental
-                // double-writes if the migration races a fresh write-path edit.
+                // One text_changed event per (intent_id, version): the unique partial
+                // index guards the write path against accidental double-writes of the
+                // same version.
                 new CreateIndexModel<IntentEventDocument>(
                     Builders<IntentEventDocument>.IndexKeys
                         .Ascending(x => x.IntentId)

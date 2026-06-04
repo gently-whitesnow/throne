@@ -11,7 +11,12 @@ import {
 } from "@/entities/tag";
 import { Button } from "@/shared/ui";
 
-export function TagsBoard() {
+interface TagsBoardProps {
+  selectedTagId: string | null;
+  onSelectTag: (tagId: string) => void;
+}
+
+export function TagsBoard({ selectedTagId, onSelectTag }: TagsBoardProps) {
   const tagsQuery = useTags();
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
@@ -128,37 +133,54 @@ export function TagsBoard() {
         )}
         {tagsQuery.isSuccess && tagsQuery.data.length > 0 && (
           <ul className="m-0 flex list-none flex-col p-0">
-            {tagsQuery.data.map((tag) => (
-              <li
-                key={tag.id}
-                className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 last:border-b-0"
-              >
-                <span className="badge badge-sm badge-outline border-base-300 text-base-content/80">
-                  #{tag.name}
-                </span>
-                <span className="text-[11px] tabular-nums text-base-content/60">
-                  v{String(tag.current_version)}
-                </span>
-                <div className="ml-auto flex gap-1">
-                  <Button
-                    variant="default"
-                    onClick={() => void handleRename(tag)}
-                    disabled={busyId === tag.id}
-                    aria-label="Переименовать"
+            {tagsQuery.data.map((tag) => {
+              const selected = tag.id === selectedTagId;
+              return (
+                <li
+                  key={tag.id}
+                  className={
+                    selected
+                      ? "flex items-center gap-2 border-b border-base-300 bg-primary/10 px-3.5 py-2 last:border-b-0"
+                      : "flex items-center gap-2 border-b border-base-300 px-3.5 py-2 last:border-b-0"
+                  }
+                >
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onSelectTag(tag.id);
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left focus:outline-none"
+                    data-testid={`tag-row-${tag.id}`}
                   >
-                    <Pencil size={14} aria-hidden /> Rename
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => void handleDelete(tag)}
-                    disabled={busyId === tag.id}
-                    aria-label="Удалить"
-                  >
-                    <Trash2 size={14} aria-hidden /> Delete
-                  </Button>
-                </div>
-              </li>
-            ))}
+                    <span className="badge badge-sm badge-outline border-base-300 text-base-content/80">
+                      #{tag.name}
+                    </span>
+                    <span className="text-[11px] tabular-nums text-base-content/60">
+                      v{String(tag.current_version)}
+                    </span>
+                  </button>
+                  <div className="ml-auto flex gap-1">
+                    <Button
+                      variant="default"
+                      onClick={() => void handleRename(tag)}
+                      disabled={busyId === tag.id}
+                      aria-label="Переименовать"
+                    >
+                      <Pencil size={14} aria-hidden /> Rename
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={() => void handleDelete(tag)}
+                      disabled={busyId === tag.id}
+                      aria-label="Удалить"
+                    >
+                      <Trash2 size={14} aria-hidden /> Delete
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

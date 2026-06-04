@@ -10,7 +10,10 @@ using Throne.Application.Intents.Linking;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
 using Throne.Application.Tags;
+using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Application.TextVersions;
+using Throne.Application.Vscode;
 
 namespace Throne.Application;
 
@@ -82,6 +85,26 @@ public static class DependencyInjection
         services.AddSingleton<PullRequestStateRefresher>();
         services.AddSingleton<PullRequestSyncBindingVisitor>();
         services.AddSingleton<PullRequestSyncTickWorkflow>();
+        // Capability orchestrator + Slice 2 Run pre-flight (terminal).
+        // RunPreflightOrchestrator pulls in ITmuxSessionManager from
+        // Throne.Infrastructure.Terminals — registration there is required.
+        services.AddSingleton<CapabilitiesPersistence>();
+        services.AddSingleton<CapabilitiesService>();
+        services.AddSingleton<TagDefaultsUnion>();
+        services.AddSingleton<RunPreflightAutoBind>();
+        services.AddSingleton<RunPreflightCloneScheduler>();
+        services.AddSingleton<RunPreflightCloneWait>();
+        services.AddSingleton<RunPreflightSpawn>();
+        services.AddSingleton<RunPreflightGuards>();
+        services.AddSingleton<RunPreflightOrchestrator>();
+        services.AddSingleton<TerminalSessionStatusService>();
+        services.AddSingleton<SetTagDefaultRepositoriesHandler>();
+        services.AddSingleton<GetTagHandler>();
+        // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by
+        // `capabilities.vscode` (toggle + live `code --version` probe).
+        services.AddSingleton<VscodeCapabilityGuard>();
+        services.AddSingleton<VscodeSpawner>();
+        services.AddSingleton<OpenInVscodeService>();
         return services;
     }
 

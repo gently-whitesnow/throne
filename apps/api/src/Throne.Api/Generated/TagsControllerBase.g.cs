@@ -47,6 +47,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TagDto>> CreateTag([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CreateTagRequest body);
 
         /// <summary>
+        /// Read a tag including its default repositories list.
+        /// </summary>
+        /// <remarks>
+        /// Returns full tag state with the `default_repositories[]` collection used by the Slice 2 Run pre-flight (auto-bind union across the intent's tags).
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/tags/{id}", Name = "getTag")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TagDetailDto>> GetTag([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
         /// Rename a tag.
         /// </summary>
         /// <returns>OK</returns>
@@ -70,6 +80,16 @@ namespace Throne.Api.Generated
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/tags/{id}/usage", Name = "getTagUsage")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TagUsageDto>> GetTagUsage([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
+        /// Replace the tag's default repositories list.
+        /// </summary>
+        /// <remarks>
+        /// Whole-list replace (no PATCH). The server normalizes by deduplicating on `(provider, owner, repo)`. Empty array is accepted and clears the list. Existing intent bindings are not touched — the pre-flight pipeline only runs when the operator presses Run.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/tags/{id}/default-repositories", Name = "setTagDefaultRepositories")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TagDetailDto>> SetTagDefaultRepositories([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetTagDefaultRepositoriesRequest body);
 
     }
 

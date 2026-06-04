@@ -1,0 +1,84 @@
+version: 1
+# Source of truth for the bidirectional WebSocket channel that bridges the
+# embedded xterm.js terminal in the intent page to a per-intent tmux session
+# (see Slice 2 ADR — embedded terminal + tag-driven Run pre-flight).
+#
+# realtime/events.yaml is SSE-only by ADR-0008 and intentionally one-way; the
+# Slice 2 ADR chose a custom bidirectional yaml over AsyncAPI 2.6 to keep the
+# spec close to throne's existing minimal-yaml idiom (one channel, three frame
+# types, no need for AsyncAPI's channel/server/operation hierarchy).
+#
+# Transport: HTTP upgrade to WebSocket at
+#   GET /api/v1/intents/{intent_id}/terminal/ws
+# Auth: none in Slice 2 — Throne is local-only by design (Slice 2 Q5). When
+# Throne becomes multi-user a separate intent introduces a token flow for all
+# HTTP+WS endpoints simultaneously.
+#
+# Lifecycle:
+#   - Server bridges the per-intent tmux session to the socket via the tmux CLI
+#     (`tmux pipe-pane` + FIFO for output, `tmux send-keys -H` for input,
+#     `tmux resize-window` for resize) — no PTY allocation on the server
+#     side, tmux already owns the PTY around `claude`.
+#   - On disconnect the pipe-pane/FIFO wrapper exits; the tmux session keeps
+#     running (its daemon owns the process). The next connect re-bridges and
+#     the user sees the live tmux scrollback via `tmux capture-pane`.
+#   - On tmux session exit (`claude` exited) the server closes the socket with
+#     code 1000 ("normal closure") so the client can render
+#     "session ended → Run again" without reconnect storms.
+
+channels:
+  /api/v1/intents/{intent_id}/terminal/ws:
+    description: Per-intent embedded terminal bridge.
+    path_parameters:
+      intent_id:
+        type: string
+        description: Intent id whose tmux session this socket attaches to.
+    client_to_server:
+      input:
+        description: Raw keystrokes typed in the xterm component, forwarded verbatim to the PTY.
+        payload:
+          type: object
+          required: [type, data]
+          properties:
+            type:
+              type: string
+              const: input
+            data:
+              type: string
+              description: UTF-8 chunk including control codes (e.g. "\r", "" for ctrl+c).
+      resize:
+        description: xterm geometry changed; pass `TIOCSWINSZ` to the PTY.
+        payload:
+          type: object
+          required: [type, cols, rows]
+          properties:
+            type:
+              type: string
+              const: resize
+            cols:
+              type: integer
+              minimum: 1
+              maximum: 1000
+            rows:
+              type: integer
+              minimum: 1
+              maximum: 1000
+    server_to_client:
+      output:
+        description: PTY stdout/stderr chunk including ANSI sequences. Forwarded as-is.
+        payload:
+          type: object
+          required: [type, data]
+          properties:
+            type:
+              type: string
+              const: output
+            data:
+              type: string
+              description: UTF-8 chunk; the server preserves multi-byte boundaries.
+
+# Close codes used by the server (RFC 6455 application section).
+close_codes:
+  1000: Normal closure — tmux session exited (claude finished). UI shows "session ended".
+  1008: Policy violation — capability `terminal` disabled at runtime or intent unknown.
+  1011: Internal error — tmux command failed; UI shows the error and offers retry.

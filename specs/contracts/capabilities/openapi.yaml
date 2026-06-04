@@ -1,0 +1,122 @@
+openapi: "3.1.0"
+info:
+  title: Throne Capabilities
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Capabilities.Contracts.Generated
+paths:
+  /api/v1/settings/capabilities:
+    get:
+      operationId: listCapabilities
+      tags: [Capabilities]
+      summary: List feature capabilities with prerequisite detection status and current toggle.
+      description: >
+        Returns every capability Throne knows about. Each entry combines static metadata
+        (`title`, `description`, `prerequisite_hint`) with runtime detection
+        (`detected`, `detection_detail`) and the persisted toggle (`enabled`). New
+        capabilities default to `enabled=false`: explicit opt-in is required per Slice 2.
+        Detection is a TTL-cached health-check (`tmux --version`, `code --version`,
+        `gh auth status` etc.) and does NOT auto-enable the toggle.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CapabilityDto'
+  /api/v1/settings/capabilities/{name}:
+    put:
+      operationId: setCapabilityEnabled
+      tags: [Capabilities]
+      summary: Toggle a capability on or off.
+      description: >
+        Persists the `enabled` flag for the capability identified by `name`. Toggling on
+        without a satisfied prerequisite is permitted — UI surfaces a red marker so the
+        operator can install the missing tool later. Toggling off is immediate and hides
+        the corresponding UI surfaces without touching any persisted user data.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            $ref: '#/components/schemas/CapabilityName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCapabilityEnabledRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityDto'
+        '404':
+          description: Unknown capability name.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    CapabilityName:
+      type: string
+      enum:
+        - repositories
+        - terminal
+        - vscode
+      description: >
+        Closed set of capability keys shipped in Slice 2. Future capabilities
+        (e.g. `jira`, `gitlab`) extend this enum without breaking existing clients.
+    CapabilityDto:
+      type: object
+      required:
+        - name
+        - title
+        - description
+        - prerequisite_hint
+        - detected
+        - enabled
+      properties:
+        name:
+          $ref: '#/components/schemas/CapabilityName'
+        title:
+          type: string
+          minLength: 1
+          description: Short human-readable label rendered as the card title in `/settings`.
+        description:
+          type: string
+          minLength: 1
+          description: One-to-two sentence summary of what this capability unlocks in Throne.
+        prerequisite_hint:
+          type: string
+          minLength: 1
+          description: >
+            Operator-facing instruction for installing the missing prerequisite
+            (e.g. `brew install tmux`, `gh auth login`). Rendered next to the toggle.
+        detected:
+          type: boolean
+          description: >
+            True when the prerequisite health-check succeeded on the last detection pass.
+            Detection alone never flips `enabled` — the operator opts in explicitly.
+        detection_detail:
+          type: string
+          nullable: true
+          description: >
+            Short free-form note from the detector (`tmux 3.5a`, `gh: not authenticated`,
+            `code CLI not found`). Useful for the UI to expose alongside the red/green dot.
+        enabled:
+          type: boolean
+          description: >
+            Persisted toggle from the singleton `capabilities` document. Defaults to
+            `false` for every new capability — see Slice 2 ADR.
+    SetCapabilityEnabledRequest:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean

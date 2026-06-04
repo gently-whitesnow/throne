@@ -1,5 +1,6 @@
-import { FolderCog, GitBranch, KeyRound } from "lucide-react";
+import { FolderCog, GitBranch, KeyRound, ToggleRight } from "lucide-react";
 
+import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
 import { McpTokenCard } from "@/widgets/mcp-token-card";
 import { WorkspaceCard } from "@/widgets/workspace-card";
@@ -7,7 +8,8 @@ import { WorkspaceCard } from "@/widgets/workspace-card";
 /**
  * `/settings` — единая страница настроек профиля.
  *
- * Три секции:
+ * Четыре секции:
+ *   * «Возможности» — capability-gating (Slice 2): repositories, terminal, vscode.
  *   * «Провайдеры Git» — статус `gh auth status`.
  *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
  *   * «MCP-токен» — Personal Access Token для MCP-клиентов (нужен только при production-развёртывании на сервере).
@@ -21,9 +23,19 @@ export function SettingsPage() {
         </p>
         <h1 className="m-0 text-2xl font-bold leading-tight">Настройки</h1>
         <p className="m-0 max-w-[64ch] text-sm leading-relaxed text-base-content/70">
-          Провайдеры Git, параметры workspace и MCP-токен в одном месте.
+          Возможности, провайдеры Git, параметры workspace и MCP-токен в одном
+          месте.
         </p>
       </header>
+
+      <SettingsSection
+        id="capabilities"
+        title="Возможности"
+        icon={ToggleRight}
+        description="Фичи Throne с внешними зависимостями (gh, tmux, code). Default OFF: включите тогл осознанно после того, как установлен соответствующий CLI. Терминал, Run, «Open in VS Code» и репозитории требуют доступа к хосту: бэкенд надо запускать нативно на хосте (профиль «только web+db», docker-compose.host.yml) — в контейнерном режиме они не детектятся и остаются выключены."
+      >
+        <CapabilitiesCard />
+      </SettingsSection>
 
       <SettingsSection
         id="git-providers"

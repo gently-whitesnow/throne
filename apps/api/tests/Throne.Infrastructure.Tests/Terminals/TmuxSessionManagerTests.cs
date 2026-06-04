@@ -1,0 +1,114 @@
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using NSubstitute;
+using Throne.Application.Ports;
+using Throne.Application.Terminals;
+using Throne.Infrastructure.Terminals;
+
+namespace Throne.Infrastructure.Tests.Terminals;
+
+/// <summary>
+/// Unit-level checks of <see cref="TmuxSessionManager"/> against a substituted
+/// <see cref="IProcessLauncher"/>. Verifies the shell-out vector, the binary-missing
+/// fold-down, and the spawn → has-session double-check.
+/// </summary>
+public class TmuxSessionManagerTests
+{
+    private const string IntentId = "intent-abc";
+
+    [Fact(DisplayName = "Spawn собирает tmux new-session -ADs throne-<id> ... -- {command} {args}")]
+    public async Task Spawn_builds_expected_argv()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(launcher);
+        var sut = NewManager(launcher);
+
+        var result = await sut.SpawnAsync(
+            new TmuxSpawnRequest(
+                IntentId,
+                "/Users/me/workspace/intent-abc",
+                "claude",
+                ["--prompt", "hello"]),
+            CancellationToken.None);
+
+        result.SessionName.Should().Be("throne-intent-abc");
+        result.IsAlive.Should().BeTrue();
+
+        var allArgs = launcher
+            .ReceivedCalls()
+            .Select(c => (ProcessRunRequest)c.GetArguments()[0]!)
+            .ToArray();
+
+        allArgs[0].FileName.Should().Be("tmux");
+        allArgs[0].Arguments.Should().Equal(
+            "new-session", "-A", "-D",
+            "-s", "throne-intent-abc",
+            "-c", "/Users/me/workspace/intent-abc",
+            "-d",
+            "claude", "--prompt", "hello");
+        allArgs[1].Arguments.Should().Equal("has-session", "-t", "throne-intent-abc");
+    }
+
+    [Fact(DisplayName = "HasSession возвращает false если tmux not on PATH")]
+    public async Task HasSession_folds_binary_missing_to_false()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns<Task<ProcessRunResult>>(_ => throw new System.ComponentModel.Win32Exception("not found"));
+        var sut = NewManager(launcher);
+
+        var alive = await sut.HasSessionAsync(IntentId, CancellationToken.None);
+
+        alive.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "KillSession возвращает false если session отсутствует (exit != 0)")]
+    public async Task KillSession_returns_false_when_session_missing()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(
+                ExitCode: 1,
+                StandardOutput: string.Empty,
+                StandardError: "can't find session: throne-intent-abc",
+                Elapsed: TimeSpan.Zero)));
+        var sut = NewManager(launcher);
+
+        var killed = await sut.KillSessionAsync(IntentId, CancellationToken.None);
+
+        killed.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "ListThroneSessions фильтрует список по префиксу 'throne-'")]
+    public async Task ListThroneSessions_filters_prefix()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(
+                ExitCode: 0,
+                StandardOutput: "throne-a\nthrone-b\nlocal-other\n",
+                StandardError: string.Empty,
+                Elapsed: TimeSpan.Zero)));
+        var sut = NewManager(launcher);
+
+        var sessions = await sut.ListThroneSessionsAsync(CancellationToken.None);
+
+        sessions.Should().BeEquivalentTo(["throne-a", "throne-b"]);
+    }
+
+    private static void SetupLauncherSuccess(IProcessLauncher launcher) =>
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(
+                ExitCode: 0,
+                StandardOutput: string.Empty,
+                StandardError: string.Empty,
+                Elapsed: TimeSpan.Zero)));
+
+    private static TmuxSessionManager NewManager(IProcessLauncher launcher)
+    {
+        var options = Options.Create(new TmuxOptions());
+        var cli = new TmuxCli(launcher, options);
+        return new TmuxSessionManager(cli, NullLogger<TmuxSessionManager>.Instance);
+    }
+}
