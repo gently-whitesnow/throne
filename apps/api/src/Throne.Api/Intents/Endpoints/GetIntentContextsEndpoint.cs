@@ -24,6 +24,7 @@ public sealed class GetIntentContextsEndpoint(GetIntentContextsHandler handler, 
             Pinned = counts.Pinned,
             Untagged = counts.Untagged,
             Archive_untagged = counts.ArchiveUntagged,
+            Terminal_running = counts.TerminalRunning,
             Tags = ToTagRows(counts.Tags, tagMap),
             Archive_tags = ToTagRows(counts.ArchiveTags, tagMap),
         });

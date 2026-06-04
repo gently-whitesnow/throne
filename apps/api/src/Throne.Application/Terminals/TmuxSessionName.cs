@@ -14,4 +14,19 @@ public static class TmuxSessionName
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         return Prefix + intentId;
     }
+
+    /// <summary>
+    /// Inverse of <see cref="For"/>: pulls the intent id out of a <c>throne-{intent_id}</c>
+    /// session name. Returns <c>null</c> for any name that is not a throne session or carries
+    /// an empty id, so callers can filter <c>tmux ls</c> output down to real intent ids.
+    /// </summary>
+    public static string? TryIntentId(string sessionName)
+    {
+        if (string.IsNullOrEmpty(sessionName) || !sessionName.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+        var id = sessionName[Prefix.Length..];
+        return id.Length == 0 ? null : id;
+    }
 }

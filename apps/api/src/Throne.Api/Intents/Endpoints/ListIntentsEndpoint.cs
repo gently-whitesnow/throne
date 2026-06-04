@@ -18,6 +18,7 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
         string? tag,
         bool? untagged,
         bool? pinned,
+        bool? terminalRunning,
         string? query,
         DtoIntentListSort? sort,
         CancellationToken cancellationToken)
@@ -32,6 +33,7 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
             TagName: string.IsNullOrWhiteSpace(tag) ? null : tag,
             Untagged: untagged.GetValueOrDefault(),
             Pinned: pinned.GetValueOrDefault(),
+            TerminalRunning: terminalRunning.GetValueOrDefault(),
             Query: string.IsNullOrWhiteSpace(query) ? null : query,
             Sort: IntentListSortDtoMapper.FromContractSort(sort),
             Limit: limit ?? ListIntentsHandler.DefaultLimit,

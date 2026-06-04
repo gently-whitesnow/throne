@@ -4,12 +4,14 @@ import {
   INBOX_HELP_CONTEXT,
   INBOX_REVIEW_CONTEXT,
   PINNED_CONTEXT,
+  TERMINAL_RUNNING_CONTEXT,
   UNTAGGED_CONTEXT,
   archiveContextTag,
   isArchiveContext,
   isFridgeContext,
   isInboxContext,
-  isPinnedContext
+  isPinnedContext,
+  isTerminalRunningContext
 } from "@/shared/lib";
 
 import type { IntentListParams } from "../api/intents-queries";
@@ -42,6 +44,9 @@ export function matchesContext(
   context: string | null
 ): boolean {
   if (!context) return false;
+  // Membership in the terminal-running bucket lives in tmux, not on the item — the list is
+  // fetched server-side via the `terminal_running` filter, so there is nothing to mirror here.
+  if (isTerminalRunningContext(context)) return false;
   if (isPinnedContext(context)) {
     return item.pinned_in.length > 0;
   }
@@ -77,6 +82,7 @@ export function matchesContext(
  */
 export function contextToParams(context: string | null): IntentListParams {
   if (!context) return {};
+  if (isTerminalRunningContext(context)) return { terminalRunning: true };
   if (isPinnedContext(context)) return { pinned: true };
   if (isArchiveContext(context)) {
     const subTag = archiveContextTag(context);
@@ -109,6 +115,7 @@ export function contextTitle(context: string | null): string {
   if (context === FRIDGE_CONTEXT) return "Холодильник";
   if (context === INBOX_REVIEW_CONTEXT) return "Жду ревью";
   if (context === INBOX_HELP_CONTEXT) return "Нужна помощь";
+  if (context === TERMINAL_RUNNING_CONTEXT) return "Терминал запущен";
   if (context === UNTAGGED_CONTEXT) return "Без тегов";
   if (context === PINNED_CONTEXT) return "Pinned";
   if (context === ARCHIVE_CONTEXT) return "Архив";

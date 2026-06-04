@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
+using Throne.Application.Events;
 using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
@@ -229,7 +230,7 @@ public class RunPreflightOrchestratorTests
             var autoBind = new RunPreflightAutoBind(union, Bindings, bindingService);
             var queue = new RunPreflightCloneScheduler(Bindings, cloneQueue, transitions);
             var cloneWait = new RunPreflightCloneWait(Bindings, new RunPreflightOptions(), clockShared);
-            var spawn = new RunPreflightSpawn(Tmux, workspace);
+            var spawn = new RunPreflightSpawn(Tmux, workspace, Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             Orchestrator = new RunPreflightOrchestrator(guards, autoBind, queue, cloneWait, spawn);
         }
