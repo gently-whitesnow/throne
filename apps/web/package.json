@@ -14,7 +14,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "architecture": "env CHOKIDAR_USEPOLLING=1 steiger ./src",
-    "codegen": "node scripts/codegen-contracts.mjs && node scripts/codegen-realtime.mjs"
+    "codegen": "node scripts/codegen-contracts.mjs && node scripts/codegen-realtime.mjs && node scripts/codegen-websocket.mjs"
   },
   "dependencies": {
     "@fontsource-variable/mona-sans": "^5.2.8",
