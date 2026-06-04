@@ -48,7 +48,12 @@ public sealed class OpenInVscodeService(
             throw VscodeFailures.BindingCloneNotReady(bindingId, binding.State.CloneStatus);
         }
 
-        await spawner.SpawnAsync(binding.WorkspacePath, ct);
-        return binding.WorkspacePath;
+        // Derive against the live ResolvedRoot, not binding.WorkspacePath: the persisted
+        // path embeds the root that was in effect at clone-time and goes stale on a runtime
+        // model switch (container /workspaces → native host ~/.throne/workspaces, ADR-0027).
+        var workspacePath = WorkspacePathLayout.Compute(
+            workspaceRoot.ResolvedRoot, binding.IntentId, binding.Coordinate);
+        await spawner.SpawnAsync(workspacePath, ct);
+        return workspacePath;
     }
 }
