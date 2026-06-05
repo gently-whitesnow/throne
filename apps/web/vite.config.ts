@@ -10,6 +10,28 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src")
     }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Тяжёлые vendor-зависимости разводим по отдельным чанкам: один общий
+        // бандл рос выше порога Vite и инвалидировался при любой правке UI.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("@xterm")) return "xterm";
+          if (id.includes("react-router")) return "router";
+          if (
+            id.includes("react-dom") ||
+            id.includes("/scheduler/") ||
+            id.includes("node_modules/react/")
+          ) {
+            return "react";
+          }
+          if (id.includes("@tanstack")) return "tanstack";
+          return "vendor";
+        }
+      }
+    }
+  },
   server: {
     proxy: {
       "/api": {
