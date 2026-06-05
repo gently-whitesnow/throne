@@ -145,8 +145,11 @@ export function TerminalView({
     });
 
     let closedSignalled = false;
+    let disposed = false;
     const signalClosed = (code: number) => {
-      if (closedSignalled) return;
+      // Плановый teardown (cleanup эффекта) сам закрывает сокет — его close
+      // не означает конец tmux-сессии, поэтому не сигналим наружу.
+      if (disposed || closedSignalled) return;
       closedSignalled = true;
       onClosed(code);
     };
@@ -160,6 +163,7 @@ export function TerminalView({
     });
 
     return () => {
+      disposed = true;
       inputDisposable.dispose();
       resizeObserver.disconnect();
       if (
