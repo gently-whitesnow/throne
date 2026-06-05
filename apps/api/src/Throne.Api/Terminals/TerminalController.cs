@@ -9,7 +9,8 @@ namespace Throne.Api.Terminals;
 
 public sealed class TerminalController(
     RunPreflightOrchestrator orchestrator,
-    TerminalSessionStatusService statusService) : TerminalControllerBase
+    TerminalSessionStatusService statusService,
+    TerminalSessionKillService killService) : TerminalControllerBase
 {
     public override Task<ActionResult<RunIntentTerminalResponse>> RunIntentTerminal(
         string intent_id,
@@ -26,6 +27,19 @@ public sealed class TerminalController(
         try
         {
             var result = await statusService.GetAsync(intent_id, HttpContext.RequestAborted);
+            return Ok(TerminalRunResponseMapper.ToDto(result));
+        }
+        catch (ApiException ex)
+        {
+            return TerminalErrorMapper.Map(ex);
+        }
+    }
+
+    public override async Task<ActionResult<RunIntentTerminalResponse>> KillIntentTerminal(string intent_id)
+    {
+        try
+        {
+            var result = await killService.KillAsync(intent_id, HttpContext.RequestAborted);
             return Ok(TerminalRunResponseMapper.ToDto(result));
         }
         catch (ApiException ex)

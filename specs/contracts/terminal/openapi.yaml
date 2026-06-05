@@ -150,6 +150,42 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/terminal/kill:
+    post:
+      operationId: killIntentTerminal
+      tags: [Terminal]
+      summary: Kill the live tmux session without respawning.
+      description: >
+        `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot
+        with `session_state=exited`. Unlike `restart` this does not re-run the pre-flight
+        pipeline or spawn a new session — it just tears the session down. Idempotent: a
+        missing session is reported as `exited` all the same. The user is fully
+        responsible for whatever was running inside; the server does NOT confirm.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session torn down; `session_state=exited`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunIntentTerminalResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Capability `terminal` disabled.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     TerminalRunMode:

@@ -98,6 +98,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightGuards>();
         services.AddSingleton<RunPreflightOrchestrator>();
         services.AddSingleton<TerminalSessionStatusService>();
+        services.AddSingleton<TerminalSessionKillService>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
         // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by
