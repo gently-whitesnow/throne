@@ -1,115 +1,76 @@
 using System.Collections.Concurrent;
-using FluentAssertions;
 
 namespace Throne.Infrastructure.Tests.Git;
 
+/// <summary>
+/// Детерминированный учёт in-flight «клонов»: каждый клон висит на персональном
+/// <see cref="TaskCompletionSource"/>-гейте, а ожидание условий разрешается сигналом
+/// ожидающим при каждом изменении состояния (см. <see cref="CloneConditionWaiters"/>),
+/// а не polling-сном — чтобы не плодить скрытую flaky-поверхность в тестах runner'а.
+/// Сценарные хелперы ожидания/освобождения — в <see cref="CloneInFlightWaits"/>.
+/// </summary>
 internal sealed class CloneInFlightTracker
 {
     private readonly ConcurrentBag<TaskCompletionSource> _gates = new();
-    private readonly Lock _maxLock = new();
+    private readonly Lock _stateLock = new();
+    private readonly CloneConditionWaiters _waiters;
     private int _inFlight;
     private int _completed;
     private int _maxObserved;
 
-    public int InFlight => Volatile.Read(ref _inFlight);
-    public int Completed => Volatile.Read(ref _completed);
+    public CloneInFlightTracker()
+    {
+        _waiters = new CloneConditionWaiters(_stateLock, SnapshotLocked);
+    }
+
+    public int InFlight
+    {
+        get { lock (_stateLock) { return _inFlight; } }
+    }
+
+    public int Completed
+    {
+        get { lock (_stateLock) { return _completed; } }
+    }
 
     public int MaxObserved
     {
-        get
-        {
-            lock (_maxLock)
-            {
-                return _maxObserved;
-            }
-        }
+        get { lock (_stateLock) { return _maxObserved; } }
     }
 
     public Task BeginAsync()
     {
+        // Гейт добавляется до инкремента, поэтому к моменту сигнала (in-flight вырос)
+        // соответствующий gate уже доступен для release.
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _gates.Add(gate);
-        UpdateMax(Interlocked.Increment(ref _inFlight));
-        return gate.Task.ContinueWith(
-            _ =>
-            {
-                Interlocked.Decrement(ref _inFlight);
-                Interlocked.Increment(ref _completed);
-            },
-            TaskContinuationOptions.ExecuteSynchronously);
-    }
-
-    public bool TryTakeGate(out TaskCompletionSource gate) => _gates.TryTake(out gate!);
-
-    private void UpdateMax(int current)
-    {
-        lock (_maxLock)
+        lock (_stateLock)
         {
-            if (current > _maxObserved)
-            {
-                _maxObserved = current;
-            }
+            _maxObserved = Math.Max(_maxObserved, ++_inFlight);
         }
-    }
-}
-
-internal static class CloneInFlightReleases
-{
-    public static async Task ReleaseOneAsync(this CloneInFlightTracker tracker, TimeSpan budget)
-    {
-        var deadline = DateTime.UtcNow + budget;
-        while (DateTime.UtcNow < deadline)
-        {
-            if (tracker.TryTakeGate(out var gate))
-            {
-                gate.TrySetResult();
-                return;
-            }
-            await Task.Delay(10);
-        }
-        throw new InvalidOperationException("Нет ожидающих клонов для release (timeout).");
+        _waiters.Signal();
+        return gate.Task.ContinueWith(Complete, TaskContinuationOptions.ExecuteSynchronously);
     }
 
-    public static void ReleaseRemaining(this CloneInFlightTracker tracker)
-    {
-        while (tracker.TryTakeGate(out var gate))
-        {
-            gate.TrySetResult();
-        }
-    }
-}
+    public Task WaitForAsync(Func<CloneSnapshot, bool> satisfied, TimeSpan budget, Func<string> onTimeout) =>
+        _waiters.WaitAsync(satisfied, budget, onTimeout);
 
-internal static class CloneInFlightWaits
-{
-    public static async Task WaitForInFlightAsync(this CloneInFlightTracker tracker, int expected, TimeSpan budget)
+    public bool TryRelease()
     {
-        var deadline = DateTime.UtcNow + budget;
-        while (tracker.InFlight < expected && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10);
-        }
-        tracker.InFlight.Should().BeGreaterOrEqualTo(expected,
-            $"runner должен был поднять минимум {expected} клонов в параллель");
+        var taken = _gates.TryTake(out var gate);
+        gate?.TrySetResult();
+        return taken;
     }
 
-    public static async Task WaitForCompletedAsync(this CloneInFlightTracker tracker, int expected, TimeSpan budget)
+    private void Complete(Task _)
     {
-        var deadline = DateTime.UtcNow + budget;
-        while (tracker.Completed < expected && DateTime.UtcNow < deadline)
+        lock (_stateLock)
         {
-            await Task.Delay(10);
+            _inFlight--;
+            _completed++;
         }
-        tracker.Completed.Should().BeGreaterOrEqualTo(expected,
-            $"runner должен был завершить минимум {expected} клонов");
+        _waiters.Signal();
     }
 
-    public static async Task WaitForAllCompletedAsync(this CloneInFlightTracker tracker, TimeSpan budget)
-    {
-        var deadline = DateTime.UtcNow + budget;
-        while (tracker.InFlight > 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10);
-        }
-        tracker.InFlight.Should().Be(0);
-    }
+    private CloneSnapshot SnapshotLocked() => new(_inFlight, _completed, !_gates.IsEmpty);
 }
