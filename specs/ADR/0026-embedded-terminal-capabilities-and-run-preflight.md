@@ -110,12 +110,24 @@ Bundle-read из MCP **не триггерит ничего** из этого: p
 ### 7. Out of scope для T-задач (фиксируем явно)
 
 - **`Intent`-схема не расширяется** новыми полями (`last_agent_run_at`, `last_session_state`, `auto_bound_at`, …). T-02 это явно соблюдает.
-- **Никакого хука «status → kill tmux»**. Переходы интента в `done`/`reject`/`fridge` не убивают живую tmux-сессию. Tmux владеет lifecycle'ом — claude exit (`/exit`, ctrl+d) → tmux session исчезает сам.
+- ~~**Никакого хука «status → kill tmux»**. Переходы интента в `done`/`reject`/`fridge` не убивают живую tmux-сессию.~~ **Частично пересмотрено — см. § 8 ниже.** Переход в `done` теперь убивает сессию; `reject`/`fridge` по-прежнему не трогают её.
 - **Migration-логика для `Capabilities`-aggregate не вводится** — read-time materialization дефолта `enabled=false`, никакой одноразовой миграции, никаких onboarding-toast'ов.
 - **VS Code shell-out** в этом ADR не получает HTTP-контракта: эндпоинты `POST .../open-in-vscode` идут вместе с capability-gating через `capabilities.vscode` и описываются на T-05 (HTTP) / T-07 (фронт). В docker-варианте capability `vscode` детектится как `detected=false` без `vscode://`-fallback'а — кнопка просто скрывается (Slice 2 Q4 + T-07).
 - **AuthN на WebSocket-канале**: Slice 2 local-only assumption (Q5). Same-origin / CSRF / token-flow выводится в отдельный интент, когда Throne станет multi-user или поедет на удалённый хост.
 - **Кастомизация prompt'а**: захардкожен (Q8). Textarea-override не вводим; оператор использует Copy prompt для своего терминала.
 - **MCP write-surface для terminal/capabilities/tag-defaults**: read-only by design (паттерн ADR-0024). Все мутации — UI.
+
+### 8. Хук «intent → `done` ⇒ kill tmux» (пересматривает § 7)
+
+Переход интента в `done` (и авто-по-мерджу PR, и ручной «закрыть как готово» оператором из UI) убивает tmux-сессию интента: `tmux kill-session -t throne-{intent_id}`, идемпотентно (нет сессии → молча ок). Реализовано доменным обработчиком на событие `IntentStatusChanged` (статус `done`), переиспользующим тот же kill-путь, что и restart-эндпоинт (§ 2). Убийство безусловно — `tmux list-clients` не проверяется, даже если кто-то приаттачен.
+
+Почему пересматриваем § 7 «никакого хука status → kill»:
+
+- После `done` агентская сессия не нужна; ручной `done` — явный сигнал «работа закончена».
+- Полагаться только на `claude exit` недостаточно: оператор закрывает интент из UI, а не из терминала, и сессия остаётся висеть.
+- Хук — best-effort и не источник правды: живость по-прежнему определяет tmux (`has-session`), пропущенный kill самозалечивается на следующем `/intents/contexts`.
+
+Границы решения сохраняются: `reject`/`fridge` сессию **не** трогают (только `done`); `Intent`-схема не расширяется; ограничение «никакого хука» для остальных терминальных статусов остаётся в силе.
 
 ## Alternatives
 

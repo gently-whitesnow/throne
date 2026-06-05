@@ -36,6 +36,7 @@ export {
   listGithubRepositoryPullRequests,
   listIntentRepositories,
   bindIntentRepository,
+  attachIntentRepositoryPullRequest,
   unbindIntentRepository,
   type SearchGithubRepositoriesParams,
   type ListGithubRepositoryRefsParams

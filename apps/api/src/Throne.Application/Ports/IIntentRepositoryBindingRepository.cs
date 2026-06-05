@@ -34,6 +34,14 @@ public interface IIntentRepositoryBindingRepository
     Task<IReadOnlyList<IntentRepositoryBinding>> FindOpenForSyncAsync(CancellationToken ct);
 
     /// <summary>
+    /// All bindings where <c>clone_status == ready</c> and no PR is attached yet
+    /// (<c>pull_request_number == null</c>). Drives the PR auto-bind pass (intent spec A):
+    /// the workspace already exists, so the poller can fill the empty PR slot from the
+    /// branch the agent pushed. Ordered by <c>updated_at ASC</c> for stable iteration.
+    /// </summary>
+    Task<IReadOnlyList<IntentRepositoryBinding>> FindReadyWithoutPullRequestAsync(CancellationToken ct);
+
+    /// <summary>
     /// All bindings currently parked in <paramref name="cloneStatus"/>. Used by startup
     /// recovery: <c>pending</c> re-queues work the process crashed before consuming;
     /// <c>cloning</c> flips mid-flight clones to <c>failed("interrupted")</c>

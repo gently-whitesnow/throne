@@ -43,6 +43,16 @@ internal static class RepositoriesErrorMapper
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 
+    public static ActionResult<RepositoryBindingDto> MapAttachPullRequest(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.RepositoryPullRequestAlreadyAttached =>
+                new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Pull request already attached", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<ICollection<PullRequestCommentDto>> MapListComments(ApiException ex) =>
         ex.Code switch
         {

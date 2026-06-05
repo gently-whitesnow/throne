@@ -101,6 +101,21 @@ internal sealed class MongoIntentRepositoryBindingStore(
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
     }
 
+    public async Task<IReadOnlyList<IntentRepositoryBinding>> FindReadyWithoutPullRequestAsync(CancellationToken ct)
+    {
+        var fb = Builders<IntentRepositoryBindingDocument>.Filter;
+        var filter = fb.And(
+            fb.Eq(d => d.CloneStatus, CloneStatusNames.Ready),
+            fb.Eq(d => d.PullRequestNumber, null));
+
+        var session = sessions.Current;
+        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
+        var docs = await find
+            .Sort(Builders<IntentRepositoryBindingDocument>.Sort.Ascending(d => d.UpdatedAt))
+            .ToListAsync(ct);
+        return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
+    }
+
     public async Task<IReadOnlyList<IntentRepositoryBinding>> FindByCloneStatusAsync(
         string cloneStatus,
         CancellationToken ct)

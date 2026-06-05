@@ -35,6 +35,11 @@ internal sealed class InMemoryIntentRepositoryBindingRepository : IIntentReposit
     public Task<IReadOnlyList<IntentRepositoryBinding>> FindOpenForSyncAsync(CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>([]);
 
+    // Not exercised by the clone-service/recovery harness — returns empty like
+    // FindOpenForSyncAsync (the auto-bind pass is unit-tested against an NSubstitute mock).
+    public Task<IReadOnlyList<IntentRepositoryBinding>> FindReadyWithoutPullRequestAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>([]);
+
     public Task<IReadOnlyList<IntentRepositoryBinding>> FindByCloneStatusAsync(string cloneStatus, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>(
             _byId.Values.Where(b => b.State.CloneStatus == cloneStatus).ToArray());

@@ -21,6 +21,11 @@ internal static class MongoIntentRepositoryBindingIndexes
     ///     <c>FindOpenForSync</c>: filter by <c>state == open</c>, then walk ascending by
     ///     <c>last_synced_at</c>.
     ///   </item>
+    ///   <item>
+    ///     Secondary <c>(clone_status, pull_request_number)</c> — drives the per-tick
+    ///     <c>FindReadyWithoutPullRequest</c> auto-bind scan and startup
+    ///     <c>FindByCloneStatus</c> recovery.
+    ///   </item>
     /// </list>
     /// </summary>
     public static async Task CreateAsync(IMongoDatabase database, CancellationToken cancellationToken)
@@ -45,6 +50,11 @@ internal static class MongoIntentRepositoryBindingIndexes
                         .Ascending(x => x.PullRequestState)
                         .Ascending(x => x.LastSyncedAt),
                     new CreateIndexOptions { Name = "pr_state_last_synced_at" }),
+                new CreateIndexModel<IntentRepositoryBindingDocument>(
+                    Builders<IntentRepositoryBindingDocument>.IndexKeys
+                        .Ascending(x => x.CloneStatus)
+                        .Ascending(x => x.PullRequestNumber),
+                    new CreateIndexOptions { Name = "clone_status_pr_number" }),
             ],
             cancellationToken);
     }
