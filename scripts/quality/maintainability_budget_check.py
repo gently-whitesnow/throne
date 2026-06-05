@@ -663,6 +663,10 @@ def analyze_file(
 
     type_limit = int(limits["typeMaxLoc"])
     method_limit = int(limits["methodMaxLoc"])
+    # Round-number LOC limits produce boundary friction (a 81-line method against a
+    # limit of 80 is not a maintainability problem). The factor blocks only overshoots
+    # past limit×factor; nominal limit is still what the report cites.
+    method_loc_threshold = method_limit * (optional_float(limits, "methodLocToleranceFactor") or 1.0)
     constructor_limit = int(limits["constructorMaxDependencies"])
     cc_limit = optional_int(limits, "methodMaxCyclomaticComplexity")
     public_limit = optional_int(limits, "typeMaxPublicMembers")
@@ -674,6 +678,10 @@ def analyze_file(
             violations.append(Violation("FILE_FANOUT", normalized, 1, normalized, len(fan_out), fan_out_limit))
 
     for span in type_spans:
+        # constructorMaxDependencies guards DI cohesion of service classes. A record's
+        # primary-ctor params are data fields, not injected collaborators, so the metric
+        # does not apply to them.
+        is_record = span.kind.startswith("record")
         start_line = tokens[span.open_index].line
         end_line = tokens[span.close_index].line
         type_loc = count_loc(lines, start_line, end_line)
@@ -685,7 +693,7 @@ def analyze_file(
             if public_count > public_limit:
                 violations.append(Violation("TYPE_PUB", normalized, span.line, span.name, public_count, public_limit))
 
-        if span.primary_constructor_params is not None and span.primary_constructor_params > constructor_limit:
+        if not is_record and span.primary_constructor_params is not None and span.primary_constructor_params > constructor_limit:
             subject = f"{span.name} primary constructor"
             violations.append(
                 Violation(
@@ -703,9 +711,9 @@ def analyze_file(
             end = tokens[close_index].line
             method_loc = count_loc(lines, start, end)
             subject = f"{span.name}.{name}"
-            if method_loc > method_limit:
+            if method_loc > method_loc_threshold:
                 violations.append(Violation("METHOD_LOC", normalized, start, subject, method_loc, method_limit))
-            if name == span.name and parameter_count > constructor_limit:
+            if not is_record and name == span.name and parameter_count > constructor_limit:
                 violations.append(Violation("CTOR_DEPS", normalized, start, subject, parameter_count, constructor_limit))
             if cc_limit is not None:
                 cc = count_cyclomatic(tokens, open_index, close_index)
@@ -719,6 +727,12 @@ def optional_int(limits: dict, key: str) -> int | None:
     if key not in limits or limits[key] is None:
         return None
     return int(limits[key])
+
+
+def optional_float(limits: dict, key: str) -> float | None:
+    if key not in limits or limits[key] is None:
+        return None
+    return float(limits[key])
 
 
 def print_report(
