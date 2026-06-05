@@ -66,13 +66,23 @@ export function AgentTerminalPanel({
     [mode, intentId]
   );
 
+  // Берём стабильные функции хука напрямую: иначе колбэки зависели бы от
+  // объекта `session`, который пересоздаётся каждый рендер, и onClosed менял
+  // бы идентичность — это перезапускало бы эффект TerminalView и рвало живой
+  // сокет на любом постороннем ре-рендере панели.
+  const {
+    start: startSession,
+    restart: restartSession,
+    markSessionEnded
+  } = session;
+
   const handleRun = useCallback(() => {
-    void session.start(mode);
-  }, [session, mode]);
+    void startSession(mode);
+  }, [startSession, mode]);
 
   const handleRestart = useCallback(() => {
-    void session.restart(mode);
-  }, [session, mode]);
+    void restartSession(mode);
+  }, [restartSession, mode]);
 
   const handleKill = useCallback(() => {
     void session.kill();
@@ -80,12 +90,12 @@ export function AgentTerminalPanel({
 
   const handleTerminalClosed = useCallback(
     (code: number) => {
-      session.markSessionEnded();
+      markSessionEnded();
       if (code === 1008 || code === 1011) {
         // Server-side rejection — keep error visible until next user action.
       }
     },
-    [session]
+    [markSessionEnded]
   );
 
   return (
