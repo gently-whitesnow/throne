@@ -77,6 +77,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/terminal/kill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Kill the live tmux session without respawning.
+         * @description `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot with `session_state=exited`. Unlike `restart` this does not re-run the pre-flight pipeline or spawn a new session — it just tears the session down. Idempotent: a missing session is reported as `exited` all the same. The user is fully responsible for whatever was running inside; the server does NOT confirm.
+         */
+        post: operations["killIntentTerminal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -262,6 +282,46 @@ export interface operations {
                 };
             };
             /** @description Capability `terminal` disabled, prerequisite missing, or invalid mode. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    killIntentTerminal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session torn down; `session_state=exited`. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunIntentTerminalResponse"];
+                };
+            };
+            /** @description Intent not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Capability `terminal` disabled. */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -74,6 +74,10 @@ export function AgentTerminalPanel({
     void session.restart(mode);
   }, [session, mode]);
 
+  const handleKill = useCallback(() => {
+    void session.kill();
+  }, [session]);
+
   const handleTerminalClosed = useCallback(
     (code: number) => {
       session.markSessionEnded();
@@ -107,10 +111,12 @@ export function AgentTerminalPanel({
         promptText={promptText}
         onRun={handleRun}
         onRestart={handleRestart}
+        onKill={handleKill}
         runDisabled={!terminalEnabled || hasBlockingBinding}
         runDisabledReason={runDisabledReason}
         sessionLive={sessionLive}
         isStarting={session.isStarting}
+        isStopping={session.isStopping}
         terminalEnabled={terminalEnabled}
       />
 
