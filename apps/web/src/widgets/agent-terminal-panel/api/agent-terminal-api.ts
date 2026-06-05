@@ -38,3 +38,14 @@ export function restartIntentTerminal(
     signal
   );
 }
+
+export function killIntentTerminal(
+  intentId: string,
+  signal?: AbortSignal
+): Promise<RunIntentTerminalResponse> {
+  return httpPost<RunIntentTerminalResponse>(
+    terminalEndpoints.killIntentTerminal(intentId),
+    undefined,
+    signal
+  );
+}

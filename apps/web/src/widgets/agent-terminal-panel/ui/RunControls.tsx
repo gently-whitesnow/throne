@@ -1,4 +1,4 @@
-import { Check, Copy, Play, RotateCcw } from "lucide-react";
+import { Check, Copy, Play, RotateCcw, Square } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/shared/ui";
@@ -15,6 +15,7 @@ interface RunControlsProps {
   promptText: string;
   onRun: () => void;
   onRestart: () => void;
+  onKill: () => void;
   /** True когда disabled-state триггерится pre-flight'ом или live-сессией. */
   runDisabled: boolean;
   runDisabledReason: string | null;
@@ -22,6 +23,8 @@ interface RunControlsProps {
   sessionLive: boolean;
   /** True пока POST /run или /restart в полёте. */
   isStarting: boolean;
+  /** True пока POST /kill в полёте. */
+  isStopping: boolean;
   /** Включать UI Run-кнопки и xterm-блока (terminal-capability). */
   terminalEnabled: boolean;
 }
@@ -32,10 +35,12 @@ export function RunControls({
   promptText,
   onRun,
   onRestart,
+  onKill,
   runDisabled,
   runDisabledReason,
   sessionLive,
   isStarting,
+  isStopping,
   terminalEnabled
 }: RunControlsProps) {
   const [copied, setCopied] = useState(false);
@@ -101,15 +106,26 @@ export function RunControls({
 
       {terminalEnabled ? (
         sessionLive ? (
-          <Button
-            data-testid="agent-terminal-restart"
-            variant="primary"
-            icon={<RotateCcw aria-hidden size={14} strokeWidth={2} />}
-            disabled={isStarting}
-            onClick={onRestart}
-          >
-            {isStarting ? "Перезапускаем…" : "Перезапустить сессию"}
-          </Button>
+          <>
+            <Button
+              data-testid="agent-terminal-restart"
+              variant="primary"
+              icon={<RotateCcw aria-hidden size={14} strokeWidth={2} />}
+              disabled={isStarting || isStopping}
+              onClick={onRestart}
+            >
+              {isStarting ? "Перезапускаем…" : "Перезапустить сессию"}
+            </Button>
+            <Button
+              data-testid="agent-terminal-kill"
+              className="btn-error"
+              icon={<Square aria-hidden size={14} strokeWidth={2} />}
+              disabled={isStarting || isStopping}
+              onClick={onKill}
+            >
+              {isStopping ? "Завершаем…" : "Завершить сессию"}
+            </Button>
+          </>
         ) : (
           <Button
             data-testid="agent-terminal-run"

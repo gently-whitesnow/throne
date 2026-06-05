@@ -4,6 +4,7 @@ import { HttpError } from "@/shared/api";
 
 import {
   getIntentTerminalSession,
+  killIntentTerminal,
   restartIntentTerminal,
   runIntentTerminal
 } from "../api/agent-terminal-api";
@@ -28,9 +29,12 @@ export interface TerminalSessionView {
   /** User-facing error from the most recent action. */
   error: string | null;
   isStarting: boolean;
+  isStopping: boolean;
   startedAt: TerminalSessionStartedAt | null;
   start: (mode: TerminalRunMode) => Promise<void>;
   restart: (mode: TerminalRunMode) => Promise<void>;
+  /** Kill the live tmux session without respawning. */
+  kill: () => Promise<void>;
   /** Local-only signal that the WebSocket bridge observed a clean close. */
   markSessionEnded: () => void;
 }
@@ -55,6 +59,7 @@ export function useTerminalSession(
 ): TerminalSessionView {
   const [internal, setInternal] = useState<InternalState>(INITIAL);
   const [isStarting, setIsStarting] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
 
   const apply = useCallback(
     (response: RunIntentTerminalResponse, fromProbe = false) => {
@@ -130,6 +135,18 @@ export function useTerminalSession(
     [runImpl]
   );
 
+  const kill = useCallback(async () => {
+    setIsStopping(true);
+    try {
+      const response = await killIntentTerminal(intentId);
+      apply(response);
+    } catch (err) {
+      setInternal((prev) => ({ ...prev, error: deriveErrorMessage(err) }));
+    } finally {
+      setIsStopping(false);
+    }
+  }, [intentId, apply]);
+
   const markSessionEnded = useCallback(() => {
     setInternal((prev) =>
       prev.state === "idle"
@@ -144,8 +161,10 @@ export function useTerminalSession(
     error: internal.error,
     startedAt: internal.startedAt,
     isStarting,
+    isStopping,
     start,
     restart,
+    kill,
     markSessionEnded
   };
 }
