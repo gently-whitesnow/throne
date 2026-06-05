@@ -15,18 +15,23 @@ export default defineConfig({
       output: {
         // Тяжёлые vendor-зависимости разводим по отдельным чанкам: один общий
         // бандл рос выше порога Vite и инвалидировался при любой правке UI.
+        // ВАЖНО: React и всё, что вызывает React-API (createContext) на этапе
+        // инициализации модуля — tanstack, react-router — держим в ОДНОМ чанке.
+        // Разнесение по разным чанкам ломает порядок исполнения в проде
+        // (tanstack-чанк дёргает React раньше, чем инициализирован react-чанк) →
+        // "Cannot read properties of undefined (reading 'createContext')".
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           if (id.includes("@xterm")) return "xterm";
-          if (id.includes("react-router")) return "router";
           if (
             id.includes("react-dom") ||
+            id.includes("react-router") ||
+            id.includes("@tanstack") ||
             id.includes("/scheduler/") ||
             id.includes("node_modules/react/")
           ) {
-            return "react";
+            return "react-vendor";
           }
-          if (id.includes("@tanstack")) return "tanstack";
           return "vendor";
         }
       }
