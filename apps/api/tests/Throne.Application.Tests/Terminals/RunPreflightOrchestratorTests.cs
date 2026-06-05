@@ -230,7 +230,11 @@ public class RunPreflightOrchestratorTests
             var autoBind = new RunPreflightAutoBind(union, Bindings, bindingService);
             var queue = new RunPreflightCloneScheduler(Bindings, cloneQueue, transitions);
             var cloneWait = new RunPreflightCloneWait(Bindings, new RunPreflightOptions(), clockShared);
-            var spawn = new RunPreflightSpawn(Tmux, workspace, Substitute.For<IDomainEventDispatcher>());
+            var spawn = new RunPreflightSpawn(
+                Tmux,
+                workspace,
+                Substitute.For<IClaudeWorkspaceTrust>(),
+                Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             Orchestrator = new RunPreflightOrchestrator(guards, autoBind, queue, cloneWait, spawn);
         }
