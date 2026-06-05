@@ -11,6 +11,7 @@ namespace Throne.Application.Terminals;
 public sealed class RunPreflightSpawn(
     ITmuxSessionManager tmux,
     IWorkspaceRootProvider workspaceRoot,
+    IClaudeWorkspaceTrust workspaceTrust,
     IDomainEventDispatcher events)
 {
     private const string AgentCommand = "claude";
@@ -20,6 +21,10 @@ public sealed class RunPreflightSpawn(
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intentId.Value);
         var prompt = AgentPromptBuilder.Build(mode, intentId.Value);
         var isFree = mode == TerminalRunModes.Free;
+
+        // Trust the workspace before the agent boots in it, otherwise claude blocks on its
+        // interactive trust prompt and the operator has to confirm by hand on every run.
+        await workspaceTrust.EnsureTrustedAsync(workspacePath, ct);
 
         // Free mode boots claude bare and pre-types the prompt instead of passing it as argv —
         // an argv prompt auto-runs, but free mode hands an editable starter line to the operator.

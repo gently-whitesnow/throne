@@ -32,4 +32,8 @@ internal static partial class TerminalsLog
     [LoggerMessage(EventId = 6, Level = LogLevel.Debug,
         Message = "capability probe '{Name}': detected={Detected} detail={Detail}")]
     public static partial void CapabilityProbed(ILogger logger, string name, bool detected, string? detail);
+
+    [LoggerMessage(EventId = 7, Level = LogLevel.Warning,
+        Message = "failed to pre-seed agent trust for {WorkspacePath}: {Reason}")]
+    public static partial void ClaudeTrustSeedFailed(ILogger logger, string workspacePath, string reason);
 }

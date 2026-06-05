@@ -35,6 +35,7 @@ public static class TerminalsModule
 
         services.AddSingleton<TmuxCli>();
         services.AddSingleton<ITmuxSessionManager, TmuxSessionManager>();
+        services.AddSingleton<IClaudeWorkspaceTrust, ClaudeWorkspaceTrust>();
         services.AddSingleton<ITerminalStreamBridge, TmuxStreamBridge>();
         // Application orchestrators consume the bare options instance (see
         // PullRequestSyncBackoff for the same pattern) so Throne.Application
