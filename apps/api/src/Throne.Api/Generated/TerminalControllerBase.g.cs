@@ -72,6 +72,16 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/restart", Name = "restartIntentTerminal")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> RestartIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] RunIntentTerminalRequest body);
 
+        /// <summary>
+        /// Kill the live tmux session without respawning.
+        /// </summary>
+        /// <remarks>
+        /// `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot with `session_state=exited`. Unlike `restart` this does not re-run the pre-flight pipeline or spawn a new session — it just tears the session down. Idempotent: a missing session is reported as `exited` all the same. The user is fully responsible for whatever was running inside; the server does NOT confirm.
+        /// </remarks>
+        /// <returns>Session torn down; `session_state=exited`.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/kill", Name = "killIntentTerminal")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> KillIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
+
     }
 
     
