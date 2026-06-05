@@ -325,6 +325,53 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request:
+    post:
+      operationId: attachIntentRepositoryPullRequest
+      tags: [IntentRepositories]
+      summary: Attach a pull request to an already-bound repository.
+      description: >
+        Fills the empty pull-request slot of an existing binding without delete/rebind —
+        the workspace is untouched. Rejected with 409 when a PR is already attached (unbind
+        and rebind to switch). The auto-bind background pass links PRs created by the agent
+        automatically; this endpoint covers the manual case and pointing a secondary intent's
+        binding at a shared PR.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachIntentRepositoryPullRequestRequest'
+      responses:
+        '200':
+          description: OK — the binding with its newly attached pull request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryBindingDto'
+        '404':
+          description: Intent or binding not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: A pull request is already attached to this binding.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/comments:
     get:
       operationId: listIntentRepositoryPullRequestComments
@@ -472,6 +519,16 @@ components:
           description: Head branch ref of the pull request (source branch).
         state:
           $ref: '#/components/schemas/PullRequestState'
+    AttachIntentRepositoryPullRequestRequest:
+      type: object
+      required:
+        - pull_request_number
+      properties:
+        pull_request_number:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Pull request number to attach to the binding.
     BindIntentRepositoryRequest:
       type: object
       required:

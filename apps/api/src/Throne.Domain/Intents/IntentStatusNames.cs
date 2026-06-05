@@ -25,5 +25,9 @@ public static class IntentStatusNames
         Fridge,
     ];
 
+    public static readonly IReadOnlyList<string> Terminal = [Done, Reject, Fridge];
+
     public static bool IsKnown(string status) => All.Contains(status, StringComparer.Ordinal);
+
+    public static bool IsTerminal(string status) => Terminal.Contains(status, StringComparer.Ordinal);
 }

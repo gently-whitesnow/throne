@@ -6,11 +6,14 @@ namespace Throne.Application.Repositories;
 
 /// <summary>
 /// Refreshes upstream PR state and persists the delta so bindings that flip to
-/// <c>closed</c>/<c>merged</c> drop out of the next <c>FindOpenForSync</c> tick.
+/// <c>closed</c>/<c>merged</c> drop out of the next <c>FindOpenForSync</c> tick. On the
+/// transition into <c>merged</c> it hands off to <see cref="IntentMergeAutoCloser"/>, which
+/// closes the intent once all its PR-bearing bindings are merged (intent spec B / Q6).
 /// </summary>
 public sealed class PullRequestStateRefresher(
     IIntentRepositoryBindingRepository bindings,
     IUnitOfWork unitOfWork,
+    IntentMergeAutoCloser autoCloser,
     TimeProvider clock)
 {
     public async Task<IntentRepositoryBinding?> RefreshAsync(
@@ -32,7 +35,12 @@ public sealed class PullRequestStateRefresher(
             return binding;
         }
         binding.RecordPullRequestState(snapshot.State, clock.GetUtcNow());
-        return await SaveAsync(binding, ct);
+        var saved = await SaveAsync(binding, ct);
+        if (snapshot.State == PullRequestStateNames.Merged)
+        {
+            await autoCloser.OnBindingMergedAsync(saved, ct);
+        }
+        return saved;
     }
 
     public async Task MarkBrokenAsync(

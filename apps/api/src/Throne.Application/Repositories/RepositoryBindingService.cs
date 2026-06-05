@@ -1,3 +1,4 @@
+using Throne.Application.Errors;
 using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
@@ -58,6 +59,29 @@ public sealed class RepositoryBindingService(
     {
         var resolved = await resolver.EnsureIntentExistsAsync(intentId, ct);
         return await persistence.FindByIntentAsync(resolved, ct);
+    }
+
+    public async Task<IntentRepositoryBinding> AttachPullRequestAsync(
+        AttachRepositoryPullRequestCommand command,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var binding = await resolver.LoadBindingAsync(command.IntentId, command.BindingId, ct);
+        if (binding.State.PullRequestNumber is not null)
+        {
+            throw new ApiException(
+                ErrorCodes.RepositoryPullRequestAlreadyAttached,
+                $"Binding '{binding.Id.Value}' already tracks pull request #{binding.State.PullRequestNumber}. "
+                    + "Unbind and rebind to switch the tracked pull request.",
+                new Dictionary<string, object?>
+                {
+                    ["binding_id"] = binding.Id.Value,
+                    ["pull_request_number"] = binding.State.PullRequestNumber,
+                });
+        }
+
+        return await persistence.AttachPullRequestAsync(binding, command.PullRequestNumber, ct);
     }
 
     public async Task<SyncRepositoryPullRequestResult> SyncPullRequestAsync(

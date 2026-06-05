@@ -105,6 +105,66 @@ internal sealed class MongoIntentStatusMutator(
         return new SetIntentStatusOutcome.Updated(intent);
     }
 
+    public async Task<SetIntentStatusOutcome> SetStatusBySystemAsync(
+        IntentId id,
+        string status,
+        string? reason,
+        string source,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        ArgumentException.ThrowIfNullOrWhiteSpace(source);
+
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentStatusMutator.SetStatusBySystemAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var fb = Builders<IntentDocument>.Filter;
+        var byId = fb.Eq(d => d.Id, id.Value);
+        var document = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
+        if (document is null)
+        {
+            return new SetIntentStatusOutcome.NotFound();
+        }
+
+        var intent = IntentDocumentMapper.ToDomain(document);
+        var originalStatus = intent.State.Status;
+        var originalVersion = intent.State.CurrentVersion;
+        if (!intent.SetStatus(status, now))
+        {
+            return new SetIntentStatusOutcome.Updated(intent);
+        }
+
+        var updateFilter = fb.And(
+            byId,
+            fb.Eq(d => d.CurrentVersion, originalVersion),
+            fb.Eq(d => d.Status, originalStatus));
+        var updateResult = await _intents.UpdateOneAsync(
+            session, updateFilter, BuildStatusUpdate(intent), options: null, ct);
+        if (updateResult.ModifiedCount == 0)
+        {
+            var fresh = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
+            return fresh is null
+                ? new SetIntentStatusOutcome.NotFound()
+                : new SetIntentStatusOutcome.Conflict(fresh.CurrentVersion, fresh.Status);
+        }
+
+        var statusChange = IntentStatusChange.Create(
+            id: Guid.NewGuid().ToString("N"),
+            intentId: id,
+            intentVersionAtWrite: intent.State.CurrentVersion,
+            fromStatus: originalStatus,
+            toStatus: intent.State.Status,
+            source: source,
+            createdAt: now,
+            createdBy: IntentTrainingAuthor.System,
+            reason: reason);
+        await _statusChanges.InsertOneAsync(session, IntentDocumentMapper.ToDocument(statusChange), options: null, ct);
+
+        return new SetIntentStatusOutcome.Updated(intent);
+    }
+
     private static TextVersion? ApplyOptionalAppend(
         Intent intent,
         string? appendText,

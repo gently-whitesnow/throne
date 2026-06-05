@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddSingleton<MongoIntentRepository>();
         services.AddSingleton<IIntentRepository>(sp => sp.GetRequiredService<MongoIntentRepository>());
         services.AddSingleton<IIntentOrderingRepository>(sp => sp.GetRequiredService<MongoIntentRepository>());
+        services.AddSingleton<ISystemIntentStatusWriter>(sp => sp.GetRequiredService<MongoIntentRepository>());
         services.AddSingleton<IIntentPinRepository, MongoIntentPinRepository>();
         services.AddSingleton<IIntentLinkRepository, MongoIntentLinkRepository>();
         services.AddSingleton<ITagRepository, MongoTagRepository>();
@@ -101,6 +102,7 @@ public static class DependencyInjection
         services.AddSingleton<IWorkspaceRootProvider>(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
         services.AddSingleton<IWorkspaceDirectoryRemover, WorkspaceDirectoryRemover>();
         services.AddSingleton<IProcessLauncher, ProcessRunner>();
+        services.AddSingleton<ILocalGitBranchReader, LocalGitBranchReader>();
         services.AddSingleton<GhCliInvoker>();
         services.AddSingleton<GhRepoListExecutor>();
         services.AddSingleton<GhRepoSearcher>();

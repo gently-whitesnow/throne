@@ -97,4 +97,29 @@ public sealed class RepositoryBindingPersistence(
 
     public Task<IReadOnlyList<IntentRepositoryBinding>> FindByIntentAsync(IntentId intentId, CancellationToken ct) =>
         bindings.FindByIntentAsync(intentId, ct);
+
+    /// <summary>
+    /// Fill the empty PR slot of a <c>ready</c> binding and persist it, re-raising
+    /// <c>IntentRepositoryBound</c> for realtime. Caller guarantees the slot is empty
+    /// (<see cref="IntentRepositoryBinding.AttachPullRequest"/> enforces it). A binding that
+    /// vanished concurrently surfaces as <see cref="RepositoryBindingFailures.BindingNotFound"/>.
+    /// </summary>
+    public async Task<IntentRepositoryBinding> AttachPullRequestAsync(
+        IntentRepositoryBinding binding, int pullRequestNumber, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        binding.AttachPullRequest(pullRequestNumber, clock.GetUtcNow());
+        var result = await unitOfWork.ExecuteAsync(
+            async inner =>
+            {
+                var outcome = await bindings.SaveAsync(binding, inner);
+                return new RepositoryPullRequestAttachedResult(binding, outcome is SaveBindingOutcome.Saved);
+            },
+            ct);
+        if (!result.Persisted)
+        {
+            throw RepositoryBindingFailures.BindingNotFound(binding.IntentId.Value, binding.Id.Value);
+        }
+        return binding;
+    }
 }

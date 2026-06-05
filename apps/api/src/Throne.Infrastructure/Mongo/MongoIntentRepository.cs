@@ -11,7 +11,7 @@ using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrderingRepository
+internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrderingRepository, ISystemIntentStatusWriter
 {
     private readonly MongoIntentReader _reader;
     private readonly MongoIntentContextReader _contextReader;
@@ -95,6 +95,21 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
         DateTimeOffset now,
         CancellationToken ct) =>
         _status.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
+
+    // System hooks (PR-merge auto-close) use the owner-agnostic surface only via
+    // ISystemIntentStatusWriter — explicit impl keeps it off the public face and out of
+    // the owner-scoped IIntentRepository.
+    Task<Intent?> ISystemIntentStatusWriter.GetByIdForSystemAsync(IntentId id, CancellationToken ct) =>
+        _reader.GetByIdForSystemAsync(id, ct);
+
+    Task<SetIntentStatusOutcome> ISystemIntentStatusWriter.SetStatusBySystemAsync(
+        IntentId id,
+        string status,
+        string? reason,
+        string source,
+        DateTimeOffset now,
+        CancellationToken ct) =>
+        _status.SetStatusBySystemAsync(id, status, reason, source, now, ct);
 
     // Ordering surface is consumed only via IIntentOrderingRepository (split out to keep the
     // CRUD type under the per-type budget) — implement explicitly so it stays off the public face.

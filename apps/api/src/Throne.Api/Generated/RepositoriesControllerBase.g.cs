@@ -116,6 +116,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestSyncResultDto>> SyncIntentRepositoryPullRequest([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
 
         /// <summary>
+        /// Attach a pull request to an already-bound repository.
+        /// </summary>
+        /// <remarks>
+        /// Fills the empty pull-request slot of an existing binding without delete/rebind — the workspace is untouched. Rejected with 409 when a PR is already attached (unbind and rebind to switch). The auto-bind background pass links PRs created by the agent automatically; this endpoint covers the manual case and pointing a secondary intent's binding at a shared PR.
+        /// </remarks>
+        /// <returns>OK — the binding with its newly attached pull request.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request", Name = "attachIntentRepositoryPullRequest")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryBindingDto>> AttachIntentRepositoryPullRequest([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] AttachIntentRepositoryPullRequestRequest body);
+
+        /// <summary>
         /// Read stored PR review comments for a binding.
         /// </summary>
         /// <remarks>

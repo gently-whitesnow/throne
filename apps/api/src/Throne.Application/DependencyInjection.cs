@@ -82,9 +82,11 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryCloneRecoveryWorkflow>();
         // PR-sync per-tick orchestration; BackgroundService host lives in Infrastructure.
         services.AddSingleton<PullRequestSyncBackoff>();
+        services.AddSingleton<IntentMergeAutoCloser>();
         services.AddSingleton<PullRequestStateRefresher>();
         services.AddSingleton<PullRequestSyncBindingVisitor>();
         services.AddSingleton<PullRequestSyncTickWorkflow>();
+        services.AddSingleton<PullRequestAutoBindWorkflow>();
         // Capability orchestrator + Slice 2 Run pre-flight (terminal).
         // RunPreflightOrchestrator pulls in ITmuxSessionManager from
         // Throne.Infrastructure.Terminals — registration there is required.
@@ -99,6 +101,11 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightOrchestrator>();
         services.AddSingleton<TerminalSessionStatusService>();
         services.AddSingleton<TerminalSessionKillService>();
+        // ADR-0026 § 8: tmux session is torn down when an intent reaches `done`. The handler
+        // takes ITmuxSessionManager via Lazy to break the dispatcher↔handler resolution cycle
+        // (TmuxSessionManager → IDomainEventDispatcher → IEnumerable<IDomainEventHandler>).
+        services.AddSingleton(sp => new Lazy<ITmuxSessionManager>(sp.GetRequiredService<ITmuxSessionManager>));
+        services.AddSingleton<IDomainEventHandler, TerminalKillOnIntentDoneHandler>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
         // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by

@@ -221,6 +221,28 @@ namespace Throne.Repositories.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AttachIntentRepositoryPullRequestRequest
+    {
+
+        /// <summary>
+        /// Pull request number to attach to the binding.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pull_request_number")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Pull_request_number { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class BindIntentRepositoryRequest
     {
 
