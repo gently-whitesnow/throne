@@ -21,10 +21,16 @@ csharp_prefer_braces = true:warning
 
 # Code metrics analyzers (thresholds in apps/api/CodeMetricsConfig.txt).
 # With TreatWarningsAsErrors=true these become blocking on backend-build.
+# CA1502 (cyclomatic) and CA1506 (coupling) are intentionally off: the
+# .quality maintainability budget is the single source of truth for those
+# dimensions (per-method CC ≤10, file fan-out ≤15). Keeping both produced
+# duplicate per-file suppressions and type-level-CC pressure to split classes
+# cosmetically. CA1501 (inheritance depth) / CA1505 (maintainability index)
+# have no budget equivalent and stay on.
 dotnet_diagnostic.CA1501.severity = warning
-dotnet_diagnostic.CA1502.severity = warning
+dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1505.severity = warning
-dotnet_diagnostic.CA1506.severity = warning
+dotnet_diagnostic.CA1506.severity = none
 
 # Nullability
 dotnet_style_null_propagation = true:warning
@@ -65,112 +71,14 @@ dotnet_diagnostic.CA1707.severity = none
 [src/Throne.Api/Mcp/Tools/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 
-# CA1502(Type) суммирует cyclomatic по всем
-# членам типа. NSwag-generated REST-контроллер декларирует по одному abstract overrides
-# на route; с 10+ routes type-level sum не помещается под 10 даже при `=> _x.Run(...)`
-# trampoline-телах (каждое тело — минимум 1 CC). Это арифметика surface area, а не
-# code smell. Per-method CA1502 ≤30 продолжает ловить реальную сложность.
-[**/Throne.Api/**/*Controller.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# Mongo Infrastructure is an adapter layer between strongly-typed Builders<T> /
-# BsonElement POCOs and a polymorphic document store. CA1502 (cyclomatic
-# per-type ≤10) and CA1506 (coupling per type ≤120) are structurally too tight
-# here for two structural reasons:
-#   * POCO documents fan out 8–15 [BsonElement] properties, each of which
-#     contributes to type-level cyclomatic via the analyzer's accessor walk.
-#   * Repository adapters compose filter/sort/pagination chains with
-#     Builders<TDoc>.Filter/Update — each branch adds CC, and the typed
-#     wrappers inflate coupling. Splitting helpers out hides the adapter
-#     intent.
-# Same architectural precedent as **/Throne.Api/**/*Controller.cs above.
-# Per-method CA1502 ≤30 and CA1506 method-level (≤50) continue to catch real
-# complexity; the type-level summing is what is being relaxed.
-[**/Throne.Infrastructure/Mongo/**.cs]
-dotnet_diagnostic.CA1502.severity = none
-dotnet_diagnostic.CA1506.severity = none
-
-# Imaging worker streams images and
-# dispatches by codec; Manifest provider parses YAML skill bundles with a
-# multi-arm format-version dispatch. Same Builders / dispatch precedent — the
-# per-type cyclomatic budget is structurally over 10 and there is no useful
-# split (one type = one external integration).
-[**/Throne.Infrastructure/Imaging/**.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[**/Throne.Infrastructure/Manifest/**.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# `GitHubCliProvider` is the IGitProvider
-# facade that fans out to per-aspect helpers (search / clone / sync / auth / PR
-# snapshot / PR comments / branches / PR list). Each interface method is a
-# one-line `=> helper.Method(...)` trampoline; type-level cyclomatic is just the
-# arithmetic of the surface area, not real complexity. Same precedent as
-# **/Throne.Api/**/*Controller.cs above (NSwag-generated controllers with many
-# trampoline routes). Per-method CA1502 ≤30 continues to catch real complexity
-# inside each helper.
-[**/Throne.Infrastructure/Git/GitHubCli/GitHubCliProvider.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-# ADR-0025: Throne.Domain нормативно ведётся в rich-DDD стиле — агрегат сам
-# несёт Create/Restore, инварианты инлайн и state-переходы инстансными методами.
-# Type-level CA1501/CA1502/CA1505/CA1506 структурно несовместимы со стилем:
-#   * Create/Restore выполняют все инварианты внутри агрегата (раньше — в *Guards);
-#   * 5–7 state-переходов лежат инстансными методами одного типа (раньше — в *Mutator/*Operation);
-#   * каждое slot-property + переход добавляют 1+ CC к сумме по типу.
-# Лимиты Roslyn-аналайзеров здесь работают зеркально к `**/Throne.Domain/**.cs`
-# pathOverride в `.quality/maintainability-budget.json` (ADR-0025 §2). Реальную
-# сложность ловит per-method CA1502 ≤30 и NetArchTest «no internal set в
-# Throne.Domain» (вводится отдельным PR после миграции 6 агрегатов).
+# ADR-0025: Throne.Domain ведётся в rich-DDD стиле — агрегат сам несёт
+# Create/Restore, инварианты инлайн и state-переходы инстансными методами,
+# поэтому крупные типы и низкий maintainability index здесь нормативны.
+# CA1502/CA1506 уже off глобально (см. budget SoT выше); CA1501 (глубина
+# наследования) и CA1505 (maintainability index) снимаются точечно. Реальный
+# инвариант стиля охраняет DomainEncapsulationRulesTests (NetArchTest, «no
+# internal set»), а не code-metrics.
 [**/Throne.Domain/**.cs]
 dotnet_diagnostic.CA1501.severity = none
-dotnet_diagnostic.CA1502.severity = none
 dotnet_diagnostic.CA1505.severity = none
-dotnet_diagnostic.CA1506.severity = none
-
-# tests/** with CA1502/CA1506
-# suppressions are structural test designs, not god-class symptoms:
-#
-#   * NetArchTest / Mono.Cecil / reflection rules in Throne.Architecture.Tests
-#     enumerate every type in the solution; per-test loops + assertions push
-#     type-level CC well past 10 by design (one rule == one type).
-#   * WebApplicationFactory-backed endpoint/tool tests in Throne.Api.Tests
-#     embed seeding helpers + per-test orchestration inside the same class so
-#     fixtures stay co-located with cases.
-#   * Handler tests in Throne.Application.Tests assemble realistic IoC graphs
-#     per test (mocks, in-mem repos, clocks, validators); same coupling tax.
-#   * Infrastructure repo tests in Throne.Infrastructure.Tests wrap Mongo
-#     fixtures + Builders<T> assertion chains around per-method coverage.
-#
-# Splitting any of these hides the test intent; the existing solo CA1502
-# per-method ≤30 and CA1506 method-level ≤50 continue to catch genuine
-# accidental complexity introduced by a single test method.
-# MCP wire-policy renderers
-# (ADR-0003 §8.1) собирают plain-text Content[] + compact StructuredContent refs
-# по каждому tool-результату. Type-level cyclomatic суммируется по Append*
-# хелперам + null-/pattern-checks (опциональный applied_text, reject_comment,
-# decided_at, list-iteration). Каждая ветка маппится 1:1 на опциональное поле
-# wire-формата — разнесение renderer'а по разным файлам прячет wire-policy
-# intent. Тот же архитектурный прецедент, что и `**/Throne.Api/**/*Controller.cs`
-# выше. Per-method CA1502 ≤30 продолжает ловить реальную сложность.
-[**/Throne.Api/Mcp/Tools/*Renderer.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[**/Throne.Architecture.Tests/**RulesTests.cs]
-dotnet_diagnostic.CA1502.severity = none
-
-[**/Throne.Api.Tests/**Tests.cs]
-dotnet_diagnostic.CA1502.severity = none
-dotnet_diagnostic.CA1506.severity = none
-
-[**/Throne.Application.Tests/**Tests.cs]
-dotnet_diagnostic.CA1502.severity = none
-dotnet_diagnostic.CA1506.severity = none
-
-[**/Throne.Infrastructure.Tests/**Tests.cs]
-dotnet_diagnostic.CA1502.severity = none
-dotnet_diagnostic.CA1506.severity = none
-
-[**/Throne.Domain.Tests/**Tests.cs]
-dotnet_diagnostic.CA1502.severity = none
 

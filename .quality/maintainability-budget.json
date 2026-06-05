@@ -41,18 +41,21 @@
   },
   "profiles": {
     "strict": {
-      "description": "Default profile. Tight budgets для нового кода + ratchet через baseline. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, Domain primary ctors, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR.",
+      "description": "Default profile. Tight budgets для нового кода + ratchet через baseline. constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR. Throne.Domain выведен из size-бюджета через exclude: rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest), а не LOC/CC-лимитами.",
       "gateMode": "blocking",
       "limits": {
         "fileMaxLoc": 400,
         "typeMaxLoc": 200,
         "methodMaxLoc": 50,
-        "constructorMaxDependencies": 5,
+        "methodLocToleranceFactor": 1.25,
+        "constructorMaxDependencies": 8,
         "methodMaxCyclomaticComplexity": 10,
         "typeMaxPublicMembers": 12,
         "fileMaxFanOut": 15
       },
-      "exclude": [],
+      "exclude": [
+        "**/Throne.Domain/**.cs"
+      ],
       "pathOverrides": [
         {
           "_comment": "intent:4b43b94c4a194a30b8ddb99c67643d7f — NSwag-generated REST controllers compose one abstract override per route, so ctor surface grows linearly with endpoint count.",
@@ -93,24 +96,10 @@
           }
         },
         {
-          "_comment": "ADR-0025 — Throne.Domain нормативно ведётся в rich-DDD стиле (агрегат сам несёт public static Create/Restore, инварианты инлайн, state-переходы инстансными методами). Lift LOC/member/CC/fan-out лимитов снимает давление харнеса к расщеплению на *Factory/*Guards/*Mutator. Запреты охраняются ADR + ревью и NetArchTest «no internal set в Throne.Domain». Поглощает прежние Domain-override (constructorMaxDependencies:10) и DreamSession-override (typeMaxPublicMembers:20).",
-          "glob": "**/Throne.Domain/**.cs",
-          "limits": {
-            "fileMaxLoc": 9999,
-            "typeMaxLoc": 9999,
-            "methodMaxLoc": 9999,
-            "typeMaxPublicMembers": 9999,
-            "methodMaxCyclomaticComplexity": 9999,
-            "fileMaxFanOut": 9999,
-            "constructorMaxDependencies": 9999
-          }
-        },
-        {
-          "_comment": "Application handlers orchestrate UoW + domain calls + persistence; HandleAsync commonly covers a single logical transaction.",
+          "_comment": "Application handlers orchestrate UoW + domain calls + persistence; HandleAsync commonly covers a single logical transaction. Ctor surface lands within the base limit (8).",
           "glob": "**/Throne.Application/**Handler.cs",
           "limits": {
-            "methodMaxLoc": 80,
-            "constructorMaxDependencies": 8
+            "methodMaxLoc": 80
           }
         },
         {

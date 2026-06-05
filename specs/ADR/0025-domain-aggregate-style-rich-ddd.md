@@ -5,6 +5,7 @@
 Accepted
 Date: 2026-05-26
 Related: [ADR-0001](0001-foundation-clean-architecture-monorepo.md), [ADR-0002](0002-domain-model-and-text-versioning.md), [ADR-0023](0023-mcp-tools-snake-case-naming.md)
+Amended by: [ADR-0028](0028-quality-harness-recalibration.md) — Domain-послабление в maintainability budget переведено с pathOverride `9999` на `exclude`; инвариант охраняет `DomainEncapsulationRulesTests` (NetArchTest, активен), а не budget-override.
 
 ## Context
 
