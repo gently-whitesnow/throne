@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Throne.Infrastructure.Mongo.Documents;
 
+[BsonIgnoreExtraElements]
 internal sealed class McpCallLogDocument
 {
     [BsonId]

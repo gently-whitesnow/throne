@@ -5,6 +5,7 @@ namespace Throne.Infrastructure.Mongo.Documents;
 /// <summary>
 /// Mongo persistence shape for <see cref="Throne.Domain.Dreams.DreamSession"/>.
 /// </summary>
+[BsonIgnoreExtraElements]
 internal sealed class DreamSessionDocument
 {
     [BsonId]
