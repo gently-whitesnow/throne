@@ -33,6 +33,8 @@ public static class RealtimeEventNames
     public const string IntentTagsChanged = "intent.tags_changed";
     public const string IntentTextChanged = "intent.text_changed";
     public const string IntentUnpinned = "intent.unpinned";
+    public const string RepositoryDocumentUpdated = "repository.document_updated";
+    public const string RepositoryRegistered = "repository.registered";
     public const string TagCreated = "tag.created";
     public const string TagDeleted = "tag.deleted";
     public const string TagUpdated = "tag.updated";
@@ -63,6 +65,8 @@ public static class RealtimeEventNames
         IntentTagsChanged,
         IntentTextChanged,
         IntentUnpinned,
+        RepositoryDocumentUpdated,
+        RepositoryRegistered,
         TagCreated,
         TagDeleted,
         TagUpdated,

@@ -151,6 +151,35 @@ events:
           type: string
         comment:
           $ref: 'repositories#/components/schemas/PullRequestCommentDto'
+  repository.registered:
+    description: >
+      A repository registry row was materialised for a coordinate the first time it surfaced
+      (ADR-0031). Fires on every path that ensures the registry — manual create, intent bind,
+      tag default, or the first knowledge-page write — but only when a new row is inserted,
+      never on the idempotent no-op.
+    payload_ref: repositories#/components/schemas/RepositoryDto
+  repository.document_updated:
+    description: >
+      A RepositoryArtifact knowledge page was written (create or update) — covers both the
+      MCP write_repository_document authoring path and the HTTP PUT manual edit. Pointer-only:
+      the markdown body and the version timeline are refetched by the client, so the frame
+      carries just the coordinate + slug + new version (ADR-0031, ADR-0008).
+    payload:
+      type: object
+      required: [provider, owner, repo, slug, version]
+      properties:
+        provider:
+          type: string
+        owner:
+          type: string
+        repo:
+          type: string
+        slug:
+          type: string
+        version:
+          type: integer
+          format: int32
+          minimum: 1
   tag.created:
     description: A new tag was created (by user or auto-upsert during create_intent / set_intent_tags).
     payload_ref: tags#/components/schemas/TagDto

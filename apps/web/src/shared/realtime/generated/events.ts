@@ -34,6 +34,8 @@ export interface RealtimeEventMap {
   "intent.tags_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.text_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.unpinned": { intent_id: string; context_tag_id: string };
+  "repository.document_updated": { provider: string; owner: string; repo: string; slug: string; version: number };
+  "repository.registered": RepositoriesComponents["schemas"]["RepositoryDto"];
   "tag.created": TagsComponents["schemas"]["TagDto"];
   "tag.deleted": { tag_id: string };
   "tag.updated": TagsComponents["schemas"]["TagDto"];
@@ -66,6 +68,8 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "intent.tags_changed",
   "intent.text_changed",
   "intent.unpinned",
+  "repository.document_updated",
+  "repository.registered",
   "tag.created",
   "tag.deleted",
   "tag.updated",
