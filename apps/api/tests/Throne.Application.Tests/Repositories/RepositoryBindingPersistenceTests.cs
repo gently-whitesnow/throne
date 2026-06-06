@@ -44,6 +44,20 @@ public class RepositoryBindingPersistenceTests
         await fixture.Bindings.DidNotReceive().DeleteAsync(Arg.Any<BindingId>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Create материализует Repository-реестр по координате binding'а")]
+    public async Task Create_ensures_registry_for_coordinate()
+    {
+        var fixture = new Fixture();
+        var binding = NewBinding();
+        fixture.Bindings.CreateAsync(binding, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<CreateBindingOutcome>(new CreateBindingOutcome.Created(binding)));
+
+        await fixture.Persistence.CreateAsync(binding, CancellationToken.None);
+
+        await fixture.Registry.Received(1)
+            .EnsureRepositoryAsync(binding.Coordinate, Now, Arg.Any<CancellationToken>());
+    }
+
     private static IntentRepositoryBinding NewBinding()
     {
         var snapshot = new IntentRepositoryBindingSnapshot(
@@ -69,9 +83,11 @@ public class RepositoryBindingPersistenceTests
         public Fixture()
         {
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
+            Registry = Substitute.For<IRepositoryRegistry>();
             Remover = new FailableWorkspaceRemover();
             Persistence = new RepositoryBindingPersistence(
                 Bindings,
+                Registry,
                 new PassthroughUnitOfWork(),
                 new FixedClock(Now),
                 new StubWorkspaceRoot(WorkspaceRoot),
@@ -79,6 +95,7 @@ public class RepositoryBindingPersistenceTests
         }
 
         public IIntentRepositoryBindingRepository Bindings { get; }
+        public IRepositoryRegistry Registry { get; }
         public FailableWorkspaceRemover Remover { get; }
         public RepositoryBindingPersistence Persistence { get; }
     }

@@ -15,5 +15,8 @@ public static class MongoCollectionNames
     public const string DreamSessions = "dream_sessions";
     public const string IntentPins = "intent_pins";
     public const string IntentRepositoryBindings = "intent_repository_bindings";
+    public const string Repositories = "repositories";
+    public const string RepositoryArtifacts = "repository_artifacts";
+    public const string RepositoryArtifactVersions = "repository_artifact_versions";
     public const string Settings = "settings";
 }
