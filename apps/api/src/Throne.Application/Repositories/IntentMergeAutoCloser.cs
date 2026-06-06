@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
@@ -23,11 +24,12 @@ namespace Throne.Application.Repositories;
 /// <c>IntentStatusChanged</c> event drives realtime fan-out and the tmux teardown
 /// (<c>TerminalKillOnIntentDoneHandler</c>, ADR-0026 § 8).
 /// </summary>
-public sealed class IntentMergeAutoCloser(
+public sealed partial class IntentMergeAutoCloser(
     IIntentRepositoryBindingRepository bindings,
     ISystemIntentStatusWriter intents,
     IUnitOfWork unitOfWork,
-    TimeProvider clock)
+    TimeProvider clock,
+    ILogger<IntentMergeAutoCloser> logger)
 {
     public const string Source = "pr_merge";
 
@@ -37,23 +39,64 @@ public sealed class IntentMergeAutoCloser(
 
         var siblings = await bindings.FindByIntentAsync(mergedBinding.IntentId, ct);
         var prBearing = siblings.Where(b => b.State.PullRequestNumber is not null).ToList();
-        if (prBearing.Count == 0 ||
-            !prBearing.All(b => b.State.PullRequestState == PullRequestStateNames.Merged))
+        var mergedCount = prBearing.Count(b => b.State.PullRequestState == PullRequestStateNames.Merged);
+        if (prBearing.Count == 0 || mergedCount != prBearing.Count)
         {
+            LogSkipNotAllMerged(
+                logger, mergedBinding.IntentId.Value, mergedBinding.Id.Value, mergedCount, prBearing.Count);
             return;
         }
 
         var intent = await intents.GetByIdForSystemAsync(mergedBinding.IntentId, ct);
         if (intent is null || IntentStatusNames.IsTerminal(intent.State.Status))
         {
+            LogSkipIntent(logger, mergedBinding.IntentId.Value, intent?.State.Status ?? "<null>");
             return;
         }
 
-        var pr = mergedBinding.State.PullRequestNumber!.Value.ToString(CultureInfo.InvariantCulture);
-        var reason = $"Закрыт автоматически по мерджу PR #{pr}.";
-        await unitOfWork.ExecuteAsync(
+        var pr = mergedBinding.State.PullRequestNumber!.Value;
+        var reason = $"Закрыт автоматически по мерджу PR #{pr.ToString(CultureInfo.InvariantCulture)}.";
+        var fromStatus = intent.State.Status;
+        var outcome = await unitOfWork.ExecuteAsync(
             inner => intents.SetStatusBySystemAsync(
                 mergedBinding.IntentId, IntentStatusNames.Done, reason, Source, clock.GetUtcNow(), inner),
             ct);
+        var intentId = mergedBinding.IntentId.Value;
+        switch (outcome)
+        {
+            case SetIntentStatusOutcome.Updated:
+                LogClosed(logger, intentId, pr, fromStatus);
+                break;
+            case SetIntentStatusOutcome.Conflict conflict:
+                LogCloseConflict(logger, intentId, pr, conflict.CurrentVersion, conflict.CurrentStatus);
+                break;
+            case SetIntentStatusOutcome.NotFound:
+                LogCloseNotFound(logger, intentId, pr);
+                break;
+        }
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
+        Message = "IntentMergeAutoCloser: not all PR-bearing bindings merged for intent {IntentId} "
+            + "(trigger binding {BindingId}): {Merged}/{Total} merged — intent left open.")]
+    private static partial void LogSkipNotAllMerged(
+        ILogger logger, string intentId, string bindingId, int merged, int total);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "IntentMergeAutoCloser: intent {IntentId} not closable (status={Status}) — skip.")]
+    private static partial void LogSkipIntent(ILogger logger, string intentId, string status);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information,
+        Message = "IntentMergeAutoCloser: intent {IntentId} closed on PR #{Pr} ({FromStatus} -> done).")]
+    private static partial void LogClosed(ILogger logger, string intentId, int pr, string fromStatus);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Warning,
+        Message = "IntentMergeAutoCloser: intent {IntentId} close on PR #{Pr} hit version conflict "
+            + "(current version={CurrentVersion}, status={CurrentStatus}) — intent left open.")]
+    private static partial void LogCloseConflict(
+        ILogger logger, string intentId, int pr, int currentVersion, string currentStatus);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Warning,
+        Message = "IntentMergeAutoCloser: intent {IntentId} close on PR #{Pr} found no such intent — skip.")]
+    private static partial void LogCloseNotFound(ILogger logger, string intentId, int pr);
 }

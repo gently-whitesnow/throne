@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
@@ -110,7 +111,12 @@ public class IntentMergeAutoCloserTests
                 .Returns(ci => Task.FromResult<SetIntentStatusOutcome>(
                     new SetIntentStatusOutcome.Updated(
                         Intent.Restore(new IntentId(IntentIdValue), "x", IntentStatusNames.Done, 1, [], Now, Now))));
-            Closer = new IntentMergeAutoCloser(Bindings, Intents, new PassthroughUnitOfWork(), new FixedClock(Now));
+            Closer = new IntentMergeAutoCloser(
+                Bindings,
+                Intents,
+                new PassthroughUnitOfWork(),
+                new FixedClock(Now),
+                NullLogger<IntentMergeAutoCloser>.Instance);
         }
 
         public IIntentRepositoryBindingRepository Bindings { get; }
