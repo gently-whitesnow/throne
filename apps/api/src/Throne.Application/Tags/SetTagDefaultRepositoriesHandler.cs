@@ -51,12 +51,17 @@ public sealed class SetTagDefaultRepositoriesHandler(
                     now,
                     inner);
                 // Materialise the Repository registry row per coordinate in the same
-                // transaction (ADR-0031), independent of whether the list actually changed —
-                // a coordinate present in the request has surfaced regardless.
+                // transaction (ADR-0031) only after the tag mutation accepted the request.
+                // Updated and NoChange both mean the coordinate surfaced successfully; NotFound
+                // and VersionConflict must stay side-effect free.
                 var ensured = new List<EnsureRepositoryOutcome>(domain.Count);
-                foreach (var preset in domain)
+                if (result is SetTagDefaultRepositoriesOutcome.Updated
+                    or SetTagDefaultRepositoriesOutcome.NoChange)
                 {
-                    ensured.Add(await registry.EnsureRepositoryAsync(preset.Coordinate, now, inner));
+                    foreach (var preset in domain)
+                    {
+                        ensured.Add(await registry.EnsureRepositoryAsync(preset.Coordinate, now, inner));
+                    }
                 }
                 return new SetTagDefaultRepositoriesWithRegistryOutcome(result, ensured);
             },

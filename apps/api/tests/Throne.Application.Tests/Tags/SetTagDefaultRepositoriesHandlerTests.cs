@@ -53,6 +53,8 @@ public class SetTagDefaultRepositoriesHandlerTests
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.TagNotFound);
+        await fixture.Registry.DidNotReceive()
+            .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "VersionConflict → tag.version_conflict с current_version в payload")]
@@ -68,6 +70,8 @@ public class SetTagDefaultRepositoriesHandlerTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.TagVersionConflict);
         ex.Which.Extensions["current_version"].Should().Be(5);
+        await fixture.Registry.DidNotReceive()
+            .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Handle материализует Repository-реестр по каждой координате списка")]

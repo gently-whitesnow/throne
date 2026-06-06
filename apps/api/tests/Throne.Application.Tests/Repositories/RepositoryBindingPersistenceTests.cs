@@ -61,6 +61,22 @@ public class RepositoryBindingPersistenceTests
             .EnsureRepositoryAsync(binding.Coordinate, Now, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Create с Duplicate не материализует Repository-реестр")]
+    public async Task Create_duplicate_does_not_ensure_registry()
+    {
+        var fixture = new Fixture();
+        var binding = NewBinding();
+        fixture.Bindings.CreateAsync(binding, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<CreateBindingOutcome>(new CreateBindingOutcome.Duplicate(binding)));
+
+        var act = () => fixture.Persistence.CreateAsync(binding, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.RepositoryBindingAlreadyExists);
+        await fixture.Registry.DidNotReceive()
+            .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+    }
+
     private static IntentRepositoryBinding NewBinding()
     {
         var snapshot = new IntentRepositoryBindingSnapshot(
