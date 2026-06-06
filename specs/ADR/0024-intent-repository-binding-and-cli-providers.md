@@ -107,7 +107,7 @@ ready    → broken                  (404 upstream при polling)
 - Bind репозитория к интенту — продуктовое решение пользователя (выбор `(owner, repo)`, PR-number, default branch), а не «работа агента над интентом».
 - MCP write-surface множит способы случайно сломать workspace и расходится с принципом «первый usable срез, не оверинженерим».
 
-MCP получает read-only расширение `get_intent.repositories[]` и `list_intent_pr_comments` — этого хватает, чтобы агент видел контекст репозитория и читал PR-фидбек. Расширение write-surface (если потребуется) — отдельный интент по запросу.
+MCP получает только read-only расширение `get_intent.repositories[]` — binding-метаданные, PR-номер, `workspace_path`. Этого хватает, чтобы агент увидел контекст репозитория. PR-фидбек агент читает НЕ через MCP, а CLI-провайдером прямо в workspace (`gh api repos/{owner}/{repo}/pulls/{n}/comments`, `glab`) или через собранный в UI prompt-контекст. Отдельный MCP-tool под чтение PR-комментариев (рассматривался как `list_intent_pr_comments`) сознательно НЕ вводим: он дублировал бы CLI и тянул MCP-surface к анти-паттерну «один tool на каждую внешнюю операцию». Общая политика MCP-surface (context-read + редкие agent-authored writes, всё остальное — CLI-first) зафиксирована в [ADR-0030](0030-mcp-surface-policy-cli-first.md). Расширение write-surface (если потребуется) — отдельный интент по запросу.
 
 ### 9. Авто-привязка PR и авто-закрытие интента по мерджу (надстройка над polling-тиком)
 
