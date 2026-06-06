@@ -1,21 +1,11 @@
 # Throne maintainability thresholds for built-in .NET code metrics analyzers.
-# Profile: legacy (brownfield baseline). Tightening goes through a separate intent.
 # See specs/AGENTS.local.md (Maintainability gate) for governance.
-
-# Cyclomatic complexity per method.
-CA1502: 30
-
-# Cyclomatic complexity average per type.
-CA1502(Type): 10
+# Cyclomatic complexity (CA1502) and class coupling (CA1506) are owned by the
+# .quality maintainability budget (per-method CC ≤10, file fan-out ≤15), so those
+# analyzers are off in .editorconfig and intentionally have no thresholds here.
 
 # Maintainability index minimum.
 CA1505: 10
-
-# Class coupling per method.
-CA1506: 50
-
-# Class coupling per type.
-CA1506(Type): 120
 
 # Inheritance depth maximum.
 CA1501: 8
