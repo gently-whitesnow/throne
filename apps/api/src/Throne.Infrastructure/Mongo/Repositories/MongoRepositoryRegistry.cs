@@ -69,4 +69,16 @@ internal sealed class MongoRepositoryRegistry(
             : await _repositories.Find(session, filter).FirstOrDefaultAsync(ct);
         return doc is null ? null : RepositoryDocumentMapper.ToDomain(doc);
     }
+
+    public async Task<IReadOnlyList<Repository>> ListAsync(CancellationToken ct)
+    {
+        var session = sessions.Current;
+        var find = session is null
+            ? _repositories.Find(FilterDefinition<RepositoryDocument>.Empty)
+            : _repositories.Find(session, FilterDefinition<RepositoryDocument>.Empty);
+        var docs = await find
+            .SortBy(d => d.Provider).ThenBy(d => d.Owner).ThenBy(d => d.Repo)
+            .ToListAsync(ct);
+        return docs.Select(RepositoryDocumentMapper.ToDomain).ToList();
+    }
 }

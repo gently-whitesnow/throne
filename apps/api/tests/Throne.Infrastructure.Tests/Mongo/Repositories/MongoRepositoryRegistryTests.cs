@@ -89,4 +89,26 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
 
         found.Should().BeNull();
     }
+
+    [Fact(DisplayName = "ListAsync пуст до первой регистрации")]
+    public async Task List_is_empty_initially()
+    {
+        var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
+
+        var all = await scope.Registry.ListAsync(CancellationToken.None);
+
+        all.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "ListAsync возвращает все зарегистрированные репо, отсортированные по координате")]
+    public async Task List_returns_all_sorted()
+    {
+        var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
+        await scope.Registry.EnsureRepositoryAsync(Coordinate("zeta"), Now, CancellationToken.None);
+        await scope.Registry.EnsureRepositoryAsync(Coordinate("alpha"), Now, CancellationToken.None);
+
+        var all = await scope.Registry.ListAsync(CancellationToken.None);
+
+        all.Select(r => r.Coordinate.Repo).Should().Equal("alpha", "zeta");
+    }
 }
