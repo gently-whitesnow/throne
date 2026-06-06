@@ -14,6 +14,8 @@ import {
 } from "@/entities/workspace-setting";
 import { Button } from "@/shared/ui";
 
+import { WorkspaceCleanupControl } from "./WorkspaceCleanupControl";
+
 /**
  * Settings → «Workspace».
  *
@@ -66,6 +68,12 @@ export function WorkspaceCard() {
       </header>
 
       <WorkspaceBody isLoading={isLoading} error={error} settings={settings} />
+
+      {settings ? (
+        <div className="border-t border-base-300 pt-4">
+          <WorkspaceCleanupControl />
+        </div>
+      ) : null}
     </section>
   );
 }

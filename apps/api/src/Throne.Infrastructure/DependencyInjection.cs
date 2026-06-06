@@ -102,6 +102,7 @@ public static class DependencyInjection
         services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
         services.AddSingleton<IWorkspaceRootProvider>(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
         services.AddSingleton<IWorkspaceDirectoryRemover, WorkspaceDirectoryRemover>();
+        services.AddSingleton<IWorkspaceDirectorySizer, WorkspaceDirectorySizer>();
         services.AddSingleton<IProcessLauncher, ProcessRunner>();
         services.AddSingleton<ILocalGitBranchReader, LocalGitBranchReader>();
         services.AddSingleton<GhCliInvoker>();

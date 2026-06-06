@@ -32,6 +32,9 @@ internal sealed class InMemoryIntentRepositoryBindingRepository : IIntentReposit
         Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>(
             _byId.Values.Where(b => b.IntentId.Equals(intentId)).ToArray());
 
+    public Task<IReadOnlyList<IntentRepositoryBinding>> FindAllAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>(_byId.Values.ToArray());
+
     public Task<IReadOnlyList<IntentRepositoryBinding>> FindOpenForSyncAsync(CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>([]);
 

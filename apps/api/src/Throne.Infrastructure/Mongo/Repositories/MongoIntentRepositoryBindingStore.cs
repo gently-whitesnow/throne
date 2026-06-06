@@ -80,6 +80,17 @@ internal sealed class MongoIntentRepositoryBindingStore(
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
     }
 
+    public async Task<IReadOnlyList<IntentRepositoryBinding>> FindAllAsync(CancellationToken ct)
+    {
+        var filter = Builders<IntentRepositoryBindingDocument>.Filter.Empty;
+        var session = sessions.Current;
+        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
+        var docs = await find
+            .SortBy(d => d.CreatedAt)
+            .ToListAsync(ct);
+        return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
+    }
+
     public async Task<IReadOnlyList<IntentRepositoryBinding>> FindOpenForSyncAsync(CancellationToken ct)
     {
         var fb = Builders<IntentRepositoryBindingDocument>.Filter;

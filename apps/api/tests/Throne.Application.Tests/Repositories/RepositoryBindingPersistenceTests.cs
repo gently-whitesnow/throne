@@ -134,6 +134,8 @@ public class RepositoryBindingPersistenceTests
             Removed.Add(absolutePath);
             return Task.CompletedTask;
         }
+
+        public Task RemoveContentsAsync(string directoryPath, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider

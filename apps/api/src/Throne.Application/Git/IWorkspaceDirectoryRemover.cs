@@ -13,4 +13,12 @@ public interface IWorkspaceDirectoryRemover
     /// so the caller can keep the binding and surface the error.
     /// </summary>
     Task RemoveAsync(string absolutePath, CancellationToken ct);
+
+    /// <summary>
+    /// Delete every entry directly under <paramref name="directoryPath"/> while keeping
+    /// the directory itself. Backs the workspace "clean all" sweep: after every binding
+    /// is unbound, this clears leftover empty intent folders and any orphan clones so the
+    /// root ends up empty. A missing directory is a no-op; throws on a real IO failure.
+    /// </summary>
+    Task RemoveContentsAsync(string directoryPath, CancellationToken ct);
 }

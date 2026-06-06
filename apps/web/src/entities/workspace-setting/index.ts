@@ -1,6 +1,15 @@
-export type { WorkspaceSettings, WorkspaceStatus } from "./model/types";
+export type {
+  WorkspaceSettings,
+  WorkspaceStatus,
+  WorkspaceCleanMode,
+  WorkspaceCleanRequest,
+  WorkspaceCleanResult
+} from "./model/types";
 export { formatWorkspaceSize, isWorkspaceCalculating } from "./model/types";
-export { fetchWorkspaceSettings } from "./api/workspace-settings-api";
+export {
+  fetchWorkspaceSettings,
+  cleanWorkspace
+} from "./api/workspace-settings-api";
 export {
   workspaceSettingsQueryKeys,
   useWorkspaceSettingsQuery
