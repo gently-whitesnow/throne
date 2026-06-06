@@ -214,7 +214,8 @@ public class RunPreflightOrchestratorTests
             var uow = new PassthroughUnitOfWork();
             var resolver = new RepositoryBindingResolver(Intents, Bindings, providers);
             var persistence = new RepositoryBindingPersistence(
-                Bindings, uow, clockShared, workspace, Substitute.For<IWorkspaceDirectoryRemover>());
+                Bindings, Substitute.For<IRepositoryRegistry>(), uow, clockShared, workspace,
+                Substitute.For<IWorkspaceDirectoryRemover>());
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clockShared);
             var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), uow, clockShared);
             var stateRefresher = new PullRequestStateRefresher(Bindings, uow, autoCloser, clockShared);

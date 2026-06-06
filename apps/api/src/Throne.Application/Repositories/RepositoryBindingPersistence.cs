@@ -14,6 +14,7 @@ namespace Throne.Application.Repositories;
 /// </summary>
 public sealed class RepositoryBindingPersistence(
     IIntentRepositoryBindingRepository bindings,
+    IRepositoryRegistry registry,
     IUnitOfWork unitOfWork,
     TimeProvider clock,
     IWorkspaceRootProvider workspace,
@@ -50,7 +51,17 @@ public sealed class RepositoryBindingPersistence(
 
     public async Task<IntentRepositoryBinding> CreateAsync(IntentRepositoryBinding binding, CancellationToken ct)
     {
-        var outcome = await unitOfWork.ExecuteAsync(inner => bindings.CreateAsync(binding, inner), ct);
+        // Materialise the Repository registry row in the same transaction as the bind so the
+        // coordinate is known to teams/binds/requests as one business entity (ADR-0031). This
+        // is not an FK rewrite — the binding still relates by coordinate, not RepositoryId.
+        var outcome = await unitOfWork.ExecuteAsync(
+            async inner =>
+            {
+                var created = await bindings.CreateAsync(binding, inner);
+                await registry.EnsureRepositoryAsync(binding.Coordinate, clock.GetUtcNow(), inner);
+                return created;
+            },
+            ct);
         return outcome switch
         {
             CreateBindingOutcome.Created c => c.Binding,
