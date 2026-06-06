@@ -5,7 +5,7 @@ namespace Throne.Application.Tests.Instructions.Manifest;
 
 public class SkillManifestParserTests
 {
-    private static readonly string[] ExpectedBundleModes = ["interview", "work", "dream"];
+    private static readonly string[] ExpectedBundleModes = ["interview", "work", "dream", "schema_map"];
 
     private const string ValidYaml = """
         version: 1
@@ -85,8 +85,8 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(4);
-        manifest.Bundles.Should().HaveCount(3);
+        manifest.SystemInstructions.Should().HaveCount(5);
+        manifest.Bundles.Should().HaveCount(4);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
         manifest.DreamSources.Should().HaveCount(3);
         manifest.DreamSources.Select(s => s.Vendor).Should().BeEquivalentTo("claude-code", "claude-desktop", "codex-cli");

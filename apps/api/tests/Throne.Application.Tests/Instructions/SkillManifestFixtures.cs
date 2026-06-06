@@ -22,11 +22,22 @@ internal static class SkillManifestFixtures
                 new BundleInclude(InstructionScopeNames.User, kind),
             ]);
 
+        // schema_map is launched without an intent and has no user-scope counterpart:
+        // system common + system schema_map + user common only (mirrors the real manifest).
+        var schemaMapBundle = new BundleDefinition(
+            InstructionBundleModeNames.SchemaMap,
+            [
+                new BundleInclude(InstructionScopeNames.System, InstructionKindNames.Common),
+                new BundleInclude(InstructionScopeNames.System, InstructionKindNames.SchemaMap),
+                new BundleInclude(InstructionScopeNames.User, InstructionKindNames.Common),
+            ]);
+
         var bundles = new[]
         {
             Bundle(InstructionBundleModeNames.Interview, InstructionKindNames.Interview),
             Bundle(InstructionBundleModeNames.Work, InstructionKindNames.Work),
             Bundle(InstructionBundleModeNames.Dream, InstructionKindNames.Dream),
+            schemaMapBundle,
         };
 
         return new SkillManifest(1, systemInstructions, bundles, Array.Empty<DreamSourceManifestEntry>());

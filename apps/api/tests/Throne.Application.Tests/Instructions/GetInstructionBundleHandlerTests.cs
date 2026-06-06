@@ -100,6 +100,32 @@ public class GetInstructionBundleHandlerTests
             default!, default!, default, default, default, default!, default, default);
     }
 
+    [Fact(DisplayName = "GetInstructionBundle для schema_map отдаёт system common+schema_map (+user common) без смены статуса intent")]
+    public async Task Bundle_returns_schema_map_kinds_without_status_transition()
+    {
+        var repo = Substitute.For<IInstructionRepository>();
+        var intents = StubIntentRepository();
+        var userCommon = Instruction.Create(
+            InstructionId.New(), InstructionScopeNames.User, InstructionKindNames.Common, "user common text", Now);
+        repo.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            .Returns([userCommon]);
+        var handler = NewHandler(repo, intents);
+
+        var bundle = await handler.HandleAsync(
+            new GetInstructionBundleQuery(InstructionBundleModeNames.SchemaMap, "intent_1"),
+            CancellationToken.None);
+
+        bundle.Mode.Should().Be(InstructionBundleModeNames.SchemaMap);
+        bundle.MissingKinds.Should().BeEmpty();
+        bundle.Instructions.Select(x => (x.Scope, x.Kind)).Should().Equal(
+            (InstructionScopeNames.System, InstructionKindNames.Common),
+            (InstructionScopeNames.System, InstructionKindNames.SchemaMap),
+            (InstructionScopeNames.User, InstructionKindNames.Common));
+        // schema_map has no BundleModeIntentStatus mapping → server never moves the intent.
+        await intents.DidNotReceiveWithAnyArgs().SetStatusAsync(
+            default!, default!, default, default, default, default!, default, default);
+    }
+
     [Fact(DisplayName = "GetInstructionBundle отклоняет неизвестный mode")]
     public async Task Bundle_rejects_unknown_mode()
     {
