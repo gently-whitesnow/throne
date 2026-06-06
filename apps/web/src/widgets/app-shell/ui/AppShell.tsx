@@ -1,11 +1,21 @@
-import { FileText, Hash, Settings, Sparkles, Sprout } from "lucide-react";
+import {
+  FileText,
+  FolderGit2,
+  Hash,
+  Settings,
+  Sparkles,
+  Sprout
+} from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
+
+import { useCapabilityEnabled } from "@/entities/capability";
 
 import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
 
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
   { to: "/tags", label: "Tags", icon: Hash },
+  { to: "/repositories", label: "Repositories", icon: FolderGit2 },
   { to: "/instructions", label: "Instructions", icon: FileText },
   { to: "/improvements", label: "Improvements", icon: Sprout },
   { to: "/settings", label: "Settings", icon: Settings }
@@ -13,6 +23,10 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const proposedPatches = useProposedPatchesCount();
+  const repositoriesEnabled = useCapabilityEnabled("repositories");
+  const navItems = NAV_ITEMS.filter(
+    (item) => item.to !== "/repositories" || repositoriesEnabled
+  );
   return (
     <div className="grid h-screen grid-rows-[auto_1fr] overflow-hidden md:grid-cols-[56px_1fr] md:grid-rows-1">
       <aside
@@ -27,7 +41,7 @@ export function AppShell() {
           T
         </div>
         <nav className="flex gap-1 md:flex-col md:gap-1" aria-label="Разделы">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
