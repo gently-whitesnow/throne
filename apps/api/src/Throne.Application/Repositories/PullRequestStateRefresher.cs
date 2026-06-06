@@ -32,14 +32,12 @@ public sealed class PullRequestStateRefresher(
         }
         if (binding.State.PullRequestState == snapshot.State)
         {
+            await CloseMergedAsync(binding, snapshot.State, ct);
             return binding;
         }
         binding.RecordPullRequestState(snapshot.State, clock.GetUtcNow());
         var saved = await SaveAsync(binding, ct);
-        if (snapshot.State == PullRequestStateNames.Merged)
-        {
-            await autoCloser.OnBindingMergedAsync(saved, ct);
-        }
+        await CloseMergedAsync(saved, snapshot.State, ct);
         return saved;
     }
 
@@ -65,5 +63,16 @@ public sealed class PullRequestStateRefresher(
             SaveBindingOutcome.NotFound => binding,
             _ => throw new InvalidOperationException($"Unhandled outcome: {outcome.GetType().Name}"),
         };
+    }
+
+    private async Task CloseMergedAsync(
+        IntentRepositoryBinding binding,
+        string pullRequestState,
+        CancellationToken ct)
+    {
+        if (pullRequestState == PullRequestStateNames.Merged)
+        {
+            await autoCloser.OnBindingMergedAsync(binding, ct);
+        }
     }
 }
