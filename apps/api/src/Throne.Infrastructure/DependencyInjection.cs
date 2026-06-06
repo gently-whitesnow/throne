@@ -69,6 +69,8 @@ public static class DependencyInjection
         services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
+        services.AddSingleton<IRepositoryRegistry, MongoRepositoryRegistry>();
+        services.AddSingleton<IRepositoryArtifactRepository, MongoRepositoryArtifactStore>();
         services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
         services.AddHostedService<MongoIndexInitializer>();
 

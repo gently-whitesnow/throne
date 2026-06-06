@@ -17,6 +17,7 @@ public sealed record SetTagDefaultRepositoriesCommand(
 /// </summary>
 public sealed class SetTagDefaultRepositoriesHandler(
     ITagRepository repository,
+    IRepositoryRegistry registry,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -40,12 +41,23 @@ public sealed class SetTagDefaultRepositoriesHandler(
         }
 
         var outcome = await unitOfWork.ExecuteAsync(
-            inner => repository.SetDefaultRepositoriesAsync(
-                tagId,
-                command.ExpectedVersion,
-                domain,
-                now,
-                inner),
+            async inner =>
+            {
+                var result = await repository.SetDefaultRepositoriesAsync(
+                    tagId,
+                    command.ExpectedVersion,
+                    domain,
+                    now,
+                    inner);
+                // Materialise the Repository registry row per coordinate in the same
+                // transaction (ADR-0031), independent of whether the list actually changed —
+                // a coordinate present in the request has surfaced regardless.
+                foreach (var preset in domain)
+                {
+                    await registry.EnsureRepositoryAsync(preset.Coordinate, now, inner);
+                }
+                return result;
+            },
             ct);
 
         return outcome switch

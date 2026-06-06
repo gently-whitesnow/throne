@@ -70,6 +70,25 @@ public class SetTagDefaultRepositoriesHandlerTests
         ex.Which.Extensions["current_version"].Should().Be(5);
     }
 
+    [Fact(DisplayName = "Handle материализует Repository-реестр по каждой координате списка")]
+    public async Task Handle_ensures_registry_per_coordinate()
+    {
+        var fixture = new Fixture();
+        fixture.OutcomeIs(new SetTagDefaultRepositoriesOutcome.Updated(NewTag(TagIdValue, currentVersion: 2)));
+        var alpha = new RepoCoordinate(GitProviderNames.GitHub, "octo", "alpha");
+        var beta = new RepoCoordinate(GitProviderNames.GitHub, "octo", "beta");
+
+        await fixture.Handler.HandleAsync(
+            new SetTagDefaultRepositoriesCommand(
+                TagIdValue.Value,
+                1,
+                [new TagDefaultRepository(alpha, "main"), new TagDefaultRepository(beta, null)]),
+            CancellationToken.None);
+
+        await fixture.Registry.Received(1).EnsureRepositoryAsync(alpha, Now, Arg.Any<CancellationToken>());
+        await fixture.Registry.Received(1).EnsureRepositoryAsync(beta, Now, Arg.Any<CancellationToken>());
+    }
+
     private static TagDefaultRepository NewDefault() =>
         new(new RepoCoordinate(GitProviderNames.GitHub, "octo", "hello"), DefaultBranch: "main");
 
@@ -81,10 +100,13 @@ public class SetTagDefaultRepositoriesHandlerTests
         public Fixture()
         {
             Repository = Substitute.For<ITagRepository>();
-            Handler = new SetTagDefaultRepositoriesHandler(Repository, new PassthroughUnitOfWork(), new FixedClock(Now));
+            Registry = Substitute.For<IRepositoryRegistry>();
+            Handler = new SetTagDefaultRepositoriesHandler(
+                Repository, Registry, new PassthroughUnitOfWork(), new FixedClock(Now));
         }
 
         public ITagRepository Repository { get; }
+        public IRepositoryRegistry Registry { get; }
         public SetTagDefaultRepositoriesHandler Handler { get; }
 
         public void OutcomeIs(SetTagDefaultRepositoriesOutcome outcome) =>
