@@ -40,6 +40,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<WorkspaceSettingsDto>> GetWorkspaceSettings();
 
         /// <summary>
+        /// Bulk-remove intent repository clones from the workspace root.
+        /// </summary>
+        /// <remarks>
+        /// Mass unbind: deletes the on-disk clones under `Throne:Workspace:Root` AND their `IntentRepositoryBinding` records, so no orphaned (folder-less) bindings remain. `mode=all` clears the whole root (every clone, including active intents) and drops every binding; `mode=closed_only` touches only intents in `done` / `reject` / `fridge`. Repo-level metadata (the `Repository` registry and its artifacts) lives in Mongo, not on disk, and is never cascaded. With `dry_run=true` nothing is deleted — the response is the preview (`removed_clones` / `freed_bytes` that *would* be removed) for the confirm dialog.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/workspace/clean", Name = "cleanWorkspace")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<WorkspaceCleanResultDto>> CleanWorkspace([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] WorkspaceCleanRequestDto body);
+
+        /// <summary>
         /// Authentication status for every configured git provider CLI.
         /// </summary>
         /// <remarks>

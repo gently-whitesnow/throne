@@ -26,6 +26,12 @@ public interface IIntentRepositoryBindingRepository
     Task<IReadOnlyList<IntentRepositoryBinding>> FindByIntentAsync(IntentId intentId, CancellationToken ct);
 
     /// <summary>
+    /// Every binding in the store, ordered by <c>created_at</c> ASC. Backs the workspace
+    /// "clean all" sweep, which mass-unbinds the whole root regardless of intent status.
+    /// </summary>
+    Task<IReadOnlyList<IntentRepositoryBinding>> FindAllAsync(CancellationToken ct);
+
+    /// <summary>
     /// All bindings where <c>clone_status == ready</c>, a PR is attached, and the recorded
     /// upstream PR state is <c>open</c>. Ordered by <c>last_synced_at ASC</c> so the
     /// oldest-polled binding goes first; bindings without a recorded sync

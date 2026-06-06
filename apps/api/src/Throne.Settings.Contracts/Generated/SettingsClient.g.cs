@@ -86,6 +86,86 @@ namespace Throne.Settings.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// `all` — remove every clone under the root and drop every binding. `closed_only` — remove only clones of intents in `done` / `reject` / `fridge`.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum WorkspaceCleanMode
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"all")]
+        [System.Runtime.Serialization.EnumMember(Value = @"all")]
+        All = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"closed_only")]
+        [System.Runtime.Serialization.EnumMember(Value = @"closed_only")]
+        Closed_only = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkspaceCleanRequestDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkspaceCleanMode>))]
+        public WorkspaceCleanMode Mode { get; set; }
+
+        /// <summary>
+        /// When true, compute the summary without deleting anything. Drives the confirm dialog so the operator sees how many clones and how many bytes will be removed.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dry_run")]
+        public bool Dry_run { get; set; } = false;
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class WorkspaceCleanResultDto
+    {
+
+        /// <summary>
+        /// Number of repository clones removed (or that would be removed when `dry_run=true`).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("removed_clones")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Removed_clones { get; set; }
+
+        /// <summary>
+        /// Bytes freed on disk (or that would be freed when `dry_run=true`).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("freed_bytes")]
+        [System.ComponentModel.DataAnnotations.Range(0L, long.MaxValue)]
+        public long Freed_bytes { get; set; }
+
+        /// <summary>
+        /// Echoes the request flag so the caller can tell a preview from an executed run.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dry_run")]
+        public bool Dry_run { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class GitProviderAuthStatusDto
     {
@@ -138,6 +218,41 @@ namespace Throne.Settings.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("gitlab")]
         public GitProviderAuthStatusDto Gitlab { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProblemDetails
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Type { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public int Status { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("detail")]
+        public string Detail { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("instance")]
+        public string Instance { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("errors")]
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> Errors { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

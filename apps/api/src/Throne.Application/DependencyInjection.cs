@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryPullRequestSyncPersistence>();
         services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
         services.AddSingleton<RepositoryBindingService>();
+        services.AddSingleton<WorkspaceCleanupService>();
         services.AddSingleton<RepositoryArtifactWriter>();
         services.AddSingleton<GetRepositoryDocumentHandler>();
         services.AddSingleton<ListRepositoriesHandler>();
