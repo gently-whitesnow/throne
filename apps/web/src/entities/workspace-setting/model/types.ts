@@ -5,6 +5,15 @@ export type WorkspaceSettings =
 
 export type WorkspaceStatus = SettingsComponents["schemas"]["WorkspaceStatus"];
 
+export type WorkspaceCleanMode =
+  SettingsComponents["schemas"]["WorkspaceCleanMode"];
+
+export type WorkspaceCleanRequest =
+  SettingsComponents["schemas"]["WorkspaceCleanRequestDto"];
+
+export type WorkspaceCleanResult =
+  SettingsComponents["schemas"]["WorkspaceCleanResultDto"];
+
 const KIB = 1024;
 const MIB = KIB * 1024;
 const GIB = MIB * 1024;

@@ -34,6 +34,7 @@ internal static class RepositoryEndpointServices
 
         services.AddSingleton<WorkspaceSizeProbe>();
         services.AddSingleton<GetWorkspaceSettingsEndpoint>();
+        services.AddSingleton<CleanWorkspaceEndpoint>();
         services.AddSingleton<GetGitProvidersStatusEndpoint>();
 
         return services;

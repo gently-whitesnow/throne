@@ -371,6 +371,8 @@ public class RepositoryBindingServiceTests
             Removed.Add(absolutePath);
             return Task.CompletedTask;
         }
+
+        public Task RemoveContentsAsync(string directoryPath, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class RecordingCloneQueue : IRepositoryCloneRequests
