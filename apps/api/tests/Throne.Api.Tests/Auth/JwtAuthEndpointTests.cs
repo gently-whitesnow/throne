@@ -132,7 +132,7 @@ public sealed class JwtAuthEndpointTests(MongoFixture mongo) : IAsyncLifetime
         health.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // /mcp под Mode=Jwt требует Personal Access Token. Без него — 401
-        // (см. ADR-0012, §MCP authentication — Personal Access Token).
+        // (см. ADR-0016 — PAT).
         using var mcp = new HttpRequestMessage(HttpMethod.Post, new Uri("/mcp", UriKind.Relative))
         {
             Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json"),

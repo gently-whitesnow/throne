@@ -6,7 +6,7 @@ namespace Throne.Application.Ports;
 /// <summary>
 /// Persistence boundary for <see cref="DreamSession"/>. All reads are
 /// owner-scoped via the ambient <see cref="Throne.Application.Auth.ICurrentUserAccessor"/>
-/// inside the repository implementation (ADR-0012). Sessions are append-only;
+/// inside the repository implementation (ADR-0029). Sessions are append-only;
 /// there is intentionally no update or delete API.
 /// </summary>
 public interface IDreamSessionRepository

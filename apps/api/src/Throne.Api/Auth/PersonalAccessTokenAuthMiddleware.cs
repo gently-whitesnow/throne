@@ -6,7 +6,7 @@ using Throne.Application.Auth;
 namespace Throne.Api.Auth;
 
 /// <summary>
-/// Корневая аутентификация по <c>Authorization: Bearer &lt;token&gt;</c> (ADR-0012, ADR-0016).
+/// Корневая аутентификация по <c>Authorization: Bearer &lt;token&gt;</c> (ADR-0016).
 ///
 /// Регистрируется на корне приложения, чтобы и MCP-канал, и REST-эндпоинты
 /// (например <c>/api/v1/chat-uploads</c>, к которому обращается локальный CLI)
