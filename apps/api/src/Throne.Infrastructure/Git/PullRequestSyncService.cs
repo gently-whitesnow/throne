@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Throne.Application.Git;
 using Throne.Application.Repositories;
 
 namespace Throne.Infrastructure.Git;
@@ -45,6 +46,11 @@ internal sealed partial class PullRequestSyncService(
     [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
         Message = "PullRequestSyncService auto-bind pass: bound={Bound}, skipped={Skipped}, failed={Failed}")]
     private static partial void LogAutoBind(ILogger logger, int bound, int skipped, int failed);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Warning,
+        Message = "PullRequestSyncService binding failure: binding={BindingId}, kind={Kind}, detail={Detail}")]
+    private static partial void LogBindingFailure(
+        ILogger logger, string bindingId, GitProviderErrorKind kind, string detail);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -92,6 +98,10 @@ internal sealed partial class PullRequestSyncService(
                 snapshot.Failed,
                 snapshot.MarkedBroken,
                 snapshot.LifecycleClosed);
+            foreach (var failure in report.Failures)
+            {
+                LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
+            }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {

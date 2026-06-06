@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Events;
@@ -323,8 +324,14 @@ public class RepositoryBindingServiceTests
             var persistence = new RepositoryBindingPersistence(
                 Bindings, StubRegistry(), unitOfWork, clock, Workspace, Remover);
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
-            var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), unitOfWork, clock);
-            var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, autoCloser, clock);
+            var autoCloser = new IntentMergeAutoCloser(
+                Bindings,
+                Substitute.For<ISystemIntentStatusWriter>(),
+                unitOfWork,
+                clock,
+                NullLogger<IntentMergeAutoCloser>.Instance);
+            var stateRefresher = new PullRequestStateRefresher(
+                Bindings, unitOfWork, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue);
         }

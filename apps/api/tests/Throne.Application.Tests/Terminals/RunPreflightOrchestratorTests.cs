@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Events;
@@ -217,8 +218,14 @@ public class RunPreflightOrchestratorTests
                 Bindings, Substitute.For<IRepositoryRegistry>(), uow, clockShared, workspace,
                 Substitute.For<IWorkspaceDirectoryRemover>());
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clockShared);
-            var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), uow, clockShared);
-            var stateRefresher = new PullRequestStateRefresher(Bindings, uow, autoCloser, clockShared);
+            var autoCloser = new IntentMergeAutoCloser(
+                Bindings,
+                Substitute.For<ISystemIntentStatusWriter>(),
+                uow,
+                clockShared,
+                NullLogger<IntentMergeAutoCloser>.Instance);
+            var stateRefresher = new PullRequestStateRefresher(
+                Bindings, uow, autoCloser, clockShared, NullLogger<PullRequestStateRefresher>.Instance);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             var cloneQueue = Substitute.For<IRepositoryCloneRequests>();
             var bindingService = new RepositoryBindingService(
