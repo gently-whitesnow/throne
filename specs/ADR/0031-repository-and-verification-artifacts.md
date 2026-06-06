@@ -59,6 +59,8 @@ One-shot результат проверки конкретного PR. Реал
 
 **Только UI, не в контекст агента и не в MCP.** Producer/ingestion **намеренно оставлен открытым** — состав источников (статические диаграммы без AI, AI-рекомендации ревью, прочая статика) ещё не определён. Фиксируем нейтральный durable write-path: внутренний порт `IPullRequestArtifactSink` за идемпотентным REST-ingest (`PUT …/repositories/{binding_id}/artifacts/{type}`, latest-wins). Любой будущий producer (агент, кладущий файл в `{workspace}/.throne/artifacts/` с последующим ingest; статический CLI, вызванный Throne; локальный скрипт) сходится на этом контракте. Конкретные производители — отдельным слайсом.
 
+> **Перспектива — `CommitArtifact` (не в этом ADR).** Та же one-shot форма обобщается на commit-scoped выход (якорь — `commit sha` вместо PR; например per-commit diff/анализ). Вводится отдельным слайсом, когда появится реальный потребитель; форму `PullRequestArtifact` (latest-per-key, open `type`, only-UI, нейтральный ingest) переиспользует, отдельной общей абстракции под это заранее не плодим.
+
 ### MCP-поверхность ([ADR-0030](0030-mcp-surface-policy-cli-first.md))
 
 Чистый итог — **сужение**, а не расширение:
