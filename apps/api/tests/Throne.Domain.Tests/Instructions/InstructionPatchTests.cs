@@ -13,7 +13,6 @@ public class InstructionPatchTests
         {
             return InstructionPatch.Create(
                 id: "p-1",
-                ownerUserId: "user-1",
                 targetKind: InstructionKindNames.Work,
                 patchText: "new instruction text",
                 evidenceCardIds: ["card-1", "card-2"],
@@ -22,7 +21,7 @@ public class InstructionPatchTests
                 now: Now);
         }
         return InstructionPatch.Restore(
-            identity: new InstructionPatchIdentity("p-1", "user-1", InstructionKindNames.Work, 5, Now),
+            identity: new InstructionPatchIdentity("p-1", InstructionKindNames.Work, 5, Now),
             state: new InstructionPatchState(
                 Status: status,
                 AppliedText: status == InstructionPatchStatusNames.Applied ? "new instruction text" : null,
@@ -43,7 +42,6 @@ public class InstructionPatchTests
         var patch = NewPatch();
 
         patch.State.Status.Should().Be(InstructionPatchStatusNames.Proposed);
-        patch.Identity.OwnerUserId.Should().Be("user-1");
         patch.Identity.TargetKind.Should().Be(InstructionKindNames.Work);
         patch.Identity.BaseInstructionVersion.Should().Be(5);
         patch.PatchText.Should().Be("new instruction text");
@@ -59,17 +57,17 @@ public class InstructionPatchTests
     public void Create_validates_inputs()
     {
         var act1 = () => InstructionPatch.Create(
-            "id", "user", "wat", "text", [], "r", 1, Now);
+            "id", "wat", "text", [], "r", 1, Now);
         act1.Should().Throw<ArgumentOutOfRangeException>();
 
         var act2 = () => InstructionPatch.Create(
-            "id", "user", InstructionKindNames.Work, "text", [], "r", -1, Now);
+            "id", InstructionKindNames.Work, "text", [], "r", -1, Now);
         act2.Should().Throw<ArgumentOutOfRangeException>();
 
         var manyIds = Enumerable.Range(0, InstructionPatch.MaxEvidenceCardIds + 1)
             .Select(i => $"id-{i}").ToArray();
         var act3 = () => InstructionPatch.Create(
-            "id", "user", InstructionKindNames.Work, "text", manyIds, "r", 1, Now);
+            "id", InstructionKindNames.Work, "text", manyIds, "r", 1, Now);
         act3.Should().Throw<ArgumentOutOfRangeException>();
     }
 

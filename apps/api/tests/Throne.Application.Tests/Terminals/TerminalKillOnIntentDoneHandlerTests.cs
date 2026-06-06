@@ -40,14 +40,14 @@ public class TerminalKillOnIntentDoneHandlerTests
         var fixture = new Fixture();
 
         await fixture.Handler.HandleAsync(
-            new IntentCreated(Intent.Restore(new IntentId(IntentIdValue), "user-1", "x", IntentStatusNames.Done, 1, [], Now, Now)),
+            new IntentCreated(Intent.Restore(new IntentId(IntentIdValue), "x", IntentStatusNames.Done, 1, [], Now, Now)),
             CancellationToken.None);
 
         await fixture.Tmux.DidNotReceive().KillSessionAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     private static IntentStatusChanged StatusEvent(string status) =>
-        new(Intent.Restore(new IntentId(IntentIdValue), "user-1", "x", status, 1, [], Now, Now));
+        new(Intent.Restore(new IntentId(IntentIdValue), "x", status, 1, [], Now, Now));
 
     private sealed class Fixture
     {

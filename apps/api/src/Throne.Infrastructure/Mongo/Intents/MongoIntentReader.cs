@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Infrastructure.Mongo.Documents;
@@ -8,8 +7,7 @@ namespace Throne.Infrastructure.Mongo.Intents;
 
 internal sealed class MongoIntentReader(
     IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser)
+    MongoSessionAccessor sessions)
 {
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
@@ -20,10 +18,10 @@ internal sealed class MongoIntentReader(
     public async Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct)
     {
         var session = sessions.Current;
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
+        var byId = IntentCollectionFilters.ById(id.Value);
         var document = session is null
-            ? await _intents.Find(byIdAndOwner).FirstOrDefaultAsync(ct)
-            : await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+            ? await _intents.Find(byId).FirstOrDefaultAsync(ct)
+            : await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
 
         return document is null ? null : IntentDocumentMapper.ToDomain(document);
     }
@@ -42,12 +40,9 @@ internal sealed class MongoIntentReader(
     public async Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct)
     {
         var session = sessions.Current;
-        var ownerFilter = IntentCollectionFilters.Owner(currentUser.UserId);
         var filter = statuses is { Count: > 0 }
-            ? Builders<IntentDocument>.Filter.And(
-                ownerFilter,
-                Builders<IntentDocument>.Filter.In(d => d.Status, statuses))
-            : ownerFilter;
+            ? Builders<IntentDocument>.Filter.In(d => d.Status, statuses)
+            : Builders<IntentDocument>.Filter.Empty;
         // Default sort = sort_key ASC: top of the list is the lexicographically smallest key.
         // Frontend renders this order directly so DnD reorders feed straight back through.
         var documents = session is null
@@ -72,7 +67,7 @@ internal sealed class MongoIntentReader(
 
         var session = sessions.Current;
         var fb = Builders<IntentDocument>.Filter;
-        var clauses = new List<FilterDefinition<IntentDocument>> { IntentCollectionFilters.Owner(currentUser.UserId) };
+        var clauses = new List<FilterDefinition<IntentDocument>>();
 
         if (spec.Statuses is { Count: > 0 })
         {
@@ -119,7 +114,7 @@ internal sealed class MongoIntentReader(
             clauses.Add(IntentListQueryBuilder.BuildCursorFilter(spec.Sort, spec.Cursor));
         }
 
-        var filter = fb.And(clauses);
+        var filter = clauses.Count == 0 ? fb.Empty : fb.And(clauses);
         var sort = IntentListQueryBuilder.BuildSort(spec.Sort);
 
         var find = session is null
@@ -147,27 +142,27 @@ internal sealed class MongoIntentReader(
         return new IntentListPage(items, next);
     }
 
-    // Distinct intent ids the owner has pinned into any context. Pins live in a
-    // separate collection (intent_pins) with no denormalised flag on the intent,
-    // so the "pinned" list filter resolves the (bounded) id set first.
+    // Distinct intent ids pinned into any context. Pins live in a separate
+    // collection (intent_pins) with no denormalised flag on the intent, so the
+    // "pinned" list filter resolves the (bounded) id set first.
     private async Task<IReadOnlyList<string>> ListPinnedIntentIdsAsync(
         IClientSessionHandle? session,
         CancellationToken ct)
     {
-        var ownerFilter = Builders<IntentPinDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
+        var all = Builders<IntentPinDocument>.Filter.Empty;
         var ids = session is null
-            ? await _pins.Distinct(d => d.IntentId, ownerFilter, cancellationToken: ct).ToListAsync(ct)
-            : await _pins.Distinct(session, d => d.IntentId, ownerFilter, cancellationToken: ct).ToListAsync(ct);
+            ? await _pins.Distinct(d => d.IntentId, all, cancellationToken: ct).ToListAsync(ct)
+            : await _pins.Distinct(session, d => d.IntentId, all, cancellationToken: ct).ToListAsync(ct);
         return ids;
     }
 
     public async Task<string?> GetMinSortKeyAsync(CancellationToken ct)
     {
         var session = sessions.Current;
-        var ownerFilter = IntentCollectionFilters.Owner(currentUser.UserId);
+        var all = Builders<IntentDocument>.Filter.Empty;
         var find = session is null
-            ? _intents.Find(ownerFilter)
-            : _intents.Find(session, ownerFilter);
+            ? _intents.Find(all)
+            : _intents.Find(session, all);
         var doc = await find
             .Sort(Builders<IntentDocument>.Sort.Ascending(d => d.SortKey))
             .Limit(1)

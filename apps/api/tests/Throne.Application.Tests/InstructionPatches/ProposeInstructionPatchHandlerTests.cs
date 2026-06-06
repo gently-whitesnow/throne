@@ -146,7 +146,6 @@ public class ProposeInstructionPatchHandlerTests
     private static InstructionPatch MakePatch(string id) =>
         InstructionPatch.Create(
             id: id,
-            ownerUserId: "user-1",
             targetKind: InstructionKindNames.Work,
             patchText: "new text",
             evidenceCardIds: [],
@@ -162,34 +161,31 @@ public class ProposeInstructionPatchHandlerTests
         var target = Instruction.Restore(
             InstructionId.New(),
             scope: InstructionScopeNames.User,
-            userId: "user-1",
             kind: InstructionKindNames.Work,
             text: "current text",
             currentVersion: currentVersion,
             createdAt: Now,
             updatedAt: Now);
-        instructions.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        instructions.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Instruction>>(new[] { target }));
 
         return new ProposeInstructionPatchHandler(
             patches,
             new UserInstructionLookup(instructions),
             new PassthroughUnitOfWork(),
-            new TestCurrentUserAccessor(),
             new FakeTimeProvider(Now));
     }
 
     private static ProposeInstructionPatchHandler NewHandlerWithoutInstruction(IInstructionPatchRepository patches)
     {
         var instructions = Substitute.For<IInstructionRepository>();
-        instructions.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        instructions.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Instruction>>([]));
 
         return new ProposeInstructionPatchHandler(
             patches,
             new UserInstructionLookup(instructions),
             new PassthroughUnitOfWork(),
-            new TestCurrentUserAccessor(),
             new FakeTimeProvider(Now));
     }
 

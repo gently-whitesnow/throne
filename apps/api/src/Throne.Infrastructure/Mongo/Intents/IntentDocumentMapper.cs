@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Tags;
@@ -12,7 +11,6 @@ internal static class IntentDocumentMapper
     public static IntentDocument ToDocument(Intent intent) => new()
     {
         Id = intent.Id.Value,
-        OwnerUserId = intent.OwnerUserId,
         Text = intent.State.Text,
         Status = intent.State.Status,
         CurrentVersion = intent.State.CurrentVersion,
@@ -37,14 +35,13 @@ internal static class IntentDocumentMapper
 
     public static Intent ToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
-        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,
         tagIds: doc.TagIds.Select(v => new TagId(v)).ToList(),
-        sortKey: doc.SortKey,
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
-        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
+        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc),
+        sortKey: doc.SortKey);
 
     public static TextVersionAuthor ToTextVersionAuthor(IntentTrainingAuthor author) => author switch
     {

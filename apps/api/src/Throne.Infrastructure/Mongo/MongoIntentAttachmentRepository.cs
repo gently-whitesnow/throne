@@ -1,7 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.GridFS;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
@@ -11,8 +10,7 @@ using Throne.Infrastructure.Mongo.Documents;
 namespace Throne.Infrastructure.Mongo;
 
 internal sealed class MongoIntentAttachmentRepository(
-    IMongoDatabase database,
-    ICurrentUserAccessor currentUser) : IIntentAttachmentRepository
+    IMongoDatabase database) : IIntentAttachmentRepository
 {
     private const string GridFsBucketName = "intent_attachment_fs";
     private const string CompressionStatePending = "pending";
@@ -23,21 +21,19 @@ internal sealed class MongoIntentAttachmentRepository(
 
     private GridFSBucket Bucket => new(database, new GridFSBucketOptions { BucketName = GridFsBucketName });
 
-    private FilterDefinition<IntentAttachmentDocument> ByIntentAndOwner(IntentId intentId) =>
-        Builders<IntentAttachmentDocument>.Filter.And(
-            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value),
-            Builders<IntentAttachmentDocument>.Filter.Eq(x => x.OwnerUserId, currentUser.UserId));
+    private static FilterDefinition<IntentAttachmentDocument> ByIntent(IntentId intentId) =>
+        Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value);
 
     public async Task<int> CountByIntentAsync(IntentId intentId, CancellationToken ct)
     {
-        var filter = ByIntentAndOwner(intentId);
+        var filter = ByIntent(intentId);
         var count = await _attachments.CountDocumentsAsync(filter, cancellationToken: ct);
         return count > int.MaxValue ? int.MaxValue : (int)count;
     }
 
     public async Task<IReadOnlyList<IntentAttachment>> ListByIntentAsync(IntentId intentId, CancellationToken ct)
     {
-        var filter = ByIntentAndOwner(intentId);
+        var filter = ByIntent(intentId);
         var docs = await _attachments
             .Find(filter)
             .SortByDescending(x => x.CreatedAt)
@@ -65,11 +61,9 @@ internal sealed class MongoIntentAttachmentRepository(
 
         var declaredType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();
 
-        var ownerUserId = currentUser.UserId;
         var metadata = new BsonDocument
         {
             { "intent_id", intentId.Value },
-            { "owner_user_id", ownerUserId },
             { "content_type", declaredType },
         };
 
@@ -87,7 +81,6 @@ internal sealed class MongoIntentAttachmentRepository(
         var doc = new IntentAttachmentDocument
         {
             Id = fileId.ToString(),
-            OwnerUserId = ownerUserId,
             IntentId = intentId.Value,
             GridFsId = fileId.ToString(),
             FileName = safeName,
@@ -144,7 +137,7 @@ internal sealed class MongoIntentAttachmentRepository(
         }
 
         var filter = Builders<IntentAttachmentDocument>.Filter.And(
-            ByIntentAndOwner(intentId),
+            ByIntent(intentId),
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
         var result = await _attachments.DeleteOneAsync(filter, ct);
         if (result.DeletedCount == 0)
@@ -157,7 +150,7 @@ internal sealed class MongoIntentAttachmentRepository(
 
     public async Task DeleteAllForIntentAsync(IntentId intentId, CancellationToken ct)
     {
-        var filter = ByIntentAndOwner(intentId);
+        var filter = ByIntent(intentId);
         var list = await _attachments.Find(filter).ToListAsync(ct);
         foreach (var doc in list)
         {
@@ -185,7 +178,7 @@ internal sealed class MongoIntentAttachmentRepository(
         CancellationToken ct)
     {
         var filter = Builders<IntentAttachmentDocument>.Filter.And(
-            ByIntentAndOwner(intentId),
+            ByIntent(intentId),
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
         return await _attachments.Find(filter).FirstOrDefaultAsync(ct);
     }
@@ -258,7 +251,6 @@ internal sealed class MongoIntentAttachmentRepository(
         var metadata = new BsonDocument
         {
             { "intent_id", existing.IntentId },
-            { "owner_user_id", existing.OwnerUserId },
             { "content_type", compressed.MimeType },
             { "kind", "compressed" },
         };
@@ -318,7 +310,6 @@ internal sealed class MongoIntentAttachmentRepository(
         var isReady = string.Equals(doc.CompressionState, CompressionStateReady, StringComparison.Ordinal);
         return new IntentAttachment(
             doc.Id,
-            string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
             doc.IntentId,
             doc.FileName,
             doc.ContentType,

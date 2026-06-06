@@ -11,7 +11,7 @@ public class IntentTests
     [Fact(DisplayName = "Create задаёт current_version = 1 и timestamps")]
     public void Create_starts_at_version_1()
     {
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = Intent.Create(IntentId.New(), "hello", tagIds: null, Now);
 
         intent.State.Status.Should().Be(IntentStatusNames.Draft);
         intent.State.CurrentVersion.Should().Be(1);
@@ -27,7 +27,6 @@ public class IntentTests
         var b = TagId.New();
         var intent = Intent.Create(
             IntentId.New(),
-            "user-1",
             "x",
             [a, b, a, new TagId("")],
             Now);
@@ -38,7 +37,7 @@ public class IntentTests
     [Fact(DisplayName = "Create отвергает пустой text")]
     public void Create_rejects_empty_text()
     {
-        var act = () => Intent.Create(IntentId.New(), "user-1", "", tagIds: null, Now);
+        var act = () => Intent.Create(IntentId.New(), "", tagIds: null, Now);
 
         act.Should().Throw<ArgumentException>().WithParameterName("text");
     }
@@ -48,7 +47,6 @@ public class IntentTests
     {
         var act = () => Intent.Restore(
             IntentId.New(),
-            "user-1",
             "x",
             IntentStatusNames.Draft,
             currentVersion: 0,
@@ -62,7 +60,7 @@ public class IntentTests
     [Fact(DisplayName = "SetStatus меняет статус и updated_at")]
     public void SetStatus_updates_status_and_timestamp()
     {
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = Intent.Create(IntentId.New(), "hello", tagIds: null, Now);
         var later = Now.AddMinutes(5);
 
         var changed = intent.SetStatus(IntentStatusNames.Work, later);
@@ -77,7 +75,7 @@ public class IntentTests
     {
         var a = TagId.New();
         var b = TagId.New();
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", [a], Now);
+        var intent = Intent.Create(IntentId.New(), "hello", [a], Now);
         var later = Now.AddMinutes(5);
 
         var unchanged = intent.SetTags([a], later);
@@ -90,25 +88,11 @@ public class IntentTests
         intent.State.UpdatedAt.Should().Be(later);
     }
 
-    [Fact(DisplayName = "Create без ownerUserId выбрасывает")]
-    public void Create_rejects_empty_owner_user_id()
-    {
-        var act = () => Intent.Create(IntentId.New(), "", "text", tagIds: null, Now);
-        act.Should().Throw<ArgumentException>().WithParameterName("ownerUserId");
-    }
-
-    [Fact(DisplayName = "OwnerUserId сохраняется")]
-    public void Create_stores_owner_user_id()
-    {
-        var intent = Intent.Create(IntentId.New(), "alice", "text", tagIds: null, Now);
-        intent.OwnerUserId.Should().Be("alice");
-    }
-
     [Fact(DisplayName = "SetTagIds дедуплицирует и не бампит current_version")]
     public void SetTagIds_dedups_and_keeps_text_version()
     {
         var a = TagId.New();
-        var intent = Intent.Create(IntentId.New(), "user-1", "hello", tagIds: null, Now);
+        var intent = Intent.Create(IntentId.New(), "hello", tagIds: null, Now);
         var versionBefore = intent.State.CurrentVersion;
 
         var changed = intent.SetTags([a, a], Now.AddSeconds(1));

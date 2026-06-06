@@ -21,7 +21,7 @@ public class IntentAttachmentToolsTests
         var intentId = IntentId.New();
         var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
         var att = new IntentAttachment(
-            "att-image", "user-1", intentId.Value, "shot.jpg", "image/jpeg", bytes.Length, Now,
+            "att-image", intentId.Value, "shot.jpg", "image/jpeg", bytes.Length, Now,
             IsCompressed: true, CompressedWidth: 1024, CompressedHeight: 768);
 
         var tools = NewTools(intentId, att, bytes);
@@ -41,7 +41,7 @@ public class IntentAttachmentToolsTests
     {
         var intentId = IntentId.New();
         var att = new IntentAttachment(
-            "att-log", "user-1", intentId.Value, "trace.log", "text/x-log", 4, Now);
+            "att-log", intentId.Value, "trace.log", "text/x-log", 4, Now);
         var tools = NewTools(intentId, att, [1, 2, 3, 4]);
 
         var act = () => tools.ReadIntentAttachmentImage(intentId.Value, "att-log", CancellationToken.None);
@@ -57,7 +57,7 @@ public class IntentAttachmentToolsTests
         var intentId = IntentId.New();
         var bytes = new byte[5 * 1024 * 1024 + 1];
         var att = new IntentAttachment(
-            "att-big", "user-1", intentId.Value, "big.jpg", "image/jpeg", bytes.Length, Now,
+            "att-big", intentId.Value, "big.jpg", "image/jpeg", bytes.Length, Now,
             IsCompressed: true);
         var tools = NewTools(intentId, att, bytes);
 
@@ -74,7 +74,7 @@ public class IntentAttachmentToolsTests
         var text = "abcdefghijklmnopqrstuvwxyz";
         var bytes = Encoding.UTF8.GetBytes(text);
         var att = new IntentAttachment(
-            "att-txt", "user-1", intentId.Value, "notes.txt", "text/plain", bytes.Length, Now);
+            "att-txt", intentId.Value, "notes.txt", "text/plain", bytes.Length, Now);
 
         var tools = NewTools(intentId, att, bytes);
 
@@ -96,7 +96,7 @@ public class IntentAttachmentToolsTests
         var intentId = IntentId.New();
         var bytes = Encoding.UTF8.GetBytes("HELLO_WORLD");
         var att = new IntentAttachment(
-            "att-txt", "user-1", intentId.Value, "f.txt", "text/plain", bytes.Length, Now);
+            "att-txt", intentId.Value, "f.txt", "text/plain", bytes.Length, Now);
         var tools = NewTools(intentId, att, bytes);
 
         var payload = await tools.ReadIntentAttachmentText(
@@ -115,7 +115,7 @@ public class IntentAttachmentToolsTests
         // "Привет" — каждая буква 2 байта в UTF-8.
         var bytes = Encoding.UTF8.GetBytes("Привет");
         var att = new IntentAttachment(
-            "att-ru", "user-1", intentId.Value, "ru.txt", "text/plain", bytes.Length, Now);
+            "att-ru", intentId.Value, "ru.txt", "text/plain", bytes.Length, Now);
         var tools = NewTools(intentId, att, bytes);
 
         // offset=1 — середина первого rune. Должно дропнуть continuation-байты и начать с "р".
@@ -144,7 +144,7 @@ public class IntentAttachmentToolsTests
     {
         var intentId = IntentId.New();
         var att = new IntentAttachment(
-            "att-image", "user-1", intentId.Value, "shot.png", "image/png", 4, Now);
+            "att-image", intentId.Value, "shot.png", "image/png", 4, Now);
         var tools = NewTools(intentId, att, [1, 2, 3, 4]);
 
         var act = () => tools.ReadIntentAttachmentText(
@@ -179,7 +179,7 @@ public class IntentAttachmentToolsTests
 
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(intentId, "user-1", "x", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(intentId, "x", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
         attachmentRepo.OpenContentAsync(Arg.Any<IntentId>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -197,7 +197,7 @@ public class IntentAttachmentToolsTests
     public async Task ReadText_rejects_too_large_max_chars()
     {
         var intentId = IntentId.New();
-        var att = new IntentAttachment("a", "u", intentId.Value, "f", "text/plain", 0, Now);
+        var att = new IntentAttachment("a", intentId.Value, "f", "text/plain", 0, Now);
         var tools = NewTools(intentId, att, []);
 
         var act = () => tools.ReadIntentAttachmentText(intentId.Value, "a", 0, 200_001, CancellationToken.None);
@@ -213,7 +213,7 @@ public class IntentAttachmentToolsTests
     {
         var intentRepo = Substitute.For<IIntentRepository>();
         intentRepo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-            .Returns(Intent.Restore(intentId, "user-1", "body", IntentStatusNames.Draft, 1, [], Now, Now));
+            .Returns(Intent.Restore(intentId, "body", IntentStatusNames.Draft, 1, [], Now, Now));
 
         var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
         attachmentRepo.OpenContentAsync(intentId, att.Id, Arg.Any<CancellationToken>())

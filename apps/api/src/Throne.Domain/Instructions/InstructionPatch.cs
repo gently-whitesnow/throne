@@ -66,7 +66,6 @@ public sealed class InstructionPatch
 
     public static InstructionPatch Create(
         string id,
-        string ownerUserId,
         string targetKind,
         string patchText,
         IReadOnlyList<string> evidenceCardIds,
@@ -74,13 +73,13 @@ public sealed class InstructionPatch
         int baseInstructionVersion,
         DateTimeOffset now)
     {
-        EnsureRequiredStringsForCreate(id, ownerUserId, targetKind, rationale);
+        EnsureRequiredStringsForCreate(id, targetKind, rationale);
         ArgumentNullException.ThrowIfNull(patchText);
         ArgumentNullException.ThrowIfNull(evidenceCardIds);
         EnsureKnownKind(targetKind);
         InstructionPatchBudgets.EnsureAll(patchText, evidenceCardIds, rationale, baseInstructionVersion);
 
-        var identity = new InstructionPatchIdentity(id, ownerUserId, targetKind, baseInstructionVersion, now);
+        var identity = new InstructionPatchIdentity(id, targetKind, baseInstructionVersion, now);
         return new InstructionPatch(
             identity,
             InstructionPatchState.Initial(now),
@@ -99,7 +98,6 @@ public sealed class InstructionPatch
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(identity.Id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(identity.OwnerUserId);
         EnsureKnownKind(identity.TargetKind);
         EnsureKnownStatus(state.Status);
         return new InstructionPatch(identity, state, patchText, [.. evidenceCardIds], rationale);
@@ -171,12 +169,10 @@ public sealed class InstructionPatch
 
     private static void EnsureRequiredStringsForCreate(
         string id,
-        string ownerUserId,
         string targetKind,
         string rationale)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetKind);
         ArgumentException.ThrowIfNullOrWhiteSpace(rationale);
     }

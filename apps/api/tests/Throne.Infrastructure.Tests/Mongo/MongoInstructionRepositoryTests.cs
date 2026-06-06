@@ -13,14 +13,13 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "CreateAsync пишет user-Instruction в instructions со scope/user_id и v1 snapshot")]
+    [Fact(DisplayName = "CreateAsync пишет user-Instruction в instructions со scope и v1 snapshot")]
     public async Task Create_persists_canonical_and_v1_snapshot()
     {
         var (db, repo, uow) = await NewScopeAsync();
         var instruction = Instruction.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
-            "local-dev",
             InstructionKindNames.Work,
             "work text",
             Now);
@@ -39,7 +38,6 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         stored.Should().NotBeNull();
         stored!.Kind.Should().Be(InstructionKindNames.Work);
         stored.Scope.Should().Be(InstructionScopeNames.User);
-        stored.UserId.Should().Be("local-dev");
         stored.Text.Should().Be("work text");
         stored.CurrentVersion.Should().Be(1);
 
@@ -51,33 +49,31 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
         versions[0].Snapshot.Should().Be("work text");
     }
 
-    [Fact(DisplayName = "GetUserInstructionsByKindsAsync фильтрует по user_id, scope и kind set")]
-    public async Task User_instructions_filtered_by_user_scope_and_kinds()
+    [Fact(DisplayName = "GetUserInstructionsByKindsAsync фильтрует по scope и kind set")]
+    public async Task User_instructions_filtered_by_scope_and_kinds()
     {
         var (_, repo, uow) = await NewScopeAsync();
 
-        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Common, "common text");
-        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Work, "work text");
-        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Interview, "interview text");
-        await SeedUserInstructionAsync(repo, uow, "other-user", InstructionKindNames.Work, "other work");
+        await SeedUserInstructionAsync(repo, uow, InstructionKindNames.Common, "common text");
+        await SeedUserInstructionAsync(repo, uow, InstructionKindNames.Work, "work text");
+        await SeedUserInstructionAsync(repo, uow, InstructionKindNames.Interview, "interview text");
 
         var got = await repo.GetUserInstructionsByKindsAsync(
-            "local-dev",
             [InstructionKindNames.Common, InstructionKindNames.Work],
             CancellationToken.None);
 
         got.Select(i => i.Descriptor.Kind).Should().BeEquivalentTo(
             new[] { InstructionKindNames.Common, InstructionKindNames.Work });
-        got.Should().OnlyContain(i => i.Descriptor.UserId == "local-dev" && i.Descriptor.Scope == InstructionScopeNames.User);
+        got.Should().OnlyContain(i => i.Descriptor.Scope == InstructionScopeNames.User);
     }
 
     [Fact(DisplayName = "GetUserInstructionsByKindsAsync на пустой список kinds возвращает пусто")]
     public async Task User_instructions_empty_kinds_returns_empty()
     {
         var (_, repo, uow) = await NewScopeAsync();
-        await SeedUserInstructionAsync(repo, uow, "local-dev", InstructionKindNames.Work, "x");
+        await SeedUserInstructionAsync(repo, uow, InstructionKindNames.Work, "x");
 
-        var got = await repo.GetUserInstructionsByKindsAsync("local-dev", [], CancellationToken.None);
+        var got = await repo.GetUserInstructionsByKindsAsync([], CancellationToken.None);
 
         got.Should().BeEmpty();
     }
@@ -85,11 +81,10 @@ public class MongoInstructionRepositoryTests(MongoFixture fixture)
     private static async Task SeedUserInstructionAsync(
         MongoInstructionRepository repo,
         MongoUnitOfWork uow,
-        string userId,
         string kind,
         string text)
     {
-        var instruction = Instruction.Create(InstructionId.New(), InstructionScopeNames.User, userId, kind, text, Now);
+        var instruction = Instruction.Create(InstructionId.New(), InstructionScopeNames.User, kind, text, Now);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"),
             TextVersionOwnerKind.Instruction,

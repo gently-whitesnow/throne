@@ -1,18 +1,16 @@
-import { FolderCog, GitBranch, KeyRound, ToggleRight } from "lucide-react";
+import { FolderCog, GitBranch, ToggleRight } from "lucide-react";
 
 import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
-import { McpTokenCard } from "@/widgets/mcp-token-card";
 import { WorkspaceCard } from "@/widgets/workspace-card";
 
 /**
  * `/settings` — единая страница настроек профиля.
  *
- * Четыре секции:
+ * Три секции:
  *   * «Возможности» — capability-gating (Slice 2): repositories, terminal, vscode.
  *   * «Провайдеры Git» — статус `gh auth status`.
  *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
- *   * «MCP-токен» — Personal Access Token для MCP-клиентов (нужен только при production-развёртывании на сервере).
  */
 export function SettingsPage() {
   return (
@@ -23,8 +21,7 @@ export function SettingsPage() {
         </p>
         <h1 className="m-0 text-2xl font-bold leading-tight">Настройки</h1>
         <p className="m-0 max-w-[64ch] text-sm leading-relaxed text-base-content/70">
-          Возможности, провайдеры Git, параметры workspace и MCP-токен в одном
-          месте.
+          Возможности, провайдеры Git и параметры workspace в одном месте.
         </p>
       </header>
 
@@ -54,20 +51,11 @@ export function SettingsPage() {
       >
         <WorkspaceCard />
       </SettingsSection>
-
-      <SettingsSection
-        id="mcp-token"
-        title="MCP-токен"
-        icon={KeyRound}
-        description="Нужен только при production-развёртывании Throne на сервере: MCP-клиенты подключаются по Bearer-токену. Локально выпускать токен смысла нет — MCP ходит в локальный процесс без авторизации."
-      >
-        <McpTokenCard />
-      </SettingsSection>
     </div>
   );
 }
 
-type LucideIcon = typeof KeyRound;
+type LucideIcon = typeof ToggleRight;
 
 interface SettingsSectionProps {
   id: string;

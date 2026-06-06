@@ -7,9 +7,6 @@ internal sealed class IntentAttachmentDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
-    [BsonElement("owner_user_id")]
-    public string OwnerUserId { get; set; } = string.Empty;
-
     [BsonElement("intent_id")]
     public string IntentId { get; set; } = string.Empty;
 

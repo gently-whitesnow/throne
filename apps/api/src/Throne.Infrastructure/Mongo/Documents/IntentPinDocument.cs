@@ -14,9 +14,6 @@ internal sealed class IntentPinDocument
     [BsonElement("context_tag_id")]
     public string ContextTagId { get; set; } = string.Empty;
 
-    [BsonElement("owner_user_id")]
-    public string OwnerUserId { get; set; } = string.Empty;
-
     [BsonElement("pin_sort_key")]
     public string PinSortKey { get; set; } = string.Empty;
 

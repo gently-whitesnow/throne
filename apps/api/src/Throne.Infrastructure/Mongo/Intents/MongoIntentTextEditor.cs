@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -12,7 +11,6 @@ namespace Throne.Infrastructure.Mongo.Intents;
 internal sealed class MongoIntentTextEditor(
     IMongoDatabase database,
     MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser,
     IIntentEventRepository intentEvents)
 {
     private readonly IMongoCollection<IntentDocument> _intents =
@@ -34,8 +32,8 @@ internal sealed class MongoIntentTextEditor(
             ?? throw new InvalidOperationException(
                 "MongoIntentTextEditor.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
-        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+        var byId = IntentCollectionFilters.ById(id.Value);
+        var document = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new ReplaceIntentTextOutcome.NotFound();
@@ -53,13 +51,13 @@ internal sealed class MongoIntentTextEditor(
         {
             ReplaceTextResult.MatchNotFound m => new ReplaceIntentTextOutcome.MatchNotFound(m.QueryPreview),
             ReplaceTextResult.MatchAmbiguous a => new ReplaceIntentTextOutcome.MatchAmbiguous(a.MatchesCount, a.MatchLines),
-            ReplaceTextResult.Replaced replaced => await PersistReplaceAsync(byIdAndOwner, intent, expectedVersion, replaced, session, ct),
+            ReplaceTextResult.Replaced replaced => await PersistReplaceAsync(byId, intent, expectedVersion, replaced, session, ct),
             _ => throw new InvalidOperationException($"Unhandled domain result: {domainResult.GetType().Name}"),
         };
     }
 
     private async Task<ReplaceIntentTextOutcome> PersistReplaceAsync(
-        FilterDefinition<IntentDocument> byIdAndOwner,
+        FilterDefinition<IntentDocument> byId,
         Intent intent,
         int expectedVersion,
         ReplaceTextResult.Replaced replaced,
@@ -72,13 +70,13 @@ internal sealed class MongoIntentTextEditor(
             .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
         var updateFilter = Builders<IntentDocument>.Filter.And(
-            byIdAndOwner,
+            byId,
             Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
         var updateResult = await _intents.UpdateOneAsync(session, updateFilter, update, options: null, ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
             return new ReplaceIntentTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
         }
 
@@ -106,8 +104,8 @@ internal sealed class MongoIntentTextEditor(
             ?? throw new InvalidOperationException(
                 "MongoIntentTextEditor.InsertTextAfterLineAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
-        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+        var byId = IntentCollectionFilters.ById(id.Value);
+        var document = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new InsertIntentTextAfterLineOutcome.NotFound();
@@ -124,13 +122,13 @@ internal sealed class MongoIntentTextEditor(
         return domainResult switch
         {
             InsertTextResult.LineOutOfRange r => new InsertIntentTextAfterLineOutcome.LineOutOfRange(r.TotalLines, r.RequestedAfterLine),
-            InsertTextResult.Inserted inserted => await PersistInsertAsync(byIdAndOwner, intent, expectedVersion, inserted, session, ct),
+            InsertTextResult.Inserted inserted => await PersistInsertAsync(byId, intent, expectedVersion, inserted, session, ct),
             _ => throw new InvalidOperationException($"Unhandled domain result: {domainResult.GetType().Name}"),
         };
     }
 
     private async Task<InsertIntentTextAfterLineOutcome> PersistInsertAsync(
-        FilterDefinition<IntentDocument> byIdAndOwner,
+        FilterDefinition<IntentDocument> byId,
         Intent intent,
         int expectedVersion,
         InsertTextResult.Inserted inserted,
@@ -143,13 +141,13 @@ internal sealed class MongoIntentTextEditor(
             .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
         var updateFilter = Builders<IntentDocument>.Filter.And(
-            byIdAndOwner,
+            byId,
             Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
         var updateResult = await _intents.UpdateOneAsync(session, updateFilter, update, options: null, ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
             return new InsertIntentTextAfterLineOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
         }
 

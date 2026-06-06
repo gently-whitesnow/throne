@@ -78,3 +78,17 @@ task-memory): `owner_user_id` становится первичной проду
 - Удаление `owner_user_id` из persistence одним проходом.
 - Построение командных воркспейсов.
 - Реализация внешней авторизации.
+
+## Update (2026-06-06)
+
+Легаси multi-user слой **физически демонтирован** отдельным проходом: из кода и
+persistence удалены `owner_user_id` / `OwnerUserId`, вся внутренняя авторизация
+(PAT, JWT/OAuth, `ICurrentUserAccessor`), per-user дискриминатор инструкций
+(`user_id`) и модуль `me`/PAT. Ядро — single-operator local-first host-процесс на
+localhost без сетевого auth-гейта; owner-оси больше нет.
+
+Этим закрыт пункт «Out of scope» данного ADR: удаление `owner_user_id` и удаление
+внутренней авторизации **выполнено**. Соответственно отпали и связанные легаси-формы:
+гард `OwnerUserIdRulesTests` и owner-scoped инфраструктура удалены, а не сохраняются
+как форма-гард (см. п. 4 Decision — он относился к состоянию до демонтажа).
+[ADR-0016](0016-mcp-oauth-authorization.md) переведён в **Rejected**.

@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -27,7 +26,6 @@ public sealed class ApplyInstructionPatchHandler(
     IInstructionPatchRepository patches,
     UserInstructionLookup userInstructions,
     ApplyInstructionPatchWorkflow workflow,
-    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<InstructionPatch> HandleAsync(ApplyInstructionPatchCommand command, CancellationToken ct)
@@ -36,14 +34,13 @@ public sealed class ApplyInstructionPatchHandler(
 
         var patch = await patches.GetAsync(command.PatchId, ct)
             ?? throw InstructionPatchExceptions.NotFound(command.PatchId);
-        InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
         if (patch.State.Status != InstructionPatchStatusNames.Proposed)
         {
             throw InstructionPatchExceptions.AlreadyDecided(patch);
         }
 
         var instruction = await userInstructions.FindAsync(
-            patch.Identity.OwnerUserId, patch.Identity.TargetKind, ct);
+            patch.Identity.TargetKind, ct);
         ApplyInstructionPatchValidation.EnsureBaseVersionMatches(patch, instruction);
 
         var newText = command.FinalText ?? patch.PatchText;

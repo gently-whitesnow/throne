@@ -8,7 +8,6 @@ using ModelContextProtocol.Server;
 using NSubstitute;
 using Throne.Api.Mcp;
 using Throne.Api.Mcp.Tools;
-using Throne.Application.Auth;
 using Throne.Application.InstructionPatches;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
@@ -189,7 +188,6 @@ public class McpAuditPayloadWireTests
             new StubTool(toolName),
             new StubAIFunction(toolName, handler),
             sink,
-            new StubCurrentUser(CurrentUserIds.LocalDev),
             new FakeTimeProvider(Now),
             NullLogger<AuditingMcpServerTool>.Instance,
             new ServerVersion("test"));
@@ -205,10 +203,6 @@ public class McpAuditPayloadWireTests
             server, jsonRpc, new CallToolRequestParams { Name = toolName, Arguments = arguments });
     }
 
-    private sealed class StubCurrentUser(string userId) : ICurrentUserAccessor
-    {
-        public string UserId { get; } = userId;
-    }
 
     private sealed class StubTool(string name) : McpServerTool
     {

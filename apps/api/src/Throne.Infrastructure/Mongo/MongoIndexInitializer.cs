@@ -35,16 +35,11 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
             cancellationToken: cancellationToken);
 
         var intentAttachments = database.GetCollection<IntentAttachmentDocument>(MongoCollectionNames.IntentAttachments);
-        await intentAttachments.Indexes.CreateManyAsync(
-            [
-                new CreateIndexModel<IntentAttachmentDocument>(
-                    Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.IntentId),
-                    new CreateIndexOptions { Name = "intent_id" }),
-                new CreateIndexModel<IntentAttachmentDocument>(
-                    Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
-                    new CreateIndexOptions { Name = "owner_user_id" }),
-            ],
-            cancellationToken);
+        await intentAttachments.Indexes.CreateOneAsync(
+            new CreateIndexModel<IntentAttachmentDocument>(
+                Builders<IntentAttachmentDocument>.IndexKeys.Ascending(x => x.IntentId),
+                new CreateIndexOptions { Name = "intent_id" }),
+            cancellationToken: cancellationToken);
 
         var tags = database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
         await tags.Indexes.CreateOneAsync(
@@ -60,40 +55,21 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
                     Builders<IntentDocument>.IndexKeys.Ascending(x => x.TagIds),
                     new CreateIndexOptions { Name = "tag_ids" }),
                 new CreateIndexModel<IntentDocument>(
-                    Builders<IntentDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
-                    new CreateIndexOptions { Name = "owner_user_id" }),
-                new CreateIndexModel<IntentDocument>(
-                    Builders<IntentDocument>.IndexKeys
-                        .Ascending(x => x.OwnerUserId)
-                        .Ascending(x => x.SortKey),
-                    new CreateIndexOptions { Name = "owner_sort_key" }),
+                    Builders<IntentDocument>.IndexKeys.Ascending(x => x.SortKey),
+                    new CreateIndexOptions { Name = "sort_key" }),
                 // Powers sort=updated_desc with `(updated_at desc, id asc)` keyset
-                // pagination (intent 99a2e347 — list-page performance at 100k scale).
+                // pagination (list-page performance at 100k scale).
                 new CreateIndexModel<IntentDocument>(
                     Builders<IntentDocument>.IndexKeys
-                        .Ascending(x => x.OwnerUserId)
                         .Descending(x => x.UpdatedAt)
                         .Ascending(x => x.Id),
-                    new CreateIndexOptions { Name = "owner_updated_at_id" }),
+                    new CreateIndexOptions { Name = "updated_at_id" }),
                 // Powers sort=created_desc / created_asc.
                 new CreateIndexModel<IntentDocument>(
                     Builders<IntentDocument>.IndexKeys
-                        .Ascending(x => x.OwnerUserId)
                         .Ascending(x => x.CreatedAt)
                         .Ascending(x => x.Id),
-                    new CreateIndexOptions { Name = "owner_created_at_id" }),
-            ],
-            cancellationToken);
-
-        var pat = database.GetCollection<PersonalAccessTokenDocument>(MongoCollectionNames.PersonalAccessTokens);
-        await pat.Indexes.CreateManyAsync(
-            [
-                new CreateIndexModel<PersonalAccessTokenDocument>(
-                    Builders<PersonalAccessTokenDocument>.IndexKeys.Ascending(x => x.HashSha256),
-                    new CreateIndexOptions { Unique = true, Name = "hash_sha256_unique" }),
-                new CreateIndexModel<PersonalAccessTokenDocument>(
-                    Builders<PersonalAccessTokenDocument>.IndexKeys.Ascending(x => x.OwnerUserId),
-                    new CreateIndexOptions { Unique = true, Name = "owner_user_id_unique" }),
+                    new CreateIndexOptions { Name = "created_at_id" }),
             ],
             cancellationToken);
 
@@ -171,27 +147,24 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
         var pins = database.GetCollection<IntentPinDocument>(MongoCollectionNames.IntentPins);
         await pins.Indexes.CreateManyAsync(
             [
-                // One pin per (owner, intent, context). Race-protects the upsert path: even
+                // One pin per (intent, context). Race-protects the upsert path: even
                 // if two PinAsync calls land at the same time, only one document survives.
                 new CreateIndexModel<IntentPinDocument>(
                     Builders<IntentPinDocument>.IndexKeys
-                        .Ascending(x => x.OwnerUserId)
                         .Ascending(x => x.IntentId)
                         .Ascending(x => x.ContextTagId),
-                    new CreateIndexOptions { Unique = true, Name = "owner_intent_context_unique" }),
+                    new CreateIndexOptions { Unique = true, Name = "intent_context_unique" }),
                 // Drives the per-context ordered listing (sidebar Pinned section).
                 new CreateIndexModel<IntentPinDocument>(
                     Builders<IntentPinDocument>.IndexKeys
-                        .Ascending(x => x.OwnerUserId)
                         .Ascending(x => x.ContextTagId)
                         .Ascending(x => x.PinSortKey),
-                    new CreateIndexOptions { Name = "owner_context_sort_key" }),
+                    new CreateIndexOptions { Name = "context_sort_key" }),
                 // Batch lookup of pinned_in for the list DTOs.
                 new CreateIndexModel<IntentPinDocument>(
                     Builders<IntentPinDocument>.IndexKeys
-                        .Ascending(x => x.OwnerUserId)
                         .Ascending(x => x.IntentId),
-                    new CreateIndexOptions { Name = "owner_intent" }),
+                    new CreateIndexOptions { Name = "intent" }),
             ],
             cancellationToken);
     }

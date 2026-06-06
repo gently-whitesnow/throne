@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Dreams;
 using Throne.Application.Ports;
 using Throne.Domain.Dreams;
@@ -10,14 +9,12 @@ using Throne.Infrastructure.Mongo.Documents;
 namespace Throne.Infrastructure.Mongo;
 
 /// <summary>
-/// Mongo persistence for <see cref="DreamSession"/>. Owner filter is applied
-/// on every read; <c>MongoOwnerUserIdIsolationTests</c> guards the invariant.
-/// Sessions are append-only — no update / delete methods.
+/// Mongo persistence for <see cref="DreamSession"/>. Sessions are append-only —
+/// no update / delete methods.
 /// </summary>
 internal sealed class MongoDreamSessionRepository(
     IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser) : IDreamSessionRepository
+    MongoSessionAccessor sessions) : IDreamSessionRepository
 {
     private readonly IMongoCollection<DreamSessionDocument> _collection =
         database.GetCollection<DreamSessionDocument>(MongoCollectionNames.DreamSessions);
@@ -34,9 +31,7 @@ internal sealed class MongoDreamSessionRepository(
     public async Task<DreamSession?> GetAsync(string id, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        var filter = Builders<DreamSessionDocument>.Filter.And(
-            Builders<DreamSessionDocument>.Filter.Eq(x => x.Id, id),
-            Builders<DreamSessionDocument>.Filter.Eq(x => x.OwnerUserId, currentUser.UserId));
+        var filter = Builders<DreamSessionDocument>.Filter.Eq(x => x.Id, id);
         var dbSession = sessions.Current;
         var doc = dbSession is null
             ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
@@ -56,10 +51,7 @@ internal sealed class MongoDreamSessionRepository(
             limit = 1;
         }
 
-        var clauses = new List<FilterDefinition<DreamSessionDocument>>
-        {
-            Builders<DreamSessionDocument>.Filter.Eq(x => x.OwnerUserId, currentUser.UserId),
-        };
+        var clauses = new List<FilterDefinition<DreamSessionDocument>>();
         if (!string.IsNullOrWhiteSpace(filter.Vendor))
         {
             clauses.Add(Builders<DreamSessionDocument>.Filter.Eq(x => x.Vendor, filter.Vendor));
@@ -77,8 +69,11 @@ internal sealed class MongoDreamSessionRepository(
                     Builders<DreamSessionDocument>.Filter.Lt(x => x.Id, decoded.Id))));
         }
 
+        var combined = clauses.Count == 0
+            ? Builders<DreamSessionDocument>.Filter.Empty
+            : Builders<DreamSessionDocument>.Filter.And(clauses);
         var docs = await _collection
-            .Find(Builders<DreamSessionDocument>.Filter.And(clauses))
+            .Find(combined)
             .Sort(Builders<DreamSessionDocument>.Sort
                 .Descending(x => x.CreatedAt)
                 .Descending(x => x.Id))
@@ -114,7 +109,6 @@ internal static class DreamSessionMongoMapper
     public static DreamSessionDocument ToDocument(DreamSession session) => new()
     {
         Id = session.Id,
-        OwnerUserId = session.OwnerUserId,
         CreatedAt = session.Identity.CreatedAt.UtcDateTime,
         Vendor = session.Payload.Vendor,
         Host = session.Payload.Host,
@@ -128,7 +122,6 @@ internal static class DreamSessionMongoMapper
 
     public static DreamSession ToDomain(DreamSessionDocument doc) => DreamSession.Restore(
         id: doc.Id,
-        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         createdAt: ToUtcOffset(doc.CreatedAt),
         vendor: doc.Vendor,
         host: doc.Host,

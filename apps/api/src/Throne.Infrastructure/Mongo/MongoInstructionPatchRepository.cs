@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.InstructionPatches;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -10,14 +9,11 @@ using Throne.Infrastructure.Mongo.Documents;
 namespace Throne.Infrastructure.Mongo;
 
 /// <summary>
-/// Mongo persistence for <see cref="InstructionPatch"/>. Owner filter is
-/// applied on every read and on every state-changing update — the unit-tests
-/// in <c>MongoOwnerUserIdIsolationTests</c> assert it.
+/// Mongo persistence for <see cref="InstructionPatch"/>.
 /// </summary>
 internal sealed class MongoInstructionPatchRepository(
     IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser) : IInstructionPatchRepository
+    MongoSessionAccessor sessions) : IInstructionPatchRepository
 {
     private readonly IMongoCollection<InstructionPatchDocument> _collection =
         database.GetCollection<InstructionPatchDocument>(MongoCollectionNames.InstructionPatches);
@@ -67,9 +63,7 @@ internal sealed class MongoInstructionPatchRepository(
         bool useSession,
         CancellationToken ct)
     {
-        var filter = Builders<InstructionPatchDocument>.Filter.And(
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, currentUser.UserId),
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.IdempotencyKey, idempotencyKey));
+        var filter = Builders<InstructionPatchDocument>.Filter.Eq(x => x.IdempotencyKey, idempotencyKey);
         var session = useSession ? sessions.Current : null;
         var doc = session is null
             ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
@@ -80,9 +74,7 @@ internal sealed class MongoInstructionPatchRepository(
     public async Task<InstructionPatch?> GetAsync(string id, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        var filter = Builders<InstructionPatchDocument>.Filter.And(
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, id),
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, currentUser.UserId));
+        var filter = Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, id);
         var session = sessions.Current;
         var doc = session is null
             ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
@@ -102,10 +94,7 @@ internal sealed class MongoInstructionPatchRepository(
             limit = 1;
         }
 
-        var clauses = new List<FilterDefinition<InstructionPatchDocument>>
-        {
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, currentUser.UserId),
-        };
+        var clauses = new List<FilterDefinition<InstructionPatchDocument>>();
         if (!string.IsNullOrWhiteSpace(filter.Status))
         {
             clauses.Add(Builders<InstructionPatchDocument>.Filter.Eq(x => x.Status, filter.Status));
@@ -123,8 +112,11 @@ internal sealed class MongoInstructionPatchRepository(
                     Builders<InstructionPatchDocument>.Filter.Lt(x => x.Id, decoded.Id))));
         }
 
+        var combined = clauses.Count == 0
+            ? Builders<InstructionPatchDocument>.Filter.Empty
+            : Builders<InstructionPatchDocument>.Filter.And(clauses);
         var docs = await _collection
-            .Find(Builders<InstructionPatchDocument>.Filter.And(clauses))
+            .Find(combined)
             .Sort(Builders<InstructionPatchDocument>.Sort
                 .Descending(x => x.CreatedAt)
                 .Descending(x => x.Id))
@@ -152,7 +144,6 @@ internal sealed class MongoInstructionPatchRepository(
 
         var filter = Builders<InstructionPatchDocument>.Filter.And(
             Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId),
             Builders<InstructionPatchDocument>.Filter.Eq(x => x.Status, InstructionPatchStatusNames.Proposed));
 
         var update = Builders<InstructionPatchDocument>.Update
@@ -166,9 +157,7 @@ internal sealed class MongoInstructionPatchRepository(
         if (result.ModifiedCount == 0)
         {
             var fresh = await _collection.Find(session,
-                Builders<InstructionPatchDocument>.Filter.And(
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId)))
+                Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id))
                 .FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new ApplyInstructionPatchPersistenceOutcome.NotFound()
@@ -187,7 +176,6 @@ internal sealed class MongoInstructionPatchRepository(
 
         var filter = Builders<InstructionPatchDocument>.Filter.And(
             Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
-            Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId),
             Builders<InstructionPatchDocument>.Filter.Eq(x => x.Status, InstructionPatchStatusNames.Proposed));
 
         var update = Builders<InstructionPatchDocument>.Update
@@ -200,9 +188,7 @@ internal sealed class MongoInstructionPatchRepository(
         if (result.ModifiedCount == 0)
         {
             var fresh = await _collection.Find(session,
-                Builders<InstructionPatchDocument>.Filter.And(
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
-                    Builders<InstructionPatchDocument>.Filter.Eq(x => x.OwnerUserId, patch.Identity.OwnerUserId)))
+                Builders<InstructionPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id))
                 .FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new RejectInstructionPatchPersistenceOutcome.NotFound()
@@ -220,7 +206,6 @@ internal sealed class MongoInstructionPatchRepository(
     private static InstructionPatchDocument ToDocument(InstructionPatch patch) => new()
     {
         Id = patch.Identity.Id,
-        OwnerUserId = patch.Identity.OwnerUserId,
         TargetKind = patch.Identity.TargetKind,
         Status = patch.State.Status,
         PatchText = patch.PatchText,
@@ -238,7 +223,6 @@ internal sealed class MongoInstructionPatchRepository(
     private static InstructionPatch ToDomain(InstructionPatchDocument doc) => InstructionPatch.Restore(
         identity: new InstructionPatchIdentity(
             Id: doc.Id,
-            OwnerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
             TargetKind: doc.TargetKind,
             BaseInstructionVersion: doc.BaseInstructionVersion,
             CreatedAt: ToUtcOffset(doc.CreatedAt)),

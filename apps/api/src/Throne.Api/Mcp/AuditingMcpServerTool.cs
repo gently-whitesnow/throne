@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Throne.Api.Mcp.Tools;
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 
@@ -14,7 +13,6 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
 {
     private readonly AIFunction _aiFunction;
     private readonly McpAuditLogger _audit;
-    private readonly ICurrentUserAccessor _currentUser;
     private readonly TimeProvider _clock;
     private readonly ILogger<AuditingMcpServerTool> _logger;
 
@@ -22,7 +20,6 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
         McpServerTool inner,
         AIFunction aiFunction,
         IMcpCallLogSink callLogSink,
-        ICurrentUserAccessor currentUser,
         TimeProvider clock,
         ILogger<AuditingMcpServerTool> logger,
         ServerVersion serverVersion)
@@ -30,7 +27,6 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
     {
         _aiFunction = aiFunction;
         _audit = new McpAuditLogger(callLogSink, logger, serverVersion);
-        _currentUser = currentUser;
         _clock = clock;
         _logger = logger;
     }
@@ -91,7 +87,6 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
             McpCallArgumentSnapshot.ExtractIntentId(request.Params?.Arguments),
             McpCallArgumentSnapshot.ExtractModeHint(toolName, request.Params?.Arguments),
             request.Server.SessionId,
-            _currentUser.UserId,
             _clock.GetUtcNow());
     }
 
@@ -106,5 +101,4 @@ internal sealed record McpCallFields(
     string? IntentId,
     string? ModeHint,
     string? SessionId,
-    string? UserId,
     DateTimeOffset StartedAt);

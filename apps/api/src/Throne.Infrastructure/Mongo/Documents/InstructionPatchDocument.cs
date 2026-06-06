@@ -7,9 +7,6 @@ internal sealed class InstructionPatchDocument
     [BsonId]
     public string Id { get; set; } = string.Empty;
 
-    [BsonElement("owner_user_id")]
-    public string OwnerUserId { get; set; } = string.Empty;
-
     [BsonElement("target_kind")]
     public string TargetKind { get; set; } = string.Empty;
 
@@ -51,9 +48,9 @@ internal sealed class InstructionPatchDocument
     public DateTime? DecidedAt { get; set; }
 
     /// <summary>
-    /// Optional caller-supplied retry-dedup key (≤64 chars). When set, a
-    /// (owner_user_id, idempotency_key) sparse unique index makes second-write
-    /// races fail loudly so the repository can resolve the original row.
+    /// Optional caller-supplied retry-dedup key (≤64 chars). When set, a unique
+    /// index on idempotency_key makes second-write races fail loudly so the
+    /// repository can resolve the original row.
     /// </summary>
     [BsonElement("idempotency_key")]
     [BsonIgnoreIfNull]

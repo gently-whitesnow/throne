@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
 using Throne.Domain.TextVersions;
@@ -8,8 +7,7 @@ namespace Throne.Application.InstructionPatches;
 public sealed class GetInstructionPatchHandler(
     IInstructionPatchRepository patches,
     UserInstructionLookup userInstructions,
-    ITextVersionRepository textVersions,
-    ICurrentUserAccessor currentUser)
+    ITextVersionRepository textVersions)
 {
     public async Task<InstructionPatchView> HandleAsync(string patchId, CancellationToken ct)
     {
@@ -17,10 +15,8 @@ public sealed class GetInstructionPatchHandler(
 
         var patch = await patches.GetAsync(patchId, ct)
             ?? throw InstructionPatchExceptions.NotFound(patchId);
-        InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
 
         var instruction = await userInstructions.FindAsync(
-            patch.Identity.OwnerUserId,
             patch.Identity.TargetKind,
             ct);
 
