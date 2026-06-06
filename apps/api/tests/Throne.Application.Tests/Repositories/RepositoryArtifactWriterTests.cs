@@ -48,6 +48,8 @@ public class RepositoryArtifactWriterTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.RepositoryArtifactVersionConflict);
         ex.Which.Extensions["current_version"].Should().Be(3);
+        await fixture.Registry.DidNotReceive()
+            .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
     private sealed class Fixture

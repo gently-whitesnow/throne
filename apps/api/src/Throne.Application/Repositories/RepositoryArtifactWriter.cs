@@ -37,7 +37,6 @@ public sealed class RepositoryArtifactWriter(
         var combined = await unitOfWork.ExecuteAsync(
             async inner =>
             {
-                var ensure = await registry.EnsureRepositoryAsync(command.Coordinate, now, inner);
                 var write = await artifacts.WriteAsync(
                     command.Coordinate,
                     command.Slug,
@@ -47,6 +46,9 @@ public sealed class RepositoryArtifactWriter(
                     command.ExpectedVersion,
                     now,
                     inner);
+                var ensure = write is WriteRepositoryArtifactOutcome.Written
+                    ? await registry.EnsureRepositoryAsync(command.Coordinate, now, inner)
+                    : null;
                 return new WriteArtifactWithRegistryOutcome(write, ensure);
             },
             ct);
@@ -80,10 +82,10 @@ public sealed class RepositoryArtifactWriter(
 /// </summary>
 internal sealed record WriteArtifactWithRegistryOutcome(
     WriteRepositoryArtifactOutcome Write,
-    EnsureRepositoryOutcome Registry) : IDomainEventCarrier
+    EnsureRepositoryOutcome? Registry) : IDomainEventCarrier
 {
     public IReadOnlyList<IDomainEvent> Events =>
-        Registry.Events.Count == 0
+        Registry is null || Registry.Events.Count == 0
             ? Write.Events
             : [.. Write.Events, .. Registry.Events];
 }

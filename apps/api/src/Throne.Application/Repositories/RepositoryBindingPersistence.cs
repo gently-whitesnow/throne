@@ -59,7 +59,9 @@ public sealed class RepositoryBindingPersistence(
             async inner =>
             {
                 var created = await bindings.CreateAsync(binding, inner);
-                var ensure = await registry.EnsureRepositoryAsync(binding.Coordinate, clock.GetUtcNow(), inner);
+                var ensure = created is CreateBindingOutcome.Created
+                    ? await registry.EnsureRepositoryAsync(binding.Coordinate, clock.GetUtcNow(), inner)
+                    : null;
                 return new CreateBindingWithRegistryOutcome(created, ensure);
             },
             ct);
@@ -143,10 +145,10 @@ public sealed class RepositoryBindingPersistence(
 /// </summary>
 internal sealed record CreateBindingWithRegistryOutcome(
     CreateBindingOutcome Bind,
-    EnsureRepositoryOutcome Registry) : IDomainEventCarrier
+    EnsureRepositoryOutcome? Registry) : IDomainEventCarrier
 {
     public IReadOnlyList<IDomainEvent> Events =>
-        Registry.Events.Count == 0
+        Registry is null || Registry.Events.Count == 0
             ? Bind.Events
             : [.. Bind.Events, .. Registry.Events];
 }
