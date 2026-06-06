@@ -21,4 +21,12 @@ public interface IRepositoryRegistry
     Task<Repository> EnsureRepositoryAsync(RepoCoordinate coordinate, DateTimeOffset now, CancellationToken ct);
 
     Task<Repository?> FindByCoordinateAsync(RepoCoordinate coordinate, CancellationToken ct);
+
+    /// <summary>
+    /// Every registered repository, ordered by coordinate. Backs the <c>list_repositories</c>
+    /// read tool (ADR-0030): a session without an intent has no coordinate of its own, so the
+    /// agent discovers known repositories from the registry plus the current clone's
+    /// <c>git remote</c>.
+    /// </summary>
+    Task<IReadOnlyList<Repository>> ListAsync(CancellationToken ct);
 }

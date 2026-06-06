@@ -10,5 +10,16 @@ public static class RepositoryArtifactRenderHints
     public const string Markdown = "markdown";
     public const string SchemaMap = "schema_map";
 
+    /// <summary>Stable slug of the schema-map knowledge page that turns on <see cref="SchemaMap"/>.</summary>
+    public const string SchemaMapSlug = "db-schema-map";
+
     public static bool IsKnown(string value) => value is Markdown or SchemaMap;
+
+    /// <summary>
+    /// Render hint implied by a slug. The write surfaces do not take <c>render_hint</c> on the
+    /// wire (ADR-0031): the stable <see cref="SchemaMapSlug"/> page renders as a schema map,
+    /// every other page as plain markdown.
+    /// </summary>
+    public static string ForSlug(string slug) =>
+        string.Equals(slug, SchemaMapSlug, StringComparison.Ordinal) ? SchemaMap : Markdown;
 }

@@ -35,6 +35,7 @@ public static class ErrorCodes
     public const string RepositoryUpstreamGone = "repository.upstream_gone";
     public const string RepositoryWorkspaceRemovalFailed = "repository_binding.workspace_removal_failed";
     public const string RepositoryArtifactVersionConflict = "repository_artifact.version_conflict";
+    public const string RepositoryArtifactNotFound = "repository_artifact.not_found";
     public const string CapabilityNotFound = "capability.not_found";
     public const string CapabilityDisabled = "capability.disabled";
     public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
