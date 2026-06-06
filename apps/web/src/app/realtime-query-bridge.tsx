@@ -18,6 +18,7 @@ import {
   type CloneStatus,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import { repositoriesQueryKeys } from "@/entities/repository";
 import type { IntentsComponents } from "@/shared/api";
 import { tagsQueryKeys } from "@/entities/tag";
 import { useRealtimeEvent } from "@/shared/realtime";
@@ -261,6 +262,26 @@ export function RealtimeQueryBridge() {
             : b
         )
     );
+  });
+
+  // Repository registry + knowledge pages (ADR-0031). A new registry row pops into the
+  // Repositories tab list; a page write (external schema_map session or manual PUT) is
+  // pointer-only, so refetch the page body and its version timeline by coordinate + slug.
+  useRealtimeEvent("repository.registered", () => {
+    void qc.invalidateQueries({ queryKey: repositoriesQueryKeys.list() });
+  });
+  useRealtimeEvent("repository.document_updated", (payload) => {
+    const coordinate = {
+      provider: payload.provider,
+      owner: payload.owner,
+      repo: payload.repo
+    };
+    void qc.invalidateQueries({
+      queryKey: repositoriesQueryKeys.document(coordinate, payload.slug)
+    });
+    void qc.invalidateQueries({
+      queryKey: repositoriesQueryKeys.documentVersions(coordinate, payload.slug)
+    });
   });
 
   useRealtimeEvent("intent.link_added", (payload) => {

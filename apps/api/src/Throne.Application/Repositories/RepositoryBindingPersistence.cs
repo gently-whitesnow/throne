@@ -1,4 +1,5 @@
 using Throne.Application.Errors;
+using Throne.Application.Events;
 using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -54,14 +55,15 @@ public sealed class RepositoryBindingPersistence(
         // Materialise the Repository registry row in the same transaction as the bind so the
         // coordinate is known to teams/binds/requests as one business entity (ADR-0031). This
         // is not an FK rewrite — the binding still relates by coordinate, not RepositoryId.
-        var outcome = await unitOfWork.ExecuteAsync(
+        var combined = await unitOfWork.ExecuteAsync(
             async inner =>
             {
                 var created = await bindings.CreateAsync(binding, inner);
-                await registry.EnsureRepositoryAsync(binding.Coordinate, clock.GetUtcNow(), inner);
-                return created;
+                var ensure = await registry.EnsureRepositoryAsync(binding.Coordinate, clock.GetUtcNow(), inner);
+                return new CreateBindingWithRegistryOutcome(created, ensure);
             },
             ct);
+        var outcome = combined.Bind;
         return outcome switch
         {
             CreateBindingOutcome.Created c => c.Binding,
@@ -133,4 +135,18 @@ public sealed class RepositoryBindingPersistence(
         }
         return binding;
     }
+}
+
+/// <summary>
+/// Carries the bind's <c>intent.repository_bound</c> together with the registry's
+/// <c>repository.registered</c> when the bind was the coordinate's first appearance (ADR-0031).
+/// </summary>
+internal sealed record CreateBindingWithRegistryOutcome(
+    CreateBindingOutcome Bind,
+    EnsureRepositoryOutcome Registry) : IDomainEventCarrier
+{
+    public IReadOnlyList<IDomainEvent> Events =>
+        Registry.Events.Count == 0
+            ? Bind.Events
+            : [.. Bind.Events, .. Registry.Events];
 }

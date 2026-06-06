@@ -51,6 +51,9 @@ public class RepositoryBindingPersistenceTests
         var binding = NewBinding();
         fixture.Bindings.CreateAsync(binding, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<CreateBindingOutcome>(new CreateBindingOutcome.Created(binding)));
+        fixture.Registry.EnsureRepositoryAsync(binding.Coordinate, Now, Arg.Any<CancellationToken>())
+            .Returns(new EnsureRepositoryOutcome.Existed(
+                Repository.Create(RepositoryId.New(), binding.Coordinate, Now)));
 
         await fixture.Persistence.CreateAsync(binding, CancellationToken.None);
 

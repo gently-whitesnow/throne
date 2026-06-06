@@ -16,6 +16,18 @@ public class RepositoryBindingServiceTests
     private const string WorkspaceRoot = "/tmp/throne-test-workspaces";
     private const string IntentIdValue = "intent-1";
 
+    // Default already-registered registry: CreateAsync aggregates the ensure outcome's Events,
+    // so the stub must return a non-null EnsureRepositoryOutcome for any coordinate.
+    private static IRepositoryRegistry StubRegistry()
+    {
+        var registry = Substitute.For<IRepositoryRegistry>();
+        registry
+            .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(ci => new EnsureRepositoryOutcome.Existed(
+                Repository.Create(RepositoryId.New(), ci.Arg<RepoCoordinate>(), ci.Arg<DateTimeOffset>())));
+        return registry;
+    }
+
     [Theory(DisplayName = "Bind создаёт binding, считает workspace_path и пушит в clone-queue по флагу enqueueClone")]
     [InlineData(true)]
     [InlineData(false)]
@@ -309,7 +321,7 @@ public class RepositoryBindingServiceTests
             var clock = new FixedClock(Now);
             var resolver = new RepositoryBindingResolver(Intents, Bindings, Providers);
             var persistence = new RepositoryBindingPersistence(
-                Bindings, Substitute.For<IRepositoryRegistry>(), unitOfWork, clock, Workspace, Remover);
+                Bindings, StubRegistry(), unitOfWork, clock, Workspace, Remover);
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
             var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), unitOfWork, clock);
             var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, autoCloser, clock);

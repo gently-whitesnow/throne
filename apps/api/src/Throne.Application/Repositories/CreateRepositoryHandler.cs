@@ -9,8 +9,9 @@ public sealed record CreateRepositoryResult(Repository Repository, bool Created)
 
 /// <summary>
 /// Manual repository registration behind <c>POST /api/v1/repositories</c> (ADR-0031). Idempotent:
-/// the registry upsert returns the existing row unchanged, so a probe before the write tells the
-/// HTTP surface whether to answer 201 (created) or 200 (already present).
+/// the registry upsert returns the existing row unchanged. The outcome's Created/Existed branch
+/// tells the HTTP surface whether to answer 201 (created) or 200 (already present) and carries
+/// <c>repository.registered</c> on first insert.
 /// </summary>
 public sealed class CreateRepositoryHandler(IRepositoryRegistry registry, IUnitOfWork unitOfWork, TimeProvider clock)
 {
@@ -18,10 +19,11 @@ public sealed class CreateRepositoryHandler(IRepositoryRegistry registry, IUnitO
         string provider, string owner, string repo, CancellationToken ct)
     {
         var coordinate = RepositoryCoordinateFactory.Create(provider, owner, repo);
-        var existed = await registry.FindByCoordinateAsync(coordinate, ct) is not null;
         var now = clock.GetUtcNow();
-        var saved = await unitOfWork.ExecuteAsync(
+        var outcome = await unitOfWork.ExecuteAsync(
             inner => registry.EnsureRepositoryAsync(coordinate, now, inner), ct);
-        return new CreateRepositoryResult(saved, Created: !existed);
+        return new CreateRepositoryResult(
+            outcome.Repository,
+            Created: outcome is EnsureRepositoryOutcome.Created);
     }
 }
