@@ -37,4 +37,11 @@ internal static class RepositoryEnumDtoMapper
         PullRequestStateNames.Merged => PullRequestState.Merged,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown PR state."),
     };
+
+    public static RepositoryArtifactRenderHint ToWireRenderHint(string value) => value switch
+    {
+        RepositoryArtifactRenderHints.Markdown => RepositoryArtifactRenderHint.Markdown,
+        RepositoryArtifactRenderHints.SchemaMap => RepositoryArtifactRenderHint.Schema_map,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown render hint."),
+    };
 }

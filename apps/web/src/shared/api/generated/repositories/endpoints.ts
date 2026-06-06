@@ -14,4 +14,11 @@ export const repositoriesEndpoints = {
   syncIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/sync`,
   attachIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request`,
   listIntentRepositoryPullRequestComments: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request/comments`,
+  listRepositories: () => "/repositories",
+  createRepository: () => "/repositories",
+  getRepository: (provider: string, owner: string, repo: string) => `/repositories/${provider}/${owner}/${repo}`,
+  listRepositoryDocuments: (provider: string, owner: string, repo: string) => `/repositories/${provider}/${owner}/${repo}/documents`,
+  getRepositoryDocument: (provider: string, owner: string, repo: string, slug: string) => `/repositories/${provider}/${owner}/${repo}/documents/${slug}`,
+  putRepositoryDocument: (provider: string, owner: string, repo: string, slug: string) => `/repositories/${provider}/${owner}/${repo}/documents/${slug}`,
+  listRepositoryDocumentVersions: (provider: string, owner: string, repo: string, slug: string) => `/repositories/${provider}/${owner}/${repo}/documents/${slug}/versions`,
 } as const;
