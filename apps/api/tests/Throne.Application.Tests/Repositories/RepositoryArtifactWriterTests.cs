@@ -56,6 +56,11 @@ public class RepositoryArtifactWriterTests
         {
             Artifacts = Substitute.For<IRepositoryArtifactRepository>();
             Registry = Substitute.For<IRepositoryRegistry>();
+            // Registry must return a non-null outcome: the writer aggregates its Events.
+            Registry
+                .EnsureRepositoryAsync(Coordinate, Now, Arg.Any<CancellationToken>())
+                .Returns(new EnsureRepositoryOutcome.Existed(
+                    Repository.Create(RepositoryId.New(), Coordinate, Now)));
             Writer = new RepositoryArtifactWriter(
                 Artifacts, Registry, new PassthroughUnitOfWork(), new FixedClock(Now));
         }

@@ -101,6 +101,12 @@ public class SetTagDefaultRepositoriesHandlerTests
         {
             Repository = Substitute.For<ITagRepository>();
             Registry = Substitute.For<IRepositoryRegistry>();
+            // Default already-registered: the handler aggregates each outcome's Events.
+            Registry
+                .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+                .Returns(ci => new EnsureRepositoryOutcome.Existed(
+                    Throne.Domain.Repositories.Repository.Create(
+                        RepositoryId.New(), ci.Arg<RepoCoordinate>(), Now)));
             Handler = new SetTagDefaultRepositoriesHandler(
                 Repository, Registry, new PassthroughUnitOfWork(), new FixedClock(Now));
         }

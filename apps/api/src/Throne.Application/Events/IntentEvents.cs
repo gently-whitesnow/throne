@@ -35,6 +35,19 @@ public sealed record IntentAttachmentAdded(IntentAttachment Attachment) : IDomai
 
 public sealed record IntentAttachmentDeleted(string IntentId, string AttachmentId) : IDomainEvent;
 
+/// <summary>
+/// Repository registry + knowledge-page lifecycle (ADR-0031). Translated into the
+/// contract-first <c>repository.registered</c> / <c>repository.document_updated</c> wire
+/// events. <see cref="RepositoryRegistered"/> is carried by
+/// <see cref="Throne.Application.Ports.EnsureRepositoryOutcome.Created"/> (and aggregated by
+/// the bind / tag-default / page-write paths that ensure the registry);
+/// <see cref="RepositoryDocumentUpdated"/> rides on
+/// <see cref="Throne.Application.Ports.WriteRepositoryArtifactOutcome.Written"/>.
+/// </summary>
+public sealed record RepositoryRegistered(Repository Repository) : IDomainEvent;
+
+public sealed record RepositoryDocumentUpdated(RepositoryArtifact Artifact) : IDomainEvent;
+
 public sealed record TagCreated(Tag Tag) : IDomainEvent;
 
 public sealed record TagUpdated(Tag Tag) : IDomainEvent;

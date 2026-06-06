@@ -1,4 +1,5 @@
 using Throne.Application.Errors;
+using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
 
@@ -33,11 +34,11 @@ public sealed class RepositoryArtifactWriter(
         ArgumentNullException.ThrowIfNull(command);
         var now = clock.GetUtcNow();
 
-        var outcome = await unitOfWork.ExecuteAsync(
+        var combined = await unitOfWork.ExecuteAsync(
             async inner =>
             {
-                await registry.EnsureRepositoryAsync(command.Coordinate, now, inner);
-                return await artifacts.WriteAsync(
+                var ensure = await registry.EnsureRepositoryAsync(command.Coordinate, now, inner);
+                var write = await artifacts.WriteAsync(
                     command.Coordinate,
                     command.Slug,
                     command.Title,
@@ -46,9 +47,11 @@ public sealed class RepositoryArtifactWriter(
                     command.ExpectedVersion,
                     now,
                     inner);
+                return new WriteArtifactWithRegistryOutcome(write, ensure);
             },
             ct);
 
+        var outcome = combined.Write;
         return outcome switch
         {
             WriteRepositoryArtifactOutcome.Written written => written.Artifact,
@@ -67,4 +70,20 @@ public sealed class RepositoryArtifactWriter(
             _ => throw new InvalidOperationException($"Unhandled outcome: {outcome.GetType().Name}"),
         };
     }
+}
+
+/// <summary>
+/// Surfaces both events from a page write that also materialised the registry: the page's
+/// <c>repository.document_updated</c> and, on first appearance of the coordinate, the registry's
+/// <c>repository.registered</c>. The dispatching unit-of-work decorator drains this aggregate
+/// after a successful commit (same shape as <c>SetIntentTagsHandlerOutcome</c>).
+/// </summary>
+internal sealed record WriteArtifactWithRegistryOutcome(
+    WriteRepositoryArtifactOutcome Write,
+    EnsureRepositoryOutcome Registry) : IDomainEventCarrier
+{
+    public IReadOnlyList<IDomainEvent> Events =>
+        Registry.Events.Count == 0
+            ? Write.Events
+            : [.. Write.Events, .. Registry.Events];
 }

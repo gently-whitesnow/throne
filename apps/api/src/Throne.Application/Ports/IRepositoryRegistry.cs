@@ -17,8 +17,11 @@ public interface IRepositoryRegistry
     /// Insert the registry row for <paramref name="coordinate"/> if absent, otherwise return
     /// the existing row. Must run inside <see cref="IUnitOfWork.ExecuteAsync"/> when the caller
     /// wants it in the surrounding transaction; the implementation honours the ambient session.
+    /// The outcome distinguishes a fresh insert (<see cref="EnsureRepositoryOutcome.Created"/>,
+    /// carries <c>repository.registered</c>) from an idempotent hit.
     /// </summary>
-    Task<Repository> EnsureRepositoryAsync(RepoCoordinate coordinate, DateTimeOffset now, CancellationToken ct);
+    Task<EnsureRepositoryOutcome> EnsureRepositoryAsync(
+        RepoCoordinate coordinate, DateTimeOffset now, CancellationToken ct);
 
     Task<Repository?> FindByCoordinateAsync(RepoCoordinate coordinate, CancellationToken ct);
 
