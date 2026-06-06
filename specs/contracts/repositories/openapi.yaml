@@ -424,6 +424,290 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/repositories:
+    get:
+      operationId: listRepositories
+      tags: [Repositories]
+      summary: List every repository in the registry.
+      description: >
+        Metadata-only registry rows (ADR-0031), ordered by coordinate. A row materialises
+        the first time a `(provider, owner, repo)` coordinate surfaces — from a bind, a tag
+        default, a knowledge-page write, or manual `createRepository`. Knowledge pages are
+        NOT embedded here; fetch them via `listRepositoryDocuments`.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryDto'
+    post:
+      operationId: createRepository
+      tags: [Repositories]
+      summary: Manually register a repository by coordinate.
+      description: >
+        Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing
+        the manual "add repository" affordance with the Slice 1 autocomplete
+        (`searchGithubRepositories`). Returns `201` when the row is created and `200` when the
+        coordinate was already registered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRepositoryRequest'
+      responses:
+        '200':
+          description: The coordinate was already registered; the existing row is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryDto'
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryDto'
+        '422':
+          description: Coordinate failed validation (unknown provider, malformed owner/repo).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/repositories/{provider}/{owner}/{repo}:
+    get:
+      operationId: getRepository
+      tags: [Repositories]
+      summary: Get a single registry row by coordinate.
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryDto'
+        '404':
+          description: No registry row for this coordinate.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Coordinate failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/repositories/{provider}/{owner}/{repo}/documents:
+    get:
+      operationId: listRepositoryDocuments
+      tags: [Repositories]
+      summary: List the knowledge pages of a repository (no bodies).
+      description: >
+        Summary cards for each `RepositoryArtifact` page anchored to the coordinate (ADR-0031),
+        ordered by slug. The markdown `document` body is deliberately omitted here — fetch a
+        single page via `getRepositoryDocument`. An unknown coordinate yields an empty array.
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryDocumentSummaryDto'
+        '422':
+          description: Coordinate failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}:
+    get:
+      operationId: getRepositoryDocument
+      tags: [Repositories]
+      summary: Get a single knowledge page with its markdown body.
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryDocumentDto'
+        '404':
+          description: No page with this slug for the coordinate.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Coordinate failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    put:
+      operationId: putRepositoryDocument
+      tags: [Repositories]
+      summary: Create or update a knowledge page (manual edit).
+      description: >
+        User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the
+        first write (`expected_version` absent or 0) creates version 1; an update requires
+        `expected_version == current` or fails with `409`. `render_hint` is NOT sent on the
+        wire — it is derived from the slug convention (`db-schema-map` → schema map, every
+        other slug → plain markdown). Optimistic concurrency via `expected_version`.
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutRepositoryDocumentRequest'
+      responses:
+        '200':
+          description: OK — the page after this write.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryDocumentDto'
+        '409':
+          description: Optimistic concurrency conflict; `expected_version` did not match.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Coordinate, slug or body failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}/versions:
+    get:
+      operationId: listRepositoryDocumentVersions
+      tags: [Repositories]
+      summary: Version history timeline of a knowledge page.
+      description: >
+        Append-only full snapshots of the page (ADR-0031), ordered by `version` ASC, for the
+        history timeline. Each entry carries the body at that revision.
+      parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
+        - in: path
+          name: owner
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: repo
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryDocumentVersionDto'
+        '404':
+          description: No page with this slug for the coordinate.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Coordinate failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     GitProvider:
@@ -737,3 +1021,167 @@ components:
           type: string
           format: date-time
           nullable: true
+    RepositoryArtifactRenderHint:
+      type: string
+      enum:
+        - markdown
+        - schema_map
+      description: >
+        Read-only render hint of a knowledge page, derived from its slug (ADR-0031):
+        the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain
+        markdown. Never sent on a write — derived server-side.
+    RepositoryDto:
+      type: object
+      required:
+        - provider
+        - owner
+        - repo
+        - full_name
+        - created_at
+        - updated_at
+      properties:
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+        repo:
+          type: string
+        full_name:
+          type: string
+          description: '`{owner}/{repo}` — convenience field for UI rendering.'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateRepositoryRequest:
+      type: object
+      required:
+        - provider
+        - owner
+        - repo
+      properties:
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,38}$'
+        repo:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._-]+$'
+    RepositoryDocumentSummaryDto:
+      type: object
+      required:
+        - slug
+        - title
+        - render_hint
+        - version
+        - created_at
+        - updated_at
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        render_hint:
+          $ref: '#/components/schemas/RepositoryArtifactRenderHint'
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      description: >
+        Compact page card used by `listRepositoryDocuments`; omits the markdown `document`
+        body to avoid shipping large payloads in a list (see `specs/contracts/AGENTS.md`).
+    RepositoryDocumentDto:
+      type: object
+      required:
+        - provider
+        - owner
+        - repo
+        - slug
+        - title
+        - document
+        - render_hint
+        - version
+        - created_at
+        - updated_at
+      properties:
+        provider:
+          $ref: '#/components/schemas/GitProvider'
+        owner:
+          type: string
+        repo:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        document:
+          type: string
+          description: Full markdown body of the page.
+        render_hint:
+          $ref: '#/components/schemas/RepositoryArtifactRenderHint'
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PutRepositoryDocumentRequest:
+      type: object
+      required:
+        - title
+        - document
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        document:
+          type: string
+          description: Full markdown body; replaces the previous body wholesale on update.
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 0
+          nullable: true
+          description: >
+            Current version to update on top of; omit or 0 to create version 1. A mismatch
+            fails with `409`.
+    RepositoryDocumentVersionDto:
+      type: object
+      required:
+        - version
+        - title
+        - document
+        - render_hint
+        - created_at
+      properties:
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        title:
+          type: string
+        document:
+          type: string
+        render_hint:
+          $ref: '#/components/schemas/RepositoryArtifactRenderHint'
+        created_at:
+          type: string
+          format: date-time

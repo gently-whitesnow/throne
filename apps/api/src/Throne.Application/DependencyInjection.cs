@@ -71,6 +71,8 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryArtifactWriter>();
         services.AddSingleton<GetRepositoryDocumentHandler>();
         services.AddSingleton<ListRepositoriesHandler>();
+        services.AddSingleton<CreateRepositoryHandler>();
+        services.AddSingleton<GetRepositoryHandler>();
         services.AddSingleton<IIntentRepositoryBindingReader, IntentRepositoryBindingReader>();
         services.AddSingleton<RepositoryCloneRequestsChannel>();
         services.AddSingleton<IRepositoryCloneRequests>(sp => sp.GetRequiredService<RepositoryCloneRequestsChannel>());

@@ -188,6 +188,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/repositories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List every repository in the registry.
+         * @description Metadata-only registry rows (ADR-0031), ordered by coordinate. A row materialises the first time a `(provider, owner, repo)` coordinate surfaces — from a bind, a tag default, a knowledge-page write, or manual `createRepository`. Knowledge pages are NOT embedded here; fetch them via `listRepositoryDocuments`.
+         */
+        get: operations["listRepositories"];
+        put?: never;
+        /**
+         * Manually register a repository by coordinate.
+         * @description Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing the manual "add repository" affordance with the Slice 1 autocomplete (`searchGithubRepositories`). Returns `201` when the row is created and `200` when the coordinate was already registered.
+         */
+        post: operations["createRepository"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{provider}/{owner}/{repo}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single registry row by coordinate. */
+        get: operations["getRepository"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{provider}/{owner}/{repo}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the knowledge pages of a repository (no bodies).
+         * @description Summary cards for each `RepositoryArtifact` page anchored to the coordinate (ADR-0031), ordered by slug. The markdown `document` body is deliberately omitted here — fetch a single page via `getRepositoryDocument`. An unknown coordinate yields an empty array.
+         */
+        get: operations["listRepositoryDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single knowledge page with its markdown body. */
+        get: operations["getRepositoryDocument"];
+        /**
+         * Create or update a knowledge page (manual edit).
+         * @description User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. `render_hint` is NOT sent on the wire — it is derived from the slug convention (`db-schema-map` → schema map, every other slug → plain markdown). Optimistic concurrency via `expected_version`.
+         */
+        put: operations["putRepositoryDocument"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Version history timeline of a knowledge page.
+         * @description Append-only full snapshots of the page (ADR-0031), ordered by `version` ASC, for the history timeline. Each entry carries the body at that revision.
+         */
+        get: operations["listRepositoryDocumentVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -332,6 +434,74 @@ export interface components {
             pull_request_state?: components["schemas"]["PullRequestState"] | null;
             /** Format: date-time */
             last_synced_at?: string | null;
+        };
+        /**
+         * @description Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
+         * @enum {string}
+         */
+        RepositoryArtifactRenderHint: "markdown" | "schema_map";
+        RepositoryDto: {
+            provider: components["schemas"]["GitProvider"];
+            owner: string;
+            repo: string;
+            /** @description `{owner}/{repo}` — convenience field for UI rendering. */
+            full_name: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateRepositoryRequest: {
+            provider: components["schemas"]["GitProvider"];
+            owner: string;
+            repo: string;
+        };
+        /** @description Compact page card used by `listRepositoryDocuments`; omits the markdown `document` body to avoid shipping large payloads in a list (see `specs/contracts/AGENTS.md`). */
+        RepositoryDocumentSummaryDto: {
+            slug: string;
+            title: string;
+            render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        RepositoryDocumentDto: {
+            provider: components["schemas"]["GitProvider"];
+            owner: string;
+            repo: string;
+            slug: string;
+            title: string;
+            /** @description Full markdown body of the page. */
+            document: string;
+            render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        PutRepositoryDocumentRequest: {
+            title: string;
+            /** @description Full markdown body; replaces the previous body wholesale on update. */
+            document: string;
+            /**
+             * Format: int32
+             * @description Current version to update on top of; omit or 0 to create version 1. A mismatch fails with `409`.
+             */
+            expected_version?: number | null;
+        };
+        RepositoryDocumentVersionDto: {
+            /** Format: int32 */
+            version: number;
+            title: string;
+            document: string;
+            render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
+            /** Format: date-time */
+            created_at: string;
         };
         ProblemDetails: {
             type: string;
@@ -723,6 +893,276 @@ export interface operations {
             };
             /** @description Binding has no associated pull request number. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listRepositories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDto"][];
+                };
+            };
+        };
+    };
+    createRepository: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRepositoryRequest"];
+            };
+        };
+        responses: {
+            /** @description The coordinate was already registered; the existing row is returned. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDto"];
+                };
+            };
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDto"];
+                };
+            };
+            /** @description Coordinate failed validation (unknown provider, malformed owner/repo). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getRepository: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+                owner: string;
+                repo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDto"];
+                };
+            };
+            /** @description No registry row for this coordinate. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Coordinate failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listRepositoryDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+                owner: string;
+                repo: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDocumentSummaryDto"][];
+                };
+            };
+            /** @description Coordinate failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getRepositoryDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+                owner: string;
+                repo: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDocumentDto"];
+                };
+            };
+            /** @description No page with this slug for the coordinate. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Coordinate failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    putRepositoryDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+                owner: string;
+                repo: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutRepositoryDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK — the page after this write. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDocumentDto"];
+                };
+            };
+            /** @description Optimistic concurrency conflict; `expected_version` did not match. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Coordinate, slug or body failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listRepositoryDocumentVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+                owner: string;
+                repo: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryDocumentVersionDto"][];
+                };
+            };
+            /** @description No page with this slug for the coordinate. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Coordinate failed validation. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

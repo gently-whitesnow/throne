@@ -24,6 +24,14 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<ListIntentRepositoryPullRequestCommentsEndpoint>();
         services.AddSingleton<ListPullRequestCommentsUseCase>();
 
+        services.AddSingleton<ListRepositoriesEndpoint>();
+        services.AddSingleton<CreateRepositoryEndpoint>();
+        services.AddSingleton<GetRepositoryEndpoint>();
+        services.AddSingleton<ListRepositoryDocumentsEndpoint>();
+        services.AddSingleton<GetRepositoryDocumentEndpoint>();
+        services.AddSingleton<PutRepositoryDocumentEndpoint>();
+        services.AddSingleton<ListRepositoryDocumentVersionsEndpoint>();
+
         services.AddSingleton<WorkspaceSizeProbe>();
         services.AddSingleton<GetWorkspaceSettingsEndpoint>();
         services.AddSingleton<GetGitProvidersStatusEndpoint>();

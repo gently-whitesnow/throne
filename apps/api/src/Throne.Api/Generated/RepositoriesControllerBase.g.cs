@@ -138,6 +138,75 @@ namespace Throne.Api.Generated
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public abstract class RepositoriesControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
+    {
+        /// <summary>
+        /// List every repository in the registry.
+        /// </summary>
+        /// <remarks>
+        /// Metadata-only registry rows (ADR-0031), ordered by coordinate. A row materialises the first time a `(provider, owner, repo)` coordinate surfaces — from a bind, a tag default, a knowledge-page write, or manual `createRepository`. Knowledge pages are NOT embedded here; fetch them via `listRepositoryDocuments`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories", Name = "listRepositories")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDto>>> ListRepositories();
+
+        /// <summary>
+        /// Manually register a repository by coordinate.
+        /// </summary>
+        /// <remarks>
+        /// Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing the manual "add repository" affordance with the Slice 1 autocomplete (`searchGithubRepositories`). Returns `201` when the row is created and `200` when the coordinate was already registered.
+        /// </remarks>
+        /// <returns>The coordinate was already registered; the existing row is returned.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories", Name = "createRepository")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDto>> CreateRepository([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CreateRepositoryRequest body);
+
+        /// <summary>
+        /// Get a single registry row by coordinate.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}", Name = "getRepository")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDto>> GetRepository([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo);
+
+        /// <summary>
+        /// List the knowledge pages of a repository (no bodies).
+        /// </summary>
+        /// <remarks>
+        /// Summary cards for each `RepositoryArtifact` page anchored to the coordinate (ADR-0031), ordered by slug. The markdown `document` body is deliberately omitted here — fetch a single page via `getRepositoryDocument`. An unknown coordinate yields an empty array.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents", Name = "listRepositoryDocuments")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo);
+
+        /// <summary>
+        /// Get a single knowledge page with its markdown body.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "getRepositoryDocument")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> GetRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
+
+        /// <summary>
+        /// Create or update a knowledge page (manual edit).
+        /// </summary>
+        /// <remarks>
+        /// User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. `render_hint` is NOT sent on the wire — it is derived from the slug convention (`db-schema-map` → schema map, every other slug → plain markdown). Optimistic concurrency via `expected_version`.
+        /// </remarks>
+        /// <returns>OK — the page after this write.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "putRepositoryDocument")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> PutRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PutRepositoryDocumentRequest body);
+
+        /// <summary>
+        /// Version history timeline of a knowledge page.
+        /// </summary>
+        /// <remarks>
+        /// Append-only full snapshots of the page (ADR-0031), ordered by `version` ASC, for the history timeline. Each entry carries the body at that revision.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}/versions", Name = "listRepositoryDocumentVersions")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
+
+    }
+
     
 
 
