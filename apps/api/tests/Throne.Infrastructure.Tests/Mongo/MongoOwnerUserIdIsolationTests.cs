@@ -9,7 +9,7 @@ using Throne.Infrastructure.Mongo;
 namespace Throne.Infrastructure.Tests.Mongo;
 
 /// <summary>
-/// Регрессионный тест ADR-0012: репозиторий не должен возвращать или мутировать
+/// Регрессионный тест ADR-0029: репозиторий не должен возвращать или мутировать
 /// записи чужого OwnerUserId.
 /// </summary>
 [Collection(nameof(MongoIntegrationFixture))]

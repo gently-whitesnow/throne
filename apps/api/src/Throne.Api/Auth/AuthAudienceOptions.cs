@@ -1,7 +1,7 @@
 namespace Throne.Api.Auth;
 
 /// <summary>
-/// Audience-валидация JWT (ADR-0012, ADR-0016). Биндится из той же
+/// Audience-валидация JWT (ADR-0016). Биндится из той же
 /// конфигурационной секции <c>Auth</c>, что и <see cref="AuthOptions"/>,
 /// — wire-формат остаётся плоским: <c>Auth:Issuer</c>, <c>Auth:Audience</c>,
 /// <c>Auth:AdditionalAudiences</c>.
