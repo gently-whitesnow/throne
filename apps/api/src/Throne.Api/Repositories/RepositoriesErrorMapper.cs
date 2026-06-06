@@ -8,6 +8,23 @@ namespace Throne.Api.Repositories;
 
 internal static class RepositoriesErrorMapper
 {
+    /// <summary>
+    /// Registry + knowledge-page endpoints (ADR-0031). One generic mapper covers them all:
+    /// the coordinate / artifact codes map to the same 404 / 409 / 422 regardless of the
+    /// response payload type.
+    /// </summary>
+    public static ActionResult<T> MapRepositoryDocument<T>(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.RepositoryNotFound or ErrorCodes.RepositoryArtifactNotFound =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.RepositoryArtifactVersionConflict =>
+                new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Version conflict", ex)),
+            ErrorCodes.RepositoryCoordinateInvalid =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<RepositoryBindingDto> MapBind(ApiException ex) =>
         ex.Code switch
         {
