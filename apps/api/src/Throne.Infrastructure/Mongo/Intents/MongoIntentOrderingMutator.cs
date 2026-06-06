@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Infrastructure.Mongo.Documents;
@@ -8,8 +7,7 @@ namespace Throne.Infrastructure.Mongo.Intents;
 
 internal sealed class MongoIntentOrderingMutator(
     IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser)
+    MongoSessionAccessor sessions)
 {
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
@@ -40,8 +38,8 @@ internal sealed class MongoIntentOrderingMutator(
             return new MoveIntentOutcome.PivotNotFound(afterId!.Value.Value);
         }
 
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
-        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+        var byId = IntentCollectionFilters.ById(id.Value);
+        var document = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new MoveIntentOutcome.NotFound();
@@ -55,10 +53,10 @@ internal sealed class MongoIntentOrderingMutator(
 
         // Reorder is purely positional: do not touch updated_at or current_version.
         var update = Builders<IntentDocument>.Update.Set(d => d.SortKey, newSortKey);
-        var updateResult = await _intents.UpdateOneAsync(session, byIdAndOwner, update, options: null, ct);
+        var updateResult = await _intents.UpdateOneAsync(session, byId, update, options: null, ct);
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new MoveIntentOutcome.NotFound()
                 : new MoveIntentOutcome.Moved(IntentDocumentMapper.ToDomain(fresh), Changed: false);
@@ -78,7 +76,7 @@ internal sealed class MongoIntentOrderingMutator(
             return (null, false);
         }
 
-        var pivotFilter = IntentCollectionFilters.ByIdAndOwner(pivotId.Value.Value, currentUser.UserId);
+        var pivotFilter = IntentCollectionFilters.ById(pivotId.Value.Value);
         var key = await _intents.Find(session, pivotFilter)
             .Project(d => d.SortKey)
             .FirstOrDefaultAsync(ct);

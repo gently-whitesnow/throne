@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -14,7 +13,6 @@ namespace Throne.Infrastructure.Mongo.Intents;
 internal sealed class MongoIntentStatusMutator(
     IMongoDatabase database,
     MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser,
     IIntentEventRepository intentEvents)
 {
     private readonly IMongoCollection<IntentDocument> _intents =
@@ -40,9 +38,9 @@ internal sealed class MongoIntentStatusMutator(
             ?? throw new InvalidOperationException(
                 "MongoIntentStatusMutator.SetStatusAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
+        var byId = IntentCollectionFilters.ById(id.Value);
 
-        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+        var document = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new SetIntentStatusOutcome.NotFound();
@@ -61,14 +59,14 @@ internal sealed class MongoIntentStatusMutator(
 
         var updateResult = await _intents.UpdateOneAsync(
             session,
-            IntentCollectionFilters.BuildStatusUpdateFilter(id.Value, originalVersion, originalStatus, currentUser.UserId),
+            IntentCollectionFilters.BuildStatusUpdateFilter(id.Value, originalVersion, originalStatus),
             BuildStatusUpdate(intent),
             options: null,
             ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
             if (fresh is null)
             {
                 return new SetIntentStatusOutcome.NotFound();
@@ -207,8 +205,8 @@ internal sealed class MongoIntentStatusMutator(
             ?? throw new InvalidOperationException(
                 "MongoIntentStatusMutator.SetTagsAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
-        var document = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+        var byId = IntentCollectionFilters.ById(id.Value);
+        var document = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
         if (document is null)
         {
             return new SetIntentTagsOutcome.NotFound();
@@ -230,13 +228,13 @@ internal sealed class MongoIntentStatusMutator(
             .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
         var updateFilter = Builders<IntentDocument>.Filter.And(
-            byIdAndOwner,
+            byId,
             Builders<IntentDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
         var updateResult = await _intents.UpdateOneAsync(session, updateFilter, update, options: null, ct);
 
         if (updateResult.ModifiedCount == 0)
         {
-            var fresh = await _intents.Find(session, byIdAndOwner).FirstOrDefaultAsync(ct);
+            var fresh = await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
             return fresh is null
                 ? new SetIntentTagsOutcome.NotFound()
                 : new SetIntentTagsOutcome.VersionConflict(fresh.CurrentVersion);

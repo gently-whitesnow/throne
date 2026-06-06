@@ -112,7 +112,6 @@ public class GetIntentLinksSummaryHandlerTests
 
     private static Intent MakeIntent(string id) => Intent.Restore(
         id: new IntentId(id),
-        ownerUserId: "u-1",
         text: $"text for {id}",
         status: "draft",
         currentVersion: 1,

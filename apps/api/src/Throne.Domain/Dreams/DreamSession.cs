@@ -10,7 +10,6 @@ namespace Throne.Domain.Dreams;
 /// (<c>dream_sources</c>).
 ///
 /// Domain invariants:
-///   • <see cref="OwnerUserId"/> is required (legacy owner-scoping — ADR-0029);
 ///   • <see cref="Vendor"/> is a free-form short identifier (claude-code,
 ///     claude-desktop, codex-cli, …); the server does not enumerate known
 ///     vendors at the domain level — validation against <c>dream_sources</c>
@@ -48,11 +47,9 @@ public sealed class DreamSession
     public DreamSessionPayload Payload { get; }
 
     public string Id => Identity.Id;
-    public string OwnerUserId => Identity.OwnerUserId;
 
     public static DreamSession Create(
         string id,
-        string ownerUserId,
         DateTimeOffset createdAt,
         string vendor,
         string host,
@@ -64,7 +61,6 @@ public sealed class DreamSession
         IReadOnlyList<string> proposedPatchIds)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
 
         ArgumentException.ThrowIfNullOrWhiteSpace(vendor);
         if (vendor.Length > MaxVendorLength)
@@ -158,7 +154,7 @@ public sealed class DreamSession
         }
 
         return new DreamSession(
-            new DreamSessionIdentity(id, ownerUserId, createdAt),
+            new DreamSessionIdentity(id, createdAt),
             new DreamSessionPayload(
                 vendor.Trim(),
                 host.Trim(),
@@ -177,7 +173,6 @@ public sealed class DreamSession
     /// </summary>
     public static DreamSession Restore(
         string id,
-        string ownerUserId,
         DateTimeOffset createdAt,
         string vendor,
         string? host,
@@ -189,7 +184,6 @@ public sealed class DreamSession
         IReadOnlyList<string> proposedPatchIds)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentException.ThrowIfNullOrWhiteSpace(vendor);
         ArgumentNullException.ThrowIfNull(processedConversationIds);
         ArgumentNullException.ThrowIfNull(proposedPatchIds);
@@ -198,7 +192,7 @@ public sealed class DreamSession
         var normalisedHost = string.IsNullOrWhiteSpace(host) ? null : host;
 
         return new DreamSession(
-            new DreamSessionIdentity(id, ownerUserId, createdAt),
+            new DreamSessionIdentity(id, createdAt),
             new DreamSessionPayload(
                 vendor,
                 normalisedHost,
@@ -211,10 +205,9 @@ public sealed class DreamSession
     }
 }
 
-/// <summary>Identity triple stored on every <see cref="DreamSession"/>.</summary>
+/// <summary>Identity pair stored on every <see cref="DreamSession"/>.</summary>
 public sealed record DreamSessionIdentity(
     string Id,
-    string OwnerUserId,
     DateTimeOffset CreatedAt);
 
 /// <summary>

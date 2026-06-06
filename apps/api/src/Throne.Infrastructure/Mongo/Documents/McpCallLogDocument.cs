@@ -15,10 +15,6 @@ internal sealed class McpCallLogDocument
     [BsonIgnoreIfNull]
     public string? SessionId { get; set; }
 
-    [BsonElement("user_id")]
-    [BsonIgnoreIfNull]
-    public string? UserId { get; set; }
-
     [BsonElement("tool_name")]
     public string ToolName { get; set; } = string.Empty;
 

@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -23,15 +22,14 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
     public MongoIntentRepository(
         IMongoDatabase database,
         MongoSessionAccessor sessions,
-        ICurrentUserAccessor currentUser,
         IIntentEventRepository intentEvents)
     {
-        _reader = new MongoIntentReader(database, sessions, currentUser);
-        _contextReader = new MongoIntentContextReader(database, sessions, currentUser);
-        _lifecycle = new MongoIntentLifecycle(database, sessions, currentUser, intentEvents);
-        _text = new MongoIntentTextEditor(database, sessions, currentUser, intentEvents);
-        _status = new MongoIntentStatusMutator(database, sessions, currentUser, intentEvents);
-        _ordering = new MongoIntentOrderingMutator(database, sessions, currentUser);
+        _reader = new MongoIntentReader(database, sessions);
+        _contextReader = new MongoIntentContextReader(database, sessions);
+        _lifecycle = new MongoIntentLifecycle(database, sessions, intentEvents);
+        _text = new MongoIntentTextEditor(database, sessions, intentEvents);
+        _status = new MongoIntentStatusMutator(database, sessions, intentEvents);
+        _ordering = new MongoIntentOrderingMutator(database, sessions);
     }
 
     public Task<CreateIntentOutcome> CreateAsync(
@@ -96,9 +94,8 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
         CancellationToken ct) =>
         _status.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
 
-    // System hooks (PR-merge auto-close) use the owner-agnostic surface only via
-    // ISystemIntentStatusWriter — explicit impl keeps it off the public face and out of
-    // the owner-scoped IIntentRepository.
+    // System hooks (PR-merge auto-close) reach the intent surface via
+    // ISystemIntentStatusWriter — explicit impl keeps it off the public face.
     Task<Intent?> ISystemIntentStatusWriter.GetByIdForSystemAsync(IntentId id, CancellationToken ct) =>
         _reader.GetByIdForSystemAsync(id, ct);
 

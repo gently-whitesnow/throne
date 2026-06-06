@@ -117,7 +117,7 @@ public class SetIntentStatusHandlerTests
                 var intentId = ci.ArgAt<IntentId>(0);
                 var status = ci.ArgAt<string>(1);
                 return new SetIntentStatusOutcome.Updated(
-                    Intent.Restore(intentId, "user-1", "x", status, 1, [], Now, Now));
+                    Intent.Restore(intentId, "x", status, 1, [], Now, Now));
             });
 
         var handler = new SetIntentStatusHandler(repo, new PassthroughUnitOfWork(), new FixedClock(Now));

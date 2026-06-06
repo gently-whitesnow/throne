@@ -7,7 +7,6 @@
     <ProjectReference Include="..\Throne.Instructions.Contracts\Throne.Instructions.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Realtime.Contracts\Throne.Realtime.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Tags.Contracts\Throne.Tags.Contracts.csproj" />
-    <ProjectReference Include="..\Throne.Me.Contracts\Throne.Me.Contracts.csproj" />
     <ProjectReference Include="..\Throne.InstructionPatches.Contracts\Throne.InstructionPatches.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Dreams.Contracts\Throne.Dreams.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Repositories.Contracts\Throne.Repositories.Contracts.csproj" />
@@ -19,8 +18,6 @@
 
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-    <PackageReference Include="Microsoft.IdentityModel.Tokens" />
   </ItemGroup>
 
   <ItemGroup>

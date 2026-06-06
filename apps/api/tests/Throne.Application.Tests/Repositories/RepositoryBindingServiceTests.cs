@@ -328,7 +328,7 @@ public class RepositoryBindingServiceTests
         public void IntentExists(string intentIdValue)
         {
             var intent = Intent.Restore(
-                new IntentId(intentIdValue), "user-1", "x", IntentStatusNames.Work, 1, [], Now, Now);
+                new IntentId(intentIdValue), "x", IntentStatusNames.Work, 1, [], Now, Now);
             Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == intentIdValue), Arg.Any<CancellationToken>())
                 .Returns(intent);
         }

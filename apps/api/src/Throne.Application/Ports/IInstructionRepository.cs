@@ -8,7 +8,6 @@ public interface IInstructionRepository
     Task CreateAsync(Instruction instruction, TextVersion initialVersion, CancellationToken ct);
 
     Task<IReadOnlyList<Instruction>> GetUserInstructionsByKindsAsync(
-        string userId,
         IReadOnlyList<string> kinds,
         CancellationToken ct);
 

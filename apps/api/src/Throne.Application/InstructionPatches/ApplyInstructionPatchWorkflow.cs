@@ -57,7 +57,6 @@ public sealed class ApplyInstructionPatchWorkflow(
             var instruction = Instruction.Create(
                 id: InstructionId.New(),
                 scope: InstructionScopeNames.User,
-                userId: patch.Identity.OwnerUserId,
                 kind: patch.Identity.TargetKind,
                 text: newText,
                 now: now);

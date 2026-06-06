@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Throne.Application.Auth;
 using Throne.Application.Dreams;
 using Throne.Application.Events;
 using Throne.Application.InstructionPatches;
@@ -40,10 +39,6 @@ public static class DependencyInjection
         services.AddSingleton<ReplaceInstructionTextHandler>();
         services.AddSingleton<CreateInstructionHandler>();
         services.AddSingleton<ListInstructionVersionsHandler>();
-        services.AddSingleton<PersonalAccessTokenSecretFactory>();
-        services.AddSingleton<IPersonalAccessTokenResolver, PersonalAccessTokenResolver>();
-        services.AddSingleton<GenerateMcpTokenHandler>();
-        services.AddSingleton<GetMcpTokenMetaHandler>();
         // Lazy<IUnitOfWork> breaks the singleton-resolution cycle: the
         // IUnitOfWork factory pulls in IDomainEventDispatcher, which pulls in
         // every IDomainEventHandler — and these two handlers themselves need

@@ -268,7 +268,7 @@ public class RunPreflightOrchestratorTests
             if (intentExists)
             {
                 var intent = Intent.Restore(
-                    new IntentId(IntentIdValue), "user-1", "x", IntentStatusNames.Work, 1, [], Now, Now);
+                    new IntentId(IntentIdValue), "x", IntentStatusNames.Work, 1, [], Now, Now);
                 Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == IntentIdValue), Arg.Any<CancellationToken>())
                     .Returns(intent);
             }
