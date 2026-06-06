@@ -308,7 +308,8 @@ public class RepositoryBindingServiceTests
             var unitOfWork = new PassthroughUnitOfWork();
             var clock = new FixedClock(Now);
             var resolver = new RepositoryBindingResolver(Intents, Bindings, Providers);
-            var persistence = new RepositoryBindingPersistence(Bindings, unitOfWork, clock, Workspace, Remover);
+            var persistence = new RepositoryBindingPersistence(
+                Bindings, Substitute.For<IRepositoryRegistry>(), unitOfWork, clock, Workspace, Remover);
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
             var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), unitOfWork, clock);
             var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, autoCloser, clock);

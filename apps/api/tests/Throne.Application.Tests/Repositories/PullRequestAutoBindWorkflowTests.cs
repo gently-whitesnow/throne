@@ -92,7 +92,7 @@ public class PullRequestAutoBindWorkflowTests
 
             var clock = new FixedClock(Now);
             var persistence = new RepositoryBindingPersistence(
-                Bindings, _uow, clock,
+                Bindings, Substitute.For<IRepositoryRegistry>(), _uow, clock,
                 Substitute.For<IWorkspaceRootProvider>(),
                 Substitute.For<IWorkspaceDirectoryRemover>());
             Workflow = new PullRequestAutoBindWorkflow(Bindings, providers, BranchReader, persistence);
