@@ -138,8 +138,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Synchronously refresh PR review comments for a binding.
-         * @description Blocks for the duration of the upstream `gh api` call and returns the freshly observed comments. `intent.pr_comment_added` is also fanned out via SSE for other open clients. Works on closed/merged PRs too — `pull_request_state` is ignored. A 404 from upstream flips the binding to `clone_status=broken` per ADR-0024.
+         * Synchronously re-read PR review comments from the provider for a binding.
+         * @description Blocks for the duration of the upstream `gh api` call and returns the freshly observed comments straight from the git provider (no durable local comment store). `intent.pr_comment_added` is also fanned out via SSE for other open clients. Works on closed/merged PRs too — `pull_request_state` is ignored. A 404 from upstream flips the binding to `clone_status=broken` per ADR-0024.
          */
         post: operations["syncIntentRepositoryPullRequest"];
         delete?: never;
@@ -176,8 +176,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Read stored PR review comments for a binding.
-         * @description Returns the locally persisted feed of review comments for the binding's PR, ordered ascending by `created_at`. Review comments only (issue-comments are out of scope). Pagination is intentionally absent; the server returns the full feed.
+         * List the binding's PR review comments via the git provider.
+         * @description Proxies the upstream `gh api .../pulls/{n}/comments` call through the binding's git provider and returns the freshly observed feed, ordered ascending by `created_at`. Comments are NOT durably stored server-side — the git provider is the source of truth; the server keeps only an etag/cursor on the binding for the background poller. Review comments only (issue-comments are out of scope). Pagination is intentionally absent; the server returns the full feed.
          */
         get: operations["listIntentRepositoryPullRequestComments"];
         put?: never;
@@ -324,7 +324,7 @@ export interface components {
             new_comments: number;
             /**
              * Format: int32
-             * @description Full count of stored review comments for the binding after sync.
+             * @description Full count of review comments in the freshly observed feed after sync.
              */
             total_comments: number;
             /** @description Full review-comments feed after sync (unpaginated). */
