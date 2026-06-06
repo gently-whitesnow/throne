@@ -10,7 +10,7 @@ namespace Throne.Domain.Dreams;
 /// (<c>dream_sources</c>).
 ///
 /// Domain invariants:
-///   • <see cref="OwnerUserId"/> is required (multi-tenancy — ADR-0012);
+///   • <see cref="OwnerUserId"/> is required (legacy owner-scoping — ADR-0029);
 ///   • <see cref="Vendor"/> is a free-form short identifier (claude-code,
 ///     claude-desktop, codex-cli, …); the server does not enumerate known
 ///     vendors at the domain level — validation against <c>dream_sources</c>

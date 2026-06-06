@@ -4,7 +4,7 @@ namespace Throne.Infrastructure.Mongo.Documents;
 
 /// <summary>
 /// Mongo persistence shape for <see cref="Throne.Domain.Dreams.DreamSession"/>.
-/// Owner-scoped (multi-tenancy invariant — ADR-0012) via
+/// Owner-scoped (legacy owner-scoping — ADR-0029) via
 /// <c>[BsonElement("owner_user_id")] OwnerUserId</c>.
 /// </summary>
 internal sealed class DreamSessionDocument

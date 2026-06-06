@@ -7,7 +7,7 @@ using Mono.Cecil.Cil;
 namespace Throne.Architecture.Tests;
 
 /// <summary>
-/// Архитектурные правила multi-user изоляции (ADR-0012).
+/// Архитектурные правила легаси owner-scoping (ADR-0029).
 ///
 /// 1. user-owned Domain-агрегаты обязаны принимать <c>ownerUserId</c> в Create/Restore.
 /// 2. Mongo-документы соответствующих коллекций обязаны иметь свойство <c>OwnerUserId</c>
@@ -87,7 +87,7 @@ public class OwnerUserIdRulesTests
                 factory.GetParameters().Should().Contain(
                     p => p.Name == "ownerUserId" && p.ParameterType == typeof(string),
                     $"{type.FullName}.{factory.Name} обязан принимать ownerUserId:string первым/явным параметром " +
-                    "(ADR-0012: multi-user изоляция). Без него агрегат может оказаться без владельца.");
+                    "(ADR-0029: легаси owner-scoping). Без него агрегат может оказаться без владельца.");
             }
         }
     }

@@ -8,7 +8,7 @@ using Throne.Domain.Intents;
 namespace Throne.Application.Tests.Intents;
 
 /// <summary>
-/// Изоляция multi-user (ADR-0012): Get/List handler'ы возвращают только записи,
+/// Легаси owner-scoping (ADR-0029): Get/List handler'ы возвращают только записи,
 /// которые отдал репозиторий — а репозиторий обязан фильтровать по
 /// <c>ICurrentUserAccessor.UserId</c>. Здесь мы проверяем, что handler не
 /// «доочищает» результат сам и не вмешивается в фильтрацию: он передаёт всё
