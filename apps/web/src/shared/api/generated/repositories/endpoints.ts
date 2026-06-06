@@ -12,5 +12,6 @@ export const repositoriesEndpoints = {
   bindIntentRepository: (intent_id: string) => `/intents/${intent_id}/repositories`,
   unbindIntentRepository: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}`,
   syncIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/sync`,
+  attachIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request`,
   listIntentRepositoryPullRequestComments: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request/comments`,
 } as const;

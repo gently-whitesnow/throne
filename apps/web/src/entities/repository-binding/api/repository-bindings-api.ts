@@ -112,6 +112,22 @@ export function bindIntentRepository(
   );
 }
 
+export function attachIntentRepositoryPullRequest(
+  intentId: string,
+  bindingId: string,
+  pullRequestNumber: number,
+  signal?: AbortSignal
+): Promise<RepositoryBinding> {
+  return httpPost<RepositoryBinding>(
+    repositoriesEndpoints.attachIntentRepositoryPullRequest(
+      intentId,
+      bindingId
+    ),
+    { pull_request_number: pullRequestNumber },
+    signal
+  );
+}
+
 export function unbindIntentRepository(
   intentId: string,
   bindingId: string,

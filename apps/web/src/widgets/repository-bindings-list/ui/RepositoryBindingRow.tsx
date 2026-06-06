@@ -17,6 +17,7 @@ import {
   unbindIntentRepository,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import { AttachPullRequestControl } from "@/features/attach-pull-request";
 import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
 import { HttpError } from "@/shared/api";
 import { Button } from "@/shared/ui";
@@ -137,6 +138,12 @@ export function RepositoryBindingRow({
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
+          {!hasPr && binding.clone_status === "ready" ? (
+            <AttachPullRequestControl
+              intentId={intentId}
+              bindingId={binding.id}
+            />
+          ) : null}
           <OpenBindingInVscodeButton
             intentId={intentId}
             bindingId={binding.id}
