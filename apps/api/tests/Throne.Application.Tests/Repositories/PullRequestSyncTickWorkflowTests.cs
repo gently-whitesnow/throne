@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Events;
 using Throne.Application.Git;
@@ -158,8 +159,14 @@ public class PullRequestSyncTickWorkflowTests
 
             var clock = new FixedClock(Now);
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, _uow, clock);
-            var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), _uow, clock);
-            var refresher = new PullRequestStateRefresher(Bindings, _uow, autoCloser, clock);
+            var autoCloser = new IntentMergeAutoCloser(
+                Bindings,
+                Substitute.For<ISystemIntentStatusWriter>(),
+                _uow,
+                clock,
+                NullLogger<IntentMergeAutoCloser>.Instance);
+            var refresher = new PullRequestStateRefresher(
+                Bindings, _uow, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, refresher);
             var backoff = new PullRequestSyncBackoff(new PullRequestSyncOptions
             {
