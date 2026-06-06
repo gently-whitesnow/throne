@@ -22,6 +22,7 @@ public static class ThroneToolsBootstrap
         services.AddThroneTool<IntentAttachmentTools>();
         services.AddThroneTool<InstructionPatchTools>();
         services.AddThroneTool<DreamTools>();
+        services.AddThroneTool<RepositoryDocumentTools>();
 
         return services;
     }
