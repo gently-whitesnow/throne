@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
@@ -10,11 +11,12 @@ namespace Throne.Application.Repositories;
 /// transition into <c>merged</c> it hands off to <see cref="IntentMergeAutoCloser"/>, which
 /// closes the intent once all its PR-bearing bindings are merged (intent spec B / Q6).
 /// </summary>
-public sealed class PullRequestStateRefresher(
+public sealed partial class PullRequestStateRefresher(
     IIntentRepositoryBindingRepository bindings,
     IUnitOfWork unitOfWork,
     IntentMergeAutoCloser autoCloser,
-    TimeProvider clock)
+    TimeProvider clock,
+    ILogger<PullRequestStateRefresher> logger)
 {
     public async Task<IntentRepositoryBinding?> RefreshAsync(
         IntentRepositoryBinding binding,
@@ -35,6 +37,12 @@ public sealed class PullRequestStateRefresher(
             await CloseMergedAsync(binding, snapshot.State, ct);
             return binding;
         }
+        LogStateChanged(
+            logger,
+            binding.Id.Value,
+            binding.State.PullRequestNumber!.Value,
+            binding.State.PullRequestState ?? "<null>",
+            snapshot.State);
         binding.RecordPullRequestState(snapshot.State, clock.GetUtcNow());
         var saved = await SaveAsync(binding, ct);
         await CloseMergedAsync(saved, snapshot.State, ct);
@@ -72,7 +80,20 @@ public sealed class PullRequestStateRefresher(
     {
         if (pullRequestState == PullRequestStateNames.Merged)
         {
+            LogMergedDetected(
+                logger, binding.Id.Value, binding.IntentId.Value, binding.State.PullRequestNumber!.Value);
             await autoCloser.OnBindingMergedAsync(binding, ct);
         }
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
+        Message = "PullRequestStateRefresher: binding {BindingId} PR #{Pr} state {OldState} -> {NewState}")]
+    private static partial void LogStateChanged(
+        ILogger logger, string bindingId, int pr, string oldState, string newState);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "PullRequestStateRefresher: binding {BindingId} (intent {IntentId}) PR #{Pr} observed merged "
+            + "— invoking auto-closer.")]
+    private static partial void LogMergedDetected(
+        ILogger logger, string bindingId, string intentId, int pr);
 }

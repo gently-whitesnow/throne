@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Git;
 using Throne.Application.Ports;
@@ -63,8 +64,14 @@ public class PullRequestStateRefresherTests
             Refresher = new PullRequestStateRefresher(
                 Bindings,
                 new PassthroughUnitOfWork(),
-                new IntentMergeAutoCloser(Bindings, Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
-                new FixedClock(Now));
+                new IntentMergeAutoCloser(
+                    Bindings,
+                    Intents,
+                    new PassthroughUnitOfWork(),
+                    new FixedClock(Now),
+                    NullLogger<IntentMergeAutoCloser>.Instance),
+                new FixedClock(Now),
+                NullLogger<PullRequestStateRefresher>.Instance);
 
             Intents.SetStatusBySystemAsync(
                     Arg.Any<IntentId>(),
