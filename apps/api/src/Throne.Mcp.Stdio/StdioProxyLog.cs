@@ -2,10 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Throne.Mcp.Stdio;
 
-// intent:f81b3ecf2b75498282b7ac091b3da744 — LoggerMessage-generated members inflate aggregate
-// cyclomatic complexity of the static logger class; each individual method is trivial.
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Maintainability", "CA1502",
-    Justification = "LoggerMessage-generated members inflate aggregate cyclomatic complexity; each method is trivial.")]
 internal static partial class StdioProxyLog
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,

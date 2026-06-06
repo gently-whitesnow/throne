@@ -5,8 +5,6 @@ namespace Throne.Application.InstructionPatches;
 
 /// <summary>
 /// Shared <see cref="ApiException"/> factory for InstructionPatch handlers.
-/// Lifted out of the handlers to keep their per-type CA1502 budget within
-/// the project threshold (≤10).
 /// </summary>
 internal static class InstructionPatchExceptions
 {

@@ -7,8 +7,6 @@ namespace Throne.Application.Vscode;
 /// <summary>
 /// Capability gate for the VS Code shell-out endpoints. Both the persisted toggle
 /// (`capabilities.vscode.enabled`) and the live `code --version` probe must pass.
-/// Lives apart from <see cref="OpenInVscodeService"/> so the orchestrator stays
-/// within the project-wide CA1502 type-level cyclomatic budget.
 /// </summary>
 public sealed class VscodeCapabilityGuard(
     ICapabilitiesRepository capabilities,

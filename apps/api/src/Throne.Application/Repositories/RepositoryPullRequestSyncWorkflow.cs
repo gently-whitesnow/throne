@@ -24,8 +24,7 @@ namespace Throne.Application.Repositories;
 /// </list>
 ///
 /// Persistence (save binding + outcome carriers) is delegated to
-/// <see cref="RepositoryPullRequestSyncPersistence"/> so the workflow body itself stays
-/// inside the per-type cyclomatic budget.
+/// <see cref="RepositoryPullRequestSyncPersistence"/>.
 /// </summary>
 public sealed class RepositoryPullRequestSyncWorkflow(
     RepositoryPullRequestSyncPersistence persistence,

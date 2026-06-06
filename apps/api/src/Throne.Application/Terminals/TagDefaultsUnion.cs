@@ -8,8 +8,7 @@ namespace Throne.Application.Terminals;
 /// <summary>
 /// Reads every <see cref="Tag"/> attached to an intent and returns the union of their
 /// <see cref="Tag.DefaultRepositories"/>, deduped on the <c>(provider, owner, repo)</c>
-/// coordinate. Lives in its own type so the orchestrating <see cref="RunPreflightAutoBind"/>
-/// keeps the project-wide CA1502 type-level budget.
+/// coordinate. Used by <see cref="RunPreflightAutoBind"/>.
 /// </summary>
 public sealed class TagDefaultsUnion(ITagRepository tags)
 {

@@ -6,8 +6,7 @@ namespace Throne.Application.InstructionPatches;
 
 /// <summary>
 /// Translates persistence-layer outcome unions into either a successful aggregate
-/// or an <see cref="ApiException"/>. Kept separate from the handlers so each switch
-/// arm contributes to this helper's CA1502 budget, not the handler's.
+/// or an <see cref="ApiException"/>. Shared across the apply/reject handlers.
 /// </summary>
 internal static class InstructionPatchOutcomeMapper
 {

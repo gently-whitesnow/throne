@@ -4,8 +4,7 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Routes spawn outcomes to the LoggerMessage source-generated emitters
-/// (<see cref="TerminalsLog"/>). Pulled out of <see cref="TmuxSessionManager"/> so the
-/// manager type stays under the per-type cyclomatic budget.
+/// (<see cref="TerminalsLog"/>), on behalf of <see cref="TmuxSessionManager"/>.
 /// </summary>
 internal static class SpawnOutcomeReporter
 {

@@ -3,9 +3,8 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Terminals;
 
 /// <summary>
-/// Pure helpers around <see cref="RunPreflightWaitResult"/> + binding lists. Split out of
-/// <see cref="RunPreflightOrchestrator"/> so the orchestrator type-level cyclomatic
-/// stays under the project-wide CA1502 budget.
+/// Pure helpers around <see cref="RunPreflightWaitResult"/> + binding lists, used by
+/// <see cref="RunPreflightOrchestrator"/>.
 /// </summary>
 internal static class RunPreflightSession
 {

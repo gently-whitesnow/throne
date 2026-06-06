@@ -3,9 +3,8 @@ using Throne.Application.Terminals;
 namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
-/// Builds the argument vector for <c>tmux new-session -ADs ...</c>. Pulled out of
-/// <see cref="TmuxSessionManager"/> so the manager itself stays under the per-type
-/// cyclomatic budget.
+/// Builds the argument vector for <c>tmux new-session -ADs ...</c>, used by
+/// <see cref="TmuxSessionManager"/>.
 /// </summary>
 internal static class TmuxSpawnArgsBuilder
 {

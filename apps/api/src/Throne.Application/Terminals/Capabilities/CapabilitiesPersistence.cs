@@ -4,10 +4,8 @@ using CapabilitiesAggregate = Throne.Domain.Capabilities.Capabilities;
 namespace Throne.Application.Terminals.Capabilities;
 
 /// <summary>
-/// Read + upsert helper for the <see cref="CapabilitiesAggregate"/> singleton. Split
-/// out of <see cref="CapabilitiesService"/> so that service stays under the project's
-/// CA1502 type-level cyclomatic budget while keeping the unit-of-work choreography in
-/// one place.
+/// Read + upsert helper for the <see cref="CapabilitiesAggregate"/> singleton,
+/// keeping the unit-of-work choreography in one place.
 /// </summary>
 public sealed class CapabilitiesPersistence(
     ICapabilitiesRepository repository,

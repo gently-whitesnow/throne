@@ -8,9 +8,8 @@ namespace Throne.Api.Intents;
 
 /// <summary>
 /// HTTP controller for /api/v1/intents/{id}/links* and /api/v1/intents/links/summary.
-/// Split from <see cref="IntentsController"/> so each tag-scoped controller stays
-/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint instances
-/// (CreateIntentLinkEndpoint, DeleteIntentLinkEndpoint, ListIntentLinksEndpoint,
+/// One tag-scoped controller per intent sub-resource; bodies live in per-endpoint
+/// instances (CreateIntentLinkEndpoint, DeleteIntentLinkEndpoint, ListIntentLinksEndpoint,
 /// GetIntentLinksSummaryEndpoint) injected via ctor.
 /// </summary>
 public sealed class IntentLinksController(

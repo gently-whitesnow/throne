@@ -6,9 +6,8 @@ namespace Throne.Api.Intents;
 
 /// <summary>
 /// HTTP controller for /api/v1/intents/{id}/pin* — pin / unpin / move-pin endpoints.
-/// Split from <see cref="IntentsController"/> so each tag-scoped controller stays
-/// under the CA1502 cyclomatic budget. Bodies live in per-endpoint instances
-/// (PinIntentEndpoint, UnpinIntentEndpoint, MovePinEndpoint) injected via ctor.
+/// One tag-scoped controller per intent sub-resource; bodies live in per-endpoint
+/// instances (PinIntentEndpoint, UnpinIntentEndpoint, MovePinEndpoint) injected via ctor.
 /// </summary>
 public sealed class IntentPinsController(
     PinIntentEndpoint pinIntent,

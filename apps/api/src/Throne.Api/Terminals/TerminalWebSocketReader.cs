@@ -4,10 +4,9 @@ using System.Text;
 namespace Throne.Api.Terminals;
 
 /// <summary>
-/// Reads one WebSocket text message into a string. Lives in its own type so
-/// <see cref="TerminalWebSocketAdapter"/> stays under the per-type cyclomatic budget.
-/// Returns <c>null</c> on a clean close; non-text frames are dropped — a buggy client
-/// cannot tear the bridge down by spamming binary.
+/// Reads one WebSocket text message into a string. Returns <c>null</c> on a clean
+/// close; non-text frames are dropped — a buggy client cannot tear the bridge down
+/// by spamming binary.
 /// </summary>
 internal static class TerminalWebSocketReader
 {

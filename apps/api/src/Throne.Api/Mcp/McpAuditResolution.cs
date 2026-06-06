@@ -5,8 +5,7 @@ namespace Throne.Api.Mcp;
 
 /// <summary>
 /// Pure resolver that maps a <see cref="CallToolResult"/> + optional OOB audit
-/// summary into the fields persisted by <see cref="McpAuditLogger"/>. Lives in its
-/// own class so <c>McpAuditLogger</c> stays within the project's CA1502 budget.
+/// summary into the fields persisted by <see cref="McpAuditLogger"/>.
 ///
 /// Prompt-like tools (ADR-0003 §8.1) ship refs via <paramref name="overrideSummary"/>
 /// because their wire StructuredContent is null. Structured-data tools leave the

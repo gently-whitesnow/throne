@@ -5,8 +5,7 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Helpers that fold JSON parse / value-cast exceptions into <c>bool</c> results so
-/// callers (<see cref="ClientFrameParser"/>) can stay branch-light enough to fit the
-/// per-type cyclomatic budget.
+/// callers (<see cref="ClientFrameParser"/>) can stay branch-light.
 /// </summary>
 internal static class JsonNodeReader
 {

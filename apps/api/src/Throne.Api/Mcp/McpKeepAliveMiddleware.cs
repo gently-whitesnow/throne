@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -117,8 +116,6 @@ public sealed partial class McpKeepAliveMiddleware
 /// SSE frame. The class deliberately overrides every Stream member; Stream itself does not provide a
 /// usable thin-forwarder so each member is a one-line shim guarded by the same gate.
 /// </summary>
-[SuppressMessage("Maintainability", "CA1502:Avoid excessive complexity",
-    Justification = "Thin Stream forwarder: every member is a one-line shim, and the cyclomatic-complexity rule double-counts the try/finally gate around each call.")]
 internal sealed class SerializingWriteStream : Stream
 {
     private readonly Stream _inner;

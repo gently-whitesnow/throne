@@ -13,9 +13,6 @@ namespace Throne.Infrastructure.Terminals;
 /// DI composition for the embedded-terminal module: tmux shell-out, the WS stream
 /// bridge and capability detection probes + TTL cache (ADR-0026 §§ 1-3). All probes
 /// share the existing <c>IProcessLauncher</c> registered by the Git module.
-///
-/// Pulled out of <c>Throne.Infrastructure.DependencyInjection</c> so the root DI
-/// file stays under the per-file fan-out budget.
 /// </summary>
 public static class TerminalsModule
 {

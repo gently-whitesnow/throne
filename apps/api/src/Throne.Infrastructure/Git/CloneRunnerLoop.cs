@@ -8,8 +8,8 @@ namespace Throne.Infrastructure.Git;
 /// <summary>
 /// Параллельный consumer-loop клон-очереди (ADR-0026 §5). Лимит параллелизма —
 /// <see cref="SemaphoreSlim"/>; cам ProcessOne — отдельный scope на binding.
-/// Вынесено из <see cref="RepositoryCloneService"/> чтобы хост-класс остался
-/// тонкой обёрткой над recovery + drain, не упирался в CA1502.
+/// Вынесено из <see cref="RepositoryCloneService"/>, чтобы хост-класс остался
+/// тонкой обёрткой над recovery + drain.
 /// </summary>
 internal sealed partial class CloneRunnerLoop(
     IServiceScopeFactory scopeFactory,

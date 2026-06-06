@@ -4,8 +4,7 @@ namespace Throne.Application.Terminals;
 /// Slice 2 Run pre-flight pipeline (`POST /api/v1/intents/{id}/terminal/run`). Sequencer
 /// around <see cref="RunPreflightGuards"/>, <see cref="RunPreflightAutoBind"/>,
 /// <see cref="RunPreflightCloneWait"/> and <see cref="RunPreflightSpawn"/>. The per-stage
-/// types own all branching logic so this orchestrator stays within the project-wide
-/// CA1502 type-level cyclomatic budget.
+/// types own all branching logic; this orchestrator only sequences them.
 /// </summary>
 public sealed class RunPreflightOrchestrator(
     RunPreflightGuards guards,

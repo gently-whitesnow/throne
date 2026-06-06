@@ -4,9 +4,8 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Parses inbound WebSocket text frames into <see cref="ClientFrame"/>. JSON access is
-/// delegated to <see cref="JsonNodeReader"/> so the per-type cyclomatic budget here stays
-/// tight (ADR-0026 § 3 defers a codegen step until a 3rd bidirectional channel
-/// materialises).
+/// delegated to <see cref="JsonNodeReader"/> (ADR-0026 § 3 defers a codegen step until
+/// a 3rd bidirectional channel materialises).
 /// </summary>
 internal static class ClientFrameParser
 {

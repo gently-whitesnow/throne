@@ -3,9 +3,7 @@ using Throne.Application.Ports;
 namespace Throne.Application.Vscode;
 
 /// <summary>
-/// Thin shell-out around the host `code` CLI. Split from
-/// <see cref="OpenInVscodeService"/> to keep that orchestrator within the
-/// project-wide CA1502 cyclomatic budget.
+/// Thin shell-out around the host `code` CLI, used by <see cref="OpenInVscodeService"/>.
 /// </summary>
 public sealed class VscodeSpawner(IProcessLauncher launcher)
 {
