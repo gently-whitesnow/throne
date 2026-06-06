@@ -11,7 +11,6 @@
     <Project Path="src/Throne.Dreams.Contracts/Throne.Dreams.Contracts.csproj" />
     <Project Path="src/Throne.Realtime.Contracts/Throne.Realtime.Contracts.csproj" />
     <Project Path="src/Throne.Tags.Contracts/Throne.Tags.Contracts.csproj" />
-    <Project Path="src/Throne.Me.Contracts/Throne.Me.Contracts.csproj" />
     <Project Path="src/Throne.Repositories.Contracts/Throne.Repositories.Contracts.csproj" />
     <Project Path="src/Throne.Settings.Contracts/Throne.Settings.Contracts.csproj" />
     <Project Path="src/Throne.Capabilities.Contracts/Throne.Capabilities.Contracts.csproj" />

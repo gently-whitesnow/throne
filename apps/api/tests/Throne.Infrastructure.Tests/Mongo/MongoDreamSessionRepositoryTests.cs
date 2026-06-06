@@ -12,30 +12,29 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 11, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "CreateAsync пишет DreamSession; GetAsync возвращает её в текущем owner-скоупе")]
-    public async Task Create_persists_and_owner_scoped()
+    [Fact(DisplayName = "CreateAsync пишет DreamSession; GetAsync возвращает её")]
+    public async Task Create_persists_and_reads_back()
     {
-        var (_, repo, uow) = await NewScopeAsync("user-1");
+        var (_, repo, uow) = await NewScopeAsync();
 
-        var session = MakeSession("d-1", "user-1");
+        var session = MakeSession("d-1");
         await uow.ExecuteAsync(ct => repo.CreateAsync(session, ct), CancellationToken.None);
 
         var loaded = await repo.GetAsync("d-1", CancellationToken.None);
         loaded.Should().NotBeNull();
-        loaded!.OwnerUserId.Should().Be("user-1");
-        loaded.Payload.Vendor.Should().Be("claude-code");
+        loaded!.Payload.Vendor.Should().Be("claude-code");
         loaded.Payload.Host.Should().Be("host-a.local");
         loaded.Payload.Summary.Should().Be("hello");
         loaded.Payload.ProcessedConversationIds.Should().Equal("a", "b");
     }
 
-    [Fact(DisplayName = "ListAsync host-фильтр отсекает сессии других машин того же owner")]
+    [Fact(DisplayName = "ListAsync host-фильтр отсекает сессии других машин")]
     public async Task List_host_filter_isolates_machines()
     {
-        var (_, repo, uow) = await NewScopeAsync("user-1");
+        var (_, repo, uow) = await NewScopeAsync();
 
-        var hostA = MakeSession("d-host-a", "user-1", host: "host-a.local", at: Now);
-        var hostB = MakeSession("d-host-b", "user-1", host: "host-b.local", at: Now.AddMinutes(5));
+        var hostA = MakeSession("d-host-a", host: "host-a.local", at: Now);
+        var hostB = MakeSession("d-host-b", host: "host-b.local", at: Now.AddMinutes(5));
         await uow.ExecuteAsync(ct => repo.CreateAsync(hostA, ct), CancellationToken.None);
         await uow.ExecuteAsync(ct => repo.CreateAsync(hostB, ct), CancellationToken.None);
 
@@ -54,25 +53,13 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
         all.Items.Should().HaveCount(2);
     }
 
-    [Fact(DisplayName = "GetAsync фильтрует по owner и не отдаёт чужие dream-sessions")]
-    public async Task Get_filters_by_owner()
+    [Fact(DisplayName = "ListAsync vendor-фильтр + сортировка по created_at DESC")]
+    public async Task List_vendor_filter_sorts_desc()
     {
-        var (_, asUser1, uow) = await NewScopeAsync("user-1");
-        var (_, asUser2, _) = await NewScopeAsync("user-2", reuse: true);
+        var (_, repo, uow) = await NewScopeAsync();
 
-        await uow.ExecuteAsync(ct => asUser1.CreateAsync(MakeSession("d-1", "user-1"), ct), CancellationToken.None);
-
-        (await asUser1.GetAsync("d-1", CancellationToken.None)).Should().NotBeNull();
-        (await asUser2.GetAsync("d-1", CancellationToken.None)).Should().BeNull();
-    }
-
-    [Fact(DisplayName = "ListAsync owner-scoped + vendor-фильтр + сортировка по created_at DESC")]
-    public async Task List_owner_vendor_filter_sorts_desc()
-    {
-        var (_, repo, uow) = await NewScopeAsync("user-1");
-
-        var older = MakeSession("d-1", "user-1", vendor: "claude-code", at: Now);
-        var newer = MakeSession("d-2", "user-1", vendor: "codex-cli", at: Now.AddHours(1));
+        var older = MakeSession("d-1", vendor: "claude-code", at: Now);
+        var newer = MakeSession("d-2", vendor: "codex-cli", at: Now.AddHours(1));
         await uow.ExecuteAsync(ct => repo.CreateAsync(older, ct), CancellationToken.None);
         await uow.ExecuteAsync(ct => repo.CreateAsync(newer, ct), CancellationToken.None);
 
@@ -96,13 +83,11 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
 
     private static DreamSession MakeSession(
         string id,
-        string ownerUserId,
         string vendor = "claude-code",
         string host = "host-a.local",
         DateTimeOffset? at = null) =>
         DreamSession.Create(
             id: id,
-            ownerUserId: ownerUserId,
             createdAt: at ?? Now,
             vendor: vendor,
             host: host,
@@ -113,24 +98,14 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
             reflection: null,
             proposedPatchIds: []);
 
-    private static IMongoDatabase? _sharedDb;
-    private static MongoSessionAccessor? _sharedSession;
-    private static MongoUnitOfWork? _sharedUow;
-
-    private async Task<(IMongoDatabase Db, MongoDreamSessionRepository Repo, MongoUnitOfWork Uow)> NewScopeAsync(
-        string userId,
-        bool reuse = false)
+    private async Task<(IMongoDatabase Db, MongoDreamSessionRepository Repo, MongoUnitOfWork Uow)> NewScopeAsync()
     {
-        if (!reuse || _sharedDb is null)
-        {
-            var name = $"throne_test_{Guid.NewGuid():N}";
-            await fixture.Client.DropDatabaseAsync(name);
-            _sharedDb = fixture.Client.GetDatabase(name);
-            _sharedSession = new MongoSessionAccessor();
-            _sharedUow = new MongoUnitOfWork(fixture.Client, _sharedSession);
-        }
-
-        var repo = new MongoDreamSessionRepository(_sharedDb!, _sharedSession!, new TestCurrentUserAccessor(userId));
-        return (_sharedDb!, repo, _sharedUow!);
+        var name = $"throne_test_{Guid.NewGuid():N}";
+        await fixture.Client.DropDatabaseAsync(name);
+        var db = fixture.Client.GetDatabase(name);
+        var session = new MongoSessionAccessor();
+        var uow = new MongoUnitOfWork(fixture.Client, session);
+        var repo = new MongoDreamSessionRepository(db, session);
+        return (db, repo, uow);
     }
 }

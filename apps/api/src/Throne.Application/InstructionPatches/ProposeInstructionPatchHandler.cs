@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -44,7 +43,6 @@ public sealed class ProposeInstructionPatchHandler(
     IInstructionPatchRepository patches,
     UserInstructionLookup userInstructions,
     IUnitOfWork unitOfWork,
-    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<InstructionPatch> HandleAsync(ProposeInstructionPatchCommand command, CancellationToken ct)
@@ -53,7 +51,6 @@ public sealed class ProposeInstructionPatchHandler(
         ProposeInstructionPatchValidator.ValidateCommand(command);
 
         var idempotencyKey = IdempotencyKeyValidator.Normalize(command.IdempotencyKey);
-        var ownerUserId = currentUser.UserId;
 
         // Idempotency check runs BEFORE version validation: a retry that arrives
         // after the original patch was applied (and target Instruction.current_version
@@ -72,7 +69,7 @@ public sealed class ProposeInstructionPatchHandler(
         // Если записи нет — current_version=0 валидно, такой патч позже создаст
         // Instruction на apply-стороне.
         var targetInstruction = await userInstructions.FindAsync(
-            ownerUserId, command.TargetKind, ct);
+            command.TargetKind, ct);
         var currentVersion = targetInstruction?.CurrentVersion ?? 0;
         if (currentVersion != command.BaseInstructionVersion)
         {
@@ -87,7 +84,7 @@ public sealed class ProposeInstructionPatchHandler(
                 });
         }
 
-        var patch = ProposeInstructionPatchFactory.Create(command, ownerUserId, clock.GetUtcNow());
+        var patch = ProposeInstructionPatchFactory.Create(command, clock.GetUtcNow());
 
         // Insert runs outside the UoW transaction: it is a single-doc write
         // (atomic on its own) and the idempotency-retry fallback path needs to
@@ -120,14 +117,12 @@ internal static class ProposeInstructionPatchFactory
 {
     public static InstructionPatch Create(
         ProposeInstructionPatchCommand command,
-        string ownerUserId,
         DateTimeOffset now)
     {
         try
         {
             return InstructionPatch.Create(
                 id: Guid.NewGuid().ToString("N"),
-                ownerUserId: ownerUserId,
                 targetKind: command.TargetKind,
                 patchText: command.PatchText,
                 evidenceCardIds: command.EvidenceCardIds ?? [],

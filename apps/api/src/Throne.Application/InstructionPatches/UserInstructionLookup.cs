@@ -10,9 +10,9 @@ namespace Throne.Application.InstructionPatches;
 /// </summary>
 public sealed class UserInstructionLookup(IInstructionRepository instructions)
 {
-    public async Task<Instruction?> FindAsync(string ownerUserId, string kind, CancellationToken ct)
+    public async Task<Instruction?> FindAsync(string kind, CancellationToken ct)
     {
-        var list = await instructions.GetUserInstructionsByKindsAsync(ownerUserId, [kind], ct);
+        var list = await instructions.GetUserInstructionsByKindsAsync([kind], ct);
         return list.Count == 0 ? null : list[0];
     }
 }

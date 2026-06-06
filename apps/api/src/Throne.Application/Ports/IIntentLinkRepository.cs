@@ -34,9 +34,8 @@ public interface IIntentLinkRepository
         CancellationToken ct);
 
     /// <summary>
-    /// Reads outgoing + incoming links for the supplied intent. Both endpoints are filtered
-    /// by the current owner_user_id at the intent collection level; orphan edges (peer not
-    /// owned or deleted) are dropped from the projection.
+    /// Reads outgoing + incoming links for the supplied intent. Orphan edges (peer
+    /// deleted) are dropped from the projection.
     /// </summary>
     Task<IReadOnlyList<IntentLinkView>> ListByIntentAsync(IntentId intentId, CancellationToken ct);
 

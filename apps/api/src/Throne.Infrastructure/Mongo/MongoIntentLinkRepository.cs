@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Events;
@@ -12,7 +11,6 @@ namespace Throne.Infrastructure.Mongo;
 internal sealed class MongoIntentLinkRepository(
     IMongoDatabase database,
     MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser,
     IIntentEventRepository intentEvents,
     TimeProvider clock) : IIntentLinkRepository
 {
@@ -109,10 +107,8 @@ internal sealed class MongoIntentLinkRepository(
         var queriedSet = ids.ToHashSet(StringComparer.Ordinal);
         foreach (var doc in docs)
         {
-            // Owner-isolation: peers are loaded through LoadPeersAsync (filtered on
-            // OwnerUserId). Edges whose peer is foreign / deleted drop out of the
-            // projection automatically — the queried intent itself is not a "peer"
-            // candidate, so don't add it.
+            // Edges whose peer was deleted drop out of the projection automatically:
+            // LoadPeersAsync only returns intents that still exist.
             if (!queriedSet.Contains(doc.FromId))
             {
                 peerIds.Add(doc.FromId);
@@ -122,9 +118,8 @@ internal sealed class MongoIntentLinkRepository(
                 peerIds.Add(doc.ToId);
             }
         }
-        // Also need queried intents themselves to verify ownership (we trust the
-        // filter, but LoadPeersAsync re-checks owner). Add them so the dictionary
-        // covers self-as-peer when both endpoints of an edge are in the query set.
+        // Queried intents themselves can be a peer when both endpoints of an edge
+        // are in the query set, so include them in the load.
         foreach (var id in ids)
         {
             peerIds.Add(id);
@@ -135,9 +130,9 @@ internal sealed class MongoIntentLinkRepository(
         var grouped = new Dictionary<string, List<IntentLinkView>>(StringComparer.Ordinal);
         foreach (var doc in docs)
         {
-            var fromOwned = peersById.ContainsKey(doc.FromId);
-            var toOwned = peersById.ContainsKey(doc.ToId);
-            if (!fromOwned || !toOwned)
+            var fromExists = peersById.ContainsKey(doc.FromId);
+            var toExists = peersById.ContainsKey(doc.ToId);
+            if (!fromExists || !toExists)
             {
                 continue;
             }
@@ -224,14 +219,6 @@ internal sealed class MongoIntentLinkRepository(
         }
 
         var ids = intentIds.Select(i => i.Value).Distinct(StringComparer.Ordinal).ToList();
-        // Owner-isolation: only count edges originating from intents the current user
-        // owns — orphan/cross-tenant edges have already been blocked at write time, but
-        // we still join on `intents.owner_user_id` to defend against post-hoc data drift.
-        var ownedFromIds = await _intents
-            .Find(Builders<IntentDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId))
-            .Project(d => d.Id)
-            .ToListAsync(ct);
-        var ownedSet = ownedFromIds.ToHashSet(StringComparer.Ordinal);
 
         var session = sessions.Current;
         var fb = Builders<IntentLinkDocument>.Filter;
@@ -243,11 +230,6 @@ internal sealed class MongoIntentLinkRepository(
 
         foreach (var doc in docs)
         {
-            if (!ownedSet.Contains(doc.FromId))
-            {
-                continue;
-            }
-
             result.TryGetValue(doc.ToId, out var current);
             result[doc.ToId] = current + 1;
         }
@@ -329,10 +311,8 @@ internal sealed class MongoIntentLinkRepository(
         HashSet<string> peerIds,
         CancellationToken ct)
     {
-        var ownerFilter = Builders<IntentDocument>.Filter.And(
-            Builders<IntentDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId),
-            Builders<IntentDocument>.Filter.In(d => d.Id, peerIds));
-        var find = session is null ? _intents.Find(ownerFilter) : _intents.Find(session, ownerFilter);
+        var peerFilter = Builders<IntentDocument>.Filter.In(d => d.Id, peerIds);
+        var find = session is null ? _intents.Find(peerFilter) : _intents.Find(session, peerFilter);
         var peers = await find.ToListAsync(ct);
         return peers.ToDictionary(p => p.Id, p => p, StringComparer.Ordinal);
     }
@@ -344,9 +324,7 @@ internal sealed class MongoIntentLinkRepository(
         CancellationToken ct)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal) { fromId.Value, toId.Value };
-        var filter = Builders<IntentDocument>.Filter.And(
-            Builders<IntentDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId),
-            Builders<IntentDocument>.Filter.In(d => d.Id, ids));
+        var filter = Builders<IntentDocument>.Filter.In(d => d.Id, ids);
         var found = (await _intents.Find(session, filter).Project(d => d.Id).ToListAsync(ct))
             .ToHashSet(StringComparer.Ordinal);
         if (!found.Contains(fromId.Value))
@@ -401,7 +379,6 @@ internal sealed class MongoIntentLinkRepository(
 
     private static Intent MapIntentToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
-        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,

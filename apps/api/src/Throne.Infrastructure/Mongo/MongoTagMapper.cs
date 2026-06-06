@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
@@ -41,16 +40,13 @@ internal static class MongoTagMapper
 
     public static Intent IntentToDomain(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
-        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId)
-            ? CurrentUserIds.LocalDev
-            : doc.OwnerUserId,
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,
         tagIds: doc.TagIds.Select(v => new TagId(v)).ToList(),
-        sortKey: doc.SortKey,
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
-        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
+        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc),
+        sortKey: doc.SortKey);
 
     private static TagDefaultRepository DefaultRepositoryToDomain(TagDefaultRepositoryDocument doc) =>
         new(new RepoCoordinate(doc.Provider, doc.Owner, doc.Repo), doc.DefaultBranch);

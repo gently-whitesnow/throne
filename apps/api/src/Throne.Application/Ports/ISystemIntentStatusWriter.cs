@@ -3,15 +3,14 @@ using Throne.Domain.Intents;
 namespace Throne.Application.Ports;
 
 /// <summary>
-/// Owner-agnostic intent read/write surface for system-initiated hooks that run outside an
-/// HTTP request — there is no <c>ICurrentUserAccessor</c> context, so the owner-scoped
-/// <see cref="IIntentRepository"/> path cannot be used. Currently backs the PR-merge
-/// auto-close (<c>IntentMergeAutoCloser</c>); kept as a separate narrow port so the broad
-/// owner-scoped repository stays unchanged.
+/// Intent read/write surface for system-initiated hooks that run outside an
+/// HTTP request. Currently backs the PR-merge auto-close
+/// (<c>IntentMergeAutoCloser</c>); kept as a separate narrow port so the broad
+/// repository stays unchanged.
 /// </summary>
 public interface ISystemIntentStatusWriter
 {
-    /// <summary>Resolve an intent by id alone (no owner filter).</summary>
+    /// <summary>Resolve an intent by id alone.</summary>
     Task<Intent?> GetByIdForSystemAsync(IntentId id, CancellationToken ct);
 
     /// <summary>

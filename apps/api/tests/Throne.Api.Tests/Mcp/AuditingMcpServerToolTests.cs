@@ -9,7 +9,6 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using NSubstitute;
 using Throne.Api.Mcp;
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 
@@ -37,21 +36,7 @@ public class AuditingMcpServerToolTests
             Arg.Is<McpCallLogEntry>(e =>
                 e.ToolName == "create_intent" &&
                 e.Outcome == McpCallOutcome.Success &&
-                e.ErrorCode == null &&
-                e.UserId == CurrentUserIds.LocalDev),
-            Arg.Any<CancellationToken>());
-    }
-
-    [Fact(DisplayName = "InvokeAsync пишет user_id из ICurrentUserAccessor")]
-    public async Task Invoke_records_user_id_from_accessor()
-    {
-        var sink = Substitute.For<IMcpCallLogSink>();
-        var tool = NewWrapper("create_intent", _ => SuccessResult(), sink, new StubCurrentUser("user-42"));
-
-        await tool.InvokeAsync(NewCallContext("create_intent", new Dictionary<string, JsonElement>()), CancellationToken.None);
-
-        await sink.Received(1).WriteAsync(
-            Arg.Is<McpCallLogEntry>(e => e.UserId == "user-42"),
+                e.ErrorCode == null),
             Arg.Any<CancellationToken>());
     }
 
@@ -158,7 +143,6 @@ public class AuditingMcpServerToolTests
     {
         var services = new ServiceCollection();
         services.AddSingleton(sink);
-        services.AddSingleton<ICurrentUserAccessor>(new StubCurrentUser(CurrentUserIds.LocalDev));
         services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         services.AddSingleton<ILogger<AuditingMcpServerTool>>(NullLogger<AuditingMcpServerTool>.Instance);
         services.AddSingleton(new ServerVersion("test"));
@@ -264,21 +248,14 @@ public class AuditingMcpServerToolTests
     private static AuditingMcpServerTool NewWrapper(
         string toolName,
         Func<AIFunctionArguments, object?> handler,
-        IMcpCallLogSink sink,
-        ICurrentUserAccessor? currentUser = null) =>
+        IMcpCallLogSink sink) =>
         new(
             new StubMcpServerTool(toolName, hasOutputSchema: true),
             new StubAIFunction(toolName, handler),
             sink,
-            currentUser ?? new StubCurrentUser(CurrentUserIds.LocalDev),
             new FakeTimeProvider(Now),
             NullLogger<AuditingMcpServerTool>.Instance,
             new ServerVersion("test"));
-
-    private sealed class StubCurrentUser(string userId) : ICurrentUserAccessor
-    {
-        public string UserId { get; } = userId;
-    }
 
     private static RequestContext<CallToolRequestParams> NewCallContext(
         string toolName,

@@ -1,6 +1,5 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Infrastructure.Mongo.Documents;
@@ -9,13 +8,12 @@ namespace Throne.Infrastructure.Mongo.Intents;
 
 /// <summary>
 /// Read-only aggregator for the context rail. Counts every bucket server-side via a single
-/// <c>$facet</c> over the owner's intents (status counts, untagged scopes, per-tag breakdowns)
+/// <c>$facet</c> over all intents (status counts, untagged scopes, per-tag breakdowns)
 /// plus a distinct on <c>intent_pins</c> for the pinned bucket — never loads the full list.
 /// </summary>
 internal sealed class MongoIntentContextReader(
     IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser)
+    MongoSessionAccessor sessions)
 {
     private readonly IMongoCollection<IntentDocument> _intents =
         database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
@@ -41,7 +39,6 @@ internal sealed class MongoIntentContextReader(
 
         var pipeline = new BsonDocument[]
         {
-            new("$match", new BsonDocument("owner_user_id", currentUser.UserId)),
             new("$facet", new BsonDocument
             {
                 ["byStatus"] = new BsonArray
@@ -87,7 +84,7 @@ internal sealed class MongoIntentContextReader(
             TerminalRunning: terminalRunning);
     }
 
-    // Owner-scoped count of intents whose id is in the live tmux session set (empty set → 0).
+    // Count of intents whose id is in the live tmux session set (empty set → 0).
     private async Task<int> CountByIdsAsync(
         IClientSessionHandle? session, IReadOnlyList<string> ids, CancellationToken ct)
     {
@@ -95,9 +92,7 @@ internal sealed class MongoIntentContextReader(
         {
             return 0;
         }
-        var filter = Builders<IntentDocument>.Filter.And(
-            IntentCollectionFilters.Owner(currentUser.UserId),
-            Builders<IntentDocument>.Filter.In(d => d.Id, ids));
+        var filter = Builders<IntentDocument>.Filter.In(d => d.Id, ids);
         var count = session is null
             ? await _intents.CountDocumentsAsync(filter, cancellationToken: ct)
             : await _intents.CountDocumentsAsync(session, filter, cancellationToken: ct);
@@ -164,10 +159,10 @@ internal sealed class MongoIntentContextReader(
 
     private async Task<int> CountPinnedAsync(IClientSessionHandle? session, CancellationToken ct)
     {
-        var ownerFilter = Builders<IntentPinDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
+        var all = Builders<IntentPinDocument>.Filter.Empty;
         var ids = session is null
-            ? await _pins.Distinct(d => d.IntentId, ownerFilter, cancellationToken: ct).ToListAsync(ct)
-            : await _pins.Distinct(session, d => d.IntentId, ownerFilter, cancellationToken: ct).ToListAsync(ct);
+            ? await _pins.Distinct(d => d.IntentId, all, cancellationToken: ct).ToListAsync(ct)
+            : await _pins.Distinct(session, d => d.IntentId, all, cancellationToken: ct).ToListAsync(ct);
         return ids.Count;
     }
 }

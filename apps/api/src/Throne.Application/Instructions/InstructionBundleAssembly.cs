@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
@@ -100,7 +99,7 @@ internal static class SystemBundleEntries
     }
 }
 
-public sealed class UserBundleEntries(IInstructionRepository repository, ICurrentUserAccessor currentUser)
+public sealed class UserBundleEntries(IInstructionRepository repository)
 {
     public async Task<InstructionWithText[]> BuildAsync(BundleDefinition bundle, CancellationToken ct)
     {
@@ -114,7 +113,7 @@ public sealed class UserBundleEntries(IInstructionRepository repository, ICurren
 
         var userKinds = userSlots.Select(s => s.Kind).ToArray();
         var userInstructions = await repository.GetUserInstructionsByKindsAsync(
-            currentUser.UserId, userKinds, ct);
+            userKinds, ct);
 
         var orderIndex = userSlots
             .Select((slot, idx) => (slot.Kind, idx))

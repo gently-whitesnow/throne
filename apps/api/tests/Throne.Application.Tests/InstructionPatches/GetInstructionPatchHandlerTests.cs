@@ -72,28 +72,6 @@ public class GetInstructionPatchHandlerTests
         await textVersions.DidNotReceiveWithAnyArgs().ListByOwnerAsync(default, default!, default);
     }
 
-    [Fact(DisplayName = "Get для патча в чужой инструкции бросает not_found (owner guard)")]
-    public async Task Get_rejects_other_owner()
-    {
-        var patch = InstructionPatch.Restore(
-            identity: new InstructionPatchIdentity("p-1", "other-user", InstructionKindNames.Work, 1, Now),
-            state: new InstructionPatchState(
-                Status: InstructionPatchStatusNames.Proposed,
-                AppliedText: null,
-                RejectComment: null,
-                AppliedInstructionVersion: null,
-                UpdatedAt: Now,
-                DecidedAt: null),
-            patchText: "x",
-            evidenceCardIds: [],
-            rationale: "r");
-
-        var handler = NewHandler(patch, instruction: null, Substitute.For<ITextVersionRepository>());
-
-        var act = async () => await handler.HandleAsync("p-1", CancellationToken.None);
-        await act.Should().ThrowAsync<Exception>();
-    }
-
     private static GetInstructionPatchHandler NewHandler(
         InstructionPatch patch,
         Instruction? instruction,
@@ -105,21 +83,19 @@ public class GetInstructionPatchHandlerTests
 
         var instructions = Substitute.For<IInstructionRepository>();
         instructions.GetUserInstructionsByKindsAsync(
-                Arg.Any<string>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Instruction>>(
                 instruction is null ? Array.Empty<Instruction>() : new[] { instruction }));
 
         return new GetInstructionPatchHandler(
             patches,
             new UserInstructionLookup(instructions),
-            textVersions,
-            new TestCurrentUserAccessor());
+            textVersions);
     }
 
     private static InstructionPatch MakePatch(string id, int baseVersion) =>
         InstructionPatch.Create(
             id: id,
-            ownerUserId: "user-1",
             targetKind: InstructionKindNames.Work,
             patchText: "patch text",
             evidenceCardIds: [],
@@ -131,7 +107,6 @@ public class GetInstructionPatchHandlerTests
         Instruction.Restore(
             new InstructionId(id),
             scope: InstructionScopeNames.User,
-            userId: "user-1",
             kind: InstructionKindNames.Work,
             text: currentText,
             currentVersion: currentVersion,

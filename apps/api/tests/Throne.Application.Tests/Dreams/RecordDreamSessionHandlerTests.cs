@@ -13,8 +13,8 @@ public class RecordDreamSessionHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 11, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "RecordDreamSession сохраняет сессию через unit-of-work и проставляет owner")]
-    public async Task Record_persists_and_assigns_owner()
+    [Fact(DisplayName = "RecordDreamSession сохраняет сессию через unit-of-work")]
+    public async Task Record_persists_session()
     {
         var repo = Substitute.For<IDreamSessionRepository>();
         repo.CreateAsync(Arg.Any<DreamSession>(), Arg.Any<CancellationToken>())
@@ -33,7 +33,6 @@ public class RecordDreamSessionHandlerTests
                 ProposedPatchIds: []),
             CancellationToken.None);
 
-        session.OwnerUserId.Should().Be("user-1");
         session.Payload.Vendor.Should().Be("claude-code");
         session.Payload.Host.Should().Be("laptop-1.local");
         session.Identity.CreatedAt.Should().Be(Now);
@@ -132,7 +131,6 @@ public class RecordDreamSessionHandlerTests
         return new RecordDreamSessionHandler(
             repo,
             new PassthroughUnitOfWork(),
-            new TestCurrentUserAccessor(),
             manifest,
             new FakeTimeProvider(Now));
     }

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Throne.Api.Auth;
 using Throne.Api.Hosting;
 using Throne.Api.Intents;
 using Throne.Api.Realtime;
@@ -23,7 +22,6 @@ public static class ThroneMcpCoreServices
 
         services.AddThroneApplication();
         services.AddThroneInfrastructure(configuration);
-        services.AddThroneAuth(configuration);
         services.AddThroneRealtime();
         services.AddThroneTools();
         // Per-endpoint classes + shared IntentsApiHelpers for the four split
@@ -34,10 +32,6 @@ public static class ThroneMcpCoreServices
         services.AddThroneRepositoryEndpoints();
         services.AddThroneTerminalEndpoints();
         services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 12 * 1024 * 1024);
-        // ForwardedHeaders + IStartupFilter: throne-api за Caddy/nginx, без этого
-        // HttpRequest.Scheme = "http" даже на HTTPS-запросе → ломает RFC 9728
-        // metadata и resource_metadata в WWW-Authenticate (см. ForwardedHeadersConfig).
-        services.AddTrustedReverseProxyForwarding();
         // Bound the graceful-shutdown backstop (default 30s → 10s); long-lived
         // connections still unwind promptly on ApplicationStopping themselves.
         services.AddBoundedGracefulShutdown();

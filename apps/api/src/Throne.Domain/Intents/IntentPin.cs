@@ -10,7 +10,6 @@ namespace Throne.Domain.Intents;
 public sealed record IntentPin(
     IntentId IntentId,
     TagId ContextTagId,
-    string OwnerUserId,
     string PinSortKey,
     DateTimeOffset CreatedAt)
 {

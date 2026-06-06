@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -16,7 +15,6 @@ public sealed record CreateInstructionCommand(string Kind, string Text);
 public sealed class CreateInstructionHandler(
     IInstructionRepository repository,
     IUnitOfWork unitOfWork,
-    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<Instruction> HandleAsync(CreateInstructionCommand command, CancellationToken ct)
@@ -31,8 +29,7 @@ public sealed class CreateInstructionHandler(
                 new Dictionary<string, object?> { ["field"] = "kind" });
         }
 
-        var ownerUserId = currentUser.UserId;
-        var existing = await repository.GetUserInstructionsByKindsAsync(ownerUserId, [command.Kind], ct);
+        var existing = await repository.GetUserInstructionsByKindsAsync([command.Kind], ct);
         if (existing.Count > 0)
         {
             throw new ApiException(
@@ -49,7 +46,6 @@ public sealed class CreateInstructionHandler(
         var instruction = Instruction.Create(
             id: InstructionId.New(),
             scope: InstructionScopeNames.User,
-            userId: ownerUserId,
             kind: command.Kind,
             text: command.Text,
             now: now);

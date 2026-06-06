@@ -45,7 +45,6 @@ internal sealed partial class McpAuditLogger(
             var entry = new McpCallLogEntry(
                 fields.StartedAt,
                 fields.SessionId,
-                fields.UserId,
                 fields.ToolName,
                 fields.Arguments,
                 fields.IntentId,

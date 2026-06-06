@@ -36,31 +36,29 @@ public sealed class Instruction
     public static Instruction Create(
         InstructionId id,
         string scope,
-        string? userId,
         string kind,
         string text,
         DateTimeOffset now)
     {
-        EnsureCreateInputs(scope, userId, kind, text);
-        return new Instruction(id, new InstructionDescriptor(scope, userId, kind), text, currentVersion: 1, now, now);
+        EnsureCreateInputs(scope, kind, text);
+        return new Instruction(id, new InstructionDescriptor(scope, kind), text, currentVersion: 1, now, now);
     }
 
     public static Instruction Restore(
         InstructionId id,
         string scope,
-        string? userId,
         string kind,
         string text,
         int currentVersion,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
     {
-        EnsureCreateInputs(scope, userId, kind, text);
+        EnsureCreateInputs(scope, kind, text);
         if (currentVersion < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(currentVersion), "current_version must be >= 1.");
         }
-        return new Instruction(id, new InstructionDescriptor(scope, userId, kind), text, currentVersion, createdAt, updatedAt);
+        return new Instruction(id, new InstructionDescriptor(scope, kind), text, currentVersion, createdAt, updatedAt);
     }
 
     /// <summary>
@@ -118,7 +116,7 @@ public sealed class Instruction
         return new ReplaceInstructionTextResult.Replaced(version);
     }
 
-    private static void EnsureCreateInputs(string scope, string? userId, string kind, string text)
+    private static void EnsureCreateInputs(string scope, string kind, string text)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(scope);
         ArgumentException.ThrowIfNullOrWhiteSpace(kind);
@@ -130,22 +128,6 @@ public sealed class Instruction
         if (!InstructionKindNames.IsKnown(kind))
         {
             throw new ArgumentOutOfRangeException(nameof(kind), $"Unknown instruction kind: {kind}.");
-        }
-        EnsureUserIdMatchesScope(scope, userId);
-    }
-
-    private static void EnsureUserIdMatchesScope(string scope, string? userId)
-    {
-        if (scope == InstructionScopeNames.User)
-        {
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                throw new ArgumentException("user_id is required for user-scoped instructions.", nameof(userId));
-            }
-        }
-        else if (userId is not null)
-        {
-            throw new ArgumentException("user_id must be null for system-scoped instructions.", nameof(userId));
         }
     }
 }

@@ -64,7 +64,7 @@ public sealed class CreateInstructionEndpointTests(MongoFixture mongo) : IAsyncL
         await using var scope = _factory.Services.CreateAsyncScope();
         var repo = scope.ServiceProvider.GetRequiredService<IInstructionRepository>();
         var saved = await repo.GetUserInstructionsByKindsAsync(
-            "local-dev", [InstructionKindNames.Work], CancellationToken.None);
+            [InstructionKindNames.Work], CancellationToken.None);
         saved.Should().HaveCount(1);
         saved[0].Text.Should().Be("hello");
         saved[0].CurrentVersion.Should().Be(1);

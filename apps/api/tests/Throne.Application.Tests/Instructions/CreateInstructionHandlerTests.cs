@@ -16,7 +16,7 @@ public class CreateInstructionHandlerTests
     public async Task Creates_new_user_instruction()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        repo.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
         Instruction? saved = null;
         repo.CreateAsync(Arg.Any<Instruction>(), Arg.Any<TextVersion>(), Arg.Any<CancellationToken>())
@@ -33,7 +33,6 @@ public class CreateInstructionHandlerTests
 
         saved.Should().NotBeNull();
         saved!.Descriptor.Kind.Should().Be(InstructionKindNames.Work);
-        saved.Descriptor.UserId.Should().Be("user-1");
         saved.Text.Should().Be("hello");
         saved.CurrentVersion.Should().Be(1);
         result.Id.Value.Should().Be(saved.Id.Value);
@@ -44,8 +43,8 @@ public class CreateInstructionHandlerTests
     {
         var repo = Substitute.For<IInstructionRepository>();
         var existing = Instruction.Create(
-            InstructionId.New(), InstructionScopeNames.User, "user-1", InstructionKindNames.Work, "x", Now);
-        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+            InstructionId.New(), InstructionScopeNames.User, InstructionKindNames.Work, "x", Now);
+        repo.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([existing]);
         var handler = NewHandler(repo);
 
@@ -79,7 +78,7 @@ public class CreateInstructionHandlerTests
     public async Task Allows_empty_text()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        repo.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
         Instruction? saved = null;
         repo.CreateAsync(Arg.Any<Instruction>(), Arg.Any<TextVersion>(), Arg.Any<CancellationToken>())
@@ -102,8 +101,7 @@ public class CreateInstructionHandlerTests
     {
         var uow = new PassThroughUnitOfWork();
         var clock = new FixedTimeProvider(Now);
-        var user = new TestCurrentUserAccessor();
-        return new CreateInstructionHandler(repo, uow, user, clock);
+        return new CreateInstructionHandler(repo, uow, clock);
     }
 
     private sealed class PassThroughUnitOfWork : IUnitOfWork
