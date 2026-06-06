@@ -75,8 +75,7 @@ public sealed class RecordDreamSessionHandler(
 
 /// <summary>
 /// Application-side check that the caller's vendor matches one of the manifest
-/// <c>dream_sources</c> entries. Sits outside the handler so the handler's
-/// per-method cyclomatic complexity stays inside CA1502.
+/// <c>dream_sources</c> entries.
 /// </summary>
 internal static class DreamSessionVendorValidator
 {

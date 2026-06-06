@@ -5,10 +5,8 @@ using Throne.Domain.TextVersions;
 namespace Throne.Application.InstructionPatches;
 
 /// <summary>
-/// The transactional core of the apply-patch operation. Lives outside
-/// <see cref="ApplyInstructionPatchHandler"/> so the per-type CA1502 budget of
-/// the handler stays within threshold; the handler only orchestrates the
-/// pre-flight checks and delegates to this workflow.
+/// The transactional core of the apply-patch operation: <see cref="ApplyInstructionPatchHandler"/>
+/// runs the pre-flight checks and delegates the unit-of-work choreography here.
 /// </summary>
 public sealed class ApplyInstructionPatchWorkflow(
     IInstructionPatchRepository patches,

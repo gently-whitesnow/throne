@@ -4,8 +4,7 @@ namespace Throne.Application.InstructionPatches;
 
 /// <summary>
 /// Pre-flight checks for <see cref="ApplyInstructionPatchHandler"/>. Pure —
-/// only operates on the values passed in, no dependencies, so static is
-/// appropriate and the branches don't burden the workflow's CA1502 budget.
+/// only operates on the values passed in, no dependencies, so static is appropriate.
 /// </summary>
 internal static class ApplyInstructionPatchValidation
 {

@@ -8,9 +8,8 @@ public static class ThroneStartup
 {
     /// <summary>
     /// Composite endpoint mapping for all custom Throne surfaces beyond MapControllers().
-    /// Today: the embedded-terminal WebSocket bridge (T-03). Future cross-cutting
-    /// endpoints land here so <c>Program.cs</c> stays under per-method coupling budgets.
-    /// Also enables the WebSocket middleware required by the bridge.
+    /// Today: the embedded-terminal WebSocket bridge (T-03); future cross-cutting
+    /// endpoints land here too. Also enables the WebSocket middleware required by the bridge.
     /// </summary>
     public static WebApplication MapThroneEndpoints(this WebApplication app)
     {

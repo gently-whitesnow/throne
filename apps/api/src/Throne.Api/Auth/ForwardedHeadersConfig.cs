@@ -32,8 +32,7 @@ public static class ForwardedHeadersConfig
         });
 
         // IStartupFilter автоматически вставляет UseForwardedHeaders в pipeline
-        // первым — Program.cs не зовёт никаких Use*, и coupling в Main падает
-        // ниже CA1506 threshold (HttpOverrides перестаёт там фигурировать).
+        // первым — Program.cs не зовёт никаких Use*.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IStartupFilter, ForwardedHeadersStartupFilter>());
         return services;
     }

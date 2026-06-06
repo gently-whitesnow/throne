@@ -4,8 +4,7 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Filters the raw newline-separated <c>tmux list-sessions -F '#S'</c> output down to
-/// the throne-owned sessions. Kept apart from <see cref="TmuxSessionManager"/> so the
-/// manager type stays under the per-type cyclomatic budget.
+/// the throne-owned sessions, on behalf of <see cref="TmuxSessionManager"/>.
 /// </summary>
 internal static class TmuxSessionListParser
 {

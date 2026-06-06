@@ -96,8 +96,8 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
         CancellationToken ct) =>
         _status.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
 
-    // Ordering surface is consumed only via IIntentOrderingRepository (split out to keep the
-    // CRUD type under the per-type budget) — implement explicitly so it stays off the public face.
+    // Ordering surface is consumed only via IIntentOrderingRepository — implement
+    // explicitly so it stays off the public face.
     Task<string?> IIntentOrderingRepository.GetMinSortKeyAsync(CancellationToken ct) =>
         _reader.GetMinSortKeyAsync(ct);
 

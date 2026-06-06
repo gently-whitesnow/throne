@@ -6,8 +6,7 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Individual steps used by <see cref="TerminalSessionAttach"/> — fifo creation,
-/// pipe-pane wiring, scrollback flush. Pulled out so the attach orchestrator itself
-/// stays inside the per-type cyclomatic budget.
+/// pipe-pane wiring, scrollback flush.
 /// </summary>
 internal static class TerminalAttachSteps
 {

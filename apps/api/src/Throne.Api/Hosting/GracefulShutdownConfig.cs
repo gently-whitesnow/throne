@@ -9,10 +9,6 @@ namespace Throne.Api.Hosting;
 /// (see <see cref="Mcp.McpKeepAliveMiddleware"/>, <see cref="Realtime.RealtimeController"/>
 /// and the infrastructure <c>BackgroundService</c>s) — this only caps the worst case for
 /// anything that fails to. The framework default of 30s is needlessly long for that role.
-///
-/// Extracted from <c>Program.cs</c> so <see cref="HostOptions"/> does not count against
-/// the <c>Main</c> class-coupling budget (CA1506), mirroring
-/// <see cref="Auth.ForwardedHeadersConfig"/>.
 /// </summary>
 public static class GracefulShutdownConfig
 {

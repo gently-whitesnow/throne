@@ -1,9 +1,9 @@
 namespace Throne.Domain.Instructions;
 
 /// <summary>
-/// Immutable identity tuple for <see cref="InstructionPatch"/>. Keeping it as a
-/// record reduces the aggregate's per-method cyclomatic complexity (CA1502
-/// budget) by collapsing the constructor's argument count.
+/// Immutable identity tuple for <see cref="InstructionPatch"/> — the stable
+/// coordinates (id, owner, target kind, base instruction version, created-at)
+/// fixed at creation and never mutated thereafter.
 /// </summary>
 public sealed record InstructionPatchIdentity(
     string Id,

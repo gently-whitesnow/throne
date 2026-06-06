@@ -7,7 +7,6 @@ namespace Throne.Application.Intents.Linking;
 /// <summary>
 /// Pure projection of <see cref="IntentLinkView"/> sequences into the four link-role
 /// buckets surfaced on the board (`blocked_by`, `derived_from`, `source_of`, `relates`).
-/// Extracted from the handler so the per-class cyclomatic budget stays low.
 /// </summary>
 internal static class IntentLinksSummaryProjection
 {

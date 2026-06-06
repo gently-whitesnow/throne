@@ -5,8 +5,8 @@ using Throne.Domain.Intents;
 namespace Throne.Application.Terminals;
 
 /// <summary>
-/// Workspace-path computation + tmux spawn invocation. Lives in its own type so the
-/// orchestrator above stays within the project-wide CA1502 type-level budget.
+/// Workspace-path computation + tmux spawn invocation; a stage of the run pre-flight
+/// pipeline shared by <see cref="RunPreflightOrchestrator"/> and <see cref="RunPreflightGuards"/>.
 /// </summary>
 public sealed class RunPreflightSpawn(
     ITmuxSessionManager tmux,

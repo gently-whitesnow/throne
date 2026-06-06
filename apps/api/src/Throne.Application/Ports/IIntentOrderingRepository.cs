@@ -3,9 +3,8 @@ using Throne.Domain.Intents;
 namespace Throne.Application.Ports;
 
 /// <summary>
-/// Fractional-index ordering surface for the Intent aggregate. Lifted out of
-/// <see cref="IIntentRepository"/> so the core CRUD interface stays under the
-/// per-type CA1502 budget, and so handlers that don't reorder don't take a
+/// Fractional-index ordering surface for the Intent aggregate. Separate from
+/// <see cref="IIntentRepository"/> so handlers that don't reorder don't take a
 /// dependency on the ordering API.
 /// </summary>
 public interface IIntentOrderingRepository

@@ -6,8 +6,7 @@ namespace Throne.Application.Terminals;
 
 /// <summary>
 /// Validation helpers used by <see cref="RunPreflightOrchestrator"/>: capability gate,
-/// intent existence, session-slot. Split out so the orchestrator stays within the
-/// project-wide CA1502 type-level cyclomatic budget.
+/// intent existence, session-slot.
 /// </summary>
 public sealed class RunPreflightGuards(
     IIntentRepository intents,

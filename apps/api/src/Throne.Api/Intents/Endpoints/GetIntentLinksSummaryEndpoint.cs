@@ -38,9 +38,8 @@ public sealed class GetIntentLinksSummaryEndpoint(GetIntentLinksSummaryHandler h
 
 /// <summary>
 /// Pure helper functions for mapping <see cref="IntentLinksSummary"/> records
-/// into their DTO collections. Split out of <see cref="GetIntentLinksSummaryEndpoint"/>
-/// so the endpoint class stays under the CA1502 type-level cyclomatic budget;
-/// no state, no dependencies — safe as a static class per the helper convention.
+/// into their DTO collections. No state, no dependencies — a static class per the
+/// helper convention.
 /// </summary>
 internal static class IntentLinksSummaryMapper
 {
