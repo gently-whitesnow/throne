@@ -8,7 +8,7 @@ namespace Throne.Domain.Auth;
 /// - один активный PAT на <see cref="OwnerUserId"/>;
 /// - перегенерация = удалить старый + создать новый в одной транзакции
 ///   (контролирует репозиторий);
-/// - TTL отсутствует (см. ADR-0012, §MCP authentication — Personal Access Token).
+/// - TTL отсутствует (см. ADR-0016).
 /// </summary>
 public sealed class PersonalAccessToken
 {

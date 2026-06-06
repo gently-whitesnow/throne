@@ -6,7 +6,7 @@ public sealed class AuthOptions
 
     /// <summary>
     /// Имя claim, из которого берётся идентификатор пользователя — стандартный
-    /// OIDC <c>sub</c>. См. ADR-0012.
+    /// OIDC <c>sub</c>. См. ADR-0016.
     /// </summary>
     public const string UserIdClaim = "sub";
 

@@ -5,7 +5,7 @@ namespace Throne.Application.Ports;
 
 /// <summary>
 /// Persistence boundary for <see cref="InstructionPatch"/>. Owner filtering is
-/// mandatory on every read path (multi-tenancy invariant — see ADR-0012).
+/// mandatory on every read path (legacy owner-scoping — see ADR-0029).
 /// </summary>
 public interface IInstructionPatchRepository
 {
