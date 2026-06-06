@@ -21,7 +21,6 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         var entry = new McpCallLogEntry(
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
-            UserId: "user-42",
             ToolName: "create_intent",
             Arguments: new Dictionary<string, object?> { ["text"] = "hello", ["tags"] = "[\"throne\"]" },
             IntentId: null,
@@ -44,7 +43,6 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         doc.ToolName.Should().Be("create_intent");
         doc.Outcome.Should().Be("success");
         doc.SessionId.Should().Be("session-1");
-        doc.UserId.Should().Be("user-42");
         doc.DurationMs.Should().Be(17);
         doc.ServerVersion.Should().Be("0.1.0");
         doc.Arguments.GetValue("text").AsString.Should().Be("hello");
@@ -65,7 +63,6 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         var entry = new McpCallLogEntry(
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
-            UserId: "user-42",
             ToolName: "replace_intent_text",
             Arguments: new Dictionary<string, object?> { ["intent_id"] = "abc" },
             IntentId: "abc",
@@ -100,7 +97,6 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         var entry = new McpCallLogEntry(
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
-            UserId: "user-42",
             ToolName: "get_instruction_bundle",
             Arguments: new Dictionary<string, object?> { ["intent_id"] = "intent_123", ["mode"] = "work" },
             IntentId: "intent_123",

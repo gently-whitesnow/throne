@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -8,16 +7,14 @@ namespace Throne.Application.InstructionPatches;
 /// <summary>
 /// Read-only convenience for the frontier agent: returns the current text and
 /// version of the user's instruction for a given kind so the agent can ground
-/// <c>base_instruction_version</c> in <c>propose_instruction_patch</c>. Owner
-/// scoping is implicit via <see cref="ICurrentUserAccessor"/>.
+/// <c>base_instruction_version</c> in <c>propose_instruction_patch</c>.
 ///
 /// Если записи нет — возвращается синтетический view с
 /// <c>current_version=0</c> и пустым текстом, чтобы агент мог сразу предложить
 /// первичный патч на пустой инструкции (apply создаст запись лениво).
 /// </summary>
 public sealed class GetCurrentInstructionHandler(
-    IInstructionRepository instructions,
-    ICurrentUserAccessor currentUser)
+    IInstructionRepository instructions)
 {
     public async Task<CurrentInstructionView> HandleAsync(string targetKind, CancellationToken ct)
     {
@@ -30,7 +27,7 @@ public sealed class GetCurrentInstructionHandler(
                 new Dictionary<string, object?> { ["field"] = "target_kind" });
         }
 
-        var list = await instructions.GetUserInstructionsByKindsAsync(currentUser.UserId, [targetKind], ct);
+        var list = await instructions.GetUserInstructionsByKindsAsync([targetKind], ct);
         if (list.Count == 0)
         {
             return new CurrentInstructionView(

@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Errors;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
@@ -28,7 +27,6 @@ public sealed record RecordDreamSessionCommand(
 public sealed class RecordDreamSessionHandler(
     IDreamSessionRepository sessions,
     IUnitOfWork unitOfWork,
-    ICurrentUserAccessor currentUser,
     ISkillManifestProvider manifestProvider,
     TimeProvider clock)
 {
@@ -49,7 +47,6 @@ public sealed class RecordDreamSessionHandler(
         {
             return DreamSession.Create(
                 id: Guid.NewGuid().ToString("N"),
-                ownerUserId: currentUser.UserId,
                 createdAt: clock.GetUtcNow(),
                 vendor: command.Vendor,
                 host: command.Host,

@@ -15,7 +15,6 @@ public class InstructionReplaceTextTests
         var instr = Instruction.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
-            "local-dev",
             InstructionKindNames.Interview,
             text: string.Empty,
             Created);
@@ -39,7 +38,6 @@ public class InstructionReplaceTextTests
         var instr = Instruction.Create(
             InstructionId.New(),
             InstructionScopeNames.User,
-            "local-dev",
             InstructionKindNames.Work,
             text: "текущий текст",
             Created);

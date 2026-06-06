@@ -35,33 +35,28 @@ public sealed class Intent
 
     private Intent(
         IntentId id,
-        string ownerUserId,
         IntentState state,
         IReadOnlyList<TagId> tagIds,
         DateTimeOffset createdAt)
     {
         Id = id;
-        OwnerUserId = ownerUserId;
         State = state;
         _tagIds = [.. tagIds];
         CreatedAt = createdAt;
     }
 
     public IntentId Id { get; }
-    public string OwnerUserId { get; }
     public DateTimeOffset CreatedAt { get; }
     public IntentState State { get; private set; }
     public IReadOnlyList<TagId> TagIds => _tagIds;
 
     public static Intent Create(
         IntentId id,
-        string ownerUserId,
         string text,
         IReadOnlyList<TagId>? tagIds,
         DateTimeOffset now,
         string? sortKey = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         ArgumentNullException.ThrowIfNull(text);
         if (text.Length == 0)
         {
@@ -71,12 +66,11 @@ public sealed class Intent
         FractionalIndex.ValidateKey(resolvedSortKey, nameof(sortKey));
         var normalized = NormalizeTagIds(tagIds);
         var state = new IntentState(text, IntentStatusNames.Draft, CurrentVersion: 1, resolvedSortKey, now);
-        return new Intent(id, ownerUserId, state, normalized, now);
+        return new Intent(id, state, normalized, now);
     }
 
     public static Intent Restore(
         IntentId id,
-        string ownerUserId,
         string text,
         string status,
         int currentVersion,
@@ -85,7 +79,6 @@ public sealed class Intent
         DateTimeOffset updatedAt,
         string? sortKey = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(ownerUserId);
         EnsureValidStatus(status, nameof(status));
         if (currentVersion < 1)
         {
@@ -94,7 +87,7 @@ public sealed class Intent
         var resolvedSortKey = sortKey ?? FractionalIndex.Initial();
         FractionalIndex.ValidateKey(resolvedSortKey, nameof(sortKey));
         var state = new IntentState(text, status, currentVersion, resolvedSortKey, updatedAt);
-        return new Intent(id, ownerUserId, state, tagIds, createdAt);
+        return new Intent(id, state, tagIds, createdAt);
     }
 
     /// <summary>

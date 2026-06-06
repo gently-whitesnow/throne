@@ -2,7 +2,12 @@
 
 ## Status
 
-Proposed
+Rejected — Superseded by [ADR-0029](0029-local-first-invariant-and-legacy-auth.md)
+
+> Решение отклонено: внутренняя авторизация (PAT/JWT/OAuth) демонтирована как
+> легаси ([ADR-0029](0029-local-first-invariant-and-legacy-auth.md)). Ядро Throne —
+> single-operator local-first host-процесс на localhost без сетевого auth-гейта.
+> Тело ниже сохранено как исторический контекст исходного предложения.
 
 ## Scope
 

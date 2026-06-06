@@ -7,7 +7,6 @@ namespace Throne.Domain.Instructions;
 /// </summary>
 public sealed record InstructionPatchIdentity(
     string Id,
-    string OwnerUserId,
     string TargetKind,
     int BaseInstructionVersion,
     DateTimeOffset CreatedAt);

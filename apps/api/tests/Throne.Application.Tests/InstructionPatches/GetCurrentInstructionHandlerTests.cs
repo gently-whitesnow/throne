@@ -18,15 +18,14 @@ public class GetCurrentInstructionHandlerTests
         var existing = Instruction.Restore(
             InstructionId.New(),
             InstructionScopeNames.User,
-            "user-1",
             InstructionKindNames.Work,
             "hello",
             currentVersion: 5,
             createdAt: Now,
             updatedAt: Now);
-        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        repo.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IReadOnlyList<Instruction>>(new[] { existing }));
-        var handler = new GetCurrentInstructionHandler(repo, new TestCurrentUserAccessor());
+        var handler = new GetCurrentInstructionHandler(repo);
 
         var view = await handler.HandleAsync(InstructionKindNames.Work, CancellationToken.None);
 
@@ -40,9 +39,9 @@ public class GetCurrentInstructionHandlerTests
     public async Task Returns_stub_when_missing()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        repo.GetUserInstructionsByKindsAsync("user-1", Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
+        repo.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
             .Returns([]);
-        var handler = new GetCurrentInstructionHandler(repo, new TestCurrentUserAccessor());
+        var handler = new GetCurrentInstructionHandler(repo);
 
         var view = await handler.HandleAsync(InstructionKindNames.Work, CancellationToken.None);
 
@@ -56,7 +55,7 @@ public class GetCurrentInstructionHandlerTests
     public async Task Rejects_unknown_kind()
     {
         var repo = Substitute.For<IInstructionRepository>();
-        var handler = new GetCurrentInstructionHandler(repo, new TestCurrentUserAccessor());
+        var handler = new GetCurrentInstructionHandler(repo);
 
         var act = async () => await handler.HandleAsync("bogus", CancellationToken.None);
 

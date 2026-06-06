@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -15,7 +14,6 @@ namespace Throne.Infrastructure.Mongo.Intents;
 internal sealed class MongoIntentLifecycle(
     IMongoDatabase database,
     MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser,
     IIntentEventRepository intentEvents)
 {
     private readonly IMongoCollection<IntentDocument> _intents =
@@ -64,9 +62,9 @@ internal sealed class MongoIntentLifecycle(
             ?? throw new InvalidOperationException(
                 "MongoIntentLifecycle.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        var byIdAndOwner = IntentCollectionFilters.ByIdAndOwner(id.Value, currentUser.UserId);
+        var byId = IntentCollectionFilters.ById(id.Value);
 
-        var deleteIntent = await _intents.DeleteOneAsync(session, byIdAndOwner, options: null, ct);
+        var deleteIntent = await _intents.DeleteOneAsync(session, byId, options: null, ct);
         if (deleteIntent.DeletedCount == 0)
         {
             return new DeleteIntentOutcome.NotFound();

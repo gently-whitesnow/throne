@@ -1,5 +1,4 @@
 using MongoDB.Driver;
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
@@ -9,8 +8,7 @@ namespace Throne.Infrastructure.Mongo;
 
 internal sealed class MongoIntentPinRepository(
     IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    ICurrentUserAccessor currentUser) : IIntentPinRepository
+    MongoSessionAccessor sessions) : IIntentPinRepository
 {
     private readonly IMongoCollection<IntentPinDocument> _pins =
         database.GetCollection<IntentPinDocument>(MongoCollectionNames.IntentPins);
@@ -20,9 +18,6 @@ internal sealed class MongoIntentPinRepository(
 
     private readonly IMongoCollection<TagDocument> _tags =
         database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
-
-    private FilterDefinition<IntentPinDocument> OwnerFilter() =>
-        Builders<IntentPinDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId);
 
     public async Task<PinIntentOutcome> PinAsync(
         IntentId intentId,
@@ -87,7 +82,7 @@ internal sealed class MongoIntentPinRepository(
                 Builders<IntentPinDocument>.Update.Set(d => d.PinSortKey, newKey),
                 options: null,
                 ct);
-            var pin = new IntentPin(intentId, contextTagId, existing.OwnerUserId, newKey, ToUtc(existing.CreatedAt));
+            var pin = new IntentPin(intentId, contextTagId, newKey, ToUtc(existing.CreatedAt));
             return new PinIntentOutcome.Pinned(MapToIntent(intent), pin, Created: false);
         }
 
@@ -96,12 +91,11 @@ internal sealed class MongoIntentPinRepository(
             Id = Guid.NewGuid().ToString("N"),
             IntentId = intentId.Value,
             ContextTagId = contextTagId.Value,
-            OwnerUserId = currentUser.UserId,
             PinSortKey = newKey,
             CreatedAt = now.UtcDateTime,
         };
         await _pins.InsertOneAsync(session, doc, options: null, ct);
-        var created = new IntentPin(intentId, contextTagId, doc.OwnerUserId, newKey, now);
+        var created = new IntentPin(intentId, contextTagId, newKey, now);
         return new PinIntentOutcome.Pinned(MapToIntent(intent), created, Created: true);
     }
 
@@ -123,7 +117,6 @@ internal sealed class MongoIntentPinRepository(
         var result = await _pins.DeleteOneAsync(
             session,
             Builders<IntentPinDocument>.Filter.And(
-                OwnerFilter(),
                 Builders<IntentPinDocument>.Filter.Eq(d => d.IntentId, intentId.Value),
                 Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value)),
             options: null,
@@ -169,7 +162,7 @@ internal sealed class MongoIntentPinRepository(
         var newKey = FractionalIndex.Between(beforeKey, afterKey);
         if (string.Equals(existing.PinSortKey, newKey, StringComparison.Ordinal))
         {
-            var stable = new IntentPin(intentId, contextTagId, existing.OwnerUserId, newKey, ToUtc(existing.CreatedAt));
+            var stable = new IntentPin(intentId, contextTagId, newKey, ToUtc(existing.CreatedAt));
             return new MovePinOutcome.Moved(MapToIntent(intent), stable, Changed: false);
         }
 
@@ -181,7 +174,7 @@ internal sealed class MongoIntentPinRepository(
             options: null,
             ct);
 
-        var pin = new IntentPin(intentId, contextTagId, existing.OwnerUserId, newKey, ToUtc(existing.CreatedAt));
+        var pin = new IntentPin(intentId, contextTagId, newKey, ToUtc(existing.CreatedAt));
         return new MovePinOutcome.Moved(MapToIntent(intent), pin, Changed: true);
     }
 
@@ -196,9 +189,7 @@ internal sealed class MongoIntentPinRepository(
         }
 
         var session = sessions.Current;
-        var filter = Builders<IntentPinDocument>.Filter.And(
-            OwnerFilter(),
-            Builders<IntentPinDocument>.Filter.In(d => d.IntentId, intentIds));
+        var filter = Builders<IntentPinDocument>.Filter.In(d => d.IntentId, intentIds);
         var find = session is null ? _pins.Find(filter) : _pins.Find(session, filter);
         var docs = await find.ToListAsync(ct);
 
@@ -217,9 +208,10 @@ internal sealed class MongoIntentPinRepository(
     public async Task<IReadOnlyList<IntentPin>> ListAllAsync(CancellationToken ct)
     {
         var session = sessions.Current;
+        var allFilter = Builders<IntentPinDocument>.Filter.Empty;
         var find = session is null
-            ? _pins.Find(OwnerFilter())
-            : _pins.Find(session, OwnerFilter());
+            ? _pins.Find(allFilter)
+            : _pins.Find(session, allFilter);
         var docs = await find
             .Sort(Builders<IntentPinDocument>.Sort
                 .Ascending(d => d.ContextTagId)
@@ -230,9 +222,7 @@ internal sealed class MongoIntentPinRepository(
 
     private async Task<IntentDocument?> LoadIntentAsync(IntentId intentId, IClientSessionHandle session, CancellationToken ct)
     {
-        var filter = Builders<IntentDocument>.Filter.And(
-            Builders<IntentDocument>.Filter.Eq(d => d.Id, intentId.Value),
-            Builders<IntentDocument>.Filter.Eq(d => d.OwnerUserId, currentUser.UserId));
+        var filter = Builders<IntentDocument>.Filter.Eq(d => d.Id, intentId.Value);
         return await _intents.Find(session, filter).FirstOrDefaultAsync(ct);
     }
 
@@ -243,7 +233,6 @@ internal sealed class MongoIntentPinRepository(
         CancellationToken ct)
     {
         var filter = Builders<IntentPinDocument>.Filter.And(
-            OwnerFilter(),
             Builders<IntentPinDocument>.Filter.Eq(d => d.IntentId, intentId.Value),
             Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value));
         return await _pins.Find(session, filter).FirstOrDefaultAsync(ct);
@@ -272,7 +261,6 @@ internal sealed class MongoIntentPinRepository(
         }
 
         var filter = Builders<IntentPinDocument>.Filter.And(
-            OwnerFilter(),
             Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value),
             Builders<IntentPinDocument>.Filter.In(d => d.IntentId, ids));
         var docs = await _pins.Find(session, filter)
@@ -298,9 +286,7 @@ internal sealed class MongoIntentPinRepository(
 
     private async Task<string?> GetTailKeyAsync(IClientSessionHandle session, TagId contextTagId, CancellationToken ct)
     {
-        var filter = Builders<IntentPinDocument>.Filter.And(
-            OwnerFilter(),
-            Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value));
+        var filter = Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value);
         var doc = await _pins.Find(session, filter)
             .Sort(Builders<IntentPinDocument>.Sort.Descending(d => d.PinSortKey))
             .Limit(1)
@@ -312,13 +298,11 @@ internal sealed class MongoIntentPinRepository(
     private static IntentPin ToDomain(IntentPinDocument doc) => new IntentPin(
         new IntentId(doc.IntentId),
         new TagId(doc.ContextTagId),
-        doc.OwnerUserId,
         doc.PinSortKey,
         ToUtc(doc.CreatedAt));
 
     private static Intent MapToIntent(IntentDocument doc) => Intent.Restore(
         id: new IntentId(doc.Id),
-        ownerUserId: string.IsNullOrWhiteSpace(doc.OwnerUserId) ? CurrentUserIds.LocalDev : doc.OwnerUserId,
         text: doc.Text,
         status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
         currentVersion: doc.CurrentVersion,

@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Instructions.Manifest;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
@@ -7,13 +6,12 @@ namespace Throne.Application.Instructions;
 
 public sealed class GetBundlesTreeHandler(
     ISkillManifestProvider manifestProvider,
-    IInstructionRepository repository,
-    ICurrentUserAccessor currentUser)
+    IInstructionRepository repository)
 {
     public async Task<BundlesTree> HandleAsync(GetBundlesTreeQuery _, CancellationToken ct)
     {
         var manifest = manifestProvider.Current;
-        var userByKind = await LoadUserInstructionsAsync(manifest, currentUser.UserId, ct);
+        var userByKind = await LoadUserInstructionsAsync(manifest, ct);
 
         var bundles = manifest.Bundles
             .Select(bundle => new BundleNode(
@@ -26,7 +24,6 @@ public sealed class GetBundlesTreeHandler(
 
     private async Task<IReadOnlyDictionary<string, Instruction>> LoadUserInstructionsAsync(
         SkillManifest manifest,
-        string userId,
         CancellationToken ct)
     {
         var allUserKinds = manifest.Bundles
@@ -41,7 +38,7 @@ public sealed class GetBundlesTreeHandler(
             return new Dictionary<string, Instruction>(StringComparer.Ordinal);
         }
 
-        var userInstructions = await repository.GetUserInstructionsByKindsAsync(userId, allUserKinds, ct);
+        var userInstructions = await repository.GetUserInstructionsByKindsAsync(allUserKinds, ct);
 
         return userInstructions
             .GroupBy(i => i.Descriptor.Kind, StringComparer.Ordinal)

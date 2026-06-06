@@ -103,11 +103,10 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         await fixture.Client.DropDatabaseAsync(name);
         var db = fixture.Client.GetDatabase(name);
         var sessions = new MongoSessionAccessor();
-        var user = new TestCurrentUserAccessor();
-        var repo = new MongoIntentRepository(db, sessions, user, new MongoIntentEventRepository(db, sessions));
+        var repo = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
         var tags = new MongoTagRepository(db, sessions);
-        var pins = new MongoIntentPinRepository(db, sessions, user);
+        var pins = new MongoIntentPinRepository(db, sessions);
 
         var pinned = await Seed(repo, uow, "pinned", Base);
         await Seed(repo, uow, "loose", Base.AddMinutes(1));
@@ -133,7 +132,7 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         IReadOnlyList<TagId>? tagIds = null)
     {
         var id = IntentId.New();
-        var intent = Intent.Create(id, "user-1", text, tagIds ?? [TagId.New()], at);
+        var intent = Intent.Create(id, text, tagIds ?? [TagId.New()], at);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             text, at, TextVersionAuthor.Agent);
@@ -160,7 +159,7 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
         await fixture.Client.DropDatabaseAsync(name);
         var db = fixture.Client.GetDatabase(name);
         var sessions = new MongoSessionAccessor();
-        var repo = new MongoIntentRepository(db, sessions, new TestCurrentUserAccessor(), new MongoIntentEventRepository(db, sessions));
+        var repo = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
         return (repo, uow);
     }

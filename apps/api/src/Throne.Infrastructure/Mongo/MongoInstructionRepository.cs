@@ -28,11 +28,9 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
     }
 
     public async Task<IReadOnlyList<Instruction>> GetUserInstructionsByKindsAsync(
-        string userId,
         IReadOnlyList<string> kinds,
         CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentNullException.ThrowIfNull(kinds);
         if (kinds.Count == 0)
         {
@@ -41,7 +39,6 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
 
         var filter = Builders<InstructionDocument>.Filter.And(
             Builders<InstructionDocument>.Filter.Eq(x => x.Scope, InstructionScopeNames.User),
-            Builders<InstructionDocument>.Filter.Eq(x => x.UserId, userId),
             Builders<InstructionDocument>.Filter.In(x => x.Kind, kinds));
 
         var session = sessions.Current;
@@ -162,7 +159,6 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
     {
         Id = instruction.Id.Value,
         Scope = instruction.Descriptor.Scope,
-        UserId = instruction.Descriptor.UserId,
         Kind = instruction.Descriptor.Kind,
         Text = instruction.Text,
         CurrentVersion = instruction.CurrentVersion,
@@ -189,7 +185,6 @@ internal sealed class MongoInstructionRepository(IMongoDatabase database, MongoS
     private static Instruction MapToDomain(InstructionDocument doc) => Instruction.Restore(
         id: new InstructionId(doc.Id),
         scope: doc.Scope,
-        userId: doc.UserId,
         kind: doc.Kind,
         text: doc.Text,
         currentVersion: doc.CurrentVersion,

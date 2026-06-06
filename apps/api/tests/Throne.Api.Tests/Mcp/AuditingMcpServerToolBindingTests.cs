@@ -7,7 +7,6 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using NSubstitute;
 using Throne.Api.Mcp;
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 
 namespace Throne.Api.Tests.Mcp;
@@ -107,7 +106,6 @@ public class AuditingMcpServerToolBindingTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<IMcpCallLogSink>(Substitute.For<IMcpCallLogSink>());
-        services.AddSingleton<ICurrentUserAccessor>(new StubCurrentUser(CurrentUserIds.LocalDev));
         services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
         services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
@@ -128,11 +126,6 @@ public class AuditingMcpServerToolBindingTests
             Name = toolName,
             Arguments = arguments,
         });
-    }
-
-    private sealed class StubCurrentUser(string userId) : ICurrentUserAccessor
-    {
-        public string UserId { get; } = userId;
     }
 
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider

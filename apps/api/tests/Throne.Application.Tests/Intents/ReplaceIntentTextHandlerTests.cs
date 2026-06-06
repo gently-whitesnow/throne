@@ -19,7 +19,6 @@ public class ReplaceIntentTextHandlerTests
     {
         var existing = Intent.Restore(
             new IntentId(IntentIdValue),
-            ownerUserId: "user-1",
             "hello there",
             IntentStatusNames.Work,
             currentVersion: 2,

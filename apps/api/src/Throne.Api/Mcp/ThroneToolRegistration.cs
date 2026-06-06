@@ -4,7 +4,6 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 
 namespace Throne.Api.Mcp;
@@ -58,7 +57,6 @@ public static class ThroneToolRegistration
                     sdkTool,
                     aiFunction,
                     sp.GetRequiredService<IMcpCallLogSink>(),
-                    sp.GetRequiredService<ICurrentUserAccessor>(),
                     sp.GetRequiredService<TimeProvider>(),
                     sp.GetRequiredService<ILogger<AuditingMcpServerTool>>(),
                     sp.GetRequiredService<ServerVersion>());

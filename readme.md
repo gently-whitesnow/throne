@@ -73,7 +73,7 @@ docker compose -f docker-compose.host.yml up --build -d
 ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
 ```
 
-Дефолты host-режима подобраны так, что ничего больше настраивать не нужно: `Auth:Mode=Disabled` (local-first), Mongo — `localhost:27017`, workspace — `~/.throne/workspaces`.
+Дефолты host-режима подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, Mongo — `localhost:27017`, workspace — `~/.throne/workspaces`.
 
 Только MongoDB (replica set `rs0`, порт `27017`):
 

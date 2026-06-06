@@ -1,4 +1,3 @@
-using Throne.Application.Auth;
 using Throne.Application.Ports;
 using Throne.Domain.Instructions;
 
@@ -14,7 +13,6 @@ public sealed record RejectInstructionPatchCommand(string PatchId, string Commen
 public sealed class RejectInstructionPatchHandler(
     IInstructionPatchRepository patches,
     IUnitOfWork unitOfWork,
-    ICurrentUserAccessor currentUser,
     TimeProvider clock)
 {
     public async Task<InstructionPatch> HandleAsync(RejectInstructionPatchCommand command, CancellationToken ct)
@@ -23,7 +21,6 @@ public sealed class RejectInstructionPatchHandler(
 
         var patch = await patches.GetAsync(command.PatchId, ct)
             ?? throw InstructionPatchExceptions.NotFound(command.PatchId);
-        InstructionPatchOwnerGuard.EnsureOwner(patch, currentUser);
 
         var transition = patch.Reject(command.Comment, clock.GetUtcNow());
         InstructionPatchOutcomeMapper.ThrowForRejectTransition(transition, patch);

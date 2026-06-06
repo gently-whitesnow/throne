@@ -109,7 +109,7 @@ public class IntentMergeAutoCloserTests
                     Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
                 .Returns(ci => Task.FromResult<SetIntentStatusOutcome>(
                     new SetIntentStatusOutcome.Updated(
-                        Intent.Restore(new IntentId(IntentIdValue), "user-1", "x", IntentStatusNames.Done, 1, [], Now, Now))));
+                        Intent.Restore(new IntentId(IntentIdValue), "x", IntentStatusNames.Done, 1, [], Now, Now))));
             Closer = new IntentMergeAutoCloser(Bindings, Intents, new PassthroughUnitOfWork(), new FixedClock(Now));
         }
 
@@ -124,7 +124,7 @@ public class IntentMergeAutoCloserTests
         public void SeedIntent(string status) =>
             Intents.GetByIdForSystemAsync(new IntentId(IntentIdValue), Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult<Intent?>(
-                    Intent.Restore(new IntentId(IntentIdValue), "user-1", "x", status, 1, [], Now, Now)));
+                    Intent.Restore(new IntentId(IntentIdValue), "x", status, 1, [], Now, Now)));
     }
 
     private sealed class PassthroughUnitOfWork : IUnitOfWork
