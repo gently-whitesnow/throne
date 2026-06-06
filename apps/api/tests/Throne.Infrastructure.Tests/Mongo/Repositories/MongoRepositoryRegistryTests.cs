@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MongoDB.Driver;
+using Throne.Application.Ports;
 using Throne.Domain.Repositories;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Mongo.Documents;
@@ -20,8 +21,10 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
 
-        var repository = await scope.Registry.EnsureRepositoryAsync(Coordinate(), Now, CancellationToken.None);
+        var outcome = await scope.Registry.EnsureRepositoryAsync(Coordinate(), Now, CancellationToken.None);
 
+        outcome.Should().BeOfType<EnsureRepositoryOutcome.Created>();
+        var repository = outcome.Repository;
         repository.Coordinate.Should().Be(Coordinate());
         var stored = await scope.Database
             .GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories)
@@ -42,7 +45,9 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
         var second = await scope.Registry.EnsureRepositoryAsync(
             Coordinate(), Now.AddMinutes(1), CancellationToken.None);
 
-        second.Id.Should().Be(first.Id);
+        first.Should().BeOfType<EnsureRepositoryOutcome.Created>();
+        second.Should().BeOfType<EnsureRepositoryOutcome.Existed>();
+        second.Repository.Id.Should().Be(first.Repository.Id);
         var count = await scope.Database
             .GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories)
             .CountDocumentsAsync(FilterDefinition<RepositoryDocument>.Empty);
@@ -57,7 +62,7 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
         var a = await scope.Registry.EnsureRepositoryAsync(Coordinate("alpha"), Now, CancellationToken.None);
         var b = await scope.Registry.EnsureRepositoryAsync(Coordinate("beta"), Now, CancellationToken.None);
 
-        b.Id.Should().NotBe(a.Id);
+        b.Repository.Id.Should().NotBe(a.Repository.Id);
     }
 
     [Fact(DisplayName = "Уникальный индекс по координате запрещает дубликат строки реестра")]

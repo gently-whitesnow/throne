@@ -1,3 +1,4 @@
+using Throne.Application.Events;
 using Throne.Domain.Repositories;
 
 namespace Throne.Application.Ports;
@@ -31,12 +32,17 @@ public interface IRepositoryArtifactRepository
         CancellationToken ct);
 }
 
-public abstract record WriteRepositoryArtifactOutcome
+public abstract record WriteRepositoryArtifactOutcome : IDomainEventCarrier
 {
     private WriteRepositoryArtifactOutcome() { }
 
+    public virtual IReadOnlyList<IDomainEvent> Events => [];
+
     /// <param name="Created"><c>true</c> when this write created version 1, <c>false</c> on update.</param>
-    public sealed record Written(RepositoryArtifact Artifact, bool Created) : WriteRepositoryArtifactOutcome;
+    public sealed record Written(RepositoryArtifact Artifact, bool Created) : WriteRepositoryArtifactOutcome
+    {
+        public override IReadOnlyList<IDomainEvent> Events => [new RepositoryDocumentUpdated(Artifact)];
+    }
 
     public sealed record VersionConflict(int CurrentVersion) : WriteRepositoryArtifactOutcome;
 }

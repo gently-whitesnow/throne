@@ -18,7 +18,7 @@ internal sealed class MongoRepositoryRegistry(
     private readonly IMongoCollection<RepositoryDocument> _repositories =
         database.GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories);
 
-    public async Task<Repository> EnsureRepositoryAsync(
+    public async Task<EnsureRepositoryOutcome> EnsureRepositoryAsync(
         RepoCoordinate coordinate, DateTimeOffset now, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(coordinate);
@@ -26,7 +26,7 @@ internal sealed class MongoRepositoryRegistry(
         var existing = await FindByCoordinateAsync(coordinate, ct);
         if (existing is not null)
         {
-            return existing;
+            return new EnsureRepositoryOutcome.Existed(existing);
         }
 
         var repository = Repository.Create(RepositoryId.New(), coordinate, now);
@@ -42,15 +42,17 @@ internal sealed class MongoRepositoryRegistry(
             {
                 await _repositories.InsertOneAsync(session, doc, options: null, ct);
             }
-            return repository;
+            return new EnsureRepositoryOutcome.Created(repository);
         }
         catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
         {
-            // Lost the race against a concurrent first-appearance of the same coordinate.
-            return await FindByCoordinateAsync(coordinate, ct)
+            // Lost the race against a concurrent first-appearance: the row now exists but this
+            // call did not create it, so it must not raise repository.registered.
+            var raced = await FindByCoordinateAsync(coordinate, ct)
                 ?? throw new InvalidOperationException(
                     $"Repository '{coordinate.Provider}/{coordinate.Owner}/{coordinate.Repo}' "
                     + "duplicate-key on insert but re-read returned null.");
+            return new EnsureRepositoryOutcome.Existed(raced);
         }
     }
 

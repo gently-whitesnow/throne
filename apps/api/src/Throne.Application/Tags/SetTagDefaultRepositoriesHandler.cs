@@ -1,4 +1,5 @@
 using Throne.Application.Errors;
+using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
@@ -40,7 +41,7 @@ public sealed class SetTagDefaultRepositoriesHandler(
                 new Dictionary<string, object?> { ["tag_id"] = command.TagId });
         }
 
-        var outcome = await unitOfWork.ExecuteAsync(
+        var combined = await unitOfWork.ExecuteAsync(
             async inner =>
             {
                 var result = await repository.SetDefaultRepositoriesAsync(
@@ -52,14 +53,16 @@ public sealed class SetTagDefaultRepositoriesHandler(
                 // Materialise the Repository registry row per coordinate in the same
                 // transaction (ADR-0031), independent of whether the list actually changed —
                 // a coordinate present in the request has surfaced regardless.
+                var ensured = new List<EnsureRepositoryOutcome>(domain.Count);
                 foreach (var preset in domain)
                 {
-                    await registry.EnsureRepositoryAsync(preset.Coordinate, now, inner);
+                    ensured.Add(await registry.EnsureRepositoryAsync(preset.Coordinate, now, inner));
                 }
-                return result;
+                return new SetTagDefaultRepositoriesWithRegistryOutcome(result, ensured);
             },
             ct);
 
+        var outcome = combined.Set;
         return outcome switch
         {
             SetTagDefaultRepositoriesOutcome.Updated updated => updated.Tag,
@@ -79,5 +82,27 @@ public sealed class SetTagDefaultRepositoriesHandler(
                 }),
             _ => throw new InvalidOperationException($"Unhandled outcome: {outcome.GetType().Name}"),
         };
+    }
+}
+
+/// <summary>
+/// Carries the tag-update events together with one <c>repository.registered</c> per coordinate
+/// in the request that this call materialised for the first time (ADR-0031).
+/// </summary>
+internal sealed record SetTagDefaultRepositoriesWithRegistryOutcome(
+    SetTagDefaultRepositoriesOutcome Set,
+    IReadOnlyList<EnsureRepositoryOutcome> Ensured) : IDomainEventCarrier
+{
+    public IReadOnlyList<IDomainEvent> Events
+    {
+        get
+        {
+            var registered = Ensured.SelectMany(e => e.Events).ToList();
+            if (registered.Count == 0)
+            {
+                return Set.Events;
+            }
+            return [.. Set.Events, .. registered];
+        }
     }
 }
