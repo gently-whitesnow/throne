@@ -10,6 +10,7 @@ public sealed class IntentRepositoriesController(
     BindIntentRepositoryEndpoint bindEndpoint,
     UnbindIntentRepositoryEndpoint unbindEndpoint,
     SyncIntentRepositoryPullRequestEndpoint syncEndpoint,
+    AttachIntentRepositoryPullRequestEndpoint attachPrEndpoint,
     ListIntentRepositoryPullRequestCommentsEndpoint listCommentsEndpoint) : IntentRepositoriesControllerBase
 {
     public override Task<ActionResult<ICollection<RepositoryBindingDto>>> ListIntentRepositories(string intent_id) =>
@@ -27,6 +28,12 @@ public sealed class IntentRepositoriesController(
         string intent_id,
         string binding_id) =>
         syncEndpoint.RunAsync(intent_id, binding_id, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<RepositoryBindingDto>> AttachIntentRepositoryPullRequest(
+        string intent_id,
+        string binding_id,
+        AttachIntentRepositoryPullRequestRequest body) =>
+        attachPrEndpoint.RunAsync(intent_id, binding_id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<PullRequestCommentDto>>> ListIntentRepositoryPullRequestComments(
         string intent_id,

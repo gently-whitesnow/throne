@@ -24,3 +24,11 @@ public sealed record UnbindRepositoryCommand(string IntentId, string BindingId);
 /// Background polling still pushes per-comment fanout for other open clients.
 /// </summary>
 public sealed record SyncRepositoryPullRequestCommand(string IntentId, string BindingId);
+
+/// <summary>
+/// Attach a pull request to an already-bound repository without delete/rebind (intent spec C).
+/// Fills the empty PR slot of an existing binding; the aggregate rejects a second attach.
+/// This is the manual counterpart of the auto-bind pass and the only supported way to point a
+/// secondary intent's binding at a shared PR.
+/// </summary>
+public sealed record AttachRepositoryPullRequestCommand(string IntentId, string BindingId, int PullRequestNumber);

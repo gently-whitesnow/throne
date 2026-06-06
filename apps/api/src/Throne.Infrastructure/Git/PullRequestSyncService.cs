@@ -42,6 +42,10 @@ internal sealed partial class PullRequestSyncService(
         Message = "PullRequestSyncService tick failed; worker continues.")]
     private static partial void LogTickFailed(ILogger logger, Exception exception);
 
+    [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
+        Message = "PullRequestSyncService auto-bind pass: bound={Bound}, skipped={Skipped}, failed={Failed}")]
+    private static partial void LogAutoBind(ILogger logger, int bound, int skipped, int failed);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var interval = TimeSpan.FromSeconds(Math.Max(1, options.Value.PollIntervalSeconds));
@@ -71,6 +75,11 @@ internal sealed partial class PullRequestSyncService(
         try
         {
             await using var scope = scopeFactory.CreateAsyncScope();
+
+            var autoBind = scope.ServiceProvider.GetRequiredService<PullRequestAutoBindWorkflow>();
+            var autoBindReport = await autoBind.RunAsync(stoppingToken);
+            LogAutoBind(logger, autoBindReport.Bound, autoBindReport.Skipped, autoBindReport.Failed);
+
             var workflow = scope.ServiceProvider.GetRequiredService<PullRequestSyncTickWorkflow>();
             var report = await workflow.RunAsync(stoppingToken);
             var snapshot = report.Snapshot;

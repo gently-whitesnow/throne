@@ -148,6 +148,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach a pull request to an already-bound repository.
+         * @description Fills the empty pull-request slot of an existing binding without delete/rebind — the workspace is untouched. Rejected with 409 when a PR is already attached (unbind and rebind to switch). The auto-bind background pass links PRs created by the agent automatically; this endpoint covers the manual case and pointing a secondary intent's binding at a shared PR.
+         */
+        post: operations["attachIntentRepositoryPullRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/comments": {
         parameters: {
             query?: never;
@@ -217,6 +237,13 @@ export interface components {
             /** @description Head branch ref of the pull request (source branch). */
             head_ref: string;
             state: components["schemas"]["PullRequestState"];
+        };
+        AttachIntentRepositoryPullRequestRequest: {
+            /**
+             * Format: int32
+             * @description Pull request number to attach to the binding.
+             */
+            pull_request_number: number;
         };
         BindIntentRepositoryRequest: {
             provider: components["schemas"]["GitProvider"];
@@ -606,6 +633,51 @@ export interface operations {
                 };
             };
             /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    attachIntentRepositoryPullRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachIntentRepositoryPullRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK — the binding with its newly attached pull request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryBindingDto"];
+                };
+            };
+            /** @description Intent or binding not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description A pull request is already attached to this binding. */
             409: {
                 headers: {
                     [name: string]: unknown;

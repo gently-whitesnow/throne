@@ -28,6 +28,17 @@ internal sealed class MongoIntentReader(
         return document is null ? null : IntentDocumentMapper.ToDomain(document);
     }
 
+    public async Task<Intent?> GetByIdForSystemAsync(IntentId id, CancellationToken ct)
+    {
+        var session = sessions.Current;
+        var byId = Builders<IntentDocument>.Filter.Eq(d => d.Id, id.Value);
+        var document = session is null
+            ? await _intents.Find(byId).FirstOrDefaultAsync(ct)
+            : await _intents.Find(session, byId).FirstOrDefaultAsync(ct);
+
+        return document is null ? null : IntentDocumentMapper.ToDomain(document);
+    }
+
     public async Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct)
     {
         var session = sessions.Current;

@@ -31,6 +31,7 @@ public static class ErrorCodes
     public const string RepositoryProviderNotAuthenticated = "repository.provider_not_authenticated";
     public const string RepositoryNotReady = "repository_binding.not_ready";
     public const string RepositoryPullRequestNotAttached = "repository_binding.pull_request_not_attached";
+    public const string RepositoryPullRequestAlreadyAttached = "repository_binding.pull_request_already_attached";
     public const string RepositoryUpstreamGone = "repository.upstream_gone";
     public const string RepositoryWorkspaceRemovalFailed = "repository_binding.workspace_removal_failed";
     public const string CapabilityNotFound = "capability.not_found";

@@ -310,7 +310,8 @@ public class RepositoryBindingServiceTests
             var resolver = new RepositoryBindingResolver(Intents, Bindings, Providers);
             var persistence = new RepositoryBindingPersistence(Bindings, unitOfWork, clock, Workspace, Remover);
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
-            var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, clock);
+            var autoCloser = new IntentMergeAutoCloser(Bindings, Substitute.For<ISystemIntentStatusWriter>(), unitOfWork, clock);
+            var stateRefresher = new PullRequestStateRefresher(Bindings, unitOfWork, autoCloser, clock);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue);
         }
