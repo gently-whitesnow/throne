@@ -11,7 +11,10 @@ namespace Throne.Api.Settings;
 /// can still render a non-blank state. Singleton so the TTL cache survives
 /// across requests; mutations guarded by a lock.
 /// </summary>
-public sealed class WorkspaceSizeProbe(IWorkspaceRootProvider workspace, TimeProvider clock)
+public sealed class WorkspaceSizeProbe(
+    IWorkspaceRootProvider workspace,
+    IWorkspaceDirectorySizer sizer,
+    TimeProvider clock)
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(5);
 
@@ -41,12 +44,26 @@ public sealed class WorkspaceSizeProbe(IWorkspaceRootProvider workspace, TimePro
         }
     }
 
+    /// <summary>
+    /// Drop the cached size so the next <see cref="Read"/> re-walks the tree. Called after a
+    /// workspace clean so the card recomputes (status flips back to <c>calculating</c>) instead
+    /// of showing the stale pre-clean figure for up to the TTL window.
+    /// </summary>
+    public void Invalidate()
+    {
+        lock (_gate)
+        {
+            _cachedSizeBytes = null;
+            _cachedAt = DateTimeOffset.MinValue;
+        }
+    }
+
     private void RunWalk(string root)
     {
         long total;
         try
         {
-            total = DirectorySize.Compute(root);
+            total = sizer.Measure(root);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

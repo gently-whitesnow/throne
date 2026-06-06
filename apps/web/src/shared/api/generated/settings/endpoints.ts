@@ -5,5 +5,6 @@
 
 export const settingsEndpoints = {
   getWorkspaceSettings: () => "/settings/workspace",
+  cleanWorkspace: () => "/settings/workspace/clean",
   getGitProvidersStatus: () => "/settings/git-providers/status",
 } as const;

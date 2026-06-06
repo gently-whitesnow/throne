@@ -16,4 +16,29 @@ internal sealed class WorkspaceDirectoryRemover : IWorkspaceDirectoryRemover
 
         return Task.CompletedTask;
     }
+
+    public Task RemoveContentsAsync(string directoryPath, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
+        ct.ThrowIfCancellationRequested();
+
+        if (!Directory.Exists(directoryPath))
+        {
+            return Task.CompletedTask;
+        }
+
+        var root = new DirectoryInfo(directoryPath);
+        foreach (var dir in root.EnumerateDirectories())
+        {
+            ct.ThrowIfCancellationRequested();
+            dir.Delete(recursive: true);
+        }
+        foreach (var file in root.EnumerateFiles())
+        {
+            ct.ThrowIfCancellationRequested();
+            file.Delete();
+        }
+
+        return Task.CompletedTask;
+    }
 }

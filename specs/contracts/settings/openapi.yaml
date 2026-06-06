@@ -21,6 +21,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkspaceSettingsDto'
+  /api/v1/settings/workspace/clean:
+    post:
+      operationId: cleanWorkspace
+      tags: [Settings]
+      summary: Bulk-remove intent repository clones from the workspace root.
+      description: >
+        Mass unbind: deletes the on-disk clones under `Throne:Workspace:Root` AND their
+        `IntentRepositoryBinding` records, so no orphaned (folder-less) bindings remain.
+        `mode=all` clears the whole root (every clone, including active intents) and drops
+        every binding; `mode=closed_only` touches only intents in `done` / `reject` / `fridge`.
+        Repo-level metadata (the `Repository` registry and its artifacts) lives in Mongo, not on
+        disk, and is never cascaded. With `dry_run=true` nothing is deleted — the response is the
+        preview (`removed_clones` / `freed_bytes` that *would* be removed) for the confirm dialog.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceCleanRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceCleanResultDto'
+        '422':
+          description: Validation failed (unknown mode).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/settings/git-providers/status:
     get:
       operationId: getGitProvidersStatus
@@ -74,6 +106,47 @@ components:
           description: Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.
         status:
           $ref: '#/components/schemas/WorkspaceStatus'
+    WorkspaceCleanMode:
+      type: string
+      enum:
+        - all
+        - closed_only
+      description: >
+        `all` — remove every clone under the root and drop every binding.
+        `closed_only` — remove only clones of intents in `done` / `reject` / `fridge`.
+    WorkspaceCleanRequestDto:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/WorkspaceCleanMode'
+        dry_run:
+          type: boolean
+          default: false
+          description: >
+            When true, compute the summary without deleting anything. Drives the confirm
+            dialog so the operator sees how many clones and how many bytes will be removed.
+    WorkspaceCleanResultDto:
+      type: object
+      required:
+        - removed_clones
+        - freed_bytes
+        - dry_run
+      properties:
+        removed_clones:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of repository clones removed (or that would be removed when `dry_run=true`).
+        freed_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Bytes freed on disk (or that would be freed when `dry_run=true`).
+        dry_run:
+          type: boolean
+          description: Echoes the request flag so the caller can tell a preview from an executed run.
     GitProviderAuthStatusDto:
       type: object
       required:

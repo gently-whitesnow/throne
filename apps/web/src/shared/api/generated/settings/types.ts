@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/workspace/clean": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk-remove intent repository clones from the workspace root.
+         * @description Mass unbind: deletes the on-disk clones under `Throne:Workspace:Root` AND their `IntentRepositoryBinding` records, so no orphaned (folder-less) bindings remain. `mode=all` clears the whole root (every clone, including active intents) and drops every binding; `mode=closed_only` touches only intents in `done` / `reject` / `fridge`. Repo-level metadata (the `Repository` registry and its artifacts) lives in Mongo, not on disk, and is never cascaded. With `dry_run=true` nothing is deleted — the response is the preview (`removed_clones` / `freed_bytes` that *would* be removed) for the confirm dialog.
+         */
+        post: operations["cleanWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/git-providers/status": {
         parameters: {
             query?: never;
@@ -65,6 +85,33 @@ export interface components {
             total_size_bytes?: number | null;
             status: components["schemas"]["WorkspaceStatus"];
         };
+        /**
+         * @description `all` — remove every clone under the root and drop every binding. `closed_only` — remove only clones of intents in `done` / `reject` / `fridge`.
+         * @enum {string}
+         */
+        WorkspaceCleanMode: "all" | "closed_only";
+        WorkspaceCleanRequestDto: {
+            mode: components["schemas"]["WorkspaceCleanMode"];
+            /**
+             * @description When true, compute the summary without deleting anything. Drives the confirm dialog so the operator sees how many clones and how many bytes will be removed.
+             * @default false
+             */
+            dry_run: boolean;
+        };
+        WorkspaceCleanResultDto: {
+            /**
+             * Format: int32
+             * @description Number of repository clones removed (or that would be removed when `dry_run=true`).
+             */
+            removed_clones: number;
+            /**
+             * Format: int64
+             * @description Bytes freed on disk (or that would be freed when `dry_run=true`).
+             */
+            freed_bytes: number;
+            /** @description Echoes the request flag so the caller can tell a preview from an executed run. */
+            dry_run: boolean;
+        };
         GitProviderAuthStatusDto: {
             /** @description True when the underlying CLI reports a usable session. */
             authenticated: boolean;
@@ -79,6 +126,17 @@ export interface components {
             github: components["schemas"]["GitProviderAuthStatusDto"];
             /** @description Reserved for a future GitLab integration. Absent today. */
             gitlab?: components["schemas"]["GitProviderAuthStatusDto"];
+        };
+        ProblemDetails: {
+            type: string;
+            title: string;
+            /** Format: int32 */
+            status: number;
+            detail?: string;
+            instance?: string;
+            errors?: {
+                [key: string]: string[];
+            };
         };
     };
     responses: never;
@@ -105,6 +163,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceSettingsDto"];
+                };
+            };
+        };
+    };
+    cleanWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceCleanRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceCleanResultDto"];
+                };
+            };
+            /** @description Validation failed (unknown mode). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
