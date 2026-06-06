@@ -512,7 +512,7 @@ namespace Throne.Repositories.Contracts.Generated
         public int New_comments { get; set; }
 
         /// <summary>
-        /// Full count of stored review comments for the binding after sync.
+        /// Full count of review comments in the freshly observed feed after sync.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("total_comments")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]

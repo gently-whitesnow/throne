@@ -106,10 +106,10 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> UnbindIntentRepository([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
 
         /// <summary>
-        /// Synchronously refresh PR review comments for a binding.
+        /// Synchronously re-read PR review comments from the provider for a binding.
         /// </summary>
         /// <remarks>
-        /// Blocks for the duration of the upstream `gh api` call and returns the freshly observed comments. `intent.pr_comment_added` is also fanned out via SSE for other open clients. Works on closed/merged PRs too — `pull_request_state` is ignored. A 404 from upstream flips the binding to `clone_status=broken` per ADR-0024.
+        /// Blocks for the duration of the upstream `gh api` call and returns the freshly observed comments straight from the git provider (no durable local comment store). `intent.pr_comment_added` is also fanned out via SSE for other open clients. Works on closed/merged PRs too — `pull_request_state` is ignored. A 404 from upstream flips the binding to `clone_status=broken` per ADR-0024.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/sync", Name = "syncIntentRepositoryPullRequest")]
@@ -126,10 +126,10 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryBindingDto>> AttachIntentRepositoryPullRequest([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] AttachIntentRepositoryPullRequestRequest body);
 
         /// <summary>
-        /// Read stored PR review comments for a binding.
+        /// List the binding's PR review comments via the git provider.
         /// </summary>
         /// <remarks>
-        /// Returns the locally persisted feed of review comments for the binding's PR, ordered ascending by `created_at`. Review comments only (issue-comments are out of scope). Pagination is intentionally absent; the server returns the full feed.
+        /// Proxies the upstream `gh api .../pulls/{n}/comments` call through the binding's git provider and returns the freshly observed feed, ordered ascending by `created_at`. Comments are NOT durably stored server-side — the git provider is the source of truth; the server keeps only an etag/cursor on the binding for the background poller. Review comments only (issue-comments are out of scope). Pagination is intentionally absent; the server returns the full feed.
         /// </remarks>
         /// <param name="since">When supplied, only comments with `created_at &gt;= since` are returned.</param>
         /// <returns>OK</returns>
