@@ -7,22 +7,8 @@ internal static class GlabPullRequestCommentsParser
 {
     public static IReadOnlyList<PullRequestComment> Parse(string json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return Array.Empty<PullRequestComment>();
-        }
-
-        using var doc = JsonDocument.Parse(NormalisePaginated(json));
-        if (doc.RootElement.ValueKind != JsonValueKind.Array)
-        {
-            throw new FormatException("glab api discussions returned non-array JSON payload.");
-        }
-
         var result = new List<PullRequestComment>();
-        foreach (var discussion in doc.RootElement.EnumerateArray())
-        {
-            ProjectDiscussion(discussion, result);
-        }
+        GlabPaginatedJson.ForEachElement(json, discussion => ProjectDiscussion(discussion, result));
 
         return result;
     }
@@ -82,7 +68,4 @@ internal static class GlabPullRequestCommentsParser
 
         return GlabJson.String(position, "new_path") ?? GlabJson.String(position, "old_path");
     }
-
-    private static string NormalisePaginated(string raw) =>
-        raw.Replace("][", ",", StringComparison.Ordinal);
 }

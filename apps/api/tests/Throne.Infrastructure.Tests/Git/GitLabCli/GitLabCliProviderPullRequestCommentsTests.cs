@@ -35,6 +35,29 @@ public class GitLabCliProviderPullRequestCommentsTests
             o => o.WithStrictOrdering());
     }
 
+    [Fact(DisplayName = "ListPullRequestCommentsAsync склеивает страницы --paginate и не ломается на подстроке ][ в теле")]
+    public async Task List_pull_request_comments_merges_paginated_pages_with_bracket_substring()
+    {
+        // glab api --paginate конкатенирует страницы как [..][..] без разделителя.
+        // Тело первого комментария содержит "][": наивный replace "]["→"," порвал бы JSON.
+        const string json = """
+            [{"id":"d1","notes":[
+              {"id":101,"system":false,"author":{"username":"reviewer"},
+               "body":"array slice a[1][2] and json ][ here","created_at":"2026-06-07T10:01:00Z"}]}][{"id":"d2","notes":[
+              {"id":102,"system":false,"author":{"username":"maintainer"},
+               "body":"second page","created_at":"2026-06-07T10:03:00Z"}]}]
+            """;
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(json));
+
+        var page = await _fx.Provider.ListPullRequestCommentsAsync("g", "r", 42, null, default);
+
+        var fresh = page.Should().BeOfType<PullRequestCommentsPage.Fresh>().Subject;
+        fresh.Comments.Should().HaveCount(2);
+        fresh.Comments[0].Body.Should().Be("array slice a[1][2] and json ][ here");
+        fresh.Comments[1].Id.Should().Be("102");
+        fresh.Comments[1].Body.Should().Be("second page");
+    }
+
     [Fact(DisplayName = "ListPullRequestCommentsAsync возвращает null на 404")]
     public async Task List_pull_request_comments_returns_null_on_404()
     {

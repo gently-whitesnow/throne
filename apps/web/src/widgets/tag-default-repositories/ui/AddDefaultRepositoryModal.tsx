@@ -16,8 +16,10 @@ interface AddDefaultRepositoryModalProps {
   onClose: () => void;
   onPicked: (pick: {
     provider: GitProvider;
+    host?: string;
     owner: string;
     repo: string;
+    project_id?: number | null;
     default_branch: string;
   }) => void;
 }
@@ -133,8 +135,10 @@ export function AddDefaultRepositoryModal({
             onSelect={(repo) => {
               onPicked({
                 provider: repo.provider,
+                host: repo.host,
                 owner: repo.owner,
                 repo: repo.repo,
+                project_id: repo.project_id,
                 default_branch: repo.default_branch
               });
               onClose();

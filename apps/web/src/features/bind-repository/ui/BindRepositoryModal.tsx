@@ -134,8 +134,10 @@ export function BindRepositoryModal({
     try {
       const binding = await bindIntentRepository(intentId, {
         provider: selected.provider,
+        host: selected.host,
         owner: selected.owner,
         repo: selected.repo,
+        project_id: selected.project_id,
         default_branch: form.branch.trim(),
         pull_request_number:
           prNumberParsed.kind === "value" ? prNumberParsed.value : undefined

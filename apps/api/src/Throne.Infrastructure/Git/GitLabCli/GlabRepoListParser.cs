@@ -8,26 +8,15 @@ internal static class GlabRepoListParser
 {
     public static IReadOnlyList<GitRepositoryRef> Parse(string json, string host)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return Array.Empty<GitRepositoryRef>();
-        }
-
-        using var doc = JsonDocument.Parse(NormalisePaginated(json));
-        if (doc.RootElement.ValueKind != JsonValueKind.Array)
-        {
-            throw new FormatException("glab api projects returned non-array JSON payload.");
-        }
-
-        var result = new List<GitRepositoryRef>(doc.RootElement.GetArrayLength());
-        foreach (var item in doc.RootElement.EnumerateArray())
+        var result = new List<GitRepositoryRef>();
+        GlabPaginatedJson.ForEachElement(json, item =>
         {
             var repo = TryProject(item, host);
             if (repo is not null)
             {
                 result.Add(repo);
             }
-        }
+        });
 
         return result;
     }
@@ -71,7 +60,4 @@ internal static class GlabRepoListParser
 
         return (fullPath[..slash], fullPath[(slash + 1)..]);
     }
-
-    private static string NormalisePaginated(string raw) =>
-        raw.Replace("][", ",", StringComparison.Ordinal);
 }

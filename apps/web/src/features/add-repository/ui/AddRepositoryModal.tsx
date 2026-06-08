@@ -1,7 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Lock, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useCapabilityEnabled } from "@/entities/capability";
 import {
   createRepository,
   repositoriesQueryKeys,
@@ -37,6 +38,13 @@ export function AddRepositoryModal({
   const [involved, setInvolved] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // GitLab gated behind the `gitlab` capability (ADR-0032 § 8).
+  const gitlabEnabled = useCapabilityEnabled("gitlab");
+  useEffect(() => {
+    if (!gitlabEnabled && provider === "gitlab") {
+      setProvider("github");
+    }
+  }, [gitlabEnabled, provider]);
   const {
     results,
     isLoading,
@@ -55,8 +63,12 @@ export function AddRepositoryModal({
     try {
       const repo = await createRepository({
         provider: ref.provider,
-        host:
-          ref.host ?? (ref.provider === "github" ? "github.com" : "gitlab.com"),
+        // host comes from the search ref: GitHub → "github.com", GitLab → the
+        // configured self-managed host (always populated by the GitLab search).
+        // Only GitHub has a safe fixed default; for GitLab we send the host as-is
+        // (empty → server rejects) instead of guessing "gitlab.com", which would
+        // silently bind a self-managed repo to the wrong host.
+        host: ref.host ?? (ref.provider === "github" ? "github.com" : ""),
         owner: ref.owner,
         repo: ref.repo,
         project_id: ref.project_id
@@ -115,18 +127,20 @@ export function AddRepositoryModal({
           >
             GitHub
           </button>
-          <button
-            type="button"
-            className={`btn join-item btn-xs ${
-              provider === "gitlab" ? "btn-primary" : "btn-ghost"
-            }`}
-            aria-pressed={provider === "gitlab"}
-            onClick={() => {
-              setProvider("gitlab");
-            }}
-          >
-            GitLab
-          </button>
+          {gitlabEnabled ? (
+            <button
+              type="button"
+              className={`btn join-item btn-xs ${
+                provider === "gitlab" ? "btn-primary" : "btn-ghost"
+              }`}
+              aria-pressed={provider === "gitlab"}
+              onClick={() => {
+                setProvider("gitlab");
+              }}
+            >
+              GitLab
+            </button>
+          ) : null}
         </div>
 
         <input
