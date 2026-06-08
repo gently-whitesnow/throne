@@ -17,7 +17,7 @@ public sealed class CreateRepositoryEndpoint(CreateRepositoryHandler handler)
         var provider = RepositoryEnumDtoMapper.ToProviderName(body.Provider);
         try
         {
-            var result = await handler.HandleAsync(provider, body.Owner, body.Repo, ct);
+            var result = await handler.HandleAsync(provider, body.Owner, body.Repo, body.Host, body.Project_id, ct);
             var dto = RepositoryRegistryDtoMapper.ToRepositoryDto(result.Repository);
             if (!result.Created)
             {

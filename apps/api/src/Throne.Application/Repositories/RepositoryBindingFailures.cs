@@ -33,7 +33,17 @@ internal static class RepositoryBindingFailures
             new Dictionary<string, object?>
             {
                 ["provider"] = provider,
-                ["supported_providers"] = new[] { GitProviderNames.GitHub },
+                ["supported_providers"] = new[] { GitProviderNames.GitHub, GitProviderNames.GitLab },
+            });
+
+    public static ApiException ProviderCapabilityDisabled(string provider, string capability) =>
+        new(
+            ErrorCodes.CapabilityDisabled,
+            $"Git provider '{provider}' requires capability '{capability}' — enable it in /settings before retrying.",
+            new Dictionary<string, object?>
+            {
+                ["provider"] = provider,
+                ["capability"] = capability,
             });
 
     public static ApiException ProviderNotAuthenticated(ProviderAuthStatus status) =>

@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * Authentication status for every configured git provider CLI.
-         * @description Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Only the `github` entry is returned today; `gitlab` will land alongside `GitLabCliProvider`.
+         * @description Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses the configured `Throne:GitLab:Host`.
          */
         get: operations["getGitProvidersStatus"];
         put?: never;
@@ -115,6 +115,9 @@ export interface components {
         GitProviderAuthStatusDto: {
             /** @description True when the underlying CLI reports a usable session. */
             authenticated: boolean;
+            state: components["schemas"]["GitProviderAuthState"];
+            /** @description Provider host that was probed. */
+            host?: string | null;
             /** @description Authenticated account login (from `gh api user`). */
             login?: string;
             /** @description OAuth scopes parsed from the `X-OAuth-Scopes` response header. */
@@ -122,10 +125,15 @@ export interface components {
             /** @description Last error message from the provider CLI when `authenticated=false`. */
             error?: string;
         };
+        /**
+         * @description UI-level health state. `offline` is a transient NetworkError; `missing` means the CLI or required host setting is absent; `unauthenticated` means the CLI is present but has no usable login.
+         * @enum {string}
+         */
+        GitProviderAuthState: "authenticated" | "unauthenticated" | "offline" | "missing";
         GitProvidersStatusDto: {
             github: components["schemas"]["GitProviderAuthStatusDto"];
-            /** @description Reserved for a future GitLab integration. Absent today. */
-            gitlab?: components["schemas"]["GitProviderAuthStatusDto"];
+            /** @description Status for the configured GitLab host. */
+            gitlab: components["schemas"]["GitProviderAuthStatusDto"];
         };
         ProblemDetails: {
             type: string;

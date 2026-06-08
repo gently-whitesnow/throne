@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  listMyGithubRepositories,
-  searchGithubRepositories,
+  listGitProviderRepositories,
+  searchGitProviderRepositories,
+  type GitProvider,
   type GitRepositoryRef,
   type RepositorySearchScope
 } from "@/entities/repository-binding";
@@ -17,14 +18,15 @@ export interface RepositorySearchState {
 }
 
 /**
- * Drives the "add repository" autocomplete (reuses the Slice 1 `gh` search).
+ * Drives the "add repository" autocomplete (reuses the provider search).
  * `mine` + empty query lists the user's repos on open; otherwise we hit the
  * substring search. Each keystroke aborts the previous fetch.
  */
 export function useRepositorySearch(
   query: string,
   scope: RepositorySearchScope,
-  enabled: boolean
+  enabled: boolean,
+  provider: GitProvider
 ): RepositorySearchState {
   const [results, setResults] = useState<GitRepositoryRef[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,9 +53,14 @@ export function useRepositorySearch(
 
       const promise =
         scope === "mine" && trimmed.length === 0
-          ? listMyGithubRepositories(DEFAULT_LIMIT, controller.signal)
-          : searchGithubRepositories(
+          ? listGitProviderRepositories(
+              provider,
+              DEFAULT_LIMIT,
+              controller.signal
+            )
+          : searchGitProviderRepositories(
               {
+                provider,
                 q: trimmed.length > 0 ? trimmed : undefined,
                 scope,
                 limit: DEFAULT_LIMIT
@@ -77,7 +84,7 @@ export function useRepositorySearch(
     return () => {
       window.clearTimeout(timer);
     };
-  }, [query, scope, enabled]);
+  }, [query, scope, enabled, provider]);
 
   useEffect(() => {
     return () => {

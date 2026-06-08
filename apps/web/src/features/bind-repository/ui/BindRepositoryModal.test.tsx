@@ -15,24 +15,45 @@ import type {
 
 import { BindRepositoryModal } from "./BindRepositoryModal";
 
-const listMyGithubRepositories =
-  vi.fn<(limit?: number) => Promise<GitRepositoryRef[]>>();
-const searchGithubRepositories =
-  vi.fn<(params: unknown) => Promise<GitRepositoryRef[]>>();
-const bindIntentRepository =
-  vi.fn<
-    (
-      intentId: string,
-      body: Record<string, unknown>
-    ) => Promise<RepositoryBinding>
-  >();
+const repositoryBindingMocks = vi.hoisted(() => ({
+  listGitProviderRepositories:
+    vi.fn<(provider?: string, limit?: number) => Promise<GitRepositoryRef[]>>(),
+  searchGitProviderRepositories:
+    vi.fn<(params: unknown) => Promise<GitRepositoryRef[]>>(),
+  listGitProviderRepositoryBranches: vi
+    .fn<() => Promise<unknown[]>>()
+    .mockResolvedValue([]),
+  listGitProviderRepositoryPullRequests: vi
+    .fn<() => Promise<unknown[]>>()
+    .mockResolvedValue([]),
+  bindIntentRepository:
+    vi.fn<
+      (
+        intentId: string,
+        body: Record<string, unknown>
+      ) => Promise<RepositoryBinding>
+    >()
+}));
 
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
-  listMyGithubRepositories: (limit?: number) => listMyGithubRepositories(limit),
+  listGitProviderRepositories: (provider?: string, limit?: number) =>
+    repositoryBindingMocks.listGitProviderRepositories(provider, limit),
+  listMyGithubRepositories: (limit?: number) =>
+    repositoryBindingMocks.listGitProviderRepositories("github", limit),
+  searchGitProviderRepositories: (params: unknown) =>
+    repositoryBindingMocks.searchGitProviderRepositories(params),
   searchGithubRepositories: (params: unknown) =>
-    searchGithubRepositories(params),
+    repositoryBindingMocks.searchGitProviderRepositories(params),
+  listGitProviderRepositoryBranches:
+    repositoryBindingMocks.listGitProviderRepositoryBranches,
+  listGithubRepositoryBranches:
+    repositoryBindingMocks.listGitProviderRepositoryBranches,
+  listGitProviderRepositoryPullRequests:
+    repositoryBindingMocks.listGitProviderRepositoryPullRequests,
+  listGithubRepositoryPullRequests:
+    repositoryBindingMocks.listGitProviderRepositoryPullRequests,
   bindIntentRepository: (intentId: string, body: Record<string, unknown>) =>
-    bindIntentRepository(intentId, body),
+    repositoryBindingMocks.bindIntentRepository(intentId, body),
   listIntentRepositories: vi.fn().mockResolvedValue([]),
   unbindIntentRepository: vi.fn()
 }));
@@ -53,6 +74,14 @@ vi.mock("@/shared/api", () => {
 
 import { HttpError } from "@/shared/api";
 
+const {
+  listGitProviderRepositories,
+  searchGitProviderRepositories,
+  listGitProviderRepositoryBranches,
+  listGitProviderRepositoryPullRequests,
+  bindIntentRepository
+} = repositoryBindingMocks;
+
 function makeRef(overrides: Partial<GitRepositoryRef> = {}): GitRepositoryRef {
   return {
     provider: "github",
@@ -70,6 +99,7 @@ function makeBinding(): RepositoryBinding {
     id: "b1",
     intent_id: "intent-1",
     provider: "github",
+    host: "github.com",
     owner: "octocat",
     repo: "hello-world",
     default_branch: "main",
@@ -83,8 +113,12 @@ function makeBinding(): RepositoryBinding {
 describe("BindRepositoryModal", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    listMyGithubRepositories.mockReset();
-    searchGithubRepositories.mockReset();
+    listGitProviderRepositories.mockReset();
+    searchGitProviderRepositories.mockReset();
+    listGitProviderRepositoryBranches.mockReset();
+    listGitProviderRepositoryPullRequests.mockReset();
+    listGitProviderRepositoryBranches.mockResolvedValue([]);
+    listGitProviderRepositoryPullRequests.mockResolvedValue([]);
     bindIntentRepository.mockReset();
   });
 
@@ -100,23 +134,23 @@ describe("BindRepositoryModal", () => {
   }
 
   it("при открытии грузит «мои» репозитории по умолчанию", async () => {
-    listMyGithubRepositories.mockResolvedValue([makeRef()]);
+    listGitProviderRepositories.mockResolvedValue([makeRef()]);
     render(
       <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
     );
     await flushDebounce();
     await waitFor(() => {
-      expect(listMyGithubRepositories).toHaveBeenCalledTimes(1);
+      expect(listGitProviderRepositories).toHaveBeenCalledWith("github", 50);
     });
-    expect(searchGithubRepositories).not.toHaveBeenCalled();
+    expect(searchGitProviderRepositories).not.toHaveBeenCalled();
     expect(
       screen.getByTestId("bind-repository-row-octocat/hello-world")
     ).toBeTruthy();
   });
 
   it("переключение чекбокса «involved» вызывает search со scope=involved", async () => {
-    listMyGithubRepositories.mockResolvedValue([]);
-    searchGithubRepositories.mockResolvedValue([
+    listGitProviderRepositories.mockResolvedValue([]);
+    searchGitProviderRepositories.mockResolvedValue([
       makeRef({ owner: "acme", repo: "x", full_name: "acme/x" })
     ]);
     render(
@@ -128,15 +162,43 @@ describe("BindRepositoryModal", () => {
     await flushDebounce();
 
     await waitFor(() => {
-      expect(searchGithubRepositories).toHaveBeenCalledWith(
+      expect(searchGitProviderRepositories).toHaveBeenCalledWith(
         expect.objectContaining({ scope: "involved" })
       );
     });
     expect(screen.getByTestId("bind-repository-row-acme/x")).toBeTruthy();
   });
 
+  it("переключение провайдера на GitLab грузит мои репозитории GitLab", async () => {
+    listGitProviderRepositories.mockResolvedValue([
+      makeRef({
+        provider: "gitlab",
+        owner: "team/platform",
+        repo: "core",
+        full_name: "team/platform/core"
+      })
+    ]);
+    render(
+      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
+    );
+    await flushDebounce();
+
+    fireEvent.click(screen.getByTestId("bind-repository-provider-gitlab"));
+    await flushDebounce();
+
+    await waitFor(() => {
+      expect(listGitProviderRepositories).toHaveBeenLastCalledWith(
+        "gitlab",
+        50
+      );
+    });
+    expect(
+      screen.getByTestId("bind-repository-row-team/platform/core")
+    ).toBeTruthy();
+  });
+
   it("после выбора репо submit отправляет bindIntentRepository с branch и pull_request_number", async () => {
-    listMyGithubRepositories.mockResolvedValue([makeRef()]);
+    listGitProviderRepositories.mockResolvedValue([makeRef()]);
     bindIntentRepository.mockResolvedValue(makeBinding());
     const onClose = vi.fn();
     const onBound = vi.fn();
@@ -173,7 +235,7 @@ describe("BindRepositoryModal", () => {
   });
 
   it("422 на невалидном PR-number блокирует submit", async () => {
-    listMyGithubRepositories.mockResolvedValue([makeRef()]);
+    listGitProviderRepositories.mockResolvedValue([makeRef()]);
     render(
       <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
     );
@@ -190,7 +252,7 @@ describe("BindRepositoryModal", () => {
   });
 
   it("409 от сервера показывает «уже привязан»", async () => {
-    listMyGithubRepositories.mockResolvedValue([makeRef()]);
+    listGitProviderRepositories.mockResolvedValue([makeRef()]);
     bindIntentRepository.mockRejectedValue(
       new HttpError(409, "/x", "conflict")
     );
@@ -210,7 +272,7 @@ describe("BindRepositoryModal", () => {
   });
 
   it("submit без выбранного репо невозможен", async () => {
-    listMyGithubRepositories.mockResolvedValue([makeRef()]);
+    listGitProviderRepositories.mockResolvedValue([makeRef()]);
     render(
       <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
     );

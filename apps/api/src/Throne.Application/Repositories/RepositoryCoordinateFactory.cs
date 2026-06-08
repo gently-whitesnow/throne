@@ -12,11 +12,16 @@ namespace Throne.Application.Repositories;
 /// </summary>
 public static class RepositoryCoordinateFactory
 {
-    public static RepoCoordinate Create(string provider, string owner, string repo)
+    public static RepoCoordinate Create(
+        string provider,
+        string owner,
+        string repo,
+        string? host = null,
+        int? projectId = null)
     {
         try
         {
-            return new RepoCoordinate(provider, owner, repo);
+            return new RepoCoordinate(provider, owner, repo, host, projectId);
         }
         catch (ArgumentException ex)
         {
@@ -26,8 +31,10 @@ public static class RepositoryCoordinateFactory
                 new Dictionary<string, object?>
                 {
                     ["provider"] = provider,
+                    ["host"] = host,
                     ["owner"] = owner,
                     ["repo"] = repo,
+                    ["project_id"] = projectId,
                 });
         }
     }

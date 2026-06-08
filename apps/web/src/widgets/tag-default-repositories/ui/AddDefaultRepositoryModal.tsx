@@ -8,18 +8,21 @@ import {
   useRepositorySearch,
   type SearchScope
 } from "@/features/bind-repository";
+import type { GitProvider } from "@/entities/repository-binding";
 import { Button } from "@/shared/ui";
 
 interface AddDefaultRepositoryModalProps {
   open: boolean;
   onClose: () => void;
   onPicked: (pick: {
-    provider: "github";
+    provider: GitProvider;
     owner: string;
     repo: string;
     default_branch: string;
   }) => void;
 }
+
+const DEFAULT_PROVIDER: GitProvider = "github";
 
 /**
  * Модалка добавления репозитория в `Tag.default_repositories`. Переиспользует
@@ -33,14 +36,21 @@ export function AddDefaultRepositoryModal({
   onClose,
   onPicked
 }: AddDefaultRepositoryModalProps) {
+  const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<SearchScope>("mine");
   const titleId = useId();
 
-  const { results, isLoading, error } = useRepositorySearch(query, scope, open);
+  const { results, isLoading, error } = useRepositorySearch(
+    query,
+    scope,
+    open,
+    provider
+  );
 
   useEffect(() => {
     if (open) return;
+    setProvider(DEFAULT_PROVIDER);
     setQuery("");
     setScope("mine");
   }, [open]);
@@ -107,6 +117,8 @@ export function AddDefaultRepositoryModal({
 
         <div className="flex flex-col gap-4">
           <BindRepositorySearchControls
+            provider={provider}
+            onProviderChange={setProvider}
             query={query}
             onQueryChange={setQuery}
             scope={scope}
@@ -120,7 +132,7 @@ export function AddDefaultRepositoryModal({
             selectedFullName={null}
             onSelect={(repo) => {
               onPicked({
-                provider: "github",
+                provider: repo.provider,
                 owner: repo.owner,
                 repo: repo.repo,
                 default_branch: repo.default_branch

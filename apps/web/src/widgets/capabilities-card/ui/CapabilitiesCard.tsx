@@ -26,6 +26,11 @@ const CAPABILITY_VISUALS: Record<
     setupHref: "https://docs.github.com/en/github-cli/github-cli/quickstart",
     setupLabel: "Установить и авторизовать gh CLI"
   },
+  gitlab: {
+    icon: FolderGit2,
+    setupHref: "https://docs.gitlab.com/editor_extensions/gitlab_cli/",
+    setupLabel: "Установить и авторизовать glab CLI"
+  },
   terminal: {
     icon: TerminalSquare,
     setupHref:

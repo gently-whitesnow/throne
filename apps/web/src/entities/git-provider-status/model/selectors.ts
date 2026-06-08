@@ -7,6 +7,15 @@ export function isProviderHealthy(
   return status?.authenticated === true;
 }
 
+export function providerHealthKey(
+  status: GitProviderAuthStatus | undefined
+): "ok" | "offline" | "broken" | "missing" {
+  if (status?.authenticated) return "ok";
+  if (status?.state === "offline") return "offline";
+  if (status?.state === "missing") return "missing";
+  return "broken";
+}
+
 /**
  * Short human-readable session descriptor for the settings card.
  * `login (scope, scope, ...)` when authenticated, otherwise the error message
@@ -20,6 +29,9 @@ export function describeProviderSession(
     const login = status.login ?? "—";
     const scopes = status.scopes ?? [];
     return scopes.length > 0 ? `${login} (${scopes.join(", ")})` : login;
+  }
+  if (status.state === "offline") {
+    return status.error ?? "Git provider временно недоступен";
   }
   return status.error ?? "CLI не авторизован";
 }

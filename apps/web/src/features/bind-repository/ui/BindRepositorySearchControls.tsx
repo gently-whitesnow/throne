@@ -1,8 +1,12 @@
 import { Search } from "lucide-react";
 
+import type { GitProvider } from "@/entities/repository-binding";
+
 import type { SearchScope } from "../model/use-repository-search";
 
 interface BindRepositorySearchControlsProps {
+  provider: GitProvider;
+  onProviderChange: (provider: GitProvider) => void;
   query: string;
   onQueryChange: (value: string) => void;
   scope: SearchScope;
@@ -13,12 +17,14 @@ interface BindRepositorySearchControlsProps {
 /**
  * Search input + scope checkbox. The two modes follow parent slice decision:
  *
- *  - default (`mine`) — fast path via `listMyGithubRepositories` for empty
- *    query, otherwise `searchGithubRepositories?scope=mine`;
+ *  - default (`mine`) — fast path via provider-specific "my repositories" for
+ *    empty query, otherwise provider search with `scope=mine`;
  *  - `involved` — explicitly opted-in via the checkbox so the operator
  *    accepts the wider `gh api /user/repos?affiliation=...` round-trip.
  */
 export function BindRepositorySearchControls({
+  provider,
+  onProviderChange,
   query,
   onQueryChange,
   scope,
@@ -27,6 +33,36 @@ export function BindRepositorySearchControls({
 }: BindRepositorySearchControlsProps) {
   return (
     <div className="flex flex-col gap-2">
+      <div className="join w-fit" role="radiogroup" aria-label="Git provider">
+        <button
+          type="button"
+          className={`btn join-item btn-xs ${
+            provider === "github" ? "btn-primary" : "btn-ghost"
+          }`}
+          aria-pressed={provider === "github"}
+          onClick={() => {
+            onProviderChange("github");
+          }}
+          disabled={disabled}
+          data-testid="bind-repository-provider-github"
+        >
+          GitHub
+        </button>
+        <button
+          type="button"
+          className={`btn join-item btn-xs ${
+            provider === "gitlab" ? "btn-primary" : "btn-ghost"
+          }`}
+          aria-pressed={provider === "gitlab"}
+          onClick={() => {
+            onProviderChange("gitlab");
+          }}
+          disabled={disabled}
+          data-testid="bind-repository-provider-gitlab"
+        >
+          GitLab
+        </button>
+      </div>
       <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 focus-within:border-primary">
         <Search aria-hidden size={14} className="text-base-content/50" />
         <input
