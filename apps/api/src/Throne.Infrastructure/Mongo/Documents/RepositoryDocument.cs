@@ -16,11 +16,17 @@ internal sealed class RepositoryDocument
     [BsonElement("provider")]
     public string Provider { get; set; } = string.Empty;
 
+    [BsonElement("host")]
+    public string? Host { get; set; }
+
     [BsonElement("owner")]
     public string Owner { get; set; } = string.Empty;
 
     [BsonElement("repo")]
     public string Repo { get; set; } = string.Empty;
+
+    [BsonElement("project_id")]
+    public int? ProjectId { get; set; }
 
     [BsonElement("created_at")]
     public DateTime CreatedAt { get; set; }

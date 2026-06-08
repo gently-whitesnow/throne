@@ -29,7 +29,12 @@ public sealed class RepositoryBindingPersistence(
         RepoCoordinate coordinate;
         try
         {
-            coordinate = new RepoCoordinate(command.Provider, command.Owner, command.Repo);
+            coordinate = new RepoCoordinate(
+                command.Provider,
+                command.Owner,
+                command.Repo,
+                command.Host,
+                command.ProjectId);
         }
         catch (ArgumentException ex)
         {

@@ -66,11 +66,11 @@ components:
       type: string
       enum:
         - repositories
+        - gitlab
         - terminal
         - vscode
       description: >
-        Closed set of capability keys shipped in Slice 2. Future capabilities
-        (e.g. `jira`, `gitlab`) extend this enum without breaking existing clients.
+        Closed set of capability keys exposed in settings.
     CapabilityDto:
       type: object
       required:

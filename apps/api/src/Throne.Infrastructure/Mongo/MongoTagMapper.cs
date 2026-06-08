@@ -33,8 +33,10 @@ internal static class MongoTagMapper
     public static TagDefaultRepositoryDocument DefaultRepositoryToDocument(TagDefaultRepository entry) => new()
     {
         Provider = entry.Coordinate.Provider,
+        Host = entry.Coordinate.Host,
         Owner = entry.Coordinate.Owner,
         Repo = entry.Coordinate.Repo,
+        ProjectId = entry.Coordinate.ProjectId,
         DefaultBranch = entry.DefaultBranch,
     };
 
@@ -49,5 +51,15 @@ internal static class MongoTagMapper
         sortKey: doc.SortKey);
 
     private static TagDefaultRepository DefaultRepositoryToDomain(TagDefaultRepositoryDocument doc) =>
-        new(new RepoCoordinate(doc.Provider, doc.Owner, doc.Repo), doc.DefaultBranch);
+        new(new RepoCoordinate(
+            doc.Provider,
+            doc.Owner,
+            doc.Repo,
+            HostOrDefault(doc.Provider, doc.Host),
+            doc.ProjectId), doc.DefaultBranch);
+
+    private static string? HostOrDefault(string provider, string? host) =>
+        string.IsNullOrWhiteSpace(host) && provider == GitProviderNames.GitHub
+            ? GitProviderHostDefaults.GitHub
+            : host;
 }

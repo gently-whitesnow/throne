@@ -22,11 +22,13 @@ internal static class GhAuthStatusParser
 
         if (!userCall.IsSuccess)
         {
+            var kind = GhErrorClassifier.Classify(userCall.StandardError);
             return new ProviderAuthStatus(
                 Provider: GitProviderNames.GitHub,
                 IsAuthenticated: false,
                 Host: host,
-                Detail: GhErrorClassifier.OneLine(userCall.StandardError));
+                Detail: GhErrorClassifier.OneLine(userCall.StandardError),
+                State: StateFromError(kind));
         }
 
         var split = GhHttpResponseSplitter.Split(userCall.StandardOutput);
@@ -37,11 +39,21 @@ internal static class GhAuthStatusParser
             IsAuthenticated: !string.IsNullOrEmpty(login),
             Account: login,
             Host: host,
-            Detail: scopes.Detail)
+            Detail: scopes.Detail,
+            State: string.IsNullOrEmpty(login)
+                ? ProviderAuthStateNames.Unauthenticated
+                : ProviderAuthStateNames.Authenticated)
         {
             Scopes = scopes.Values,
         };
     }
+
+    private static string StateFromError(GitProviderErrorKind kind) => kind switch
+    {
+        GitProviderErrorKind.NetworkError => ProviderAuthStateNames.Offline,
+        GitProviderErrorKind.CliFailure => ProviderAuthStateNames.Missing,
+        _ => ProviderAuthStateNames.Unauthenticated,
+    };
 
     private static string? TryReadLogin(string body)
     {

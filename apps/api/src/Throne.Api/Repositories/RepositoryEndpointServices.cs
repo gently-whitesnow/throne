@@ -12,10 +12,10 @@ internal static class RepositoryEndpointServices
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<SearchGithubRepositoriesEndpoint>();
-        services.AddSingleton<ListMyGithubRepositoriesEndpoint>();
-        services.AddSingleton<ListGithubRepositoryBranchesEndpoint>();
-        services.AddSingleton<ListGithubRepositoryPullRequestsEndpoint>();
+        services.AddSingleton<SearchGitProviderRepositoriesEndpoint>();
+        services.AddSingleton<ListGitProviderRepositoriesEndpoint>();
+        services.AddSingleton<ListGitProviderRepositoryBranchesEndpoint>();
+        services.AddSingleton<ListGitProviderRepositoryPullRequestsEndpoint>();
         services.AddSingleton<ListIntentRepositoriesEndpoint>();
         services.AddSingleton<BindIntentRepositoryEndpoint>();
         services.AddSingleton<UnbindIntentRepositoryEndpoint>();

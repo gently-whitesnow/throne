@@ -15,9 +15,7 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   listIntentRepositories: (intentId: string) =>
     listIntentRepositories(intentId),
   unbindIntentRepository: vi.fn().mockResolvedValue(undefined),
-  bindIntentRepository: vi.fn(),
-  searchGithubRepositories: vi.fn(),
-  listMyGithubRepositories: vi.fn()
+  bindIntentRepository: vi.fn()
 }));
 
 // Capture realtime subscriptions so individual tests can fire synthetic SSE
@@ -48,6 +46,7 @@ function makeBinding(
     id: "b1",
     intent_id: "intent-1",
     provider: "github",
+    host: "github.com",
     owner: "octocat",
     repo: "hello-world",
     default_branch: "main",

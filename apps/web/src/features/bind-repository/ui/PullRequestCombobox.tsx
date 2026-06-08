@@ -1,14 +1,16 @@
 import { ChevronDown, Loader2 } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import {
+  type GitProvider,
   type GitPullRequestRef,
-  listGithubRepositoryPullRequests
+  listGitProviderRepositoryPullRequests
 } from "@/entities/repository-binding";
 
 import { useRefSuggestions } from "../model/use-ref-suggestions";
 
 interface PullRequestComboboxProps {
+  provider: GitProvider;
   owner: string | null;
   repo: string | null;
   /** Free-text PR number (operator may type without selecting from the list). */
@@ -21,14 +23,13 @@ interface PullRequestComboboxProps {
   invalid: boolean;
 }
 
-const fetcher = listGithubRepositoryPullRequests;
-
 /**
  * Typeahead for open pull requests of `{owner}/{repo}`. Selecting an item
  * propagates the full `GitPullRequestRef` (the modal uses `head_ref` to lock
  * the branch field per the slice spec).
  */
 export function PullRequestCombobox({
+  provider,
   owner,
   repo,
   value,
@@ -43,6 +44,21 @@ export function PullRequestCombobox({
   const inputId = useId();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const enabled = owner !== null && repo !== null && !disabled;
+  const fetcher = useCallback(
+    (
+      refOwner: string,
+      refRepo: string,
+      params: { q?: string; limit?: number },
+      signal: AbortSignal
+    ) =>
+      listGitProviderRepositoryPullRequests(
+        refOwner,
+        refRepo,
+        { ...params, provider },
+        signal
+      ),
+    [provider]
+  );
   const { results, isLoading } = useRefSuggestions<GitPullRequestRef>(
     owner,
     repo,

@@ -26,7 +26,8 @@ internal sealed class GhAuthProbe(GhCliInvoker gh)
                 Provider: GitProviderNames.GitHub,
                 IsAuthenticated: false,
                 Host: DefaultHost,
-                Detail: ex.Message);
+                Detail: ex.Message,
+                State: StateFromError(ex.Kind));
         }
 
         return GhAuthStatusParser.ParseUserResponse(result, DefaultHost);
@@ -34,4 +35,11 @@ internal sealed class GhAuthProbe(GhCliInvoker gh)
 
     private static bool IsSwallowable(GitProviderErrorKind kind) =>
         kind is GitProviderErrorKind.CliFailure or GitProviderErrorKind.NetworkError;
+
+    private static string StateFromError(GitProviderErrorKind kind) => kind switch
+    {
+        GitProviderErrorKind.NetworkError => ProviderAuthStateNames.Offline,
+        GitProviderErrorKind.CliFailure => ProviderAuthStateNames.Missing,
+        _ => ProviderAuthStateNames.Unauthenticated,
+    };
 }

@@ -37,7 +37,14 @@ describe("GitProvidersCard", () => {
 
     expect(screen.getByText(/Загружаем статус/)).toBeTruthy();
 
-    resolve({ github: { authenticated: false, error: "no creds" } });
+    resolve({
+      github: {
+        authenticated: false,
+        state: "unauthenticated",
+        error: "no creds"
+      },
+      gitlab: { authenticated: false, state: "missing", error: "no host" }
+    });
     await waitFor(() => {
       expect(screen.queryByText(/Загружаем статус/)).toBeNull();
     });
@@ -47,8 +54,14 @@ describe("GitProvidersCard", () => {
     fetchGitProvidersStatus.mockResolvedValue({
       github: {
         authenticated: true,
+        state: "authenticated",
         login: "octocat",
         scopes: ["repo", "read:org"]
+      },
+      gitlab: {
+        authenticated: false,
+        state: "missing",
+        error: "Throne:GitLab:Host is not configured."
       }
     });
 
@@ -66,7 +79,13 @@ describe("GitProvidersCard", () => {
     fetchGitProvidersStatus.mockResolvedValue({
       github: {
         authenticated: false,
+        state: "unauthenticated",
         error: "gh: not logged in"
+      },
+      gitlab: {
+        authenticated: false,
+        state: "missing",
+        error: "no host"
       }
     });
 
@@ -78,9 +97,34 @@ describe("GitProvidersCard", () => {
     expect(screen.getByText(/gh: not logged in/)).toBeTruthy();
   });
 
+  it("показывает янтарный GitLab статус при offline", async () => {
+    fetchGitProvidersStatus.mockResolvedValue({
+      github: { authenticated: true, state: "authenticated", login: "octocat" },
+      gitlab: {
+        authenticated: false,
+        state: "offline",
+        host: "gitlab.example.com",
+        error: "timeout"
+      }
+    });
+
+    render(<GitProvidersCard />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Вне сети")).toBeTruthy();
+    });
+    expect(screen.getByText(/gitlab.example.com/)).toBeTruthy();
+    expect(screen.getByText(/timeout/)).toBeTruthy();
+  });
+
   it("повторно дёргает API по клику «Проверить»", async () => {
     fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: false, error: "no creds" }
+      github: {
+        authenticated: false,
+        state: "unauthenticated",
+        error: "no creds"
+      },
+      gitlab: { authenticated: false, state: "missing", error: "no host" }
     });
 
     render(<GitProvidersCard />);
@@ -108,7 +152,13 @@ describe("GitProvidersCard", () => {
 
   it("ссылка «Как настроить gh» ведёт на docs.github.com и открывается в новой вкладке", async () => {
     fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, login: "octocat", scopes: [] }
+      github: {
+        authenticated: true,
+        state: "authenticated",
+        login: "octocat",
+        scopes: []
+      },
+      gitlab: { authenticated: false, state: "missing", error: "no host" }
     });
 
     render(<GitProvidersCard />);
@@ -117,7 +167,7 @@ describe("GitProvidersCard", () => {
       expect(screen.getByText("Подключено")).toBeTruthy();
     });
 
-    const link = screen.getByRole("link", { name: /Как настроить/ });
+    const link = screen.getByRole("link", { name: /Как настроить gh/ });
     expect(link.getAttribute("href")).toMatch(/^https:\/\/docs\.github\.com\//);
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toContain("noopener");

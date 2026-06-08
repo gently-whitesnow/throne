@@ -74,6 +74,7 @@ export function BindRepositorySelectionForm({
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <PullRequestCombobox
+          provider={selected.provider}
           owner={selected.owner}
           repo={selected.repo}
           value={form.prNumber}
@@ -84,6 +85,7 @@ export function BindRepositorySelectionForm({
           invalid={prInvalid}
         />
         <BranchCombobox
+          provider={selected.provider}
           owner={selected.owner}
           repo={selected.repo}
           value={form.branch}

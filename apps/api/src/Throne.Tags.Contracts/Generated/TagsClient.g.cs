@@ -168,6 +168,10 @@ namespace Throne.Tags.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"github")]
         Github = 0,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"gitlab")]
+        [System.Runtime.Serialization.EnumMember(Value = @"gitlab")]
+        Gitlab = 1,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -179,17 +183,23 @@ namespace Throne.Tags.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TagDefaultGitProvider>))]
         public TagDefaultGitProvider Provider { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")]
+        [System.ComponentModel.DataAnnotations.StringLength(255, MinimumLength = 1)]
         public string Owner { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9._-]+$")]
         public string Repo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         /// <summary>
         /// Optional branch hint for the Run pre-flight; falls back to upstream's default branch on first clone (ADR-0024 § 1).

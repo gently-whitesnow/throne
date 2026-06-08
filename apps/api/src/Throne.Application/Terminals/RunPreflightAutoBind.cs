@@ -60,6 +60,8 @@ public sealed class RunPreflightAutoBind(
                 Provider: defaultRepo.Coordinate.Provider,
                 Owner: defaultRepo.Coordinate.Owner,
                 Repo: defaultRepo.Coordinate.Repo,
+                Host: defaultRepo.Coordinate.Host,
+                ProjectId: defaultRepo.Coordinate.ProjectId,
                 DefaultBranch: defaultRepo.DefaultBranch,
                 PullRequestNumber: null),
             ct,

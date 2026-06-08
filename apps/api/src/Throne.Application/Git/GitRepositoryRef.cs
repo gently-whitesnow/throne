@@ -6,6 +6,7 @@ namespace Throne.Application.Git;
 /// but lives in Application to keep the port independent of generated DTOs.
 /// </summary>
 /// <param name="Provider">Wire-format provider name (see <c>GitProviderNames</c>).</param>
+/// <param name="Host">Provider host.</param>
 /// <param name="Owner">Repository owner (user or organisation login).</param>
 /// <param name="Repo">Repository slug, without owner prefix.</param>
 /// <param name="DefaultBranch">Upstream default branch name (e.g. <c>main</c>).</param>
@@ -13,8 +14,12 @@ public sealed record GitRepositoryRef(
     string Provider,
     string Owner,
     string Repo,
-    string DefaultBranch)
+    string DefaultBranch,
+    string? Host = null,
+    int? ProjectId = null)
 {
+    public string ResolvedHost => string.IsNullOrWhiteSpace(Host) ? "github.com" : Host;
+
     /// <summary>Short repository description, when upstream supplies one.</summary>
     public string? Description { get; init; }
 

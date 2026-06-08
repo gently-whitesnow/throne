@@ -25,9 +25,7 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   listIntentRepositories: (intentId: string) =>
     listIntentRepositories(intentId),
   unbindIntentRepository: vi.fn(),
-  bindIntentRepository: vi.fn(),
-  searchGithubRepositories: vi.fn(),
-  listMyGithubRepositories: vi.fn()
+  bindIntentRepository: vi.fn()
 }));
 
 vi.mock("@/entities/pull-request-comment/api/pr-comments-api", () => ({
@@ -65,6 +63,7 @@ function makeBinding(
     id: "b1",
     intent_id: "intent-1",
     provider: "github",
+    host: "github.com",
     owner: "octocat",
     repo: "hello-world",
     default_branch: "main",

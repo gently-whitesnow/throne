@@ -52,6 +52,33 @@ public sealed class GitProvidersControllerTests(MongoFixture mongo) : IAsyncLife
             RepositorySearchScope.Involved, "hello", 50, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "GET /api/v1/git-providers/gitlab/repositories/search делегирует GitLab provider")]
+    public async Task Search_uses_provider_from_route()
+    {
+        await _fixture.DisposeAsync();
+        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create(
+            GitProviderNames.GitLab,
+            "gitlab.example.com"));
+        _fixture.Provider.SearchRepositoriesAsync(
+                Arg.Any<RepositorySearchScope>(),
+                Arg.Any<string?>(),
+                Arg.Any<int>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<GitRepositoryRef>>(
+                new[] { new GitRepositoryRef(GitProviderNames.GitLab, "team/platform", "core", "main") }));
+
+        var response = await _fixture.Client.GetAsync(
+            new Uri("/api/v1/git-providers/gitlab/repositories/search?q=core&scope=mine&limit=20", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var items = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+        items.Should().NotBeNull().And.ContainSingle();
+        items![0].GetProperty("provider").GetString().Should().Be("gitlab");
+        items[0].GetProperty("full_name").GetString().Should().Be("team/platform/core");
+        await _fixture.Provider.Received(1).SearchRepositoriesAsync(
+            RepositorySearchScope.Mine, "core", 20, Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "GET .../search для неаутентифицированного провайдера всё равно делегирует — 422 рисует провайдер сам, не контроллер")]
     public async Task Search_propagates_provider_call()
     {

@@ -45,6 +45,7 @@ public static class TerminalsModule
         services.AddSingleton<ICapabilityProbe, TmuxCapabilityProbe>();
         services.AddSingleton<ICapabilityProbe, VsCodeCapabilityProbe>();
         services.AddSingleton<ICapabilityProbe, RepositoriesCapabilityProbe>();
+        services.AddSingleton<ICapabilityProbe, GitLabCapabilityProbe>();
         services.AddSingleton<ICapabilityDetectionCache, CapabilityDetectionCache>();
 
         return services;

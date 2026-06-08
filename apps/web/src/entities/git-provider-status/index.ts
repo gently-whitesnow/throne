@@ -4,7 +4,11 @@ export type {
   GitProviderHealthMeta
 } from "./model/types";
 export { gitProviderHealthMeta } from "./model/types";
-export { isProviderHealthy, describeProviderSession } from "./model/selectors";
+export {
+  isProviderHealthy,
+  providerHealthKey,
+  describeProviderSession
+} from "./model/selectors";
 export { fetchGitProvidersStatus } from "./api/git-providers-status-api";
 export {
   gitProvidersStatusQueryKeys,

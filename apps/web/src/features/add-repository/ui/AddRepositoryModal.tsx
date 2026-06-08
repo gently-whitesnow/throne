@@ -1,13 +1,17 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Lock, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useCapabilityEnabled } from "@/entities/capability";
 import {
   createRepository,
   repositoriesQueryKeys,
   type Repository
 } from "@/entities/repository";
-import type { GitRepositoryRef } from "@/entities/repository-binding";
+import type {
+  GitProvider,
+  GitRepositoryRef
+} from "@/entities/repository-binding";
 import { HttpError } from "@/shared/api";
 
 import { useRepositorySearch } from "../model/use-repository-search";
@@ -16,6 +20,8 @@ interface AddRepositoryModalProps {
   onClose: () => void;
   onAdded: (repo: Repository) => void;
 }
+
+const DEFAULT_PROVIDER: GitProvider = "github";
 
 /**
  * Manual registry add via the Slice 1 autocomplete. `createRepository` is
@@ -27,15 +33,28 @@ export function AddRepositoryModal({
   onAdded
 }: AddRepositoryModalProps) {
   const queryClient = useQueryClient();
+  const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
   const [involved, setInvolved] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // GitLab gated behind the `gitlab` capability (ADR-0032 § 8).
+  const gitlabEnabled = useCapabilityEnabled("gitlab");
+  useEffect(() => {
+    if (!gitlabEnabled && provider === "gitlab") {
+      setProvider("github");
+    }
+  }, [gitlabEnabled, provider]);
   const {
     results,
     isLoading,
     error: searchError
-  } = useRepositorySearch(query, involved ? "involved" : "mine", true);
+  } = useRepositorySearch(
+    query,
+    involved ? "involved" : "mine",
+    true,
+    provider
+  );
 
   const add = async (ref: GitRepositoryRef) => {
     if (submitting !== null) return;
@@ -44,8 +63,15 @@ export function AddRepositoryModal({
     try {
       const repo = await createRepository({
         provider: ref.provider,
+        // host comes from the search ref: GitHub → "github.com", GitLab → the
+        // configured self-managed host (always populated by the GitLab search).
+        // Only GitHub has a safe fixed default; for GitLab we send the host as-is
+        // (empty → server rejects) instead of guessing "gitlab.com", which would
+        // silently bind a self-managed repo to the wrong host.
+        host: ref.host ?? (ref.provider === "github" ? "github.com" : ""),
         owner: ref.owner,
-        repo: ref.repo
+        repo: ref.repo,
+        project_id: ref.project_id
       });
       await queryClient.invalidateQueries({
         queryKey: repositoriesQueryKeys.list()
@@ -87,6 +113,35 @@ export function AddRepositoryModal({
             <X aria-hidden size={16} strokeWidth={2} />
           </button>
         </header>
+
+        <div className="join w-fit" role="radiogroup" aria-label="Git provider">
+          <button
+            type="button"
+            className={`btn join-item btn-xs ${
+              provider === "github" ? "btn-primary" : "btn-ghost"
+            }`}
+            aria-pressed={provider === "github"}
+            onClick={() => {
+              setProvider("github");
+            }}
+          >
+            GitHub
+          </button>
+          {gitlabEnabled ? (
+            <button
+              type="button"
+              className={`btn join-item btn-xs ${
+                provider === "gitlab" ? "btn-primary" : "btn-ghost"
+              }`}
+              aria-pressed={provider === "gitlab"}
+              onClick={() => {
+                setProvider("gitlab");
+              }}
+            >
+              GitLab
+            </button>
+          ) : null}
+        </div>
 
         <input
           type="text"

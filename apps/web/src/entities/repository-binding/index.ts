@@ -30,14 +30,14 @@ export {
   useIntentRepositoriesQuery
 } from "./api/intent-repositories-queries";
 export {
-  searchGithubRepositories,
-  listMyGithubRepositories,
-  listGithubRepositoryBranches,
-  listGithubRepositoryPullRequests,
+  searchGitProviderRepositories,
+  listGitProviderRepositories,
+  listGitProviderRepositoryBranches,
+  listGitProviderRepositoryPullRequests,
   listIntentRepositories,
   bindIntentRepository,
   attachIntentRepositoryPullRequest,
   unbindIntentRepository,
-  type SearchGithubRepositoriesParams,
-  type ListGithubRepositoryRefsParams
+  type SearchGitProviderRepositoriesParams,
+  type ListGitProviderRepositoryRefsParams
 } from "./api/repository-bindings-api";

@@ -22,6 +22,7 @@ export type RepositoryArtifactRenderHint =
 
 export interface RepositoryCoordinate {
   provider: string;
+  host?: string;
   owner: string;
   repo: string;
 }

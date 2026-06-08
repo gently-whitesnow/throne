@@ -27,7 +27,7 @@ namespace Throne.Capabilities.Contracts.Generated
     
 
     /// <summary>
-    /// Closed set of capability keys shipped in Slice 2. Future capabilities (e.g. `jira`, `gitlab`) extend this enum without breaking existing clients.
+    /// Closed set of capability keys exposed in settings.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -38,13 +38,17 @@ namespace Throne.Capabilities.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"repositories")]
         Repositories = 0,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"gitlab")]
+        [System.Runtime.Serialization.EnumMember(Value = @"gitlab")]
+        Gitlab = 1,
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"terminal")]
         [System.Runtime.Serialization.EnumMember(Value = @"terminal")]
-        Terminal = 1,
+        Terminal = 2,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"vscode")]
         [System.Runtime.Serialization.EnumMember(Value = @"vscode")]
-        Vscode = 2,
+        Vscode = 3,
 
     }
 

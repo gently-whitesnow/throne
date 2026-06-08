@@ -49,10 +49,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Closed set of capability keys shipped in Slice 2. Future capabilities (e.g. `jira`, `gitlab`) extend this enum without breaking existing clients.
+         * @description Closed set of capability keys exposed in settings.
          * @enum {string}
          */
-        CapabilityName: "repositories" | "terminal" | "vscode";
+        CapabilityName: "repositories" | "gitlab" | "terminal" | "vscode";
         CapabilityDto: {
             name: components["schemas"]["CapabilityName"];
             /** @description Short human-readable label rendered as the card title in `/settings`. */

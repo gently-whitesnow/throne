@@ -11,12 +11,14 @@ internal static class RepositoryEnumDtoMapper
     public static GitProvider ToWireProvider(string value) => value switch
     {
         GitProviderNames.GitHub => GitProvider.Github,
+        GitProviderNames.GitLab => GitProvider.Gitlab,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown git provider."),
     };
 
     public static string ToProviderName(GitProvider provider) => provider switch
     {
         GitProvider.Github => GitProviderNames.GitHub,
+        GitProvider.Gitlab => GitProviderNames.GitLab,
         _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, "Unknown git provider."),
     };
 
