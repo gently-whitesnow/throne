@@ -52,22 +52,20 @@ export function TagDefaultRepositoriesSection({
   const mutateError =
     mutation.error instanceof Error ? mutation.error.message : null;
 
-  const handlePicked = (pick: {
-    provider: "github";
-    owner: string;
-    repo: string;
-    default_branch: string;
-  }) => {
+  const handlePicked = (pick: TagDefaultRepository) => {
     if (isDuplicate(repos, pick)) return;
     const next: TagDefaultRepository[] = [...repos, pick];
     submit(tag, next);
   };
 
   const handleRemove = (repo: TagDefaultRepository) => {
-    // `provider` enum currently has a single value ("github") — equality is
-    // implicit. When the enum gains a second value (gitlab), bring it back.
     const next = repos.filter(
-      (r) => !(r.owner === repo.owner && r.repo === repo.repo)
+      (r) =>
+        !(
+          r.provider === repo.provider &&
+          r.owner === repo.owner &&
+          r.repo === repo.repo
+        )
     );
     submit(tag, next);
   };
@@ -177,9 +175,12 @@ export function TagDefaultRepositoriesSection({
 
 function isDuplicate(
   repos: readonly TagDefaultRepository[],
-  pick: { provider: "github"; owner: string; repo: string }
+  pick: Pick<TagDefaultRepository, "provider" | "owner" | "repo">
 ): boolean {
-  // `provider` enum currently has a single value ("github") — equality is
-  // implicit. When the enum widens (gitlab), guard on provider too.
-  return repos.some((r) => r.owner === pick.owner && r.repo === pick.repo);
+  return repos.some(
+    (r) =>
+      r.provider === pick.provider &&
+      r.owner === pick.owner &&
+      r.repo === pick.repo
+  );
 }

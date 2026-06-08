@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   ExternalLink,
   GitBranch,
@@ -11,6 +12,7 @@ import {
   describeProviderSession,
   gitProviderHealthMeta,
   isProviderHealthy,
+  providerHealthKey,
   useGitProvidersStatus,
   type GitProviderAuthStatus
 } from "@/entities/git-provider-status";
@@ -18,13 +20,13 @@ import { Button } from "@/shared/ui";
 
 const GH_SETUP_DOCS_URL =
   "https://docs.github.com/en/github-cli/github-cli/quickstart";
+const GLAB_SETUP_DOCS_URL = "https://docs.gitlab.com/cli/auth/login/";
 
 /**
  * Settings → «Провайдеры Git».
  *
- * Показывает один провайдер — GitHub (`gh auth status`). Индикатор
- * рисуется семантическими токенами (success / error), не случайным hex;
- * gitlab подключится по тому же ключу health-мета.
+ * Показывает GitHub и GitLab CLI auth status. Индикаторы рисуются
+ * семантическими токенами: success / warning / error.
  */
 export function GitProvidersCard() {
   const { status, isLoading, error, refresh } = useGitProvidersStatus();
@@ -43,10 +45,13 @@ export function GitProvidersCard() {
             <GitBranch size={18} strokeWidth={2} />
           </span>
           <div className="flex flex-col gap-1">
-            <h3 className="m-0 text-base font-bold leading-tight">GitHub</h3>
+            <h3 className="m-0 text-base font-bold leading-tight">
+              Провайдеры Git
+            </h3>
             <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
-              Статус локального <code className="font-mono">gh CLI</code>:
-              авторизация, аккаунт и выданные scopes.
+              Статус локальных <code className="font-mono">gh</code> и{" "}
+              <code className="font-mono">glab</code>: авторизация, host,
+              аккаунт и выданные scopes.
             </p>
           </div>
         </div>
@@ -70,9 +75,10 @@ export function GitProvidersCard() {
         isLoading={isLoading}
         error={error}
         github={status?.github}
+        gitlab={status?.gitlab}
       />
 
-      <footer className="flex">
+      <footer className="flex flex-wrap gap-3">
         <a
           className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
           href={GH_SETUP_DOCS_URL}
@@ -80,6 +86,15 @@ export function GitProvidersCard() {
           target="_blank"
         >
           Как настроить <code className="font-mono">gh</code>
+          <ExternalLink aria-hidden size={14} strokeWidth={2} />
+        </a>
+        <a
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          href={GLAB_SETUP_DOCS_URL}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Как настроить <code className="font-mono">glab</code>
           <ExternalLink aria-hidden size={14} strokeWidth={2} />
         </a>
       </footer>
@@ -91,9 +106,10 @@ interface ProviderBodyProps {
   isLoading: boolean;
   error: Error | null;
   github: GitProviderAuthStatus | undefined;
+  gitlab: GitProviderAuthStatus | undefined;
 }
 
-function ProviderBody({ isLoading, error, github }: ProviderBodyProps) {
+function ProviderBody({ isLoading, error, github, gitlab }: ProviderBodyProps) {
   if (error) {
     return (
       <p
@@ -106,31 +122,55 @@ function ProviderBody({ isLoading, error, github }: ProviderBodyProps) {
     );
   }
 
-  if (!github && isLoading) {
+  if (!github && !gitlab && isLoading) {
     return (
       <p className="m-0 text-sm text-base-content/60">Загружаем статус…</p>
     );
   }
 
-  if (!github) {
+  if (!github && !gitlab) {
     return <p className="m-0 text-sm text-base-content/60">Нет данных.</p>;
   }
 
-  const healthy = isProviderHealthy(github);
-  const meta = healthy
-    ? gitProviderHealthMeta.ok
-    : gitProviderHealthMeta.broken;
-  const description = describeProviderSession(github);
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      <ProviderStatusRow name="GitHub" cli="gh" status={github} />
+      <ProviderStatusRow name="GitLab" cli="glab" status={gitlab} />
+    </div>
+  );
+}
+
+interface ProviderStatusRowProps {
+  name: string;
+  cli: string;
+  status: GitProviderAuthStatus | undefined;
+}
+
+function ProviderStatusRow({ name, cli, status }: ProviderStatusRowProps) {
+  const healthy = isProviderHealthy(status);
+  const key = providerHealthKey(status);
+  const meta = gitProviderHealthMeta[key];
+  const description = describeProviderSession(status);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h4 className="m-0 text-sm font-semibold leading-tight">{name}</h4>
+          <p className="m-0 mt-1 text-xs text-base-content/60">
+            <code className="font-mono">{cli}</code>
+            {status?.host ? ` · ${status.host}` : ""}
+          </p>
+        </div>
+      </div>
       <span
         data-testid="provider-health-pill"
-        className="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-        style={{ backgroundColor: meta.surface, color: meta.ink }}
+        className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.className}`}
       >
         {healthy ? (
           <CheckCircle2 aria-hidden size={14} strokeWidth={2.25} />
+        ) : key === "offline" ? (
+          <AlertTriangle aria-hidden size={14} strokeWidth={2.25} />
         ) : (
           <XCircle aria-hidden size={14} strokeWidth={2.25} />
         )}
@@ -140,12 +180,12 @@ function ProviderBody({ isLoading, error, github }: ProviderBodyProps) {
       {healthy ? (
         <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 text-sm">
           <dt className="text-base-content/60">Аккаунт</dt>
-          <dd className="m-0 font-mono">{github.login ?? "—"}</dd>
+          <dd className="m-0 font-mono">{status?.login ?? "—"}</dd>
           <dt className="text-base-content/60">Scopes</dt>
           <dd className="m-0">
-            {github.scopes && github.scopes.length > 0 ? (
+            {status?.scopes && status.scopes.length > 0 ? (
               <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
-                {github.scopes.map((scope) => (
+                {status.scopes.map((scope) => (
                   <li
                     key={scope}
                     className="rounded border border-base-300 bg-base-200/60 px-1.5 py-0.5 font-mono text-xs"

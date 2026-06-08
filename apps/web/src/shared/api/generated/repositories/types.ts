@@ -4,7 +4,7 @@
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
 export interface paths {
-    "/api/v1/git-providers/github/repositories/search": {
+    "/api/v1/git-providers/{provider}/repositories/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -12,10 +12,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Search the current user's accessible GitHub repositories.
-         * @description Two scopes are supported (see ADR-0024). `mine` (default) lists only repositories owned by the authenticated user via `gh repo list --json`. `involved` additionally includes repos where the user is a collaborator or org member via `gh api /user/repos?affiliation=collaborator,organization_member` and de-duplicates by `owner/repo`. Global `gh search repos` is intentionally NOT used.
+         * Search the current user's accessible repositories for a git provider.
+         * @description Two scopes are supported (see ADR-0024 / ADR-0032). `mine` (default) lists only repositories owned by the authenticated account. `involved` additionally includes repositories where the account participates (GitHub collaborator/org-member, GitLab membership). Provider implementations may filter client-side over `full_name`.
          */
-        get: operations["searchGithubRepositories"];
+        get: operations["searchGitProviderRepositories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/git-providers/github/repositories/my": {
+    "/api/v1/git-providers/{provider}/repositories/my": {
         parameters: {
             query?: never;
             header?: never;
@@ -32,10 +32,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List repositories owned by the authenticated GitHub user.
-         * @description Alias for `searchGithubRepositories` with `scope=mine` and no `q`. Provided as a dedicated endpoint for the modal's default state so the UI can avoid wiring scope/q parameters.
+         * List repositories owned by the authenticated provider account.
+         * @description Alias for `searchGitProviderRepositories` with `scope=mine` and no `q`. Provided as a dedicated endpoint for the modal's default state so the UI can avoid wiring scope/q parameters.
          */
-        get: operations["listMyGithubRepositories"];
+        get: operations["listGitProviderRepositories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -44,7 +44,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/git-providers/github/repositories/{owner}/{repo}/branches": {
+    "/api/v1/git-providers/{provider}/repositories/{owner}/{repo}/branches": {
         parameters: {
             query?: never;
             header?: never;
@@ -52,10 +52,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List branches of a GitHub repository for typeahead.
-         * @description Backs the branch combobox in the bind-repository modal. Shell-outs to `gh api repos/{owner}/{repo}/branches`. Optional `q` is a case-insensitive substring filter applied client-side over branch name; `limit` caps the page size. Symmetric with `searchGithubRepositories`.
+         * List branches of a repository for typeahead.
+         * @description Backs the branch combobox in the bind-repository modal. Optional `q` is a case-insensitive substring filter applied over branch name; `limit` caps the page size. Symmetric with `searchGitProviderRepositories`.
          */
-        get: operations["listGithubRepositoryBranches"];
+        get: operations["listGitProviderRepositoryBranches"];
         put?: never;
         post?: never;
         delete?: never;
@@ -64,7 +64,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/git-providers/github/repositories/{owner}/{repo}/pulls": {
+    "/api/v1/git-providers/{provider}/repositories/{owner}/{repo}/pulls": {
         parameters: {
             query?: never;
             header?: never;
@@ -72,10 +72,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List open pull requests of a GitHub repository for typeahead.
-         * @description Backs the PR combobox in the bind-repository modal. Shell-outs to `gh pr list --state open --json`. Only `state=open` is returned in this iteration (closed / merged are out of scope). Optional `q` is a case-insensitive substring filter over `#{number}` / `title` / `head_ref`.
+         * List open pull requests / merge requests of a repository for typeahead.
+         * @description Backs the PR/MR combobox in the bind-repository modal. Only open change requests are returned. Optional `q` is a case-insensitive substring filter over `#{number}` / `title` / `head_ref`.
          */
-        get: operations["listGithubRepositoryPullRequests"];
+        get: operations["listGitProviderRepositoryPullRequests"];
         put?: never;
         post?: never;
         delete?: never;
@@ -203,7 +203,7 @@ export interface paths {
         put?: never;
         /**
          * Manually register a repository by coordinate.
-         * @description Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing the manual "add repository" affordance with the Slice 1 autocomplete (`searchGithubRepositories`). Returns `201` when the row is created and `200` when the coordinate was already registered.
+         * @description Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing the manual "add repository" affordance with the provider repository autocomplete. Returns `201` when the row is created and `200` when the coordinate was already registered.
          */
         post: operations["createRepository"];
         delete?: never;
@@ -295,10 +295,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Set of supported git providers. Only `github` is shipped today.
+         * @description Set of supported git providers.
          * @enum {string}
          */
-        GitProvider: "github";
+        GitProvider: "github" | "gitlab";
         /**
          * @description `mine` — only repositories owned by the authenticated user (default). `involved` — additionally collaborator / org-member repos.
          * @enum {string}
@@ -316,8 +316,15 @@ export interface components {
         PullRequestState: "open" | "closed" | "merged";
         GitRepositoryRefDto: {
             provider: components["schemas"]["GitProvider"];
+            /** @description Provider host. GitHub is always `github.com`; GitLab uses the configured self-managed host. */
+            host?: string;
             owner: string;
             repo: string;
+            /**
+             * Format: int32
+             * @description Stable GitLab project id when known; null for GitHub.
+             */
+            project_id?: number | null;
             /** @description `{owner}/{repo}` — convenience field for UI rendering. */
             full_name: string;
             default_branch: string;
@@ -349,10 +356,17 @@ export interface components {
         };
         BindIntentRepositoryRequest: {
             provider: components["schemas"]["GitProvider"];
-            /** @description GitHub user/org login. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator). */
+            /** @description Provider host persisted with the binding. GitHub defaults to `github.com`; GitLab stores the configured self-managed host. */
+            host?: string;
+            /** @description GitHub user/org login, or GitLab namespace path (`group/subgroup`). Validation is provider-aware server-side. */
             owner: string;
-            /** @description GitHub repository slug. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator). */
+            /** @description Repository leaf slug. Validation is provider-aware server-side. */
             repo: string;
+            /**
+             * Format: int32
+             * @description Optional GitLab project id to persist once resolved by the bind flow.
+             */
+            project_id?: number | null;
             /** @description Optional override; defaults to the upstream's default branch on first clone. */
             default_branch?: string;
             /**
@@ -365,8 +379,11 @@ export interface components {
         RepositoryBindingSummary: {
             binding_id: string;
             provider: components["schemas"]["GitProvider"];
+            host: string;
             owner: string;
             repo: string;
+            /** Format: int32 */
+            project_id?: number | null;
             default_branch: string;
             /** @description Absolute path to the cloned working tree on the local filesystem. */
             workspace_path: string;
@@ -379,8 +396,11 @@ export interface components {
             id: string;
             intent_id: string;
             provider: components["schemas"]["GitProvider"];
+            host: string;
             owner: string;
             repo: string;
+            /** Format: int32 */
+            project_id?: number | null;
             default_branch: string;
             /** @description Absolute path of the local clone (see ADR-0024 workspace layout). */
             workspace_path: string;
@@ -442,8 +462,11 @@ export interface components {
         RepositoryArtifactRenderHint: "markdown" | "schema_map";
         RepositoryDto: {
             provider: components["schemas"]["GitProvider"];
+            host: string;
             owner: string;
             repo: string;
+            /** Format: int32 */
+            project_id?: number | null;
             /** @description `{owner}/{repo}` — convenience field for UI rendering. */
             full_name: string;
             /** Format: date-time */
@@ -453,8 +476,11 @@ export interface components {
         };
         CreateRepositoryRequest: {
             provider: components["schemas"]["GitProvider"];
+            host: string;
             owner: string;
             repo: string;
+            /** Format: int32 */
+            project_id?: number | null;
         };
         /** @description Compact page card used by `listRepositoryDocuments`; omits the markdown `document` body to avoid shipping large payloads in a list (see `specs/contracts/AGENTS.md`). */
         RepositoryDocumentSummaryDto: {
@@ -470,8 +496,11 @@ export interface components {
         };
         RepositoryDocumentDto: {
             provider: components["schemas"]["GitProvider"];
+            host: string;
             owner: string;
             repo: string;
+            /** Format: int32 */
+            project_id?: number | null;
             slug: string;
             title: string;
             /** @description Full markdown body of the page. */
@@ -523,7 +552,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    searchGithubRepositories: {
+    searchGitProviderRepositories: {
         parameters: {
             query?: {
                 /** @description Optional case-insensitive substring filter applied client-side over `full_name`. */
@@ -532,7 +561,9 @@ export interface operations {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -557,13 +588,15 @@ export interface operations {
             };
         };
     };
-    listMyGithubRepositories: {
+    listGitProviderRepositories: {
         parameters: {
             query?: {
                 limit?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                provider: components["schemas"]["GitProvider"];
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -588,7 +621,7 @@ export interface operations {
             };
         };
     };
-    listGithubRepositoryBranches: {
+    listGitProviderRepositoryBranches: {
         parameters: {
             query?: {
                 q?: string;
@@ -596,6 +629,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                provider: components["schemas"]["GitProvider"];
                 owner: string;
                 repo: string;
             };
@@ -623,7 +657,7 @@ export interface operations {
             };
         };
     };
-    listGithubRepositoryPullRequests: {
+    listGitProviderRepositoryPullRequests: {
         parameters: {
             query?: {
                 q?: string;
@@ -631,6 +665,7 @@ export interface operations {
             };
             header?: never;
             path: {
+                provider: components["schemas"]["GitProvider"];
                 owner: string;
                 repo: string;
             };

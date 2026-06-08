@@ -1,14 +1,23 @@
 import { ChevronDown, Loader2, Lock } from "lucide-react";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode
+} from "react";
 
 import {
+  type GitProvider,
   type GitBranchRef,
-  listGithubRepositoryBranches
+  listGitProviderRepositoryBranches
 } from "@/entities/repository-binding";
 
 import { useRefSuggestions } from "../model/use-ref-suggestions";
 
 interface BranchComboboxProps {
+  provider: GitProvider;
   owner: string | null;
   repo: string | null;
   value: string;
@@ -19,8 +28,6 @@ interface BranchComboboxProps {
   lockedHint?: ReactNode;
 }
 
-const fetcher = listGithubRepositoryBranches;
-
 /**
  * Typeahead for branches of `{owner}/{repo}`. Free-text fallback is allowed —
  * the operator may clone a branch that exists locally but is not yet pushed.
@@ -28,6 +35,7 @@ const fetcher = listGithubRepositoryBranches;
  * (used when a PR is selected — see `PullRequestCombobox`).
  */
 export function BranchCombobox({
+  provider,
   owner,
   repo,
   value,
@@ -40,6 +48,21 @@ export function BranchCombobox({
   const inputId = useId();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const enabled = owner !== null && repo !== null && !disabled && !locked;
+  const fetcher = useCallback(
+    (
+      refOwner: string,
+      refRepo: string,
+      params: { q?: string; limit?: number },
+      signal: AbortSignal
+    ) =>
+      listGitProviderRepositoryBranches(
+        refOwner,
+        refRepo,
+        { ...params, provider },
+        signal
+      ),
+    [provider]
+  );
   const { results, isLoading } = useRefSuggestions<GitBranchRef>(
     owner,
     repo,

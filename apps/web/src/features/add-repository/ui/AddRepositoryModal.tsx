@@ -7,7 +7,10 @@ import {
   repositoriesQueryKeys,
   type Repository
 } from "@/entities/repository";
-import type { GitRepositoryRef } from "@/entities/repository-binding";
+import type {
+  GitProvider,
+  GitRepositoryRef
+} from "@/entities/repository-binding";
 import { HttpError } from "@/shared/api";
 
 import { useRepositorySearch } from "../model/use-repository-search";
@@ -16,6 +19,8 @@ interface AddRepositoryModalProps {
   onClose: () => void;
   onAdded: (repo: Repository) => void;
 }
+
+const DEFAULT_PROVIDER: GitProvider = "github";
 
 /**
  * Manual registry add via the Slice 1 autocomplete. `createRepository` is
@@ -27,6 +32,7 @@ export function AddRepositoryModal({
   onAdded
 }: AddRepositoryModalProps) {
   const queryClient = useQueryClient();
+  const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
   const [involved, setInvolved] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
@@ -35,7 +41,12 @@ export function AddRepositoryModal({
     results,
     isLoading,
     error: searchError
-  } = useRepositorySearch(query, involved ? "involved" : "mine", true);
+  } = useRepositorySearch(
+    query,
+    involved ? "involved" : "mine",
+    true,
+    provider
+  );
 
   const add = async (ref: GitRepositoryRef) => {
     if (submitting !== null) return;
@@ -44,8 +55,11 @@ export function AddRepositoryModal({
     try {
       const repo = await createRepository({
         provider: ref.provider,
+        host:
+          ref.host ?? (ref.provider === "github" ? "github.com" : "gitlab.com"),
         owner: ref.owner,
-        repo: ref.repo
+        repo: ref.repo,
+        project_id: ref.project_id
       });
       await queryClient.invalidateQueries({
         queryKey: repositoriesQueryKeys.list()
@@ -87,6 +101,33 @@ export function AddRepositoryModal({
             <X aria-hidden size={16} strokeWidth={2} />
           </button>
         </header>
+
+        <div className="join w-fit" role="radiogroup" aria-label="Git provider">
+          <button
+            type="button"
+            className={`btn join-item btn-xs ${
+              provider === "github" ? "btn-primary" : "btn-ghost"
+            }`}
+            aria-pressed={provider === "github"}
+            onClick={() => {
+              setProvider("github");
+            }}
+          >
+            GitHub
+          </button>
+          <button
+            type="button"
+            className={`btn join-item btn-xs ${
+              provider === "gitlab" ? "btn-primary" : "btn-ghost"
+            }`}
+            aria-pressed={provider === "gitlab"}
+            onClick={() => {
+              setProvider("gitlab");
+            }}
+          >
+            GitLab
+          </button>
+        </div>
 
         <input
           type="text"

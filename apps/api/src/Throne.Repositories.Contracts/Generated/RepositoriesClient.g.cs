@@ -27,7 +27,7 @@ namespace Throne.Repositories.Contracts.Generated
     
 
     /// <summary>
-    /// Set of supported git providers. Only `github` is shipped today.
+    /// Set of supported git providers.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -37,6 +37,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"github")]
         [System.Runtime.Serialization.EnumMember(Value = @"github")]
         Github = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"gitlab")]
+        [System.Runtime.Serialization.EnumMember(Value = @"gitlab")]
+        Gitlab = 1,
 
     }
 
@@ -118,6 +122,13 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        /// <summary>
+        /// Provider host. GitHub is always `github.com`; GitLab uses the configured self-managed host.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Owner { get; set; }
@@ -125,6 +136,13 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Repo { get; set; }
+
+        /// <summary>
+        /// Stable GitLab project id when known; null for GitHub.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         /// <summary>
         /// `{owner}/{repo}` — convenience field for UI rendering.
@@ -252,24 +270,37 @@ namespace Throne.Repositories.Contracts.Generated
         public GitProvider Provider { get; set; }
 
         /// <summary>
-        /// GitHub user/org login. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
+        /// Provider host persisted with the binding. GitHub defaults to `github.com`; GitLab stores the configured self-managed host.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Host { get; set; }
+
+        /// <summary>
+        /// GitHub user/org login, or GitLab namespace path (`group/subgroup`). Validation is provider-aware server-side.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")]
+        [System.ComponentModel.DataAnnotations.StringLength(255, MinimumLength = 1)]
         public string Owner { get; set; }
 
         /// <summary>
-        /// GitHub repository slug. Must not contain `..`, `/`, or `__` (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
+        /// Repository leaf slug. Validation is provider-aware server-side.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9._-]+$")]
         public string Repo { get; set; }
+
+        /// <summary>
+        /// Optional GitLab project id to persist once resolved by the bind flow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         /// <summary>
         /// Optional override; defaults to the upstream's default branch on first clone.
@@ -313,6 +344,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Owner { get; set; }
@@ -320,6 +355,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Repo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("default_branch")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -373,6 +412,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Owner { get; set; }
@@ -380,6 +423,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Repo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("default_branch")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -570,6 +617,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Owner { get; set; }
@@ -577,6 +628,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Repo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         /// <summary>
         /// `{owner}/{repo}` — convenience field for UI rendering.
@@ -613,17 +668,23 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$")]
+        [System.ComponentModel.DataAnnotations.StringLength(255, MinimumLength = 1)]
         public string Owner { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[A-Za-z0-9._-]+$")]
         public string Repo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -689,6 +750,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
         public GitProvider Provider { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Host { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("owner")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Owner { get; set; }
@@ -696,6 +761,10 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("repo")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Repo { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("project_id")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Project_id { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("slug")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

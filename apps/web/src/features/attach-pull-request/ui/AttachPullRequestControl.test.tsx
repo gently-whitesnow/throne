@@ -50,6 +50,7 @@ function makeBinding(): RepositoryBinding {
     id: "b1",
     intent_id: "intent-1",
     provider: "github",
+    host: "github.com",
     owner: "octocat",
     repo: "hello-world",
     default_branch: "main",

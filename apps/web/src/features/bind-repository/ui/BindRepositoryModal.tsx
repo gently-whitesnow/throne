@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 
 import {
   bindIntentRepository,
+  type GitProvider,
   type GitRepositoryRef,
   type RepositoryBinding
 } from "@/entities/repository-binding";
@@ -34,6 +35,7 @@ const EMPTY_FORM: BindRepositoryFormState = {
   prNumber: "",
   selectedPr: null
 };
+const DEFAULT_PROVIDER: GitProvider = "github";
 
 /**
  * Modal for `POST /intents/{id}/repositories`.
@@ -55,6 +57,7 @@ export function BindRepositoryModal({
   onBound
 }: BindRepositoryModalProps) {
   const [query, setQuery] = useState("");
+  const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
   const [scope, setScope] = useState<SearchScope>("mine");
   const [selected, setSelected] = useState<GitRepositoryRef | null>(null);
   const [form, setForm] = useState<BindRepositoryFormState>(EMPTY_FORM);
@@ -66,12 +69,13 @@ export function BindRepositoryModal({
     results,
     isLoading,
     error: searchError
-  } = useRepositorySearch(query, scope, open);
+  } = useRepositorySearch(query, scope, open, provider);
 
   // Reset on close so the next open is a clean slate.
   useEffect(() => {
     if (open) return;
     setQuery("");
+    setProvider(DEFAULT_PROVIDER);
     setScope("mine");
     setSelected(null);
     setForm(EMPTY_FORM);
@@ -113,6 +117,13 @@ export function BindRepositoryModal({
       prNumber: "",
       selectedPr: null
     });
+  }
+
+  function changeProvider(nextProvider: GitProvider) {
+    setProvider(nextProvider);
+    setSelected(null);
+    setForm(EMPTY_FORM);
+    setError(null);
   }
 
   async function handleSubmit() {
@@ -187,6 +198,8 @@ export function BindRepositoryModal({
           className="flex flex-col gap-4"
         >
           <BindRepositorySearchControls
+            provider={provider}
+            onProviderChange={changeProvider}
             query={query}
             onQueryChange={setQuery}
             scope={scope}

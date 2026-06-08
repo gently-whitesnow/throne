@@ -6,32 +6,36 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories;
 
 public sealed class GitProvidersController(
-    SearchGithubRepositoriesEndpoint searchEndpoint,
-    ListMyGithubRepositoriesEndpoint listMyEndpoint,
-    ListGithubRepositoryBranchesEndpoint branchesEndpoint,
-    ListGithubRepositoryPullRequestsEndpoint pullsEndpoint) : GitProvidersControllerBase
+    SearchGitProviderRepositoriesEndpoint searchEndpoint,
+    ListGitProviderRepositoriesEndpoint listEndpoint,
+    ListGitProviderRepositoryBranchesEndpoint branchesEndpoint,
+    ListGitProviderRepositoryPullRequestsEndpoint pullsEndpoint) : GitProvidersControllerBase
 {
-    public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> SearchGithubRepositories(
+    public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> SearchGitProviderRepositories(
+        GitProvider provider,
         string q = null!,
         RepositorySearchScope? scope = null,
         int? limit = null) =>
-        searchEndpoint.RunAsync(q, scope, limit, HttpContext.RequestAborted);
+        searchEndpoint.RunAsync(provider, q, scope, limit, HttpContext.RequestAborted);
 
-    public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> ListMyGithubRepositories(
+    public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> ListGitProviderRepositories(
+        GitProvider provider,
         int? limit = null) =>
-        listMyEndpoint.RunAsync(limit, HttpContext.RequestAborted);
+        listEndpoint.RunAsync(provider, limit, HttpContext.RequestAborted);
 
-    public override Task<ActionResult<ICollection<GitBranchRefDto>>> ListGithubRepositoryBranches(
+    public override Task<ActionResult<ICollection<GitBranchRefDto>>> ListGitProviderRepositoryBranches(
+        GitProvider provider,
         string owner,
         string repo,
         string q = null!,
         int? limit = null) =>
-        branchesEndpoint.RunAsync(owner, repo, q, limit, HttpContext.RequestAborted);
+        branchesEndpoint.RunAsync(provider, owner, repo, q, limit, HttpContext.RequestAborted);
 
-    public override Task<ActionResult<ICollection<GitPullRequestRefDto>>> ListGithubRepositoryPullRequests(
+    public override Task<ActionResult<ICollection<GitPullRequestRefDto>>> ListGitProviderRepositoryPullRequests(
+        GitProvider provider,
         string owner,
         string repo,
         string q = null!,
         int? limit = null) =>
-        pullsEndpoint.RunAsync(owner, repo, q, limit, HttpContext.RequestAborted);
+        pullsEndpoint.RunAsync(provider, owner, repo, q, limit, HttpContext.RequestAborted);
 }

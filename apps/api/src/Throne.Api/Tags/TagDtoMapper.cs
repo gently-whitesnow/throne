@@ -36,10 +36,13 @@ internal static class TagDtoMapper
             Provider: dto.Provider switch
             {
                 TagDefaultGitProvider.Github => GitProviderNames.GitHub,
+                TagDefaultGitProvider.Gitlab => GitProviderNames.GitLab,
                 _ => throw new ArgumentOutOfRangeException(nameof(dto), $"Unknown provider '{dto.Provider}'."),
             },
             Owner: dto.Owner,
-            Repo: dto.Repo);
+            Repo: dto.Repo,
+            Host: dto.Host,
+            ProjectId: dto.Project_id);
         return new TagDefaultRepository(coordinate, string.IsNullOrWhiteSpace(dto.Default_branch) ? null : dto.Default_branch);
     }
 
@@ -48,11 +51,14 @@ internal static class TagDtoMapper
         Provider = repo.Coordinate.Provider switch
         {
             GitProviderNames.GitHub => TagDefaultGitProvider.Github,
+            GitProviderNames.GitLab => TagDefaultGitProvider.Gitlab,
             _ => throw new InvalidOperationException(
                 $"Provider '{repo.Coordinate.Provider}' is not exposed in TagDefaultGitProvider."),
         },
+        Host = repo.Coordinate.Host,
         Owner = repo.Coordinate.Owner,
         Repo = repo.Coordinate.Repo,
+        Project_id = repo.Coordinate.ProjectId,
         Default_branch = repo.DefaultBranch,
     };
 }

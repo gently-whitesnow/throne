@@ -4,18 +4,23 @@ info:
   version: "1.0.0"
   x-csharp-namespace: Throne.Repositories.Contracts.Generated
 paths:
-  /api/v1/git-providers/github/repositories/search:
+  /api/v1/git-providers/{provider}/repositories/search:
     get:
-      operationId: searchGithubRepositories
+      operationId: searchGitProviderRepositories
       tags: [GitProviders]
-      summary: Search the current user's accessible GitHub repositories.
+      summary: Search the current user's accessible repositories for a git provider.
       description: >
-        Two scopes are supported (see ADR-0024). `mine` (default) lists only repositories owned by
-        the authenticated user via `gh repo list --json`. `involved` additionally includes repos
-        where the user is a collaborator or org member via
-        `gh api /user/repos?affiliation=collaborator,organization_member` and de-duplicates by
-        `owner/repo`. Global `gh search repos` is intentionally NOT used.
+        Two scopes are supported (see ADR-0024 / ADR-0032). `mine` (default)
+        lists only repositories owned by the authenticated account. `involved`
+        additionally includes repositories where the account participates
+        (GitHub collaborator/org-member, GitLab membership). Provider
+        implementations may filter client-side over `full_name`.
       parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
         - in: query
           name: q
           required: false
@@ -50,15 +55,20 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-  /api/v1/git-providers/github/repositories/my:
+  /api/v1/git-providers/{provider}/repositories/my:
     get:
-      operationId: listMyGithubRepositories
+      operationId: listGitProviderRepositories
       tags: [GitProviders]
-      summary: List repositories owned by the authenticated GitHub user.
+      summary: List repositories owned by the authenticated provider account.
       description: >
-        Alias for `searchGithubRepositories` with `scope=mine` and no `q`. Provided as a dedicated
+        Alias for `searchGitProviderRepositories` with `scope=mine` and no `q`. Provided as a dedicated
         endpoint for the modal's default state so the UI can avoid wiring scope/q parameters.
       parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
         - in: query
           name: limit
           required: false
@@ -82,17 +92,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-  /api/v1/git-providers/github/repositories/{owner}/{repo}/branches:
+  /api/v1/git-providers/{provider}/repositories/{owner}/{repo}/branches:
     get:
-      operationId: listGithubRepositoryBranches
+      operationId: listGitProviderRepositoryBranches
       tags: [GitProviders]
-      summary: List branches of a GitHub repository for typeahead.
+      summary: List branches of a repository for typeahead.
       description: >
-        Backs the branch combobox in the bind-repository modal. Shell-outs to
-        `gh api repos/{owner}/{repo}/branches`. Optional `q` is a case-insensitive
-        substring filter applied client-side over branch name; `limit` caps the
-        page size. Symmetric with `searchGithubRepositories`.
+        Backs the branch combobox in the bind-repository modal. Optional `q` is a
+        case-insensitive substring filter applied over branch name; `limit` caps
+        the page size. Symmetric with `searchGitProviderRepositories`.
       parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
         - in: path
           name: owner
           required: true
@@ -131,17 +145,21 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-  /api/v1/git-providers/github/repositories/{owner}/{repo}/pulls:
+  /api/v1/git-providers/{provider}/repositories/{owner}/{repo}/pulls:
     get:
-      operationId: listGithubRepositoryPullRequests
+      operationId: listGitProviderRepositoryPullRequests
       tags: [GitProviders]
-      summary: List open pull requests of a GitHub repository for typeahead.
+      summary: List open pull requests / merge requests of a repository for typeahead.
       description: >
-        Backs the PR combobox in the bind-repository modal. Shell-outs to
-        `gh pr list --state open --json`. Only `state=open` is returned in this
-        iteration (closed / merged are out of scope). Optional `q` is a
-        case-insensitive substring filter over `#{number}` / `title` / `head_ref`.
+        Backs the PR/MR combobox in the bind-repository modal. Only open change
+        requests are returned. Optional `q` is a case-insensitive substring filter
+        over `#{number}` / `title` / `head_ref`.
       parameters:
+        - in: path
+          name: provider
+          required: true
+          schema:
+            $ref: '#/components/schemas/GitProvider'
         - in: path
           name: owner
           required: true
@@ -449,8 +467,8 @@ paths:
       summary: Manually register a repository by coordinate.
       description: >
         Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing
-        the manual "add repository" affordance with the Slice 1 autocomplete
-        (`searchGithubRepositories`). Returns `201` when the row is created and `200` when the
+        the manual "add repository" affordance with the provider repository autocomplete.
+        Returns `201` when the row is created and `200` when the
         coordinate was already registered.
       requestBody:
         required: true
@@ -714,8 +732,9 @@ components:
       type: string
       enum:
         - github
+        - gitlab
       description: >
-        Set of supported git providers. Only `github` is shipped today.
+        Set of supported git providers.
     RepositorySearchScope:
       type: string
       enum:
@@ -753,12 +772,22 @@ components:
       properties:
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
+          minLength: 1
+          description: Provider host. GitHub is always `github.com`; GitLab uses the configured self-managed host.
         owner:
           type: string
           minLength: 1
         repo:
           type: string
           minLength: 1
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
+          description: Stable GitLab project id when known; null for GitHub.
         full_name:
           type: string
           description: '`{owner}/{repo}` — convenience field for UI rendering.'
@@ -826,22 +855,31 @@ components:
       properties:
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
+          minLength: 1
+          description: >
+            Provider host persisted with the binding. GitHub defaults to `github.com`;
+            GitLab stores the configured self-managed host.
         owner:
           type: string
           minLength: 1
-          maxLength: 100
-          pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,38}$'
+          maxLength: 255
           description: >
-            GitHub user/org login. Must not contain `..`, `/`, or `__`
-            (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
+            GitHub user/org login, or GitLab namespace path (`group/subgroup`).
+            Validation is provider-aware server-side.
         repo:
           type: string
           minLength: 1
           maxLength: 100
-          pattern: '^[A-Za-z0-9._-]+$'
           description: >
-            GitHub repository slug. Must not contain `..`, `/`, or `__`
-            (see ADR-0024 § 1 — workspace path uses `owner__repo` separator).
+            Repository leaf slug. Validation is provider-aware server-side.
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
+          description: Optional GitLab project id to persist once resolved by the bind flow.
         default_branch:
           type: string
           minLength: 1
@@ -857,6 +895,7 @@ components:
       required:
         - binding_id
         - provider
+        - host
         - owner
         - repo
         - default_branch
@@ -867,10 +906,17 @@ components:
           type: string
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
         owner:
           type: string
         repo:
           type: string
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
         default_branch:
           type: string
         workspace_path:
@@ -896,6 +942,7 @@ components:
         - id
         - intent_id
         - provider
+        - host
         - owner
         - repo
         - default_branch
@@ -910,10 +957,17 @@ components:
           type: string
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
         owner:
           type: string
         repo:
           type: string
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
         default_branch:
           type: string
         workspace_path:
@@ -1034,6 +1088,7 @@ components:
       type: object
       required:
         - provider
+        - host
         - owner
         - repo
         - full_name
@@ -1042,10 +1097,17 @@ components:
       properties:
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
         owner:
           type: string
         repo:
           type: string
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
         full_name:
           type: string
           description: '`{owner}/{repo}` — convenience field for UI rendering.'
@@ -1059,21 +1121,28 @@ components:
       type: object
       required:
         - provider
+        - host
         - owner
         - repo
       properties:
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
+          minLength: 1
         owner:
           type: string
           minLength: 1
-          maxLength: 100
-          pattern: '^[A-Za-z0-9][A-Za-z0-9-]{0,38}$'
+          maxLength: 255
         repo:
           type: string
           minLength: 1
           maxLength: 100
-          pattern: '^[A-Za-z0-9._-]+$'
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
     RepositoryDocumentSummaryDto:
       type: object
       required:
@@ -1107,6 +1176,7 @@ components:
       type: object
       required:
         - provider
+        - host
         - owner
         - repo
         - slug
@@ -1119,10 +1189,17 @@ components:
       properties:
         provider:
           $ref: '#/components/schemas/GitProvider'
+        host:
+          type: string
         owner:
           type: string
         repo:
           type: string
+        project_id:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
         slug:
           type: string
         title:

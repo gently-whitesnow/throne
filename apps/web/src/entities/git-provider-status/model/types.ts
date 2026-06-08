@@ -8,27 +8,30 @@ export type GitProviderAuthStatus =
 
 export interface GitProviderHealthMeta {
   label: string;
-  ink: string;
-  surface: string;
+  className: string;
 }
 
 /**
  * Light-first semantic tokens for the provider health pill on `/settings`.
- * Light = authenticated, dark amber = misconfigured. Only GitHub is shipped
- * today — the meta map is keyed by health, not provider.
  */
 export const gitProviderHealthMeta: Record<
-  "ok" | "broken",
+  "ok" | "offline" | "broken" | "missing",
   GitProviderHealthMeta
 > = {
   ok: {
     label: "Подключено",
-    ink: "#1F8F5F",
-    surface: "#E7F5ED"
+    className: "bg-success/10 text-success"
+  },
+  offline: {
+    label: "Вне сети",
+    className: "bg-warning/20 text-warning"
   },
   broken: {
     label: "Нет авторизации",
-    ink: "#CF4D4D",
-    surface: "#FDEAEA"
+    className: "bg-error/10 text-error"
+  },
+  missing: {
+    label: "Не настроено",
+    className: "bg-error/10 text-error"
   }
 };

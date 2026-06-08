@@ -12,19 +12,21 @@ public class CapabilitiesServiceTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 28, 9, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "List возвращает все три карточки с default enabled=false при пустом singleton")]
+    [Fact(DisplayName = "List возвращает все карточки с default enabled=false при пустом singleton")]
     public async Task List_returns_descriptors_with_persisted_defaults()
     {
         var fixture = new ServiceFixture();
         fixture.NoPersisted();
         fixture.DetectionFor(CapabilityNames.Terminal, detected: true, detail: "tmux 3.5a");
         fixture.DetectionFor(CapabilityNames.Repositories, detected: false, detail: "gh not authenticated");
+        fixture.DetectionFor(CapabilityNames.Gitlab, detected: false, detail: "glab not configured");
         fixture.DetectionFor(CapabilityNames.Vscode, detected: true, detail: "1.95.3");
 
         var views = await fixture.Service.ListAsync(CancellationToken.None);
 
         views.Select(v => v.Name).Should().Equal(
             CapabilityNames.Repositories,
+            CapabilityNames.Gitlab,
             CapabilityNames.Terminal,
             CapabilityNames.Vscode);
         views.Should().OnlyContain(v => v.Enabled == false);
