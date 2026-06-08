@@ -41,4 +41,25 @@ public class GhPullRequestCommentsParserTests
 
         parsed.Should().ContainSingle().Which.AuthorLogin.Should().Be("a");
     }
+
+    [Fact(DisplayName = "Parse читает issue-comment JSON без path/position")]
+    public void Parse_handles_issue_comment_payload_without_path()
+    {
+        // The discussion-thread endpoint returns the same envelope minus the
+        // diff-anchored fields; Path must surface as null (not throw).
+        const string json = """
+            [{"id":42,"user":{"login":"reporter","avatar_url":"https://gh/u.png"},
+              "body":"plain discussion","created_at":"2026-05-23T09:30:00Z",
+              "updated_at":"2026-05-23T09:31:00Z",
+              "html_url":"https://gh/x/y/issues/7#c42"}]
+            """;
+
+        var parsed = GhPullRequestCommentsParser.Parse(json);
+
+        var item = parsed.Should().ContainSingle().Subject;
+        item.Id.Should().Be("42");
+        item.AuthorLogin.Should().Be("reporter");
+        item.Path.Should().BeNull();
+        item.HtmlUrl.Should().Contain("issues/7");
+    }
 }
