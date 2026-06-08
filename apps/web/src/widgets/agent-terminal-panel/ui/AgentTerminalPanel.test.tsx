@@ -46,9 +46,7 @@ vi.mock("@/entities/capability/api/capabilities-api", () => ({
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   listIntentRepositories: () => Promise.resolve([]),
   bindIntentRepository: vi.fn(),
-  unbindIntentRepository: vi.fn(),
-  searchGithubRepositories: vi.fn(),
-  listMyGithubRepositories: vi.fn()
+  unbindIntentRepository: vi.fn()
 }));
 
 function terminalCapability(): Capability[] {

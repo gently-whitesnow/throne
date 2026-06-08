@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  listMyGithubRepositories,
-  searchGithubRepositories,
+  listGitProviderRepositories,
+  searchGitProviderRepositories,
+  type GitProvider,
   type GitRepositoryRef
 } from "@/entities/repository-binding";
 
@@ -23,11 +24,11 @@ export interface RepositorySearchState {
 /**
  * Drives the two-mode picker.
  *
- *  - `mine` (default) + empty query — calls `listMyGithubRepositories` so the
- *    user sees something useful on open without typing.
- *  - `mine` + non-empty query — `searchGithubRepositories` with `scope=mine`
- *    so the server applies its client-side substring filter consistently.
- *  - `involved` — always `searchGithubRepositories` with `scope=involved`,
+ *  - `mine` (default) + empty query — calls provider-specific "my repos" so
+ *    the user sees something useful on open without typing.
+ *  - `mine` + non-empty query — provider search with `scope=mine` so the
+ *    server applies its client-side substring filter consistently.
+ *  - `involved` — always provider search with `scope=involved`,
  *    even for empty query (matches the parent slice decision: the checkbox
  *    explicitly asks the user to widen scope, so we fetch right away).
  *
@@ -37,7 +38,8 @@ export interface RepositorySearchState {
 export function useRepositorySearch(
   query: string,
   scope: SearchScope,
-  enabled: boolean
+  enabled: boolean,
+  provider: GitProvider
 ): RepositorySearchState {
   const [results, setResults] = useState<GitRepositoryRef[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,9 +66,14 @@ export function useRepositorySearch(
 
       const promise =
         scope === "mine" && trimmed.length === 0
-          ? listMyGithubRepositories(DEFAULT_LIMIT, controller.signal)
-          : searchGithubRepositories(
+          ? listGitProviderRepositories(
+              provider,
+              DEFAULT_LIMIT,
+              controller.signal
+            )
+          : searchGitProviderRepositories(
               {
+                provider,
                 q: trimmed.length > 0 ? trimmed : undefined,
                 scope,
                 limit: DEFAULT_LIMIT
@@ -90,7 +97,7 @@ export function useRepositorySearch(
     return () => {
       window.clearTimeout(timer);
     };
-  }, [query, scope, enabled]);
+  }, [query, scope, enabled, provider]);
 
   useEffect(() => {
     return () => {

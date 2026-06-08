@@ -11,8 +11,10 @@ internal static class IntentRepositoryBindingDocumentMapper
         Id = binding.Id.Value,
         IntentId = binding.IntentId.Value,
         Provider = binding.Coordinate.Provider,
+        Host = binding.Coordinate.Host,
         Owner = binding.Coordinate.Owner,
         Repo = binding.Coordinate.Repo,
+        ProjectId = binding.Coordinate.ProjectId,
         DefaultBranch = binding.State.DefaultBranch,
         WorkspacePath = binding.WorkspacePath,
         CloneStatus = binding.State.CloneStatus,
@@ -31,7 +33,12 @@ internal static class IntentRepositoryBindingDocumentMapper
         var snapshot = new IntentRepositoryBindingSnapshot(
             Id: new BindingId(doc.Id),
             IntentId: new IntentId(doc.IntentId),
-            Coordinate: new RepoCoordinate(doc.Provider, doc.Owner, doc.Repo),
+            Coordinate: new RepoCoordinate(
+                doc.Provider,
+                doc.Owner,
+                doc.Repo,
+                HostOrDefault(doc.Provider, doc.Host),
+                doc.ProjectId),
             DefaultBranch: doc.DefaultBranch,
             WorkspacePath: doc.WorkspacePath,
             CloneStatus: doc.CloneStatus,
@@ -50,4 +57,9 @@ internal static class IntentRepositoryBindingDocumentMapper
 
         return IntentRepositoryBinding.Restore(snapshot);
     }
+
+    private static string? HostOrDefault(string provider, string? host) =>
+        string.IsNullOrWhiteSpace(host) && provider == GitProviderNames.GitHub
+            ? GitProviderHostDefaults.GitHub
+            : host;
 }

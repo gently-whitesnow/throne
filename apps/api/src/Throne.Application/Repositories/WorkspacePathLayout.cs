@@ -12,8 +12,9 @@ namespace Throne.Application.Repositories;
 /// <code>{Throne:Workspace:Root}/intents/{intent_id}/{owner}__{repo}/</code>
 ///
 /// The double-underscore segment between <c>owner</c> and <c>repo</c> is the
-/// collision-proof anchor described in the ADR — split on it is unambiguous because
-/// neither GitHub <c>owner</c> nor <c>repo</c> can contain <c>__</c>.
+/// collision-proof anchor described in the ADR for GitHub. GitLab namespaces may
+/// contain <c>/</c>; those slashes are flattened to <c>-</c> because the directory
+/// name is never parsed back into a coordinate.
 /// </summary>
 internal static class WorkspacePathLayout
 {
@@ -29,6 +30,11 @@ internal static class WorkspacePathLayout
             workspaceRoot,
             IntentsSegment,
             intentId.Value,
-            $"{coordinate.Owner}{OwnerRepoSeparator}{coordinate.Repo}");
+            $"{WorkspaceSafeOwner(coordinate)}{OwnerRepoSeparator}{coordinate.Repo}");
     }
+
+    private static string WorkspaceSafeOwner(RepoCoordinate coordinate) =>
+        coordinate.Provider == GitProviderNames.GitLab
+            ? coordinate.Owner.Replace('/', '-')
+            : coordinate.Owner;
 }

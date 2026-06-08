@@ -24,9 +24,7 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
     attachIntentRepositoryPullRequest(intentId, bindingId, pullRequestNumber),
   listIntentRepositories: vi.fn().mockResolvedValue([]),
   bindIntentRepository: vi.fn(),
-  unbindIntentRepository: vi.fn(),
-  searchGithubRepositories: vi.fn(),
-  listMyGithubRepositories: vi.fn()
+  unbindIntentRepository: vi.fn()
 }));
 
 vi.mock("@/shared/api", () => {
@@ -50,6 +48,7 @@ function makeBinding(): RepositoryBinding {
     id: "b1",
     intent_id: "intent-1",
     provider: "github",
+    host: "github.com",
     owner: "octocat",
     repo: "hello-world",
     default_branch: "main",

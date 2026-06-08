@@ -19,8 +19,14 @@ public static class CapabilityCatalog
         new CapabilityDescriptor(
             Name: CapabilityNames.Repositories,
             Title: "Репозитории GitHub/GitLab",
-            Description: "Привязка репозиториев к интенту, авто-клон в workspace, секция PR-комментариев. Требует залогиненного `gh` (или будущего `glab`).",
+            Description: "Привязка репозиториев к интенту, авто-клон в workspace, секция PR-комментариев. GitLab включается отдельным opt-in.",
             PrerequisiteHint: "gh auth login"),
+
+        new CapabilityDescriptor(
+            Name: CapabilityNames.Gitlab,
+            Title: "GitLab provider",
+            Description: "Второй git-провайдер через локальный `glab` и настроенный `Throne:GitLab:Host`. Требует также capability `repositories`.",
+            PrerequisiteHint: "glab auth login --hostname <host>"),
 
         new CapabilityDescriptor(
             Name: CapabilityNames.Terminal,

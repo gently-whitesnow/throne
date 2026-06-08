@@ -135,7 +135,7 @@ internal sealed class StubGitProviderRegistry : IGitProviderRegistry
     }
 
     public IGitProvider? GetByName(string providerName) =>
-        providerName == GitProviderNames.GitHub ? _provider : null;
+        providerName == _provider.ProviderName ? _provider : null;
 
     public IReadOnlyCollection<IGitProvider> AllProviders { get; }
 }
@@ -150,16 +150,18 @@ internal static class TestGitProvider
     private static readonly string[] DefaultScopes = { "repo", "read:org" };
     private static readonly IReadOnlyList<GitRepositoryRef> EmptyRefs = Array.Empty<GitRepositoryRef>();
 
-    public static IGitProvider Create()
+    public static IGitProvider Create(
+        string providerName = GitProviderNames.GitHub,
+        string host = "github.com")
     {
         var provider = Substitute.For<IGitProvider>();
-        provider.ProviderName.Returns(GitProviderNames.GitHub);
+        provider.ProviderName.Returns(providerName);
         provider.GetAuthStatusAsync(Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ProviderAuthStatus(
-                Provider: GitProviderNames.GitHub,
+                Provider: providerName,
                 IsAuthenticated: true,
                 Account: "octocat",
-                Host: "github.com")
+                Host: host)
             {
                 Scopes = DefaultScopes,
             }));

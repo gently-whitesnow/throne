@@ -125,11 +125,14 @@ export interface components {
          * @description Mirror of `repositories#/components/schemas/GitProvider`. Duplicated locally so the tags contract generator never reaches across files (NSwag does not resolve relative `$ref` between OpenAPI documents). Keep enum values in sync — see ADR-0024 for the canonical list.
          * @enum {string}
          */
-        TagDefaultGitProvider: "github";
+        TagDefaultGitProvider: "github" | "gitlab";
         TagDefaultRepositoryDto: {
             provider: components["schemas"]["TagDefaultGitProvider"];
+            host?: string;
             owner: string;
             repo: string;
+            /** Format: int32 */
+            project_id?: number | null;
             /** @description Optional branch hint for the Run pre-flight; falls back to upstream's default branch on first clone (ADR-0024 § 1). */
             default_branch?: string | null;
         };

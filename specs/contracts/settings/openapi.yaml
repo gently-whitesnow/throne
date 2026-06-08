@@ -60,8 +60,8 @@ paths:
       summary: Authentication status for every configured git provider CLI.
       description: >
         Drives the settings page indicator. Throne never persists provider tokens itself —
-        the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Only the
-        `github` entry is returned today; `gitlab` will land alongside `GitLabCliProvider`.
+        the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses
+        the configured `Throne:GitLab:Host`.
       responses:
         '200':
           description: OK
@@ -151,10 +151,17 @@ components:
       type: object
       required:
         - authenticated
+        - state
       properties:
         authenticated:
           type: boolean
           description: True when the underlying CLI reports a usable session.
+        state:
+          $ref: '#/components/schemas/GitProviderAuthState'
+        host:
+          type: string
+          nullable: true
+          description: Provider host that was probed.
         login:
           type: string
           description: Authenticated account login (from `gh api user`).
@@ -166,13 +173,25 @@ components:
         error:
           type: string
           description: Last error message from the provider CLI when `authenticated=false`.
+    GitProviderAuthState:
+      type: string
+      enum:
+        - authenticated
+        - unauthenticated
+        - offline
+        - missing
+      description: >
+        UI-level health state. `offline` is a transient NetworkError; `missing`
+        means the CLI or required host setting is absent; `unauthenticated` means
+        the CLI is present but has no usable login.
     GitProvidersStatusDto:
       type: object
       required:
         - github
+        - gitlab
       properties:
         github:
           $ref: '#/components/schemas/GitProviderAuthStatusDto'
         gitlab:
           $ref: '#/components/schemas/GitProviderAuthStatusDto'
-          description: Reserved for a future GitLab integration. Absent today.
+          description: Status for the configured GitLab host.

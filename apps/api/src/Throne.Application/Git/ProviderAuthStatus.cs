@@ -21,7 +21,8 @@ public sealed record ProviderAuthStatus(
     bool IsAuthenticated,
     string? Account = null,
     string? Host = null,
-    string? Detail = null)
+    string? Detail = null,
+    string State = ProviderAuthStateNames.Unauthenticated)
 {
     /// <summary>
     /// OAuth scopes observed for the active session (parsed from the upstream

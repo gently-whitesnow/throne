@@ -10,7 +10,9 @@ public sealed record BindRepositoryCommand(
     string Owner,
     string Repo,
     string? DefaultBranch,
-    int? PullRequestNumber);
+    int? PullRequestNumber,
+    string? Host = null,
+    int? ProjectId = null);
 
 /// <summary>
 /// Delete a previously bound repository: removes the binding record AND its on-disk

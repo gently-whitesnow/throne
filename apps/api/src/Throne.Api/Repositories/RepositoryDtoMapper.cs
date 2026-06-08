@@ -44,8 +44,10 @@ internal static class RepositoryDtoMapper
         return new GitRepositoryRefDto
         {
             Provider = RepositoryEnumDtoMapper.ToWireProvider(reference.Provider),
+            Host = reference.ResolvedHost,
             Owner = reference.Owner,
             Repo = reference.Repo,
+            Project_id = reference.ProjectId,
             Full_name = reference.FullName,
             Default_branch = reference.DefaultBranch,
             Description = reference.Description,

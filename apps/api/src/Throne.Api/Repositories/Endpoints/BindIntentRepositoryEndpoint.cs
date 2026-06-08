@@ -25,6 +25,8 @@ public sealed class BindIntentRepositoryEndpoint(RepositoryBindingService servic
                 Provider: RepositoryEnumDtoMapper.ToProviderName(body.Provider),
                 Owner: body.Owner,
                 Repo: body.Repo,
+                Host: body.Host,
+                ProjectId: body.Project_id,
                 DefaultBranch: body.Default_branch,
                 PullRequestNumber: body.Pull_request_number);
 

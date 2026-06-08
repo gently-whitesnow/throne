@@ -36,6 +36,7 @@ vi.mock("@/entities/repository/api/repositories-api", () => ({
 
 const coordinate: RepositoryCoordinate = {
   provider: "github",
+  host: "github.com",
   owner: "octocat",
   repo: "hello-world"
 };
@@ -49,6 +50,7 @@ describe("RepositorySchemaDocument", () => {
   it("рендерит markdown-тело существующей карты схемы", async () => {
     getRepositoryDocument.mockResolvedValue({
       provider: "github",
+      host: "github.com",
       owner: "octocat",
       repo: "hello-world",
       slug: "db-schema-map",

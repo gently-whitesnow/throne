@@ -53,7 +53,7 @@ namespace Throne.Api.Generated
         /// Authentication status for every configured git provider CLI.
         /// </summary>
         /// <remarks>
-        /// Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). Only the `github` entry is returned today; `gitlab` will land alongside `GitLabCliProvider`.
+        /// Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses the configured `Throne:GitLab:Host`.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/git-providers/status", Name = "getGitProvidersStatus")]

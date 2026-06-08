@@ -7,6 +7,7 @@ import {
 
 import type {
   BindRepositoryRequest,
+  GitProvider,
   GitBranchRef,
   GitPullRequestRef,
   GitRepositoryRef,
@@ -14,13 +15,20 @@ import type {
   RepositorySearchScope
 } from "../model/types";
 
-export interface SearchGithubRepositoriesParams {
+const DEFAULT_PROVIDER: GitProvider = "github";
+
+function pathSegment(value: string): string {
+  return encodeURIComponent(value);
+}
+
+export interface SearchGitProviderRepositoriesParams {
+  provider?: GitProvider;
   q?: string;
   scope?: RepositorySearchScope;
   limit?: number;
 }
 
-function buildSearchQuery(params: SearchGithubRepositoriesParams): string {
+function buildSearchQuery(params: SearchGitProviderRepositoriesParams): string {
   const search = new URLSearchParams();
   if (params.q !== undefined && params.q.length > 0) search.set("q", params.q);
   if (params.scope !== undefined) search.set("scope", params.scope);
@@ -29,22 +37,24 @@ function buildSearchQuery(params: SearchGithubRepositoriesParams): string {
   return query.length > 0 ? `?${query}` : "";
 }
 
-export function searchGithubRepositories(
-  params: SearchGithubRepositoriesParams = {},
+export function searchGitProviderRepositories(
+  params: SearchGitProviderRepositoriesParams = {},
   signal?: AbortSignal
 ): Promise<GitRepositoryRef[]> {
-  const path = `${repositoriesEndpoints.searchGithubRepositories()}${buildSearchQuery(
-    params
-  )}`;
+  const provider = params.provider ?? DEFAULT_PROVIDER;
+  const path = `${repositoriesEndpoints.searchGitProviderRepositories(
+    provider
+  )}${buildSearchQuery(params)}`;
   return httpGet<GitRepositoryRef[]>(path, signal);
 }
 
-export interface ListGithubRepositoryRefsParams {
+export interface ListGitProviderRepositoryRefsParams {
+  provider?: GitProvider;
   q?: string;
   limit?: number;
 }
 
-function buildRefsQuery(params: ListGithubRepositoryRefsParams): string {
+function buildRefsQuery(params: ListGitProviderRepositoryRefsParams): string {
   const search = new URLSearchParams();
   if (params.q !== undefined && params.q.length > 0) search.set("q", params.q);
   if (params.limit !== undefined) search.set("limit", String(params.limit));
@@ -52,40 +62,45 @@ function buildRefsQuery(params: ListGithubRepositoryRefsParams): string {
   return query.length > 0 ? `?${query}` : "";
 }
 
-export function listGithubRepositoryBranches(
+export function listGitProviderRepositoryBranches(
   owner: string,
   repo: string,
-  params: ListGithubRepositoryRefsParams = {},
+  params: ListGitProviderRepositoryRefsParams = {},
   signal?: AbortSignal
 ): Promise<GitBranchRef[]> {
-  const path = `${repositoriesEndpoints.listGithubRepositoryBranches(
-    owner,
-    repo
+  const provider = params.provider ?? DEFAULT_PROVIDER;
+  const path = `${repositoriesEndpoints.listGitProviderRepositoryBranches(
+    provider,
+    pathSegment(owner),
+    pathSegment(repo)
   )}${buildRefsQuery(params)}`;
   return httpGet<GitBranchRef[]>(path, signal);
 }
 
-export function listGithubRepositoryPullRequests(
+export function listGitProviderRepositoryPullRequests(
   owner: string,
   repo: string,
-  params: ListGithubRepositoryRefsParams = {},
+  params: ListGitProviderRepositoryRefsParams = {},
   signal?: AbortSignal
 ): Promise<GitPullRequestRef[]> {
-  const path = `${repositoriesEndpoints.listGithubRepositoryPullRequests(
-    owner,
-    repo
+  const provider = params.provider ?? DEFAULT_PROVIDER;
+  const path = `${repositoriesEndpoints.listGitProviderRepositoryPullRequests(
+    provider,
+    pathSegment(owner),
+    pathSegment(repo)
   )}${buildRefsQuery(params)}`;
   return httpGet<GitPullRequestRef[]>(path, signal);
 }
 
-export function listMyGithubRepositories(
+export function listGitProviderRepositories(
+  provider: GitProvider = DEFAULT_PROVIDER,
   limit?: number,
   signal?: AbortSignal
 ): Promise<GitRepositoryRef[]> {
   const suffix =
     limit !== undefined ? `?limit=${encodeURIComponent(String(limit))}` : "";
   return httpGet<GitRepositoryRef[]>(
-    `${repositoriesEndpoints.listMyGithubRepositories()}${suffix}`,
+    `${repositoriesEndpoints.listGitProviderRepositories(provider)}${suffix}`,
     signal
   );
 }

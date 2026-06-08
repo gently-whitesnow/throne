@@ -17,8 +17,10 @@ internal static class RepositoryRegistryDtoMapper
         return new RepositoryDto
         {
             Provider = RepositoryEnumDtoMapper.ToWireProvider(repository.Coordinate.Provider),
+            Host = repository.Coordinate.Host,
             Owner = repository.Coordinate.Owner,
             Repo = repository.Coordinate.Repo,
+            Project_id = repository.Coordinate.ProjectId,
             Full_name = repository.Coordinate.FullName,
             Created_at = repository.CreatedAt,
             Updated_at = repository.UpdatedAt,
@@ -45,8 +47,10 @@ internal static class RepositoryRegistryDtoMapper
         return new RepositoryDocumentDto
         {
             Provider = RepositoryEnumDtoMapper.ToWireProvider(artifact.Coordinate.Provider),
+            Host = artifact.Coordinate.Host,
             Owner = artifact.Coordinate.Owner,
             Repo = artifact.Coordinate.Repo,
+            Project_id = artifact.Coordinate.ProjectId,
             Slug = artifact.Slug,
             Title = artifact.Title,
             Document = artifact.Document,

@@ -176,6 +176,17 @@ namespace Throne.Settings.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("authenticated")]
         public bool Authenticated { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProviderAuthState>))]
+        public GitProviderAuthState State { get; set; }
+
+        /// <summary>
+        /// Provider host that was probed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        public string Host { get; set; }
+
         /// <summary>
         /// Authenticated account login (from `gh api user`).
         /// </summary>
@@ -205,6 +216,32 @@ namespace Throne.Settings.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// UI-level health state. `offline` is a transient NetworkError; `missing` means the CLI or required host setting is absent; `unauthenticated` means the CLI is present but has no usable login.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum GitProviderAuthState
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"authenticated")]
+        [System.Runtime.Serialization.EnumMember(Value = @"authenticated")]
+        Authenticated = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unauthenticated")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unauthenticated")]
+        Unauthenticated = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"offline")]
+        [System.Runtime.Serialization.EnumMember(Value = @"offline")]
+        Offline = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"missing")]
+        [System.Runtime.Serialization.EnumMember(Value = @"missing")]
+        Missing = 3,
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class GitProvidersStatusDto
     {
@@ -214,10 +251,11 @@ namespace Throne.Settings.Contracts.Generated
         public GitProviderAuthStatusDto Github { get; set; } = new GitProviderAuthStatusDto();
 
         /// <summary>
-        /// Reserved for a future GitLab integration. Absent today.
+        /// Status for the configured GitLab host.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("gitlab")]
-        public GitProviderAuthStatusDto Gitlab { get; set; }
+        [System.ComponentModel.DataAnnotations.Required]
+        public GitProviderAuthStatusDto Gitlab { get; set; } = new GitProviderAuthStatusDto();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

@@ -16,9 +16,14 @@ public sealed record CreateRepositoryResult(Repository Repository, bool Created)
 public sealed class CreateRepositoryHandler(IRepositoryRegistry registry, IUnitOfWork unitOfWork, TimeProvider clock)
 {
     public async Task<CreateRepositoryResult> HandleAsync(
-        string provider, string owner, string repo, CancellationToken ct)
+        string provider,
+        string owner,
+        string repo,
+        string? host,
+        int? projectId,
+        CancellationToken ct)
     {
-        var coordinate = RepositoryCoordinateFactory.Create(provider, owner, repo);
+        var coordinate = RepositoryCoordinateFactory.Create(provider, owner, repo, host, projectId);
         var now = clock.GetUtcNow();
         var outcome = await unitOfWork.ExecuteAsync(
             inner => registry.EnsureRepositoryAsync(coordinate, now, inner), ct);

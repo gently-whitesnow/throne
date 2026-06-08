@@ -4,10 +4,10 @@
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
 export const repositoriesEndpoints = {
-  searchGithubRepositories: () => "/git-providers/github/repositories/search",
-  listMyGithubRepositories: () => "/git-providers/github/repositories/my",
-  listGithubRepositoryBranches: (owner: string, repo: string) => `/git-providers/github/repositories/${owner}/${repo}/branches`,
-  listGithubRepositoryPullRequests: (owner: string, repo: string) => `/git-providers/github/repositories/${owner}/${repo}/pulls`,
+  searchGitProviderRepositories: (provider: string) => `/git-providers/${provider}/repositories/search`,
+  listGitProviderRepositories: (provider: string) => `/git-providers/${provider}/repositories/my`,
+  listGitProviderRepositoryBranches: (provider: string, owner: string, repo: string) => `/git-providers/${provider}/repositories/${owner}/${repo}/branches`,
+  listGitProviderRepositoryPullRequests: (provider: string, owner: string, repo: string) => `/git-providers/${provider}/repositories/${owner}/${repo}/pulls`,
   listIntentRepositories: (intent_id: string) => `/intents/${intent_id}/repositories`,
   bindIntentRepository: (intent_id: string) => `/intents/${intent_id}/repositories`,
   unbindIntentRepository: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}`,

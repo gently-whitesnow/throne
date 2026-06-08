@@ -24,6 +24,7 @@ internal static class CapabilityDtoMapper
     public static string ToDomainName(CapabilityName name) => name switch
     {
         CapabilityName.Repositories => CapabilityNames.Repositories,
+        CapabilityName.Gitlab => CapabilityNames.Gitlab,
         CapabilityName.Terminal => CapabilityNames.Terminal,
         CapabilityName.Vscode => CapabilityNames.Vscode,
         _ => throw new ArgumentOutOfRangeException(nameof(name), $"Unknown capability name '{name}'."),
@@ -32,6 +33,7 @@ internal static class CapabilityDtoMapper
     private static CapabilityName ParseName(string domain) => domain switch
     {
         CapabilityNames.Repositories => CapabilityName.Repositories,
+        CapabilityNames.Gitlab => CapabilityName.Gitlab,
         CapabilityNames.Terminal => CapabilityName.Terminal,
         CapabilityNames.Vscode => CapabilityName.Vscode,
         _ => throw new InvalidOperationException(

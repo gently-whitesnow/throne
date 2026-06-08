@@ -13,8 +13,10 @@ namespace Throne.Application.Repositories;
 public sealed record RepositoryBindingMcpSummary(
     string BindingId,
     string Provider,
+    string Host,
     string Owner,
     string Repo,
+    int? ProjectId,
     string DefaultBranch,
     string WorkspacePath,
     string CloneStatus,
@@ -35,8 +37,10 @@ public static class RepositoryBindingMcpSummaryMapper
         return new RepositoryBindingMcpSummary(
             BindingId: binding.Id.Value,
             Provider: binding.Coordinate.Provider,
+            Host: binding.Coordinate.Host,
             Owner: binding.Coordinate.Owner,
             Repo: binding.Coordinate.Repo,
+            ProjectId: binding.Coordinate.ProjectId,
             DefaultBranch: state.DefaultBranch,
             WorkspacePath: binding.WorkspacePath,
             CloneStatus: state.CloneStatus,
