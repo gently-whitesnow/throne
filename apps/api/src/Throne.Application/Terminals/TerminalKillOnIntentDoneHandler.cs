@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Throne.Application.Events;
 using Throne.Domain.Intents;
 
@@ -18,7 +19,9 @@ namespace Throne.Application.Terminals;
 /// <c>IEnumerable&lt;IDomainEventHandler&gt;</c> — eager injection here would close that
 /// resolution cycle (same pattern as <c>Lazy&lt;IUnitOfWork&gt;</c> in the composition root).
 /// </summary>
-public sealed class TerminalKillOnIntentDoneHandler(Lazy<ITmuxSessionManager> tmux) : IDomainEventHandler
+public sealed partial class TerminalKillOnIntentDoneHandler(
+    Lazy<ITmuxSessionManager> tmux,
+    ILogger<TerminalKillOnIntentDoneHandler> logger) : IDomainEventHandler
 {
     public async Task HandleAsync(IDomainEvent evt, CancellationToken ct)
     {
@@ -28,17 +31,43 @@ public sealed class TerminalKillOnIntentDoneHandler(Lazy<ITmuxSessionManager> tm
             return;
         }
 
+        var intentId = changed.Intent.Id.Value;
         try
         {
-            await tmux.Value.KillSessionAsync(changed.Intent.Id.Value, ct);
+            var killed = await tmux.Value.KillSessionAsync(intentId, ct);
+            if (killed)
+            {
+                LogKilled(logger, intentId);
+            }
+            else
+            {
+                LogNoSession(logger, intentId);
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Best-effort: liveness is owned by tmux, not this hook (ADR-0026 § 2).
+            // We still log so a survived session is diagnosable instead of silent.
+            LogKillFailed(logger, intentId, ex);
         }
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
+        Message = "TerminalKillOnIntentDone: killed tmux session for intent {IntentId} (status -> done).")]
+    private static partial void LogKilled(ILogger logger, string intentId);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "TerminalKillOnIntentDone: no tmux session killed for intent {IntentId} — "
+            + "either none existed or `tmux kill-session` failed (both collapse to false). "
+            + "Intent reached done but its session may still be alive.")]
+    private static partial void LogNoSession(ILogger logger, string intentId);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
+        Message = "TerminalKillOnIntentDone: tmux kill threw for intent {IntentId} — "
+            + "swallowed (best-effort), session may still be alive.")]
+    private static partial void LogKillFailed(ILogger logger, string intentId, Exception ex);
 }

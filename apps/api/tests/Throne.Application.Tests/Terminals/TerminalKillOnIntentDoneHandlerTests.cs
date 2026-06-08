@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Events;
 using Throne.Application.Terminals;
@@ -55,7 +56,9 @@ public class TerminalKillOnIntentDoneHandlerTests
         {
             Tmux = Substitute.For<ITmuxSessionManager>();
             Tmux.KillSessionAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(true));
-            Handler = new TerminalKillOnIntentDoneHandler(new Lazy<ITmuxSessionManager>(() => Tmux));
+            Handler = new TerminalKillOnIntentDoneHandler(
+                new Lazy<ITmuxSessionManager>(() => Tmux),
+                NullLogger<TerminalKillOnIntentDoneHandler>.Instance);
         }
 
         public ITmuxSessionManager Tmux { get; }
