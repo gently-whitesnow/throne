@@ -15,6 +15,12 @@ import type {
 
 import { BindRepositoryModal } from "./BindRepositoryModal";
 
+// GitLab provider button is gated on the `gitlab` capability; force it enabled
+// so the provider-switch assertions can reach the GitLab option.
+vi.mock("@/entities/capability", () => ({
+  useCapabilityEnabled: () => true
+}));
+
 const repositoryBindingMocks = vi.hoisted(() => ({
   listGitProviderRepositories:
     vi.fn<(provider?: string, limit?: number) => Promise<GitRepositoryRef[]>>(),
@@ -38,19 +44,11 @@ const repositoryBindingMocks = vi.hoisted(() => ({
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   listGitProviderRepositories: (provider?: string, limit?: number) =>
     repositoryBindingMocks.listGitProviderRepositories(provider, limit),
-  listMyGithubRepositories: (limit?: number) =>
-    repositoryBindingMocks.listGitProviderRepositories("github", limit),
   searchGitProviderRepositories: (params: unknown) =>
-    repositoryBindingMocks.searchGitProviderRepositories(params),
-  searchGithubRepositories: (params: unknown) =>
     repositoryBindingMocks.searchGitProviderRepositories(params),
   listGitProviderRepositoryBranches:
     repositoryBindingMocks.listGitProviderRepositoryBranches,
-  listGithubRepositoryBranches:
-    repositoryBindingMocks.listGitProviderRepositoryBranches,
   listGitProviderRepositoryPullRequests:
-    repositoryBindingMocks.listGitProviderRepositoryPullRequests,
-  listGithubRepositoryPullRequests:
     repositoryBindingMocks.listGitProviderRepositoryPullRequests,
   bindIntentRepository: (intentId: string, body: Record<string, unknown>) =>
     repositoryBindingMocks.bindIntentRepository(intentId, body),

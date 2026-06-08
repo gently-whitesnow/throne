@@ -52,6 +52,16 @@ internal sealed partial class PullRequestSyncService(
     private static partial void LogBindingFailure(
         ILogger logger, string bindingId, GitProviderErrorKind kind, string detail);
 
+    [LoggerMessage(EventId = 6, Level = LogLevel.Debug,
+        Message = "PullRequestSyncService binding offline (transient network): binding={BindingId}, detail={Detail}")]
+    private static partial void LogBindingOffline(ILogger logger, string bindingId, string detail);
+
+    // Bindings currently reporting NetworkError. Used to de-dup the offline log:
+    // a transiently-unreachable corp host (ADR-0032 § 7) is an expected state, so
+    // we log it once at Debug on transition into "offline" instead of a Warning
+    // every tick. Owned by the single-threaded tick loop — no synchronisation.
+    private HashSet<string> _networkDownBindingIds = [];
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var interval = TimeSpan.FromSeconds(Math.Max(1, options.Value.PollIntervalSeconds));
@@ -98,10 +108,29 @@ internal sealed partial class PullRequestSyncService(
                 snapshot.Failed,
                 snapshot.MarkedBroken,
                 snapshot.LifecycleClosed);
+            var networkDownNow = new HashSet<string>();
             foreach (var failure in report.Failures)
             {
-                LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
+                if (failure.Kind == GitProviderErrorKind.NetworkError)
+                {
+                    // Expected transient state (host off-VPN). Debug + de-dup:
+                    // log only on transition into offline, not every tick.
+                    networkDownNow.Add(failure.BindingId);
+                    if (!_networkDownBindingIds.Contains(failure.BindingId))
+                    {
+                        LogBindingOffline(logger, failure.BindingId, failure.Message);
+                    }
+                }
+                else
+                {
+                    // Genuine failures (auth / CLI) stay Warning every tick.
+                    LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
+                }
             }
+
+            // Drop bindings that recovered or were skipped by backoff this tick,
+            // so a later relapse re-logs once instead of staying silent forever.
+            _networkDownBindingIds = networkDownNow;
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {

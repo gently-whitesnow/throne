@@ -27,10 +27,12 @@ Read-операции реализуем через сырой `glab api` (не 
 | auth status | `glab api user --hostname <host> -i` (у `glab auth status` нет JSON) |
 | clone | `glab repo clone <path> <dir> -- --filter=blob:none` (хост через `GITLAB_HOST`) |
 | list branches | `glab api projects/:id/repository/branches` |
-| list MR | `glab api "projects/:id/merge_requests?state=opened&source_branch=<b>"` |
+| list MR | `glab api "projects/:id/merge_requests?state=opened"` |
 | get MR | `glab api projects/:id/merge_requests/:iid` |
 | MR comments | `glab api projects/:id/merge_requests/:iid/discussions --paginate` |
 | version preflight | `glab version` |
+
+`:id` в таблице — это url-энкоженный `path_with_namespace` проекта (см. Decision 2), а не числовой `project_id`. Список MR тянется один раз со `state=opened` и фильтруется на стороне Throne (по `source_branch` для авто-привязки в Decision 5, по подстроке для typeahead) — паритет с GitHub-провайдером, который тоже листит открытые PR и матчит head-ref в C#; узкого server-side `source_branch`-запроса порт `IGitProvider` не выражает (метод листинга принимает только подстроку-`query`).
 
 ### 2. Координата и workspace-layout для вложенных неймспейсов
 
@@ -38,7 +40,7 @@ GitLab-проект живёт как `path_with_namespace` = `group/subgroup/pr
 
 `WorkspacePathLayout` строит каталог `{owner}__{repo}` и **никогда не парсит его обратно** (координата всегда читается из Mongo), поэтому имя каталога может быть любым FS-safe: `/` в namespace заменяем на `-`, плоский `ls` и O(1)-перечисление реп интента (ADR-0024 § 1) сохраняются. Защитный `__`-guard для GitLab-owner ослабляется (обратный split не используется).
 
-На binding дополнительно храним числовой `project_id` (один вызов `glab api projects/<url-encoded path>` при bind) — REST-адресация по `id` устойчива к rename, отображение остаётся по path.
+REST-адресация GitLab идёт по url-энкоженному `path_with_namespace` (`Uri.EscapeDataString("group/subgroup/project")`), который `glab api` принимает наравне с числовым id. Числовой `project_id` дополнительно сохраняем на binding (он приходит «бесплатно» в ответе поиска проектов), но как **forward-looking/reserved** поле, а не как ключ адресации: порт `IGitProvider` намеренно адресуется парой `(owner, repo)` и не несёт ни `project_id`, ни `host` (host тоже резолвится вне порта — из глобальной настройки, Decision 3). Протаскивать GitLab-специфичный `project_id` скаляром в provider-neutral порт ради устойчивости к rename сейчас непропорционально: rename группы/проекта у уже привязанного репо — редкий кейс, дешёвое восстановление — re-bind, а clone/sync идут через локальный git-remote и rename API-пути не замечают. Если устойчивость к rename станет требованием (или появится per-binding multi-host), порт меняется на передачу объекта-координаты (`RepoCoordinate`/handle), где `host` и `project_id` едут связно, — отдельным решением, без скалярного параметра.
 
 ### 3. Self-managed host
 
@@ -56,7 +58,7 @@ TLS: полагаемся на системный trust store — corp-CA пол
 
 ### 5. Авто-привязка по ветке и авто-закрытие по мерджу
 
-Флоу ADR-0024 § 9 provider-agnostic и не меняется. `GitLabCliProvider.GetPullRequestAsync` нормализует состояние MR в существующее множество `PullRequestStateNames`: `opened → open`, `merged → merged`, `closed → closed`, `locked → open`. Авто-привязка: head-ветка локального клона (`git -C <ws> rev-parse --abbrev-ref HEAD`) ищется среди открытых MR через `glab api "projects/:id/merge_requests?state=opened&source_branch=<branch>"`; ровно одно совпадение → `AttachPullRequest`.
+Флоу ADR-0024 § 9 provider-agnostic и не меняется. `GitLabCliProvider.GetPullRequestAsync` нормализует состояние MR в существующее множество `PullRequestStateNames`: `opened → open`, `merged → merged`, `closed → closed`, `locked → open`. Авто-привязка переиспользует общий `PullRequestAutoBindWorkflow`: head-ветка локального клона (`git -C <ws> rev-parse --abbrev-ref HEAD`) сопоставляется с `HeadRef` открытых MR из `ListPullRequestsAsync` (матч на стороне Throne, как у GitHub-провайдера); ровно одно совпадение → `AttachPullRequest`. Серверный `source_branch`-фильтр не используется — порт листинга узкого запроса не выражает (Decision 1).
 
 ### 6. Общий scope поиска репозиториев для обоих провайдеров
 

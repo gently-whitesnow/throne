@@ -1,5 +1,7 @@
 import { Search } from "lucide-react";
+import { useEffect } from "react";
 
+import { useCapabilityEnabled } from "@/entities/capability";
 import type { GitProvider } from "@/entities/repository-binding";
 
 import type { SearchScope } from "../model/use-repository-search";
@@ -31,6 +33,18 @@ export function BindRepositorySearchControls({
   onScopeChange,
   disabled
 }: BindRepositorySearchControlsProps) {
+  // GitLab is gated behind the `gitlab` capability (ADR-0032 § 8): hide the
+  // option entirely until the operator enabled it and `glab` was detected.
+  const gitlabEnabled = useCapabilityEnabled("gitlab");
+
+  // Capability flipped off while GitLab was selected → fall back to GitHub so
+  // the search does not keep hitting a provider the user can no longer pick.
+  useEffect(() => {
+    if (!gitlabEnabled && provider === "gitlab") {
+      onProviderChange("github");
+    }
+  }, [gitlabEnabled, provider, onProviderChange]);
+
   return (
     <div className="flex flex-col gap-2">
       <div className="join w-fit" role="radiogroup" aria-label="Git provider">
@@ -48,20 +62,22 @@ export function BindRepositorySearchControls({
         >
           GitHub
         </button>
-        <button
-          type="button"
-          className={`btn join-item btn-xs ${
-            provider === "gitlab" ? "btn-primary" : "btn-ghost"
-          }`}
-          aria-pressed={provider === "gitlab"}
-          onClick={() => {
-            onProviderChange("gitlab");
-          }}
-          disabled={disabled}
-          data-testid="bind-repository-provider-gitlab"
-        >
-          GitLab
-        </button>
+        {gitlabEnabled ? (
+          <button
+            type="button"
+            className={`btn join-item btn-xs ${
+              provider === "gitlab" ? "btn-primary" : "btn-ghost"
+            }`}
+            aria-pressed={provider === "gitlab"}
+            onClick={() => {
+              onProviderChange("gitlab");
+            }}
+            disabled={disabled}
+            data-testid="bind-repository-provider-gitlab"
+          >
+            GitLab
+          </button>
+        ) : null}
       </div>
       <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 focus-within:border-primary">
         <Search aria-hidden size={14} className="text-base-content/50" />

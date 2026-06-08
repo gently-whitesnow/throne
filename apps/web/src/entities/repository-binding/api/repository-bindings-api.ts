@@ -48,10 +48,6 @@ export function searchGitProviderRepositories(
   return httpGet<GitRepositoryRef[]>(path, signal);
 }
 
-export const searchGithubRepositories = searchGitProviderRepositories;
-export type SearchGithubRepositoriesParams =
-  SearchGitProviderRepositoriesParams;
-
 export interface ListGitProviderRepositoryRefsParams {
   provider?: GitProvider;
   q?: string;
@@ -81,8 +77,6 @@ export function listGitProviderRepositoryBranches(
   return httpGet<GitBranchRef[]>(path, signal);
 }
 
-export const listGithubRepositoryBranches = listGitProviderRepositoryBranches;
-
 export function listGitProviderRepositoryPullRequests(
   owner: string,
   repo: string,
@@ -98,11 +92,6 @@ export function listGitProviderRepositoryPullRequests(
   return httpGet<GitPullRequestRef[]>(path, signal);
 }
 
-export const listGithubRepositoryPullRequests =
-  listGitProviderRepositoryPullRequests;
-export type ListGithubRepositoryRefsParams =
-  ListGitProviderRepositoryRefsParams;
-
 export function listGitProviderRepositories(
   provider: GitProvider = DEFAULT_PROVIDER,
   limit?: number,
@@ -114,13 +103,6 @@ export function listGitProviderRepositories(
     `${repositoriesEndpoints.listGitProviderRepositories(provider)}${suffix}`,
     signal
   );
-}
-
-export function listMyGithubRepositories(
-  limit?: number,
-  signal?: AbortSignal
-): Promise<GitRepositoryRef[]> {
-  return listGitProviderRepositories(DEFAULT_PROVIDER, limit, signal);
 }
 
 export function listIntentRepositories(

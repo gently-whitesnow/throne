@@ -24,9 +24,7 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
     attachIntentRepositoryPullRequest(intentId, bindingId, pullRequestNumber),
   listIntentRepositories: vi.fn().mockResolvedValue([]),
   bindIntentRepository: vi.fn(),
-  unbindIntentRepository: vi.fn(),
-  searchGithubRepositories: vi.fn(),
-  listMyGithubRepositories: vi.fn()
+  unbindIntentRepository: vi.fn()
 }));
 
 vi.mock("@/shared/api", () => {
