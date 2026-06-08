@@ -14,17 +14,22 @@ internal static class GhPrCommands
 
     /// <summary>
     /// <c>gh api -i [-H "If-None-Match: {etag}"] /repos/{owner}/{repo}/pulls/{number}/comments</c>.
-    /// ETag is added as a <c>-H</c> header pair only when non-empty so an
-    /// initial sync does not send an invalid header.
+    /// Inline review comments anchored to diff lines. ETag is added only when
+    /// non-empty so an initial sync does not send an invalid header.
     /// </summary>
-    public static string[] ListReviewComments(string owner, string repo, int number, string? etag)
-    {
-        var path = $"/repos/{owner}/{repo}/pulls/{number}/comments";
-        if (string.IsNullOrWhiteSpace(etag))
-        {
-            return ["api", "-i", path];
-        }
+    public static string[] ListReviewComments(string owner, string repo, int number, string? etag) =>
+        BuildApi($"/repos/{owner}/{repo}/pulls/{number}/comments", etag);
 
-        return ["api", "-i", "-H", $"If-None-Match: {etag}", path];
-    }
+    /// <summary>
+    /// <c>gh api -i [-H "If-None-Match: {etag}"] /repos/{owner}/{repo}/issues/{number}/comments</c>.
+    /// Issue-comments feed of the same PR — GitHub stores discussion-thread
+    /// comments under the underlying issue, not the pull-request endpoint.
+    /// </summary>
+    public static string[] ListIssueComments(string owner, string repo, int number, string? etag) =>
+        BuildApi($"/repos/{owner}/{repo}/issues/{number}/comments", etag);
+
+    private static string[] BuildApi(string path, string? etag) =>
+        string.IsNullOrWhiteSpace(etag)
+            ? ["api", "-i", path]
+            : ["api", "-i", "-H", $"If-None-Match: {etag}", path];
 }
