@@ -20,6 +20,8 @@ internal sealed class GhCliInvoker(IProcessLauncher launcher, IOptions<GitHubCli
 
     public int PageSize => _opts.PageSize;
 
+    public int SearchFetchLimit => _opts.SearchFetchLimit;
+
     public Task<ProcessRunResult> RunAsync(IReadOnlyList<string> arguments, CancellationToken ct) =>
         RunAsync(arguments, workingDirectory: null, timeout: _opts.DefaultTimeout, ct);
 

@@ -81,6 +81,28 @@ public class GitHubCliProviderTests
         repos.Should().ContainSingle().Which.Repo.Should().Be("throne");
     }
 
+    [Fact(DisplayName = "SearchRepositoriesAsync с query тянет полное окно репо, а не display-limit")]
+    public async Task Search_with_query_fetches_full_account_window()
+    {
+        _fx.OnRun(_ => GitHubCliProviderFixture.Ok(MineJson));
+
+        await _fx.Provider.SearchRepositoriesAsync(
+            RepositorySearchScope.Mine, query: "throne", limit: 5, ct: default);
+
+        _fx.Calls.Single().Arguments.Should().ContainInOrder("repo", "list", "--limit", "1000");
+    }
+
+    [Fact(DisplayName = "SearchRepositoriesAsync без query тянет ровно display-limit (browse-окно)")]
+    public async Task Search_without_query_fetches_display_limit_only()
+    {
+        _fx.OnRun(_ => GitHubCliProviderFixture.Ok(MineJson));
+
+        await _fx.Provider.SearchRepositoriesAsync(
+            RepositorySearchScope.Mine, query: null, limit: 5, ct: default);
+
+        _fx.Calls.Single().Arguments.Should().ContainInOrder("repo", "list", "--limit", "5");
+    }
+
     [Fact(DisplayName = "CloneRepositoryAsync вызывает gh repo clone owner/repo target")]
     public async Task Clone_invokes_repo_clone()
     {

@@ -16,10 +16,14 @@ internal sealed class GhRepoSearcher(GhCliInvoker gh, GhRepoListExecutor executo
         int limit,
         CancellationToken ct)
     {
-        var effectiveLimit = limit > 0 ? limit : gh.PageSize;
-        var mine = await executor.MineAsync(effectiveLimit, ct);
-        var combined = await CombineForScopeAsync(scope, mine, effectiveLimit, ct);
-        return RepoSearchFilter.Apply(combined, query, effectiveLimit);
+        var displayLimit = limit > 0 ? limit : gh.PageSize;
+        // Empty query just browses the recent window; a query filters client-side
+        // (RepoSearchFilter), so the fetch must cover the whole account or older
+        // repos never reach the filter and look "missing" in autocomplete.
+        var fetchLimit = string.IsNullOrWhiteSpace(query) ? displayLimit : gh.SearchFetchLimit;
+        var mine = await executor.MineAsync(fetchLimit, ct);
+        var combined = await CombineForScopeAsync(scope, mine, fetchLimit, ct);
+        return RepoSearchFilter.Apply(combined, query, displayLimit);
     }
 
     private async Task<IReadOnlyList<GitRepositoryRef>> CombineForScopeAsync(

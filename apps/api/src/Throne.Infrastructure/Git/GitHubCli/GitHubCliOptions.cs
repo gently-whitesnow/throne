@@ -21,4 +21,14 @@ public sealed class GitHubCliOptions
 
     /// <summary>Page size for <c>gh repo list</c> / <c>gh api /user/repos</c>.</summary>
     public int PageSize { get; set; } = 100;
+
+    /// <summary>
+    /// Upper bound on how many of the account's repos are pulled from
+    /// <c>gh repo list</c> before the client-side query filter runs. Deliberately
+    /// larger than the picker's display limit: ADR-0024 § 3 forbids the global
+    /// <c>gh search repos</c> path, so substring matching happens in-process and
+    /// must see the whole account — otherwise repos pushed long ago fall outside
+    /// the recency-sorted window and become unfindable by name.
+    /// </summary>
+    public int SearchFetchLimit { get; set; } = 1000;
 }
