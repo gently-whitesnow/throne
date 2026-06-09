@@ -40,6 +40,33 @@ internal static class RepositoryEnumDtoMapper
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown PR state."),
     };
 
+    public static PullRequestMergeability ToWireMergeability(Throne.Application.Git.PullRequestMergeability value) => value switch
+    {
+        Throne.Application.Git.PullRequestMergeability.Mergeable => PullRequestMergeability.Mergeable,
+        Throne.Application.Git.PullRequestMergeability.Conflicting => PullRequestMergeability.Conflicting,
+        Throne.Application.Git.PullRequestMergeability.Blocked => PullRequestMergeability.Blocked,
+        Throne.Application.Git.PullRequestMergeability.Behind => PullRequestMergeability.Behind,
+        Throne.Application.Git.PullRequestMergeability.Checking => PullRequestMergeability.Checking,
+        _ => PullRequestMergeability.Unknown,
+    };
+
+    public static PullRequestChecksState ToWireChecksState(Throne.Application.Git.PullRequestChecksState value) => value switch
+    {
+        Throne.Application.Git.PullRequestChecksState.None => PullRequestChecksState.None,
+        Throne.Application.Git.PullRequestChecksState.Pending => PullRequestChecksState.Pending,
+        Throne.Application.Git.PullRequestChecksState.Passing => PullRequestChecksState.Passing,
+        Throne.Application.Git.PullRequestChecksState.Failing => PullRequestChecksState.Failing,
+        _ => PullRequestChecksState.Unknown,
+    };
+
+    public static Throne.Application.Git.MergeStrategy ToAppMergeStrategy(MergeStrategy value) => value switch
+    {
+        MergeStrategy.Merge => Throne.Application.Git.MergeStrategy.Merge,
+        MergeStrategy.Squash => Throne.Application.Git.MergeStrategy.Squash,
+        MergeStrategy.Rebase => Throne.Application.Git.MergeStrategy.Rebase,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown merge strategy."),
+    };
+
     public static RepositoryArtifactRenderHint ToWireRenderHint(string value) => value switch
     {
         RepositoryArtifactRenderHints.Markdown => RepositoryArtifactRenderHint.Markdown,

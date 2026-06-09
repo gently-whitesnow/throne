@@ -1,5 +1,21 @@
 {
   "profile": "strict",
   "version": 1,
-  "violations": []
+  "violations": [
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Api/Repositories/IntentRepositoriesController.cs",
+      "subject": "IntentRepositoriesController"
+    },
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Infrastructure/Git/GitHubCli/GitHubCliProvider.cs",
+      "subject": "GitHubCliProvider"
+    },
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Infrastructure/Git/GitLabCli/GitLabCliProvider.cs",
+      "subject": "GitLabCliProvider"
+    }
+  ]
 }

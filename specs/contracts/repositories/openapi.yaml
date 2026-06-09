@@ -751,6 +751,106 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/merge-status:
+    get:
+      operationId: getIntentRepositoryPullRequestMergeStatus
+      tags: [IntentRepositories]
+      summary: Read the binding's PR/MR mergeability and checks state from the provider.
+      description: >
+        Slice C — backs the merge control in the review workspace. Mergeability and
+        checks state are read straight from the provider on demand (GitHub
+        `mergeable`/`mergeStateStatus`/`statusCheckRollup`, GitLab
+        `detailed_merge_status` + head pipeline). `html_url` points at the PR/MR page so
+        the UI can send the reviewer to the provider when a merge is not possible.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK — provider-neutral mergeability + checks snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequestMergeStatusDto'
+        '404':
+          description: Intent, binding or upstream PR not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unsupported or unauthenticated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/merge:
+    post:
+      operationId: mergeIntentRepositoryPullRequest
+      tags: [IntentRepositories]
+      summary: Merge the binding's PR/MR at the provider.
+      description: >
+        Slice C — merges the attached pull/merge request via the provider CLI
+        (`gh pr merge` / `glab mr merge`) with the chosen strategy and optional
+        source-branch deletion. When the provider refuses the merge (conflicts,
+        failing checks, branch protection) the call returns `409` with the
+        provider's reason so the reviewer can resolve it on the provider page.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergePullRequestRequest'
+      responses:
+        '200':
+          description: OK — the PR/MR was merged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MergePullRequestResultDto'
+        '404':
+          description: Intent, binding or upstream PR not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no PR attached, or the provider refused the merge.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unsupported or unauthenticated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/repositories:
     get:
       operationId: listRepositories
@@ -1595,6 +1695,83 @@ components:
         resolved:
           type: boolean
           description: Resolution state as echoed back by the provider after the change.
+    MergeStrategy:
+      type: string
+      enum:
+        - merge
+        - squash
+        - rebase
+      description: >
+        How the PR/MR is integrated. `merge` — merge commit, `squash` — squash into
+        a single commit, `rebase` — rebase the source commits onto the base. Maps to
+        `gh pr merge --merge/--squash/--rebase` and `glab mr merge`/`--squash`/`--rebase`.
+    PullRequestMergeability:
+      type: string
+      enum:
+        - mergeable
+        - conflicting
+        - blocked
+        - behind
+        - checking
+        - unknown
+      description: >
+        Provider-neutral mergeability. `mergeable` — can merge now; `conflicting` —
+        merge conflicts; `blocked` — held by branch protection / approvals / unresolved
+        discussions / draft; `behind` — source is behind the base and needs an update;
+        `checking` — the provider is still computing the state; `unknown` — unrecognised.
+    PullRequestChecksState:
+      type: string
+      enum:
+        - none
+        - pending
+        - passing
+        - failing
+        - unknown
+      description: >
+        Aggregate state of CI checks on the PR/MR head. `none` — no checks configured;
+        `pending` — checks still running; `passing` — all succeeded; `failing` — at least
+        one failed; `unknown` — unrecognised.
+    PullRequestMergeStatusDto:
+      type: object
+      required:
+        - mergeability
+        - checks
+      properties:
+        mergeability:
+          $ref: '#/components/schemas/PullRequestMergeability'
+        checks:
+          $ref: '#/components/schemas/PullRequestChecksState'
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Browser-facing URL of the PR/MR page, when the provider reports it.
+    MergePullRequestRequest:
+      type: object
+      required:
+        - strategy
+      properties:
+        strategy:
+          $ref: '#/components/schemas/MergeStrategy'
+        delete_branch:
+          type: boolean
+          default: false
+          description: Delete the source branch after a successful merge, when the provider allows it.
+    MergePullRequestResultDto:
+      type: object
+      required:
+        - merged
+        - pull_request_state
+      properties:
+        merged:
+          type: boolean
+          description: True when the provider reported the PR/MR as merged.
+        pull_request_state:
+          $ref: '#/components/schemas/PullRequestState'
+        message:
+          type: string
+          nullable: true
+          description: Provider's one-line summary of the merge outcome, when available.
     RepositoryArtifactRenderHint:
       type: string
       enum:

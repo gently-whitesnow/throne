@@ -113,6 +113,17 @@ internal static class RepositoryBindingFailures
                 ["detail"] = reason.Detail,
             });
 
+    public static ApiException MergeRejected(IntentRepositoryBinding binding, GitProviderException reason) =>
+        new(
+            ErrorCodes.RepositoryPullRequestMergeRejected,
+            $"Provider refused to merge the pull request for binding '{binding.Id.Value}': {reason.Message}",
+            new Dictionary<string, object?>
+            {
+                ["binding_id"] = binding.Id.Value,
+                ["provider"] = binding.Coordinate.Provider,
+                ["detail"] = reason.Detail,
+            });
+
     public static ApiException InvalidCoordinate(string owner, string repo, string detail) =>
         new(
             ErrorCodes.RepositoryProviderUnsupported,

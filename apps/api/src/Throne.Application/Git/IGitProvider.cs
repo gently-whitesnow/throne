@@ -185,4 +185,30 @@ public interface IGitProvider
         string commentId,
         string? threadId,
         CancellationToken ct);
+
+    /// <summary>
+    /// Read the provider-neutral mergeability and CI-checks state of a pull/merge
+    /// request — backs the merge control in the review workspace (Slice C). Returns
+    /// <see langword="null"/> when upstream returns 404.
+    /// </summary>
+    Task<PullRequestMergeStatus?> GetPullRequestMergeStatusAsync(
+        string owner,
+        string repo,
+        int number,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Merge a pull/merge request at the provider with the requested strategy and
+    /// optional source-branch deletion (<c>gh pr merge</c> / <c>glab mr merge</c>).
+    /// A 404 propagates as <see cref="GitProviderErrorKind.NotFound"/>; a provider
+    /// refusal (conflicts, failing checks, branch protection, disallowed strategy)
+    /// propagates as <see cref="GitProviderErrorKind.MergeNotAllowed"/> with the
+    /// reason in <see cref="GitProviderException.Detail"/>.
+    /// </summary>
+    Task<PullRequestMergeResult> MergePullRequestAsync(
+        string owner,
+        string repo,
+        int number,
+        MergePullRequestRequest request,
+        CancellationToken ct);
 }

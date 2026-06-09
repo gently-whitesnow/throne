@@ -26,6 +26,14 @@ public enum GitProviderErrorKind
     /// the diff» or «outdated diff»). Caller should refetch the diff and retry.
     /// </summary>
     ReviewCommentAnchorInvalid = 4,
+
+    /// <summary>
+    /// Provider refused to merge the pull/merge request — conflicts, failing required
+    /// checks, missing approvals, branch protection, or a disallowed strategy. The
+    /// reason is carried verbatim in <see cref="GitProviderException.Detail"/> so the
+    /// UI can show it and send the reviewer to the provider page.
+    /// </summary>
+    MergeNotAllowed = 5,
 }
 
 /// <summary>
