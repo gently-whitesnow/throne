@@ -5,6 +5,13 @@ import {
   waitFor,
   within
 } from "@testing-library/react";
+import {
+  MemoryRouter,
+  Outlet,
+  Route,
+  Routes,
+  useLocation
+} from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithQuery } from "@/app/test-utils";
@@ -16,6 +23,7 @@ import type {
 } from "@/entities/review-workspace";
 
 import { ReviewWorkspaceEntry } from "./ReviewWorkspaceEntry";
+import { ReviewWorkspaceRoute } from "./ReviewWorkspaceRoute";
 
 const listIntentRepositories =
   vi.fn<(intentId: string) => Promise<RepositoryBinding[]>>();
@@ -90,6 +98,34 @@ const DIFF: PullRequestDiff = {
   ]
 };
 
+/** Монтирует роут-дерево интента с вложенной ревьюилкой. */
+function renderRouted(initialPath: string) {
+  let location = initialPath;
+  function LocationProbe() {
+    location = useLocation().pathname + useLocation().search;
+    return null;
+  }
+  const view = renderWithQuery(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <LocationProbe />
+      <Routes>
+        <Route
+          path="/intents/:id"
+          element={
+            <>
+              <ReviewWorkspaceEntry intentId="intent-1" />
+              <Outlet />
+            </>
+          }
+        >
+          <Route path="review/:bindingId" element={<ReviewWorkspaceRoute />} />
+        </Route>
+      </Routes>
+    </MemoryRouter>
+  );
+  return { ...view, getLocation: () => location };
+}
+
 describe("ReviewWorkspaceEntry", () => {
   beforeEach(() => {
     listIntentRepositories.mockReset().mockResolvedValue([makeBinding()]);
@@ -112,7 +148,7 @@ describe("ReviewWorkspaceEntry", () => {
     listIntentRepositories.mockResolvedValue([
       makeBinding({ pull_request_number: undefined })
     ]);
-    renderWithQuery(<ReviewWorkspaceEntry intentId="intent-1" />);
+    renderRouted("/intents/intent-1");
     await waitFor(() => {
       expect(listIntentRepositories).toHaveBeenCalled();
     });
@@ -120,27 +156,24 @@ describe("ReviewWorkspaceEntry", () => {
   });
 
   it("показывает provider-neutral PR-лейбл для GitHub binding'а", async () => {
-    renderWithQuery(<ReviewWorkspaceEntry intentId="intent-1" />);
+    renderRouted("/intents/intent-1");
     expect(await screen.findByText("PR #42")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Открыть ревью" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Открыть ревью" })).toBeTruthy();
   });
 
   it("показывает MR-лейбл для GitLab binding'а", async () => {
     listIntentRepositories.mockResolvedValue([
       makeBinding({ provider: "gitlab" })
     ]);
-    renderWithQuery(<ReviewWorkspaceEntry intentId="intent-1" />);
+    renderRouted("/intents/intent-1");
     expect(await screen.findByText("MR !42")).toBeTruthy();
   });
 
-  it("открывает fullscreen overlay, грузит diff и отправляет inline-комментарий в провайдер", async () => {
-    renderWithQuery(<ReviewWorkspaceEntry intentId="intent-1" />);
+  it("открывает ревьюилку по ссылке, вшивает выбранный файл в URL и шлёт inline-комментарий", async () => {
+    const view = renderRouted("/intents/intent-1");
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Открыть ревью" })
-    );
+    fireEvent.click(await screen.findByRole("link", { name: "Открыть ревью" }));
 
-    // Fullscreen surface смонтирован, файл из diff виден.
     const dialog = await screen.findByRole("dialog", {
       name: "Review workspace"
     });
@@ -150,7 +183,11 @@ describe("ReviewWorkspaceEntry", () => {
     });
     expect(await screen.findByText("new")).toBeTruthy();
 
-    // Открыть composer именно на добавленной строке (right / newLine=2).
+    // Роут A2: выбранный файл оказался в query → ссылка шарящаяся.
+    await waitFor(() => {
+      expect(view.getLocation()).toContain("file=src%2Fapp.ts");
+    });
+
     const addedRow = screen.getByText("new").closest("div.group");
     expect(addedRow).not.toBeNull();
     fireEvent.click(
@@ -179,5 +216,17 @@ describe("ReviewWorkspaceEntry", () => {
         })
       );
     });
+  });
+
+  it("deep-link с query переоткрывает ревьюилку сразу (A8)", async () => {
+    renderRouted("/intents/intent-1/review/b1?file=src%2Fapp.ts");
+
+    expect(
+      await screen.findByRole("dialog", { name: "Review workspace" })
+    ).toBeTruthy();
+    await waitFor(() => {
+      expect(getReviewDiff).toHaveBeenCalled();
+    });
+    expect(await screen.findByText("new")).toBeTruthy();
   });
 });
