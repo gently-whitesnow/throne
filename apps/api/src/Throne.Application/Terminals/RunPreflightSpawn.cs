@@ -14,9 +14,12 @@ public sealed class RunPreflightSpawn(
     IClaudeWorkspaceTrust workspaceTrust,
     IDomainEventDispatcher events)
 {
-    private const string AgentCommand = "claude";
-
-    public async Task SpawnAsync(IntentId intentId, string sessionName, string mode, CancellationToken ct)
+    public async Task SpawnAsync(
+        IntentId intentId,
+        string sessionName,
+        string mode,
+        TerminalLaunchOptions launch,
+        CancellationToken ct)
     {
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intentId.Value);
         var prompt = AgentPromptBuilder.Build(mode, intentId.Value);
@@ -26,14 +29,15 @@ public sealed class RunPreflightSpawn(
         // interactive trust prompt and the operator has to confirm by hand on every run.
         await workspaceTrust.EnsureTrustedAsync(workspacePath, ct);
 
-        // Free mode boots claude bare and pre-types the prompt instead of passing it as argv —
+        // Free mode boots the agent bare and pre-types the prompt instead of passing it as argv —
         // an argv prompt auto-runs, but free mode hands an editable starter line to the operator.
+        var invocation = AgentSpawnCommand.Build(launch, prompt, isFree);
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
                 WorkingDirectory: workspacePath,
-                Command: AgentCommand,
-                Arguments: isFree ? [] : [prompt]),
+                Command: invocation.Command,
+                Arguments: invocation.Arguments),
             ct);
 
         if (!spawn.IsAlive)

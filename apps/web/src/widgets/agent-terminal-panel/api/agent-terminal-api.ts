@@ -2,17 +2,26 @@ import { httpGet, httpPost, terminalEndpoints } from "@/shared/api";
 
 import type {
   RunIntentTerminalResponse,
-  TerminalRunMode
+  TerminalLaunchArgs
 } from "../model/types";
+
+function toRequestBody(launch: TerminalLaunchArgs) {
+  return {
+    mode: launch.mode,
+    vendor: launch.vendor,
+    model: launch.model,
+    effort: launch.effort
+  };
+}
 
 export function runIntentTerminal(
   intentId: string,
-  mode: TerminalRunMode,
+  launch: TerminalLaunchArgs,
   signal?: AbortSignal
 ): Promise<RunIntentTerminalResponse> {
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.runIntentTerminal(intentId),
-    { mode },
+    toRequestBody(launch),
     signal
   );
 }
@@ -29,12 +38,12 @@ export function getIntentTerminalSession(
 
 export function restartIntentTerminal(
   intentId: string,
-  mode: TerminalRunMode,
+  launch: TerminalLaunchArgs,
   signal?: AbortSignal
 ): Promise<RunIntentTerminalResponse> {
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.restartIntentTerminal(intentId),
-    { mode },
+    toRequestBody(launch),
     signal
   );
 }

@@ -11,7 +11,7 @@ import {
 
 import type {
   RunIntentTerminalResponse,
-  TerminalRunMode,
+  TerminalLaunchArgs,
   TerminalSessionState
 } from "./types";
 
@@ -31,8 +31,8 @@ export interface TerminalSessionView {
   isStarting: boolean;
   isStopping: boolean;
   startedAt: TerminalSessionStartedAt | null;
-  start: (mode: TerminalRunMode) => Promise<void>;
-  restart: (mode: TerminalRunMode) => Promise<void>;
+  start: (launch: TerminalLaunchArgs) => Promise<void>;
+  restart: (launch: TerminalLaunchArgs) => Promise<void>;
   /** Kill the live tmux session without respawning. */
   kill: () => Promise<void>;
   /** Local-only signal that the WebSocket bridge observed a clean close. */
@@ -107,12 +107,12 @@ export function useTerminalSession(
   }, [intentId, terminalEnabled, apply]);
 
   const runImpl = useCallback(
-    async (mode: TerminalRunMode, restart: boolean) => {
+    async (launch: TerminalLaunchArgs, restart: boolean) => {
       setIsStarting(true);
       try {
         const response = restart
-          ? await restartIntentTerminal(intentId, mode)
-          : await runIntentTerminal(intentId, mode);
+          ? await restartIntentTerminal(intentId, launch)
+          : await runIntentTerminal(intentId, launch);
         apply(response);
       } catch (err) {
         setInternal((prev) => ({
@@ -127,11 +127,11 @@ export function useTerminalSession(
   );
 
   const start = useCallback(
-    (mode: TerminalRunMode) => runImpl(mode, false),
+    (launch: TerminalLaunchArgs) => runImpl(launch, false),
     [runImpl]
   );
   const restart = useCallback(
-    (mode: TerminalRunMode) => runImpl(mode, true),
+    (launch: TerminalLaunchArgs) => runImpl(launch, true),
     [runImpl]
   );
 
@@ -174,6 +174,9 @@ function deriveErrorMessage(err: unknown): string {
     if (err.status === 409) {
       // Server already has a live session — treat as guidance, not error.
       return "Сессия уже запущена — нажмите «Перезапустить», чтобы прервать и запустить заново.";
+    }
+    if (err.status === 400) {
+      return "Недопустимая комбинация вендора, модели и усилия.";
     }
     if (err.status === 422) {
       return "Возможность «Терминал агента» выключена или tmux недоступен.";

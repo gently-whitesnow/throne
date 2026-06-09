@@ -1,16 +1,25 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithQuery } from "@/app/test-utils";
 import type { Capability } from "@/entities/capability";
 
-import type { RunIntentTerminalResponse } from "../model/types";
+import type {
+  RunIntentTerminalResponse,
+  TerminalLaunchArgs
+} from "../model/types";
 
 import { AgentTerminalPanel } from "./AgentTerminalPanel";
 
 const getIntentTerminalSession =
   vi.fn<(intentId: string) => Promise<RunIntentTerminalResponse>>();
-const runIntentTerminal = vi.fn<() => Promise<RunIntentTerminalResponse>>();
+const runIntentTerminal =
+  vi.fn<
+    (
+      intentId: string,
+      launch: TerminalLaunchArgs
+    ) => Promise<RunIntentTerminalResponse>
+  >();
 const restartIntentTerminal = vi.fn<() => Promise<RunIntentTerminalResponse>>();
 
 // Панель читает api через относительный путь — мок подменяет именно его,
@@ -18,7 +27,8 @@ const restartIntentTerminal = vi.fn<() => Promise<RunIntentTerminalResponse>>();
 vi.mock("../api/agent-terminal-api", () => ({
   getIntentTerminalSession: (intentId: string) =>
     getIntentTerminalSession(intentId),
-  runIntentTerminal: () => runIntentTerminal(),
+  runIntentTerminal: (intentId: string, launch: TerminalLaunchArgs) =>
+    runIntentTerminal(intentId, launch),
   restartIntentTerminal: () => restartIntentTerminal()
 }));
 
@@ -123,5 +133,49 @@ describe("AgentTerminalPanel — reattach живой tmux-сессии", () => {
     expect(mode.hasAttribute("disabled")).toBe(false);
     expect(screen.queryByTestId("terminal-view")).toBeNull();
     expect(runIntentTerminal).not.toHaveBeenCalled();
+  });
+
+  it("смена вендора на codex сбрасывает модель/усилие, и /run несёт выбранную ось", async () => {
+    getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
+    runIntentTerminal.mockResolvedValue(sessionResponse("running"));
+
+    render();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+    });
+
+    const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
+      name: "Агент терминала"
+    });
+    const model = screen.getByRole<HTMLSelectElement>("combobox", {
+      name: "Модель агента"
+    });
+    const effort = screen.getByRole<HTMLSelectElement>("combobox", {
+      name: "Уровень усилия (reasoning)"
+    });
+
+    // Дефолт claude: opus/high.
+    expect(vendor.value).toBe("claude");
+    expect(model.value).toBe("opus");
+    expect(effort.value).toBe("high");
+
+    fireEvent.change(vendor, { target: { value: "codex" } });
+
+    // Нативные дефолты codex: gpt-5.5/medium.
+    expect(model.value).toBe("gpt-5.5");
+    expect(effort.value).toBe("medium");
+
+    fireEvent.click(screen.getByTestId("agent-terminal-run"));
+
+    await waitFor(() => {
+      expect(runIntentTerminal).toHaveBeenCalledTimes(1);
+    });
+    expect(runIntentTerminal).toHaveBeenCalledWith("intent-1", {
+      mode: "free",
+      vendor: "codex",
+      model: "gpt-5.5",
+      effort: "medium"
+    });
   });
 });

@@ -1,7 +1,19 @@
 import type { IntentStatus } from "@/entities/intent";
+import type {
+  TerminalAgentVendor,
+  TerminalReasoningEffort
+} from "@/entities/terminal-setting";
 import type { TerminalComponents } from "@/shared/api";
 
 export type TerminalRunMode = TerminalComponents["schemas"]["TerminalRunMode"];
+
+/** Полная ось запуска одной сессии: режим + вендор/модель/усилие. */
+export interface TerminalLaunchArgs {
+  mode: TerminalRunMode;
+  vendor: TerminalAgentVendor;
+  model: string;
+  effort: TerminalReasoningEffort;
+}
 
 export type TerminalSessionState =
   TerminalComponents["schemas"]["TerminalSessionState"];

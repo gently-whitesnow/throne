@@ -20,6 +20,24 @@ internal static class TerminalFailures
             $"Unknown terminal run mode '{mode}'. Allowed: work | interview | dream.",
             new Dictionary<string, object?> { ["mode"] = mode });
 
+    public static ApiException VendorInvalid(string vendor) =>
+        new(
+            ErrorCodes.TerminalArgsInvalid,
+            $"Unknown terminal vendor '{vendor}'. Allowed: claude | codex.",
+            new Dictionary<string, object?> { ["vendor"] = vendor });
+
+    public static ApiException ModelInvalid(string vendor, string model) =>
+        new(
+            ErrorCodes.TerminalArgsInvalid,
+            $"Model '{model}' is not in the curated whitelist for vendor '{vendor}'. Allowed: {string.Join(" | ", TerminalAgentCatalog.ModelsFor(vendor))}.",
+            new Dictionary<string, object?> { ["vendor"] = vendor, ["model"] = model });
+
+    public static ApiException EffortInvalid(string effort) =>
+        new(
+            ErrorCodes.TerminalArgsInvalid,
+            $"Unknown reasoning effort '{effort}'. Allowed: low | medium | high | xhigh.",
+            new Dictionary<string, object?> { ["effort"] = effort });
+
     public static ApiException SessionAlreadyRunning(string intentId, string sessionName) =>
         new(
             ErrorCodes.TerminalSessionAlreadyRunning,
