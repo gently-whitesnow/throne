@@ -216,7 +216,8 @@ public class RunPreflightOrchestratorTests
             var resolver = new RepositoryBindingResolver(Intents, Bindings, providers);
             var persistence = new RepositoryBindingPersistence(
                 Bindings, Substitute.For<IRepositoryRegistry>(), uow, clockShared, workspace,
-                Substitute.For<IWorkspaceDirectoryRemover>());
+                Substitute.For<IWorkspaceDirectoryRemover>(),
+                Substitute.For<IWorkspaceDirectoryProbe>());
             var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clockShared);
             var autoCloser = new IntentMergeAutoCloser(
                 Bindings,
@@ -232,6 +233,7 @@ public class RunPreflightOrchestratorTests
                 resolver,
                 persistence,
                 syncWorkflow,
+                new RepositoryCloneTransitionWriter(Bindings, uow, clockShared),
                 cloneQueue);
 
             var union = new TagDefaultsUnion(Tags);

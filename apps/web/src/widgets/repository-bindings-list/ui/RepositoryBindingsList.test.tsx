@@ -1,4 +1,10 @@
-import { act, cleanup, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithQuery } from "@/app/test-utils";
@@ -8,12 +14,16 @@ import { RepositoryBindingsList } from "./RepositoryBindingsList";
 
 const listIntentRepositories =
   vi.fn<(intentId: string) => Promise<RepositoryBinding[]>>();
+const refreshIntentRepository =
+  vi.fn<(intentId: string, bindingId: string) => Promise<RepositoryBinding>>();
 
 // Hook reads through the relative path inside the entity layer; mocking the
 // API module keeps selectors / hook / meta exported by the public barrel.
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   listIntentRepositories: (intentId: string) =>
     listIntentRepositories(intentId),
+  refreshIntentRepository: (intentId: string, bindingId: string) =>
+    refreshIntentRepository(intentId, bindingId),
   unbindIntentRepository: vi.fn().mockResolvedValue(undefined),
   bindIntentRepository: vi.fn()
 }));
@@ -61,6 +71,7 @@ function makeBinding(
 describe("RepositoryBindingsList", () => {
   beforeEach(() => {
     listIntentRepositories.mockReset();
+    refreshIntentRepository.mockReset();
     for (const k of Object.keys(realtimeHandlers)) {
       realtimeHandlers[k] = [];
     }
@@ -150,6 +161,29 @@ describe("RepositoryBindingsList", () => {
       expect(screen.getByTestId("binding-error-b1").textContent).toMatch(
         /permission denied/
       );
+    });
+  });
+
+  it("«Обновить» дёргает refresh-эндпоинт и патчит статус строки из ответа", async () => {
+    listIntentRepositories.mockResolvedValue([
+      makeBinding({ clone_status: "ready" })
+    ]);
+    refreshIntentRepository.mockResolvedValue(
+      makeBinding({ clone_status: "pending" })
+    );
+    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+
+    await waitFor(() => {
+      const pill = screen.getByTestId("binding-clone-status-b1");
+      expect(pill.getAttribute("data-status")).toBe("ready");
+    });
+
+    fireEvent.click(screen.getByLabelText(/Обновить octocat\/hello-world/));
+
+    await waitFor(() => {
+      expect(refreshIntentRepository).toHaveBeenCalledWith("intent-1", "b1");
+      const pill = screen.getByTestId("binding-clone-status-b1");
+      expect(pill.getAttribute("data-status")).toBe("pending");
     });
   });
 

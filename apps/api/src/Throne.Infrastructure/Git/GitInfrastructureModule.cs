@@ -39,6 +39,7 @@ internal static class GitInfrastructureModule
         services.AddSingleton<IWorkspaceRootProvider>(sp => sp.GetRequiredService<WorkspaceRootInitializer>());
         services.AddSingleton<IWorkspaceDirectoryRemover, WorkspaceDirectoryRemover>();
         services.AddSingleton<IWorkspaceDirectorySizer, WorkspaceDirectorySizer>();
+        services.AddSingleton<IWorkspaceDirectoryProbe, WorkspaceDirectoryProbe>();
         services.AddSingleton<IProcessLauncher, ProcessRunner>();
         services.AddSingleton<ILocalGitBranchReader, LocalGitBranchReader>();
         services.AddSingleton<GhCliInvoker>();

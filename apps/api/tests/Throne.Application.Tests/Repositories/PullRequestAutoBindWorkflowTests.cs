@@ -94,7 +94,8 @@ public class PullRequestAutoBindWorkflowTests
             var persistence = new RepositoryBindingPersistence(
                 Bindings, Substitute.For<IRepositoryRegistry>(), _uow, clock,
                 Substitute.For<IWorkspaceRootProvider>(),
-                Substitute.For<IWorkspaceDirectoryRemover>());
+                Substitute.For<IWorkspaceDirectoryRemover>(),
+                Substitute.For<IWorkspaceDirectoryProbe>());
             Workflow = new PullRequestAutoBindWorkflow(Bindings, providers, BranchReader, persistence);
 
             Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())

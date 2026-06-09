@@ -18,6 +18,7 @@ public sealed class RepositoryBindingService(
     RepositoryBindingResolver resolver,
     RepositoryBindingPersistence persistence,
     RepositoryPullRequestSyncWorkflow syncWorkflow,
+    RepositoryCloneTransitionWriter cloneWriter,
     IRepositoryCloneRequests cloneQueue)
 {
     /// <param name="enqueueClone">
@@ -52,6 +53,38 @@ public sealed class RepositoryBindingService(
 
         var binding = await resolver.LoadBindingAsync(command.IntentId, command.BindingId, ct);
         await persistence.DeleteAsync(binding, ct);
+    }
+
+    /// <summary>
+    /// «Обновить» disk-recovery (ADR-0024): trigger is purely the on-disk folder — the Mongo
+    /// <c>clone_status</c> is ignored. Folder present → no-op, return the current binding (the
+    /// GET behaviour). Folder missing → flip the binding back to <c>pending</c> (unless already
+    /// queued) and re-enqueue the clone; the worker's <c>pending → cloning</c> CAS de-dupes a
+    /// double enqueue. Realtime <c>IntentRepositoryCloneProgress</c> (raised by the transition
+    /// writer) drives the UI to <c>ready</c>.
+    /// </summary>
+    public async Task<IntentRepositoryBinding> RefreshAsync(
+        RefreshRepositoryBindingCommand command,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var binding = await resolver.LoadBindingAsync(command.IntentId, command.BindingId, ct);
+        if (persistence.LocalCloneExists(binding))
+        {
+            return binding;
+        }
+
+        if (binding.State.CloneStatus != CloneStatusNames.Pending)
+        {
+            var outcome = await cloneWriter.MarkPendingForRefreshAsync(binding, ct);
+            if (!outcome.WasPersisted)
+            {
+                throw RepositoryBindingFailures.BindingNotFound(command.IntentId, command.BindingId);
+            }
+        }
+        await cloneQueue.EnqueueAsync(binding.Id, ct);
+        return binding;
     }
 
     public async Task<IReadOnlyList<IntentRepositoryBinding>> ListByIntentAsync(
