@@ -20,8 +20,9 @@ public class GitHubCliProviderReviewWorkspaceTests
         _fx.OnRun(req =>
         {
             var path = req.Arguments[req.Arguments.Count - 1];
+            // /files runs paginated (no -i): raw body. /pulls/{n} keeps -i headers.
             return path.Contains("/files")
-                ? GitHubCliProviderFixture.Ok($"HTTP/1.1 200 OK\r\n\r\n{filesBody}")
+                ? GitHubCliProviderFixture.Ok(filesBody)
                 : GitHubCliProviderFixture.Ok($"HTTP/1.1 200 OK\r\n\r\n{prBody}");
         });
 
@@ -33,6 +34,8 @@ public class GitHubCliProviderReviewWorkspaceTests
         diff.StartSha.Should().Be("basesha");
         diff.Files.Should().ContainSingle().Which.Path.Should().Be("a.cs");
         _fx.Calls.Should().HaveCount(2);
+        _fx.Calls.Single(c => c.Arguments[c.Arguments.Count - 1].Contains("/files"))
+            .Arguments.Should().Contain("--paginate");
     }
 
     [Fact(DisplayName = "GetCommitDiffAsync читает один commit JSON и парсит parent")]
@@ -58,13 +61,85 @@ public class GitHubCliProviderReviewWorkspaceTests
             [{"sha":"aaa","commit":{"message":"feat: x","author":{"name":"a","date":"2026-05-23T10:00:00Z"}},
               "author":{"login":"alice"}}]
             """;
-        _fx.OnRun(_ => GitHubCliProviderFixture.Ok($"HTTP/1.1 200 OK\r\n\r\n{body}"));
+        _fx.OnRun(_ => GitHubCliProviderFixture.Ok(body));
 
         var commits = await _fx.Provider.ListPullRequestCommitsAsync("o", "r", 42, default);
 
         commits.Should().NotBeNull();
         commits!.Should().ContainSingle().Which.AuthorLogin.Should().Be("alice");
-        _fx.Calls.Single().Arguments[2].Should().StartWith("/repos/o/r/pulls/42/commits");
+        var call = _fx.Calls.Single();
+        call.Arguments.Should().Contain("--paginate");
+        call.Arguments[2].Should().StartWith("/repos/o/r/pulls/42/commits");
+    }
+
+    [Fact(DisplayName = "GetPullRequestDiffAsync склеивает многостраничный --paginate ответ /files")]
+    public async Task GetPullRequestDiff_reads_multipage_files()
+    {
+        const string prBody = """
+            {"number":42,"state":"open","base":{"sha":"basesha"},"head":{"sha":"headsha"}}
+            """;
+        // gh --paginate concatenates pages as [..][..] with no delimiter.
+        var page1 = BuildFilesArray(start: 0, count: 100);
+        var page2 = BuildFilesArray(start: 100, count: 50);
+        _fx.OnRun(req =>
+        {
+            var path = req.Arguments[req.Arguments.Count - 1];
+            return path.Contains("/files")
+                ? GitHubCliProviderFixture.Ok(page1 + page2)
+                : GitHubCliProviderFixture.Ok($"HTTP/1.1 200 OK\r\n\r\n{prBody}");
+        });
+
+        var diff = await _fx.Provider.GetPullRequestDiffAsync("o", "r", 42, default);
+
+        diff!.Files.Should().HaveCount(150);
+        diff.Files[0].Path.Should().Be("f0.cs");
+        diff.Files[^1].Path.Should().Be("f149.cs");
+    }
+
+    [Fact(DisplayName = "GetPullRequestDiffAsync: rate-limit на /files → NetworkError")]
+    public async Task GetPullRequestDiff_rate_limited_files_maps_to_network_error()
+    {
+        const string prBody = """
+            {"number":42,"state":"open","base":{"sha":"basesha"},"head":{"sha":"headsha"}}
+            """;
+        _fx.OnRun(req =>
+        {
+            var path = req.Arguments[req.Arguments.Count - 1];
+            return path.Contains("/files")
+                ? GitHubCliProviderFixture.Fail(1, "gh: API rate limit exceeded for user ID 1 (HTTP 403)")
+                : GitHubCliProviderFixture.Ok($"HTTP/1.1 200 OK\r\n\r\n{prBody}");
+        });
+
+        var act = async () => await _fx.Provider.GetPullRequestDiffAsync("o", "r", 42, default);
+
+        var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
+        ex.Kind.Should().Be(GitProviderErrorKind.NetworkError);
+    }
+
+    [Fact(DisplayName = "GetPullRequestDiffAsync: 404 на /files → null")]
+    public async Task GetPullRequestDiff_not_found_files_returns_null()
+    {
+        const string prBody = """
+            {"number":42,"state":"open","base":{"sha":"basesha"},"head":{"sha":"headsha"}}
+            """;
+        _fx.OnRun(req =>
+        {
+            var path = req.Arguments[req.Arguments.Count - 1];
+            return path.Contains("/files")
+                ? GitHubCliProviderFixture.Fail(1, "gh: Not Found (HTTP 404)")
+                : GitHubCliProviderFixture.Ok($"HTTP/1.1 200 OK\r\n\r\n{prBody}");
+        });
+
+        var diff = await _fx.Provider.GetPullRequestDiffAsync("o", "r", 42, default);
+
+        diff.Should().BeNull();
+    }
+
+    private static string BuildFilesArray(int start, int count)
+    {
+        var items = Enumerable.Range(start, count)
+            .Select(i => $$"""{"filename":"f{{i}}.cs","status":"modified","patch":"@@ -1 +1 @@\n-a\n+b"}""");
+        return "[" + string.Join(",", items) + "]";
     }
 
     [Fact(DisplayName = "SubmitReviewCommentAsync шлёт POST с anchor-полями")]
