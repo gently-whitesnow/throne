@@ -2,6 +2,8 @@ import { MessageSquarePlus } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 
 import {
+  detectLanguage,
+  highlightLine,
   parseUnifiedDiff,
   type DiffRow,
   type PullRequestDiffFile,
@@ -43,10 +45,22 @@ function anchorFromRow(
   };
 }
 
-const ROW_BG: Record<DiffRow["kind"], string> = {
-  context: "bg-base-100",
-  add: "bg-success-soft/50",
-  del: "bg-error-soft/50"
+const ROW_STYLE: Record<DiffRow["kind"], string> = {
+  context: "bg-base-100 border-l-2 border-transparent",
+  add: "bg-success/15 border-l-2 border-success/70",
+  del: "bg-error/15 border-l-2 border-error/70"
+};
+
+const GUTTER_STYLE: Record<DiffRow["kind"], string> = {
+  context: "text-base-content/40",
+  add: "bg-success/10 text-success/80",
+  del: "bg-error/10 text-error/80"
+};
+
+const SIGN_STYLE: Record<DiffRow["kind"], string> = {
+  context: "text-base-content/30",
+  add: "text-success",
+  del: "text-error"
 };
 
 const SIGN: Record<DiffRow["kind"], string> = {
@@ -63,6 +77,7 @@ export function ReviewDiffViewer({
   onSubmitted
 }: ReviewDiffViewerProps) {
   const hunks = useMemo(() => parseUnifiedDiff(file.patch), [file.patch]);
+  const language = useMemo(() => detectLanguage(file.path), [file.path]);
   const [target, setTarget] = useState<ComposerAnchor | null>(null);
 
   if (hunks.length === 0) {
@@ -78,7 +93,7 @@ export function ReviewDiffViewer({
     target !== null ? `${target.side}:${String(target.line)}` : null;
 
   return (
-    <div className="font-mono text-[12px] leading-[1.5]">
+    <div className="diff-hl font-mono text-[12px] leading-[1.5]">
       {hunks.map((hunk, hi) => (
         <div key={hi} className="border-b border-base-300 last:border-b-0">
           <div className="bg-base-200 px-3 py-1 text-[11px] text-base-content/60">
@@ -95,15 +110,22 @@ export function ReviewDiffViewer({
             return (
               <Fragment key={rowKey}>
                 <div
-                  className={`group grid grid-cols-[3rem_3rem_1.25rem_1fr] ${ROW_BG[row.kind]}`}
+                  className={`group grid grid-cols-[3rem_3rem_1.25rem_1fr] ${ROW_STYLE[row.kind]}`}
                 >
-                  <Gutter value={row.oldLine} />
-                  <Gutter value={row.newLine} />
-                  <span className="select-none text-center text-base-content/50">
+                  <Gutter value={row.oldLine} kind={row.kind} />
+                  <Gutter value={row.newLine} kind={row.kind} />
+                  <span
+                    className={`select-none text-center ${SIGN_STYLE[row.kind]}`}
+                  >
                     {SIGN[row.kind]}
                   </span>
-                  <span className="flex items-start gap-1 whitespace-pre-wrap break-words pr-2">
-                    <span className="min-w-0 flex-1">{row.content}</span>
+                  <span className="flex items-start gap-1 pr-2">
+                    <code
+                      className="min-w-0 flex-1 whitespace-pre-wrap break-words"
+                      dangerouslySetInnerHTML={{
+                        __html: highlightLine(row.content, language)
+                      }}
+                    />
                     {anchor !== null ? (
                       <button
                         type="button"
@@ -142,9 +164,17 @@ export function ReviewDiffViewer({
   );
 }
 
-function Gutter({ value }: { value: number | null }) {
+function Gutter({
+  value,
+  kind
+}: {
+  value: number | null;
+  kind: DiffRow["kind"];
+}) {
   return (
-    <span className="select-none border-r border-base-300 px-2 text-right text-base-content/40 tabular-nums">
+    <span
+      className={`select-none border-r border-base-300 px-2 text-right tabular-nums ${GUTTER_STYLE[kind]}`}
+    >
       {value ?? ""}
     </span>
   );
