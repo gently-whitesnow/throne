@@ -32,7 +32,8 @@ namespace Throne.Application.Repositories;
 public sealed class RepositoryCloneWorkflow(
     IIntentRepositoryBindingRepository bindings,
     IGitProviderRegistry providers,
-    RepositoryCloneTransitionWriter writer)
+    RepositoryCloneTransitionWriter writer,
+    IWorkspaceRootProvider workspace)
 {
     public async Task<CloneRunResult> RunAsync(BindingId bindingId, CancellationToken ct)
     {
@@ -84,7 +85,13 @@ public sealed class RepositoryCloneWorkflow(
         IGitProvider provider,
         CancellationToken ct)
     {
-        var error = await TryCloneAsync(provider, binding, ct);
+        // Recompute against the live root, not binding.WorkspacePath: the persisted path
+        // embeds the root in effect at clone-time and goes stale across machines (shared
+        // Mongo) or a runtime model switch (ADR-0027) — same reasoning as DeleteAsync /
+        // LocalCloneExists. Cloning into the stale parent fails with "Permission denied".
+        var workspacePath = WorkspacePathLayout.Compute(
+            workspace.ResolvedRoot, binding.IntentId, binding.Coordinate);
+        var error = await TryCloneAsync(provider, binding, workspacePath, ct);
         if (error is not null)
         {
             await writer.MarkFailedAsync(binding, error, ct);
@@ -98,6 +105,7 @@ public sealed class RepositoryCloneWorkflow(
     private static async Task<string?> TryCloneAsync(
         IGitProvider provider,
         IntentRepositoryBinding binding,
+        string workspacePath,
         CancellationToken ct)
     {
         try
@@ -105,7 +113,7 @@ public sealed class RepositoryCloneWorkflow(
             await provider.CloneRepositoryAsync(
                 binding.Coordinate.Owner,
                 binding.Coordinate.Repo,
-                binding.WorkspacePath,
+                workspacePath,
                 ct);
             return null;
         }

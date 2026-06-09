@@ -88,7 +88,8 @@ public class RepositoryCloneRecoveryWorkflowTests
             Events = uow.Events;
             var providers = Substitute.For<IGitProviderRegistry>();
             var writer = new RepositoryCloneTransitionWriter(Bindings, uow, new FixedClock(Now));
-            var workflow = new RepositoryCloneWorkflow(Bindings, providers, writer);
+            var workflow = new RepositoryCloneWorkflow(
+                Bindings, providers, writer, Substitute.For<IWorkspaceRootProvider>());
             Recovery = new RepositoryCloneRecoveryWorkflow(Bindings, Queue, workflow);
         }
 
