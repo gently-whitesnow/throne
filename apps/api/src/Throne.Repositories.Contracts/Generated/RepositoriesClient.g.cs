@@ -968,6 +968,181 @@ namespace Throne.Repositories.Contracts.Generated
     }
 
     /// <summary>
+    /// How the PR/MR is integrated. `merge` — merge commit, `squash` — squash into a single commit, `rebase` — rebase the source commits onto the base. Maps to `gh pr merge --merge/--squash/--rebase` and `glab mr merge`/`--squash`/`--rebase`.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum MergeStrategy
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"merge")]
+        [System.Runtime.Serialization.EnumMember(Value = @"merge")]
+        Merge = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"squash")]
+        [System.Runtime.Serialization.EnumMember(Value = @"squash")]
+        Squash = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"rebase")]
+        [System.Runtime.Serialization.EnumMember(Value = @"rebase")]
+        Rebase = 2,
+
+    }
+
+    /// <summary>
+    /// Provider-neutral mergeability. `mergeable` — can merge now; `conflicting` — merge conflicts; `blocked` — held by branch protection / approvals / unresolved discussions / draft; `behind` — source is behind the base and needs an update; `checking` — the provider is still computing the state; `unknown` — unrecognised.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PullRequestMergeability
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"mergeable")]
+        [System.Runtime.Serialization.EnumMember(Value = @"mergeable")]
+        Mergeable = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"conflicting")]
+        [System.Runtime.Serialization.EnumMember(Value = @"conflicting")]
+        Conflicting = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"blocked")]
+        [System.Runtime.Serialization.EnumMember(Value = @"blocked")]
+        Blocked = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"behind")]
+        [System.Runtime.Serialization.EnumMember(Value = @"behind")]
+        Behind = 3,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"checking")]
+        [System.Runtime.Serialization.EnumMember(Value = @"checking")]
+        Checking = 4,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unknown")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unknown")]
+        Unknown = 5,
+
+    }
+
+    /// <summary>
+    /// Aggregate state of CI checks on the PR/MR head. `none` — no checks configured; `pending` — checks still running; `passing` — all succeeded; `failing` — at least one failed; `unknown` — unrecognised.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PullRequestChecksState
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"none")]
+        [System.Runtime.Serialization.EnumMember(Value = @"none")]
+        None = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"pending")]
+        [System.Runtime.Serialization.EnumMember(Value = @"pending")]
+        Pending = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"passing")]
+        [System.Runtime.Serialization.EnumMember(Value = @"passing")]
+        Passing = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"failing")]
+        [System.Runtime.Serialization.EnumMember(Value = @"failing")]
+        Failing = 3,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unknown")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unknown")]
+        Unknown = 4,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PullRequestMergeStatusDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mergeability")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestMergeability>))]
+        public PullRequestMergeability Mergeability { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("checks")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestChecksState>))]
+        public PullRequestChecksState Checks { get; set; }
+
+        /// <summary>
+        /// Browser-facing URL of the PR/MR page, when the provider reports it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("html_url")]
+        public System.Uri Html_url { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MergePullRequestRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("strategy")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<MergeStrategy>))]
+        public MergeStrategy Strategy { get; set; }
+
+        /// <summary>
+        /// Delete the source branch after a successful merge, when the provider allows it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("delete_branch")]
+        public bool Delete_branch { get; set; } = false;
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MergePullRequestResultDto
+    {
+
+        /// <summary>
+        /// True when the provider reported the PR/MR as merged.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("merged")]
+        public bool Merged { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("pull_request_state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestState>))]
+        public PullRequestState Pull_request_state { get; set; }
+
+        /// <summary>
+        /// Provider's one-line summary of the merge outcome, when available.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public string Message { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
     /// Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
     /// <br/>
     /// </summary>
