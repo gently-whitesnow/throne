@@ -96,6 +96,13 @@
           }
         },
         {
+          "_comment": "CLI provider façades (ADR-0024 gh, ADR-0032 glab) mechanically implement IGitProvider as one-line delegations to collaborator types; public surface == interface method count, same structural-surface precedent as REST controllers above.",
+          "glob": "**/Throne.Infrastructure/Git/*Cli/*CliProvider.cs",
+          "limits": {
+            "typeMaxPublicMembers": 16
+          }
+        },
+        {
           "_comment": "Application handlers orchestrate UoW + domain calls + persistence; HandleAsync commonly covers a single logical transaction. Ctor surface lands within the base limit (8).",
           "glob": "**/Throne.Application/**Handler.cs",
           "limits": {

@@ -15,7 +15,8 @@ internal sealed class GitHubCliProvider(
     GhRepoActions actions,
     GhAuthProbe authProbe,
     GhPullRequestActions pullRequests,
-    GhRefListers refListers) : IGitProvider
+    GhRefListers refListers,
+    GhReviewWorkspaceActions reviewWorkspace) : IGitProvider
 {
     public string ProviderName => GitProviderNames.GitHub;
 
@@ -60,4 +61,17 @@ internal sealed class GitHubCliProvider(
     public Task<PullRequestCommentsPage?> ListPullRequestCommentsAsync(
         string owner, string repo, int number, string? etag, CancellationToken ct) =>
         pullRequests.ListReviewCommentsAsync(owner, repo, number, etag, ct);
+
+    public Task<PullRequestDiff?> GetPullRequestDiffAsync(string owner, string repo, int number, CancellationToken ct) =>
+        reviewWorkspace.GetPullRequestDiffAsync(owner, repo, number, ct);
+
+    public Task<PullRequestDiff?> GetCommitDiffAsync(string owner, string repo, string commitSha, CancellationToken ct) =>
+        reviewWorkspace.GetCommitDiffAsync(owner, repo, commitSha, ct);
+
+    public Task<IReadOnlyList<PullRequestCommitRef>?> ListPullRequestCommitsAsync(string owner, string repo, int number, CancellationToken ct) =>
+        reviewWorkspace.ListCommitsAsync(owner, repo, number, ct);
+
+    public Task<SubmittedReviewComment> SubmitReviewCommentAsync(
+        string owner, string repo, int number, SubmitReviewCommentRequest request, CancellationToken ct) =>
+        reviewWorkspace.SubmitReviewCommentAsync(owner, repo, number, request, ct);
 }

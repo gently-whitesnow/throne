@@ -442,6 +442,165 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/review/diff:
+    get:
+      operationId: getIntentRepositoryReviewDiff
+      tags: [IntentRepositories]
+      summary: Read the provider-derived diff of the binding's pull request or one of its commits.
+      description: >
+        Slice 4A — backs the review workspace. Diff is read from the provider on demand
+        (`gh` / `glab`) and is never persisted server-side. `scope=request` returns the full
+        PR/MR diff against its base; `scope=commit` returns the diff of `commit_sha` against
+        its parent. SHAs are carried back to the UI so a follow-up `submitIntentRepositoryReviewComment`
+        can round-trip the anchor without an extra fetch.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: scope
+          required: false
+          schema:
+            $ref: '#/components/schemas/ReviewDiffScope'
+        - in: query
+          name: commit_sha
+          required: false
+          schema:
+            type: string
+            minLength: 7
+          description: Required when `scope=commit`; ignored for `scope=request`.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequestDiffDto'
+        '404':
+          description: Intent, binding or upstream PR/commit not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unauthenticated, scope mismatch, or missing commit_sha.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/review/commits:
+    get:
+      operationId: listIntentRepositoryReviewCommits
+      tags: [IntentRepositories]
+      summary: List the commits that belong to the binding's pull request.
+      description: >
+        Slice 4A — backs the per-commit selector in the review workspace. Read straight
+        from the provider (no durable cache). Ordered by commit timestamp ascending.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PullRequestCommitDto'
+        '404':
+          description: Intent, binding or upstream PR not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unauthenticated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/review/comments:
+    post:
+      operationId: submitIntentRepositoryReviewComment
+      tags: [IntentRepositories]
+      summary: Submit an inline review comment to the provider.
+      description: >
+        Slice 4A — pushes a single inline review comment directly to the provider
+        (GitHub review comment / GitLab MR discussion). Server is pointer-only: the
+        comment is not stored locally. Anchor SHAs and paths come from a prior
+        `getIntentRepositoryReviewDiff` response. The echoed comment is what the UI
+        renders immediately; the comments feed is refreshed via the existing
+        `listIntentRepositoryPullRequestComments` path.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitReviewCommentRequest'
+      responses:
+        '201':
+          description: Created — the freshly submitted comment as echoed by the provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmittedReviewCommentDto'
+        '404':
+          description: Intent, binding or upstream PR not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Anchor invalid (outdated SHA, line not in diff) or provider unauthenticated.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/repositories:
     get:
       operationId: listRepositories
@@ -1075,6 +1234,166 @@ components:
           type: string
           format: date-time
           nullable: true
+    ReviewDiffScope:
+      type: string
+      enum:
+        - request
+        - commit
+      description: >
+        `request` — diff of the whole pull/merge request against its base (default).
+        `commit` — diff of a single commit by SHA (requires `commit_sha`).
+    PullRequestDiffFileStatus:
+      type: string
+      enum:
+        - added
+        - modified
+        - removed
+        - renamed
+        - copied
+      description: Lifecycle of a file inside a provider-derived diff.
+    ReviewCommentSide:
+      type: string
+      enum:
+        - right
+        - left
+      description: >
+        Side of the diff a review comment is anchored to. `right` — new (post-change)
+        side; `left` — old (pre-change) side. Maps to GitHub `RIGHT`/`LEFT` and to
+        GitLab `new_line` / `old_line` position fields respectively.
+    PullRequestDiffFileDto:
+      type: object
+      required:
+        - path
+        - status
+        - patch
+      properties:
+        path:
+          type: string
+          minLength: 1
+          description: New (post-change) path of the file in the repository.
+        previous_path:
+          type: string
+          nullable: true
+          description: Old path when the file was renamed/copied; null otherwise.
+        status:
+          $ref: '#/components/schemas/PullRequestDiffFileStatus'
+        patch:
+          type: string
+          description: Raw unified-diff hunks for this file; empty for binary/too-large diffs.
+    PullRequestDiffDto:
+      type: object
+      required:
+        - base_sha
+        - head_sha
+        - start_sha
+        - files
+      properties:
+        base_sha:
+          type: string
+          minLength: 7
+          description: SHA the diff is computed against (PR base or commit parent).
+        head_sha:
+          type: string
+          minLength: 7
+          description: SHA of the diff's head end (PR head or commit itself).
+        start_sha:
+          type: string
+          minLength: 7
+          description: >
+            Start SHA — equals `base_sha` for the request scope on GitHub. GitLab MRs
+            distinguish `start_sha` from `base_sha` for the discussion position; the
+            UI must round-trip both back into `submitIntentRepositoryReviewComment`.
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/PullRequestDiffFileDto'
+    PullRequestCommitDto:
+      type: object
+      required:
+        - sha
+        - message
+        - committed_at
+      properties:
+        sha:
+          type: string
+          minLength: 7
+          description: Full commit SHA.
+        message:
+          type: string
+          description: Commit message — first line is the title.
+        author_login:
+          type: string
+          nullable: true
+          description: Author's provider login when available; falls back to display name.
+        committed_at:
+          type: string
+          format: date-time
+    SubmitReviewCommentRequest:
+      type: object
+      required:
+        - content
+        - path
+        - side
+        - line
+        - commit_sha
+        - base_sha
+        - start_sha
+      properties:
+        content:
+          type: string
+          minLength: 1
+          description: Comment body (Markdown).
+        path:
+          type: string
+          minLength: 1
+          description: New path of the file the comment anchors to.
+        previous_path:
+          type: string
+          nullable: true
+          description: Old path when the file was renamed; otherwise omit.
+        side:
+          $ref: '#/components/schemas/ReviewCommentSide'
+        line:
+          type: integer
+          format: int32
+          minimum: 1
+          description: 1-based line number on `side`.
+        commit_sha:
+          type: string
+          minLength: 7
+          description: Head SHA the anchor was computed against (from the diff response).
+        base_sha:
+          type: string
+          minLength: 7
+          description: Base SHA from the diff response (GitLab discussion position).
+        start_sha:
+          type: string
+          minLength: 7
+          description: Start SHA from the diff response (GitLab discussion position).
+    SubmittedReviewCommentDto:
+      type: object
+      required:
+        - id
+        - binding_id
+        - author_login
+        - body
+        - created_at
+      properties:
+        id:
+          type: string
+        binding_id:
+          type: string
+        author_login:
+          type: string
+        body:
+          type: string
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
     RepositoryArtifactRenderHint:
       type: string
       enum:

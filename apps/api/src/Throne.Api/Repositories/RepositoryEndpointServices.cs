@@ -23,6 +23,12 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<AttachIntentRepositoryPullRequestEndpoint>();
         services.AddSingleton<ListIntentRepositoryPullRequestCommentsEndpoint>();
         services.AddSingleton<ListPullRequestCommentsUseCase>();
+        services.AddSingleton<GetReviewWorkspaceDiffUseCase>();
+        services.AddSingleton<ListReviewWorkspaceCommitsUseCase>();
+        services.AddSingleton<SubmitReviewWorkspaceCommentUseCase>();
+        services.AddSingleton<GetIntentRepositoryReviewDiffEndpoint>();
+        services.AddSingleton<ListIntentRepositoryReviewCommitsEndpoint>();
+        services.AddSingleton<SubmitIntentRepositoryReviewCommentEndpoint>();
 
         services.AddSingleton<ListRepositoriesEndpoint>();
         services.AddSingleton<CreateRepositoryEndpoint>();

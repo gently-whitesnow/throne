@@ -1,0 +1,111 @@
+using FluentAssertions;
+using Throne.Application.Git;
+
+namespace Throne.Infrastructure.Tests.Git.GitLabCli;
+
+public class GitLabCliProviderReviewWorkspaceTests
+{
+    private readonly GitLabCliProviderFixture _fx = new();
+
+    [Fact(DisplayName = "GetPullRequestDiffAsync читает MR JSON и /diffs")]
+    public async Task GetPullRequestDiff_combines_refs_and_files()
+    {
+        const string mrBody = """
+            {"iid":7,"diff_refs":{"base_sha":"b","head_sha":"h","start_sha":"s"}}
+            """;
+        const string diffsBody = """
+            [{"new_path":"a.cs","old_path":"a.cs","diff":"@@ -1 +1 @@\n-a\n+b","new_file":false}]
+            """;
+        _fx.OnRun(req =>
+        {
+            var apiPath = req.Arguments[1];
+            return apiPath.EndsWith("/diffs", StringComparison.Ordinal)
+                ? GitLabCliProviderFixture.Ok(diffsBody)
+                : GitLabCliProviderFixture.Ok(mrBody);
+        });
+
+        var diff = await _fx.Provider.GetPullRequestDiffAsync("g", "r", 7, default);
+
+        diff.Should().NotBeNull();
+        diff!.BaseSha.Should().Be("b");
+        diff.HeadSha.Should().Be("h");
+        diff.StartSha.Should().Be("s");
+        diff.Files.Should().ContainSingle().Which.Path.Should().Be("a.cs");
+        _fx.Calls.Should().HaveCount(2);
+        _fx.Calls.All(GitLabCliProviderFixture.HasGitLabHost).Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "GetCommitDiffAsync читает commit и diff и поднимает parent_ids")]
+    public async Task GetCommitDiff_reads_commit_and_diff()
+    {
+        const string commitBody = """{"id":"head","parent_ids":["parent"]}""";
+        const string diffBody = """
+            [{"new_path":"a.cs","old_path":"a.cs","diff":"+x","new_file":true}]
+            """;
+        _fx.OnRun(req =>
+        {
+            var apiPath = req.Arguments[1];
+            return apiPath.EndsWith("/diff", StringComparison.Ordinal)
+                ? GitLabCliProviderFixture.Ok(diffBody)
+                : GitLabCliProviderFixture.Ok(commitBody);
+        });
+
+        var diff = await _fx.Provider.GetCommitDiffAsync("g", "r", "head", default);
+
+        diff!.BaseSha.Should().Be("parent");
+        diff.HeadSha.Should().Be("head");
+        diff.Files.Should().ContainSingle();
+    }
+
+    [Fact(DisplayName = "ListPullRequestCommitsAsync проксирует /merge_requests/{iid}/commits --paginate")]
+    public async Task ListCommits_uses_paginate()
+    {
+        const string body = """
+            [{"id":"aaa","message":"feat: x","author_name":"Alice","committed_date":"2026-05-23T10:00:00Z"}]
+            """;
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(body));
+
+        var commits = await _fx.Provider.ListPullRequestCommitsAsync("g", "r", 7, default);
+
+        commits.Should().NotBeNull();
+        commits!.Should().ContainSingle();
+        _fx.Calls.Single().Arguments.Should().Contain("--paginate");
+    }
+
+    [Fact(DisplayName = "SubmitReviewCommentAsync шлёт position[]-поля и body")]
+    public async Task SubmitReviewCommentAsync_posts_position_fields()
+    {
+        const string responseBody = """
+            {"id":"d1","notes":[
+              {"id":901,"author":{"username":"alice"},"body":"hello",
+               "created_at":"2026-05-23T12:00:00Z","html_url":"https://gl/g/r/-/merge_requests/7#note_901",
+               "system":false}]}
+            """;
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(responseBody));
+
+        var request = new SubmitReviewCommentRequest(
+            Body: "hello",
+            Path: "src/a.cs",
+            PreviousPath: null,
+            Side: ReviewCommentSide.Right,
+            Line: 12,
+            CommitSha: "h",
+            BaseSha: "b",
+            StartSha: "s");
+
+        var result = await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, request, default);
+
+        result.Id.Should().Be("901");
+        result.AuthorLogin.Should().Be("alice");
+        var call = _fx.Calls.Single();
+        call.Arguments.Should().Contain("POST");
+        call.Arguments.Should().Contain("body=hello");
+        call.Arguments.Should().Contain("position[position_type]=text");
+        call.Arguments.Should().Contain("position[base_sha]=b");
+        call.Arguments.Should().Contain("position[head_sha]=h");
+        call.Arguments.Should().Contain("position[start_sha]=s");
+        call.Arguments.Should().Contain("position[new_path]=src/a.cs");
+        call.Arguments.Should().Contain("position[old_path]=src/a.cs");
+        call.Arguments.Should().Contain("position[new_line]=12");
+    }
+}
