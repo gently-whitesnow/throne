@@ -216,6 +216,27 @@ components:
         `running` — session is alive.
         `blocked` — at least one binding is `failed` / `broken`; spawn was skipped.
         `exited` — session was alive previously but has since been torn down.
+    TerminalAgentVendor:
+      type: string
+      enum:
+        - claude
+        - codex
+      description: >
+        Which agent CLI the tmux session boots. Provider-neutral axis: the spawn
+        command is built per vendor (`claude --model … --effort …` vs
+        `codex -m … -c model_reasoning_effort=…`). Omitted on the request → the
+        server falls back to `default_terminal_vendor` from settings.
+    TerminalReasoningEffort:
+      type: string
+      enum:
+        - low
+        - medium
+        - high
+        - xhigh
+      description: >
+        Single reasoning-effort axis shared across vendors (the vendor effort
+        dictionaries overlap on low/medium/high/xhigh). The claude-only `max`
+        tier is intentionally excluded.
     RunIntentTerminalRequest:
       type: object
       required:
@@ -223,6 +244,24 @@ components:
       properties:
         mode:
           $ref: '#/components/schemas/TerminalRunMode'
+        vendor:
+          nullable: true
+          description: Omitted → server falls back to `default_terminal_vendor` from settings.
+          allOf:
+            - $ref: '#/components/schemas/TerminalAgentVendor'
+        model:
+          type: string
+          minLength: 1
+          nullable: true
+          description: >
+            Model id from the vendor's curated whitelist (claude: opus | sonnet |
+            haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex). Omitted → the vendor's
+            native default. An id outside the whitelist for the chosen vendor → 400.
+        effort:
+          nullable: true
+          description: Omitted → the chosen vendor's native default effort.
+          allOf:
+            - $ref: '#/components/schemas/TerminalReasoningEffort'
     BindingCloneStatus:
       type: string
       enum:

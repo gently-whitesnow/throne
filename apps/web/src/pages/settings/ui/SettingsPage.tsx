@@ -1,14 +1,22 @@
-import { FolderCog, GitBranch, ToggleRight } from "lucide-react";
+import {
+  FolderCog,
+  GitBranch,
+  TerminalSquare,
+  ToggleRight
+} from "lucide-react";
 
 import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
 import { WorkspaceCard } from "@/widgets/workspace-card";
 
+import { TerminalDefaultsCard } from "./TerminalDefaultsCard";
+
 /**
  * `/settings` — единая страница настроек профиля.
  *
- * Три секции:
+ * Секции:
  *   * «Возможности» — capability-gating (Slice 2): repositories, terminal, vscode.
+ *   * «Терминал» — дефолтный вендор агента (claude | codex) для новых сессий.
  *   * «Провайдеры Git» — статус `gh auth status`.
  *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
  */
@@ -32,6 +40,15 @@ export function SettingsPage() {
         description="Фичи Throne с внешними зависимостями (gh, tmux, code). Default OFF: включите тогл осознанно после того, как установлен соответствующий CLI. Терминал, Run, «Open in VS Code» и репозитории требуют доступа к хосту: бэкенд надо запускать нативно на хосте (профиль «только web+db», docker-compose.host.yml) — в контейнерном режиме они не детектятся и остаются выключены."
       >
         <CapabilitiesCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="terminal"
+        title="Терминал"
+        icon={TerminalSquare}
+        description="Какой агент (claude или codex) предлагать по умолчанию при запуске встроенного терминала. Модель и уровень усилия выбираются per-сессия на странице интента."
+      >
+        <TerminalDefaultsCard />
       </SettingsSection>
 
       <SettingsSection

@@ -1,6 +1,15 @@
 import { Check, Copy, Play, RotateCcw, Square } from "lucide-react";
 import { useState } from "react";
 
+import {
+  EFFORT_LABEL,
+  TERMINAL_EFFORTS,
+  TERMINAL_VENDORS,
+  VENDOR_LABEL,
+  VENDOR_MODELS,
+  type TerminalAgentVendor,
+  type TerminalReasoningEffort
+} from "@/entities/terminal-setting";
 import { Button } from "@/shared/ui";
 
 import {
@@ -12,6 +21,12 @@ import {
 interface RunControlsProps {
   mode: TerminalRunMode;
   onModeChange: (mode: TerminalRunMode) => void;
+  vendor: TerminalAgentVendor;
+  onVendorChange: (vendor: TerminalAgentVendor) => void;
+  model: string;
+  onModelChange: (model: string) => void;
+  effort: TerminalReasoningEffort;
+  onEffortChange: (effort: TerminalReasoningEffort) => void;
   promptText: string;
   onRun: () => void;
   onRestart: () => void;
@@ -32,6 +47,12 @@ interface RunControlsProps {
 export function RunControls({
   mode,
   onModeChange,
+  vendor,
+  onVendorChange,
+  model,
+  onModelChange,
+  effort,
+  onEffortChange,
   promptText,
   onRun,
   onRestart,
@@ -79,6 +100,66 @@ export function RunControls({
           {TERMINAL_RUN_MODES.map((m) => (
             <option key={m} value={m}>
               {RUN_MODE_LABEL[m]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 text-xs text-base-content/70">
+        <span>Агент</span>
+        <select
+          aria-label="Агент терминала"
+          data-testid="agent-terminal-vendor"
+          className="select select-sm select-bordered"
+          value={vendor}
+          disabled={dropdownDisabled}
+          onChange={(event) => {
+            onVendorChange(event.target.value as TerminalAgentVendor);
+          }}
+        >
+          {TERMINAL_VENDORS.map((v) => (
+            <option key={v} value={v}>
+              {VENDOR_LABEL[v]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 text-xs text-base-content/70">
+        <span>Модель</span>
+        <select
+          aria-label="Модель агента"
+          data-testid="agent-terminal-model"
+          className="select select-sm select-bordered"
+          value={model}
+          disabled={dropdownDisabled}
+          onChange={(event) => {
+            onModelChange(event.target.value);
+          }}
+        >
+          {VENDOR_MODELS[vendor].map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 text-xs text-base-content/70">
+        <span>Усилие</span>
+        <select
+          aria-label="Уровень усилия (reasoning)"
+          data-testid="agent-terminal-effort"
+          className="select select-sm select-bordered"
+          value={effort}
+          disabled={dropdownDisabled}
+          onChange={(event) => {
+            onEffortChange(event.target.value as TerminalReasoningEffort);
+          }}
+        >
+          {TERMINAL_EFFORTS.map((e) => (
+            <option key={e} value={e}>
+              {EFFORT_LABEL[e]}
             </option>
           ))}
         </select>

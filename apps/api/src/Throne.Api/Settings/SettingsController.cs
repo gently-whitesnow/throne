@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
 using Throne.Api.Settings.Endpoints;
+using Throne.Application.Terminals;
 using Throne.Settings.Contracts.Generated;
 
 namespace Throne.Api.Settings;
@@ -8,7 +9,8 @@ namespace Throne.Api.Settings;
 public sealed class SettingsController(
     GetWorkspaceSettingsEndpoint workspaceEndpoint,
     CleanWorkspaceEndpoint cleanEndpoint,
-    GetGitProvidersStatusEndpoint providersEndpoint) : SettingsControllerBase
+    GetGitProvidersStatusEndpoint providersEndpoint,
+    TerminalSettingsService terminalSettings) : SettingsControllerBase
 {
     public override Task<ActionResult<WorkspaceSettingsDto>> GetWorkspaceSettings() =>
         Task.FromResult(workspaceEndpoint.Run());
@@ -18,4 +20,32 @@ public sealed class SettingsController(
 
     public override Task<ActionResult<GitProvidersStatusDto>> GetGitProvidersStatus() =>
         providersEndpoint.RunAsync(HttpContext.RequestAborted);
+
+    public override async Task<ActionResult<TerminalSettingsDto>> GetTerminalSettings()
+    {
+        var vendor = await terminalSettings.GetDefaultVendorAsync(HttpContext.RequestAborted);
+        return Ok(new TerminalSettingsDto { Default_vendor = ToDtoVendor(vendor) });
+    }
+
+    public override async Task<ActionResult<TerminalSettingsDto>> SetTerminalSettings(UpdateTerminalSettingsRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        var saved = await terminalSettings.SetDefaultVendorAsync(
+            ToWireVendor(body.Default_vendor), HttpContext.RequestAborted);
+        return Ok(new TerminalSettingsDto { Default_vendor = ToDtoVendor(saved) });
+    }
+
+    private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
+    {
+        TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,
+        TerminalAgentVendor.Codex => TerminalAgentCatalog.VendorCodex,
+        _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
+    };
+
+    private static TerminalAgentVendor ToDtoVendor(string vendor) => vendor switch
+    {
+        TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
+        TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
+        _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
+    };
 }
