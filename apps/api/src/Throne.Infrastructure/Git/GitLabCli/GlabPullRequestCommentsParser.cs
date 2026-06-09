@@ -20,9 +20,10 @@ internal static class GlabPullRequestCommentsParser
             return;
         }
 
+        var discussionId = GlabJson.String(discussion, "id");
         foreach (var note in notes.EnumerateArray())
         {
-            var comment = ProjectNote(note);
+            var comment = ProjectNote(note, discussionId);
             if (comment is not null)
             {
                 result.Add(comment);
@@ -30,7 +31,7 @@ internal static class GlabPullRequestCommentsParser
         }
     }
 
-    private static PullRequestComment? ProjectNote(JsonElement note)
+    private static PullRequestComment? ProjectNote(JsonElement note, string? discussionId)
     {
         if (GlabJson.Bool(note, "system"))
         {
@@ -45,6 +46,8 @@ internal static class GlabPullRequestCommentsParser
             return null;
         }
 
+        var resolvable = GlabJson.Bool(note, "resolvable");
+        var anchor = ReadAnchor(note);
         return new PullRequestComment(
             Id: id,
             AuthorLogin: author,
@@ -52,20 +55,35 @@ internal static class GlabPullRequestCommentsParser
             CreatedAt: createdAt.Value,
             AuthorAvatarUrl: GlabJson.NestedString(note, "author", "avatar_url"),
             HtmlUrl: GlabJson.String(note, "html_url"),
-            Path: ReadPath(note),
-            UpdatedAt: GlabJson.Timestamp(note, "updated_at"));
+            Path: anchor.Path,
+            UpdatedAt: GlabJson.Timestamp(note, "updated_at"),
+            Line: anchor.Line,
+            Side: anchor.Side,
+            Resolved: resolvable ? GlabJson.Bool(note, "resolved") : null,
+            ThreadId: resolvable ? discussionId : null);
     }
 
     private static string? ReadId(JsonElement note) =>
         note.TryGetProperty("id", out var value) ? value.GetRawText().Trim('"') : null;
 
-    private static string? ReadPath(JsonElement note)
+    private static NoteAnchor ReadAnchor(JsonElement note)
     {
         if (!note.TryGetProperty("position", out var position) || position.ValueKind != JsonValueKind.Object)
         {
-            return null;
+            return default;
         }
 
-        return GlabJson.String(position, "new_path") ?? GlabJson.String(position, "old_path");
+        var path = GlabJson.String(position, "new_path") ?? GlabJson.String(position, "old_path");
+        var newLine = GlabJson.Int(position, "new_line");
+        if (newLine is not null)
+        {
+            return new NoteAnchor(path, newLine, ReviewCommentSide.Right);
+        }
+        var oldLine = GlabJson.Int(position, "old_line");
+        return oldLine is not null
+            ? new NoteAnchor(path, oldLine, ReviewCommentSide.Left)
+            : new NoteAnchor(path, null, null);
     }
+
+    private readonly record struct NoteAnchor(string? Path, int? Line, ReviewCommentSide? Side);
 }

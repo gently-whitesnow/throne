@@ -15,6 +15,13 @@ internal static class GhJson
     public static bool Bool(JsonElement parent, string property) =>
         parent.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.True;
 
+    public static int? Int(JsonElement parent, string property) =>
+        parent.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.Number
+        && value.TryGetInt32(out var parsed)
+            ? parsed
+            : null;
+
     public static string? NestedString(JsonElement parent, string objectProperty, string field) =>
         parent.TryGetProperty(objectProperty, out var nested) && nested.ValueKind == JsonValueKind.Object
             ? String(nested, field)

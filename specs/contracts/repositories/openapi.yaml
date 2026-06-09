@@ -639,6 +639,118 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-comments/{comment_id}:
+    delete:
+      operationId: deleteIntentRepositoryPullRequestComment
+      tags: [IntentRepositories]
+      summary: Delete a review comment at the provider.
+      description: >
+        Removes a single inline review comment directly at the provider
+        (GitHub `DELETE .../pulls/comments/{id}` / GitLab discussion note delete).
+        Server is pointer-only — nothing is stored locally. `thread_id` is required for
+        providers whose delete path is scoped to the thread (GitLab note); GitHub ignores it.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: comment_id
+          required: true
+          schema:
+            type: string
+          description: Upstream comment id as carried by `PullRequestCommentDto.id`.
+        - in: query
+          name: thread_id
+          required: false
+          schema:
+            type: string
+          description: Provider thread/discussion id; required for GitLab note deletion.
+      responses:
+        '204':
+          description: Comment deleted.
+        '404':
+          description: Intent, binding or comment not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unauthenticated, or thread_id missing where required.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-threads/{thread_id}:
+    patch:
+      operationId: updateIntentRepositoryReviewThread
+      tags: [IntentRepositories]
+      summary: Resolve or reopen a review thread at the provider.
+      description: >
+        Toggles the resolution state of a review thread directly at the provider
+        (GitHub `resolveReviewThread` / `unresolveReviewThread` graphql mutation,
+        GitLab discussion `resolved` flag). Throne stores no local status — the
+        returned `resolved` is read back from the provider response.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: thread_id
+          required: true
+          schema:
+            type: string
+          description: Provider thread/discussion id as carried by `PullRequestCommentDto.thread_id`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewThreadRequest'
+      responses:
+        '200':
+          description: OK — the thread's resolution state as echoed by the provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewThreadDto'
+        '404':
+          description: Intent, binding or thread not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unauthenticated or thread not resolvable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/repositories:
     get:
       operationId: listRepositories
@@ -1232,6 +1344,34 @@ components:
           type: string
           nullable: true
           description: File path the review comment is anchored to, when available.
+        line:
+          type: integer
+          format: int32
+          minimum: 1
+          nullable: true
+          description: >
+            1-based line number on `side` the inline comment is anchored to. Null for
+            comments without a diff anchor (issue/discussion-level comments) or outdated
+            inline comments whose line no longer exists in the current diff.
+        side:
+          allOf:
+            - $ref: '#/components/schemas/ReviewCommentSide'
+          nullable: true
+          description: Diff side `line` refers to. Null when the comment has no diff anchor.
+        resolved:
+          type: boolean
+          nullable: true
+          description: >
+            Resolution state of the comment's review thread, read from the provider
+            (Throne stores no local status). Null when the comment is not part of a
+            resolvable thread (e.g. GitHub issue-level comments).
+        thread_id:
+          type: string
+          nullable: true
+          description: >
+            Provider thread/discussion id the comment belongs to — GitHub review-thread
+            node id, GitLab discussion id. Round-tripped into
+            `updateIntentRepositoryReviewThread`. Null when no resolvable thread exists.
         created_at:
           type: string
           format: date-time
@@ -1432,6 +1572,29 @@ components:
         created_at:
           type: string
           format: date-time
+    UpdateReviewThreadRequest:
+      type: object
+      required:
+        - resolved
+      properties:
+        resolved:
+          type: boolean
+          description: >
+            Target resolution state of the review thread. `true` resolves, `false`
+            reopens. Applied at the provider (GitHub `resolveReviewThread` graphql
+            mutation / GitLab discussion `resolved` flag); Throne keeps no local status.
+    ReviewThreadDto:
+      type: object
+      required:
+        - thread_id
+        - resolved
+      properties:
+        thread_id:
+          type: string
+          description: Provider thread/discussion id whose state was just changed.
+        resolved:
+          type: boolean
+          description: Resolution state as echoed back by the provider after the change.
     RepositoryArtifactRenderHint:
       type: string
       enum:

@@ -12,7 +12,7 @@ namespace Throne.Infrastructure.Git.GitHubCli;
 /// a single provider-neutral list; each side keeps its own ETag inside the
 /// composite stored on the binding.
 /// </summary>
-internal sealed class GhPullRequestActions(GhCliInvoker gh)
+internal sealed class GhPullRequestActions(GhCliInvoker gh, GhReviewThreadsReader threads)
 {
     public async Task<PullRequestSnapshot?> GetAsync(string owner, string repo, int number, CancellationToken ct)
     {
@@ -67,9 +67,38 @@ internal sealed class GhPullRequestActions(GhCliInvoker gh)
             return null;
         }
 
-        var combined = Merge(refreshedIssues.Comments, refreshedReview.Comments);
+        var enrichedReview = await EnrichResolutionAsync(owner, repo, number, refreshedReview.Comments, ct);
+        var combined = Merge(refreshedIssues.Comments, enrichedReview);
         var compositeEtag = GhPullRequestCommentsEtag.Encode(refreshedIssues.Etag, refreshedReview.Etag);
         return new PullRequestCommentsPage.Fresh(combined, compositeEtag);
+    }
+
+    // Joins the graphql thread map onto the REST review comments by upstream id.
+    // Issue comments are never resolvable, so only the review side is enriched.
+    private async Task<IReadOnlyList<PullRequestComment>> EnrichResolutionAsync(
+        string owner,
+        string repo,
+        int number,
+        IReadOnlyList<PullRequestComment> review,
+        CancellationToken ct)
+    {
+        if (review.Count == 0)
+        {
+            return review;
+        }
+        var resolution = await threads.ReadAsync(owner, repo, number, ct);
+        if (resolution.Count == 0)
+        {
+            return review;
+        }
+        var enriched = new List<PullRequestComment>(review.Count);
+        foreach (var comment in review)
+        {
+            enriched.Add(resolution.TryGetValue(comment.Id, out var state)
+                ? comment with { Resolved = state.Resolved, ThreadId = state.ThreadId }
+                : comment);
+        }
+        return enriched;
     }
 
     private async Task<EndpointResult?> EnsureBodiesAsync(

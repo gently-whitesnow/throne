@@ -38,5 +38,19 @@ internal static class GhPullRequestCommentProjector
             AuthorAvatarUrl: GhJson.NestedString(item, "user", "avatar_url"),
             HtmlUrl: GhJson.String(item, "html_url"),
             Path: GhJson.String(item, "path"),
-            UpdatedAt: GhPullRequestCommentJson.ReadTimestamp(item, "updated_at"));
+            UpdatedAt: GhPullRequestCommentJson.ReadTimestamp(item, "updated_at"),
+            Line: ReadLine(item),
+            Side: ReadSide(item));
+
+    // GitHub serves `line` as null once the diff moves on; `original_line` keeps
+    // the anchor the comment was first attached to, so fall back to it.
+    private static int? ReadLine(JsonElement item) =>
+        GhJson.Int(item, "line") ?? GhJson.Int(item, "original_line");
+
+    private static ReviewCommentSide? ReadSide(JsonElement item) => GhJson.String(item, "side") switch
+    {
+        "LEFT" => ReviewCommentSide.Left,
+        "RIGHT" => ReviewCommentSide.Right,
+        _ => null,
+    };
 }

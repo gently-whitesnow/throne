@@ -1,6 +1,7 @@
 import { MessageSquarePlus } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
+import type { PullRequestComment } from "@/entities/pull-request-comment";
 import {
   detectLanguage,
   highlightLine,
@@ -11,15 +12,25 @@ import {
 } from "@/entities/review-workspace";
 
 import {
+  indexInlineComments,
+  rowAnchorKey
+} from "../lib/match-inline-comments";
+import type { ScrollTarget } from "../model/use-review-workspace";
+import type { CommentActions } from "./ReviewCommentCard";
+import {
   ReviewInlineComposer,
   type ComposerAnchor
 } from "./ReviewInlineComposer";
+import { ReviewInlineThread } from "./ReviewInlineThread";
 
 interface ReviewDiffViewerProps {
   file: PullRequestDiffFile;
   shas: ReviewCommentAnchorShas;
   intentId: string;
   bindingId: string;
+  comments: PullRequestComment[];
+  commentActions: CommentActions;
+  scrollTarget: ScrollTarget | null;
   onSubmitted: () => void;
 }
 
@@ -74,11 +85,40 @@ export function ReviewDiffViewer({
   shas,
   intentId,
   bindingId,
+  comments,
+  commentActions,
+  scrollTarget,
   onSubmitted
 }: ReviewDiffViewerProps) {
   const hunks = useMemo(() => parseUnifiedDiff(file.patch), [file.patch]);
   const language = useMemo(() => detectLanguage(file.path), [file.path]);
   const [target, setTarget] = useState<ComposerAnchor | null>(null);
+  const commentsByAnchor = useMemo(
+    () => indexInlineComments(file, comments),
+    [file, comments]
+  );
+
+  // Scroll the requested row into view and briefly highlight it. The nonce makes
+  // the effect re-run even when the same row is requested twice in a row.
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const [flashKey, setFlashKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (scrollTarget?.path !== file.path) return;
+    const key = `${scrollTarget.side}:${String(scrollTarget.line)}`;
+    const node = rowRefs.current.get(key);
+    if (node === undefined) return;
+    // jsdom (tests) lacks scrollIntoView; the highlight still applies.
+    if (typeof node.scrollIntoView === "function") {
+      node.scrollIntoView({ block: "center" });
+    }
+    setFlashKey(key);
+    const timer = window.setTimeout(() => {
+      setFlashKey(null);
+    }, 1600);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [scrollTarget, file.path]);
 
   if (hunks.length === 0) {
     return (
@@ -107,10 +147,31 @@ export function ReviewDiffViewer({
             const isTarget =
               anchor !== null &&
               composerKey === `${anchor.side}:${String(anchor.line)}`;
+            const anchorKey = rowAnchorKey(row);
+            const rowComments =
+              anchorKey !== null
+                ? (commentsByAnchor.get(anchorKey) ?? null)
+                : null;
+            const isFlashing = anchorKey !== null && anchorKey === flashKey;
             return (
               <Fragment key={rowKey}>
                 <div
-                  className={`group grid grid-cols-[3rem_3rem_1.25rem_1fr] ${ROW_STYLE[row.kind]}`}
+                  ref={
+                    anchorKey !== null
+                      ? (node) => {
+                          if (node !== null) {
+                            rowRefs.current.set(anchorKey, node);
+                          } else {
+                            rowRefs.current.delete(anchorKey);
+                          }
+                        }
+                      : undefined
+                  }
+                  className={`group grid grid-cols-[3rem_3rem_1.25rem_1fr] ${ROW_STYLE[row.kind]} ${
+                    isFlashing
+                      ? "outline outline-2 -outline-offset-2 outline-primary"
+                      : ""
+                  }`}
                 >
                   <Gutter value={row.oldLine} kind={row.kind} />
                   <Gutter value={row.newLine} kind={row.kind} />
@@ -140,6 +201,12 @@ export function ReviewDiffViewer({
                     ) : null}
                   </span>
                 </div>
+                {rowComments !== null ? (
+                  <ReviewInlineThread
+                    comments={rowComments}
+                    actions={commentActions}
+                  />
+                ) : null}
                 {isTarget && target !== null ? (
                   <ReviewInlineComposer
                     intentId={intentId}

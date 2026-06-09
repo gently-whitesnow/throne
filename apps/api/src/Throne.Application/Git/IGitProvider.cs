@@ -155,4 +155,34 @@ public interface IGitProvider
         int number,
         SubmitReviewCommentRequest request,
         CancellationToken ct);
+
+    /// <summary>
+    /// Resolve or reopen a review thread at the provider and return the resolution
+    /// state read back from its response (no durable storage on Throne's side).
+    /// GitHub maps <paramref name="threadId"/> to a review-thread node id and runs
+    /// the <c>resolveReviewThread</c>/<c>unresolveReviewThread</c> graphql mutation;
+    /// GitLab toggles the discussion's <c>resolved</c> flag. A 404 propagates as a
+    /// <see cref="GitProviderException"/> with <see cref="GitProviderErrorKind.NotFound"/>.
+    /// </summary>
+    Task<ReviewThreadState> ResolveReviewThreadAsync(
+        string owner,
+        string repo,
+        int number,
+        string threadId,
+        bool resolved,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Delete a single inline review comment at the provider. GitHub deletes by
+    /// <paramref name="commentId"/> alone; GitLab needs <paramref name="threadId"/>
+    /// (the discussion the note belongs to). A 404 propagates as a
+    /// <see cref="GitProviderException"/> with <see cref="GitProviderErrorKind.NotFound"/>.
+    /// </summary>
+    Task DeleteReviewCommentAsync(
+        string owner,
+        string repo,
+        int number,
+        string commentId,
+        string? threadId,
+        CancellationToken ct);
 }

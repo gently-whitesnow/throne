@@ -15,7 +15,9 @@ public sealed class IntentRepositoriesController(
     ListIntentRepositoryPullRequestCommentsEndpoint listCommentsEndpoint,
     GetIntentRepositoryReviewDiffEndpoint reviewDiffEndpoint,
     ListIntentRepositoryReviewCommitsEndpoint reviewCommitsEndpoint,
-    SubmitIntentRepositoryReviewCommentEndpoint submitReviewCommentEndpoint) : IntentRepositoriesControllerBase
+    SubmitIntentRepositoryReviewCommentEndpoint submitReviewCommentEndpoint,
+    DeleteIntentRepositoryPullRequestCommentEndpoint deleteReviewCommentEndpoint,
+    UpdateIntentRepositoryReviewThreadEndpoint updateReviewThreadEndpoint) : IntentRepositoriesControllerBase
 {
     public override Task<ActionResult<ICollection<RepositoryBindingDto>>> ListIntentRepositories(string intent_id) =>
         listEndpoint.RunAsync(intent_id, HttpContext.RequestAborted);
@@ -72,6 +74,20 @@ public sealed class IntentRepositoriesController(
         string binding_id,
         SubmitReviewCommentRequest body) =>
         submitReviewCommentEndpoint.RunAsync(intent_id, binding_id, body, HttpContext.RequestAborted);
+
+    public override Task<IActionResult> DeleteIntentRepositoryPullRequestComment(
+        string intent_id,
+        string binding_id,
+        string comment_id,
+        string thread_id = null!) =>
+        deleteReviewCommentEndpoint.RunAsync(intent_id, binding_id, comment_id, thread_id, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<ReviewThreadDto>> UpdateIntentRepositoryReviewThread(
+        string intent_id,
+        string binding_id,
+        string thread_id,
+        UpdateReviewThreadRequest body) =>
+        updateReviewThreadEndpoint.RunAsync(intent_id, binding_id, thread_id, body, HttpContext.RequestAborted);
 
     private static Throne.Application.Repositories.ReviewDiffScope ToAppScope(ReviewDiffScope wire) => wire switch
     {

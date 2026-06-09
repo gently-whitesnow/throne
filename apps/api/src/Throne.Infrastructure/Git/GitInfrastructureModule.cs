@@ -47,6 +47,7 @@ internal static class GitInfrastructureModule
         services.AddSingleton<GhRepoSearcher>();
         services.AddSingleton<GhRepoActions>();
         services.AddSingleton<GhAuthProbe>();
+        services.AddSingleton<GhReviewThreadsReader>();
         services.AddSingleton<GhPullRequestActions>();
         services.AddSingleton<GhReviewWorkspaceActions>();
         services.AddSingleton<GhBranchLister>();
