@@ -35,15 +35,26 @@ function sortFilesNatural(files: PullRequestDiffFile[]): PullRequestDiffFile[] {
   );
 }
 
+export interface ReviewWorkspaceInitial {
+  scope?: ReviewDiffScope;
+  commitSha?: string | null;
+  path?: string | null;
+}
+
 export function useReviewWorkspace(
   intentId: string,
-  bindingId: string
+  bindingId: string,
+  initial?: ReviewWorkspaceInitial
 ): ReviewWorkspaceState {
-  const [scope, setScope] = useState<ReviewDiffScope>("request");
-  const [selectedCommitSha, setSelectedCommitSha] = useState<string | null>(
-    null
+  const [scope, setScope] = useState<ReviewDiffScope>(
+    initial?.scope ?? "request"
   );
-  const [activePath, setActivePath] = useState<string | null>(null);
+  const [selectedCommitSha, setSelectedCommitSha] = useState<string | null>(
+    initial?.commitSha ?? null
+  );
+  const [activePath, setActivePath] = useState<string | null>(
+    initial?.path ?? null
+  );
 
   const commitsQuery = useReviewCommitsQuery(intentId, bindingId, true);
   const diffQuery = useReviewDiffQuery(

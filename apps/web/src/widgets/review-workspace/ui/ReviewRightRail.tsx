@@ -27,7 +27,7 @@ export function ReviewRightRail({
   return (
     <aside
       aria-label="Контекст ревью"
-      className="flex h-full min-h-0 w-80 shrink-0 flex-col border-l border-base-300 bg-base-100"
+      className="flex h-full min-h-0 flex-col bg-base-100"
     >
       <div role="tablist" className="flex border-b border-base-300">
         <TabButton

@@ -22,3 +22,9 @@ export {
 } from "./minimal-text-delta";
 export { formatRelativeTime, formatDateLabel, dayKey } from "./relative-time";
 export { useDebouncedValue } from "./use-debounced-value";
+export {
+  useResizablePane,
+  type ResizablePane,
+  type ResizablePaneOptions,
+  type ResizableEdge
+} from "./use-resizable-pane";

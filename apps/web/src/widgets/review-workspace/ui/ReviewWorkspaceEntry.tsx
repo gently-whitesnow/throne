@@ -1,5 +1,5 @@
 import { Maximize2, SquareChevronRight } from "lucide-react";
-import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import {
   changeRequestRefLabel,
@@ -7,9 +7,6 @@ import {
   repositoryFullName,
   useIntentRepositories
 } from "@/entities/repository-binding";
-import { Button } from "@/shared/ui";
-
-import { ReviewWorkspaceOverlay } from "./ReviewWorkspaceOverlay";
 
 interface ReviewWorkspaceEntryProps {
   intentId: string;
@@ -17,17 +14,15 @@ interface ReviewWorkspaceEntryProps {
 
 /**
  * Entry-панель ревьюилки в `placement=review`. Под каждым binding'ом с
- * привязанным PR/MR — кнопка, открывающая fullscreen review workspace в том же
- * окне Throne. Без PR/MR-binding'ов секция скрыта.
+ * привязанным PR/MR — ссылка на роут ревьюилки (`/intents/:id/review/:bindingId`),
+ * открывающий fullscreen review workspace в том же окне Throne. Ссылка
+ * шарящаяся и переживает F5. Без PR/MR-binding'ов секция скрыта.
  */
 export function ReviewWorkspaceEntry({ intentId }: ReviewWorkspaceEntryProps) {
   const { bindings } = useIntentRepositories(intentId);
-  const [openBindingId, setOpenBindingId] = useState<string | null>(null);
 
   const prBindings = bindings.filter(hasPullRequest);
   if (prBindings.length === 0) return null;
-
-  const openBinding = prBindings.find((b) => b.id === openBindingId) ?? null;
 
   return (
     <section
@@ -60,28 +55,16 @@ export function ReviewWorkspaceEntry({ intentId }: ReviewWorkspaceEntryProps) {
                 {changeRequestRefLabel(binding)}
               </span>
             </span>
-            <Button
-              variant="primary"
-              icon={<Maximize2 aria-hidden size={14} strokeWidth={2} />}
-              onClick={() => {
-                setOpenBindingId(binding.id);
-              }}
+            <Link
+              to={`/intents/${intentId}/review/${binding.id}`}
+              className="btn btn-sm btn-primary"
             >
+              <Maximize2 aria-hidden size={14} strokeWidth={2} />
               Открыть ревью
-            </Button>
+            </Link>
           </li>
         ))}
       </ul>
-
-      {openBinding !== null ? (
-        <ReviewWorkspaceOverlay
-          intentId={intentId}
-          binding={openBinding}
-          onClose={() => {
-            setOpenBindingId(null);
-          }}
-        />
-      ) : null}
     </section>
   );
 }
