@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddSingleton<IRepositoryRegistry, MongoRepositoryRegistry>();
         services.AddSingleton<IRepositoryArtifactRepository, MongoRepositoryArtifactStore>();
         services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
+        services.AddSingleton<ITerminalSettingsStore, MongoTerminalSettingsStore>();
         services.AddHostedService<MongoIndexInitializer>();
 
         return services;

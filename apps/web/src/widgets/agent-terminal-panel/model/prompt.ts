@@ -1,3 +1,8 @@
+import type {
+  TerminalAgentVendor,
+  TerminalReasoningEffort
+} from "@/entities/terminal-setting";
+
 import type { TerminalRunMode } from "./types";
 
 /**
@@ -28,7 +33,21 @@ export function buildAgentPrompt(
   return `Прочитай бандл ${mode} и ${MODE_VERB[mode]} интент ${intentId}`;
 }
 
-export function buildClaudeCliCommand(prompt: string): string {
+/**
+ * Команда ручного запуска для кнопки «Copy prompt». Зеркалит бэкендовый
+ * `AgentSpawnCommand`: одинаковая ось вендор/модель/усилие, чтобы скопированная
+ * команда совпадала с тем, что Throne спавнит в tmux.
+ */
+export function buildAgentCliCommand(
+  vendor: TerminalAgentVendor,
+  model: string,
+  effort: TerminalReasoningEffort,
+  prompt: string
+): string {
   const escaped = prompt.replace(/"/g, '\\"');
-  return `claude "${escaped}"`;
+  const flags =
+    vendor === "codex"
+      ? `-m ${model} -c model_reasoning_effort=${effort}`
+      : `--model ${model} --effort ${effort}`;
+  return `${vendor} ${flags} "${escaped}"`;
 }

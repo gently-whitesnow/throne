@@ -53,6 +53,50 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/settings/terminal:
+    get:
+      operationId: getTerminalSettings
+      tags: [Settings]
+      summary: Read the default agent vendor for new terminal sessions.
+      description: >
+        Returns the operator-chosen `default_terminal_vendor` used to pre-fill the
+        embedded-terminal launch controls and as the server-side fallback when a
+        `run`/`restart` request omits `vendor`. Model and effort defaults are native
+        to the vendor and are NOT persisted here — only the vendor is a setting.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalSettingsDto'
+    put:
+      operationId: setTerminalSettings
+      tags: [Settings]
+      summary: Set the default agent vendor for new terminal sessions.
+      description: >
+        Persists `default_terminal_vendor` (claude | codex). Idempotent upsert of the
+        settings singleton; takes effect on the next launch (live sessions are not
+        touched).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTerminalSettingsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalSettingsDto'
+        '422':
+          description: Validation failed (unknown vendor).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/settings/git-providers/status:
     get:
       operationId: getGitProvidersStatus
@@ -71,6 +115,29 @@ paths:
                 $ref: '#/components/schemas/GitProvidersStatusDto'
 components:
   schemas:
+    TerminalAgentVendor:
+      type: string
+      enum:
+        - claude
+        - codex
+      description: >
+        Default agent CLI for new embedded-terminal sessions. Mirror of
+        `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag
+        does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
+    TerminalSettingsDto:
+      type: object
+      required:
+        - default_vendor
+      properties:
+        default_vendor:
+          $ref: '#/components/schemas/TerminalAgentVendor'
+    UpdateTerminalSettingsRequest:
+      type: object
+      required:
+        - default_vendor
+      properties:
+        default_vendor:
+          $ref: '#/components/schemas/TerminalAgentVendor'
     WorkspaceStatus:
       type: string
       enum:

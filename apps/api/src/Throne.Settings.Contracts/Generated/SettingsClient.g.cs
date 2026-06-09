@@ -27,6 +27,64 @@ namespace Throne.Settings.Contracts.Generated
     
 
     /// <summary>
+    /// Default agent CLI for new embedded-terminal sessions. Mirror of `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TerminalAgentVendor
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"claude")]
+        [System.Runtime.Serialization.EnumMember(Value = @"claude")]
+        Claude = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"codex")]
+        [System.Runtime.Serialization.EnumMember(Value = @"codex")]
+        Codex = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalSettingsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("default_vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor Default_vendor { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateTerminalSettingsRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("default_vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor Default_vendor { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
     /// `ready` — `total_size_bytes` reflects the latest scan. `calculating` — background sweep in progress; size will arrive on the next request.
     /// <br/>
     /// </summary>

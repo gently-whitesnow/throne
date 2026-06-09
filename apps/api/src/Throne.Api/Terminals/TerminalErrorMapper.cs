@@ -14,6 +14,8 @@ internal static class TerminalErrorMapper
             new NotFoundObjectResult(ApiProblems.NotFound("Intent not found", ex.Detail)),
         ErrorCodes.TerminalSessionAlreadyRunning =>
             new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Terminal session already running", ex)),
+        ErrorCodes.TerminalArgsInvalid =>
+            new BadRequestObjectResult(ApiProblems.Build(StatusCodes.Status400BadRequest, "Invalid terminal launch arguments", ex)),
         ErrorCodes.CapabilityDisabled
             or ErrorCodes.TerminalModeInvalid
             or ErrorCodes.TerminalRunPreflightBlocked

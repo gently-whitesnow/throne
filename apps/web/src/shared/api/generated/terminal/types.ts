@@ -112,8 +112,24 @@ export interface components {
          * @enum {string}
          */
         TerminalSessionState: "spawning" | "running" | "blocked" | "exited";
+        /**
+         * @description Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…`). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
+         * @enum {string}
+         */
+        TerminalAgentVendor: "claude" | "codex";
+        /**
+         * @description Single reasoning-effort axis shared across vendors (the vendor effort dictionaries overlap on low/medium/high/xhigh). The claude-only `max` tier is intentionally excluded.
+         * @enum {string}
+         */
+        TerminalReasoningEffort: "low" | "medium" | "high" | "xhigh";
         RunIntentTerminalRequest: {
             mode: components["schemas"]["TerminalRunMode"];
+            /** @description Omitted → server falls back to `default_terminal_vendor` from settings. */
+            vendor?: components["schemas"]["TerminalAgentVendor"] | null;
+            /** @description Model id from the vendor's curated whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400. */
+            model?: string | null;
+            /** @description Omitted → the chosen vendor's native default effort. */
+            effort?: components["schemas"]["TerminalReasoningEffort"] | null;
         };
         /**
          * @description Mirror of `repositories#/components/schemas/CloneStatus`. Duplicated here so this contract generator never reaches out across files (NSwag does not resolve relative `$ref` between OpenAPI documents). Keep enum values in sync — see ADR-0024 § 5 for the lifecycle.

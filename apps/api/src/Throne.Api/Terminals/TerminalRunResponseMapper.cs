@@ -23,6 +23,31 @@ internal static class TerminalRunResponseMapper
         return response;
     }
 
+    public static TerminalLaunchInput ToLaunchInput(RunIntentTerminalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return new TerminalLaunchInput(
+            Vendor: request.Vendor is { } vendor ? ToWireVendor(vendor) : null,
+            Model: request.Model,
+            Effort: request.Effort is { } effort ? ToWireEffort(effort) : null);
+    }
+
+    private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
+    {
+        TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,
+        TerminalAgentVendor.Codex => TerminalAgentCatalog.VendorCodex,
+        _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
+    };
+
+    private static string ToWireEffort(TerminalReasoningEffort effort) => effort switch
+    {
+        TerminalReasoningEffort.Low => TerminalAgentCatalog.EffortLow,
+        TerminalReasoningEffort.Medium => TerminalAgentCatalog.EffortMedium,
+        TerminalReasoningEffort.High => TerminalAgentCatalog.EffortHigh,
+        TerminalReasoningEffort.Xhigh => TerminalAgentCatalog.EffortXhigh,
+        _ => throw new ArgumentOutOfRangeException(nameof(effort), $"Unknown reasoning effort '{effort}'."),
+    };
+
     public static string ToDomainMode(TerminalRunMode mode) => mode switch
     {
         TerminalRunMode.Work => TerminalRunModes.Work,
