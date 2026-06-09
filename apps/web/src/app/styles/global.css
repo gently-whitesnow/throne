@@ -152,6 +152,78 @@ body,
   font-weight: 600;
 }
 
+/* Подсветка синтаксиса в review diff (highlight.js token-классы).
+ * Палитра задаётся переменными, чтобы dark-тема переопределяла только цвета,
+ * а не дублировала весь набор селекторов. Token-цвета ложатся поверх add/remove
+ * фона строки, поэтому используем github-подобные оттенки, читаемые на тинте. */
+.diff-hl {
+  --hl-comment: #6e7781;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-func: #8250df;
+  --hl-type: #953800;
+  --hl-num: #0550ae;
+  --hl-tag: #116329;
+}
+[data-theme="throne-dark"] .diff-hl {
+  --hl-comment: #8b949e;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-func: #d2a8ff;
+  --hl-type: #ffa657;
+  --hl-num: #79c0ff;
+  --hl-tag: #7ee787;
+}
+.diff-hl .hljs-comment,
+.diff-hl .hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+.diff-hl .hljs-keyword,
+.diff-hl .hljs-built_in,
+.diff-hl .hljs-literal,
+.diff-hl .hljs-doctag {
+  color: var(--hl-keyword);
+}
+.diff-hl .hljs-string,
+.diff-hl .hljs-regexp,
+.diff-hl .hljs-meta .hljs-string {
+  color: var(--hl-string);
+}
+.diff-hl .hljs-title,
+.diff-hl .hljs-title.function_,
+.diff-hl .hljs-section {
+  color: var(--hl-func);
+}
+.diff-hl .hljs-title.class_,
+.diff-hl .hljs-type,
+.diff-hl .hljs-class .hljs-title {
+  color: var(--hl-type);
+}
+.diff-hl .hljs-number,
+.diff-hl .hljs-attr,
+.diff-hl .hljs-attribute,
+.diff-hl .hljs-variable,
+.diff-hl .hljs-template-variable,
+.diff-hl .hljs-symbol,
+.diff-hl .hljs-bullet,
+.diff-hl .hljs-meta {
+  color: var(--hl-num);
+}
+.diff-hl .hljs-tag,
+.diff-hl .hljs-name,
+.diff-hl .hljs-selector-tag,
+.diff-hl .hljs-selector-id,
+.diff-hl .hljs-selector-class {
+  color: var(--hl-tag);
+}
+.diff-hl .hljs-emphasis {
+  font-style: italic;
+}
+.diff-hl .hljs-strong {
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

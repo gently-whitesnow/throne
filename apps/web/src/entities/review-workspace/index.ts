@@ -37,3 +37,5 @@ export {
   clearDraft,
   type DraftAnchor
 } from "./lib/comment-drafts";
+
+export { detectLanguage, highlightLine } from "./lib/highlight-line";
