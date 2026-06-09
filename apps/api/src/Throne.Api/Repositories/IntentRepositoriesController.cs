@@ -14,6 +14,7 @@ public sealed class IntentRepositoriesController(
     AttachIntentRepositoryPullRequestEndpoint attachPrEndpoint,
     ListIntentRepositoryPullRequestCommentsEndpoint listCommentsEndpoint,
     GetIntentRepositoryReviewDiffEndpoint reviewDiffEndpoint,
+    GetIntentRepositoryPullRequestEndpoint pullRequestEndpoint,
     ListIntentRepositoryReviewCommitsEndpoint reviewCommitsEndpoint,
     SubmitIntentRepositoryReviewCommentEndpoint submitReviewCommentEndpoint,
     DeleteIntentRepositoryPullRequestCommentEndpoint deleteReviewCommentEndpoint,
@@ -65,6 +66,11 @@ public sealed class IntentRepositoriesController(
             scope is null ? null : ToAppScope(scope.Value),
             commit_sha,
             HttpContext.RequestAborted);
+
+    public override Task<ActionResult<PullRequestHeaderDto>> GetIntentRepositoryPullRequest(
+        string intent_id,
+        string binding_id) =>
+        pullRequestEndpoint.RunAsync(intent_id, binding_id, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<PullRequestCommitDto>>> ListIntentRepositoryReviewCommits(
         string intent_id,

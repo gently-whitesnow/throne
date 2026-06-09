@@ -539,6 +539,52 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/review/pull-request:
+    get:
+      operationId: getIntentRepositoryPullRequest
+      tags: [IntentRepositories]
+      summary: Read the header of the binding's pull request (title, state, author, branches, description).
+      description: >
+        Backs the review-workspace "Описание" tab. The header is read from the provider
+        on demand (`gh` / `glab`) and is never persisted server-side — same read-through
+        contract as the diff endpoint. The `body` field carries the PR/MR description as
+        Markdown for client-side rendering.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequestHeaderDto'
+        '404':
+          description: Intent, binding or upstream PR not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Binding has no associated pull request number.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Provider unauthenticated or unsupported.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/repositories/{binding_id}/review/commits:
     get:
       operationId: listIntentRepositoryReviewCommits
@@ -1558,6 +1604,46 @@ components:
         patch:
           type: string
           description: Raw unified-diff hunks for this file; empty for binary/too-large diffs.
+    PullRequestHeaderDto:
+      type: object
+      required:
+        - number
+        - state
+      properties:
+        number:
+          type: integer
+          format: int32
+          minimum: 1
+          description: PR/MR number within the repository.
+        title:
+          type: string
+          nullable: true
+        state:
+          $ref: '#/components/schemas/PullRequestState'
+        author_login:
+          type: string
+          nullable: true
+          description: Provider login of the PR/MR author.
+        author_avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        head_ref:
+          type: string
+          nullable: true
+          description: Source branch the PR/MR merges from.
+        base_ref:
+          type: string
+          nullable: true
+          description: Target branch the PR/MR merges into.
+        html_url:
+          type: string
+          format: uri
+          nullable: true
+        body:
+          type: string
+          nullable: true
+          description: PR/MR description as Markdown.
     PullRequestDiffDto:
       type: object
       required:

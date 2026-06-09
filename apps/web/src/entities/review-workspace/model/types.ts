@@ -24,6 +24,9 @@ export type SubmitReviewCommentRequest =
 export type SubmittedReviewComment =
   RepositoriesComponents["schemas"]["SubmittedReviewCommentDto"];
 
+export type PullRequestHeader =
+  RepositoriesComponents["schemas"]["PullRequestHeaderDto"];
+
 /** Anchor части submit-контракта, которые UI берёт из diff-ответа as-is. */
 export type ReviewCommentAnchorShas = Pick<
   SubmitReviewCommentRequest,

@@ -36,4 +36,31 @@ public class GhPullRequestParserTests
 
         snapshot!.Number.Should().Be(99);
     }
+
+    [Fact(DisplayName = "Parse вынимает тело, автора и ветки PR-шапки")]
+    public void Parse_extracts_header_fields()
+    {
+        const string json = """
+        {
+          "number": 7,
+          "state": "open",
+          "merged": false,
+          "title": "Add description tab",
+          "html_url": "https://github.com/o/r/pull/7",
+          "body": "# Why\nContext here.",
+          "user": { "login": "octocat", "avatar_url": "https://avatars/octocat.png" },
+          "head": { "ref": "feat/desc" },
+          "base": { "ref": "main" }
+        }
+        """;
+
+        var snapshot = GhPullRequestParser.Parse(json, requestedNumber: 7);
+
+        snapshot.Should().NotBeNull();
+        snapshot!.Body.Should().Be("# Why\nContext here.");
+        snapshot.AuthorLogin.Should().Be("octocat");
+        snapshot.AuthorAvatarUrl.Should().Be("https://avatars/octocat.png");
+        snapshot.HeadRef.Should().Be("feat/desc");
+        snapshot.BaseRef.Should().Be("main");
+    }
 }
