@@ -725,6 +725,66 @@ namespace Throne.Repositories.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PullRequestHeaderDto
+    {
+
+        /// <summary>
+        /// PR/MR number within the repository.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("number")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Number { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        public string Title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestState>))]
+        public PullRequestState State { get; set; }
+
+        /// <summary>
+        /// Provider login of the PR/MR author.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("author_login")]
+        public string Author_login { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("author_avatar_url")]
+        public System.Uri Author_avatar_url { get; set; }
+
+        /// <summary>
+        /// Source branch the PR/MR merges from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("head_ref")]
+        public string Head_ref { get; set; }
+
+        /// <summary>
+        /// Target branch the PR/MR merges into.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_ref")]
+        public string Base_ref { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("html_url")]
+        public System.Uri Html_url { get; set; }
+
+        /// <summary>
+        /// PR/MR description as Markdown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        public string Body { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PullRequestDiffDto
     {
 

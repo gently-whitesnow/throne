@@ -53,6 +53,7 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
 vi.mock("@/entities/review-workspace/api/review-api", () => ({
   getReviewDiff: () => getReviewDiff(),
   listReviewCommits: () => listReviewCommits(),
+  getReviewPullRequest: () => Promise.resolve({ number: 1, state: "open" }),
   submitReviewComment: vi.fn()
 }));
 
@@ -201,6 +202,9 @@ describe("Review workspace — inline comments", () => {
     await screen.findByRole("dialog", { name: "Review workspace" });
     // Header shows the initially active file.
     await screen.findByText("src/app.ts");
+
+    // Right rail opens on the "Описание" tab; switch to comments first.
+    fireEvent.click(screen.getByRole("tab", { name: /Комментарии/ }));
 
     // Click the rail comment's author header (the jump affordance).
     const railBody = await screen.findByText("comment on other file");

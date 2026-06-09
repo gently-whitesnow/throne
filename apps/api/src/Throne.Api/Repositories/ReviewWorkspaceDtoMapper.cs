@@ -38,6 +38,23 @@ internal static class ReviewWorkspaceDtoMapper
         return dto;
     }
 
+    public static PullRequestHeaderDto ToHeaderDto(PullRequestSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return new PullRequestHeaderDto
+        {
+            Number = snapshot.Number,
+            Title = snapshot.Title,
+            State = RepositoryEnumDtoMapper.ToWirePullRequestState(snapshot.State),
+            Author_login = snapshot.AuthorLogin,
+            Author_avatar_url = PullRequestCommentDtoMapper.ToUri(snapshot.AuthorAvatarUrl),
+            Head_ref = snapshot.HeadRef,
+            Base_ref = snapshot.BaseRef,
+            Html_url = PullRequestCommentDtoMapper.ToUri(snapshot.HtmlUrl),
+            Body = snapshot.Body,
+        };
+    }
+
     public static PullRequestCommitDto ToCommitDto(PullRequestCommitRef commit)
     {
         ArgumentNullException.ThrowIfNull(commit);

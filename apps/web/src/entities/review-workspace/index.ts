@@ -5,6 +5,7 @@ export type {
   PullRequestDiffFile,
   PullRequestDiffFileStatus,
   PullRequestCommit,
+  PullRequestHeader,
   SubmitReviewCommentRequest,
   SubmittedReviewComment,
   ReviewCommentAnchorShas,
@@ -18,6 +19,7 @@ export type {
 
 export {
   getReviewDiff,
+  getReviewPullRequest,
   listReviewCommits,
   submitReviewComment
 } from "./api/review-api";
@@ -27,6 +29,7 @@ export { getPullRequestMergeStatus, mergePullRequest } from "./api/merge-api";
 export {
   reviewWorkspaceQueryKeys,
   useReviewDiffQuery,
+  useReviewPullRequestQuery,
   useReviewCommitsQuery
 } from "./api/review-queries";
 

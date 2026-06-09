@@ -158,6 +158,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestDiffDto>> GetIntentRepositoryReviewDiff([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromQuery] ReviewDiffScope? scope = null, [Microsoft.AspNetCore.Mvc.FromQuery] string commit_sha = null);
 
         /// <summary>
+        /// Read the header of the binding's pull request (title, state, author, branches, description).
+        /// </summary>
+        /// <remarks>
+        /// Backs the review-workspace "Описание" tab. The header is read from the provider on demand (`gh` / `glab`) and is never persisted server-side — same read-through contract as the diff endpoint. The `body` field carries the PR/MR description as Markdown for client-side rendering.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/review/pull-request", Name = "getIntentRepositoryPullRequest")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestHeaderDto>> GetIntentRepositoryPullRequest([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
+
+        /// <summary>
         /// List the commits that belong to the binding's pull request.
         /// </summary>
         /// <remarks>

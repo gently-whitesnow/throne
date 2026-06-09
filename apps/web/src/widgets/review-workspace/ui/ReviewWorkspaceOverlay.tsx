@@ -248,6 +248,8 @@ export function ReviewWorkspaceOverlay({
           style={{ width: rightPane.width }}
         >
           <ReviewRightRail
+            intentId={intentId}
+            bindingId={binding.id}
             comments={comments}
             commentsLoading={isLoading}
             commentsError={error}
