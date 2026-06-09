@@ -79,6 +79,50 @@ namespace Throne.Terminal.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…`). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TerminalAgentVendor
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"claude")]
+        [System.Runtime.Serialization.EnumMember(Value = @"claude")]
+        Claude = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"codex")]
+        [System.Runtime.Serialization.EnumMember(Value = @"codex")]
+        Codex = 1,
+
+    }
+
+    /// <summary>
+    /// Single reasoning-effort axis shared across vendors (the vendor effort dictionaries overlap on low/medium/high/xhigh). The claude-only `max` tier is intentionally excluded.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TerminalReasoningEffort
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"low")]
+        [System.Runtime.Serialization.EnumMember(Value = @"low")]
+        Low = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"medium")]
+        [System.Runtime.Serialization.EnumMember(Value = @"medium")]
+        Medium = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"high")]
+        [System.Runtime.Serialization.EnumMember(Value = @"high")]
+        High = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"xhigh")]
+        [System.Runtime.Serialization.EnumMember(Value = @"xhigh")]
+        Xhigh = 3,
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RunIntentTerminalRequest
     {
@@ -87,6 +131,28 @@ namespace Throne.Terminal.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalRunMode>))]
         public TerminalRunMode Mode { get; set; }
+
+        /// <summary>
+        /// Omitted → server falls back to `default_terminal_vendor` from settings.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("vendor")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor? Vendor { get; set; }
+
+        /// <summary>
+        /// Model id from the vendor's curated whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Model { get; set; }
+
+        /// <summary>
+        /// Omitted → the chosen vendor's native default effort.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
+        public TerminalReasoningEffort? Effort { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

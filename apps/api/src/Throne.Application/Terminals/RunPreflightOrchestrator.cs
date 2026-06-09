@@ -12,15 +12,19 @@ public sealed class RunPreflightOrchestrator(
     RunPreflightAutoBind autoBind,
     RunPreflightCloneScheduler cloneQueue,
     RunPreflightCloneWait cloneWait,
-    RunPreflightSpawn spawner)
+    RunPreflightSpawn spawner,
+    TerminalLaunchResolver launchResolver)
 {
     public async Task<RunPreflightResult> RunAsync(
         string intentId,
         string mode,
+        TerminalLaunchInput launch,
         bool restart,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(launch);
         RunPreflightModeGuard.EnsureKnown(mode);
+        var launchOptions = await launchResolver.ResolveAsync(launch.Vendor, launch.Model, launch.Effort, ct);
         await guards.EnsureCapabilityEnabledAsync(ct);
 
         var intent = await guards.LoadIntentAsync(intentId, ct);
@@ -39,7 +43,7 @@ public sealed class RunPreflightOrchestrator(
                 intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking);
         }
 
-        await spawner.SpawnAsync(intent.Id, sessionName, mode, ct);
+        await spawner.SpawnAsync(intent.Id, sessionName, mode, launchOptions, ct);
         return RunPreflightSession.BuildResult(
             intent.Id.Value, sessionName, TerminalSessionStates.Running, waitResult.Bindings, blockingBindings: []);
     }

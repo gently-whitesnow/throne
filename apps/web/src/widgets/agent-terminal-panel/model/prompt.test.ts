@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAgentPrompt, buildClaudeCliCommand } from "./prompt";
+import { buildAgentCliCommand, buildAgentPrompt } from "./prompt";
 
 describe("buildAgentPrompt", () => {
   // Эти строки load-bearing: MCP MiniRouter ловит их и переключает bundle.
@@ -30,12 +30,22 @@ describe("buildAgentPrompt", () => {
   });
 });
 
-describe("buildClaudeCliCommand", () => {
-  it('оборачивает промпт в `claude "…"`', () => {
-    expect(buildClaudeCliCommand("test prompt")).toBe('claude "test prompt"');
+describe("buildAgentCliCommand", () => {
+  it("claude: --model/--effort с обёрнутым промптом", () => {
+    expect(buildAgentCliCommand("claude", "opus", "high", "test prompt")).toBe(
+      'claude --model opus --effort high "test prompt"'
+    );
+  });
+
+  it("codex: -m и -c model_reasoning_effort без shell-кавычек", () => {
+    expect(
+      buildAgentCliCommand("codex", "gpt-5.5", "medium", "test prompt")
+    ).toBe('codex -m gpt-5.5 -c model_reasoning_effort=medium "test prompt"');
   });
 
   it("экранирует двойные кавычки внутри промпта", () => {
-    expect(buildClaudeCliCommand('say "hi"')).toBe('claude "say \\"hi\\""');
+    expect(buildAgentCliCommand("claude", "opus", "high", 'say "hi"')).toBe(
+      'claude --model opus --effort high "say \\"hi\\""'
+    );
   });
 });

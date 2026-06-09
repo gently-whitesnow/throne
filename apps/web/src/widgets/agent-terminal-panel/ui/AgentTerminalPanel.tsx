@@ -1,5 +1,5 @@
 import { AlertCircle } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
@@ -7,11 +7,19 @@ import {
   isCloneReady,
   useIntentRepositories
 } from "@/entities/repository-binding";
+import {
+  DEFAULT_TERMINAL_VENDOR,
+  useTerminalSettingsQuery,
+  VENDOR_DEFAULT_EFFORT,
+  VENDOR_DEFAULT_MODEL,
+  type TerminalAgentVendor,
+  type TerminalReasoningEffort
+} from "@/entities/terminal-setting";
 
-import { buildAgentPrompt, buildClaudeCliCommand } from "../model/prompt";
+import { buildAgentCliCommand, buildAgentPrompt } from "../model/prompt";
 import { useTerminalSession } from "../model/use-terminal-session";
 import { defaultRunModeForStatus } from "../model/types";
-import type { TerminalRunMode } from "../model/types";
+import type { TerminalLaunchArgs, TerminalRunMode } from "../model/types";
 
 import { PreflightProgress } from "./PreflightProgress";
 import { RunControls } from "./RunControls";
@@ -41,6 +49,28 @@ export function AgentTerminalPanel({
   const [mode, setMode] = useState<TerminalRunMode>(() =>
     defaultRunModeForStatus(intentStatus)
   );
+  const [vendor, setVendor] = useState<TerminalAgentVendor>(
+    DEFAULT_TERMINAL_VENDOR
+  );
+  const [model, setModel] = useState<string>(
+    VENDOR_DEFAULT_MODEL[DEFAULT_TERMINAL_VENDOR]
+  );
+  const [effort, setEffort] = useState<TerminalReasoningEffort>(
+    VENDOR_DEFAULT_EFFORT[DEFAULT_TERMINAL_VENDOR]
+  );
+
+  // Дефолтный вендор приходит из /settings. Применяем его один раз, пока
+  // оператор сам не тронул селектор: дальше его выбор главнее серверного дефолта.
+  const settingsQuery = useTerminalSettingsQuery();
+  const settingsVendor = settingsQuery.data?.default_vendor;
+  const vendorTouched = useRef(false);
+  useEffect(() => {
+    if (settingsVendor === undefined || vendorTouched.current) return;
+    setVendor(settingsVendor);
+    setModel(VENDOR_DEFAULT_MODEL[settingsVendor]);
+    setEffort(VENDOR_DEFAULT_EFFORT[settingsVendor]);
+  }, [settingsVendor]);
+
   const { capabilities, isLoading: capabilitiesLoading } = useCapabilities();
   const { bindings } = useIntentRepositories(intentId);
 
@@ -62,9 +92,27 @@ export function AgentTerminalPanel({
       : null;
 
   const promptText = useMemo(
-    () => buildClaudeCliCommand(buildAgentPrompt(mode, intentId)),
-    [mode, intentId]
+    () =>
+      buildAgentCliCommand(
+        vendor,
+        model,
+        effort,
+        buildAgentPrompt(mode, intentId)
+      ),
+    [vendor, model, effort, mode, intentId]
   );
+
+  const launchArgs = useMemo<TerminalLaunchArgs>(
+    () => ({ mode, vendor, model, effort }),
+    [mode, vendor, model, effort]
+  );
+
+  const handleVendorChange = useCallback((next: TerminalAgentVendor) => {
+    vendorTouched.current = true;
+    setVendor(next);
+    setModel(VENDOR_DEFAULT_MODEL[next]);
+    setEffort(VENDOR_DEFAULT_EFFORT[next]);
+  }, []);
 
   // Берём стабильные функции хука напрямую: иначе колбэки зависели бы от
   // объекта `session`, который пересоздаётся каждый рендер, и onClosed менял
@@ -77,12 +125,12 @@ export function AgentTerminalPanel({
   } = session;
 
   const handleRun = useCallback(() => {
-    void startSession(mode);
-  }, [startSession, mode]);
+    void startSession(launchArgs);
+  }, [startSession, launchArgs]);
 
   const handleRestart = useCallback(() => {
-    void restartSession(mode);
-  }, [restartSession, mode]);
+    void restartSession(launchArgs);
+  }, [restartSession, launchArgs]);
 
   const handleKill = useCallback(() => {
     void session.kill();
@@ -118,6 +166,12 @@ export function AgentTerminalPanel({
       <RunControls
         mode={mode}
         onModeChange={setMode}
+        vendor={vendor}
+        onVendorChange={handleVendorChange}
+        model={model}
+        onModelChange={setModel}
+        effort={effort}
+        onEffortChange={setEffort}
         promptText={promptText}
         onRun={handleRun}
         onRestart={handleRestart}

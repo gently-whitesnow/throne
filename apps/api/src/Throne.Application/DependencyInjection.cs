@@ -100,6 +100,8 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightSpawn>();
         services.AddSingleton<RunPreflightGuards>();
         services.AddSingleton<RunPreflightOrchestrator>();
+        services.AddSingleton<TerminalLaunchResolver>();
+        services.AddSingleton<TerminalSettingsService>();
         services.AddSingleton<TerminalSessionStatusService>();
         services.AddSingleton<TerminalSessionKillService>();
         // ADR-0026 § 8: tmux session is torn down when an intent reaches `done`. The handler

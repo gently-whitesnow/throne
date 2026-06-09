@@ -50,6 +50,26 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<WorkspaceCleanResultDto>> CleanWorkspace([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] WorkspaceCleanRequestDto body);
 
         /// <summary>
+        /// Read the default agent vendor for new terminal sessions.
+        /// </summary>
+        /// <remarks>
+        /// Returns the operator-chosen `default_terminal_vendor` used to pre-fill the embedded-terminal launch controls and as the server-side fallback when a `run`/`restart` request omits `vendor`. Model and effort defaults are native to the vendor and are NOT persisted here — only the vendor is a setting.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/terminal", Name = "getTerminalSettings")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TerminalSettingsDto>> GetTerminalSettings();
+
+        /// <summary>
+        /// Set the default agent vendor for new terminal sessions.
+        /// </summary>
+        /// <remarks>
+        /// Persists `default_terminal_vendor` (claude | codex). Idempotent upsert of the settings singleton; takes effect on the next launch (live sessions are not touched).
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/terminal", Name = "setTerminalSettings")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TerminalSettingsDto>> SetTerminalSettings([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTerminalSettingsRequest body);
+
+        /// <summary>
         /// Authentication status for every configured git provider CLI.
         /// </summary>
         /// <remarks>

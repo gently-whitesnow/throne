@@ -44,6 +44,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/terminal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the default agent vendor for new terminal sessions.
+         * @description Returns the operator-chosen `default_terminal_vendor` used to pre-fill the embedded-terminal launch controls and as the server-side fallback when a `run`/`restart` request omits `vendor`. Model and effort defaults are native to the vendor and are NOT persisted here — only the vendor is a setting.
+         */
+        get: operations["getTerminalSettings"];
+        /**
+         * Set the default agent vendor for new terminal sessions.
+         * @description Persists `default_terminal_vendor` (claude | codex). Idempotent upsert of the settings singleton; takes effect on the next launch (live sessions are not touched).
+         */
+        put: operations["setTerminalSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/git-providers/status": {
         parameters: {
             query?: never;
@@ -68,6 +92,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description Default agent CLI for new embedded-terminal sessions. Mirror of `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
+         * @enum {string}
+         */
+        TerminalAgentVendor: "claude" | "codex";
+        TerminalSettingsDto: {
+            default_vendor: components["schemas"]["TerminalAgentVendor"];
+        };
+        UpdateTerminalSettingsRequest: {
+            default_vendor: components["schemas"]["TerminalAgentVendor"];
+        };
         /**
          * @description `ready` — `total_size_bytes` reflects the latest scan. `calculating` — background sweep in progress; size will arrive on the next request.
          * @enum {string}
@@ -198,6 +233,59 @@ export interface operations {
                 };
             };
             /** @description Validation failed (unknown mode). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getTerminalSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminalSettingsDto"];
+                };
+            };
+        };
+    };
+    setTerminalSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTerminalSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminalSettingsDto"];
+                };
+            };
+            /** @description Validation failed (unknown vendor). */
             422: {
                 headers: {
                     [name: string]: unknown;
