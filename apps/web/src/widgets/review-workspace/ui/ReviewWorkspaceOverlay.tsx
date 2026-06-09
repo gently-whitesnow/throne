@@ -11,26 +11,64 @@ import {
   intentRepositoriesQueryKeys,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import { useResizablePane } from "@/shared/lib";
+import { ResizeHandle } from "@/shared/ui";
 
-import { useReviewWorkspace } from "../model/use-review-workspace";
+import {
+  useReviewWorkspace,
+  type ReviewWorkspaceInitial,
+  type ReviewWorkspaceState
+} from "../model/use-review-workspace";
 import { ReviewDiffViewer } from "./ReviewDiffViewer";
 import { ReviewFilesRail } from "./ReviewFilesRail";
 import { ReviewRightRail } from "./ReviewRightRail";
 import { ReviewScopeBar } from "./ReviewScopeBar";
 
+const FILES_PANE = {
+  key: "throne.review.rail.files",
+  def: 288,
+  min: 200,
+  max: 560
+};
+const RIGHT_PANE = {
+  key: "throne.review.rail.context",
+  def: 320,
+  min: 240,
+  max: 560
+};
+
 interface ReviewWorkspaceOverlayProps {
   intentId: string;
   binding: RepositoryBinding;
+  initial?: ReviewWorkspaceInitial;
+  onStateChange?: (state: ReviewWorkspaceInitial) => void;
   onClose: () => void;
 }
 
 export function ReviewWorkspaceOverlay({
   intentId,
   binding,
+  initial,
+  onStateChange,
   onClose
 }: ReviewWorkspaceOverlayProps) {
   const queryClient = useQueryClient();
-  const ws = useReviewWorkspace(intentId, binding.id);
+  const ws = useReviewWorkspace(intentId, binding.id, initial);
+
+  const filesPane = useResizablePane({
+    storageKey: FILES_PANE.key,
+    defaultWidth: FILES_PANE.def,
+    min: FILES_PANE.min,
+    max: FILES_PANE.max,
+    edge: "right"
+  });
+  const rightPane = useResizablePane({
+    storageKey: RIGHT_PANE.key,
+    defaultWidth: RIGHT_PANE.def,
+    min: RIGHT_PANE.min,
+    max: RIGHT_PANE.max,
+    edge: "left"
+  });
   const { comments, isLoading, error, refresh } = usePullRequestComments(
     intentId,
     binding.id
@@ -51,6 +89,16 @@ export function ReviewWorkspaceOverlay({
       }
     })();
   }, [intentId, binding.id, queryClient, refresh]);
+
+  // Зеркалим выбранный scope/commit/файл наверх (роут пишет их в URL), чтобы
+  // перезагрузка и шаринг ссылки переоткрывали ревьюилку в том же состоянии.
+  useEffect(() => {
+    onStateChange?.({
+      scope: ws.scope,
+      commitSha: ws.selectedCommitSha,
+      path: ws.activePath
+    });
+  }, [onStateChange, ws.scope, ws.selectedCommitSha, ws.activePath]);
 
   // Esc закрывает, фон страницы не скроллится, пока открыт fullscreen.
   useEffect(() => {
@@ -84,11 +132,20 @@ export function ReviewWorkspaceOverlay({
         onClose={onClose}
       />
       <div className="flex min-h-0 flex-1">
-        <ReviewFilesRail
-          files={ws.files}
-          activePath={ws.activePath}
-          onSelect={ws.selectFile}
-          onAdjacent={ws.goToAdjacentFile}
+        <div
+          className="min-h-0 shrink-0 border-r border-base-300 max-md:!w-auto"
+          style={{ width: filesPane.width }}
+        >
+          <ReviewFilesRail
+            files={ws.files}
+            activePath={ws.activePath}
+            onSelect={ws.selectFile}
+            onAdjacent={ws.goToAdjacentFile}
+          />
+        </div>
+        <ResizeHandle
+          ariaLabel="Изменить ширину списка файлов"
+          onPointerDown={filesPane.onPointerDown}
         />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <DiffRegion
@@ -98,13 +155,22 @@ export function ReviewWorkspaceOverlay({
             onSubmitted={handleSync}
           />
         </main>
-        <ReviewRightRail
-          comments={comments}
-          commentsLoading={isLoading}
-          commentsError={error}
-          syncing={syncing}
-          onSync={handleSync}
+        <ResizeHandle
+          ariaLabel="Изменить ширину панели контекста"
+          onPointerDown={rightPane.onPointerDown}
         />
+        <div
+          className="min-h-0 shrink-0 max-md:!w-auto"
+          style={{ width: rightPane.width }}
+        >
+          <ReviewRightRail
+            comments={comments}
+            commentsLoading={isLoading}
+            commentsError={error}
+            syncing={syncing}
+            onSync={handleSync}
+          />
+        </div>
       </div>
     </div>,
     document.body
@@ -117,7 +183,7 @@ function DiffRegion({
   bindingId,
   onSubmitted
 }: {
-  ws: ReturnType<typeof useReviewWorkspace>;
+  ws: ReviewWorkspaceState;
   intentId: string;
   bindingId: string;
   onSubmitted: () => void;
