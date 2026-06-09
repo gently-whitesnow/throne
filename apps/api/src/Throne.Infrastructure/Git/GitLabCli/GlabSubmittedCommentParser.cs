@@ -24,24 +24,32 @@ internal static class GlabSubmittedCommentParser
         }
         foreach (var note in notes.EnumerateArray())
         {
-            if (note.ValueKind != JsonValueKind.Object || GlabJson.Bool(note, "system"))
+            var comment = TryParseUserNote(note);
+            if (comment is not null)
             {
-                continue;
+                return comment;
             }
-            var id = ReadId(note);
-            var createdAt = GlabJson.Timestamp(note, "created_at") ?? DateTimeOffset.UtcNow;
-            if (id is null)
-            {
-                continue;
-            }
-            return new SubmittedReviewComment(
-                Id: id,
-                AuthorLogin: GlabJson.NestedString(note, "author", "username") ?? string.Empty,
-                Body: GlabJson.String(note, "body") ?? string.Empty,
-                CreatedAt: createdAt,
-                HtmlUrl: GlabJson.String(note, "html_url"));
         }
         throw new FormatException("glab discussion submit response has no user note.");
+    }
+
+    private static SubmittedReviewComment? TryParseUserNote(JsonElement note)
+    {
+        if (note.ValueKind != JsonValueKind.Object || GlabJson.Bool(note, "system"))
+        {
+            return null;
+        }
+        var id = ReadId(note);
+        if (id is null)
+        {
+            return null;
+        }
+        return new SubmittedReviewComment(
+            Id: id,
+            AuthorLogin: GlabJson.NestedString(note, "author", "username") ?? string.Empty,
+            Body: GlabJson.String(note, "body") ?? string.Empty,
+            CreatedAt: GlabJson.Timestamp(note, "created_at") ?? DateTimeOffset.UtcNow,
+            HtmlUrl: GlabJson.String(note, "html_url"));
     }
 
     private static string? ReadId(JsonElement note) =>
