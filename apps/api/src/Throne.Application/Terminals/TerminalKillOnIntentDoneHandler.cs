@@ -34,14 +34,17 @@ public sealed partial class TerminalKillOnIntentDoneHandler(
         var intentId = changed.Intent.Id.Value;
         try
         {
-            var killed = await tmux.Value.KillSessionAsync(intentId, ct);
+            var manager = tmux.Value;
+            var preAlive = await manager.HasSessionAsync(intentId, ct);
+            LogInvoked(logger, intentId, changed.Intent.State.Status, preAlive);
+            var killed = await manager.KillSessionAsync(intentId, ct);
             if (killed)
             {
                 LogKilled(logger, intentId);
             }
             else
             {
-                LogNoSession(logger, intentId);
+                LogNoSession(logger, intentId, preAlive);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -61,13 +64,18 @@ public sealed partial class TerminalKillOnIntentDoneHandler(
     private static partial void LogKilled(ILogger logger, string intentId);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
-        Message = "TerminalKillOnIntentDone: no tmux session killed for intent {IntentId} — "
-            + "either none existed or `tmux kill-session` failed (both collapse to false). "
-            + "Intent reached done but its session may still be alive.")]
-    private static partial void LogNoSession(ILogger logger, string intentId);
+        Message = "TerminalKillOnIntentDone: no tmux session killed for intent {IntentId} "
+            + "(pre_alive={PreAlive}) — either none existed or `tmux kill-session` returned non-zero. "
+            + "Intent reached done but its session may still be alive — see tmux kill-session log "
+            + "with same intent id for exit_code / stderr / post_alive.")]
+    private static partial void LogNoSession(ILogger logger, string intentId, bool preAlive);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
         Message = "TerminalKillOnIntentDone: tmux kill threw for intent {IntentId} — "
             + "swallowed (best-effort), session may still be alive.")]
     private static partial void LogKillFailed(ILogger logger, string intentId, Exception ex);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information,
+        Message = "TerminalKillOnIntentDone: invoked for intent {IntentId} (status={Status}, pre_alive={PreAlive}).")]
+    private static partial void LogInvoked(ILogger logger, string intentId, string status, bool preAlive);
 }

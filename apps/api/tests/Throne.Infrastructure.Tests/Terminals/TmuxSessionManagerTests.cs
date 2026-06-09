@@ -81,6 +81,26 @@ public class TmuxSessionManagerTests
         killed.Should().BeFalse();
     }
 
+    [Fact(DisplayName = "KillSession делает has-session до и после kill для диагностики")]
+    public async Task KillSession_probes_has_session_around_kill()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(launcher);
+        var sut = NewManager(launcher);
+
+        await sut.KillSessionAsync(IntentId, CancellationToken.None);
+
+        var argvs = launcher
+            .ReceivedCalls()
+            .Select(c => ((ProcessRunRequest)c.GetArguments()[0]!).Arguments)
+            .ToArray();
+
+        argvs.Should().HaveCount(3);
+        argvs[0].Should().Equal("has-session", "-t", "throne-intent-abc");
+        argvs[1].Should().Equal("kill-session", "-t", "throne-intent-abc");
+        argvs[2].Should().Equal("has-session", "-t", "throne-intent-abc");
+    }
+
     [Fact(DisplayName = "KillSession эмитит TerminalSessionStopped при успехе и молчит при провале")]
     public async Task KillSession_emits_stopped_only_on_success()
     {
