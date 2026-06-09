@@ -36,4 +36,19 @@ internal static partial class TerminalsLog
     [LoggerMessage(EventId = 7, Level = LogLevel.Warning,
         Message = "failed to pre-seed agent trust for {WorkspacePath}: {Reason}")]
     public static partial void ClaudeTrustSeedFailed(ILogger logger, string workspacePath, string reason);
+
+    [LoggerMessage(EventId = 8, Level = LogLevel.Information,
+        Message = "tmux kill-session: name={SessionName} pre_alive={PreAlive} exit={ExitCode} elapsed_ms={ElapsedMs} stderr={Stderr} post_alive={PostAlive}")]
+    public static partial void TmuxKillResult(
+        ILogger logger,
+        string sessionName,
+        bool preAlive,
+        int exitCode,
+        long elapsedMs,
+        string stderr,
+        bool postAlive);
+
+    [LoggerMessage(EventId = 9, Level = LogLevel.Warning,
+        Message = "tmux kill-session: name={SessionName} did not start (binary missing or launcher failure): {Detail}")]
+    public static partial void TmuxKillUnavailable(ILogger logger, string sessionName, string detail);
 }
