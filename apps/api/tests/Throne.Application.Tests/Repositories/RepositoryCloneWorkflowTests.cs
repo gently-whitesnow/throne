@@ -13,6 +13,7 @@ public class RepositoryCloneWorkflowTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 24, 12, 0, 0, TimeSpan.Zero);
     private const string IntentIdValue = "intent-1";
+    private const string WorkspaceRoot = "/tmp/throne-test-workspaces";
 
     [Fact(DisplayName = "RunAsync: успешный клон даёт pending→cloning→ready и два progress-события")]
     public async Task RunAsync_success_progresses_pending_cloning_ready()
@@ -112,6 +113,25 @@ public class RepositoryCloneWorkflowTests
         fixture.Events.OfType<IntentRepositoryCloneProgress>().Should().ContainSingle();
     }
 
+    [Fact(DisplayName = "RunAsync: клон идёт в путь от живого root, а не в stale persisted WorkspacePath")]
+    public async Task RunAsync_clones_into_recomputed_path_not_stale_persisted()
+    {
+        var fixture = new WorkflowFixture();
+        // Persisted path embeds another machine's home (shared Mongo через туннель):
+        // клонить по нему — Permission denied. Должен пересчитаться под живой root.
+        var stalePath = $"/Users/someone-else/.throne/workspaces/intents/{IntentIdValue}/octo__hello";
+        var binding = fixture.SeedBinding(cloneStatus: CloneStatusNames.Pending, workspacePath: stalePath);
+
+        var result = await fixture.Workflow.RunAsync(binding.Id, CancellationToken.None);
+
+        result.Should().Be(CloneRunResult.Ready);
+        var expected = $"{WorkspaceRoot}/intents/{IntentIdValue}/octo__hello";
+        await fixture.Provider.Received(1).CloneRepositoryAsync(
+            binding.Coordinate.Owner, binding.Coordinate.Repo, expected, Arg.Any<CancellationToken>());
+        await fixture.Provider.DidNotReceive().CloneRepositoryAsync(
+            Arg.Any<string>(), Arg.Any<string>(), stalePath, Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "MarkInterruptedAsync переводит cloning→failed(reason) и эмитит progress-событие")]
     public async Task MarkInterrupted_flips_cloning_to_failed()
     {
@@ -158,7 +178,11 @@ public class RepositoryCloneWorkflowTests
             Events = uow.Events;
             var clock = new FixedClock(Now);
             var writer = new RepositoryCloneTransitionWriter(Bindings, uow, clock);
-            Workflow = new RepositoryCloneWorkflow(Bindings, Providers, writer);
+            // Root that makes WorkspacePathLayout.Compute reproduce the seeded binding's
+            // WorkspacePath, so the recompute-before-clone path keeps the same assertions.
+            var workspace = Substitute.For<IWorkspaceRootProvider>();
+            workspace.ResolvedRoot.Returns(WorkspaceRoot);
+            Workflow = new RepositoryCloneWorkflow(Bindings, Providers, writer, workspace);
         }
 
         public IIntentRepositoryBindingRepository Bindings { get; }
@@ -173,21 +197,22 @@ public class RepositoryCloneWorkflowTests
 
         public IntentRepositoryBinding SeedBinding(
             string intentId = IntentIdValue,
-            string cloneStatus = CloneStatusNames.Pending)
+            string cloneStatus = CloneStatusNames.Pending,
+            string? workspacePath = null)
         {
-            var binding = NewBinding(intentId, cloneStatus);
+            var binding = NewBinding(intentId, cloneStatus, workspacePath);
             Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<IntentRepositoryBinding?>(binding));
             return binding;
         }
     }
 
-    private static IntentRepositoryBinding NewBinding(string intentId, string cloneStatus)
+    private static IntentRepositoryBinding NewBinding(string intentId, string cloneStatus, string? workspacePath = null)
     {
         var snapshot = new IntentRepositoryBindingSnapshot(
             Id: BindingId.New(),
             IntentId: new IntentId(intentId),
             Coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "hello"),
-            WorkspacePath: $"/tmp/throne-test-workspaces/intents/{intentId}/octo__hello",
+            WorkspacePath: workspacePath ?? $"{WorkspaceRoot}/intents/{intentId}/octo__hello",
             DefaultBranch: "main",
             CloneStatus: cloneStatus,
             CloneError: null,
