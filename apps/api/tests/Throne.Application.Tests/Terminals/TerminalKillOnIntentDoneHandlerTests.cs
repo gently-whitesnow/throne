@@ -25,6 +25,20 @@ public class TerminalKillOnIntentDoneHandlerTests
         await fixture.Tmux.Received(1).KillSessionAsync(IntentIdValue, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Перед kill зовётся has-session для pre-kill snapshot в логе")]
+    public async Task Probes_has_session_before_kill()
+    {
+        var fixture = new Fixture();
+
+        await fixture.Handler.HandleAsync(StatusEvent(IntentStatusNames.Done), CancellationToken.None);
+
+        Received.InOrder(() =>
+        {
+            fixture.Tmux.HasSessionAsync(IntentIdValue, Arg.Any<CancellationToken>());
+            fixture.Tmux.KillSessionAsync(IntentIdValue, Arg.Any<CancellationToken>());
+        });
+    }
+
     [Fact(DisplayName = "IntentStatusChanged → reject: сессия не трогается")]
     public async Task Does_not_kill_on_reject()
     {
