@@ -188,6 +188,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/diff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the provider-derived diff of the binding's pull request or one of its commits.
+         * @description Slice 4A — backs the review workspace. Diff is read from the provider on demand (`gh` / `glab`) and is never persisted server-side. `scope=request` returns the full PR/MR diff against its base; `scope=commit` returns the diff of `commit_sha` against its parent. SHAs are carried back to the UI so a follow-up `submitIntentRepositoryReviewComment` can round-trip the anchor without an extra fetch.
+         */
+        get: operations["getIntentRepositoryReviewDiff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/commits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the commits that belong to the binding's pull request.
+         * @description Slice 4A — backs the per-commit selector in the review workspace. Read straight from the provider (no durable cache). Ordered by commit timestamp ascending.
+         */
+        get: operations["listIntentRepositoryReviewCommits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit an inline review comment to the provider.
+         * @description Slice 4A — pushes a single inline review comment directly to the provider (GitHub review comment / GitLab MR discussion). Server is pointer-only: the comment is not stored locally. Anchor SHAs and paths come from a prior `getIntentRepositoryReviewDiff` response. The echoed comment is what the UI renders immediately; the comments feed is refreshed via the existing `listIntentRepositoryPullRequestComments` path.
+         */
+        post: operations["submitIntentRepositoryReviewComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories": {
         parameters: {
             query?: never;
@@ -454,6 +514,79 @@ export interface components {
             pull_request_state?: components["schemas"]["PullRequestState"] | null;
             /** Format: date-time */
             last_synced_at?: string | null;
+        };
+        /**
+         * @description `request` — diff of the whole pull/merge request against its base (default). `commit` — diff of a single commit by SHA (requires `commit_sha`).
+         * @enum {string}
+         */
+        ReviewDiffScope: "request" | "commit";
+        /**
+         * @description Lifecycle of a file inside a provider-derived diff.
+         * @enum {string}
+         */
+        PullRequestDiffFileStatus: "added" | "modified" | "removed" | "renamed" | "copied";
+        /**
+         * @description Side of the diff a review comment is anchored to. `right` — new (post-change) side; `left` — old (pre-change) side. Maps to GitHub `RIGHT`/`LEFT` and to GitLab `new_line` / `old_line` position fields respectively.
+         * @enum {string}
+         */
+        ReviewCommentSide: "right" | "left";
+        PullRequestDiffFileDto: {
+            /** @description New (post-change) path of the file in the repository. */
+            path: string;
+            /** @description Old path when the file was renamed/copied; null otherwise. */
+            previous_path?: string | null;
+            status: components["schemas"]["PullRequestDiffFileStatus"];
+            /** @description Raw unified-diff hunks for this file; empty for binary/too-large diffs. */
+            patch: string;
+        };
+        PullRequestDiffDto: {
+            /** @description SHA the diff is computed against (PR base or commit parent). */
+            base_sha: string;
+            /** @description SHA of the diff's head end (PR head or commit itself). */
+            head_sha: string;
+            /** @description Start SHA — equals `base_sha` for the request scope on GitHub. GitLab MRs distinguish `start_sha` from `base_sha` for the discussion position; the UI must round-trip both back into `submitIntentRepositoryReviewComment`. */
+            start_sha: string;
+            files: components["schemas"]["PullRequestDiffFileDto"][];
+        };
+        PullRequestCommitDto: {
+            /** @description Full commit SHA. */
+            sha: string;
+            /** @description Commit message — first line is the title. */
+            message: string;
+            /** @description Author's provider login when available; falls back to display name. */
+            author_login?: string | null;
+            /** Format: date-time */
+            committed_at: string;
+        };
+        SubmitReviewCommentRequest: {
+            /** @description Comment body (Markdown). */
+            content: string;
+            /** @description New path of the file the comment anchors to. */
+            path: string;
+            /** @description Old path when the file was renamed; otherwise omit. */
+            previous_path?: string | null;
+            side: components["schemas"]["ReviewCommentSide"];
+            /**
+             * Format: int32
+             * @description 1-based line number on `side`.
+             */
+            line: number;
+            /** @description Head SHA the anchor was computed against (from the diff response). */
+            commit_sha: string;
+            /** @description Base SHA from the diff response (GitLab discussion position). */
+            base_sha: string;
+            /** @description Start SHA from the diff response (GitLab discussion position). */
+            start_sha: string;
+        };
+        SubmittedReviewCommentDto: {
+            id: string;
+            binding_id: string;
+            author_login: string;
+            body: string;
+            /** Format: uri */
+            html_url?: string | null;
+            /** Format: date-time */
+            created_at: string;
         };
         /**
          * @description Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
@@ -928,6 +1061,164 @@ export interface operations {
             };
             /** @description Binding has no associated pull request number. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getIntentRepositoryReviewDiff: {
+        parameters: {
+            query?: {
+                scope?: components["schemas"]["ReviewDiffScope"];
+                /** @description Required when `scope=commit`; ignored for `scope=request`. */
+                commit_sha?: string;
+            };
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestDiffDto"];
+                };
+            };
+            /** @description Intent, binding or upstream PR/commit not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unauthenticated, scope mismatch, or missing commit_sha. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listIntentRepositoryReviewCommits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestCommitDto"][];
+                };
+            };
+            /** @description Intent, binding or upstream PR not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unauthenticated. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    submitIntentRepositoryReviewComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitReviewCommentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created — the freshly submitted comment as echoed by the provider. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmittedReviewCommentDto"];
+                };
+            };
+            /** @description Intent, binding or upstream PR not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Anchor invalid (outdated SHA, line not in diff) or provider unauthenticated. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

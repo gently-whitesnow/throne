@@ -24,7 +24,8 @@ internal sealed class GitHubCliProviderFixture
         var probe = new GhAuthProbe(invoker);
         var prActions = new GhPullRequestActions(invoker);
         var refListers = new GhRefListers(new GhBranchLister(invoker), new GhPullRequestLister(invoker));
-        Provider = new GitHubCliProvider(searcher, actions, probe, prActions, refListers);
+        var reviewWorkspace = new GhReviewWorkspaceActions(invoker);
+        Provider = new GitHubCliProvider(searcher, actions, probe, prActions, refListers, reviewWorkspace);
     }
 
     public IProcessLauncher Launcher { get; }

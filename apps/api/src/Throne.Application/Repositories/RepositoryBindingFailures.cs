@@ -102,6 +102,17 @@ internal static class RepositoryBindingFailures
                 ["clone_status"] = binding.State.CloneStatus,
             });
 
+    public static ApiException ReviewAnchorInvalid(IntentRepositoryBinding binding, GitProviderException reason) =>
+        new(
+            ErrorCodes.RepositoryReviewAnchorInvalid,
+            $"Provider rejected the review comment anchor for binding '{binding.Id.Value}': {reason.Message}",
+            new Dictionary<string, object?>
+            {
+                ["binding_id"] = binding.Id.Value,
+                ["provider"] = binding.Coordinate.Provider,
+                ["detail"] = reason.Detail,
+            });
+
     public static ApiException InvalidCoordinate(string owner, string repo, string detail) =>
         new(
             ErrorCodes.RepositoryProviderUnsupported,

@@ -19,6 +19,13 @@ public enum GitProviderErrorKind
 
     /// <summary>Vendor CLI is missing or returned an unrecognised failure.</summary>
     CliFailure = 3,
+
+    /// <summary>
+    /// Submit-review-comment anchor refers to a line/path that upstream does not
+    /// accept against the supplied commit (typically «position cannot be mapped to
+    /// the diff» or «outdated diff»). Caller should refetch the diff and retry.
+    /// </summary>
+    ReviewCommentAnchorInvalid = 4,
 }
 
 /// <summary>

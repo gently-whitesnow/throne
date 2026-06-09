@@ -24,7 +24,8 @@ internal sealed class GitLabCliProviderFixture
         var probe = new GlabAuthProbe(invoker, settings);
         var prActions = new GlabPullRequestActions(invoker, settings);
         var refListers = new GlabRefListers(new GlabBranchLister(invoker, settings), new GlabPullRequestLister(invoker, settings));
-        Provider = new GitLabCliProvider(searcher, actions, probe, prActions, refListers);
+        var reviewWorkspace = new GlabReviewWorkspaceActions(invoker, settings);
+        Provider = new GitLabCliProvider(searcher, actions, probe, prActions, refListers, reviewWorkspace);
     }
 
     public const string Host = "gitlab.example.com";
