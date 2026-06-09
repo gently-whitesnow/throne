@@ -107,4 +107,52 @@ public interface IGitProvider
     /// Used by the settings page and the bind-modal precondition check.
     /// </summary>
     Task<ProviderAuthStatus> GetAuthStatusAsync(CancellationToken ct);
+
+    /// <summary>
+    /// Fetch the provider-derived diff of an entire pull/merge request as
+    /// per-file unified patches plus the SHAs needed to round-trip review comments.
+    /// Returns <see langword="null"/> when upstream returns 404.
+    /// Backs <c>scope=request</c> of the review-workspace diff endpoint (Slice 4A).
+    /// </summary>
+    Task<PullRequestDiff?> GetPullRequestDiffAsync(
+        string owner,
+        string repo,
+        int number,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Fetch the diff of a single commit by SHA in the same shape as
+    /// <see cref="GetPullRequestDiffAsync"/>. Backs <c>scope=commit</c>.
+    /// Returns <see langword="null"/> when upstream returns 404 for the commit.
+    /// </summary>
+    Task<PullRequestDiff?> GetCommitDiffAsync(
+        string owner,
+        string repo,
+        string commitSha,
+        CancellationToken ct);
+
+    /// <summary>
+    /// List the commits inside a pull/merge request — backs the per-commit
+    /// selector in the review workspace. Returns <see langword="null"/> when
+    /// upstream returns 404.
+    /// </summary>
+    Task<IReadOnlyList<PullRequestCommitRef>?> ListPullRequestCommitsAsync(
+        string owner,
+        string repo,
+        int number,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Submit an inline review comment straight to the provider (no durable storage
+    /// on Throne's side). The anchor is provider-neutral and was produced from a
+    /// <see cref="PullRequestDiff"/>; provider implementations map it into the
+    /// upstream wire format. Returns the echoed comment so the UI can render it
+    /// before the next manual refresh of the comments feed.
+    /// </summary>
+    Task<SubmittedReviewComment> SubmitReviewCommentAsync(
+        string owner,
+        string repo,
+        int number,
+        SubmitReviewCommentRequest request,
+        CancellationToken ct);
 }

@@ -591,6 +591,304 @@ namespace Throne.Repositories.Contracts.Generated
     }
 
     /// <summary>
+    /// `request` — diff of the whole pull/merge request against its base (default). `commit` — diff of a single commit by SHA (requires `commit_sha`).
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ReviewDiffScope
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"request")]
+        [System.Runtime.Serialization.EnumMember(Value = @"request")]
+        Request = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"commit")]
+        [System.Runtime.Serialization.EnumMember(Value = @"commit")]
+        Commit = 1,
+
+    }
+
+    /// <summary>
+    /// Lifecycle of a file inside a provider-derived diff.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PullRequestDiffFileStatus
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"added")]
+        [System.Runtime.Serialization.EnumMember(Value = @"added")]
+        Added = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"modified")]
+        [System.Runtime.Serialization.EnumMember(Value = @"modified")]
+        Modified = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"removed")]
+        [System.Runtime.Serialization.EnumMember(Value = @"removed")]
+        Removed = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"renamed")]
+        [System.Runtime.Serialization.EnumMember(Value = @"renamed")]
+        Renamed = 3,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"copied")]
+        [System.Runtime.Serialization.EnumMember(Value = @"copied")]
+        Copied = 4,
+
+    }
+
+    /// <summary>
+    /// Side of the diff a review comment is anchored to. `right` — new (post-change) side; `left` — old (pre-change) side. Maps to GitHub `RIGHT`/`LEFT` and to GitLab `new_line` / `old_line` position fields respectively.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ReviewCommentSide
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"right")]
+        [System.Runtime.Serialization.EnumMember(Value = @"right")]
+        Right = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"left")]
+        [System.Runtime.Serialization.EnumMember(Value = @"left")]
+        Left = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PullRequestDiffFileDto
+    {
+
+        /// <summary>
+        /// New (post-change) path of the file in the repository.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("path")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Path { get; set; }
+
+        /// <summary>
+        /// Old path when the file was renamed/copied; null otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("previous_path")]
+        public string Previous_path { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestDiffFileStatus>))]
+        public PullRequestDiffFileStatus Status { get; set; }
+
+        /// <summary>
+        /// Raw unified-diff hunks for this file; empty for binary/too-large diffs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("patch")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Patch { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PullRequestDiffDto
+    {
+
+        /// <summary>
+        /// SHA the diff is computed against (PR base or commit parent).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Base_sha { get; set; }
+
+        /// <summary>
+        /// SHA of the diff's head end (PR head or commit itself).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("head_sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Head_sha { get; set; }
+
+        /// <summary>
+        /// Start SHA — equals `base_sha` for the request scope on GitHub. GitLab MRs distinguish `start_sha` from `base_sha` for the discussion position; the UI must round-trip both back into `submitIntentRepositoryReviewComment`.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start_sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Start_sha { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("files")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PullRequestDiffFileDto> Files { get; set; } = new System.Collections.ObjectModel.Collection<PullRequestDiffFileDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PullRequestCommitDto
+    {
+
+        /// <summary>
+        /// Full commit SHA.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Sha { get; set; }
+
+        /// <summary>
+        /// Commit message — first line is the title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Message { get; set; }
+
+        /// <summary>
+        /// Author's provider login when available; falls back to display name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("author_login")]
+        public string Author_login { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("committed_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Committed_at { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SubmitReviewCommentRequest
+    {
+
+        /// <summary>
+        /// Comment body (Markdown).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("content")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Content { get; set; }
+
+        /// <summary>
+        /// New path of the file the comment anchors to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("path")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Path { get; set; }
+
+        /// <summary>
+        /// Old path when the file was renamed; otherwise omit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("previous_path")]
+        public string Previous_path { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("side")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ReviewCommentSide>))]
+        public ReviewCommentSide Side { get; set; }
+
+        /// <summary>
+        /// 1-based line number on `side`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("line")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Line { get; set; }
+
+        /// <summary>
+        /// Head SHA the anchor was computed against (from the diff response).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("commit_sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Commit_sha { get; set; }
+
+        /// <summary>
+        /// Base SHA from the diff response (GitLab discussion position).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Base_sha { get; set; }
+
+        /// <summary>
+        /// Start SHA from the diff response (GitLab discussion position).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start_sha")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 7)]
+        public string Start_sha { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SubmittedReviewCommentDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("binding_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Binding_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("author_login")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Author_login { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Body { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("html_url")]
+        public System.Uri Html_url { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created_at { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
     /// Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
     /// <br/>
     /// </summary>

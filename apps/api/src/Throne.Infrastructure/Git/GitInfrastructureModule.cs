@@ -47,6 +47,7 @@ internal static class GitInfrastructureModule
         services.AddSingleton<GhRepoActions>();
         services.AddSingleton<GhAuthProbe>();
         services.AddSingleton<GhPullRequestActions>();
+        services.AddSingleton<GhReviewWorkspaceActions>();
         services.AddSingleton<GhBranchLister>();
         services.AddSingleton<GhPullRequestLister>();
         services.AddSingleton<GhRefListers>();
@@ -56,6 +57,7 @@ internal static class GitInfrastructureModule
         services.AddSingleton<GlabRepoActions>();
         services.AddSingleton<GlabAuthProbe>();
         services.AddSingleton<GlabPullRequestActions>();
+        services.AddSingleton<GlabReviewWorkspaceActions>();
         services.AddSingleton<GlabBranchLister>();
         services.AddSingleton<GlabPullRequestLister>();
         services.AddSingleton<GlabRefListers>();
