@@ -66,6 +66,9 @@ internal static class CloneRunnerHarnessBuilder
         services.AddSingleton<IRepositoryCloneRequests>(channel);
         services.AddSingleton<IRepositoryCloneRequestsReader>(channel);
         services.AddSingleton<RepositoryCloneTransitionWriter>();
+        var workspace = Substitute.For<IWorkspaceRootProvider>();
+        workspace.ResolvedRoot.Returns("/tmp/throne-test-workspaces");
+        services.AddSingleton(workspace);
         services.AddSingleton<RepositoryCloneWorkflow>();
         services.AddSingleton<RepositoryCloneRecoveryWorkflow>();
         services.AddSingleton(Options.Create(new CloneRunnerOptions { MaxParallel = maxParallel }));
