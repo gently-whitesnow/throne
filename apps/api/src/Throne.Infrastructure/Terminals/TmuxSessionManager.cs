@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Throne.Application.Events;
 using Throne.Application.Terminals;
@@ -39,7 +40,29 @@ internal sealed class TmuxSessionManager(
     public async Task<bool> KillSessionAsync(string intentId, CancellationToken ct)
     {
         var sessionName = TmuxSessionName.For(intentId);
+        var preAlive = await HasSessionAsync(intentId, ct);
+        var sw = Stopwatch.StartNew();
         var outcome = await tmux.RunAsync(["kill-session", "-t", sessionName], ct);
+        sw.Stop();
+
+        if (!outcome.IsCompleted)
+        {
+            TerminalsLog.TmuxKillUnavailable(
+                log, sessionName, outcome.BinaryMissingDetail ?? outcome.FailureDetail ?? "<no detail>");
+            return false;
+        }
+
+        var result = outcome.Result!;
+        var postAlive = await HasSessionAsync(intentId, ct);
+        TerminalsLog.TmuxKillResult(
+            log,
+            sessionName,
+            preAlive,
+            result.ExitCode,
+            sw.ElapsedMilliseconds,
+            string.IsNullOrEmpty(result.StandardError) ? "<empty>" : result.StandardError.Trim(),
+            postAlive);
+
         if (!outcome.IsSuccess)
         {
             return false;
