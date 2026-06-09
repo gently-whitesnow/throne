@@ -19,6 +19,8 @@ export {
   isCloneBroken,
   hasPullRequest,
   repositoryFullName,
+  changeRequestKindLabel,
+  changeRequestRefLabel,
   compareBindings
 } from "./model/selectors";
 export {

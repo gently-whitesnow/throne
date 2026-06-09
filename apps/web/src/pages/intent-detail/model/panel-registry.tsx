@@ -7,6 +7,7 @@ import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 import { IntentLinksSection } from "@/widgets/intent-links-section";
 import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
 import { RepositoryBindingsList } from "@/widgets/repository-bindings-list";
+import { ReviewWorkspaceEntry } from "@/widgets/review-workspace";
 
 import type { PanelGating } from "./select-panels";
 
@@ -40,6 +41,13 @@ export const intentDetailPanels: readonly IntentPanelDescriptor[] = [
     order: 10,
     capability: "repositories",
     Component: ({ intent }) => <RepositoryBindingsList intentId={intent.id} />
+  },
+  {
+    id: "review-workspace",
+    placement: "review",
+    order: 15,
+    capability: "repositories",
+    Component: ({ intent }) => <ReviewWorkspaceEntry intentId={intent.id} />
   },
   {
     id: "pull-request-comments",

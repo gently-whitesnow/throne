@@ -1,4 +1,4 @@
-import type { CloneStatus, RepositoryBinding } from "./types";
+import type { CloneStatus, GitProvider, RepositoryBinding } from "./types";
 
 /**
  * Predicates used by consumers (intent page, settings) to keep render logic
@@ -32,6 +32,26 @@ export function repositoryFullName(
   binding: Pick<RepositoryBinding, "owner" | "repo">
 ): string {
   return `${binding.owner}/${binding.repo}`;
+}
+
+/**
+ * Provider-neutral change-request terminology: GitHub зовёт это Pull Request,
+ * GitLab — Merge Request с символом `!`. UI ревьюилки не зашивает GitHub-only
+ * термины, поэтому лейбл выводим из `provider`.
+ */
+export function changeRequestKindLabel(provider: GitProvider): "PR" | "MR" {
+  return provider === "gitlab" ? "MR" : "PR";
+}
+
+/** `PR #42` для GitHub, `MR !42` для GitLab — ссылка на привязанный PR/MR. */
+export function changeRequestRefLabel(
+  binding: Pick<RepositoryBinding, "provider" | "pull_request_number">
+): string | null {
+  if (typeof binding.pull_request_number !== "number") return null;
+  const symbol = binding.provider === "gitlab" ? "!" : "#";
+  return `${changeRequestKindLabel(binding.provider)} ${symbol}${String(
+    binding.pull_request_number
+  )}`;
 }
 
 /** Sort bindings deterministically: ready first, then by creation time desc. */
