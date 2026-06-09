@@ -7,7 +7,13 @@ export type {
   PullRequestCommit,
   SubmitReviewCommentRequest,
   SubmittedReviewComment,
-  ReviewCommentAnchorShas
+  ReviewCommentAnchorShas,
+  MergeStrategy,
+  PullRequestMergeability,
+  PullRequestChecksState,
+  PullRequestMergeStatus,
+  MergePullRequestRequest,
+  MergePullRequestResult
 } from "./model/types";
 
 export {
@@ -15,6 +21,8 @@ export {
   listReviewCommits,
   submitReviewComment
 } from "./api/review-api";
+
+export { getPullRequestMergeStatus, mergePullRequest } from "./api/merge-api";
 
 export {
   reviewWorkspaceQueryKeys,

@@ -29,3 +29,20 @@ export type ReviewCommentAnchorShas = Pick<
   SubmitReviewCommentRequest,
   "commit_sha" | "base_sha" | "start_sha"
 >;
+
+export type MergeStrategy = RepositoriesComponents["schemas"]["MergeStrategy"];
+
+export type PullRequestMergeability =
+  RepositoriesComponents["schemas"]["PullRequestMergeability"];
+
+export type PullRequestChecksState =
+  RepositoriesComponents["schemas"]["PullRequestChecksState"];
+
+export type PullRequestMergeStatus =
+  RepositoriesComponents["schemas"]["PullRequestMergeStatusDto"];
+
+export type MergePullRequestRequest =
+  RepositoriesComponents["schemas"]["MergePullRequestRequest"];
+
+export type MergePullRequestResult =
+  RepositoriesComponents["schemas"]["MergePullRequestResultDto"];

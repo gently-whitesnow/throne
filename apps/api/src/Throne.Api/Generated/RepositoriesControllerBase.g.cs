@@ -200,6 +200,26 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPatch, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-threads/{thread_id}", Name = "updateIntentRepositoryReviewThread")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<ReviewThreadDto>> UpdateIntentRepositoryReviewThread([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string thread_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateReviewThreadRequest body);
 
+        /// <summary>
+        /// Read the binding's PR/MR mergeability and checks state from the provider.
+        /// </summary>
+        /// <remarks>
+        /// Slice C — backs the merge control in the review workspace. Mergeability and checks state are read straight from the provider on demand (GitHub `mergeable`/`mergeStateStatus`/`statusCheckRollup`, GitLab `detailed_merge_status` + head pipeline). `html_url` points at the PR/MR page so the UI can send the reviewer to the provider when a merge is not possible.
+        /// </remarks>
+        /// <returns>OK — provider-neutral mergeability + checks snapshot.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/merge-status", Name = "getIntentRepositoryPullRequestMergeStatus")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestMergeStatusDto>> GetIntentRepositoryPullRequestMergeStatus([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
+
+        /// <summary>
+        /// Merge the binding's PR/MR at the provider.
+        /// </summary>
+        /// <remarks>
+        /// Slice C — merges the attached pull/merge request via the provider CLI (`gh pr merge` / `glab mr merge`) with the chosen strategy and optional source-branch deletion. When the provider refuses the merge (conflicts, failing checks, branch protection) the call returns `409` with the provider's reason so the reviewer can resolve it on the provider page.
+        /// </remarks>
+        /// <returns>OK — the PR/MR was merged.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/merge", Name = "mergeIntentRepositoryPullRequest")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<MergePullRequestResultDto>> MergeIntentRepositoryPullRequest([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] MergePullRequestRequest body);
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

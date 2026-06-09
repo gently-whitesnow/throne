@@ -17,7 +17,9 @@ public sealed class IntentRepositoriesController(
     ListIntentRepositoryReviewCommitsEndpoint reviewCommitsEndpoint,
     SubmitIntentRepositoryReviewCommentEndpoint submitReviewCommentEndpoint,
     DeleteIntentRepositoryPullRequestCommentEndpoint deleteReviewCommentEndpoint,
-    UpdateIntentRepositoryReviewThreadEndpoint updateReviewThreadEndpoint) : IntentRepositoriesControllerBase
+    UpdateIntentRepositoryReviewThreadEndpoint updateReviewThreadEndpoint,
+    GetIntentRepositoryPullRequestMergeStatusEndpoint mergeStatusEndpoint,
+    MergeIntentRepositoryPullRequestEndpoint mergeEndpoint) : IntentRepositoriesControllerBase
 {
     public override Task<ActionResult<ICollection<RepositoryBindingDto>>> ListIntentRepositories(string intent_id) =>
         listEndpoint.RunAsync(intent_id, HttpContext.RequestAborted);
@@ -88,6 +90,17 @@ public sealed class IntentRepositoriesController(
         string thread_id,
         UpdateReviewThreadRequest body) =>
         updateReviewThreadEndpoint.RunAsync(intent_id, binding_id, thread_id, body, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<PullRequestMergeStatusDto>> GetIntentRepositoryPullRequestMergeStatus(
+        string intent_id,
+        string binding_id) =>
+        mergeStatusEndpoint.RunAsync(intent_id, binding_id, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<MergePullRequestResultDto>> MergeIntentRepositoryPullRequest(
+        string intent_id,
+        string binding_id,
+        MergePullRequestRequest body) =>
+        mergeEndpoint.RunAsync(intent_id, binding_id, body, HttpContext.RequestAborted);
 
     private static Throne.Application.Repositories.ReviewDiffScope ToAppScope(ReviewDiffScope wire) => wire switch
     {
