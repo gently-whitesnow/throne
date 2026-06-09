@@ -12,6 +12,7 @@ import { RepositoriesSectionPage } from "@/pages/repositories-section";
 import { SettingsPage } from "@/pages/settings";
 import { TagsSectionPage } from "@/pages/tags-section";
 import { AppShell } from "@/widgets/app-shell";
+import { ReviewWorkspaceRoute } from "@/widgets/review-workspace";
 
 import { createQueryClient } from "./query-client";
 import { RealtimeQueryBridge } from "./realtime-query-bridge";
@@ -26,7 +27,12 @@ export function App() {
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/intents" element={<IntentsSectionPage />}>
-              <Route path=":id" element={<IntentDetailPage />} />
+              <Route path=":id" element={<IntentDetailPage />}>
+                <Route
+                  path="review/:bindingId"
+                  element={<ReviewWorkspaceRoute />}
+                />
+              </Route>
             </Route>
             <Route path="/tags" element={<TagsSectionPage />} />
             <Route path="/repositories" element={<RepositoriesSectionPage />} />

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Outlet, useNavigate, useParams } from "react-router-dom";
 
 import { useIntent } from "@/entities/intent";
 import { HttpError } from "@/shared/api";
@@ -37,5 +37,11 @@ export function IntentDetailPage() {
     );
   }
 
-  return <IntentDetailShell intent={intentQuery.data} />;
+  return (
+    <>
+      <IntentDetailShell intent={intentQuery.data} />
+      {/* Вложенный роут ревьюилки рендерит fullscreen-портал поверх деталей. */}
+      <Outlet />
+    </>
+  );
 }
