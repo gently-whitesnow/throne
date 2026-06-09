@@ -9,7 +9,7 @@ namespace Throne.Infrastructure.Git.GitLabCli;
 /// <see cref="SubmitReviewCommentAsync"/> from
 /// <see cref="GetPullRequestDiffAsync"/> output.
 /// </summary>
-internal sealed class GlabReviewWorkspaceActions(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
 {
     public async Task<PullRequestDiff?> GetPullRequestDiffAsync(
         string owner,

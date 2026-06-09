@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Throne.Application.Ports;
@@ -22,7 +23,8 @@ internal sealed class GitHubCliProviderFixture
         var searcher = new GhRepoSearcher(invoker, listExec);
         var actions = new GhRepoActions(invoker);
         var probe = new GhAuthProbe(invoker);
-        var prActions = new GhPullRequestActions(invoker);
+        var threadsReader = new GhReviewThreadsReader(invoker, NullLogger<GhReviewThreadsReader>.Instance);
+        var prActions = new GhPullRequestActions(invoker, threadsReader);
         var refListers = new GhRefListers(new GhBranchLister(invoker), new GhPullRequestLister(invoker));
         var reviewWorkspace = new GhReviewWorkspaceActions(invoker);
         Provider = new GitHubCliProvider(searcher, actions, probe, prActions, refListers, reviewWorkspace);

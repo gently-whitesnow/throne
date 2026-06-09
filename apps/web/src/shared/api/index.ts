@@ -25,6 +25,7 @@ export {
   httpGet,
   httpPost,
   httpPut,
+  httpPatch,
   httpPostForm,
   httpGetBlob,
   httpDelete,

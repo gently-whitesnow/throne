@@ -1,9 +1,10 @@
-import { ExternalLink, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import type { PullRequestComment } from "@/entities/pull-request-comment";
-import { formatRelativeTime } from "@/shared/lib";
 import { Button } from "@/shared/ui";
+
+import { ReviewCommentCard, type CommentActions } from "./ReviewCommentCard";
 
 type RailTab = "comments" | "context";
 
@@ -13,6 +14,8 @@ interface ReviewRightRailProps {
   commentsError: Error | null;
   syncing: boolean;
   onSync: () => void;
+  commentActions: CommentActions;
+  onJump: (comment: PullRequestComment) => void;
 }
 
 export function ReviewRightRail({
@@ -20,7 +23,9 @@ export function ReviewRightRail({
   commentsLoading,
   commentsError,
   syncing,
-  onSync
+  onSync,
+  commentActions,
+  onJump
 }: ReviewRightRailProps) {
   const [tab, setTab] = useState<RailTab>("comments");
 
@@ -53,6 +58,8 @@ export function ReviewRightRail({
           error={commentsError}
           syncing={syncing}
           onSync={onSync}
+          commentActions={commentActions}
+          onJump={onJump}
         />
       ) : (
         <ContextTab />
@@ -92,13 +99,17 @@ function CommentsTab({
   loading,
   error,
   syncing,
-  onSync
+  onSync,
+  commentActions,
+  onJump
 }: {
   comments: PullRequestComment[];
   loading: boolean;
   error: Error | null;
   syncing: boolean;
   onSync: () => void;
+  commentActions: CommentActions;
+  onJump: (comment: PullRequestComment) => void;
 }) {
   return (
     <>
@@ -138,52 +149,18 @@ function CommentsTab({
         ) : (
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {comments.map((c) => (
-              <CommentItem key={c.id} comment={c} />
+              <li key={c.id}>
+                <ReviewCommentCard
+                  comment={c}
+                  actions={commentActions}
+                  onJump={onJump}
+                />
+              </li>
             ))}
           </ul>
         )}
       </div>
     </>
-  );
-}
-
-function CommentItem({ comment }: { comment: PullRequestComment }) {
-  return (
-    <li className="flex flex-col gap-1 rounded-md border border-base-300 bg-base-100 px-3 py-2">
-      <div className="flex flex-wrap items-baseline gap-x-2 text-[11px]">
-        <span className="font-semibold text-base-content">
-          {comment.author_login}
-        </span>
-        <time
-          dateTime={comment.created_at}
-          className="tabular-nums text-base-content/60"
-        >
-          {formatRelativeTime(new Date(comment.created_at))}
-        </time>
-        {comment.html_url != null ? (
-          <a
-            href={comment.html_url}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Открыть комментарий у провайдера"
-            className="ml-auto inline-flex items-center gap-1 text-base-content/60 hover:text-primary"
-          >
-            <ExternalLink aria-hidden size={11} strokeWidth={2} />
-          </a>
-        ) : null}
-      </div>
-      {comment.path != null ? (
-        <span
-          className="truncate font-mono text-[10px] text-base-content/60"
-          title={comment.path}
-        >
-          {comment.path}
-        </span>
-      ) : null}
-      <p className="m-0 whitespace-pre-wrap break-words text-[12px] leading-relaxed text-base-content">
-        {comment.body}
-      </p>
-    </li>
   );
 }
 

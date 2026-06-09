@@ -52,3 +52,10 @@ public sealed record SubmittedReviewComment(
     string Body,
     DateTimeOffset CreatedAt,
     string? HtmlUrl);
+
+/// <summary>
+/// Resolution state of a review thread as echoed back by the provider after a
+/// resolve/reopen toggle. Throne keeps no local status — <see cref="Resolved"/>
+/// is read straight from the provider response.
+/// </summary>
+public sealed record ReviewThreadState(string ThreadId, bool Resolved);

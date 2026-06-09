@@ -268,6 +268,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-comments/{comment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a review comment at the provider.
+         * @description Removes a single inline review comment directly at the provider (GitHub `DELETE .../pulls/comments/{id}` / GitLab discussion note delete). Server is pointer-only — nothing is stored locally. `thread_id` is required for providers whose delete path is scoped to the thread (GitLab note); GitHub ignores it.
+         */
+        delete: operations["deleteIntentRepositoryPullRequestComment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-threads/{thread_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Resolve or reopen a review thread at the provider.
+         * @description Toggles the resolution state of a review thread directly at the provider (GitHub `resolveReviewThread` / `unresolveReviewThread` graphql mutation, GitLab discussion `resolved` flag). Throne stores no local status — the returned `resolved` is read back from the provider response.
+         */
+        patch: operations["updateIntentRepositoryReviewThread"];
+        trace?: never;
+    };
     "/api/v1/repositories": {
         parameters: {
             query?: never;
@@ -512,6 +552,17 @@ export interface components {
             html_url?: string | null;
             /** @description File path the review comment is anchored to, when available. */
             path?: string | null;
+            /**
+             * Format: int32
+             * @description 1-based line number on `side` the inline comment is anchored to. Null for comments without a diff anchor (issue/discussion-level comments) or outdated inline comments whose line no longer exists in the current diff.
+             */
+            line?: number | null;
+            /** @description Diff side `line` refers to. Null when the comment has no diff anchor. */
+            side?: components["schemas"]["ReviewCommentSide"] | null;
+            /** @description Resolution state of the comment's review thread, read from the provider (Throne stores no local status). Null when the comment is not part of a resolvable thread (e.g. GitHub issue-level comments). */
+            resolved?: boolean | null;
+            /** @description Provider thread/discussion id the comment belongs to — GitHub review-thread node id, GitLab discussion id. Round-tripped into `updateIntentRepositoryReviewThread`. Null when no resolvable thread exists. */
+            thread_id?: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -607,6 +658,16 @@ export interface components {
             html_url?: string | null;
             /** Format: date-time */
             created_at: string;
+        };
+        UpdateReviewThreadRequest: {
+            /** @description Target resolution state of the review thread. `true` resolves, `false` reopens. Applied at the provider (GitHub `resolveReviewThread` graphql mutation / GitLab discussion `resolved` flag); Throne keeps no local status. */
+            resolved: boolean;
+        };
+        ReviewThreadDto: {
+            /** @description Provider thread/discussion id whose state was just changed. */
+            thread_id: string;
+            /** @description Resolution state as echoed back by the provider after the change. */
+            resolved: boolean;
         };
         /**
          * @description Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
@@ -1270,6 +1331,115 @@ export interface operations {
                 };
             };
             /** @description Anchor invalid (outdated SHA, line not in diff) or provider unauthenticated. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    deleteIntentRepositoryPullRequestComment: {
+        parameters: {
+            query?: {
+                /** @description Provider thread/discussion id; required for GitLab note deletion. */
+                thread_id?: string;
+            };
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+                /** @description Upstream comment id as carried by `PullRequestCommentDto.id`. */
+                comment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Comment deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Intent, binding or comment not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unauthenticated, or thread_id missing where required. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    updateIntentRepositoryReviewThread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+                /** @description Provider thread/discussion id as carried by `PullRequestCommentDto.thread_id`. */
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateReviewThreadRequest"];
+            };
+        };
+        responses: {
+            /** @description OK — the thread's resolution state as echoed by the provider. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewThreadDto"];
+                };
+            };
+            /** @description Intent, binding or thread not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unauthenticated or thread not resolvable. */
             422: {
                 headers: {
                     [name: string]: unknown;
