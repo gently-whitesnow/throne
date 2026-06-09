@@ -5,10 +5,13 @@ import type { PullRequestComment } from "@/entities/pull-request-comment";
 import { Button } from "@/shared/ui";
 
 import { ReviewCommentCard, type CommentActions } from "./ReviewCommentCard";
+import { ReviewDescriptionTab } from "./ReviewDescriptionTab";
 
-type RailTab = "comments" | "context";
+type RailTab = "description" | "comments" | "context";
 
 interface ReviewRightRailProps {
+  intentId: string;
+  bindingId: string;
   comments: PullRequestComment[];
   commentsLoading: boolean;
   commentsError: Error | null;
@@ -19,6 +22,8 @@ interface ReviewRightRailProps {
 }
 
 export function ReviewRightRail({
+  intentId,
+  bindingId,
   comments,
   commentsLoading,
   commentsError,
@@ -27,7 +32,7 @@ export function ReviewRightRail({
   commentActions,
   onJump
 }: ReviewRightRailProps) {
-  const [tab, setTab] = useState<RailTab>("comments");
+  const [tab, setTab] = useState<RailTab>("description");
 
   return (
     <aside
@@ -35,6 +40,13 @@ export function ReviewRightRail({
       className="flex h-full min-h-0 flex-col bg-base-100"
     >
       <div role="tablist" className="flex border-b border-base-300">
+        <TabButton
+          active={tab === "description"}
+          onClick={() => {
+            setTab("description");
+          }}
+          label="Описание"
+        />
         <TabButton
           active={tab === "comments"}
           onClick={() => {
@@ -51,7 +63,9 @@ export function ReviewRightRail({
         />
       </div>
 
-      {tab === "comments" ? (
+      {tab === "description" ? (
+        <ReviewDescriptionTab intentId={intentId} bindingId={bindingId} />
+      ) : tab === "comments" ? (
         <CommentsTab
           comments={comments}
           loading={commentsLoading}

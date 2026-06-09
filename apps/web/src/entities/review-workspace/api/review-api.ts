@@ -3,6 +3,7 @@ import { httpGet, httpPost, repositoriesEndpoints } from "@/shared/api";
 import type {
   PullRequestCommit,
   PullRequestDiff,
+  PullRequestHeader,
   ReviewDiffScope,
   SubmitReviewCommentRequest,
   SubmittedReviewComment
@@ -28,6 +29,17 @@ export function getReviewDiff(
     bindingId
   )}${buildDiffQuery(scope, commitSha)}`;
   return httpGet<PullRequestDiff>(path, signal);
+}
+
+export function getReviewPullRequest(
+  intentId: string,
+  bindingId: string,
+  signal?: AbortSignal
+): Promise<PullRequestHeader> {
+  return httpGet<PullRequestHeader>(
+    repositoriesEndpoints.getIntentRepositoryPullRequest(intentId, bindingId),
+    signal
+  );
 }
 
 export function listReviewCommits(

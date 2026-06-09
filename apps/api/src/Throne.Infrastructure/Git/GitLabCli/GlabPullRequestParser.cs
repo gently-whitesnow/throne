@@ -23,6 +23,11 @@ internal static class GlabPullRequestParser
             Number: GlabJson.Int(root, "iid") ?? requestedNumber,
             State: GlabPullRequestState.Normalize(GlabJson.String(root, "state")),
             Title: GlabJson.String(root, "title"),
-            HtmlUrl: GlabJson.String(root, "web_url"));
+            HtmlUrl: GlabJson.String(root, "web_url"),
+            Body: GlabJson.String(root, "description"),
+            AuthorLogin: GlabJson.NestedString(root, "author", "username"),
+            AuthorAvatarUrl: GlabJson.NestedString(root, "author", "avatar_url"),
+            HeadRef: GlabJson.String(root, "source_branch"),
+            BaseRef: GlabJson.String(root, "target_branch"));
     }
 }

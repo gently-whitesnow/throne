@@ -34,7 +34,12 @@ internal static class GhPullRequestParser
             Number: number,
             State: state,
             Title: GhJson.String(root, "title"),
-            HtmlUrl: GhJson.String(root, "html_url"));
+            HtmlUrl: GhJson.String(root, "html_url"),
+            Body: GhJson.String(root, "body"),
+            AuthorLogin: GhJson.NestedString(root, "user", "login"),
+            AuthorAvatarUrl: GhJson.NestedString(root, "user", "avatar_url"),
+            HeadRef: GhJson.NestedString(root, "head", "ref"),
+            BaseRef: GhJson.NestedString(root, "base", "ref"));
     }
 
     private static int ReadNumber(JsonElement root, int fallback)
