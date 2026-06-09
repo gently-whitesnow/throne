@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Events;
@@ -8,27 +7,12 @@ using Throne.Application.Ports;
 using Throne.Application.Repositories;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
+using static Throne.Application.Tests.Repositories.RepositoryBindingTestData;
 
 namespace Throne.Application.Tests.Repositories;
 
 public class RepositoryBindingServiceTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 5, 24, 12, 0, 0, TimeSpan.Zero);
-    private const string WorkspaceRoot = "/tmp/throne-test-workspaces";
-    private const string IntentIdValue = "intent-1";
-
-    // Default already-registered registry: CreateAsync aggregates the ensure outcome's Events,
-    // so the stub must return a non-null EnsureRepositoryOutcome for any coordinate.
-    private static IRepositoryRegistry StubRegistry()
-    {
-        var registry = Substitute.For<IRepositoryRegistry>();
-        registry
-            .EnsureRepositoryAsync(Arg.Any<RepoCoordinate>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
-            .Returns(ci => new EnsureRepositoryOutcome.Existed(
-                Repository.Create(RepositoryId.New(), ci.Arg<RepoCoordinate>(), ci.Arg<DateTimeOffset>())));
-        return registry;
-    }
-
     [Theory(DisplayName = "Bind создаёт binding, считает workspace_path и пушит в clone-queue по флагу enqueueClone")]
     [InlineData(true)]
     [InlineData(false)]
@@ -278,133 +262,4 @@ public class RepositoryBindingServiceTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(expectedCode);
     }
-
-    private static IntentRepositoryBinding NewBinding(
-        string intentId,
-        string owner = "octo",
-        string repo = "hello",
-        string cloneStatus = CloneStatusNames.Pending,
-        int? pullRequestNumber = null,
-        string? etag = null)
-    {
-        var snapshot = new IntentRepositoryBindingSnapshot(
-            Id: BindingId.New(),
-            IntentId: new IntentId(intentId),
-            Coordinate: new RepoCoordinate(GitProviderNames.GitHub, owner, repo),
-            WorkspacePath: $"{WorkspaceRoot}/intents/{intentId}/{owner}__{repo}",
-            DefaultBranch: "main",
-            CloneStatus: cloneStatus,
-            CloneError: null,
-            PullRequestNumber: pullRequestNumber,
-            PullRequestState: pullRequestNumber is null ? null : PullRequestStateNames.Open,
-            ReviewCommentsEtag: etag,
-            LastSeenReviewCommentAt: null,
-            LastSyncedAt: null,
-            CreatedAt: Now,
-            UpdatedAt: Now);
-        return IntentRepositoryBinding.Restore(snapshot);
-    }
-
-    private sealed class ServiceFixture
-    {
-        public ServiceFixture()
-        {
-            Intents = Substitute.For<IIntentRepository>();
-            Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
-            Providers = Substitute.For<IGitProviderRegistry>();
-            Provider = Substitute.For<IGitProvider>();
-            Provider.ProviderName.Returns(GitProviderNames.GitHub);
-            Providers.GetByName(GitProviderNames.GitHub).Returns(Provider);
-            Workspace = new StubWorkspaceRoot(WorkspaceRoot);
-            Remover = new RecordingWorkspaceRemover();
-            Queue = new RecordingCloneQueue();
-            var unitOfWork = new PassthroughUnitOfWork();
-            var clock = new FixedClock(Now);
-            var resolver = new RepositoryBindingResolver(Intents, Bindings, Providers);
-            var persistence = new RepositoryBindingPersistence(
-                Bindings, StubRegistry(), unitOfWork, clock, Workspace, Remover);
-            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, unitOfWork, clock);
-            var autoCloser = new IntentMergeAutoCloser(
-                Bindings,
-                Substitute.For<ISystemIntentStatusWriter>(),
-                unitOfWork,
-                clock,
-                NullLogger<IntentMergeAutoCloser>.Instance);
-            var stateRefresher = new PullRequestStateRefresher(
-                Bindings, unitOfWork, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
-            var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
-            Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, Queue);
-        }
-
-        public IIntentRepository Intents { get; }
-        public IIntentRepositoryBindingRepository Bindings { get; }
-        public IGitProviderRegistry Providers { get; }
-        public IGitProvider Provider { get; }
-        public IWorkspaceRootProvider Workspace { get; }
-        public RecordingWorkspaceRemover Remover { get; }
-        public RecordingCloneQueue Queue { get; }
-        public RepositoryBindingService Service { get; }
-
-        public void IntentExists(string intentIdValue)
-        {
-            var intent = Intent.Restore(
-                new IntentId(intentIdValue), "x", IntentStatusNames.Work, 1, [], Now, Now);
-            Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == intentIdValue), Arg.Any<CancellationToken>())
-                .Returns(intent);
-        }
-
-        public void ProviderAuthenticated() =>
-            Provider.GetAuthStatusAsync(Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(new ProviderAuthStatus(
-                    GitProviderNames.GitHub, IsAuthenticated: true, Account: "octocat", Host: "github.com")));
-
-        public void CreateReturnsCreated() =>
-            Bindings.CreateAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
-                .Returns(ci => Task.FromResult<CreateBindingOutcome>(
-                    new CreateBindingOutcome.Created(ci.Arg<IntentRepositoryBinding>())));
-    }
-
-    private sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider
-    {
-        public string ResolvedRoot { get; } = root;
-    }
-
-    private sealed class RecordingWorkspaceRemover : IWorkspaceDirectoryRemover
-    {
-        public List<string> Removed { get; } = [];
-
-        public Task RemoveAsync(string absolutePath, CancellationToken ct)
-        {
-            Removed.Add(absolutePath);
-            return Task.CompletedTask;
-        }
-
-        public Task RemoveContentsAsync(string directoryPath, CancellationToken ct) => Task.CompletedTask;
-    }
-
-    private sealed class RecordingCloneQueue : IRepositoryCloneRequests
-    {
-        public List<BindingId> Enqueued { get; } = [];
-
-        public ValueTask EnqueueAsync(BindingId bindingId, CancellationToken ct)
-        {
-            Enqueued.Add(bindingId);
-            return ValueTask.CompletedTask;
-        }
-    }
-
-    private sealed class PassthroughUnitOfWork : IUnitOfWork
-    {
-        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
-
-        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-
-        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
-
 }

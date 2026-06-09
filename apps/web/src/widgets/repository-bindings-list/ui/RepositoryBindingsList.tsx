@@ -1,7 +1,10 @@
 import { AlertCircle, FolderGit2 } from "lucide-react";
 import { useCallback, useState } from "react";
 
-import { useIntentRepositories } from "@/entities/repository-binding";
+import {
+  useIntentRepositories,
+  type RepositoryBinding
+} from "@/entities/repository-binding";
 import { BindRepositoryButton } from "@/features/bind-repository";
 
 import { RepositoryBindingRow } from "./RepositoryBindingRow";
@@ -19,15 +22,16 @@ interface RepositoryBindingsListProps {
  * только рендерит производное состояние списка плюс заголовок с кнопкой
  * «Bind repository» (модал живёт отдельно).
  *
- * Per-row «Обновить» дёргает `refresh()` хука (re-fetch списка) — это самая
- * дешёвая консервативная семантика. PR-sync вынесен в виджет
+ * Per-row «Обновить» восстанавливает локальный клон (POST .../refresh): ответ
+ * патчит строку через `applyBinding`, дальше статус догоняет realtime-событие
+ * `intent.repository_clone_progress`. PR-sync вынесен в виджет
  * pull-request-comments, чтобы не дублировать действие и не мешать
  * двум секциям одной страницы.
  */
 export function RepositoryBindingsList({
   intentId
 }: RepositoryBindingsListProps) {
-  const { bindings, isLoading, error, refresh } =
+  const { bindings, isLoading, error, applyBinding } =
     useIntentRepositories(intentId);
 
   // Optimistic remove — DELETE отдаёт 204 без тела; реалтайм-эвент
@@ -72,7 +76,7 @@ export function RepositoryBindingsList({
         error={error}
         bindings={visible}
         intentId={intentId}
-        refresh={refresh}
+        onRefreshed={applyBinding}
         onUnbound={onUnbound}
       />
     </section>
@@ -84,7 +88,7 @@ interface BodyProps {
   error: Error | null;
   bindings: ReturnType<typeof useIntentRepositories>["bindings"];
   intentId: string;
-  refresh: () => void;
+  onRefreshed: (binding: RepositoryBinding) => void;
   onUnbound: (bindingId: string) => void;
 }
 
@@ -93,7 +97,7 @@ function Body({
   error,
   bindings,
   intentId,
-  refresh,
+  onRefreshed,
   onUnbound
 }: BodyProps) {
   if (error) {
@@ -140,7 +144,7 @@ function Body({
           key={binding.id}
           intentId={intentId}
           binding={binding}
-          onRefresh={refresh}
+          onRefreshed={onRefreshed}
           onUnbound={onUnbound}
         />
       ))}

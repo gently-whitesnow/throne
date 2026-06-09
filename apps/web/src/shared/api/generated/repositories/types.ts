@@ -148,6 +148,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore the local clone of a binding whose workspace folder is missing.
+         * @description Disk-recovery for the «Обновить» button (ADR-0024). The binding lives in Mongo but its local workspace folder is gone — typically a second machine that never cloned it. The path is recomputed against the live workspace root (not the stored `workspace_path`, which may carry another machine's root), and existence is checked on disk only. Folder missing → the binding is flipped back to `pending` (regardless of its current `clone_status`) and re-enqueued onto the clone pipeline; the response carries the binding in `pending`/`cloning` and the UI follows `intent.repository_clone_progress` to `ready`. Folder present → no-op, the current binding is returned unchanged.
+         */
+        post: operations["refreshIntentRepository"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request": {
         parameters: {
             query?: never;
@@ -972,6 +992,38 @@ export interface operations {
             };
             /** @description Binding has no associated pull request number. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    refreshIntentRepository: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK — the binding, re-queued for clone when its folder was missing. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryBindingDto"];
+                };
+            };
+            /** @description Intent or binding not found. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

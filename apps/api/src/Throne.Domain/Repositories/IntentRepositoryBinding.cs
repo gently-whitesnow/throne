@@ -128,6 +128,28 @@ public sealed class IntentRepositoryBinding
         };
     }
 
+    /// <summary>
+    /// Re-queue a settled or in-flight binding for cloning because its local workspace folder
+    /// is gone (the «Обновить» disk-recovery path, ADR-0024). Reachable from any status except
+    /// <c>pending</c> — the caller skips this transition when the binding is already queued, so
+    /// a second arrival here is a programming error rather than a benign retry.
+    /// </summary>
+    public void MarkPendingForRefresh(DateTimeOffset at)
+    {
+        if (State.CloneStatus == CloneStatusNames.Pending)
+        {
+            throw new InvalidOperationException(
+                $"Illegal clone_status transition: {CloneStatusNames.Pending} → {CloneStatusNames.Pending}; "
+                + "binding is already queued for clone.");
+        }
+        State = State with
+        {
+            CloneStatus = CloneStatusNames.Pending,
+            CloneError = null,
+            UpdatedAt = at,
+        };
+    }
+
     public void MarkReady(DateTimeOffset at)
     {
         EnsureTransition(State.CloneStatus, CloneStatusNames.Cloning, CloneStatusNames.Ready);

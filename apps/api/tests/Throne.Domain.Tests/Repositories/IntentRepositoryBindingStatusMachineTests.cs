@@ -115,6 +115,33 @@ public class IntentRepositoryBindingStatusMachineTests
         act.Should().Throw<ArgumentException>();
     }
 
+    [Theory(DisplayName = "MarkPendingForRefresh разрешён из cloning/ready/failed/broken и очищает clone_error")]
+    [InlineData(CloneStatusNames.Cloning)]
+    [InlineData(CloneStatusNames.Ready)]
+    [InlineData(CloneStatusNames.Failed)]
+    [InlineData(CloneStatusNames.Broken)]
+    public void PendingForRefresh_allowed_from_non_pending(string fromStatus)
+    {
+        var binding = IntentRepositoryBindingTestBuilder.Pending();
+        DriveTo(binding, fromStatus);
+
+        binding.MarkPendingForRefresh(Now.AddSeconds(10));
+
+        binding.State.CloneStatus.Should().Be(CloneStatusNames.Pending);
+        binding.State.CloneError.Should().BeNull();
+        binding.State.UpdatedAt.Should().Be(Now.AddSeconds(10));
+    }
+
+    [Fact(DisplayName = "MarkPendingForRefresh запрещён из pending (уже в очереди)")]
+    public void PendingForRefresh_forbidden_from_pending()
+    {
+        var binding = IntentRepositoryBindingTestBuilder.Pending();
+
+        var act = () => binding.MarkPendingForRefresh(Now.AddSeconds(1));
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
     [Fact(DisplayName = "WorkspacePath неизменяем — нет публичного сеттера")]
     public void WorkspacePath_is_immutable()
     {
