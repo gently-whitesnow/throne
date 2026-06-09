@@ -16,6 +16,7 @@ export const repositoriesEndpoints = {
   attachIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request`,
   listIntentRepositoryPullRequestComments: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request/comments`,
   getIntentRepositoryReviewDiff: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/review/diff`,
+  getIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/review/pull-request`,
   listIntentRepositoryReviewCommits: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/review/commits`,
   submitIntentRepositoryReviewComment: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/review/comments`,
   deleteIntentRepositoryPullRequestComment: (intent_id: string, binding_id: string, comment_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request-comments/${comment_id}`,

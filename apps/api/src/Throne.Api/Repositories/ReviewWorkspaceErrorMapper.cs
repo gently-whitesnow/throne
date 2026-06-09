@@ -53,6 +53,18 @@ internal static class ReviewWorkspaceErrorMapper
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 
+    public static ActionResult<PullRequestHeaderDto> MapHeader(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound or ErrorCodes.RepositoryUpstreamGone =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.RepositoryPullRequestNotAttached =>
+                new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "No pull request attached", ex)),
+            ErrorCodes.RepositoryProviderUnsupported or ErrorCodes.RepositoryProviderNotAuthenticated =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<PullRequestMergeStatusDto> MapMergeStatus(ApiException ex) =>
         ex.Code switch
         {

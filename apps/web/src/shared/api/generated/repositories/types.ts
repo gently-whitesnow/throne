@@ -228,6 +228,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/pull-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the header of the binding's pull request (title, state, author, branches, description).
+         * @description Backs the review-workspace "Описание" tab. The header is read from the provider on demand (`gh` / `glab`) and is never persisted server-side — same read-through contract as the diff endpoint. The `body` field carries the PR/MR description as Markdown for client-side rendering.
+         */
+        get: operations["getIntentRepositoryPullRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/commits": {
         parameters: {
             query?: never;
@@ -649,6 +669,27 @@ export interface components {
             status: components["schemas"]["PullRequestDiffFileStatus"];
             /** @description Raw unified-diff hunks for this file; empty for binary/too-large diffs. */
             patch: string;
+        };
+        PullRequestHeaderDto: {
+            /**
+             * Format: int32
+             * @description PR/MR number within the repository.
+             */
+            number: number;
+            title?: string | null;
+            state: components["schemas"]["PullRequestState"];
+            /** @description Provider login of the PR/MR author. */
+            author_login?: string | null;
+            /** Format: uri */
+            author_avatar_url?: string | null;
+            /** @description Source branch the PR/MR merges from. */
+            head_ref?: string | null;
+            /** @description Target branch the PR/MR merges into. */
+            base_ref?: string | null;
+            /** Format: uri */
+            html_url?: string | null;
+            /** @description PR/MR description as Markdown. */
+            body?: string | null;
         };
         PullRequestDiffDto: {
             /** @description SHA the diff is computed against (PR base or commit parent). */
@@ -1306,6 +1347,56 @@ export interface operations {
                 };
             };
             /** @description Provider unauthenticated, scope mismatch, or missing commit_sha. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getIntentRepositoryPullRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestHeaderDto"];
+                };
+            };
+            /** @description Intent, binding or upstream PR not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unauthenticated or unsupported. */
             422: {
                 headers: {
                     [name: string]: unknown;
