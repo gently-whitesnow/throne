@@ -13,6 +13,7 @@ import {
   hasPullRequest,
   isCloneTransient,
   pullRequestStateMeta,
+  refreshIntentRepository,
   repositoryFullName,
   unbindIntentRepository,
   type RepositoryBinding
@@ -25,8 +26,8 @@ import { Button } from "@/shared/ui";
 interface RepositoryBindingRowProps {
   intentId: string;
   binding: RepositoryBinding;
-  /** Re-fetches the binding list — used for the per-row manual refresh button. */
-  onRefresh: () => void;
+  /** Patches this row in the cache from the `refresh` response. */
+  onRefreshed: (binding: RepositoryBinding) => void;
   /** Optimistic removal hook fired after a successful DELETE. */
   onUnbound: (bindingId: string) => void;
 }
@@ -36,9 +37,11 @@ interface RepositoryBindingRowProps {
  * branch, the clone-status pill (with a spinner for transient states), the
  * PR-state pill (when a PR is tracked), and per-row actions:
  *
- *  - Manual refresh — re-fetches the bindings list so a stuck or just-recovered
- *    clone surfaces without a page reload. This is intentionally cheap; the
- *    PR-comments `POST .../sync` lives in the comments view, not here.
+ *  - Refresh — restores a missing local clone. Хитает `POST .../refresh`: если
+ *    папки репозитория нет на диске (другая машина), бэкенд снова ставит клон в
+ *    очередь и возвращает binding в `pending`/`cloning`; есть папка — no-op.
+ *    Строка обновляется из ответа, дальше статус догоняет realtime-событие
+ *    `intent.repository_clone_progress`.
  *  - Delete — removes the binding AND its on-disk workspace folder via DELETE,
  *    after a confirm that spells out the data loss. The realtime
  *    `intent.repository_unbound` event keeps other clients in sync; the local
@@ -48,16 +51,34 @@ interface RepositoryBindingRowProps {
 export function RepositoryBindingRow({
   intentId,
   binding,
-  onRefresh,
+  onRefreshed,
   onUnbound
 }: RepositoryBindingRowProps) {
   const [unbinding, setUnbinding] = useState(false);
   const [unbindError, setUnbindError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   const status = cloneStatusMeta[binding.clone_status];
   const pending = isCloneTransient(binding.clone_status);
   const fullName = repositoryFullName(binding);
   const hasPr = hasPullRequest(binding);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    setRefreshError(null);
+    try {
+      onRefreshed(await refreshIntentRepository(intentId, binding.id));
+    } catch (err) {
+      setRefreshError(
+        err instanceof HttpError
+          ? `Не удалось обновить (${String(err.status)}).`
+          : "Не удалось обновить репозиторий."
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function handleUnbind() {
     const confirmed = window.confirm(
@@ -151,16 +172,25 @@ export function RepositoryBindingRow({
             disabled={binding.clone_status !== "ready"}
           />
           <Button
-            aria-label={`Обновить статус ${fullName}`}
-            disabled={unbinding}
-            icon={<RefreshCw aria-hidden size={14} strokeWidth={2} />}
-            onClick={onRefresh}
+            aria-label={`Обновить ${fullName}`}
+            disabled={unbinding || refreshing}
+            icon={
+              <RefreshCw
+                aria-hidden
+                size={14}
+                strokeWidth={2}
+                className={refreshing ? "animate-spin" : undefined}
+              />
+            }
+            onClick={() => {
+              void handleRefresh();
+            }}
           >
-            Обновить
+            {refreshing ? "Обновляем…" : "Обновить"}
           </Button>
           <Button
             aria-label={`Удалить ${fullName}`}
-            disabled={unbinding}
+            disabled={unbinding || refreshing}
             icon={<Trash2 aria-hidden size={14} strokeWidth={2} />}
             onClick={() => {
               void handleUnbind();
@@ -174,6 +204,12 @@ export function RepositoryBindingRow({
       {unbindError ? (
         <p role="alert" className="m-0 text-xs text-error">
           {unbindError}
+        </p>
+      ) : null}
+
+      {refreshError ? (
+        <p role="alert" className="m-0 text-xs text-error">
+          {refreshError}
         </p>
       ) : null}
     </li>

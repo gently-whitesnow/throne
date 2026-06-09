@@ -110,7 +110,8 @@ public class RepositoryBindingPersistenceTests
                 new PassthroughUnitOfWork(),
                 new FixedClock(Now),
                 new StubWorkspaceRoot(WorkspaceRoot),
-                Remover);
+                Remover,
+                Substitute.For<IWorkspaceDirectoryProbe>());
         }
 
         public IIntentRepositoryBindingRepository Bindings { get; }
