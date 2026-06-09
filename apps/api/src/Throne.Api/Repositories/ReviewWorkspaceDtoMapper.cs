@@ -2,10 +2,8 @@ using Throne.Application.Git;
 using Throne.Application.Repositories;
 using Throne.Repositories.Contracts.Generated;
 using AppDiffFileStatus = Throne.Application.Git.PullRequestDiffFileStatus;
-using AppSide = Throne.Application.Git.ReviewCommentSide;
 using AppSubmitRequest = Throne.Application.Git.SubmitReviewCommentRequest;
 using WireDiffFileStatus = Throne.Repositories.Contracts.Generated.PullRequestDiffFileStatus;
-using WireSide = Throne.Repositories.Contracts.Generated.ReviewCommentSide;
 using WireSubmitRequest = Throne.Repositories.Contracts.Generated.SubmitReviewCommentRequest;
 
 namespace Throne.Api.Repositories;
@@ -71,7 +69,7 @@ internal static class ReviewWorkspaceDtoMapper
             Body: dto.Content,
             Path: dto.Path,
             PreviousPath: dto.Previous_path,
-            Side: ToAppSide(dto.Side),
+            Side: ReviewCommentSideMapper.ToApp(dto.Side),
             Line: dto.Line,
             CommitSha: dto.Commit_sha,
             BaseSha: dto.Base_sha,
@@ -87,9 +85,13 @@ internal static class ReviewWorkspaceDtoMapper
         _ => WireDiffFileStatus.Modified,
     };
 
-    private static AppSide ToAppSide(WireSide side) => side switch
+    public static ReviewThreadDto ToThreadDto(ReviewThreadState state)
     {
-        WireSide.Left => AppSide.Left,
-        _ => AppSide.Right,
-    };
+        ArgumentNullException.ThrowIfNull(state);
+        return new ReviewThreadDto
+        {
+            Thread_id = state.ThreadId,
+            Resolved = state.Resolved,
+        };
+    }
 }

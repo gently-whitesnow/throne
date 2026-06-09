@@ -177,6 +177,29 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/review/comments", Name = "submitIntentRepositoryReviewComment")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<SubmittedReviewCommentDto>> SubmitIntentRepositoryReviewComment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SubmitReviewCommentRequest body);
 
+        /// <summary>
+        /// Delete a review comment at the provider.
+        /// </summary>
+        /// <remarks>
+        /// Removes a single inline review comment directly at the provider (GitHub `DELETE .../pulls/comments/{id}` / GitLab discussion note delete). Server is pointer-only — nothing is stored locally. `thread_id` is required for providers whose delete path is scoped to the thread (GitLab note); GitHub ignores it.
+        /// </remarks>
+        /// <param name="comment_id">Upstream comment id as carried by `PullRequestCommentDto.id`.</param>
+        /// <param name="thread_id">Provider thread/discussion id; required for GitLab note deletion.</param>
+        /// <returns>Comment deleted.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-comments/{comment_id}", Name = "deleteIntentRepositoryPullRequestComment")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntentRepositoryPullRequestComment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string comment_id, [Microsoft.AspNetCore.Mvc.FromQuery] string thread_id = null);
+
+        /// <summary>
+        /// Resolve or reopen a review thread at the provider.
+        /// </summary>
+        /// <remarks>
+        /// Toggles the resolution state of a review thread directly at the provider (GitHub `resolveReviewThread` / `unresolveReviewThread` graphql mutation, GitLab discussion `resolved` flag). Throne stores no local status — the returned `resolved` is read back from the provider response.
+        /// </remarks>
+        /// <param name="thread_id">Provider thread/discussion id as carried by `PullRequestCommentDto.thread_id`.</param>
+        /// <returns>OK — the thread's resolution state as echoed by the provider.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPatch, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request-threads/{thread_id}", Name = "updateIntentRepositoryReviewThread")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<ReviewThreadDto>> UpdateIntentRepositoryReviewThread([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string thread_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateReviewThreadRequest body);
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

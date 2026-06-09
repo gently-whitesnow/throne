@@ -74,4 +74,12 @@ internal sealed class GitHubCliProvider(
     public Task<SubmittedReviewComment> SubmitReviewCommentAsync(
         string owner, string repo, int number, SubmitReviewCommentRequest request, CancellationToken ct) =>
         reviewWorkspace.SubmitReviewCommentAsync(owner, repo, number, request, ct);
+
+    public Task<ReviewThreadState> ResolveReviewThreadAsync(
+        string owner, string repo, int number, string threadId, bool resolved, CancellationToken ct) =>
+        reviewWorkspace.ResolveReviewThreadAsync(owner, repo, number, threadId, resolved, ct);
+
+    public Task DeleteReviewCommentAsync(
+        string owner, string repo, int number, string commentId, string? threadId, CancellationToken ct) =>
+        reviewWorkspace.DeleteReviewCommentAsync(owner, repo, number, commentId, threadId, ct);
 }

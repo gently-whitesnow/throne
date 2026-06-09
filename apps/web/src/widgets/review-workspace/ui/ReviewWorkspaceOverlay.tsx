@@ -1,11 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  deletePullRequestComment,
   syncPullRequest,
-  usePullRequestComments
+  updateReviewThread,
+  usePullRequestComments,
+  type PullRequestComment
 } from "@/entities/pull-request-comment";
 import {
   intentRepositoriesQueryKeys,
@@ -19,6 +22,7 @@ import {
   type ReviewWorkspaceInitial,
   type ReviewWorkspaceState
 } from "../model/use-review-workspace";
+import type { CommentActions } from "./ReviewCommentCard";
 import { ReviewDiffViewer } from "./ReviewDiffViewer";
 import { ReviewFilesRail } from "./ReviewFilesRail";
 import { ReviewRightRail } from "./ReviewRightRail";
@@ -90,6 +94,33 @@ export function ReviewWorkspaceOverlay({
     })();
   }, [intentId, binding.id, queryClient, refresh]);
 
+  // Delete + resolve/reopen act at the provider; on success we refresh the feed
+  // so the new `resolved` state is read back (Throne keeps no local status).
+  const commentActions = useMemo<CommentActions>(
+    () => ({
+      onDelete: async (comment: PullRequestComment) => {
+        await deletePullRequestComment(
+          intentId,
+          binding.id,
+          comment.id,
+          comment.thread_id
+        );
+        refresh();
+      },
+      onToggleResolved: async (comment: PullRequestComment) => {
+        if (comment.thread_id == null) return;
+        await updateReviewThread(
+          intentId,
+          binding.id,
+          comment.thread_id,
+          comment.resolved !== true
+        );
+        refresh();
+      }
+    }),
+    [intentId, binding.id, refresh]
+  );
+
   // Зеркалим выбранный scope/commit/файл наверх (роут пишет их в URL), чтобы
   // перезагрузка и шаринг ссылки переоткрывали ревьюилку в том же состоянии.
   useEffect(() => {
@@ -152,6 +183,8 @@ export function ReviewWorkspaceOverlay({
             ws={ws}
             intentId={intentId}
             bindingId={binding.id}
+            comments={comments}
+            commentActions={commentActions}
             onSubmitted={handleSync}
           />
         </main>
@@ -169,6 +202,11 @@ export function ReviewWorkspaceOverlay({
             commentsError={error}
             syncing={syncing}
             onSync={handleSync}
+            commentActions={commentActions}
+            onJump={(c) => {
+              if (c.path == null) return;
+              ws.jumpToComment(c.path, c.side ?? null, c.line ?? null);
+            }}
           />
         </div>
       </div>
@@ -181,11 +219,15 @@ function DiffRegion({
   ws,
   intentId,
   bindingId,
+  comments,
+  commentActions,
   onSubmitted
 }: {
   ws: ReviewWorkspaceState;
   intentId: string;
   bindingId: string;
+  comments: PullRequestComment[];
+  commentActions: CommentActions;
   onSubmitted: () => void;
 }) {
   if (ws.diffLoading) {
@@ -238,6 +280,9 @@ function DiffRegion({
           shas={ws.anchorShas}
           intentId={intentId}
           bindingId={bindingId}
+          comments={comments}
+          commentActions={commentActions}
+          scrollTarget={ws.scrollTarget}
           onSubmitted={onSubmitted}
         />
       </div>

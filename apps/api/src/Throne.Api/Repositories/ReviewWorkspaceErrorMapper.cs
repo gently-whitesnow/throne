@@ -38,6 +38,36 @@ internal static class ReviewWorkspaceErrorMapper
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 
+    public static ActionResult<ReviewThreadDto> MapResolveThread(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound or ErrorCodes.RepositoryUpstreamGone =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.RepositoryPullRequestNotAttached =>
+                new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "No pull request attached", ex)),
+            ErrorCodes.RepositoryReviewAnchorInvalid
+                or ErrorCodes.RepositoryProviderUnsupported
+                or ErrorCodes.RepositoryProviderNotAuthenticated
+                or ErrorCodes.ValidationFailed =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
+    public static IActionResult MapDeleteComment(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound or ErrorCodes.RepositoryUpstreamGone =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            ErrorCodes.RepositoryPullRequestNotAttached =>
+                new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "No pull request attached", ex)),
+            ErrorCodes.RepositoryReviewAnchorInvalid
+                or ErrorCodes.RepositoryProviderUnsupported
+                or ErrorCodes.RepositoryProviderNotAuthenticated
+                or ErrorCodes.ValidationFailed =>
+                new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<SubmittedReviewCommentDto> MapSubmit(ApiException ex) =>
         ex.Code switch
         {

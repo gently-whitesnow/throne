@@ -525,6 +525,35 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("path")]
         public string Path { get; set; }
 
+        /// <summary>
+        /// 1-based line number on `side` the inline comment is anchored to. Null for comments without a diff anchor (issue/discussion-level comments) or outdated inline comments whose line no longer exists in the current diff.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("line")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? Line { get; set; }
+
+        /// <summary>
+        /// Diff side `line` refers to. Null when the comment has no diff anchor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("side")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ReviewCommentSide>))]
+        public ReviewCommentSide? Side { get; set; }
+
+        /// <summary>
+        /// Resolution state of the comment's review thread, read from the provider (Throne stores no local status). Null when the comment is not part of a resolvable thread (e.g. GitHub issue-level comments).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("resolved")]
+        public bool? Resolved { get; set; }
+
+        /// <summary>
+        /// Provider thread/discussion id the comment belongs to — GitHub review-thread node id, GitLab discussion id. Round-tripped into `updateIntentRepositoryReviewThread`. Null when no resolvable thread exists.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thread_id")]
+        public string Thread_id { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("created_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Created_at { get; set; }
@@ -876,6 +905,56 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("created_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Created_at { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateReviewThreadRequest
+    {
+
+        /// <summary>
+        /// Target resolution state of the review thread. `true` resolves, `false` reopens. Applied at the provider (GitHub `resolveReviewThread` graphql mutation / GitLab discussion `resolved` flag); Throne keeps no local status.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("resolved")]
+        public bool Resolved { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReviewThreadDto
+    {
+
+        /// <summary>
+        /// Provider thread/discussion id whose state was just changed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thread_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Thread_id { get; set; }
+
+        /// <summary>
+        /// Resolution state as echoed back by the provider after the change.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("resolved")]
+        public bool Resolved { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
