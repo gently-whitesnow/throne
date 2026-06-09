@@ -2,8 +2,10 @@ using Throne.Application.Git;
 using Throne.Application.Repositories;
 using Throne.Repositories.Contracts.Generated;
 using AppDiffFileStatus = Throne.Application.Git.PullRequestDiffFileStatus;
+using AppMergeRequest = Throne.Application.Git.MergePullRequestRequest;
 using AppSubmitRequest = Throne.Application.Git.SubmitReviewCommentRequest;
 using WireDiffFileStatus = Throne.Repositories.Contracts.Generated.PullRequestDiffFileStatus;
+using WireMergeRequest = Throne.Repositories.Contracts.Generated.MergePullRequestRequest;
 using WireSubmitRequest = Throne.Repositories.Contracts.Generated.SubmitReviewCommentRequest;
 
 namespace Throne.Api.Repositories;
@@ -93,5 +95,35 @@ internal static class ReviewWorkspaceDtoMapper
             Thread_id = state.ThreadId,
             Resolved = state.Resolved,
         };
+    }
+
+    public static PullRequestMergeStatusDto ToMergeStatusDto(PullRequestMergeStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+        return new PullRequestMergeStatusDto
+        {
+            Mergeability = RepositoryEnumDtoMapper.ToWireMergeability(status.Mergeability),
+            Checks = RepositoryEnumDtoMapper.ToWireChecksState(status.Checks),
+            Html_url = PullRequestCommentDtoMapper.ToUri(status.HtmlUrl),
+        };
+    }
+
+    public static MergePullRequestResultDto ToMergeResultDto(PullRequestMergeResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        return new MergePullRequestResultDto
+        {
+            Merged = result.Merged,
+            Pull_request_state = RepositoryEnumDtoMapper.ToWirePullRequestState(result.State),
+            Message = result.Message,
+        };
+    }
+
+    public static AppMergeRequest ToMergeRequest(WireMergeRequest dto)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        return new AppMergeRequest(
+            Strategy: RepositoryEnumDtoMapper.ToAppMergeStrategy(dto.Strategy),
+            DeleteBranch: dto.Delete_branch);
     }
 }

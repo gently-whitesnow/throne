@@ -16,7 +16,8 @@ internal sealed class GitHubCliProvider(
     GhAuthProbe authProbe,
     GhPullRequestActions pullRequests,
     GhRefListers refListers,
-    GhReviewWorkspaceActions reviewWorkspace) : IGitProvider
+    GhReviewWorkspaceActions reviewWorkspace,
+    GhMergeActions merge) : IGitProvider
 {
     public string ProviderName => GitProviderNames.GitHub;
 
@@ -82,4 +83,11 @@ internal sealed class GitHubCliProvider(
     public Task DeleteReviewCommentAsync(
         string owner, string repo, int number, string commentId, string? threadId, CancellationToken ct) =>
         reviewWorkspace.DeleteReviewCommentAsync(owner, repo, number, commentId, threadId, ct);
+
+    public Task<PullRequestMergeStatus?> GetPullRequestMergeStatusAsync(string owner, string repo, int number, CancellationToken ct) =>
+        merge.GetMergeStatusAsync(owner, repo, number, ct);
+
+    public Task<PullRequestMergeResult> MergePullRequestAsync(
+        string owner, string repo, int number, MergePullRequestRequest request, CancellationToken ct) =>
+        merge.MergeAsync(owner, repo, number, request, ct);
 }

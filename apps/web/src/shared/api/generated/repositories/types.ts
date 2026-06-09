@@ -308,6 +308,46 @@ export interface paths {
         patch: operations["updateIntentRepositoryReviewThread"];
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/merge-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the binding's PR/MR mergeability and checks state from the provider.
+         * @description Slice C — backs the merge control in the review workspace. Mergeability and checks state are read straight from the provider on demand (GitHub `mergeable`/`mergeStateStatus`/`statusCheckRollup`, GitLab `detailed_merge_status` + head pipeline). `html_url` points at the PR/MR page so the UI can send the reviewer to the provider when a merge is not possible.
+         */
+        get: operations["getIntentRepositoryPullRequestMergeStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Merge the binding's PR/MR at the provider.
+         * @description Slice C — merges the attached pull/merge request via the provider CLI (`gh pr merge` / `glab mr merge`) with the chosen strategy and optional source-branch deletion. When the provider refuses the merge (conflicts, failing checks, branch protection) the call returns `409` with the provider's reason so the reviewer can resolve it on the provider page.
+         */
+        post: operations["mergeIntentRepositoryPullRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/repositories": {
         parameters: {
             query?: never;
@@ -668,6 +708,45 @@ export interface components {
             thread_id: string;
             /** @description Resolution state as echoed back by the provider after the change. */
             resolved: boolean;
+        };
+        /**
+         * @description How the PR/MR is integrated. `merge` — merge commit, `squash` — squash into a single commit, `rebase` — rebase the source commits onto the base. Maps to `gh pr merge --merge/--squash/--rebase` and `glab mr merge`/`--squash`/`--rebase`.
+         * @enum {string}
+         */
+        MergeStrategy: "merge" | "squash" | "rebase";
+        /**
+         * @description Provider-neutral mergeability. `mergeable` — can merge now; `conflicting` — merge conflicts; `blocked` — held by branch protection / approvals / unresolved discussions / draft; `behind` — source is behind the base and needs an update; `checking` — the provider is still computing the state; `unknown` — unrecognised.
+         * @enum {string}
+         */
+        PullRequestMergeability: "mergeable" | "conflicting" | "blocked" | "behind" | "checking" | "unknown";
+        /**
+         * @description Aggregate state of CI checks on the PR/MR head. `none` — no checks configured; `pending` — checks still running; `passing` — all succeeded; `failing` — at least one failed; `unknown` — unrecognised.
+         * @enum {string}
+         */
+        PullRequestChecksState: "none" | "pending" | "passing" | "failing" | "unknown";
+        PullRequestMergeStatusDto: {
+            mergeability: components["schemas"]["PullRequestMergeability"];
+            checks: components["schemas"]["PullRequestChecksState"];
+            /**
+             * Format: uri
+             * @description Browser-facing URL of the PR/MR page, when the provider reports it.
+             */
+            html_url?: string | null;
+        };
+        MergePullRequestRequest: {
+            strategy: components["schemas"]["MergeStrategy"];
+            /**
+             * @description Delete the source branch after a successful merge, when the provider allows it.
+             * @default false
+             */
+            delete_branch: boolean;
+        };
+        MergePullRequestResultDto: {
+            /** @description True when the provider reported the PR/MR as merged. */
+            merged: boolean;
+            pull_request_state: components["schemas"]["PullRequestState"];
+            /** @description Provider's one-line summary of the merge outcome, when available. */
+            message?: string | null;
         };
         /**
          * @description Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
@@ -1440,6 +1519,110 @@ export interface operations {
                 };
             };
             /** @description Provider unauthenticated or thread not resolvable. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getIntentRepositoryPullRequestMergeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK — provider-neutral mergeability + checks snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestMergeStatusDto"];
+                };
+            };
+            /** @description Intent, binding or upstream PR not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no associated pull request number. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unsupported or unauthenticated. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    mergeIntentRepositoryPullRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergePullRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description OK — the PR/MR was merged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MergePullRequestResultDto"];
+                };
+            };
+            /** @description Intent, binding or upstream PR not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Binding has no PR attached, or the provider refused the merge. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Provider unsupported or unauthenticated. */
             422: {
                 headers: {
                     [name: string]: unknown;

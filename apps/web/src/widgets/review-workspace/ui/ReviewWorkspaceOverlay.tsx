@@ -11,12 +11,19 @@ import {
   type PullRequestComment
 } from "@/entities/pull-request-comment";
 import {
+  changeRequestKindLabel,
+  hasPullRequest,
   intentRepositoriesQueryKeys,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import {
+  mergePullRequest,
+  type MergeStrategy
+} from "@/entities/review-workspace";
 import { useResizablePane } from "@/shared/lib";
 import { ResizeHandle } from "@/shared/ui";
 
+import { useMergeStatus } from "../model/use-merge-status";
 import {
   useReviewWorkspace,
   type ReviewWorkspaceInitial,
@@ -25,6 +32,7 @@ import {
 import type { CommentActions } from "./ReviewCommentCard";
 import { ReviewDiffViewer } from "./ReviewDiffViewer";
 import { ReviewFilesRail } from "./ReviewFilesRail";
+import { ReviewMergeControl } from "./ReviewMergeControl";
 import { ReviewRightRail } from "./ReviewRightRail";
 import { ReviewScopeBar } from "./ReviewScopeBar";
 
@@ -78,6 +86,15 @@ export function ReviewWorkspaceOverlay({
     binding.id
   );
   const [syncing, setSyncing] = useState(false);
+  const [mergeNonce, setMergeNonce] = useState(0);
+  const [merging, setMerging] = useState(false);
+  const [mergeError, setMergeError] = useState<string | null>(null);
+  const mergeStatus = useMergeStatus(
+    intentId,
+    binding.id,
+    hasPullRequest(binding),
+    mergeNonce
+  );
 
   const handleSync = useCallback(() => {
     setSyncing(true);
@@ -88,11 +105,33 @@ export function ReviewWorkspaceOverlay({
           queryKey: intentRepositoriesQueryKeys.list(intentId)
         });
         refresh();
+        setMergeNonce((n) => n + 1);
       } finally {
         setSyncing(false);
       }
     })();
   }, [intentId, binding.id, queryClient, refresh]);
+
+  const handleMerge = useCallback(
+    (strategy: MergeStrategy, deleteBranch: boolean) => {
+      setMerging(true);
+      setMergeError(null);
+      void (async () => {
+        try {
+          await mergePullRequest(intentId, binding.id, {
+            strategy,
+            delete_branch: deleteBranch
+          });
+          handleSync();
+        } catch (err) {
+          setMergeError(err instanceof Error ? err.message : String(err));
+        } finally {
+          setMerging(false);
+        }
+      })();
+    },
+    [intentId, binding.id, handleSync]
+  );
 
   // Delete + resolve/reopen act at the provider; on success we refresh the feed
   // so the new `resolved` state is read back (Throne keeps no local status).
@@ -158,6 +197,18 @@ export function ReviewWorkspaceOverlay({
         selectedCommitSha={ws.selectedCommitSha}
         commits={ws.commits}
         commitsLoading={ws.commitsLoading}
+        mergeControl={
+          hasPullRequest(binding) ? (
+            <ReviewMergeControl
+              kind={changeRequestKindLabel(binding.provider)}
+              status={mergeStatus.status}
+              statusLoading={mergeStatus.loading}
+              merging={merging}
+              mergeError={mergeError}
+              onMerge={handleMerge}
+            />
+          ) : undefined
+        }
         onSelectRequest={ws.selectRequestScope}
         onSelectCommit={ws.selectCommit}
         onClose={onClose}

@@ -9,7 +9,8 @@ internal sealed class GitLabCliProvider(
     GlabAuthProbe authProbe,
     GlabPullRequestActions pullRequests,
     GlabRefListers refListers,
-    GlabReviewWorkspaceActions reviewWorkspace) : IGitProvider
+    GlabReviewWorkspaceActions reviewWorkspace,
+    GlabMergeActions merge) : IGitProvider
 {
     public string ProviderName => GitProviderNames.GitLab;
 
@@ -105,4 +106,19 @@ internal sealed class GitLabCliProvider(
         string? threadId,
         CancellationToken ct) =>
         reviewWorkspace.DeleteReviewCommentAsync(owner, repo, number, commentId, threadId, ct);
+
+    public Task<PullRequestMergeStatus?> GetPullRequestMergeStatusAsync(
+        string owner,
+        string repo,
+        int number,
+        CancellationToken ct) =>
+        merge.GetMergeStatusAsync(owner, repo, number, ct);
+
+    public Task<PullRequestMergeResult> MergePullRequestAsync(
+        string owner,
+        string repo,
+        int number,
+        MergePullRequestRequest request,
+        CancellationToken ct) =>
+        merge.MergeAsync(owner, repo, number, request, ct);
 }
