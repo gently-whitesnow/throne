@@ -38,4 +38,25 @@ public class GhPullRequestDiffParserTests
         var act = () => GhPullRequestDiffParser.Parse("""{"foo":1}""");
         act.Should().Throw<FormatException>();
     }
+
+    [Fact(DisplayName = "Parse склеивает многостраничный --paginate ответ (>100 файлов)")]
+    public void Parse_reads_multipage_payload()
+    {
+        // gh --paginate concatenates pages as [..][..] with no delimiter.
+        var page1 = Page(start: 0, count: 100);
+        var page2 = Page(start: 100, count: 50);
+
+        var files = GhPullRequestDiffParser.Parse(page1 + page2);
+
+        files.Should().HaveCount(150);
+        files[0].Path.Should().Be("f0.cs");
+        files[^1].Path.Should().Be("f149.cs");
+    }
+
+    private static string Page(int start, int count)
+    {
+        var items = Enumerable.Range(start, count)
+            .Select(i => $$"""{"filename":"f{{i}}.cs","status":"modified","patch":"@@ -1 +1 @@\n-a\n+b"}""");
+        return "[" + string.Join(",", items) + "]";
+    }
 }

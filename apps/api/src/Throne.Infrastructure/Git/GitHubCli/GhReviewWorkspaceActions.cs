@@ -22,7 +22,7 @@ internal sealed class GhReviewWorkspaceActions(GhCliInvoker gh)
         }
         var shas = GhPullRequestShasParser.Parse(prJson)
             ?? throw new FormatException("gh pulls response missing base/head SHA.");
-        var filesJson = await ApiAsync($"/repos/{owner}/{repo}/pulls/{number}/files?per_page=100", ct);
+        var filesJson = await ApiPaginatedAsync($"/repos/{owner}/{repo}/pulls/{number}/files?per_page=100", ct);
         if (filesJson is null)
         {
             return null;
@@ -51,7 +51,7 @@ internal sealed class GhReviewWorkspaceActions(GhCliInvoker gh)
         int number,
         CancellationToken ct)
     {
-        var json = await ApiAsync($"/repos/{owner}/{repo}/pulls/{number}/commits?per_page=100", ct);
+        var json = await ApiPaginatedAsync($"/repos/{owner}/{repo}/pulls/{number}/commits?per_page=100", ct);
         return json is null ? null : GhPullRequestCommitsParser.Parse(json);
     }
 
@@ -165,6 +165,33 @@ internal sealed class GhReviewWorkspaceActions(GhCliInvoker gh)
                 detail: combined);
         }
         return GhExceptions.FromExit(operation, result);
+    }
+
+    /// <summary>
+    /// Paginated read for the list endpoints (diff files, PR commits):
+    /// <c>gh api --paginate</c> concatenates every page as <c>[..][..]</c>,
+    /// which the parsers already accept. Runs without <c>-i</c>, so 404 and
+    /// rate-limit are recovered from stderr instead of response headers.
+    /// </summary>
+    private async Task<string?> ApiPaginatedAsync(string apiPath, CancellationToken ct)
+    {
+        var args = new[] { "api", "--paginate", apiPath };
+        var result = await gh.RunAsync(args, ct);
+        if (result.IsSuccess)
+        {
+            return result.StandardOutput;
+        }
+        var operation = $"api {apiPath}";
+        var stderr = result.StandardError ?? string.Empty;
+        return GhPaginatedReadClassifier.Classify(stderr) switch
+        {
+            GhReadFailureKind.NotFound => null,
+            GhReadFailureKind.RateLimited => throw new GitProviderException(
+                GitProviderErrorKind.NetworkError,
+                $"gh {operation} hit GitHub rate limit.",
+                detail: GhErrorClassifier.OneLine(stderr)),
+            _ => throw GhExceptions.FromExit(operation, result),
+        };
     }
 
     private async Task<string?> ApiAsync(string apiPath, CancellationToken ct)
