@@ -33,4 +33,25 @@ public class GlabPullRequestDiffParserTests
     {
         GlabPullRequestDiffParser.Parse(string.Empty).Should().BeEmpty();
     }
+
+    [Fact(DisplayName = "Parse склеивает многостраничный --paginate ответ (>100 файлов)")]
+    public void Parse_reads_multipage_payload()
+    {
+        // glab --paginate concatenates pages as [..][..] with no delimiter.
+        var page1 = Page(start: 0, count: 100);
+        var page2 = Page(start: 100, count: 40);
+
+        var files = GlabPullRequestDiffParser.Parse(page1 + page2);
+
+        files.Should().HaveCount(140);
+        files[0].Path.Should().Be("f0.cs");
+        files[^1].Path.Should().Be("f139.cs");
+    }
+
+    private static string Page(int start, int count)
+    {
+        var items = Enumerable.Range(start, count)
+            .Select(i => $$"""{"new_path":"f{{i}}.cs","old_path":"f{{i}}.cs","diff":"@@ -1 +1 @@\n-a\n+b"}""");
+        return "[" + string.Join(",", items) + "]";
+    }
 }
