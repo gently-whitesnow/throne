@@ -26,6 +26,10 @@ internal static class PullRequestCommentDtoMapper
             Path = comment.Path,
             Created_at = comment.CreatedAt,
             Updated_at = comment.UpdatedAt,
+            Line = comment.Line,
+            Side = ReviewCommentSideMapper.ToWire(comment.Side),
+            Resolved = comment.Resolved,
+            Thread_id = comment.ThreadId,
         };
     }
 
