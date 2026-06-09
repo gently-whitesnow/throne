@@ -70,6 +70,14 @@ internal static class RepositoriesErrorMapper
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 
+    public static ActionResult<RepositoryBindingDto> MapRefresh(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Not found", ex.Detail)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<ICollection<PullRequestCommentDto>> MapListComments(ApiException ex) =>
         ex.Code switch
         {

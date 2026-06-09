@@ -19,8 +19,24 @@ public sealed class RepositoryBindingPersistence(
     IUnitOfWork unitOfWork,
     TimeProvider clock,
     IWorkspaceRootProvider workspace,
-    IWorkspaceDirectoryRemover workspaceRemover)
+    IWorkspaceDirectoryRemover workspaceRemover,
+    IWorkspaceDirectoryProbe workspaceProbe)
 {
+    /// <summary>
+    /// Whether the binding's local clone folder exists on disk. The path is recomputed
+    /// against the live <see cref="IWorkspaceRootProvider.ResolvedRoot"/>, not the stored
+    /// <c>binding.WorkspacePath</c> — the persisted path embeds the root from clone-time and
+    /// goes stale across machines / a runtime-model switch (same reasoning as DeleteAsync,
+    /// ADR-0027). Backs the «Обновить» disk-recovery path (ADR-0024).
+    /// </summary>
+    public bool LocalCloneExists(IntentRepositoryBinding binding)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        var workspacePath = WorkspacePathLayout.Compute(
+            workspace.ResolvedRoot, binding.IntentId, binding.Coordinate);
+        return workspaceProbe.Exists(workspacePath);
+    }
+
     public IntentRepositoryBinding BuildPendingBinding(
         BindRepositoryCommand command,
         IntentId intentId)

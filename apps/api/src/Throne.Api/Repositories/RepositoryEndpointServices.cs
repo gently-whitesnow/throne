@@ -19,6 +19,7 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<ListIntentRepositoriesEndpoint>();
         services.AddSingleton<BindIntentRepositoryEndpoint>();
         services.AddSingleton<UnbindIntentRepositoryEndpoint>();
+        services.AddSingleton<RefreshIntentRepositoryEndpoint>();
         services.AddSingleton<SyncIntentRepositoryPullRequestEndpoint>();
         services.AddSingleton<AttachIntentRepositoryPullRequestEndpoint>();
         services.AddSingleton<ListIntentRepositoryPullRequestCommentsEndpoint>();

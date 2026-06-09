@@ -2,15 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Throne.Api.Tests.Infrastructure;
 using Throne.Application.Git;
-using Throne.Application.Ports;
 using Throne.Domain.Intents;
-using Throne.Domain.Intents.Training;
 using Throne.Domain.Repositories;
-using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Tests.Repositories;
 
@@ -154,51 +150,8 @@ public sealed class IntentRepositoriesControllerTests(MongoFixture mongo) : IAsy
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    private async Task<Intent> SeedIntentAsync()
-    {
-        await using var scope = _fixture.Services.CreateAsyncScope();
-        var repo = scope.ServiceProvider.GetRequiredService<IIntentRepository>();
-        var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var intent = Intent.Create(IntentId.New(), "intent-for-repo-tests", [Throne.Domain.Tags.TagId.New()], Now);
-        var version = TextVersion.CreateSnapshot(
-            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, intent.Id.Value,
-            intent.State.Text, Now, TextVersionAuthor.User);
-        await uow.ExecuteAsync(
-            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
-            CancellationToken.None);
-        return intent;
-    }
+    private Task<Intent> SeedIntentAsync() => RepositoriesApiSeed.IntentAsync(_fixture, Now);
 
-    private async Task<IntentRepositoryBinding> SeedReadyBindingAsync(IntentId intentId, int? pullRequestNumber)
-    {
-        await using var scope = _fixture.Services.CreateAsyncScope();
-        var bindings = scope.ServiceProvider.GetRequiredService<IIntentRepositoryBindingRepository>();
-        var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var binding = IntentRepositoryBinding.Create(
-            id: BindingId.New(),
-            intentId: intentId,
-            coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "hello"),
-            defaultBranch: "main",
-            workspacePath: Path.Combine(_fixture.WorkspaceRoot, "intents", intentId.Value, "octo__hello"),
-            pullRequestNumber: pullRequestNumber,
-            now: Now);
-        // Walk pending → cloning → ready so the sync precondition (`clone_status=ready`)
-        // is satisfied before the per-test scenario flips a specific failure surface.
-        binding.MarkCloning(Now);
-        binding.MarkReady(Now);
-
-        await uow.ExecuteAsync(ct => bindings.CreateAsync(binding, ct), CancellationToken.None);
-        return binding;
-    }
-
-    private static IntentStatusChange InitialStatusChange(Intent intent) =>
-        IntentStatusChange.Create(
-            Guid.NewGuid().ToString("N"),
-            intent.Id,
-            intent.State.CurrentVersion,
-            intent.State.Status,
-            intent.State.Status,
-            "test:create",
-            Now,
-            IntentTrainingAuthor.Agent);
+    private Task<IntentRepositoryBinding> SeedReadyBindingAsync(IntentId intentId, int? pullRequestNumber) =>
+        RepositoriesApiSeed.ReadyBindingAsync(_fixture, intentId, pullRequestNumber, Now);
 }

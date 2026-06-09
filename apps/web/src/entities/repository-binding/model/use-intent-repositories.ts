@@ -13,6 +13,8 @@ export interface IntentRepositoriesState {
   error: Error | null;
   /** Force a re-fetch (e.g. after manual sync). */
   refresh: () => void;
+  /** Patch a single binding in the cache from a server response (e.g. per-row «Обновить»). */
+  applyBinding: (binding: RepositoryBinding) => void;
 }
 
 const EMPTY: RepositoryBinding[] = [];
@@ -36,10 +38,22 @@ export function useIntentRepositories(
     });
   }, [queryClient, intentId]);
 
+  const applyBinding = useCallback(
+    (binding: RepositoryBinding) => {
+      if (intentId === null) return;
+      queryClient.setQueryData<RepositoryBinding[]>(
+        intentRepositoriesQueryKeys.list(intentId),
+        (prev) => prev?.map((b) => (b.id === binding.id ? binding : b)) ?? prev
+      );
+    },
+    [queryClient, intentId]
+  );
+
   return {
     bindings: query.data ?? EMPTY,
     isLoading: query.isPending && intentId !== null,
     error: query.error instanceof Error ? query.error : null,
-    refresh
+    refresh,
+    applyBinding
   };
 }

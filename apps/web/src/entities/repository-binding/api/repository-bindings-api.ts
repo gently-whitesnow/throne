@@ -143,6 +143,18 @@ export function attachIntentRepositoryPullRequest(
   );
 }
 
+export function refreshIntentRepository(
+  intentId: string,
+  bindingId: string,
+  signal?: AbortSignal
+): Promise<RepositoryBinding> {
+  return httpPost<RepositoryBinding>(
+    repositoriesEndpoints.refreshIntentRepository(intentId, bindingId),
+    null,
+    signal
+  );
+}
+
 export function unbindIntentRepository(
   intentId: string,
   bindingId: string,

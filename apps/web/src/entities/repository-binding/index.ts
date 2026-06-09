@@ -39,6 +39,7 @@ export {
   listIntentRepositories,
   bindIntentRepository,
   attachIntentRepositoryPullRequest,
+  refreshIntentRepository,
   unbindIntentRepository,
   type SearchGitProviderRepositoriesParams,
   type ListGitProviderRepositoryRefsParams

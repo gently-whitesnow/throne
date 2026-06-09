@@ -21,6 +21,12 @@ public sealed record BindRepositoryCommand(
 public sealed record UnbindRepositoryCommand(string IntentId, string BindingId);
 
 /// <summary>
+/// Restore the local clone of a binding whose workspace folder is missing (ADR-0024,
+/// «Обновить» disk-recovery). Folder absent → re-queue the clone; folder present → no-op.
+/// </summary>
+public sealed record RefreshRepositoryBindingCommand(string IntentId, string BindingId);
+
+/// <summary>
 /// Manual PR-comment refresh (ADR-0024 § 6). Synchronous on purpose — the response
 /// carries the freshly observed comments back to the UI in the same request.
 /// Background polling still pushes per-comment fanout for other open clients.
