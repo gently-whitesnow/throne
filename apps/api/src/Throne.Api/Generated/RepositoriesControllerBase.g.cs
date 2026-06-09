@@ -136,6 +136,37 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request/comments", Name = "listIntentRepositoryPullRequestComments")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<PullRequestCommentDto>>> ListIntentRepositoryPullRequestComments([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromQuery] System.DateTimeOffset? since = null);
 
+        /// <summary>
+        /// Read the provider-derived diff of the binding's pull request or one of its commits.
+        /// </summary>
+        /// <remarks>
+        /// Slice 4A — backs the review workspace. Diff is read from the provider on demand (`gh` / `glab`) and is never persisted server-side. `scope=request` returns the full PR/MR diff against its base; `scope=commit` returns the diff of `commit_sha` against its parent. SHAs are carried back to the UI so a follow-up `submitIntentRepositoryReviewComment` can round-trip the anchor without an extra fetch.
+        /// </remarks>
+        /// <param name="commit_sha">Required when `scope=commit`; ignored for `scope=request`.</param>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/review/diff", Name = "getIntentRepositoryReviewDiff")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestDiffDto>> GetIntentRepositoryReviewDiff([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromQuery] ReviewDiffScope? scope = null, [Microsoft.AspNetCore.Mvc.FromQuery] string commit_sha = null);
+
+        /// <summary>
+        /// List the commits that belong to the binding's pull request.
+        /// </summary>
+        /// <remarks>
+        /// Slice 4A — backs the per-commit selector in the review workspace. Read straight from the provider (no durable cache). Ordered by commit timestamp ascending.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/review/commits", Name = "listIntentRepositoryReviewCommits")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<PullRequestCommitDto>>> ListIntentRepositoryReviewCommits([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
+
+        /// <summary>
+        /// Submit an inline review comment to the provider.
+        /// </summary>
+        /// <remarks>
+        /// Slice 4A — pushes a single inline review comment directly to the provider (GitHub review comment / GitLab MR discussion). Server is pointer-only: the comment is not stored locally. Anchor SHAs and paths come from a prior `getIntentRepositoryReviewDiff` response. The echoed comment is what the UI renders immediately; the comments feed is refreshed via the existing `listIntentRepositoryPullRequestComments` path.
+        /// </remarks>
+        /// <returns>Created — the freshly submitted comment as echoed by the provider.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/review/comments", Name = "submitIntentRepositoryReviewComment")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<SubmittedReviewCommentDto>> SubmitIntentRepositoryReviewComment([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SubmitReviewCommentRequest body);
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

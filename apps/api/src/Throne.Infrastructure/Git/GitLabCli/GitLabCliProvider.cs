@@ -8,7 +8,8 @@ internal sealed class GitLabCliProvider(
     GlabRepoActions actions,
     GlabAuthProbe authProbe,
     GlabPullRequestActions pullRequests,
-    GlabRefListers refListers) : IGitProvider
+    GlabRefListers refListers,
+    GlabReviewWorkspaceActions reviewWorkspace) : IGitProvider
 {
     public string ProviderName => GitProviderNames.GitLab;
 
@@ -57,4 +58,33 @@ internal sealed class GitLabCliProvider(
         string? etag,
         CancellationToken ct) =>
         pullRequests.ListCommentsAsync(owner, repo, number, ct);
+
+    public Task<PullRequestDiff?> GetPullRequestDiffAsync(
+        string owner,
+        string repo,
+        int number,
+        CancellationToken ct) =>
+        reviewWorkspace.GetPullRequestDiffAsync(owner, repo, number, ct);
+
+    public Task<PullRequestDiff?> GetCommitDiffAsync(
+        string owner,
+        string repo,
+        string commitSha,
+        CancellationToken ct) =>
+        reviewWorkspace.GetCommitDiffAsync(owner, repo, commitSha, ct);
+
+    public Task<IReadOnlyList<PullRequestCommitRef>?> ListPullRequestCommitsAsync(
+        string owner,
+        string repo,
+        int number,
+        CancellationToken ct) =>
+        reviewWorkspace.ListCommitsAsync(owner, repo, number, ct);
+
+    public Task<SubmittedReviewComment> SubmitReviewCommentAsync(
+        string owner,
+        string repo,
+        int number,
+        SubmitReviewCommentRequest request,
+        CancellationToken ct) =>
+        reviewWorkspace.SubmitReviewCommentAsync(owner, repo, number, request, ct);
 }
