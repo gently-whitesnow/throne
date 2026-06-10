@@ -88,7 +88,8 @@ public class GitLabCliProviderReviewWorkspaceTests
             Path: "src/a.cs",
             PreviousPath: null,
             Side: ReviewCommentSide.Right,
-            Line: 12,
+            OldLine: null,
+            NewLine: 12,
             CommitSha: "h",
             BaseSha: "b",
             StartSha: "s");
@@ -107,5 +108,63 @@ public class GitLabCliProviderReviewWorkspaceTests
         call.Arguments.Should().Contain("position[new_path]=src/a.cs");
         call.Arguments.Should().Contain("position[old_path]=src/a.cs");
         call.Arguments.Should().Contain("position[new_line]=12");
+        call.Arguments.Should().NotContain(a => a.StartsWith("position[old_line]=", StringComparison.Ordinal));
+    }
+
+    [Fact(DisplayName = "SubmitReviewCommentAsync на context-строке шлёт оба position[new_line] и position[old_line]")]
+    public async Task SubmitReviewCommentAsync_context_row_sends_both_lines()
+    {
+        const string responseBody = """
+            {"id":"d2","notes":[
+              {"id":902,"author":{"username":"alice"},"body":"hi",
+               "created_at":"2026-05-23T12:00:00Z","html_url":"https://gl/g/r/-/merge_requests/7#note_902",
+               "system":false}]}
+            """;
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(responseBody));
+
+        var request = new SubmitReviewCommentRequest(
+            Body: "hi",
+            Path: "src/a.cs",
+            PreviousPath: null,
+            Side: ReviewCommentSide.Right,
+            OldLine: 11,
+            NewLine: 12,
+            CommitSha: "h",
+            BaseSha: "b",
+            StartSha: "s");
+
+        await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, request, default);
+
+        var call = _fx.Calls.Single();
+        call.Arguments.Should().Contain("position[new_line]=12");
+        call.Arguments.Should().Contain("position[old_line]=11");
+    }
+
+    [Fact(DisplayName = "SubmitReviewCommentAsync на del-строке шлёт только position[old_line]")]
+    public async Task SubmitReviewCommentAsync_del_row_sends_only_old_line()
+    {
+        const string responseBody = """
+            {"id":"d3","notes":[
+              {"id":903,"author":{"username":"alice"},"body":"x",
+               "created_at":"2026-05-23T12:00:00Z","system":false}]}
+            """;
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(responseBody));
+
+        var request = new SubmitReviewCommentRequest(
+            Body: "x",
+            Path: "src/a.cs",
+            PreviousPath: null,
+            Side: ReviewCommentSide.Left,
+            OldLine: 5,
+            NewLine: null,
+            CommitSha: "h",
+            BaseSha: "b",
+            StartSha: "s");
+
+        await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, request, default);
+
+        var call = _fx.Calls.Single();
+        call.Arguments.Should().Contain("position[old_line]=5");
+        call.Arguments.Should().NotContain(a => a.StartsWith("position[new_line]=", StringComparison.Ordinal));
     }
 }

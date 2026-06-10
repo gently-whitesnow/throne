@@ -89,7 +89,8 @@ internal static class ReviewWorkspaceDtoMapper
             Path: dto.Path,
             PreviousPath: dto.Previous_path,
             Side: ReviewCommentSideMapper.ToApp(dto.Side),
-            Line: dto.Line,
+            OldLine: dto.Old_line,
+            NewLine: dto.New_line,
             CommitSha: dto.Commit_sha,
             BaseSha: dto.Base_sha,
             StartSha: dto.Start_sha);

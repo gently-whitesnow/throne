@@ -14,8 +14,9 @@ namespace Throne.Application.Git;
 /// <param name="Body">Comment body (Markdown).</param>
 /// <param name="Path">New path of the file being commented on (post-change).</param>
 /// <param name="PreviousPath">Old path of the file when renamed; falls back to <see cref="Path"/>.</param>
-/// <param name="Side">Diff side the line refers to.</param>
-/// <param name="Line">Line number on <see cref="Side"/> (1-based).</param>
+/// <param name="Side">Diff side the comment is displayed on (GitHub LEFT/RIGHT).</param>
+/// <param name="OldLine">1-based line on the pre-change side; null for pure additions.</param>
+/// <param name="NewLine">1-based line on the post-change side; null for pure deletions.</param>
 /// <param name="CommitSha">Head commit SHA the anchor was computed against.</param>
 /// <param name="BaseSha">Base SHA (GitLab MR discussion position).</param>
 /// <param name="StartSha">Start SHA (GitLab MR discussion position).</param>
@@ -24,7 +25,8 @@ public sealed record SubmitReviewCommentRequest(
     string Path,
     string? PreviousPath,
     ReviewCommentSide Side,
-    int Line,
+    int? OldLine,
+    int? NewLine,
     string CommitSha,
     string BaseSha,
     string StartSha);
