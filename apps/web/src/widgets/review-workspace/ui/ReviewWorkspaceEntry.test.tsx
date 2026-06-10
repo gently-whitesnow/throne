@@ -209,7 +209,8 @@ describe("ReviewWorkspaceEntry", () => {
           content: "nit: rename",
           path: "src/app.ts",
           side: "right",
-          line: 2,
+          old_line: null,
+          new_line: 2,
           commit_sha: "head222",
           base_sha: "base111",
           start_sha: "start333"

@@ -63,6 +63,12 @@ internal sealed class GhReviewWorkspaceActions(GhCliInvoker gh)
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
+        // GitHub's REST surface keeps a single `line`+`side` anchor; pick the
+        // side-matching line from the (OldLine, NewLine) pair the diff produced.
+        var line = (request.Side == ReviewCommentSide.Left ? request.OldLine : request.NewLine)
+            ?? throw new ArgumentException(
+                $"SubmitReviewCommentRequest is missing the {request.Side}-side line for GitHub anchor.",
+                nameof(request));
         var path = $"/repos/{owner}/{repo}/pulls/{number}/comments";
         var args = new List<string>
         {
@@ -72,7 +78,7 @@ internal sealed class GhReviewWorkspaceActions(GhCliInvoker gh)
             "-f", $"body={request.Body}",
             "-f", $"commit_id={request.CommitSha}",
             "-f", $"path={request.Path}",
-            "-F", $"line={request.Line}",
+            "-F", $"line={line}",
             "-f", $"side={(request.Side == ReviewCommentSide.Left ? "LEFT" : "RIGHT")}",
             path,
         };
