@@ -898,11 +898,18 @@ namespace Throne.Repositories.Contracts.Generated
         public ReviewCommentSide Side { get; set; }
 
         /// <summary>
-        /// 1-based line number on `side`.
+        /// 1-based line on the pre-change side. Set for `del` and context rows; required by GitLab for unchanged-line anchors.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("line")]
+        [System.Text.Json.Serialization.JsonPropertyName("old_line")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Line { get; set; }
+        public int? Old_line { get; set; }
+
+        /// <summary>
+        /// 1-based line on the post-change side. Set for `add` and context rows. At least one of `old_line` / `new_line` must be supplied.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("new_line")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int? New_line { get; set; }
 
         /// <summary>
         /// Head SHA the anchor was computed against (from the diff response).

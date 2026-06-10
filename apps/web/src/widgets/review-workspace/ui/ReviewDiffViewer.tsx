@@ -44,7 +44,9 @@ function anchorFromRow(
       path: file.path,
       previousPath: file.previous_path ?? null,
       side: "left",
-      line: row.oldLine
+      line: row.oldLine,
+      oldLine: row.oldLine,
+      newLine: null
     };
   }
   if (row.newLine === null) return null;
@@ -52,7 +54,12 @@ function anchorFromRow(
     path: file.path,
     previousPath: file.previous_path ?? null,
     side: "right",
-    line: row.newLine
+    line: row.newLine,
+    // context rows carry both — GitLab requires both new_line and old_line on
+    // unchanged-line anchors, otherwise the discussion lands as a non-positioned
+    // MR comment.
+    oldLine: row.kind === "context" ? row.oldLine : null,
+    newLine: row.newLine
   };
 }
 

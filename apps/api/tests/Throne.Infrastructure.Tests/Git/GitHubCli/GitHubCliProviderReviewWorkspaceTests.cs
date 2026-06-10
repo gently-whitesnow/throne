@@ -156,7 +156,8 @@ public class GitHubCliProviderReviewWorkspaceTests
             Path: "src/a.cs",
             PreviousPath: null,
             Side: ReviewCommentSide.Right,
-            Line: 12,
+            OldLine: null,
+            NewLine: 12,
             CommitSha: "headsha",
             BaseSha: "basesha",
             StartSha: "basesha");
@@ -182,7 +183,7 @@ public class GitHubCliProviderReviewWorkspaceTests
             StandardError: string.Empty,
             Elapsed: TimeSpan.Zero));
 
-        var request = new SubmitReviewCommentRequest("x", "a.cs", null, ReviewCommentSide.Right, 1, "h", "b", "b");
+        var request = new SubmitReviewCommentRequest("x", "a.cs", null, ReviewCommentSide.Right, null, 1, "h", "b", "b");
 
         var act = async () => await _fx.Provider.SubmitReviewCommentAsync("o", "r", 42, request, default);
 
