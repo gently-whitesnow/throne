@@ -17,6 +17,8 @@ export interface ComposerAnchor {
   previousPath: string | null;
   side: ReviewCommentSide;
   line: number;
+  oldLine: number | null;
+  newLine: number | null;
 }
 
 interface ReviewInlineComposerProps {
@@ -77,7 +79,8 @@ export function ReviewInlineComposer({
           path: anchor.path,
           previous_path: anchor.previousPath ?? undefined,
           side: anchor.side,
-          line: anchor.line,
+          old_line: anchor.oldLine,
+          new_line: anchor.newLine,
           commit_sha: shas.commit_sha,
           base_sha: shas.base_sha,
           start_sha: shas.start_sha

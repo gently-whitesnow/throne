@@ -99,6 +99,12 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
 
     private static List<string> BuildSubmitArgs(string apiPath, SubmitReviewCommentRequest request)
     {
+        if (request.OldLine is null && request.NewLine is null)
+        {
+            throw new ArgumentException(
+                "SubmitReviewCommentRequest must carry at least one of OldLine / NewLine.",
+                nameof(request));
+        }
         var oldPath = request.PreviousPath ?? request.Path;
         var args = new List<string>
         {
@@ -112,15 +118,18 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
             "-f", $"position[new_path]={request.Path}",
             "-f", $"position[old_path]={oldPath}",
         };
-        if (request.Side == ReviewCommentSide.Right)
+        // GitLab quirk: for unchanged context lines a discussion anchor requires
+        // BOTH position[new_line] AND position[old_line]; supplying only one
+        // creates a non-positioned discussion (бьёт user-visible "не прикрепляется").
+        if (request.NewLine is { } newLine)
         {
             args.Add("-f");
-            args.Add($"position[new_line]={request.Line}");
+            args.Add($"position[new_line]={newLine}");
         }
-        else
+        if (request.OldLine is { } oldLine)
         {
             args.Add("-f");
-            args.Add($"position[old_line]={request.Line}");
+            args.Add($"position[old_line]={oldLine}");
         }
         args.Add(apiPath);
         return args;
