@@ -5,6 +5,7 @@ import {
   screen,
   waitFor
 } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithQuery } from "@/app/test-utils";
@@ -68,6 +69,14 @@ function makeBinding(
   };
 }
 
+function renderList() {
+  return renderWithQuery(
+    <MemoryRouter>
+      <RepositoryBindingsList intentId="intent-1" />
+    </MemoryRouter>
+  );
+}
+
 describe("RepositoryBindingsList", () => {
   beforeEach(() => {
     listIntentRepositories.mockReset();
@@ -83,7 +92,7 @@ describe("RepositoryBindingsList", () => {
 
   it("показывает пустое состояние, когда binding'ов нет", async () => {
     listIntentRepositories.mockResolvedValue([]);
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
     await waitFor(() => {
       expect(screen.getByText(/Репозитории не привязаны/)).toBeTruthy();
     });
@@ -97,7 +106,7 @@ describe("RepositoryBindingsList", () => {
         pull_request_state: "open"
       })
     ]);
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
     await waitFor(() => {
       expect(screen.getByText("octocat/hello-world")).toBeTruthy();
     });
@@ -107,11 +116,35 @@ describe("RepositoryBindingsList", () => {
     expect(screen.getByTestId("binding-pr-b1").textContent).toMatch(/Open/);
   });
 
+  it("показывает внутреннее ревью и внешнюю ссылку на PR в строке binding'а", async () => {
+    listIntentRepositories.mockResolvedValue([
+      makeBinding({
+        clone_status: "ready",
+        pull_request_number: 42,
+        pull_request_state: "open"
+      })
+    ]);
+    renderList();
+
+    const reviewLink = await screen.findByRole("link", {
+      name: /Открыть ревью octocat\/hello-world/
+    });
+    expect(reviewLink.getAttribute("href")).toBe("/intents/intent-1/review/b1");
+
+    const externalLink = screen.getByRole("link", {
+      name: /Внешняя ссылка на PR octocat\/hello-world/
+    });
+    expect(externalLink.getAttribute("href")).toBe(
+      "https://github.com/octocat/hello-world/pull/42"
+    );
+    expect(screen.queryByText("Просмотреть PR")).toBeNull();
+  });
+
   it("synthetic SSE-event intent.repository_clone_progress обновляет статус в DOM", async () => {
     listIntentRepositories.mockResolvedValue([
       makeBinding({ clone_status: "cloning" })
     ]);
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
 
     await waitFor(() => {
       const pill = screen.getByTestId("binding-clone-status-b1");
@@ -134,7 +167,7 @@ describe("RepositoryBindingsList", () => {
 
   it("intent.repository_unbound для другого интента не трогает список", async () => {
     listIntentRepositories.mockResolvedValue([makeBinding()]);
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
     await waitFor(() => {
       expect(screen.getByText("octocat/hello-world")).toBeTruthy();
     });
@@ -156,7 +189,7 @@ describe("RepositoryBindingsList", () => {
         clone_error: "permission denied"
       })
     ]);
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
     await waitFor(() => {
       expect(screen.getByTestId("binding-error-b1").textContent).toMatch(
         /permission denied/
@@ -171,7 +204,7 @@ describe("RepositoryBindingsList", () => {
     refreshIntentRepository.mockResolvedValue(
       makeBinding({ clone_status: "pending" })
     );
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
 
     await waitFor(() => {
       const pill = screen.getByTestId("binding-clone-status-b1");
@@ -197,7 +230,7 @@ describe("RepositoryBindingsList", () => {
       .mockResolvedValueOnce([
         makeBinding({ id: "b2", repo: "new-repo", clone_status: "pending" })
       ]);
-    renderWithQuery(<RepositoryBindingsList intentId="intent-1" />);
+    renderList();
     await waitFor(() => {
       expect(screen.getByText(/Репозитории не привязаны/)).toBeTruthy();
     });
