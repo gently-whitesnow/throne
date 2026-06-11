@@ -17,7 +17,7 @@ internal static class ProcessStartInfoBuilder
             WorkingDirectory = request.WorkingDirectory ?? string.Empty,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            RedirectStandardInput = false,
+            RedirectStandardInput = request.StandardInput is not null,
             UseShellExecute = false,
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
