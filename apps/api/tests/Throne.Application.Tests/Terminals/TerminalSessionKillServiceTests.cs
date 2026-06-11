@@ -91,7 +91,7 @@ public class TerminalSessionKillServiceTests
             var spawn = new RunPreflightSpawn(
                 Tmux,
                 new StubWorkspaceRoot(WorkspaceRoot),
-                Substitute.For<IClaudeWorkspaceTrust>(),
+                Substitute.For<IWorkspaceTrust>(),
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             Service = new TerminalSessionKillService(guards, Bindings, spawn);

@@ -34,8 +34,8 @@ internal static partial class TerminalsLog
     public static partial void CapabilityProbed(ILogger logger, string name, bool detected, string? detail);
 
     [LoggerMessage(EventId = 7, Level = LogLevel.Warning,
-        Message = "failed to pre-seed agent trust for {WorkspacePath}: {Reason}")]
-    public static partial void ClaudeTrustSeedFailed(ILogger logger, string workspacePath, string reason);
+        Message = "failed to pre-seed {Vendor} trust for {WorkspacePath}: {Reason}")]
+    public static partial void WorkspaceTrustSeedFailed(ILogger logger, string vendor, string workspacePath, string reason);
 
     [LoggerMessage(EventId = 8, Level = LogLevel.Information,
         Message = "tmux kill-session: name={SessionName} pre_alive={PreAlive} exit={ExitCode} elapsed_ms={ElapsedMs} stderr={Stderr} post_alive={PostAlive}")]
