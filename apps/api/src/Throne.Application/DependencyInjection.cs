@@ -109,6 +109,9 @@ public static class DependencyInjection
         // (TmuxSessionManager → IDomainEventDispatcher → IEnumerable<IDomainEventHandler>).
         services.AddSingleton(sp => new Lazy<ITmuxSessionManager>(sp.GetRequiredService<ITmuxSessionManager>));
         services.AddSingleton<IDomainEventHandler, TerminalKillOnIntentDoneHandler>();
+        // Reaching `done` also wipes the intent's local state (trust entries + workspace folder),
+        // gated by the intent's CleanupLocalStateOnDone flag. Best-effort, sibling to the kill above.
+        services.AddSingleton<IDomainEventHandler, IntentLocalStateCleanupOnDoneHandler>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
         // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by

@@ -20,4 +20,13 @@ public interface IWorkspaceTrust
     /// is already trusted. Never throws — implementations swallow and log I/O / parse failures.
     /// </summary>
     Task EnsureTrustedAsync(string vendor, string workspacePath, CancellationToken ct);
+
+    /// <summary>
+    /// Inverse of <see cref="EnsureTrustedAsync"/> for intent teardown: removes every vendor's
+    /// trust entry whose path lies at or under <paramref name="directoryPrefix"/> (the intent's
+    /// workspace folder). Cleans all known vendors unconditionally — which CLI actually ran is not
+    /// tracked — and is best-effort: a missing file / entry is a no-op and I/O failures are
+    /// swallowed and logged, never thrown.
+    /// </summary>
+    Task RemoveTrustedUnderAsync(string directoryPrefix, CancellationToken ct);
 }

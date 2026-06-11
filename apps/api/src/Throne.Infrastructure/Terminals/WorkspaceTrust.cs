@@ -13,6 +13,12 @@ internal interface IWorkspaceTrustSeeder
     string Vendor { get; }
 
     void Seed(string workspacePath);
+
+    /// <summary>
+    /// Inverse of <see cref="Seed"/>: drop every trust entry whose path lies at or under
+    /// <paramref name="directoryPrefix"/>. May throw on I/O — the dispatcher owns the swallow.
+    /// </summary>
+    void RemoveTrustedUnder(string directoryPrefix);
 }
 
 /// <summary>
@@ -42,6 +48,25 @@ internal sealed class WorkspaceTrust(
         {
             // A write failure just means the operator confirms the prompt once, as before.
             TerminalsLog.WorkspaceTrustSeedFailed(log, vendor, workspacePath, ex.Message);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task RemoveTrustedUnderAsync(string directoryPrefix, CancellationToken ct)
+    {
+        // Clean every vendor unconditionally: which CLI actually ran for this intent is not
+        // tracked, and an absent file / entry is a no-op inside the pure transform.
+        foreach (var seeder in _seeders.Values)
+        {
+            try
+            {
+                seeder.RemoveTrustedUnder(directoryPrefix);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                TerminalsLog.WorkspaceUntrustFailed(log, seeder.Vendor, directoryPrefix, ex.Message);
+            }
         }
 
         return Task.CompletedTask;

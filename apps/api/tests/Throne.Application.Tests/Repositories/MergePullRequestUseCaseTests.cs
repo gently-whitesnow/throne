@@ -17,36 +17,40 @@ public class MergePullRequestUseCaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 7, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "auto_complete_session=false → биндинг помечается suppress и сохраняется до мержа")]
-    public async Task Flags_binding_keep_session_before_merge_when_auto_complete_off()
+    [Fact(DisplayName = "cleanup_after_merge=false → флаг очистки false на интенте + биндинг suppress до мержа")]
+    public async Task Flags_keep_session_and_disables_cleanup_before_merge_when_off()
     {
         var fixture = new Fixture();
 
         var result = await fixture.UseCase.MergeAsync(
             fixture.Binding,
             new MergePullRequestRequest(MergeStrategy.Merge, DeleteBranch: false),
-            autoCompleteSession: false,
+            cleanupAfterMerge: false,
             CancellationToken.None);
 
         result.Merged.Should().BeTrue();
         fixture.Binding.State.SuppressMergeAutoClose.Should().BeTrue();
+        await fixture.Intents.Received(1).SetCleanupLocalStateOnDoneAsync(
+            fixture.Binding.IntentId, false, Now, Arg.Any<CancellationToken>());
         await fixture.Bindings.Received(1).SaveAsync(
             Arg.Is<IntentRepositoryBinding>(b => b.State.SuppressMergeAutoClose),
             Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "auto_complete_session=true (default) → биндинг не трогаем, авто-close сохраняется")]
-    public async Task Leaves_binding_untouched_when_auto_complete_on()
+    [Fact(DisplayName = "cleanup_after_merge=true (default) → флаг очистки true на интенте, биндинг не трогаем")]
+    public async Task Enables_cleanup_and_leaves_binding_untouched_when_on()
     {
         var fixture = new Fixture();
 
         await fixture.UseCase.MergeAsync(
             fixture.Binding,
             new MergePullRequestRequest(MergeStrategy.Squash, DeleteBranch: true),
-            autoCompleteSession: true,
+            cleanupAfterMerge: true,
             CancellationToken.None);
 
         fixture.Binding.State.SuppressMergeAutoClose.Should().BeFalse();
+        await fixture.Intents.Received(1).SetCleanupLocalStateOnDoneAsync(
+            fixture.Binding.IntentId, true, Now, Arg.Any<CancellationToken>());
         await fixture.Bindings.DidNotReceive().SaveAsync(
             Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
     }
@@ -69,11 +73,15 @@ public class MergePullRequestUseCaseTests
             var registry = Substitute.For<IGitProviderRegistry>();
             registry.GetByName(GitProviderNames.GitHub).Returns(provider);
 
+            Intents = Substitute.For<IIntentRepository>();
+
             UseCase = new MergePullRequestUseCase(
-                registry, Bindings, new PassthroughUnitOfWork(), new FixedClock(Now));
+                registry, Bindings, Intents, new PassthroughUnitOfWork(), new FixedClock(Now));
         }
 
         public IIntentRepositoryBindingRepository Bindings { get; }
+
+        public IIntentRepository Intents { get; }
 
         public MergePullRequestUseCase UseCase { get; }
 

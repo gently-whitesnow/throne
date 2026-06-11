@@ -20,4 +20,9 @@ internal sealed class ClaudeTrustSeeder : IWorkspaceTrustSeeder
         TrustConfigFile.Seed(
             ConfigPath,
             existing => ClaudeTrustDocument.WithTrustedWorkspace(existing, workspacePath));
+
+    public void RemoveTrustedUnder(string directoryPrefix) =>
+        TrustConfigFile.Seed(
+            ConfigPath,
+            existing => ClaudeTrustDocument.WithoutTrustedWorkspacesUnder(existing, directoryPrefix));
 }

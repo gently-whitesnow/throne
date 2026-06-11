@@ -18,6 +18,7 @@ internal static class IntentDocumentMapper
         SortKey = intent.State.SortKey,
         CreatedAt = intent.CreatedAt.UtcDateTime,
         UpdatedAt = intent.State.UpdatedAt.UtcDateTime,
+        CleanupLocalStateOnDone = intent.State.CleanupLocalStateOnDone,
     };
 
     public static IntentStatusChangeDocument ToDocument(IntentStatusChange change) => new()
@@ -41,7 +42,8 @@ internal static class IntentDocumentMapper
         tagIds: doc.TagIds.Select(v => new TagId(v)).ToList(),
         createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
         updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc),
-        sortKey: doc.SortKey);
+        sortKey: doc.SortKey,
+        cleanupLocalStateOnDone: doc.CleanupLocalStateOnDone);
 
     public static TextVersionAuthor ToTextVersionAuthor(IntentTrainingAuthor author) => author switch
     {

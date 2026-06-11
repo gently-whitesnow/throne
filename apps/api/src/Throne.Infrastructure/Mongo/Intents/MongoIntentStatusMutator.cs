@@ -185,6 +185,24 @@ internal sealed class MongoIntentStatusMutator(
         return inserted.Version;
     }
 
+    public async Task SetCleanupLocalStateOnDoneAsync(
+        IntentId id,
+        bool value,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoIntentStatusMutator.SetCleanupLocalStateOnDoneAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var byId = IntentCollectionFilters.ById(id.Value);
+        var update = Builders<IntentDocument>.Update
+            .Set(d => d.CleanupLocalStateOnDone, value)
+            .Set(d => d.UpdatedAt, now.UtcDateTime);
+
+        await _intents.UpdateOneAsync(session, byId, update, options: null, ct);
+    }
+
     private static UpdateDefinition<IntentDocument> BuildStatusUpdate(Intent intent) =>
         Builders<IntentDocument>.Update
             .Set(d => d.Text, intent.State.Text)

@@ -163,6 +163,59 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         changes[1].Reason.Should().Be("нужен доступ к prod");
     }
 
+    [Fact(DisplayName = "SetCleanupLocalStateOnDoneAsync переключает флаг без бампа версии и читается обратно")]
+    public async Task SetCleanupFlag_persists_without_version_bump()
+    {
+        var (db, repo, uow) = await NewScopeAsync();
+
+        var id = IntentId.New();
+        var intent = Intent.Create(id, "body", null, Now);
+        var version = TextVersion.CreateSnapshot(
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
+            "body", Now, TextVersionAuthor.Agent);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
+
+        var created = await repo.GetByIdAsync(id, CancellationToken.None);
+        created!.State.CleanupLocalStateOnDone.Should().BeTrue("по умолчанию очистка включена");
+
+        await uow.ExecuteAsync(
+            ct => repo.SetCleanupLocalStateOnDoneAsync(id, false, Now.AddMinutes(1), ct),
+            CancellationToken.None);
+
+        var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
+        fetched!.State.CleanupLocalStateOnDone.Should().BeFalse();
+        fetched.State.CurrentVersion.Should().Be(1);
+
+        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
+            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        stored!.CleanupLocalStateOnDone.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Документ без поля cleanup_local_state_on_done читается как true (легаси-дефолт)")]
+    public async Task Legacy_document_without_flag_reads_true()
+    {
+        var (db, repo, _) = await NewScopeAsync();
+
+        var id = IntentId.New();
+        // Раздельный insert без поля — воспроизводит документ, записанный до появления гейта.
+        var raw = new MongoDB.Bson.BsonDocument
+        {
+            { "_id", id.Value },
+            { "text", "legacy" },
+            { "status", IntentStatusNames.Draft },
+            { "current_version", 1 },
+            { "tag_ids", new MongoDB.Bson.BsonArray() },
+            { "sort_key", "a1" },
+            { "created_at", Now.UtcDateTime },
+            { "updated_at", Now.UtcDateTime },
+        };
+        await db.GetCollection<MongoDB.Bson.BsonDocument>(MongoCollectionNames.Intents).InsertOneAsync(raw);
+
+        var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
+
+        fetched!.State.CleanupLocalStateOnDone.Should().BeTrue();
+    }
+
     [Fact(DisplayName = "CreateAsync вне UoW бросает InvalidOperationException")]
     public async Task Create_without_uow_throws()
     {

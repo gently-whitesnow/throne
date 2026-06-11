@@ -28,4 +28,9 @@ internal sealed class IntentDocument
 
     [BsonElement("updated_at")]
     public DateTime UpdatedAt { get; set; }
+
+    // Absent on documents written before the cleanup-on-done gate: the `= true` default
+    // reproduces the spec default (manual done on an untouched intent still cleans up).
+    [BsonElement("cleanup_local_state_on_done")]
+    public bool CleanupLocalStateOnDone { get; set; } = true;
 }
