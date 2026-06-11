@@ -17,8 +17,8 @@ public class AgentSpawnCommandTests
             "--model", "opus", "--effort", "high", "Прочитай бандл work и выполни интент x");
     }
 
-    [Fact(DisplayName = "codex: команда codex с -m и -c model_reasoning_effort без shell-кавычек")]
-    public void Codex_builds_model_and_reasoning_effort_config()
+    [Fact(DisplayName = "codex: -m, -c model_reasoning_effort и автономный bypass-флаг без shell-кавычек")]
+    public void Codex_builds_model_reasoning_effort_and_autonomous_bypass()
     {
         var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorCodex, "gpt-5.5", "medium");
 
@@ -26,7 +26,10 @@ public class AgentSpawnCommandTests
 
         invocation.Command.Should().Be("codex");
         invocation.Arguments.Should().Equal(
-            "-m", "gpt-5.5", "-c", "model_reasoning_effort=medium", "промпт");
+            "-m", "gpt-5.5",
+            "-c", "model_reasoning_effort=medium",
+            "--dangerously-bypass-approvals-and-sandbox",
+            "промпт");
     }
 
     [Fact(DisplayName = "free-режим не добавляет позиционный промпт, но сохраняет флаги")]
@@ -36,6 +39,9 @@ public class AgentSpawnCommandTests
 
         var invocation = AgentSpawnCommand.Build(options, "промпт", isFree: true);
 
-        invocation.Arguments.Should().Equal("-m", "gpt-5.4", "-c", "model_reasoning_effort=xhigh");
+        invocation.Arguments.Should().Equal(
+            "-m", "gpt-5.4",
+            "-c", "model_reasoning_effort=xhigh",
+            "--dangerously-bypass-approvals-and-sandbox");
     }
 }

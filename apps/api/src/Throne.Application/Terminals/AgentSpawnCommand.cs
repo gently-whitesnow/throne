@@ -18,6 +18,12 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// to <c>execvp</c>, so flag values are raw tokens (no shell quoting): the codex docs show
 /// <c>-c model_reasoning_effort="high"</c> for a shell, here it is the unquoted
 /// <c>model_reasoning_effort=high</c> token.
+///
+/// codex launches with <c>--dangerously-bypass-approvals-and-sandbox</c> (alias <c>--yolo</c>):
+/// the operator presses run and walks away, so mid-task approval prompts on routine work
+/// (git fetch / branch from a remote ref, dependency install — all blocked by the default
+/// workspace-write sandbox's no-network policy) would strand the session. This is codex's
+/// "no approvals, no sandbox" profile; granular per-command policy is a deliberate future layer.
 /// </summary>
 public static class AgentSpawnCommand
 {
@@ -36,7 +42,12 @@ public static class AgentSpawnCommand
             TerminalAgentCatalog.VendorClaude =>
                 new List<string> { "--model", options.Model, "--effort", options.Effort },
             TerminalAgentCatalog.VendorCodex =>
-                new List<string> { "-m", options.Model, "-c", $"model_reasoning_effort={options.Effort}" },
+                new List<string>
+                {
+                    "-m", options.Model,
+                    "-c", $"model_reasoning_effort={options.Effort}",
+                    "--dangerously-bypass-approvals-and-sandbox",
+                },
             _ => throw new ArgumentOutOfRangeException(
                 nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
         };
