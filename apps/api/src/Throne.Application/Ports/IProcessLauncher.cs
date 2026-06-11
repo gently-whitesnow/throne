@@ -24,8 +24,7 @@ public interface IProcessLauncher
 }
 
 /// <summary>
-/// Inputs for a single <see cref="IProcessLauncher.RunAsync"/> call. Inline
-/// stdin is intentionally omitted — current <c>gh</c> call surface never needs it.
+/// Inputs for a single <see cref="IProcessLauncher.RunAsync"/> call.
 /// </summary>
 /// <param name="FileName">Executable name or absolute path (e.g. <c>gh</c>).</param>
 /// <param name="Arguments">
@@ -43,12 +42,18 @@ public interface IProcessLauncher
 ///   Hard wall-clock cap. The runner force-kills the process tree when it expires
 ///   and throws <see cref="TimeoutException"/>.
 /// </param>
+/// <param name="StandardInput">
+///   Optional UTF-8 payload piped to the child process via stdin. Used by
+///   <c>glab api --input -</c> to deliver a JSON body when <c>-f</c> form-fields
+///   would lose nested structure (e.g. <c>position[...]</c> для discussions).
+/// </param>
 public sealed record ProcessRunRequest(
     string FileName,
     IReadOnlyList<string> Arguments,
     string? WorkingDirectory = null,
     IReadOnlyDictionary<string, string?>? Environment = null,
-    TimeSpan? Timeout = null);
+    TimeSpan? Timeout = null,
+    string? StandardInput = null);
 
 /// <summary>
 /// Result of a finished process invocation.

@@ -33,6 +33,13 @@ internal sealed class ProcessRunner(ILogger<ProcessRunner> log) : IProcessLaunch
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
+        if (request.StandardInput is { } stdin)
+        {
+            await process.StandardInput.WriteAsync(stdin.AsMemory(), ct);
+            await process.StandardInput.FlushAsync(ct);
+            process.StandardInput.Close();
+        }
+
         await WaitForExitAsync(process, request, stopwatch, ct);
 
         stopwatch.Stop();

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Throne.Application.Git;
 
@@ -72,7 +73,7 @@ public class GitLabCliProviderReviewWorkspaceTests
         _fx.Calls.Single().Arguments.Should().Contain("--paginate");
     }
 
-    [Fact(DisplayName = "SubmitReviewCommentAsync шлёт position[]-поля и body")]
+    [Fact(DisplayName = "SubmitReviewCommentAsync шлёт JSON-тело с вложенным position через stdin")]
     public async Task SubmitReviewCommentAsync_posts_position_fields()
     {
         const string responseBody = """
@@ -100,18 +101,25 @@ public class GitLabCliProviderReviewWorkspaceTests
         result.AuthorLogin.Should().Be("alice");
         var call = _fx.Calls.Single();
         call.Arguments.Should().Contain("POST");
-        call.Arguments.Should().Contain("body=hello");
-        call.Arguments.Should().Contain("position[position_type]=text");
-        call.Arguments.Should().Contain("position[base_sha]=b");
-        call.Arguments.Should().Contain("position[head_sha]=h");
-        call.Arguments.Should().Contain("position[start_sha]=s");
-        call.Arguments.Should().Contain("position[new_path]=src/a.cs");
-        call.Arguments.Should().Contain("position[old_path]=src/a.cs");
-        call.Arguments.Should().Contain("position[new_line]=12");
-        call.Arguments.Should().NotContain(a => a.StartsWith("position[old_line]=", StringComparison.Ordinal));
+        call.Arguments.Should().Contain("Content-Type: application/json");
+        call.Arguments.Should().ContainInOrder("--input", "-");
+        call.Arguments.Should().NotContain(a => a.StartsWith("position[", StringComparison.Ordinal));
+
+        using var payload = JsonDocument.Parse(call.StandardInput!);
+        var root = payload.RootElement;
+        root.GetProperty("body").GetString().Should().Be("hello");
+        var position = root.GetProperty("position");
+        position.GetProperty("position_type").GetString().Should().Be("text");
+        position.GetProperty("base_sha").GetString().Should().Be("b");
+        position.GetProperty("head_sha").GetString().Should().Be("h");
+        position.GetProperty("start_sha").GetString().Should().Be("s");
+        position.GetProperty("new_path").GetString().Should().Be("src/a.cs");
+        position.GetProperty("old_path").GetString().Should().Be("src/a.cs");
+        position.GetProperty("new_line").GetInt32().Should().Be(12);
+        position.TryGetProperty("old_line", out _).Should().BeFalse();
     }
 
-    [Fact(DisplayName = "SubmitReviewCommentAsync на context-строке шлёт оба position[new_line] и position[old_line]")]
+    [Fact(DisplayName = "SubmitReviewCommentAsync на context-строке шлёт оба new_line и old_line")]
     public async Task SubmitReviewCommentAsync_context_row_sends_both_lines()
     {
         const string responseBody = """
@@ -135,12 +143,13 @@ public class GitLabCliProviderReviewWorkspaceTests
 
         await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, request, default);
 
-        var call = _fx.Calls.Single();
-        call.Arguments.Should().Contain("position[new_line]=12");
-        call.Arguments.Should().Contain("position[old_line]=11");
+        using var payload = JsonDocument.Parse(_fx.Calls.Single().StandardInput!);
+        var position = payload.RootElement.GetProperty("position");
+        position.GetProperty("new_line").GetInt32().Should().Be(12);
+        position.GetProperty("old_line").GetInt32().Should().Be(11);
     }
 
-    [Fact(DisplayName = "SubmitReviewCommentAsync на del-строке шлёт только position[old_line]")]
+    [Fact(DisplayName = "SubmitReviewCommentAsync на del-строке шлёт только old_line")]
     public async Task SubmitReviewCommentAsync_del_row_sends_only_old_line()
     {
         const string responseBody = """
@@ -163,8 +172,9 @@ public class GitLabCliProviderReviewWorkspaceTests
 
         await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, request, default);
 
-        var call = _fx.Calls.Single();
-        call.Arguments.Should().Contain("position[old_line]=5");
-        call.Arguments.Should().NotContain(a => a.StartsWith("position[new_line]=", StringComparison.Ordinal));
+        using var payload = JsonDocument.Parse(_fx.Calls.Single().StandardInput!);
+        var position = payload.RootElement.GetProperty("position");
+        position.GetProperty("old_line").GetInt32().Should().Be(5);
+        position.TryGetProperty("new_line", out _).Should().BeFalse();
     }
 }
