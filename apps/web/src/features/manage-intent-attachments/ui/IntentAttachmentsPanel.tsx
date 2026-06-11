@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Image, ImagePlus, X } from "lucide-react";
+import { Image, ImagePlus, Paperclip, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -17,6 +17,7 @@ import {
   intentsEndpoints
 } from "@/shared/api";
 import { filesFromClipboard } from "@/shared/lib";
+import { SectionHeading } from "@/shared/ui";
 
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -176,7 +177,7 @@ export function IntentAttachmentsPanel({
 
   return (
     <section
-      className="mt-5 rounded-md border-t border-base-300 pt-4 focus-within:outline-2 focus-within:outline-primary/40 focus-within:outline-offset-2"
+      className="flex flex-col gap-3 focus-within:outline-2 focus-within:outline-primary/40 focus-within:outline-offset-2"
       aria-labelledby="attachments-title"
       tabIndex={0}
       onPaste={(event) => {
@@ -186,44 +187,43 @@ export function IntentAttachmentsPanel({
         void uploadFiles(pasted);
       }}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <h2
-            id="attachments-title"
-            className="m-0 text-base font-bold text-base-content"
-          >
-            Вложения
-          </h2>
-          <p className="mt-1 text-xs text-base-content/60">
-            До 10 файлов по 10 МБ; изображения показываются превью. Можно
-            вставить картинку из буфера.
-          </p>
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          {attachmentsQuery.isSuccess ? (
-            <span className="badge badge-sm bg-primary/10 text-primary">
-              {String(attachments.length)}/10
-            </span>
-          ) : null}
-          <label
-            className={`btn btn-sm btn-soft gap-1.5 ${
-              canUpload ? "" : "btn-disabled"
-            }`}
-          >
-            <input
-              type="file"
-              multiple
-              className="sr-only"
-              disabled={!canUpload}
-              onChange={(e) => {
-                void uploadFiles(e.currentTarget.files);
-                e.currentTarget.value = "";
-              }}
-            />
-            <ImagePlus aria-hidden size={14} strokeWidth={2} />
-            {uploadingCount > 0 ? "Загружаем…" : "Приложить"}
-          </label>
-        </div>
+      <div className="flex flex-col gap-1">
+        <SectionHeading
+          id="attachments-title"
+          icon={<Paperclip size={14} strokeWidth={2} />}
+          title="Вложения"
+          meta={
+            attachmentsQuery.isSuccess ? (
+              <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary">
+                {String(attachments.length)}/10
+              </span>
+            ) : null
+          }
+          actions={
+            <label
+              className={`btn btn-sm btn-soft gap-1.5 ${
+                canUpload ? "" : "btn-disabled"
+              }`}
+            >
+              <input
+                type="file"
+                multiple
+                className="sr-only"
+                disabled={!canUpload}
+                onChange={(e) => {
+                  void uploadFiles(e.currentTarget.files);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <ImagePlus aria-hidden size={14} strokeWidth={2} />
+              {uploadingCount > 0 ? "Загружаем…" : "Приложить"}
+            </label>
+          }
+        />
+        <p className="m-0 pl-6 text-xs text-base-content/60">
+          До 10 файлов по 10 МБ; изображения показываются превью. Можно вставить
+          картинку из буфера.
+        </p>
       </div>
 
       {attachmentsQuery.isPending ? (

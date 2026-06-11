@@ -54,7 +54,7 @@ export function IntentDetailShell({ intent }: IntentDetailShellProps) {
           className={
             editing
               ? "flex min-h-0 flex-1 flex-col gap-3 px-6 pb-4 pt-4"
-              : "min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-4"
+              : "flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 pb-8 pt-4"
           }
         >
           <IntentTagsInline intent={intent} onSaved={patchCache} />
@@ -74,10 +74,12 @@ export function IntentDetailShell({ intent }: IntentDetailShellProps) {
               <pre className="m-0 whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-base-content">
                 {intent.text}
               </pre>
+              {/* Главный CTA «Запустить агента» сразу под текстом — один
+                  очевидный primary-action, остальные секции ниже. */}
+              <PanelRegion placement="terminal" intent={intent} />
               <PanelRegion placement="primary" intent={intent} />
               <PanelRegion placement="review" intent={intent} />
               <PanelRegion placement="context" intent={intent} />
-              <PanelRegion placement="terminal" intent={intent} />
             </>
           )}
         </div>

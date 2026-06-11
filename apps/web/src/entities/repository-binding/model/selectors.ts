@@ -43,6 +43,26 @@ export function changeRequestKindLabel(provider: GitProvider): "PR" | "MR" {
   return provider === "gitlab" ? "MR" : "PR";
 }
 
+/**
+ * Веб-ссылка на привязанный PR/MR. Бэкенд URL не отдаёт, поэтому собираем из
+ * `host/owner/repo/number` по конвенции форджа (GitHub `/pull/`, GitLab
+ * `/-/merge_requests/`). null — когда PR не привязан.
+ */
+export function pullRequestUrl(
+  binding: Pick<
+    RepositoryBinding,
+    "provider" | "host" | "owner" | "repo" | "pull_request_number"
+  >
+): string | null {
+  const number = binding.pull_request_number;
+  if (typeof number !== "number") return null;
+  const path =
+    binding.provider === "gitlab"
+      ? `${binding.owner}/${binding.repo}/-/merge_requests/${String(number)}`
+      : `${binding.owner}/${binding.repo}/pull/${String(number)}`;
+  return `https://${binding.host}/${path}`;
+}
+
 /** `PR #42` для GitHub, `MR !42` для GitLab — ссылка на привязанный PR/MR. */
 export function changeRequestRefLabel(
   binding: Pick<RepositoryBinding, "provider" | "pull_request_number">
