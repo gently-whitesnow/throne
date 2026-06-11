@@ -19,26 +19,37 @@ internal sealed class GlabCliInvoker(IProcessLauncher launcher, IOptions<GitLabC
         IReadOnlyList<string> arguments,
         IReadOnlyDictionary<string, string?> environment,
         CancellationToken ct) =>
-        RunAsync(arguments, workingDirectory: null, environment, _opts.CloneTimeout, ct);
+        RunAsync(arguments, workingDirectory: null, environment, _opts.CloneTimeout, standardInput: null, ct);
 
     public Task<ProcessRunResult> RunInAsync(
         string workingDirectory,
         IReadOnlyList<string> arguments,
         IReadOnlyDictionary<string, string?> environment,
         CancellationToken ct) =>
-        RunAsync(arguments, workingDirectory, environment, _opts.DefaultTimeout, ct);
+        RunAsync(arguments, workingDirectory, environment, _opts.DefaultTimeout, standardInput: null, ct);
 
     public async Task<ProcessRunResult> RunAsync(
         IReadOnlyList<string> arguments,
         IReadOnlyDictionary<string, string?>? environment,
         CancellationToken ct) =>
-        await RunAsync(arguments, workingDirectory: null, environment, _opts.DefaultTimeout, ct);
+        await RunAsync(arguments, workingDirectory: null, environment, _opts.DefaultTimeout, standardInput: null, ct);
+
+    public Task<ProcessRunResult> RunWithInputAsync(
+        IReadOnlyList<string> arguments,
+        IReadOnlyDictionary<string, string?>? environment,
+        string standardInput,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(standardInput);
+        return RunAsync(arguments, workingDirectory: null, environment, _opts.DefaultTimeout, standardInput, ct);
+    }
 
     private async Task<ProcessRunResult> RunAsync(
         IReadOnlyList<string> arguments,
         string? workingDirectory,
         IReadOnlyDictionary<string, string?>? environment,
         TimeSpan timeout,
+        string? standardInput,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(arguments);
@@ -51,7 +62,8 @@ internal sealed class GlabCliInvoker(IProcessLauncher launcher, IOptions<GitLabC
                     Arguments: arguments,
                     WorkingDirectory: workingDirectory,
                     Environment: environment,
-                    Timeout: timeout),
+                    Timeout: timeout,
+                    StandardInput: standardInput),
                 ct);
         }
         catch (TimeoutException ex)

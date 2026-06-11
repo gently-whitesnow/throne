@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 
@@ -87,9 +89,17 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         var host = ReadHost();
         var project = GlabProjectPath.ApiId(owner, repo);
         var apiPath = $"projects/{project}/merge_requests/{number}/discussions";
-        var args = BuildSubmitArgs(apiPath, request);
+        var body = BuildSubmitBody(request);
+        var args = new List<string>
+        {
+            "api",
+            "-X", "POST",
+            "-H", "Content-Type: application/json",
+            "--input", "-",
+            apiPath,
+        };
         var operation = $"api POST {apiPath}";
-        var result = await glab.RunAsync(args, GlabEnvironment.ForHost(host), ct);
+        var result = await glab.RunWithInputAsync(args, GlabEnvironment.ForHost(host), body, ct);
         if (!result.IsSuccess)
         {
             ThrowSubmitException(operation, result);
@@ -97,7 +107,7 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         return GlabSubmittedCommentParser.Parse(result.StandardOutput);
     }
 
-    private static List<string> BuildSubmitArgs(string apiPath, SubmitReviewCommentRequest request)
+    internal static string BuildSubmitBody(SubmitReviewCommentRequest request)
     {
         if (request.OldLine is null && request.NewLine is null)
         {
@@ -106,33 +116,32 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
                 nameof(request));
         }
         var oldPath = request.PreviousPath ?? request.Path;
-        var args = new List<string>
+        var position = new JsonObject
         {
-            "api",
-            "-X", "POST",
-            "-f", $"body={request.Body}",
-            "-f", "position[position_type]=text",
-            "-f", $"position[base_sha]={request.BaseSha}",
-            "-f", $"position[head_sha]={request.CommitSha}",
-            "-f", $"position[start_sha]={request.StartSha}",
-            "-f", $"position[new_path]={request.Path}",
-            "-f", $"position[old_path]={oldPath}",
+            ["position_type"] = "text",
+            ["base_sha"] = request.BaseSha,
+            ["head_sha"] = request.CommitSha,
+            ["start_sha"] = request.StartSha,
+            ["new_path"] = request.Path,
+            ["old_path"] = oldPath,
         };
-        // GitLab quirk: for unchanged context lines a discussion anchor requires
-        // BOTH position[new_line] AND position[old_line]; supplying only one
-        // creates a non-positioned discussion (бьёт user-visible "не прикрепляется").
+        // GitLab требует position как вложенный объект в JSON-теле: glab -f
+        // position[...]=... сваливается во flat form, GitLab его не распознаёт
+        // и тихо создаёт non-positioned discussion (без 4xx).
         if (request.NewLine is { } newLine)
         {
-            args.Add("-f");
-            args.Add($"position[new_line]={newLine}");
+            position["new_line"] = newLine;
         }
         if (request.OldLine is { } oldLine)
         {
-            args.Add("-f");
-            args.Add($"position[old_line]={oldLine}");
+            position["old_line"] = oldLine;
         }
-        args.Add(apiPath);
-        return args;
+        var payload = new JsonObject
+        {
+            ["body"] = request.Body,
+            ["position"] = position,
+        };
+        return payload.ToJsonString(new JsonSerializerOptions { WriteIndented = false });
     }
 
     private static void ThrowSubmitException(string operation, Throne.Application.Ports.ProcessRunResult result)
