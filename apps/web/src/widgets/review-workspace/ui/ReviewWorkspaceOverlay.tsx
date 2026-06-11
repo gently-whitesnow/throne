@@ -14,8 +14,10 @@ import {
   changeRequestKindLabel,
   hasPullRequest,
   intentRepositoriesQueryKeys,
+  repositoryFullName,
   type RepositoryBinding
 } from "@/entities/repository-binding";
+import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
 import {
   mergePullRequest,
   type MergeStrategy
@@ -197,6 +199,14 @@ export function ReviewWorkspaceOverlay({
         selectedCommitSha={ws.selectedCommitSha}
         commits={ws.commits}
         commitsLoading={ws.commitsLoading}
+        openInVscode={
+          <OpenBindingInVscodeButton
+            intentId={intentId}
+            bindingId={binding.id}
+            fullName={repositoryFullName(binding)}
+            disabled={binding.clone_status !== "ready"}
+          />
+        }
         mergeControl={
           hasPullRequest(binding) ? (
             <ReviewMergeControl
