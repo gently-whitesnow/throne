@@ -11,6 +11,18 @@ interface PanelRegionProps {
   intent: IntentDetail;
 }
 
+/**
+ * Внутренний ритм региона: связанное (review, context) держим плотнее, чем
+ * расстояние между регионами (его задаёт gap каркаса). Шкала 12/16 по
+ * иерархии, см. DESIGN.md «Layout».
+ */
+const regionGap: Record<PanelPlacement, string> = {
+  terminal: "gap-4",
+  primary: "gap-4",
+  review: "gap-4",
+  context: "gap-3"
+};
+
 export function PanelRegion({ placement, intent }: PanelRegionProps) {
   const { capabilities } = useCapabilities();
   const panels = selectPanels(intentDetailPanels, placement, (capability) =>
@@ -20,19 +32,10 @@ export function PanelRegion({ placement, intent }: PanelRegionProps) {
   if (panels.length === 0) return null;
 
   return (
-    <>
-      {panels.map((panel) =>
-        panel.title ? (
-          <section key={panel.id} className="mt-6 flex flex-col gap-2">
-            <h2 className="m-0 text-sm font-semibold text-base-content">
-              {panel.title}
-            </h2>
-            {panel.Component({ intent })}
-          </section>
-        ) : (
-          <Fragment key={panel.id}>{panel.Component({ intent })}</Fragment>
-        )
-      )}
-    </>
+    <div className={`flex flex-col ${regionGap[placement]}`}>
+      {panels.map((panel) => (
+        <Fragment key={panel.id}>{panel.Component({ intent })}</Fragment>
+      ))}
+    </div>
   );
 }

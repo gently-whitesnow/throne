@@ -1,9 +1,10 @@
-import { Bot, Cog, Link2, Link2Off, User } from "lucide-react";
+import { Activity, Bot, Cog, Link2, Link2Off, User } from "lucide-react";
 import { useMemo } from "react";
 
 import { useIntentEvents, type IntentEvent } from "@/entities/intent-event";
 import { HttpError } from "@/shared/api";
 import { dayKey, formatDateLabel, formatRelativeTime } from "@/shared/lib";
+import { CollapsibleSection } from "@/shared/ui";
 
 import { type ActivityFeedItem, buildActivityFeed } from "../model/types";
 
@@ -53,13 +54,9 @@ export function IntentActivityTimeline({
     return groups;
   }, [eventsQuery.isSuccess, items]);
 
-  if (eventsQuery.isPending) {
-    return (
-      <p className="m-0 text-xs text-base-content/60">
-        Активность загружается…
-      </p>
-    );
-  }
+  // Пустую/ещё не загруженную активность не разворачиваем в блок — без событий
+  // секции на странице нет вовсе (прогрессивное раскрытие).
+  if (eventsQuery.isPending) return null;
   if (eventsQuery.isError) {
     const err = eventsQuery.error;
     const message =
@@ -72,47 +69,50 @@ export function IntentActivityTimeline({
       </p>
     );
   }
-  if (items.length === 0) {
-    return (
-      <p className="m-0 text-xs text-base-content/60">Активности пока нет.</p>
-    );
-  }
+  if (items.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-3">
-      {grouped.map((group) => (
-        <section key={group.key} className="flex flex-col gap-2">
-          <h3 className="m-0 text-[11px] font-semibold uppercase tracking-wider text-base-content/50">
-            {group.label}
-          </h3>
-          <ul
-            className="relative m-0 flex list-none flex-col gap-3 p-0 pl-7
+    <CollapsibleSection
+      aria-label="Активность"
+      icon={<Activity size={14} strokeWidth={2} />}
+      title="Активность"
+      count={items.length}
+    >
+      <div className="flex flex-col gap-3 pt-2">
+        {grouped.map((group) => (
+          <section key={group.key} className="flex flex-col gap-2">
+            <h3 className="m-0 text-[11px] font-semibold uppercase tracking-wider text-base-content/50">
+              {group.label}
+            </h3>
+            <ul
+              className="relative m-0 flex list-none flex-col gap-3 p-0 pl-7
               before:absolute before:left-[13px] before:top-1.5 before:bottom-1.5
               before:w-px before:bg-base-300"
-          >
-            {group.items.map((item) => (
-              <li className="relative" key={item.event.id}>
-                <Avatar event={item.event} viewerIntentId={intentId} />
-                <div className="rounded-md border border-base-300 bg-base-100 px-3 py-2.5">
-                  <header className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-base-content/60">
-                    <EventBadge event={item.event} />
-                    <EventMeta event={item.event} viewerIntentId={intentId} />
-                    <time
-                      className="ml-auto tabular-nums"
-                      dateTime={item.event.created_at}
-                      title={new Date(item.event.created_at).toLocaleString()}
-                    >
-                      {formatRelativeTime(item.event.created_at)}
-                    </time>
-                  </header>
-                  <EventBody event={item.event} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
+            >
+              {group.items.map((item) => (
+                <li className="relative" key={item.event.id}>
+                  <Avatar event={item.event} viewerIntentId={intentId} />
+                  <div className="rounded-md border border-base-300 bg-base-100 px-3 py-2.5">
+                    <header className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-base-content/60">
+                      <EventBadge event={item.event} />
+                      <EventMeta event={item.event} viewerIntentId={intentId} />
+                      <time
+                        className="ml-auto tabular-nums"
+                        dateTime={item.event.created_at}
+                        title={new Date(item.event.created_at).toLocaleString()}
+                      >
+                        {formatRelativeTime(item.event.created_at)}
+                      </time>
+                    </header>
+                    <EventBody event={item.event} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </CollapsibleSection>
   );
 }
 

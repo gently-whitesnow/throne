@@ -6,6 +6,7 @@ import {
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { BindRepositoryButton } from "@/features/bind-repository";
+import { SectionHeading } from "@/shared/ui";
 
 import { RepositoryBindingRow } from "./RepositoryBindingRow";
 
@@ -54,22 +55,15 @@ export function RepositoryBindingsList({
   return (
     <section
       aria-label="Репозитории"
-      className="mt-6 flex flex-col gap-3"
+      className="flex flex-col gap-3"
       data-testid="repository-bindings-section"
     >
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h2 className="m-0 text-sm font-semibold text-base-content">
-            Репозитории
-          </h2>
-          {visible.length > 0 ? (
-            <span className="rounded-full bg-base-200 px-2 py-0.5 text-[11px] font-medium text-base-content/60">
-              {visible.length}
-            </span>
-          ) : null}
-        </div>
-        <BindRepositoryButton intentId={intentId} />
-      </header>
+      <SectionHeading
+        icon={<FolderGit2 size={14} strokeWidth={2} />}
+        title="Репозитории"
+        count={visible.length > 0 ? visible.length : undefined}
+        actions={<BindRepositoryButton intentId={intentId} />}
+      />
 
       <Body
         isLoading={isLoading}

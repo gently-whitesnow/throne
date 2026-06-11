@@ -7,6 +7,7 @@ import {
   repositoryFullName,
   useIntentRepositories
 } from "@/entities/repository-binding";
+import { SectionHeading } from "@/shared/ui";
 
 interface ReviewWorkspaceEntryProps {
   intentId: string;
@@ -27,20 +28,14 @@ export function ReviewWorkspaceEntry({ intentId }: ReviewWorkspaceEntryProps) {
   return (
     <section
       aria-label="Review workspace"
-      className="mt-6 flex flex-col gap-2"
+      className="flex flex-col gap-2"
       data-testid="review-workspace-entry"
     >
-      <header className="flex items-center gap-2">
-        <SquareChevronRight
-          aria-hidden
-          size={16}
-          strokeWidth={2}
-          className="text-base-content/60"
-        />
-        <h2 className="m-0 text-sm font-semibold text-base-content">
-          Review workspace
-        </h2>
-      </header>
+      <SectionHeading
+        icon={<SquareChevronRight size={14} strokeWidth={2} />}
+        title="Review workspace"
+        count={prBindings.length}
+      />
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {prBindings.map((binding) => (
           <li

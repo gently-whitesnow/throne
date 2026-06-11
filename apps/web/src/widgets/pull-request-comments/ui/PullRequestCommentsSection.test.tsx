@@ -1,4 +1,10 @@
-import { act, cleanup, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -54,6 +60,11 @@ function emit(name: string, payload: unknown) {
     | undefined;
   if (list === undefined) return;
   for (const fn of list) fn(payload);
+}
+
+// Секция свёрнута по умолчанию — раскрываем её перед проверкой тела.
+async function expandPrComments() {
+  fireEvent.click(await screen.findByRole("button", { name: /PR comments/i }));
 }
 
 function makeBinding(
@@ -139,6 +150,7 @@ describe("PullRequestCommentsSection", () => {
       })
     ]);
     renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
+    await expandPrComments();
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comments-card-b1")).toBeTruthy();
@@ -166,6 +178,7 @@ describe("PullRequestCommentsSection", () => {
       makeComment({ id: "c1", body: "first" })
     ]);
     renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
+    await expandPrComments();
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c1")).toBeTruthy();
@@ -194,6 +207,7 @@ describe("PullRequestCommentsSection", () => {
     listIntentRepositories.mockResolvedValue([makeBinding()]);
     listPullRequestComments.mockResolvedValue([makeComment()]);
     renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
+    await expandPrComments();
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c1")).toBeTruthy();
@@ -238,6 +252,7 @@ describe("PullRequestCommentsSection", () => {
     });
 
     renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
+    await expandPrComments();
     await waitFor(() => {
       expect(screen.getByTestId("pr-comment-c1")).toBeTruthy();
     });
@@ -266,6 +281,7 @@ describe("PullRequestCommentsSection", () => {
     listIntentRepositories.mockResolvedValue([makeBinding()]);
     listPullRequestComments.mockResolvedValue([]);
     renderWithQuery(<PullRequestCommentsSection intentId="intent-1" />);
+    await expandPrComments();
 
     await waitFor(() => {
       expect(screen.getByTestId("pr-comments-empty-b1")).toBeTruthy();
