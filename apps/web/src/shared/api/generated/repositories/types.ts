@@ -786,6 +786,11 @@ export interface components {
              * @default false
              */
             delete_branch: boolean;
+            /**
+             * @description When true (default) the merge keeps the current behaviour: once the PR/MR is observed merged on the next sync, the intent is auto-closed to done and its agent session is torn down. Set to false to leave the intent open on this merge so the agent session stays alive for follow-up work; provider-neutral, applies to both GitHub and GitLab.
+             * @default true
+             */
+            auto_complete_session: boolean;
         };
         MergePullRequestResultDto: {
             /** @description True when the provider reported the PR/MR as merged. */

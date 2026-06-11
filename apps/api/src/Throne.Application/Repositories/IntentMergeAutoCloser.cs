@@ -37,6 +37,14 @@ public sealed partial class IntentMergeAutoCloser(
     {
         ArgumentNullException.ThrowIfNull(mergedBinding);
 
+        // The operator merged this PR with «автозавершение сессии после мержа» cleared, so the
+        // intent stays open and its agent session survives. Manual `done` is unaffected.
+        if (mergedBinding.State.SuppressMergeAutoClose)
+        {
+            LogSkipSuppressed(logger, mergedBinding.IntentId.Value, mergedBinding.Id.Value);
+            return;
+        }
+
         var siblings = await bindings.FindByIntentAsync(mergedBinding.IntentId, ct);
         var prBearing = siblings.Where(b => b.State.PullRequestNumber is not null).ToList();
         var mergedCount = prBearing.Count(b => b.State.PullRequestState == PullRequestStateNames.Merged);
@@ -99,4 +107,9 @@ public sealed partial class IntentMergeAutoCloser(
     [LoggerMessage(EventId = 5, Level = LogLevel.Warning,
         Message = "IntentMergeAutoCloser: intent {IntentId} close on PR #{Pr} found no such intent — skip.")]
     private static partial void LogCloseNotFound(ILogger logger, string intentId, int pr);
+
+    [LoggerMessage(EventId = 6, Level = LogLevel.Information,
+        Message = "IntentMergeAutoCloser: intent {IntentId} merge on binding {BindingId} flagged "
+            + "keep-session — auto-close skipped, intent left open.")]
+    private static partial void LogSkipSuppressed(ILogger logger, string intentId, string bindingId);
 }

@@ -26,7 +26,7 @@ public sealed class MergeIntentRepositoryPullRequestEndpoint(
             await resolver.EnsureIntentExistsAsync(intentId, ct);
             var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
             var request = ReviewWorkspaceDtoMapper.ToMergeRequest(body);
-            var result = await useCase.MergeAsync(binding, request, ct);
+            var result = await useCase.MergeAsync(binding, request, body.Auto_complete_session, ct);
             return new OkObjectResult(ReviewWorkspaceDtoMapper.ToMergeResultDto(result));
         }
         catch (ApiException ex)

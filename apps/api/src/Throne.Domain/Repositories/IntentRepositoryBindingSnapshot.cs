@@ -21,4 +21,5 @@ public sealed record IntentRepositoryBindingSnapshot(
     DateTimeOffset? LastSeenReviewCommentAt,
     DateTimeOffset? LastSyncedAt,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    bool SuppressMergeAutoClose = false);
