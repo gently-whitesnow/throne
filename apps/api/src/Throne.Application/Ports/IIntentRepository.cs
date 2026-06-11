@@ -62,4 +62,15 @@ public interface IIntentRepository
         IReadOnlyList<TagId> tagIds,
         DateTimeOffset now,
         CancellationToken ct);
+
+    /// <summary>
+    /// Sets the cleanup-on-done gate (the merge-control «очистить состояние после мержа»
+    /// checkbox). Targeted metadata write — does not bump version nor touch text/status.
+    /// A missing intent is a silent no-op.
+    /// </summary>
+    Task SetCleanupLocalStateOnDoneAsync(
+        IntentId id,
+        bool value,
+        DateTimeOffset now,
+        CancellationToken ct);
 }

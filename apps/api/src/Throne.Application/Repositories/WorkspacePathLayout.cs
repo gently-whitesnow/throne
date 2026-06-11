@@ -21,6 +21,18 @@ internal static class WorkspacePathLayout
     public const string IntentsSegment = "intents";
     public const string OwnerRepoSeparator = "__";
 
+    /// <summary>
+    /// The intent's own folder — parent of every binding's clone directory:
+    /// <c>{workspaceRoot}/intents/{intent_id}/</c>. Resolved from the workspace root, not from a
+    /// saved binding path, so teardown can sweep the whole folder incl. orphan / leftover clones.
+    /// </summary>
+    public static string ComputeIntentRoot(string workspaceRoot, IntentId intentId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
+
+        return Path.Combine(workspaceRoot, IntentsSegment, intentId.Value);
+    }
+
     public static string Compute(string workspaceRoot, IntentId intentId, RepoCoordinate coordinate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);

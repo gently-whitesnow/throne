@@ -22,4 +22,9 @@ internal sealed class CodexTrustSeeder : IWorkspaceTrustSeeder
         TrustConfigFile.Seed(
             ConfigPath,
             existing => CodexTrustDocument.WithTrustedWorkspace(existing, workspacePath));
+
+    public void RemoveTrustedUnder(string directoryPrefix) =>
+        TrustConfigFile.Seed(
+            ConfigPath,
+            existing => CodexTrustDocument.WithoutTrustedWorkspacesUnder(existing, directoryPrefix));
 }

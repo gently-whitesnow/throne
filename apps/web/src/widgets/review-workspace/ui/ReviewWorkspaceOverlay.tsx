@@ -118,7 +118,7 @@ export function ReviewWorkspaceOverlay({
     (
       strategy: MergeStrategy,
       deleteBranch: boolean,
-      autoCompleteSession: boolean
+      cleanupAfterMerge: boolean
     ) => {
       setMerging(true);
       setMergeError(null);
@@ -127,7 +127,7 @@ export function ReviewWorkspaceOverlay({
           await mergePullRequest(intentId, binding.id, {
             strategy,
             delete_branch: deleteBranch,
-            auto_complete_session: autoCompleteSession
+            cleanup_after_merge: cleanupAfterMerge
           });
           handleSync();
         } catch (err) {

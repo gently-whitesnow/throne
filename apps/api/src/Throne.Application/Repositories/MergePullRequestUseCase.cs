@@ -15,6 +15,7 @@ namespace Throne.Application.Repositories;
 public sealed class MergePullRequestUseCase(
     IGitProviderRegistry providers,
     IIntentRepositoryBindingRepository bindings,
+    IIntentRepository intents,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -25,24 +26,29 @@ public sealed class MergePullRequestUseCase(
                 await provider.GetPullRequestMergeStatusAsync(owner, repo, number, ct)
                 ?? throw RepositoryBindingFailures.UpstreamGone(binding));
 
-    /// <param name="autoCompleteSession">
-    /// When false, the binding is flagged to skip auto-close-on-merge before the provider
-    /// merge is issued, so the intent stays open (and its agent session alive) once the sync
-    /// tick observes the merge. The flag is persisted first on purpose: it must be durable
-    /// before the PR can flip to <c>merged</c> upstream, otherwise a sync tick racing the
-    /// merge could close the intent. Default (true) leaves the binding untouched.
+    /// <param name="cleanupAfterMerge">
+    /// Mirrors the merge-control «очистить состояние после мержа» checkbox and is persisted on the
+    /// intent as <c>CleanupLocalStateOnDone</c> before the provider merge fires, so it is durable
+    /// before the PR can flip to <c>merged</c> upstream. When false the binding is additionally
+    /// flagged to skip auto-close-on-merge, so the intent stays open (and its agent session alive)
+    /// once the sync tick observes the merge, and no cleanup runs. When true (default) the binding
+    /// is left untouched and reaching <c>done</c> wipes the intent's local state.
     /// </param>
     public async Task<PullRequestMergeResult> MergeAsync(
         IntentRepositoryBinding binding,
         MergePullRequestRequest request,
-        bool autoCompleteSession,
+        bool cleanupAfterMerge,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(binding);
         ArgumentNullException.ThrowIfNull(request);
-        if (!autoCompleteSession && !binding.State.SuppressMergeAutoClose)
+        var now = clock.GetUtcNow();
+        await unitOfWork.ExecuteAsync(
+            inner => intents.SetCleanupLocalStateOnDoneAsync(binding.IntentId, cleanupAfterMerge, now, inner),
+            ct);
+        if (!cleanupAfterMerge && !binding.State.SuppressMergeAutoClose)
         {
-            binding.SuppressMergeAutoClose(clock.GetUtcNow());
+            binding.SuppressMergeAutoClose(now);
             await unitOfWork.ExecuteAsync(inner => bindings.SaveAsync(binding, inner), ct);
         }
         return await RunAsync(
