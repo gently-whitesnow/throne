@@ -74,10 +74,10 @@ export function IntentDetailShell({ intent }: IntentDetailShellProps) {
               <pre className="m-0 whitespace-pre-wrap break-words font-mono text-[13px] leading-relaxed text-base-content">
                 {intent.text}
               </pre>
-              {/* Главный CTA «Запустить агента» сразу под текстом — один
-                  очевидный primary-action, остальные секции ниже. */}
-              <PanelRegion placement="terminal" intent={intent} />
+              {/* Вложения примыкают к тексту постановки — это часть условия
+                  задачи; терминал-CTA идёт следом. */}
               <PanelRegion placement="primary" intent={intent} />
+              <PanelRegion placement="terminal" intent={intent} />
               <PanelRegion placement="review" intent={intent} />
               <PanelRegion placement="context" intent={intent} />
             </>
