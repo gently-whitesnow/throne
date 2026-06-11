@@ -12,18 +12,22 @@ interface OpenBindingInVscodeButtonProps {
   bindingId: string;
   fullName: string;
   disabled?: boolean;
+  /** Render as a row inside an overflow menu instead of a standalone button. */
+  asMenuItem?: boolean;
 }
 
 /**
- * Кнопка «Open in VS Code» рядом с конкретным repository-binding'ом. Видна
- * только когда capability `vscode` детектится И включена. Дополнительно
- * можно отключить через `disabled` (например, пока клон не готов).
+ * «Open in VS Code» для конкретного repository-binding'а. Видна только когда
+ * capability `vscode` детектится И включена. `asMenuItem` отдаёт строку для
+ * overflow-меню (см. RepositoryBindingRow), иначе — самостоятельную кнопку.
+ * `disabled` дополнительно гасит действие (например, пока клон не готов).
  */
 export function OpenBindingInVscodeButton({
   intentId,
   bindingId,
   fullName,
-  disabled
+  disabled,
+  asMenuItem
 }: OpenBindingInVscodeButtonProps) {
   const enabled = useCapabilityEnabled("vscode");
   const [busy, setBusy] = useState(false);
@@ -44,6 +48,30 @@ export function OpenBindingInVscodeButton({
       }
     })();
   };
+
+  if (asMenuItem) {
+    return (
+      <>
+        <button
+          type="button"
+          role="menuitem"
+          aria-label={`Open ${fullName} в VS Code`}
+          data-testid={`open-binding-in-vscode-${bindingId}`}
+          disabled={busy || disabled === true}
+          onClick={handleClick}
+          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-base-content hover:bg-base-200 disabled:opacity-60"
+        >
+          <ExternalLink aria-hidden size={14} strokeWidth={2} />
+          {busy ? "Открываем…" : "Открыть в VS Code"}
+        </button>
+        {error !== null ? (
+          <span role="alert" className="block px-2 pb-1 text-xs text-error">
+            {error}
+          </span>
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-col items-end gap-1">

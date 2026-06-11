@@ -7,6 +7,7 @@ export type {
 export { VirtualEntityList } from "./entity-list/VirtualEntityList";
 export { MarkdownView, MermaidDiagram } from "./markdown";
 export { ResizeHandle } from "./resize-handle/ResizeHandle";
+export { CollapsibleSection, SectionCount, SectionHeading } from "./section";
 export { TagMultiSelect } from "./tag-multi-select";
 export { normalizeTagSlug, TAG_NAME_MAX_LENGTH } from "./tag-multi-select";
 export type { TagSlugResult } from "./tag-multi-select";

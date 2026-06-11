@@ -13,6 +13,7 @@ import {
   hasPullRequest,
   isCloneTransient,
   pullRequestStateMeta,
+  pullRequestUrl,
   refreshIntentRepository,
   repositoryFullName,
   unbindIntentRepository,
@@ -21,7 +22,8 @@ import {
 import { AttachPullRequestControl } from "@/features/attach-pull-request";
 import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
 import { HttpError } from "@/shared/api";
-import { Button } from "@/shared/ui";
+
+import { BindingRowMenu } from "./BindingRowMenu";
 
 interface RepositoryBindingRowProps {
   intentId: string;
@@ -63,6 +65,7 @@ export function RepositoryBindingRow({
   const pending = isCloneTransient(binding.clone_status);
   const fullName = repositoryFullName(binding);
   const hasPr = hasPullRequest(binding);
+  const prUrl = pullRequestUrl(binding);
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -159,45 +162,67 @@ export function RepositoryBindingRow({
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-2">
-          {!hasPr && binding.clone_status === "ready" ? (
+          {hasPr ? (
+            prUrl ? (
+              <a
+                href={prUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Просмотреть PR ${fullName}`}
+                className="btn btn-sm btn-primary"
+              >
+                <GitPullRequest aria-hidden size={14} strokeWidth={2} />
+                Просмотреть PR
+              </a>
+            ) : null
+          ) : binding.clone_status === "ready" ? (
             <AttachPullRequestControl
               intentId={intentId}
               bindingId={binding.id}
             />
           ) : null}
-          <OpenBindingInVscodeButton
-            intentId={intentId}
-            bindingId={binding.id}
-            fullName={fullName}
-            disabled={binding.clone_status !== "ready"}
-          />
-          <Button
-            aria-label={`Обновить ${fullName}`}
-            disabled={unbinding || refreshing}
-            icon={
+
+          <BindingRowMenu label={fullName}>
+            <OpenBindingInVscodeButton
+              intentId={intentId}
+              bindingId={binding.id}
+              fullName={fullName}
+              disabled={binding.clone_status !== "ready"}
+              asMenuItem
+            />
+            <button
+              type="button"
+              role="menuitem"
+              aria-label={`Обновить ${fullName}`}
+              disabled={unbinding || refreshing}
+              onClick={() => {
+                void handleRefresh();
+              }}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-base-content hover:bg-base-200 disabled:opacity-60"
+            >
               <RefreshCw
                 aria-hidden
                 size={14}
                 strokeWidth={2}
                 className={refreshing ? "animate-spin" : undefined}
               />
-            }
-            onClick={() => {
-              void handleRefresh();
-            }}
-          >
-            {refreshing ? "Обновляем…" : "Обновить"}
-          </Button>
-          <Button
-            aria-label={`Удалить ${fullName}`}
-            disabled={unbinding || refreshing}
-            icon={<Trash2 aria-hidden size={14} strokeWidth={2} />}
-            onClick={() => {
-              void handleUnbind();
-            }}
-          >
-            {unbinding ? "Удаляем…" : "Удалить"}
-          </Button>
+              {refreshing ? "Обновляем…" : "Обновить"}
+            </button>
+            <div role="separator" className="my-1 border-t border-base-300" />
+            <button
+              type="button"
+              role="menuitem"
+              aria-label={`Удалить ${fullName}`}
+              disabled={unbinding || refreshing}
+              onClick={() => {
+                void handleUnbind();
+              }}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-error hover:bg-error/10 disabled:opacity-60"
+            >
+              <Trash2 aria-hidden size={14} strokeWidth={2} />
+              {unbinding ? "Удаляем…" : "Удалить"}
+            </button>
+          </BindingRowMenu>
         </div>
       </div>
 

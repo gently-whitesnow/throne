@@ -21,6 +21,7 @@ export {
   repositoryFullName,
   changeRequestKindLabel,
   changeRequestRefLabel,
+  pullRequestUrl,
   compareBindings
 } from "./model/selectors";
 export {
