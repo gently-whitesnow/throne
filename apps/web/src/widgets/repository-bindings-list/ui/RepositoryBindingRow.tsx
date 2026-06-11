@@ -3,10 +3,12 @@ import {
   GitBranch,
   GitPullRequest,
   Loader2,
+  Maximize2,
   RefreshCw,
   Trash2
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import {
   cloneStatusMeta,
@@ -161,20 +163,30 @@ export function RepositoryBindingRow({
           ) : null}
         </div>
 
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex max-w-full flex-shrink-0 flex-wrap items-center justify-end gap-2">
           {hasPr ? (
-            prUrl ? (
-              <a
-                href={prUrl}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`Просмотреть PR ${fullName}`}
+            <>
+              <Link
+                to={`/intents/${intentId}/review/${binding.id}`}
+                aria-label={`Открыть ревью ${fullName}`}
                 className="btn btn-sm btn-primary"
               >
-                <GitPullRequest aria-hidden size={14} strokeWidth={2} />
-                Просмотреть PR
-              </a>
-            ) : null
+                <Maximize2 aria-hidden size={14} strokeWidth={2} />
+                Открыть ревью
+              </Link>
+              {prUrl ? (
+                <a
+                  href={prUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Внешняя ссылка на PR ${fullName}`}
+                  className="btn btn-sm btn-outline"
+                >
+                  <GitPullRequest aria-hidden size={14} strokeWidth={2} />
+                  Внешняя ссылка на PR
+                </a>
+              ) : null}
+            </>
           ) : binding.clone_status === "ready" ? (
             <AttachPullRequestControl
               intentId={intentId}
