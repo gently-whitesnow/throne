@@ -77,7 +77,8 @@ public sealed class Intent
         IReadOnlyList<TagId> tagIds,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt,
-        string? sortKey = null)
+        string? sortKey = null,
+        bool cleanupLocalStateOnDone = true)
     {
         EnsureValidStatus(status, nameof(status));
         if (currentVersion < 1)
@@ -86,7 +87,7 @@ public sealed class Intent
         }
         var resolvedSortKey = sortKey ?? FractionalIndex.Initial();
         FractionalIndex.ValidateKey(resolvedSortKey, nameof(sortKey));
-        var state = new IntentState(text, status, currentVersion, resolvedSortKey, updatedAt);
+        var state = new IntentState(text, status, currentVersion, resolvedSortKey, updatedAt, cleanupLocalStateOnDone);
         return new Intent(id, state, tagIds, createdAt);
     }
 
@@ -103,6 +104,23 @@ public sealed class Intent
         }
 
         State = State with { Status = status, UpdatedAt = now };
+        return true;
+    }
+
+    /// <summary>
+    /// Sets the gate that decides whether reaching <c>done</c> wipes the intent's local
+    /// state (agent trust entries + workspace folder). Idempotent — returns <c>false</c>
+    /// when the flag already matches. Metadata, like tag membership: bumps
+    /// <see cref="IntentState.UpdatedAt"/> but not <see cref="IntentState.CurrentVersion"/>.
+    /// </summary>
+    public bool SetCleanupLocalStateOnDone(bool value, DateTimeOffset now)
+    {
+        if (State.CleanupLocalStateOnDone == value)
+        {
+            return false;
+        }
+
+        State = State with { CleanupLocalStateOnDone = value, UpdatedAt = now };
         return true;
     }
 

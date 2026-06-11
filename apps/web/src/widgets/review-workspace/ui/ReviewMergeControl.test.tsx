@@ -39,7 +39,7 @@ describe("ReviewMergeControl", () => {
     expect(onMerge).toHaveBeenCalledWith("squash", true, true);
   });
 
-  it("автозавершение сессии включено по умолчанию; снятие передаёт false", () => {
+  it("очистка состояния включена по умолчанию; снятие передаёт false", () => {
     const onMerge = vi.fn();
     render(
       <ReviewMergeControl
@@ -52,12 +52,12 @@ describe("ReviewMergeControl", () => {
       />
     );
 
-    const autoComplete = screen.getByLabelText<HTMLInputElement>(
-      "Завершить сессию после мержа"
+    const cleanup = screen.getByLabelText<HTMLInputElement>(
+      "Очистить состояние после мержа"
     );
-    expect(autoComplete.checked).toBe(true);
+    expect(cleanup.checked).toBe(true);
 
-    fireEvent.click(autoComplete);
+    fireEvent.click(cleanup);
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
     expect(onMerge).toHaveBeenCalledWith("merge", false, false);

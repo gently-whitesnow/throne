@@ -1,5 +1,6 @@
 using System.Text;
 using Tomlyn;
+using Tomlyn.Model;
 using Tomlyn.Syntax;
 
 namespace Throne.Infrastructure.Terminals;
@@ -59,6 +60,63 @@ internal static class CodexTrustDocument
         }
 
         return Append(baseText, workspacePath);
+    }
+
+    /// <summary>
+    /// Inverse of <see cref="WithTrustedWorkspace"/>: drop every <c>[projects."&lt;path&gt;"]</c> table
+    /// whose path lies at or under <paramref name="directoryPrefix"/>. Returns the updated config text
+    /// when a table was removed, or <c>null</c> when no write is warranted: nothing matched or an
+    /// unparseable document we refuse to clobber. <paramref name="existingToml"/> may be
+    /// <c>null</c>/empty (treated as empty).
+    /// </summary>
+    public static string? WithoutTrustedWorkspacesUnder(string? existingToml, string directoryPrefix)
+    {
+        if (string.IsNullOrWhiteSpace(existingToml))
+        {
+            return null;
+        }
+
+        var doc = Toml.Parse(existingToml);
+        if (doc.HasErrors)
+        {
+            return null;
+        }
+
+        var matched = ProjectPaths(doc)
+            .Where(p => TrustPathPrefix.IsUnder(p, directoryPrefix))
+            .ToList();
+
+        var removedAny = false;
+        foreach (var path in matched)
+        {
+            var table = FindProjectTable(doc, path);
+            if (table is not null)
+            {
+                doc.Tables.RemoveChild(table);
+                removedAny = true;
+            }
+        }
+
+        return removedAny ? doc.ToString() : null;
+    }
+
+    private static List<string> ProjectPaths(DocumentSyntax doc)
+    {
+        try
+        {
+            var model = Toml.ToModel(doc);
+            if (model.TryGetValue(ProjectsKey, out var projectsObj) && projectsObj is TomlTable projects)
+            {
+                return [.. projects.Keys];
+            }
+        }
+        catch (TomlException)
+        {
+            // Model conversion can still reject shapes Toml.Parse accepts (e.g. a top-level
+            // `projects` scalar clashing with the tables) — refuse rather than corrupt.
+        }
+
+        return [];
     }
 
     private static TableSyntax? FindProjectTable(DocumentSyntax doc, string workspacePath)
