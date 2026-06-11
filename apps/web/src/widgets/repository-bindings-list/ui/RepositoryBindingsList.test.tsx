@@ -178,6 +178,10 @@ describe("RepositoryBindingsList", () => {
       expect(pill.getAttribute("data-status")).toBe("ready");
     });
 
+    // «Обновить» теперь живёт в overflow-меню строки — сперва раскрываем его.
+    fireEvent.click(
+      screen.getByLabelText(/Ещё действия — octocat\/hello-world/)
+    );
     fireEvent.click(screen.getByLabelText(/Обновить octocat\/hello-world/));
 
     await waitFor(() => {

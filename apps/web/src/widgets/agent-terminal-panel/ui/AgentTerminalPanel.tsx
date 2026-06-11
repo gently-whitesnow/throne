@@ -150,7 +150,7 @@ export function AgentTerminalPanel({
     <section
       aria-label="Запустить агента"
       data-testid="agent-terminal-panel"
-      className="mt-6 flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"
+      className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"
     >
       <header className="flex items-center justify-between gap-3">
         <h2 className="m-0 text-sm font-semibold text-base-content">

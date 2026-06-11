@@ -17,8 +17,6 @@ export interface IntentPanelContext {
 
 export interface IntentPanelDescriptor extends PanelGating {
   id: string;
-  /** Заголовок секции; задаётся только когда регион сам рисует <h2>. */
-  title?: string;
   Component: (ctx: IntentPanelContext) => ReactNode;
 }
 
@@ -68,7 +66,6 @@ export const intentDetailPanels: readonly IntentPanelDescriptor[] = [
     id: "activity",
     placement: "context",
     order: 20,
-    title: "Активность",
     Component: ({ intent }) => <IntentActivityTimeline intentId={intent.id} />
   },
   {
