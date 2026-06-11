@@ -16,7 +16,6 @@ import type {
   PullRequestDiff
 } from "@/entities/review-workspace";
 
-import { ReviewWorkspaceEntry } from "./ReviewWorkspaceEntry";
 import { ReviewWorkspaceRoute } from "./ReviewWorkspaceRoute";
 
 const listIntentRepositories =
@@ -138,7 +137,6 @@ function renderWorkspace(comments: PullRequestComment[]) {
           path="/intents/:id"
           element={
             <>
-              <ReviewWorkspaceEntry intentId="intent-1" />
               <Outlet />
             </>
           }
