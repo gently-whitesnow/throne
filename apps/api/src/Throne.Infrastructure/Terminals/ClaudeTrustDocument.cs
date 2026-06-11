@@ -8,7 +8,7 @@ namespace Throne.Infrastructure.Terminals;
 /// Pure transform over the agent CLI's <c>~/.claude.json</c> document: set
 /// <c>projects["&lt;path&gt;"].hasTrustDialogAccepted = true</c> while preserving every other
 /// key. Kept I/O-free so the merge semantics (the part that could corrupt the operator's
-/// global config) are fully unit-testable; <see cref="ClaudeWorkspaceTrust"/> wraps it with
+/// global config) are fully unit-testable; <see cref="ClaudeTrustSeeder"/> wraps it with
 /// the file read/write.
 /// </summary>
 internal static class ClaudeTrustDocument
