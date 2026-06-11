@@ -1166,6 +1166,12 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("delete_branch")]
         public bool Delete_branch { get; set; } = false;
 
+        /// <summary>
+        /// When true (default) the merge keeps the current behaviour: once the PR/MR is observed merged on the next sync, the intent is auto-closed to done and its agent session is torn down. Set to false to leave the intent open on this merge so the agent session stays alive for follow-up work; provider-neutral, applies to both GitHub and GitLab.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("auto_complete_session")]
+        public bool Auto_complete_session { get; set; } = true;
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
