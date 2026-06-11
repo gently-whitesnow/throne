@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="SharpToken" />
     <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="Tomlyn" />
   </ItemGroup>
 
 </Project>

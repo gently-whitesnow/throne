@@ -252,7 +252,7 @@ public class RunPreflightOrchestratorTests
             var spawn = new RunPreflightSpawn(
                 Tmux,
                 workspace,
-                Substitute.For<IClaudeWorkspaceTrust>(),
+                Substitute.For<IWorkspaceTrust>(),
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             var settingsStore = Substitute.For<ITerminalSettingsStore>();
