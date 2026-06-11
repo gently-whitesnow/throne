@@ -23,7 +23,7 @@ interface ReviewMergeControlProps {
   onMerge: (
     strategy: MergeStrategy,
     deleteBranch: boolean,
-    autoCompleteSession: boolean
+    cleanupAfterMerge: boolean
   ) => void;
 }
 
@@ -77,7 +77,7 @@ export function ReviewMergeControl({
 }: ReviewMergeControlProps) {
   const [strategy, setStrategy] = useState<MergeStrategy>("merge");
   const [deleteBranch, setDeleteBranch] = useState(false);
-  const [autoCompleteSession, setAutoCompleteSession] = useState(true);
+  const [cleanupAfterMerge, setCleanupAfterMerge] = useState(true);
 
   if (statusLoading && status === null) {
     return (
@@ -161,18 +161,18 @@ export function ReviewMergeControl({
 
       <label
         className="flex items-center gap-1 text-[11px] text-base-content/70"
-        title="Снимите, чтобы оставить агентскую сессию живой после мержа"
+        title="Снимите, чтобы оставить сессию и локальное состояние интента после мержа"
       >
         <input
           type="checkbox"
-          checked={autoCompleteSession}
+          checked={cleanupAfterMerge}
           disabled={merging}
           onChange={(e) => {
-            setAutoCompleteSession(e.target.checked);
+            setCleanupAfterMerge(e.target.checked);
           }}
           className="h-3.5 w-3.5 accent-primary"
         />
-        Завершить сессию после мержа
+        Очистить состояние после мержа
       </label>
 
       <div className="flex flex-col items-end gap-0.5">
@@ -180,7 +180,7 @@ export function ReviewMergeControl({
           type="button"
           disabled={!canMerge}
           onClick={() => {
-            onMerge(strategy, deleteBranch, autoCompleteSession);
+            onMerge(strategy, deleteBranch, cleanupAfterMerge);
           }}
           className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >

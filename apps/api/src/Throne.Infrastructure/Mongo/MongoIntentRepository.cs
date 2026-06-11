@@ -94,6 +94,13 @@ internal sealed class MongoIntentRepository : IIntentRepository, IIntentOrdering
         CancellationToken ct) =>
         _status.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
 
+    public Task SetCleanupLocalStateOnDoneAsync(
+        IntentId id,
+        bool value,
+        DateTimeOffset now,
+        CancellationToken ct) =>
+        _status.SetCleanupLocalStateOnDoneAsync(id, value, now, ct);
+
     // System hooks (PR-merge auto-close) reach the intent surface via
     // ISystemIntentStatusWriter — explicit impl keeps it off the public face.
     Task<Intent?> ISystemIntentStatusWriter.GetByIdForSystemAsync(IntentId id, CancellationToken ct) =>

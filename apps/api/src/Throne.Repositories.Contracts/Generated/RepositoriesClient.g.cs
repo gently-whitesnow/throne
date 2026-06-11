@@ -1167,10 +1167,10 @@ namespace Throne.Repositories.Contracts.Generated
         public bool Delete_branch { get; set; } = false;
 
         /// <summary>
-        /// When true (default) the merge keeps the current behaviour: once the PR/MR is observed merged on the next sync, the intent is auto-closed to done and its agent session is torn down. Set to false to leave the intent open on this merge so the agent session stays alive for follow-up work; provider-neutral, applies to both GitHub and GitLab.
+        /// Mirrors the «очистить состояние после мержа» checkbox. When true (default) the merge keeps the current behaviour: once the PR/MR is observed merged on the next sync, the intent is auto-closed to done, its agent session is torn down and its local state (agent trust entries + workspace folder) is wiped. Set to false to leave the intent open on this merge so the agent session stays alive for follow-up work and nothing is cleaned up; provider-neutral, applies to both GitHub and GitLab. Persisted on the intent as the cleanup-on-done gate, so a later manual move to done respects this choice.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("auto_complete_session")]
-        public bool Auto_complete_session { get; set; } = true;
+        [System.Text.Json.Serialization.JsonPropertyName("cleanup_after_merge")]
+        public bool Cleanup_after_merge { get; set; } = true;
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

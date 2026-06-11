@@ -65,6 +65,43 @@ internal static class ClaudeTrustDocument
         return root.ToJsonString(SerializerOptions);
     }
 
+    /// <summary>
+    /// Inverse of <see cref="WithTrustedWorkspace"/>: drop every <c>projects[…]</c> entry whose path
+    /// lies at or under <paramref name="directoryPrefix"/>. Returns the updated document text when an
+    /// entry was removed, or <c>null</c> when no write is warranted: nothing matched, no <c>projects</c>
+    /// map, or a document we refuse to clobber (unparseable, non-object root or non-object
+    /// <c>projects</c>). <paramref name="existingJson"/> may be <c>null</c>/empty (treated as empty).
+    /// </summary>
+    public static string? WithoutTrustedWorkspacesUnder(string? existingJson, string directoryPrefix)
+    {
+        if (string.IsNullOrWhiteSpace(existingJson))
+        {
+            return null;
+        }
+
+        var root = ParseRoot(existingJson);
+        if (root is null || root[ProjectsKey] is not JsonObject projects)
+        {
+            return null;
+        }
+
+        var doomed = projects
+            .Where(kv => TrustPathPrefix.IsUnder(kv.Key, directoryPrefix))
+            .Select(kv => kv.Key)
+            .ToList();
+        if (doomed.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var key in doomed)
+        {
+            projects.Remove(key);
+        }
+
+        return root.ToJsonString(SerializerOptions);
+    }
+
     private static JsonObject? ParseRoot(string? existingJson)
     {
         if (string.IsNullOrWhiteSpace(existingJson))

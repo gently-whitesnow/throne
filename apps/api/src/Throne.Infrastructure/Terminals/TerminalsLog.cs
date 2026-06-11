@@ -37,6 +37,10 @@ internal static partial class TerminalsLog
         Message = "failed to pre-seed {Vendor} trust for {WorkspacePath}: {Reason}")]
     public static partial void WorkspaceTrustSeedFailed(ILogger logger, string vendor, string workspacePath, string reason);
 
+    [LoggerMessage(EventId = 14, Level = LogLevel.Warning,
+        Message = "failed to remove {Vendor} trust under {DirectoryPrefix}: {Reason}")]
+    public static partial void WorkspaceUntrustFailed(ILogger logger, string vendor, string directoryPrefix, string reason);
+
     [LoggerMessage(EventId = 8, Level = LogLevel.Information,
         Message = "tmux kill-session: name={SessionName} pre_alive={PreAlive} exit={ExitCode} elapsed_ms={ElapsedMs} stderr={Stderr} post_alive={PostAlive}")]
     public static partial void TmuxKillResult(
