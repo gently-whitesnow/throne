@@ -32,10 +32,35 @@ describe("ReviewMergeControl", () => {
     fireEvent.change(screen.getByLabelText("Стратегия мержа"), {
       target: { value: "squash" }
     });
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByLabelText("Удалить ветку"));
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
-    expect(onMerge).toHaveBeenCalledWith("squash", true);
+    // «Завершить сессию после мержа» включён по умолчанию и не трогался → true.
+    expect(onMerge).toHaveBeenCalledWith("squash", true, true);
+  });
+
+  it("автозавершение сессии включено по умолчанию; снятие передаёт false", () => {
+    const onMerge = vi.fn();
+    render(
+      <ReviewMergeControl
+        kind="PR"
+        status={mergeable()}
+        statusLoading={false}
+        merging={false}
+        mergeError={null}
+        onMerge={onMerge}
+      />
+    );
+
+    const autoComplete = screen.getByLabelText<HTMLInputElement>(
+      "Завершить сессию после мержа"
+    );
+    expect(autoComplete.checked).toBe(true);
+
+    fireEvent.click(autoComplete);
+    fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
+
+    expect(onMerge).toHaveBeenCalledWith("merge", false, false);
   });
 
   it("блокирует мерж и показывает ссылку на провайдера, когда мерж недоступен", () => {

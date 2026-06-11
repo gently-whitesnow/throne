@@ -82,7 +82,22 @@ public class IntentMergeAutoCloserTests
             Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
-    private static IntentRepositoryBinding Binding(int? pr, string? prState) =>
+    [Fact(DisplayName = "Мерж с снятым автозавершением (suppress) → интент не закрываем, сессия живёт")]
+    public async Task Does_not_close_when_merge_flagged_keep_session()
+    {
+        var fixture = new Fixture();
+        var merged = Binding(pr: 7, prState: PullRequestStateNames.Merged, suppressAutoClose: true);
+        fixture.SeedSiblings(merged);
+        fixture.SeedIntent(IntentStatusNames.Work);
+
+        await fixture.Closer.OnBindingMergedAsync(merged, CancellationToken.None);
+
+        await fixture.Intents.DidNotReceive().SetStatusBySystemAsync(
+            Arg.Any<IntentId>(), Arg.Any<string>(), Arg.Any<string?>(),
+            Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+    }
+
+    private static IntentRepositoryBinding Binding(int? pr, string? prState, bool suppressAutoClose = false) =>
         IntentRepositoryBinding.Restore(new IntentRepositoryBindingSnapshot(
             Id: BindingId.New(),
             IntentId: new IntentId(IntentIdValue),
@@ -97,7 +112,8 @@ public class IntentMergeAutoCloserTests
             LastSeenReviewCommentAt: null,
             LastSyncedAt: null,
             CreatedAt: Now,
-            UpdatedAt: Now));
+            UpdatedAt: Now,
+            SuppressMergeAutoClose: suppressAutoClose));
 
     private sealed class Fixture
     {

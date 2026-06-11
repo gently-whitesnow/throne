@@ -14,4 +14,5 @@ public sealed record IntentRepositoryBindingState(
     string? ReviewCommentsEtag,
     DateTimeOffset? LastSeenReviewCommentAt,
     DateTimeOffset? LastSyncedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    bool SuppressMergeAutoClose = false);
