@@ -5,9 +5,11 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Seeds per-directory trust in codex's <c>~/.codex/config.toml</c> so spawning into a new intent
-/// workspace skips the startup "do you trust this folder?" onboarding and lets codex run in its
-/// Auto profile (sandbox <c>workspace-write</c> + approval <c>on-failure</c>). The TOML merge
-/// lives in <see cref="CodexTrustDocument"/>; the read/atomic-write in <see cref="TrustConfigFile"/>.
+/// workspace skips the startup "do you trust this folder?" onboarding prompt. Runtime autonomy
+/// (no approvals, no sandbox) is granted separately by the spawn argv's
+/// <c>--dangerously-bypass-approvals-and-sandbox</c> flag — see <c>AgentSpawnCommand</c>; this seed
+/// only removes the one-time trust gate. The TOML merge lives in <see cref="CodexTrustDocument"/>;
+/// the read/atomic-write in <see cref="TrustConfigFile"/>.
 /// </summary>
 internal sealed class CodexTrustSeeder : IWorkspaceTrustSeeder
 {
