@@ -99,7 +99,8 @@ public sealed class IntentRepositoryBinding
             ReviewCommentsEtag: snapshot.ReviewCommentsEtag,
             LastSeenReviewCommentAt: snapshot.LastSeenReviewCommentAt,
             LastSyncedAt: snapshot.LastSyncedAt,
-            UpdatedAt: snapshot.UpdatedAt);
+            UpdatedAt: snapshot.UpdatedAt,
+            SuppressMergeAutoClose: snapshot.SuppressMergeAutoClose);
 
         return new IntentRepositoryBinding(
             snapshot.Id, snapshot.IntentId, snapshot.Coordinate, snapshot.WorkspacePath,
@@ -217,6 +218,18 @@ public sealed class IntentRepositoryBinding
         }
 
         State = State with { PullRequestState = state, UpdatedAt = at };
+    }
+
+    /// <summary>
+    /// Mark this PR's pending merge as «keep the intent open»: when the merge is later
+    /// observed by the sync tick, <c>IntentMergeAutoCloser</c> reads this flag and skips the
+    /// move to <c>done</c>, leaving the agent session alive. Set at merge time when the
+    /// operator clears «автозавершение сессии после мержа»; the default merge path leaves it
+    /// false so the auto-close behaviour is unchanged.
+    /// </summary>
+    public void SuppressMergeAutoClose(DateTimeOffset at)
+    {
+        State = State with { SuppressMergeAutoClose = true, UpdatedAt = at };
     }
 
     public void RecordSync(string? etag, DateTimeOffset? lastSeenReviewCommentAt, DateTimeOffset at)

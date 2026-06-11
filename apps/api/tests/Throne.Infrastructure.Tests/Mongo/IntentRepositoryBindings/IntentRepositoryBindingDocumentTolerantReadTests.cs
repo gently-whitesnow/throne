@@ -45,6 +45,17 @@ public class IntentRepositoryBindingDocumentTolerantReadTests
         doc.Owner.Should().Be("octocat");
     }
 
+    [Fact(DisplayName = "Legacy-документ без suppress_merge_auto_close → флаг читается как false (авто-close сохраняется)")]
+    public void Legacy_document_defaults_suppress_merge_auto_close_to_false()
+    {
+        var doc = BsonSerializer.Deserialize<IntentRepositoryBindingDocument>(LegacyGitHubBinding());
+
+        var binding = IntentRepositoryBindingDocumentMapper.ToDomain(doc);
+
+        doc.SuppressMergeAutoClose.Should().BeFalse();
+        binding.State.SuppressMergeAutoClose.Should().BeFalse();
+    }
+
     [Fact(DisplayName = "Маппер бэкфилит host=github.com для legacy GitHub-документа")]
     public void Mapper_backfills_github_host_for_legacy_document()
     {

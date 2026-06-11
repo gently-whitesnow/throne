@@ -115,14 +115,19 @@ export function ReviewWorkspaceOverlay({
   }, [intentId, binding.id, queryClient, refresh]);
 
   const handleMerge = useCallback(
-    (strategy: MergeStrategy, deleteBranch: boolean) => {
+    (
+      strategy: MergeStrategy,
+      deleteBranch: boolean,
+      autoCompleteSession: boolean
+    ) => {
       setMerging(true);
       setMergeError(null);
       void (async () => {
         try {
           await mergePullRequest(intentId, binding.id, {
             strategy,
-            delete_branch: deleteBranch
+            delete_branch: deleteBranch,
+            auto_complete_session: autoCompleteSession
           });
           handleSync();
         } catch (err) {

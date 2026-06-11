@@ -26,6 +26,7 @@ internal static class IntentRepositoryBindingDocumentMapper
         LastSyncedAt = binding.State.LastSyncedAt?.UtcDateTime,
         CreatedAt = binding.CreatedAt.UtcDateTime,
         UpdatedAt = binding.State.UpdatedAt.UtcDateTime,
+        SuppressMergeAutoClose = binding.State.SuppressMergeAutoClose,
     };
 
     public static IntentRepositoryBinding ToDomain(IntentRepositoryBindingDocument doc)
@@ -53,7 +54,8 @@ internal static class IntentRepositoryBindingDocumentMapper
                 ? null
                 : new DateTimeOffset(DateTime.SpecifyKind(doc.LastSyncedAt.Value, DateTimeKind.Utc)),
             CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc)),
-            UpdatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc)));
+            UpdatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc)),
+            SuppressMergeAutoClose: doc.SuppressMergeAutoClose);
 
         return IntentRepositoryBinding.Restore(snapshot);
     }

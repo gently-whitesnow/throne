@@ -64,4 +64,9 @@ internal sealed class IntentRepositoryBindingDocument
 
     [BsonElement("updated_at")]
     public DateTime UpdatedAt { get; set; }
+
+    // Absent on documents written before the keep-session-on-merge option (ADR-0024 surface):
+    // the BSON default of false reproduces the original auto-close-on-merge behaviour.
+    [BsonElement("suppress_merge_auto_close")]
+    public bool SuppressMergeAutoClose { get; set; }
 }
