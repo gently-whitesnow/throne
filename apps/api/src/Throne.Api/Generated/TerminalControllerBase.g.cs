@@ -82,6 +82,16 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/kill", Name = "killIntentTerminal")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> KillIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
 
+        /// <summary>
+        /// Receive a local agent hook callback.
+        /// </summary>
+        /// <remarks>
+        /// Agent-only local runtime callback used by the generated per-session Claude settings file. The endpoint currently proves the Throne → settings → hook → local API channel by logging the callback and returning 200; hook semantics are implemented by later slices.
+        /// </remarks>
+        /// <returns>Hook callback accepted.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/hooks/{event}", Name = "receiveIntentTerminalHook")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> ReceiveIntentTerminalHook([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] Event @event);
+
     }
 
     
