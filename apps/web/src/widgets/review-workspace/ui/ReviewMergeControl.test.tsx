@@ -16,7 +16,7 @@ function mergeable(): PullRequestMergeStatus {
 }
 
 describe("ReviewMergeControl", () => {
-  it("мержит выбранной стратегией с удалением ветки", () => {
+  it("мержит выбранной стратегией; удаление ветки включено по умолчанию", () => {
     const onMerge = vi.fn();
     render(
       <ReviewMergeControl
@@ -29,14 +29,36 @@ describe("ReviewMergeControl", () => {
       />
     );
 
+    const deleteBranch =
+      screen.getByLabelText<HTMLInputElement>("Удалить ветку");
+    expect(deleteBranch.checked).toBe(true);
+
     fireEvent.change(screen.getByLabelText("Стратегия мержа"), {
       target: { value: "squash" }
     });
+    fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
+
+    // «Удалить ветку» и «Завершить сессию после мержа» включены по умолчанию → true.
+    expect(onMerge).toHaveBeenCalledWith("squash", true, true);
+  });
+
+  it("снятие «Удалить ветку» передаёт false", () => {
+    const onMerge = vi.fn();
+    render(
+      <ReviewMergeControl
+        kind="PR"
+        status={mergeable()}
+        statusLoading={false}
+        merging={false}
+        mergeError={null}
+        onMerge={onMerge}
+      />
+    );
+
     fireEvent.click(screen.getByLabelText("Удалить ветку"));
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
-    // «Завершить сессию после мержа» включён по умолчанию и не трогался → true.
-    expect(onMerge).toHaveBeenCalledWith("squash", true, true);
+    expect(onMerge).toHaveBeenCalledWith("merge", false, true);
   });
 
   it("очистка состояния включена по умолчанию; снятие передаёт false", () => {
@@ -60,7 +82,7 @@ describe("ReviewMergeControl", () => {
     fireEvent.click(cleanup);
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
-    expect(onMerge).toHaveBeenCalledWith("merge", false, false);
+    expect(onMerge).toHaveBeenCalledWith("merge", true, false);
   });
 
   it("блокирует мерж и показывает ссылку на провайдера, когда мерж недоступен", () => {
