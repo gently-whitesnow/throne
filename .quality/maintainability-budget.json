@@ -127,7 +127,7 @@
           "_comment": "ErrorCodes is a typed registry of wire-string constants; public surface = error catalogue size.",
           "glob": "**/Throne.Application/Errors/ErrorCodes.cs",
           "limits": {
-            "typeMaxPublicMembers": 50
+            "typeMaxPublicMembers": 55
           }
         },
         {

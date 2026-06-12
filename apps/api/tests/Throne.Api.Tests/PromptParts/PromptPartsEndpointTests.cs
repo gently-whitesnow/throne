@@ -91,6 +91,45 @@ public sealed class PromptPartsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         (await replaced.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("current_version").GetInt32().Should().Be(2);
     }
 
+    [Fact(DisplayName = "DELETE /prompt-parts/{id} без ролей удаляет часть; GET затем 404")]
+    public async Task Delete_part_without_roles_returns_200_then_404()
+    {
+        var created = await _client.PostAsJsonAsync(PromptPartsUri, new CreateBody { Key = "deletable", Text = "x", Mode_roles = [] });
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var deleted = await _client.DeleteAsync(new Uri($"/api/v1/prompt-parts/{id}", UriKind.Relative));
+        deleted.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await deleted.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("prompt_part_id").GetString().Should().Be(id);
+
+        var get = await _client.GetAsync(new Uri($"/api/v1/prompt-parts/{id}", UriKind.Relative));
+        get.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact(DisplayName = "DELETE /prompt-parts/{id} с ролями отдаёт 409; после снятия ролей удаляет")]
+    public async Task Delete_part_with_roles_returns_409_then_succeeds_after_detach()
+    {
+        var created = await CreatePartAsync("with-roles", "x", PromptPartModeNames.Work, "default_on", 0);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var blocked = await _client.DeleteAsync(new Uri($"/api/v1/prompt-parts/{id}", UriKind.Relative));
+        blocked.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var detach = await _client.PutAsJsonAsync(
+            new Uri($"/api/v1/prompt-parts/{id}/roles", UriKind.Relative),
+            new RolesBody { Mode_roles = [] });
+        detach.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var deleted = await _client.DeleteAsync(new Uri($"/api/v1/prompt-parts/{id}", UriKind.Relative));
+        deleted.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact(DisplayName = "DELETE /prompt-parts/{id} для неизвестного id отдаёт 404")]
+    public async Task Delete_unknown_part_returns_404()
+    {
+        var deleted = await _client.DeleteAsync(new Uri("/api/v1/prompt-parts/missing", UriKind.Relative));
+        deleted.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     [Fact(DisplayName = "POST /terminal/preview(work) отдаёт mandatory части и тело интента как user_prompt")]
     public async Task Preview_returns_mandatory_and_intent_body()
     {

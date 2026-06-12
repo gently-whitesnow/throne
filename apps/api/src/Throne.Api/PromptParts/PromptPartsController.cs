@@ -11,7 +11,8 @@ public sealed class PromptPartsController(
     GetPromptPartHandler getHandler,
     CreatePromptPartHandler createHandler,
     ReplacePromptPartTextHandler replaceHandler,
-    SetPromptPartRolesHandler setRolesHandler) : PromptPartsControllerBase
+    SetPromptPartRolesHandler setRolesHandler,
+    DeletePromptPartHandler deleteHandler) : PromptPartsControllerBase
 {
     public override async Task<ActionResult<ICollection<PromptPartListItemDto>>> ListPromptParts()
     {
@@ -82,6 +83,19 @@ public sealed class PromptPartsController(
                 new SetPromptPartRolesCommand(id, PromptPartDtoMapper.ToDomainRoles(body.Mode_roles)),
                 HttpContext.RequestAborted);
             return Ok(PromptPartDtoMapper.ToDetailDto(part));
+        }
+        catch (ApiException ex)
+        {
+            return PromptPartsErrorMapper.Problem(ex);
+        }
+    }
+
+    public override async Task<ActionResult<DeletePromptPartResponse>> DeletePromptPart(string id)
+    {
+        try
+        {
+            await deleteHandler.HandleAsync(new DeletePromptPartCommand(id), HttpContext.RequestAborted);
+            return Ok(new DeletePromptPartResponse { Prompt_part_id = id });
         }
         catch (ApiException ex)
         {

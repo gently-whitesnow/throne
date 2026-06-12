@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddSingleton<GetPromptPartHandler>();
         services.AddSingleton<ReplacePromptPartTextHandler>();
         services.AddSingleton<SetPromptPartRolesHandler>();
+        services.AddSingleton<DeletePromptPartHandler>();
         services.AddSingleton<PromptCompositionResolver>();
         services.AddSingleton<IntentTerminalPreviewHandler>();
         // Lazy<IUnitOfWork> breaks the singleton-resolution cycle: the

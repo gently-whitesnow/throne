@@ -1,9 +1,9 @@
-import { BundlesTree } from "@/widgets/bundles-tree";
+import { PromptPartsBoard } from "@/widgets/prompt-parts-board";
 
 export function InstructionsSectionPage() {
   return (
     <div className="w-full px-7 pb-12 pt-6">
-      <BundlesTree />
+      <PromptPartsBoard />
     </div>
   );
 }
