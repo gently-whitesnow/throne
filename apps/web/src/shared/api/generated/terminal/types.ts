@@ -108,7 +108,7 @@ export interface paths {
         put?: never;
         /**
          * Receive a local agent hook callback.
-         * @description Agent-only local runtime callback used by the generated per-session Claude settings file. The endpoint currently proves the Throne → settings → hook → local API channel by logging the callback and returning 200; hook semantics are implemented by later slices.
+         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file / Codex inline `-c hooks.*` override) for both vendors. Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4): `Stop` parks the intent in `awaiting_operator`, `UserPromptSubmit` returns it to the spawn phase (`work`/`interview`). The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less modes (`dream`/`free`) pass through without a status change.
          */
         post: operations["receiveIntentTerminalHook"];
         delete?: never;
@@ -370,11 +370,14 @@ export interface operations {
     };
     receiveIntentTerminalHook: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Spawn phase of the session the hook fires from. Baked into the per-session hook URL at spawn time; the endpoint maps it to the return status on `UserPromptSubmit` and gates the `Stop` → `awaiting_operator` park. Omitted only by legacy callers. */
+                mode?: components["schemas"]["TerminalRunMode"];
+            };
             header?: never;
             path: {
                 intent_id: string;
-                event: "Stop";
+                event: "Stop" | "UserPromptSubmit";
             };
             cookie?: never;
         };

@@ -12,7 +12,6 @@ namespace Throne.Infrastructure.Terminals;
 public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
 {
     private const string SettingsFileName = "throne-session.settings.json";
-    private const string StopEvent = "Stop";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -23,29 +22,30 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     public string Vendor => TerminalAgentCatalog.VendorClaude;
 
     public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, CancellationToken ct)
+        string intentId, string workspacePath, string mode, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
         Directory.CreateDirectory(workspacePath);
         var settingsPath = Path.Combine(workspacePath, SettingsFileName);
         await using (var stream = File.Create(settingsPath))
         {
-            await JsonSerializer.SerializeAsync(stream, BuildSettings(intentId), JsonOptions, ct);
+            await JsonSerializer.SerializeAsync(stream, BuildSettings(intentId, mode), JsonOptions, ct);
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
 
         return ["--settings", settingsPath];
     }
 
-    private object BuildSettings(string intentId) =>
+    private object BuildSettings(string intentId, string mode) =>
         new
         {
-            hooks = new Dictionary<string, object[]>
-            {
-                [StopEvent] =
-                [
+            hooks = TerminalHookEvents.All.ToDictionary(
+                hookEvent => hookEvent,
+                hookEvent => new object[]
+                {
                     new
                     {
                         hooks = new[]
@@ -54,12 +54,12 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
                             {
                                 type = "command",
                                 command = TerminalHookCallback.CurlCommand(
-                                    options.ApiBaseUrl, intentId, StopEvent),
+                                    options.ApiBaseUrl, intentId, hookEvent, mode),
                                 timeout = 10,
                             },
                         },
                     },
-                ],
-            },
+                },
+                StringComparer.Ordinal),
         };
 }

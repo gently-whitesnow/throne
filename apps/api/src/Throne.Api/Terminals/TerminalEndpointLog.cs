@@ -17,4 +17,8 @@ internal static partial class TerminalEndpointLog
     [LoggerMessage(EventId = 2, Level = LogLevel.Information,
         Message = "Received terminal hook {Event} for intent {IntentId}.")]
     public static partial void HookReceived(ILogger logger, string intentId, Event @event);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
+        Message = "Terminal hook {Event} for intent {IntentId} failed to derive status.")]
+    public static partial void HookStatusFailed(ILogger logger, string intentId, Event @event, Exception exception);
 }

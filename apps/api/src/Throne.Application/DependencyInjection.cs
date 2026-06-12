@@ -104,6 +104,7 @@ public static class DependencyInjection
         services.AddSingleton<TerminalSettingsService>();
         services.AddSingleton<TerminalSessionStatusService>();
         services.AddSingleton<TerminalSessionKillService>();
+        services.AddSingleton<TerminalHookStatusHandler>();
         // ADR-0026 § 8: tmux session is torn down when an intent reaches `done`. The handler
         // takes ITmuxSessionManager via Lazy to break the dispatcher↔handler resolution cycle
         // (TmuxSessionManager → IDomainEventDispatcher → IEnumerable<IDomainEventHandler>).
