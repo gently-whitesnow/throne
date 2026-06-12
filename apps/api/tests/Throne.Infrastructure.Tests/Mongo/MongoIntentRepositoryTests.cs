@@ -141,7 +141,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         await uow.ExecuteAsync(
             ct => repo.SetStatusAsync(
                 id,
-                IntentStatusNames.NeedsHelp,
+                IntentStatusNames.AwaitingOperator,
                 appendText: null,
                 reason: "нужен доступ к prod",
                 IntentTrainingAuthor.Agent,
@@ -159,7 +159,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
             .SortBy(x => x.CreatedAt)
             .ToListAsync();
         changes.Should().HaveCount(2);
-        changes[1].ToStatus.Should().Be(IntentStatusNames.NeedsHelp);
+        changes[1].ToStatus.Should().Be(IntentStatusNames.AwaitingOperator);
         changes[1].Reason.Should().Be("нужен доступ к prod");
     }
 

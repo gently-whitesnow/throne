@@ -939,15 +939,15 @@ components:
         - ready_for_work
         - work
         - ready_for_review
-        - needs_help
+        - awaiting_operator
         - done
         - reject
         - fridge
       description: >
         Current workflow status of the intent.
-        `ready_for_review` and `needs_help` together form the «inbox»: agent finished
-        successfully (`ready_for_review`) or got stuck and asks the operator for
-        input (`needs_help`). `fridge` is the user-only «later» bucket.
+        `ready_for_review` and `awaiting_operator` together form the «inbox»: agent finished
+        successfully (`ready_for_review`) or stopped mid-pass and waits for operator
+        input (`awaiting_operator`). `fridge` is the user-only «later» bucket.
     SetIntentStatusRequest:
       type: object
       required:
@@ -1067,7 +1067,7 @@ components:
           type: integer
           format: int32
           minimum: 0
-          description: Intents in status `needs_help` (inbox «нужна помощь»).
+          description: Intents in status `awaiting_operator` (inbox «жду ответа»).
         fridge:
           type: integer
           format: int32

@@ -10,11 +10,11 @@ import {
 describe("intentStatusMeta", () => {
   it("covers every supported status", () => {
     expect(Object.keys(intentStatusMeta).sort()).toEqual([
+      "awaiting_operator",
       "done",
       "draft",
       "fridge",
       "interview",
-      "needs_help",
       "ready_for_review",
       "ready_for_work",
       "reject",
@@ -24,9 +24,9 @@ describe("intentStatusMeta", () => {
 });
 
 describe("status groupings", () => {
-  it("INBOX_STATUSES covers exactly ready_for_review and needs_help", () => {
+  it("INBOX_STATUSES covers exactly ready_for_review and awaiting_operator", () => {
     expect([...INBOX_STATUSES].sort()).toEqual([
-      "needs_help",
+      "awaiting_operator",
       "ready_for_review"
     ]);
   });

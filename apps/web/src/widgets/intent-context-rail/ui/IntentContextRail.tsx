@@ -342,7 +342,7 @@ function InboxWidget({
   onSelect
 }: InboxWidgetProps) {
   const reviewMeta = intentStatusMeta.ready_for_review;
-  const helpMeta = intentStatusMeta.needs_help;
+  const helpMeta = intentStatusMeta.awaiting_operator;
   // A live terminal is an agent actively working — reuse the purple `work` token so the
   // bucket reads as "work in progress" and stays in lock-step with the status colour.
   const terminalMeta = intentStatusMeta.work;
@@ -374,7 +374,7 @@ function InboxWidget({
         {helpCount > 0 ? (
           <li>
             <InboxRow
-              label="Нужна помощь"
+              label="Жду ответа"
               count={helpCount}
               ink={helpMeta.ink}
               surface={helpMeta.surface}

@@ -7,7 +7,7 @@ public static class IntentStatusNames
     public const string ReadyForWork = "ready_for_work";
     public const string Work = "work";
     public const string ReadyForReview = "ready_for_review";
-    public const string NeedsHelp = "needs_help";
+    public const string AwaitingOperator = "awaiting_operator";
     public const string Done = "done";
     public const string Reject = "reject";
     public const string Fridge = "fridge";
@@ -19,7 +19,7 @@ public static class IntentStatusNames
         ReadyForWork,
         Work,
         ReadyForReview,
-        NeedsHelp,
+        AwaitingOperator,
         Done,
         Reject,
         Fridge,

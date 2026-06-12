@@ -29,7 +29,7 @@ const ACTIVE_STATUSES: IntentStatus[] = [
   "ready_for_work",
   "work",
   "ready_for_review",
-  "needs_help"
+  "awaiting_operator"
 ];
 
 const ARCHIVE_STATUS_LIST: IntentStatus[] = ["done", "reject"];
@@ -63,7 +63,8 @@ export function matchesContext(
   if (isInboxContext(context)) {
     if (context === INBOX_REVIEW_CONTEXT)
       return item.status === "ready_for_review";
-    if (context === INBOX_HELP_CONTEXT) return item.status === "needs_help";
+    if (context === INBOX_HELP_CONTEXT)
+      return item.status === "awaiting_operator";
     return false;
   }
   if (ARCHIVE_STATUSES.has(item.status)) return false;
@@ -95,7 +96,8 @@ export function contextToParams(context: string | null): IntentListParams {
   if (isInboxContext(context)) {
     if (context === INBOX_REVIEW_CONTEXT)
       return { status: ["ready_for_review"] };
-    if (context === INBOX_HELP_CONTEXT) return { status: ["needs_help"] };
+    if (context === INBOX_HELP_CONTEXT)
+      return { status: ["awaiting_operator"] };
     return {};
   }
   if (context === UNTAGGED_CONTEXT)
@@ -114,7 +116,7 @@ export function contextTitle(context: string | null): string {
   }
   if (context === FRIDGE_CONTEXT) return "Холодильник";
   if (context === INBOX_REVIEW_CONTEXT) return "Жду ревью";
-  if (context === INBOX_HELP_CONTEXT) return "Нужна помощь";
+  if (context === INBOX_HELP_CONTEXT) return "Жду ответа";
   if (context === TERMINAL_RUNNING_CONTEXT) return "Терминал запущен";
   if (context === UNTAGGED_CONTEXT) return "Без тегов";
   if (context === PINNED_CONTEXT) return "Pinned";
