@@ -20,8 +20,11 @@ public class RunPreflightOrchestratorTests
     private static readonly DateTimeOffset Now = new(2026, 5, 28, 10, 0, 0, TimeSpan.Zero);
     private const string IntentIdValue = "intent-run-1";
     private const string WorkspaceRoot = "/tmp/throne-test-workspaces";
+    private const string SettingsPath = $"{WorkspaceRoot}/intents/{IntentIdValue}/throne-session.settings.json";
     private static readonly TerminalLaunchInput DefaultLaunch = new(Vendor: null, Model: null, Effort: null);
     private static readonly string[] ClaudeFreeArgs = ["--model", "opus", "--effort", "high"];
+    private static readonly string[] ClaudeFreeSettingsArgs =
+        ["--model", "opus", "--effort", "high", "--settings", SettingsPath];
 
     [Fact(DisplayName = "Run падает с capability.disabled, если capability terminal выключен")]
     public async Task Run_capability_disabled_throws()
@@ -69,6 +72,8 @@ public class RunPreflightOrchestratorTests
                 && r.Arguments.Contains("opus")
                 && r.Arguments.Contains("--effort")
                 && r.Arguments.Contains("high")
+                && r.Arguments.Contains("--settings")
+                && r.Arguments.Contains(SettingsPath)
                 && r.Arguments[r.Arguments.Count - 1].Contains(IntentIdValue)
                 && r.Arguments[r.Arguments.Count - 1].Contains("бандл work")
                 && r.WorkingDirectory.EndsWith($"intents/{IntentIdValue}")),
@@ -92,7 +97,7 @@ public class RunPreflightOrchestratorTests
         await fixture.Tmux.Received(1).SpawnAsync(
             Arg.Is<TmuxSpawnRequest>(r =>
                 r.Command == "claude"
-                && r.Arguments.SequenceEqual(ClaudeFreeArgs)),
+                && r.Arguments.SequenceEqual(ClaudeFreeSettingsArgs)),
             Arg.Any<CancellationToken>());
         await fixture.Tmux.Received(1).SendLiteralTextAsync(
             IntentIdValue,
@@ -213,6 +218,9 @@ public class RunPreflightOrchestratorTests
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tags = Substitute.For<ITagRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
+            ClaudeSettings = Substitute.For<IClaudeSessionSettingsWriter>();
+            ClaudeSettings.WriteAsync(IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>())
+                .Returns(SettingsPath);
             var workspace = new StubWorkspaceRoot(WorkspaceRoot);
             // BindingService is only invoked from the autobind path; in these tests
             // we never seed tag defaults so the call site is unreachable. The real
@@ -253,6 +261,7 @@ public class RunPreflightOrchestratorTests
                 Tmux,
                 workspace,
                 Substitute.For<IWorkspaceTrust>(),
+                ClaudeSettings,
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             var settingsStore = Substitute.For<ITerminalSettingsStore>();
@@ -267,6 +276,7 @@ public class RunPreflightOrchestratorTests
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
+        public IClaudeSessionSettingsWriter ClaudeSettings { get; }
         public RunPreflightOrchestrator Orchestrator { get; }
 
         public Fixture Setup(
