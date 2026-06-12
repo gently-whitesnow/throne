@@ -28,23 +28,24 @@ public sealed class RunPreflightSpawn(
         string sessionName,
         string mode,
         TerminalLaunchOptions launch,
+        TerminalSpawnPrompt prompt,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(prompt);
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intentId.Value);
-        var prompt = AgentPromptBuilder.Build(mode, intentId.Value);
-        var isFree = mode == TerminalRunModes.Free;
 
         // Trust the workspace before the agent boots in it, otherwise the CLI blocks on its
         // interactive trust prompt and the operator has to confirm by hand on every run. Which
         // trust store gets seeded depends on the launched vendor.
         await workspaceTrust.EnsureTrustedAsync(launch.Vendor, workspacePath, ct);
 
-        // Free mode boots the agent bare and pre-types the prompt instead of passing it as argv —
-        // an argv prompt auto-runs, but free mode hands an editable starter line to the operator.
+        // Embedded contour injects the operator-curated rules/task upfront (ADR-0034) instead of a
+        // hardcoded bundle prompt: rules to the vendor's system-context channel, task as the initial
+        // user message. An empty task boots the agent bare so the operator types it themselves.
         var hookArgs = _hookAdapters.TryGetValue(launch.Vendor, out var adapter)
             ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, ct)
             : [];
-        var invocation = AgentSpawnCommand.Build(launch, prompt, isFree, hookArgs);
+        var invocation = AgentSpawnCommand.Build(launch, prompt.SystemPrompt, prompt.UserPrompt, hookArgs);
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
@@ -59,11 +60,6 @@ public sealed class RunPreflightSpawn(
         }
 
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
-
-        if (isFree)
-        {
-            await tmux.SendLiteralTextAsync(intentId.Value, prompt, ct);
-        }
 
         await events.DispatchAsync(new TerminalSessionStarted(intentId.Value), ct);
     }

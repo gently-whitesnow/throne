@@ -16,11 +16,15 @@ import {
   type TerminalReasoningEffort
 } from "@/entities/terminal-setting";
 
-import { buildAgentCliCommand, buildAgentPrompt } from "../model/prompt";
 import { useTerminalSession } from "../model/use-terminal-session";
 import { defaultRunModeForStatus } from "../model/types";
-import type { TerminalLaunchArgs, TerminalRunMode } from "../model/types";
+import type {
+  TerminalLaunchArgs,
+  TerminalRunMode,
+  TerminalRunPayload
+} from "../model/types";
 
+import { PreflightModal } from "./PreflightModal";
 import { PreflightProgress } from "./PreflightProgress";
 import { RunControls } from "./RunControls";
 import { TerminalView } from "./TerminalView";
@@ -33,14 +37,16 @@ interface AgentTerminalPanelProps {
 /**
  * Виджет «Запустить агента» внизу страницы интента.
  *
- * - Dropdown режимов + Copy prompt всегда отображаются (хардкод-промпт,
- *   load-bearing для MiniRouter — см. родительский Slice 2 «Решения интервью v2 → Q8»).
+ * - Dropdown режимов/вендора/модели/усилия задают ось запуска; сам стартовый
+ *   контекст (правила + задача) оператор смотрит и правит в preflight-модалке,
+ *   которая открывается на Run/Restart и собирает payload через backend-preview
+ *   (ADR-0034/0035). Хардкод-промпта и Copy prompt в embedded-контуре больше нет.
  * - Run-кнопка и xterm-блок рендерятся только при `terminal`-capability == enabled.
  * - Pre-flight: Run disabled пока есть not-ready binding'и; per-binding
  *   прогресс на основе `useIntentRepositories`, который уже подписан на
  *   realtime-эвент `intent.repository_clone_progress`.
- * - Live-сессия (`tmux has-session` → true): dropdown и Copy prompt
- *   замораживаются, появляется Restart-кнопка.
+ * - Live-сессия (`tmux has-session` → true): dropdown замораживаются,
+ *   появляется Restart-кнопка.
  */
 export function AgentTerminalPanel({
   intentId,
@@ -91,16 +97,7 @@ export function AgentTerminalPanel({
       ? "Дождитесь готовности клонов всех репозиториев."
       : null;
 
-  const promptText = useMemo(
-    () =>
-      buildAgentCliCommand(
-        vendor,
-        model,
-        effort,
-        buildAgentPrompt(mode, intentId)
-      ),
-    [vendor, model, effort, mode, intentId]
-  );
+  const [preflight, setPreflight] = useState<"run" | "restart" | null>(null);
 
   const launchArgs = useMemo<TerminalLaunchArgs>(
     () => ({ mode, vendor, model, effort }),
@@ -125,12 +122,25 @@ export function AgentTerminalPanel({
   } = session;
 
   const handleRun = useCallback(() => {
-    void startSession(launchArgs);
-  }, [startSession, launchArgs]);
+    setPreflight("run");
+  }, []);
 
   const handleRestart = useCallback(() => {
-    void restartSession(launchArgs);
-  }, [restartSession, launchArgs]);
+    setPreflight("restart");
+  }, []);
+
+  const handleLaunch = useCallback(
+    (payload: TerminalRunPayload) => {
+      const action = preflight;
+      setPreflight(null);
+      if (action === "restart") {
+        void restartSession(payload);
+      } else {
+        void startSession(payload);
+      }
+    },
+    [preflight, startSession, restartSession]
+  );
 
   const handleKill = useCallback(() => {
     void session.kill();
@@ -172,7 +182,6 @@ export function AgentTerminalPanel({
         onModelChange={setModel}
         effort={effort}
         onEffortChange={setEffort}
-        promptText={promptText}
         onRun={handleRun}
         onRestart={handleRestart}
         onKill={handleKill}
@@ -225,6 +234,18 @@ export function AgentTerminalPanel({
           заново.
         </p>
       ) : null}
+
+      <PreflightModal
+        open={preflight !== null}
+        intentId={intentId}
+        launch={launchArgs}
+        actionLabel={preflight === "restart" ? "Перезапустить" : "Запустить"}
+        isSubmitting={session.isStarting}
+        onClose={() => {
+          setPreflight(null);
+        }}
+        onLaunch={handleLaunch}
+      />
     </section>
   );
 }

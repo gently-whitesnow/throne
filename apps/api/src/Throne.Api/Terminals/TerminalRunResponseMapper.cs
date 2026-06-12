@@ -32,6 +32,18 @@ internal static class TerminalRunResponseMapper
             Effort: request.Effort is { } effort ? ToWireEffort(effort) : null);
     }
 
+    public static TerminalSpawnPrompt ToSpawnPrompt(RunIntentTerminalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return new TerminalSpawnPrompt(
+            SystemPrompt: request.System_prompt,
+            UserPrompt: request.User_prompt,
+            SelectedPartIds: request.Selected_part_ids?.ToArray(),
+            IntentTextSave: request.Intent_text_update is { } update
+                ? new IntentTextSave(update.Expected_version, update.Old_text, update.New_text)
+                : null);
+    }
+
     private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
     {
         TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,

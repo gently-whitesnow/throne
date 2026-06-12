@@ -42,9 +42,12 @@ namespace Throne.Api.Generated
         /// <br/>3. Wait until every binding reaches `clone_status=ready`. If anything settles
         /// <br/>   on `failed` / `broken`, the spawn is skipped and `session_state=blocked`
         /// <br/>   with `blocking_bindings` populated.
-        /// <br/>4. Spawn `tmux new -ADs throne-{intent_id} -- claude "{prompt}"` only after
-        /// <br/>   all bindings are ready. `tmux has-session -t throne-{intent_id}` is the
-        /// <br/>   single source of truth — Throne persists nothing about the session.
+        /// <br/>4. Validate `selected_part_ids`, optionally persist `intent_text_update`
+        /// <br/>   (optimistic concurrency — a conflict aborts here), then spawn the chosen
+        /// <br/>   agent with `system_prompt` as upfront system context and `user_prompt` as the
+        /// <br/>   initial message, only after all bindings are ready.
+        /// <br/>   `tmux has-session -t throne-{intent_id}` is the single source of truth —
+        /// <br/>   Throne persists nothing about the session.
         /// <br/>
         /// <br/>Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
         /// </remarks>

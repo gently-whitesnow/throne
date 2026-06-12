@@ -23,10 +23,10 @@ public sealed class TerminalController(
         try
         {
             var mode = TerminalRunResponseMapper.ToDomainMode(body.Mode);
-            var composition = await previewHandler.HandleAsync(
+            var preview = await previewHandler.HandleAsync(
                 new IntentTerminalPreviewQuery(intent_id, mode, body.Selected_part_ids?.ToArray()),
                 HttpContext.RequestAborted);
-            return Ok(TerminalPreviewMapper.ToDto(intent_id, body.Mode, composition));
+            return Ok(TerminalPreviewMapper.ToDto(intent_id, body.Mode, preview));
         }
         catch (ApiException ex)
         {
@@ -108,7 +108,9 @@ public sealed class TerminalController(
         {
             var domainMode = TerminalRunResponseMapper.ToDomainMode(body.Mode);
             var launch = TerminalRunResponseMapper.ToLaunchInput(body);
-            var result = await orchestrator.RunAsync(intentId, domainMode, launch, restart, HttpContext.RequestAborted);
+            var prompt = TerminalRunResponseMapper.ToSpawnPrompt(body);
+            var result = await orchestrator.RunAsync(
+                intentId, domainMode, launch, prompt, restart, HttpContext.RequestAborted);
             var dto = TerminalRunResponseMapper.ToDto(result);
             return Accepted(dto);
         }
