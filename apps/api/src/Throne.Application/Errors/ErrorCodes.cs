@@ -48,4 +48,11 @@ public static class ErrorCodes
     public const string TerminalCloneWaitTimeout = "terminal.clone_wait_timeout";
     public const string TerminalModeInvalid = "terminal.mode_invalid";
     public const string TerminalArgsInvalid = "terminal.args_invalid";
+    public const string PromptPartNotFound = "prompt_part.not_found";
+    public const string PromptPartAlreadyExists = "prompt_part.already_exists";
+    public const string PromptPartVersionConflict = "prompt_part.version_conflict";
+
+    // Single 422 code for both no-match and ambiguous-match; the reason is carried in the
+    // problem extensions (kept as one constant to stay within the ErrorCodes member budget).
+    public const string PromptPartTextMatchFailed = "prompt_part.text.match_failed";
 }

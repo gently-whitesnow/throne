@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddSingleton<ITagRepository, MongoTagRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
         services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
+        services.AddSingleton<IPromptPartRepository, MongoPromptPartRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IIntentEventRepository, MongoIntentEventRepository>();
         services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
