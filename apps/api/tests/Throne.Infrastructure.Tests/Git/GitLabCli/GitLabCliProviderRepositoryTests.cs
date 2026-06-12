@@ -44,9 +44,38 @@ public class GitLabCliProviderRepositoryTests
             RepositorySearchScope.Involved, query: "share", limit: 20, ct: default);
 
         repos.Should().ContainSingle().Which.FullName.Should().Be("org/shared");
-        _fx.Calls.Select(c => c.Arguments[1]).Should().Contain("projects?owned=true&per_page=20");
-        _fx.Calls.Select(c => c.Arguments[1]).Should().Contain("projects?membership=true&per_page=20");
+        _fx.Calls.Select(c => c.Arguments[1]).Should()
+            .Contain("projects?owned=true&per_page=20&search=share&search_namespaces=true");
+        _fx.Calls.Select(c => c.Arguments[1]).Should()
+            .Contain("projects?membership=true&per_page=20&search=share&search_namespaces=true");
         _fx.Calls.Should().OnlyContain(c => GitLabCliProviderFixture.HasGitLabHost(c));
+    }
+
+    [Fact(DisplayName = "SearchRepositoriesAsync прокидывает query в GitLab search, а не фильтрует первую страницу")]
+    public async Task Search_forwards_query_to_gitlab_api()
+    {
+        const string nexusJson = """
+            [{"id":2026,"path_with_namespace":"trucks/nexus/nexus","default_branch":"master",
+              "visibility":"internal","web_url":"https://gitlab.example.com/trucks/nexus/nexus"}]
+            """;
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(nexusJson));
+
+        await _fx.Provider.SearchRepositoriesAsync(
+            RepositorySearchScope.Mine, query: "trucks/nexus", limit: 30, ct: default);
+
+        _fx.Calls.Single().Arguments[1].Should()
+            .Be("projects?owned=true&per_page=30&search=trucks%2Fnexus&search_namespaces=true");
+    }
+
+    [Fact(DisplayName = "SearchRepositoriesAsync без query не добавляет search-параметр")]
+    public async Task Search_without_query_omits_search_param()
+    {
+        _fx.OnRun(_ => GitLabCliProviderFixture.Ok(OwnedProjectsJson));
+
+        await _fx.Provider.SearchRepositoriesAsync(
+            RepositorySearchScope.Mine, query: null, limit: 30, ct: default);
+
+        _fx.Calls.Single().Arguments[1].Should().Be("projects?owned=true&per_page=30");
     }
 
     [Fact(DisplayName = "CloneRepositoryAsync вызывает glab repo clone с partial clone и GITLAB_HOST")]

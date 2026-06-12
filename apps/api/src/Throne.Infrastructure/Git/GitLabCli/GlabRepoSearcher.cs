@@ -15,14 +15,15 @@ internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSetti
     {
         var host = ReadHost();
         var effectiveLimit = limit > 0 ? limit : glab.PageSize;
-        var mine = await ListAsync(host, owned: true, effectiveLimit, ct);
-        var combined = await CombineForScopeAsync(scope, host, mine, effectiveLimit, ct);
+        var mine = await ListAsync(host, owned: true, query, effectiveLimit, ct);
+        var combined = await CombineForScopeAsync(scope, host, query, mine, effectiveLimit, ct);
         return RepoSearchFilter.Apply(combined, query, effectiveLimit);
     }
 
     private async Task<IReadOnlyList<GitRepositoryRef>> CombineForScopeAsync(
         RepositorySearchScope scope,
         string host,
+        string? query,
         IReadOnlyList<GitRepositoryRef> mine,
         int limit,
         CancellationToken ct)
@@ -34,7 +35,7 @@ internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSetti
 
         if (scope == RepositorySearchScope.Involved)
         {
-            var member = await ListAsync(host, owned: false, limit, ct);
+            var member = await ListAsync(host, owned: false, query, limit, ct);
             return GhRepoMerger.Merge(mine, member);
         }
 
@@ -44,12 +45,14 @@ internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSetti
     private async Task<IReadOnlyList<GitRepositoryRef>> ListAsync(
         string host,
         bool owned,
+        string? query,
         int limit,
         CancellationToken ct)
     {
         var scope = owned ? "owned=true" : "membership=true";
+        var path = BuildProjectsPath(scope, query, limit);
         var result = await glab.RunAsync(
-            ["api", $"projects?{scope}&per_page={limit.ToString(CultureInfo.InvariantCulture)}"],
+            ["api", path],
             GlabEnvironment.ForHost(host),
             ct);
         if (!result.IsSuccess)
@@ -58,6 +61,16 @@ internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSetti
         }
 
         return GlabRepoListParser.Parse(result.StandardOutput, host);
+    }
+
+    // search_namespaces=true matches by full path (group/sub/repo), not just the project name,
+    // so a query like "group/repo" reaches projects the user only sees through an ancestor group.
+    private static string BuildProjectsPath(string scope, string? query, int limit)
+    {
+        var path = $"projects?{scope}&per_page={limit.ToString(CultureInfo.InvariantCulture)}";
+        return string.IsNullOrWhiteSpace(query)
+            ? path
+            : $"{path}&search={Uri.EscapeDataString(query)}&search_namespaces=true";
     }
 
     private string ReadHost()
