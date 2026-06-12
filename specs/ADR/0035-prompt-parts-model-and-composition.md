@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md) (две сущности `Instruction`+`PromptPart` схлопнуты в одну; mandatory-инструкции стали mandatory-частями `PromptPart`, бандл перебэкан на `prompt_parts`). Тело сохранено как исторический контекст развилки «whitelist vs parts».
 Date: 2026-06-12
 Related: [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0006](0006-openapi-contract-first-codegen.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md)
 

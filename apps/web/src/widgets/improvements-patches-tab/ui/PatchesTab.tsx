@@ -1,20 +1,20 @@
 import { useState } from "react";
 
-import type { InstructionPatch } from "@/entities/instruction-patch";
+import type { PromptPartPatch } from "@/entities/prompt-part-patch";
 
-import { useInstructionPatches } from "../model/use-instruction-patches";
+import { usePromptPartPatches } from "../model/use-prompt-part-patches";
 import { usePatchDetail } from "../model/use-patch-detail";
 
 import { PatchDetailPanel } from "./PatchDetailPanel";
 import { PatchStatusBadge } from "./PatchStatusBadge";
 
 /**
- * Patches tab: left rail with InstructionPatch rows (newest first), right pane
+ * Patches tab: left rail with PromptPartPatch rows (newest first), right pane
  * with detail + apply / apply-with-edit / reject actions. Owner-scoped via the
  * server; realtime fanout drives the refresh.
  */
 export function PatchesTab() {
-  const { state, reload } = useInstructionPatches();
+  const { state, reload } = usePromptPartPatches();
   const [selected, setSelected] = useState<string | null>(null);
   const detail = usePatchDetail(selected);
 
@@ -39,7 +39,7 @@ export function PatchesTab() {
     return (
       <p className="m-0 rounded border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
         Патчи появятся, когда фронтир-агент через MCP вызовет
-        propose_instruction_patch. Запусти dream-проход в подключённом агенте
+        propose_prompt_part_patch. Запусти dream-проход в подключённом агенте
         либо подожди cron.
       </p>
     );
@@ -89,14 +89,14 @@ function PatchList({
   selectedId,
   onSelect
 }: {
-  items: InstructionPatch[];
+  items: PromptPartPatch[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
   return (
     <ul
       className="m-0 flex max-h-[70vh] flex-col gap-1 overflow-auto rounded border border-base-300 bg-base-100 p-2"
-      aria-label="InstructionPatches"
+      aria-label="PromptPartPatches"
     >
       {items.map((p) => {
         const isSelected = p.id === selectedId;
@@ -116,7 +116,7 @@ function PatchList({
             >
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wide">
-                  {p.target_kind}
+                  {`${p.target_scope}/${p.target_key}`}
                 </span>
                 <PatchStatusBadge status={p.status} />
                 <span className="ml-auto text-[10px] text-base-content/60">

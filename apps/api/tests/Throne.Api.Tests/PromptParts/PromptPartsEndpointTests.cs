@@ -147,8 +147,10 @@ public sealed class PromptPartsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         body.GetProperty("user_prompt").GetString().Should().Be("do the thing");
         body.GetProperty("system_prompt").GetString().Should().NotBeNullOrEmpty();
         body.GetProperty("parts").EnumerateArray()
-            .Select(p => p.GetProperty("part_id").GetString())
-            .Should().Contain("system:common");
+            .Should().Contain(p =>
+                p.GetProperty("scope").GetString() == "system"
+                && p.GetProperty("key").GetString() == "common"
+                && p.GetProperty("role").GetString() == "mandatory");
     }
 
     [Fact(DisplayName = "POST /terminal/preview для неизвестного интента отдаёт 404")]

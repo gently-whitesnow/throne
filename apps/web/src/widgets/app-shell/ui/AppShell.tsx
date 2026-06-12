@@ -52,7 +52,7 @@ export function AppShell() {
               <Icon aria-hidden size={18} strokeWidth={2} />
               {to === "/improvements" && proposedPatches > 0 ? (
                 <span
-                  aria-label={`${String(proposedPatches)} proposed instruction patches`}
+                  aria-label={`${String(proposedPatches)} proposed prompt part patches`}
                   className="absolute right-0.5 top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-error px-1 text-[9px] font-bold leading-none text-error-content"
                 >
                   {String(proposedPatches)}

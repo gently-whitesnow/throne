@@ -49,7 +49,7 @@ export function InstructionRow({ instruction, onOpen }: InstructionRowProps) {
       >
         <ScopeBadge scope={instruction.scope} />
         <span className="font-mono text-[13px] font-semibold text-base-content">
-          {instruction.kind}
+          {instruction.key}
         </span>
         {!instruction.present ? (
           <span className="text-xs text-warning">не создана</span>

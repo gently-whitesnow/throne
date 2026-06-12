@@ -2,12 +2,13 @@
 # and bundle composition.
 #
 # Backend runtime (`ISkillManifestProvider`) reads this file and uses it to:
-#   * resolve `mode → required kinds` for `mcp__throne__get_instruction_bundle`,
-#   * load system instruction texts (replaces in-code SystemInstructionCatalog),
-#   * compute the precomputed `/api/v1/instructions/bundles-tree` shown on /instructions.
+#   * resolve `mode → mandatory (scope, key)` for `mcp__throne__get_prompt_bundle`,
+#   * seed mandatory system prompt parts (texts below) and their per-mode roles
+#     into the `prompt_parts` collection (ADR-0036),
+#   * compute the precomputed `/api/v1/prompt-parts/bundles-tree`.
 #
-# User-scope instructions are runtime data in Mongo. They are not stored here —
-# only the fact that the corresponding kind participates in a bundle (via
+# User-scope prompt parts are runtime data in Mongo. Their texts are not stored
+# here — only the fact that the corresponding key participates in a bundle (via
 # `bundles[].includes` with `scope: user`).
 #
 # There is no `skills:` section: vendor skill launchers were superseded by
@@ -24,9 +25,9 @@ system_instructions:
 
       Статусы Intent (единственный write-surface — `set_intent_status(intent_id, status, reason?)`):
       - `draft` — стартовое состояние интента, только что создан.
-      - `interview` — постановка уточняется. Авто-выставляется сервером при чтении `get_instruction_bundle(interview)`.
+      - `interview` — постановка уточняется. Авто-выставляется сервером при чтении `get_prompt_bundle(interview)`.
       - `ready_for_work` — постановка готова к исполнению. Ставь сам, когда уверен, что интервью закончено.
-      - `work` — идёт работа. Авто-выставляется сервером при чтении `get_instruction_bundle(work)`.
+      - `work` — идёт работа. Авто-выставляется сервером при чтении `get_prompt_bundle(work)`.
       - `ready_for_review` — работа закончена, оператор может идти на приёмку. Ставь сам по завершении прохода.
       - `awaiting_operator` («жду ответа») — агент остановился по ходу задачи, нужен инпут оператора (нет доступа/информации, неоднозначное решение, внешняя блокировка). Перед вызовом припиши в Intent.text, что именно нужно от оператора.
       - `done` / `reject` / `fridge` — пользовательские состояния (закрыто / отклонено / отложено). Применяй только по явной просьбе оператора. При `reject` параметр `reason` обязателен и записывается в конец Intent.text.
@@ -60,17 +61,17 @@ system_instructions:
 
   - kind: dream
     text: |
-      Цель dream — улучшить USER-инструкции пользователя (target_kind = work и interview) на основе анализа его реальных диалогов с агентами. Output — InstructionPatch'и; apply / edit / reject — пользователь через UI на `/improvements`. Throne не хранит диалогов — ты сам читаешь их локально через Read/Glob по путям, которые отдаёт get_dream_sources. См. ADR-0022.
+      Цель dream — улучшить USER-части пользователя (target_scope="user", target_key ∈ {work, interview}) на основе анализа его реальных диалогов с агентами. Output — PromptPartPatch'и; apply / edit / reject — пользователь через UI на `/improvements`. Throne не хранит диалогов — ты сам читаешь их локально через Read/Glob по путям, которые отдаёт get_dream_sources. См. ADR-0036 (схлопывание Instruction в PromptPart) и ADR-0022 (dream-flow).
 
       Алгоритм (объём выбирает пользователь — не подтягивай больше, чем явно попросили):
 
       1) Собери контекст:
          - mcp__throne__get_dream_sources — словарь {vendor → path, hint}, откуда брать диалоги локально;
-         - mcp__throne__get_current_instruction(target_kind="work") и mcp__throne__get_current_instruction(target_kind="interview") — текущий текст и версии обеих user-инструкций (нужны как base_instruction_version при propose_instruction_patch);
+         - mcp__throne__get_current_prompt_part(target_scope="user", target_key="work") и mcp__throne__get_current_prompt_part(target_scope="user", target_key="interview") — текущий текст и версии обеих user-частей (нужны как base_version при propose_prompt_part_patch);
          - mcp__throne__list_dream_sessions(host=<свой hostname>, limit=5) — последние проходы (vendor, host, period, summary, reflection, proposed_patch_ids, processed_conversation_ids). ВСЕГДА передавай host — это hostname машины, на которой ты сейчас работаешь (`os.hostname()` / `hostname` в shell). Без host ответ смешает сессии со всех машин юзера, и frontier «что уже разобрано локально» поедет.
 
       2) Рефлексия по прошлым правкам — выполняй ВСЕГДА перед поиском нового.
-         - mcp__throne__list_instruction_patches(status="applied", limit=20) и при необходимости mcp__throne__get_instruction_patch(id) — какие правила пользователь принял с прошлых проходов и когда (applied_at).
+         - mcp__throne__list_prompt_part_patches(status="applied", limit=20) и при необходимости mcp__throne__get_prompt_part_patch(id) — какие правила пользователь принял с прошлых проходов и когда (applied_at).
          - Прочитай локально несколько свежих диалогов (после applied_at последних патчей) — пути возьми из dream_sources, отсекай по mtime/timestamp.
          - Цель проверки: прижились ли правила. Прижилось — оператор перестал повторять ту же поправку. Не прижилось — повторяет дальше, значит формулировка не считывается агентом.
          - Доложи пользователю компактный отчёт «вот эти правила прижились / эти — нет, и почему» одним сообщением. Без воды.
@@ -94,13 +95,13 @@ system_instructions:
          - Покажи каждую находку 1-2 строками со ссылкой на одно конкретное место в диалоге.
          - Согласуй формулировки. Обе инструкции улучшаются: work (коридор исполнения) и interview (прояснение постановки).
 
-      7) Сформулируй патчи через mcp__throne__propose_instruction_patch:
-         - target_kind — ровно "work" или "interview". Никаких других kinds для пользовательской рефлексии не используем.
-         - base_instruction_version — значение из шага 1. При расхождении на apply сервер вернёт 409 needs_rebase — это нормально, попроси юзера перезапустить.
+      7) Сформулируй патчи через mcp__throne__propose_prompt_part_patch:
+         - target_scope — ровно "user". target_key — ровно "work" или "interview". Других частей для пользовательской рефлексии не трогаем.
+         - base_version — значение из шага 1. При расхождении на apply сервер вернёт 409 needs_rebase — это нормально, попроси юзера перезапустить.
          - patch_text — полное новое содержимое целевой инструкции после твоей правки. Сервер не делает merge — что предложил, то и применят.
          - evidence_card_ids — пустой массив (поле сохранено для совместимости; в новом flow не используется).
          - rationale — 1-3 предложения, ≤500 символов, по делу.
-         - idempotency_key — ОБЯЗАТЕЛЬНО передавай уникальный ключ на каждый логический патч (≤64 символа): например, `dream-{vendor}-{date_to}-{target_kind}-{seq}` или uuid сессии + порядковый номер. Если MCP-транспорт повторит запрос (SSE-сессия отвалилась, клиент ретраит), сервер вернёт уже созданный патч вместо дубля. Без ключа повтор создаст ещё одну запись в `/improvements`.
+         - idempotency_key — ОБЯЗАТЕЛЬНО передавай уникальный ключ на каждый логический патч (≤64 символа): например, `dream-{vendor}-{date_to}-{target_key}-{seq}` или uuid сессии + порядковый номер. Если MCP-транспорт повторит запрос (SSE-сессия отвалилась, клиент ретраит), сервер вернёт уже созданный патч вместо дубля. Без ключа повтор создаст ещё одну запись в `/improvements`.
 
       8) В конце ОБЯЗАТЕЛЬНО зови mcp__throne__record_dream_session:
          - vendor, date_from, date_to — что разбирал;

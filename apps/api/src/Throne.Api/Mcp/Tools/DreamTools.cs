@@ -15,7 +15,7 @@ namespace Throne.Api.Mcp.Tools;
 ///     summary, reflection and proposed_patch_ids it produced.
 ///
 /// There is no apply / edit / reject on dream sessions — they are immutable
-/// once recorded. Patch apply / reject lives on InstructionPatch (user action,
+/// once recorded. Patch apply / reject lives on PromptPartPatch (user action,
 /// HTTP-only).
 /// </summary>
 [McpServerToolType]
@@ -54,7 +54,7 @@ public sealed class DreamTools(
     }
 
     [McpServerTool(Name = "record_dream_session", UseStructuredContent = true)]
-    [Description("Append a DreamSession after a completed /dream pass. Records are immutable — there is no edit / delete. processed_conversation_ids must list every dialog id/path the agent actually read so the next pass skips them. proposed_patch_ids should list every InstructionPatch the agent created during this pass. Even if nothing useful was found, still record a session with an empty proposed_patch_ids and a one-line summary explaining why.")]
+    [Description("Append a DreamSession after a completed /dream pass. Records are immutable — there is no edit / delete. processed_conversation_ids must list every dialog id/path the agent actually read so the next pass skips them. proposed_patch_ids should list every PromptPartPatch the agent created during this pass. Even if nothing useful was found, still record a session with an empty proposed_patch_ids and a one-line summary explaining why.")]
     public async Task<McpDreamSessionReadModel> RecordDreamSession(
         [Description("Vendor whose conversations were analysed; must be one of the entries returned by get_dream_sources.")] string vendor,
         [Description("Hostname of the machine that ran this /dream pass (typically `os.hostname()` / `hostname` shell command). Required — the server scopes the per-machine processed_conversation_ids frontier by this value. Max 255 chars, non-empty.")] string host,
@@ -63,7 +63,7 @@ public sealed class DreamTools(
         [Description("Inclusive lower bound of the analysed period (RFC 3339); null when the agent took the full history.")] DateTimeOffset? date_from = null,
         [Description("Inclusive upper bound of the analysed period (RFC 3339); null when open-ended.")] DateTimeOffset? date_to = null,
         [Description("Agent's notes on prior applied patches (whether they landed in practice). Optional, ≤4000 chars.")] string? reflection = null,
-        [Description("InstructionPatch ids created during this pass (opaque to the server). Up to 50.")] IReadOnlyList<string>? proposed_patch_ids = null,
+        [Description("PromptPartPatch ids created during this pass (opaque to the server). Up to 50.")] IReadOnlyList<string>? proposed_patch_ids = null,
         CancellationToken cancellationToken = default)
     {
         var session = await recordHandler.HandleAsync(
@@ -110,7 +110,7 @@ public sealed record McpDreamSessionReadModel(
     [property: Description("Opaque dialog ids / paths the agent read in this pass.")] IReadOnlyList<string> ProcessedConversationIds,
     [property: Description("3-7 line summary of findings and proposals.")] string Summary,
     [property: Description("Agent's reflection on prior applied patches.")] string? Reflection,
-    [property: Description("InstructionPatch ids created during this pass.")] IReadOnlyList<string> ProposedPatchIds);
+    [property: Description("PromptPartPatch ids created during this pass.")] IReadOnlyList<string> ProposedPatchIds);
 
 public sealed record McpDreamSourcesResult(
     [property: Description("Vendor / path / hint triples; empty when no sources are configured.")] IReadOnlyList<McpDreamSourceEntry> Items);

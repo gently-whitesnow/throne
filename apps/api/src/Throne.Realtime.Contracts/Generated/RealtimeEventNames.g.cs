@@ -12,10 +12,6 @@ namespace Throne.Realtime.Contracts.Generated;
 public static class RealtimeEventNames
 {
     public const string DreamSessionRecorded = "dream_session.recorded";
-    public const string InstructionPatchApplied = "instruction_patch.applied";
-    public const string InstructionPatchProposed = "instruction_patch.proposed";
-    public const string InstructionPatchRejected = "instruction_patch.rejected";
-    public const string InstructionPatchSuperseded = "instruction_patch.superseded";
     public const string IntentAttachmentAdded = "intent.attachment_added";
     public const string IntentAttachmentDeleted = "intent.attachment_deleted";
     public const string IntentCreated = "intent.created";
@@ -33,6 +29,10 @@ public static class RealtimeEventNames
     public const string IntentTagsChanged = "intent.tags_changed";
     public const string IntentTextChanged = "intent.text_changed";
     public const string IntentUnpinned = "intent.unpinned";
+    public const string PromptPartPatchApplied = "prompt_part_patch.applied";
+    public const string PromptPartPatchProposed = "prompt_part_patch.proposed";
+    public const string PromptPartPatchRejected = "prompt_part_patch.rejected";
+    public const string PromptPartPatchSuperseded = "prompt_part_patch.superseded";
     public const string RepositoryDocumentUpdated = "repository.document_updated";
     public const string RepositoryRegistered = "repository.registered";
     public const string TagCreated = "tag.created";
@@ -44,10 +44,6 @@ public static class RealtimeEventNames
     public static readonly System.Collections.Generic.IReadOnlyList<string> All = new[]
     {
         DreamSessionRecorded,
-        InstructionPatchApplied,
-        InstructionPatchProposed,
-        InstructionPatchRejected,
-        InstructionPatchSuperseded,
         IntentAttachmentAdded,
         IntentAttachmentDeleted,
         IntentCreated,
@@ -65,6 +61,10 @@ public static class RealtimeEventNames
         IntentTagsChanged,
         IntentTextChanged,
         IntentUnpinned,
+        PromptPartPatchApplied,
+        PromptPartPatchProposed,
+        PromptPartPatchRejected,
+        PromptPartPatchSuperseded,
         RepositoryDocumentUpdated,
         RepositoryRegistered,
         TagCreated,

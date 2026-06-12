@@ -74,10 +74,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/prompt-parts/bundles-tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Precomputed bundle → prompt-parts tree.
+         * @description Returns the runtime composition that a frontier agent receives for each bundle mode. Source of truth is the declarative manifest (specs/manifest/throne-skills.yaml) for the ordering of mandatory parts; the texts are read from the prompt_parts collection. For every bundle mode the response includes the mode and its ordered includes (system + user parts) with full text payload. User-scope entries carry editable=true; system entries are read-only.
+         */
+        get: operations["getBundlesTree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/prompt-parts/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the text-version history of a prompt part. */
+        get: operations["listPromptPartVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        BundlesTreeDto: {
+            bundles: components["schemas"]["BundleNodeDto"][];
+        };
+        BundleNodeDto: {
+            /** @description Bundle mode (interview | work | dream | schema_map). */
+            mode: string;
+            includes: components["schemas"]["BundleEntryNodeDto"][];
+        };
+        BundleEntryNodeDto: {
+            /** @description system | user. */
+            scope: string;
+            /** @description Prompt part key. */
+            key: string;
+            /** @description PromptPart id. Null when a user entry is missing. */
+            prompt_part_id?: string | null;
+            /**
+             * Format: int32
+             * @description Mongo current_version, or 0 if no record exists yet.
+             */
+            current_version: number;
+            /** @description Full text of the prompt part (empty string when a user entry is missing). */
+            text: string;
+            /** @description True only for user-scope entries. */
+            editable: boolean;
+            /** @description False when a user-scope record does not yet exist in Mongo. */
+            present: boolean;
+        };
         PromptPartModeRoleDto: {
             /** @description Embedded run mode (work | interview | free). */
             mode: string;
@@ -158,6 +222,25 @@ export interface components {
             old_text: string;
             /** @description Replacement text. May be empty (deletes the matched fragment). */
             new_text: string;
+        };
+        TextVersionDto: {
+            /** Format: int32 */
+            version: number;
+            /** @enum {string} */
+            kind: "create" | "replace" | "insert";
+            /** Format: date-time */
+            changed_at: string;
+            /** @enum {string} */
+            changed_by: "user" | "agent" | "system";
+            /** @description Full text snapshot. Present for kind=create (v1). */
+            snapshot?: string;
+            /** @description Replaced fragment. Present for kind=replace. */
+            old_text?: string;
+            /** @description New fragment. Present for kind=replace. */
+            new_text?: string;
+            /** Format: int32 */
+            after_line?: number;
+            insert_text?: string;
         };
     };
     responses: never;
@@ -389,6 +472,57 @@ export interface operations {
             };
             /** @description Validation failed (unknown mode/role, duplicate mode). */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getBundlesTree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundlesTreeDto"];
+                };
+            };
+        };
+    };
+    listPromptPartVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TextVersionDto"][];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

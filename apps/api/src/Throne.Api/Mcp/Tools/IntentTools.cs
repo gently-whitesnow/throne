@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 using Throne.Api.Intents;
-using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Application.PromptParts;
 using Throne.Application.Repositories;
 using Throne.Domain.Intents;
 using Throne.Domain.TextVersions;
@@ -15,7 +15,7 @@ namespace Throne.Api.Mcp.Tools;
 public sealed class IntentTools(
     CreateIntentHandler create,
     GetIntentHandler get,
-    GetInstructionBundleHandler getInstructionBundle,
+    GetPromptBundleHandler getPromptBundle,
     ListIntentsHandler listIntents,
     MoveIntentHandler moveIntentHandler,
     IIntentLinkRepository linkRepository,
@@ -92,15 +92,15 @@ public sealed class IntentTools(
         return IntentReadResultRenderer.Render(result);
     }
 
-    [McpServerTool(Name = "get_instruction_bundle")]
-    [Description("Read the complete instruction bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work/fix bundles drive transitions on read).")]
-    public async Task<McpToolPayload> GetInstructionBundle(
+    [McpServerTool(Name = "get_prompt_bundle")]
+    [Description("Read the complete prompt bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work bundles drive transitions on read).")]
+    public async Task<McpToolPayload> GetPromptBundle(
         [Description("Runtime mode: interview, work, dream, or schema_map. Pick interview/work/dream by user intent (see the mini-router instructions returned at MCP initialize); schema_map is a niche, button-launched mode for building a repository's DB schema-map page and runs without an intent_id.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default)
     {
-        var bundle = await getInstructionBundle.HandleAsync(new GetInstructionBundleQuery(mode, intent_id), cancellationToken);
-        return InstructionBundleRenderer.Render(bundle);
+        var bundle = await getPromptBundle.HandleAsync(new GetPromptBundleQuery(mode, intent_id), cancellationToken);
+        return PromptBundleRenderer.Render(bundle);
     }
 
     [McpServerTool(Name = "move_intent", UseStructuredContent = true)]

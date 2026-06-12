@@ -12,7 +12,7 @@ internal static class StaticRealtimeMapperFanout
             ?? IntentRepositoryRealtimeMapper.TryMap(evt)
             ?? RepositoryRegistryRealtimeMapper.TryMap(evt)
             ?? TagRealtimeMapper.TryMap(evt)
-            ?? InstructionPatchRealtimeMapper.TryMap(evt)
+            ?? PromptPartPatchRealtimeMapper.TryMap(evt)
             ?? DreamRealtimeMapper.TryMap(evt)
             ?? TerminalRealtimeMapper.TryMap(evt);
 }

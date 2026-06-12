@@ -23,7 +23,7 @@ internal static class McpCallArgumentSnapshot
         ReadStringProperty(arguments, "intent_id");
 
     public static string? ExtractModeHint(string toolName, IDictionary<string, JsonElement>? arguments) =>
-        toolName == "get_instruction_bundle"
+        toolName == "get_prompt_bundle"
             ? ReadStringProperty(arguments, "mode")
             : null;
 

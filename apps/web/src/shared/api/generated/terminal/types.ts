@@ -219,9 +219,9 @@ export interface components {
             selected_part_ids?: string[] | null;
         };
         PromptPartPreviewDto: {
-            /** @description Part id. For mandatory parts projected from the manifest — synthetic `system:<kind>` or the user instruction id. For optional parts — the Mongo id. */
+            /** @description Mongo id of the prompt part (ADR-0036). */
             part_id: string;
-            /** @description Part key (instruction kind for projected mandatory parts). */
+            /** @description Part key, unique within scope. */
             key: string;
             /** @description system | user. */
             scope: string;
@@ -229,9 +229,9 @@ export interface components {
             role: string;
             /** Format: int32 */
             order: number;
-            /** @description True for operator-authored parts and user instructions; false for system entries. */
+            /** @description True for user-scope parts; false for system parts. */
             editable: boolean;
-            /** @description False when a projected user instruction has no Mongo record yet. */
+            /** @description False when a mandatory user part has no record yet (seeded on first patch apply). */
             present: boolean;
             /** @description Whether the part is included in the assembled system_prompt. */
             selected: boolean;

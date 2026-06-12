@@ -2,9 +2,9 @@ using System.Text.Json;
 using FluentAssertions;
 using ModelContextProtocol.Protocol;
 using Throne.Api.Mcp.Tools;
-using Throne.Application.InstructionPatches;
-using Throne.Application.Instructions;
 using Throne.Application.Intents;
+using Throne.Application.PromptPartPatches;
+using Throne.Application.PromptParts;
 using Throne.Domain.Intents;
 
 namespace Throne.Api.Tests.Mcp;
@@ -14,7 +14,7 @@ namespace Throne.Api.Tests.Mcp;
 /// tools на wire едет только Content[]: <c>CallToolResult.StructuredContent</c> обязан
 /// быть <c>null</c>. Compact refs ушли в audit-канал через <c>McpToolPayload.AuditSummary</c>
 /// — там <c>text</c> / <c>content</c> / <c>patch_text</c> / <c>applied_text</c> /
-/// <c>current_instruction_text</c> / <c>base_instruction_text</c> / <c>rationale</c> /
+/// <c>current_part_text</c> / <c>base_part_text</c> / <c>rationale</c> /
 /// <c>note</c> также запрещены.
 ///
 /// Тест ловит регрессию, симметричную 9cc71a8c… (дубль payload) и 6e96cd22… (compact
@@ -28,26 +28,26 @@ public class McpToolWireShapeTests
         "content",
         "patch_text",
         "applied_text",
-        "current_instruction_text",
-        "base_instruction_text",
+        "current_part_text",
+        "base_part_text",
         "rationale",
         "note",
     };
 
-    [Fact(DisplayName = "InstructionBundleRenderer: wire StructuredContent=null, refs только в audit")]
-    public void InstructionBundle_wire_has_null_structured_content()
+    [Fact(DisplayName = "PromptBundleRenderer: wire StructuredContent=null, refs только в audit")]
+    public void PromptBundle_wire_has_null_structured_content()
     {
-        var bundle = new InstructionBundle(
+        var bundle = new PromptBundle(
             Mode: "work",
             IntentId: "intent-1",
-            Instructions:
+            Parts:
             [
-                new InstructionWithText("system", "common", "instr-sys-common", 1, "Большой системный текст с кириллицей."),
-                new InstructionWithText("user", "work", "instr-user-work", 7, "User work prompt body."),
+                new PromptBundlePart("system", "common", "part-sys-common", 1, "Большой системный текст с кириллицей."),
+                new PromptBundlePart("user", "work", "part-user-work", 7, "User work prompt body."),
             ],
-            MissingKinds: []);
+            MissingKeys: []);
 
-        var payload = InstructionBundleRenderer.Render(bundle);
+        var payload = PromptBundleRenderer.Render(bundle);
 
         ReadText(payload.Wire).Should().Contain("Большой системный текст с кириллицей.");
         AssertPromptLikeWireShape(payload);
@@ -130,57 +130,58 @@ public class McpToolWireShapeTests
         AssertPromptLikeWireShape(payload);
     }
 
-    [Fact(DisplayName = "CurrentInstructionRenderer: instruction.text в Content, wire StructuredContent=null")]
-    public void CurrentInstruction_wire_has_null_structured_content()
+    [Fact(DisplayName = "CurrentPromptPartRenderer: prompt-part.text в Content, wire StructuredContent=null")]
+    public void CurrentPromptPart_wire_has_null_structured_content()
     {
-        var view = new CurrentInstructionView(
-            InstructionId: "instr-1",
-            Kind: "work",
+        var view = new CurrentPromptPartView(
+            PromptPartId: "part-1",
+            Scope: "user",
+            Key: "work",
             Text: "Полный текст инструкции.",
             CurrentVersion: 9,
             UpdatedAt: DateTimeOffset.Parse("2026-05-22T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
 
-        var payload = CurrentInstructionRenderer.Render(view);
+        var payload = CurrentPromptPartRenderer.Render(view);
 
         ReadText(payload.Wire).Should().Contain("Полный текст инструкции.");
         AssertPromptLikeWireShape(payload);
     }
 
-    [Fact(DisplayName = "InstructionPatchRenderer.RenderDetail: все тела patch в Content, wire StructuredContent=null")]
-    public void InstructionPatchDetail_wire_has_null_structured_content()
+    [Fact(DisplayName = "PromptPartPatchRenderer.RenderDetail: все тела patch в Content, wire StructuredContent=null")]
+    public void PromptPartPatchDetail_wire_has_null_structured_content()
     {
         var patch = NewPatch();
-        var view = new InstructionPatchView(
+        var view = new PromptPartPatchView(
             Patch: null!,
-            CurrentInstructionText: "Current instruction body.",
-            CurrentInstructionVersion: 5,
+            CurrentPartText: "Current prompt part body.",
+            CurrentPartVersion: 5,
             BaseVersionMatchesCurrent: false,
-            BaseInstructionText: "Base instruction body at v4.");
+            BasePartText: "Base prompt part body at v4.");
 
-        var payload = InstructionPatchRenderer.RenderDetail(patch, view);
+        var payload = PromptPartPatchRenderer.RenderDetail(patch, view);
 
         var text = ReadText(payload.Wire);
         text.Should().Contain("Patch body proposal.");
         text.Should().Contain("Applied body after edit.");
-        text.Should().Contain("Current instruction body.");
-        text.Should().Contain("Base instruction body at v4.");
+        text.Should().Contain("Current prompt part body.");
+        text.Should().Contain("Base prompt part body at v4.");
         text.Should().Contain("Why this matters.");
         AssertPromptLikeWireShape(payload);
     }
 
-    [Fact(DisplayName = "InstructionPatchRenderer.RenderProposed: patch_text/applied_text/rationale в Content, wire StructuredContent=null")]
-    public void InstructionPatchProposed_wire_has_null_structured_content()
+    [Fact(DisplayName = "PromptPartPatchRenderer.RenderProposed: patch_text/applied_text/rationale в Content, wire StructuredContent=null")]
+    public void PromptPartPatchProposed_wire_has_null_structured_content()
     {
-        var payload = InstructionPatchRenderer.RenderProposed(NewPatch());
+        var payload = PromptPartPatchRenderer.RenderProposed(NewPatch());
 
         ReadText(payload.Wire).Should().Contain("Patch body proposal.");
         AssertPromptLikeWireShape(payload);
     }
 
-    [Fact(DisplayName = "InstructionPatchRenderer.RenderList: тело каждого patch в Content, wire StructuredContent=null")]
-    public void InstructionPatchList_wire_has_null_structured_content()
+    [Fact(DisplayName = "PromptPartPatchRenderer.RenderList: тело каждого patch в Content, wire StructuredContent=null")]
+    public void PromptPartPatchList_wire_has_null_structured_content()
     {
-        var payload = InstructionPatchRenderer.RenderList([NewPatch(), NewPatch("Second body.")], nextCursor: "cursor-2");
+        var payload = PromptPartPatchRenderer.RenderList([NewPatch(), NewPatch("Second body.")], nextCursor: "cursor-2");
 
         var text = ReadText(payload.Wire);
         text.Should().Contain("Patch body proposal.");
@@ -188,17 +189,18 @@ public class McpToolWireShapeTests
         AssertPromptLikeWireShape(payload);
     }
 
-    private static McpInstructionPatchReadModel NewPatch(string body = "Patch body proposal.") => new(
+    private static McpPromptPartPatchReadModel NewPatch(string body = "Patch body proposal.") => new(
         Id: "patch-1",
-        TargetKind: "work",
+        TargetScope: "user",
+        TargetKey: "work",
         Status: "proposed",
         PatchText: body,
         AppliedText: "Applied body after edit.",
         EvidenceCardIds: ["ev-1", "ev-2"],
         Rationale: "Why this matters.",
         RejectComment: null,
-        BaseInstructionVersion: 4,
-        AppliedInstructionVersion: 5,
+        BaseVersion: 4,
+        AppliedVersion: 5,
         CreatedAt: DateTimeOffset.Parse("2026-05-22T10:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
         UpdatedAt: DateTimeOffset.Parse("2026-05-22T11:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
         DecidedAt: null);
