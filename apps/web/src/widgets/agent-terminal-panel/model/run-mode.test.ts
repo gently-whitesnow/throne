@@ -17,7 +17,7 @@ describe("defaultRunModeForStatus", () => {
     "interview",
     "work",
     "ready_for_review",
-    "needs_help",
+    "awaiting_operator",
     "done",
     "reject",
     "fridge"

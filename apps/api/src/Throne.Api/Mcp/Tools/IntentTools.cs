@@ -46,7 +46,7 @@ public sealed class IntentTools(
     // the SDK wraps them into a CallToolResult with IsError=true.
     public async Task<McpIntentListResult> ListIntents(
         [Description("Tag slug to filter by. The agent should pass the current repository slug here when scoping to one project; omit for cross-project listing.")] string? tag = null,
-        [Description("Statuses to include. Pass values like 'draft', 'interview', 'ready_for_work', 'work', 'ready_for_review', 'needs_help', 'done', 'reject', 'fridge'. Omit for all statuses. To list 'archive', pass ['done','reject']. 'needs_help' marks intents where the agent is blocked and asks the operator; 'fridge' is the user-only «later» bucket.")] IReadOnlyList<string>? status = null,
+        [Description("Statuses to include. Pass values like 'draft', 'interview', 'ready_for_work', 'work', 'ready_for_review', 'awaiting_operator', 'done', 'reject', 'fridge'. Omit for all statuses. To list 'archive', pass ['done','reject']. 'awaiting_operator' marks intents where the agent stopped mid-pass and waits for operator input; 'fridge' is the user-only «later» bucket.")] IReadOnlyList<string>? status = null,
         [Description("Case-insensitive substring of Intent.text. Omit to skip text filtering.")] string? query = null,
         [Description("Sort order: 'sort_key_asc' (default — user-defined order via fractional sort_key), 'updated_desc', 'created_desc', or 'created_asc'.")] string? sort = null,
         [Description("Page size, default 50, capped at 100.")] int? limit = null,

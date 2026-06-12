@@ -39,12 +39,12 @@ public class SetIntentStatusHandlerTests
         var (repo, handler) = NewHandler();
 
         await handler.HandleAsync(
-            new SetIntentStatusCommand("intent-1", IntentStatusNames.NeedsHelp, Reason: "нужен доступ к prod", IntentTrainingAuthor.Agent, "test"),
+            new SetIntentStatusCommand("intent-1", IntentStatusNames.AwaitingOperator, Reason: "нужен доступ к prod", IntentTrainingAuthor.Agent, "test"),
             CancellationToken.None);
 
         await repo.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
-            IntentStatusNames.NeedsHelp,
+            IntentStatusNames.AwaitingOperator,
             appendText: null,
             reason: "нужен доступ к prod",
             IntentTrainingAuthor.Agent,
