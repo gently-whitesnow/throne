@@ -25,3 +25,14 @@ public abstract record ReplacePromptPartTextOutcome
 
     public sealed record MatchAmbiguous(int MatchesCount, IReadOnlyList<int> MatchLines) : ReplacePromptPartTextOutcome;
 }
+
+public abstract record DeletePromptPartOutcome
+{
+    private DeletePromptPartOutcome() { }
+
+    public sealed record Deleted : DeletePromptPartOutcome;
+
+    public sealed record NotFound : DeletePromptPartOutcome;
+
+    public sealed record HasRoles : DeletePromptPartOutcome;
+}
