@@ -220,6 +220,42 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/cleanup-on-done:
+    post:
+      operationId: setIntentCleanupOnDone
+      tags: [Intents]
+      summary: Set the teardown-on-done gate.
+      description: >
+        Sets `cleanup_local_state_on_done` on the intent. When true (default), reaching `done`
+        wipes the workspace folder + agent trust entries and kills the agent terminal session;
+        when false both survive past `done`. Targeted metadata write — does not bump version nor
+        touch text/status. Exposed on both the intent page and the review merge control.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Intent identifier (24 hex chars, ObjectId-shaped).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetIntentCleanupOnDoneRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/tags:
     put:
       operationId: setIntentTags
@@ -962,6 +998,14 @@ components:
             Optional free-text reason for the transition. Recorded in the status-change
             log. Required when status=reject — in that case the value is also appended
             to the end of Intent.text as the rejection reason.
+    SetIntentCleanupOnDoneRequest:
+      type: object
+      required:
+        - cleanup_local_state_on_done
+      properties:
+        cleanup_local_state_on_done:
+          type: boolean
+          description: New value of the teardown-on-done gate.
     IntentListSort:
       type: string
       enum:
@@ -1126,6 +1170,7 @@ components:
         - updated_at
         - links
         - pinned_in
+        - cleanup_local_state_on_done
       properties:
         id:
           type: string
@@ -1166,6 +1211,13 @@ components:
           items:
             $ref: '#/components/schemas/PinnedContextDto'
           description: Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order.
+        cleanup_local_state_on_done:
+          type: boolean
+          description: >
+            Teardown-on-done gate (default true). When the intent reaches `done` and this is true,
+            its local state is destroyed — the workspace folder + agent trust entries are wiped and
+            the agent terminal session is killed. Cleared keeps both alive past `done`. Edited via
+            `setIntentCleanupOnDone`; surfaced here so the UI can render the current value.
     IntentEventDto:
       type: object
       required:

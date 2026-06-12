@@ -20,11 +20,9 @@ interface ReviewMergeControlProps {
   statusLoading: boolean;
   merging: boolean;
   mergeError: string | null;
-  onMerge: (
-    strategy: MergeStrategy,
-    deleteBranch: boolean,
-    cleanupAfterMerge: boolean
-  ) => void;
+  cleanup: boolean;
+  onCleanupChange: (next: boolean) => void;
+  onMerge: (strategy: MergeStrategy, deleteBranch: boolean) => void;
 }
 
 const MERGEABILITY_LABEL: Record<PullRequestMergeability, string> = {
@@ -73,11 +71,12 @@ export function ReviewMergeControl({
   statusLoading,
   merging,
   mergeError,
+  cleanup,
+  onCleanupChange,
   onMerge
 }: ReviewMergeControlProps) {
   const [strategy, setStrategy] = useState<MergeStrategy>("merge");
   const [deleteBranch, setDeleteBranch] = useState(true);
-  const [cleanupAfterMerge, setCleanupAfterMerge] = useState(true);
 
   if (statusLoading && status === null) {
     return (
@@ -165,14 +164,14 @@ export function ReviewMergeControl({
       >
         <input
           type="checkbox"
-          checked={cleanupAfterMerge}
+          checked={cleanup}
           disabled={merging}
           onChange={(e) => {
-            setCleanupAfterMerge(e.target.checked);
+            onCleanupChange(e.target.checked);
           }}
           className="h-3.5 w-3.5 accent-primary"
         />
-        Очистить состояние после мержа
+        Очистить состояние
       </label>
 
       <div className="flex flex-col items-end gap-0.5">
@@ -180,7 +179,7 @@ export function ReviewMergeControl({
           type="button"
           disabled={!canMerge}
           onClick={() => {
-            onMerge(strategy, deleteBranch, cleanupAfterMerge);
+            onMerge(strategy, deleteBranch);
           }}
           className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-content hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >

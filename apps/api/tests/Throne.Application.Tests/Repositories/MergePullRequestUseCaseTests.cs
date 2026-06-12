@@ -9,48 +9,45 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Tests.Repositories;
 
 /// <summary>
-/// Keep-session-on-merge (review workspace): clearing «автозавершение сессии после мержа»
-/// must flag the binding to skip auto-close <b>before</b> the provider merge fires, while the
-/// default path leaves the binding untouched so the current auto-close behaviour holds.
+/// Merge owns only the auto-close-on-merge decision (D2): <c>suppress_auto_close=true</c> must flag
+/// the binding to skip auto-close <b>before</b> the provider merge fires, while the default path
+/// leaves the binding untouched so the current auto-close behaviour holds. The teardown-on-done
+/// gate is no longer written from here — it lives on the intent endpoint.
 /// </summary>
 public class MergePullRequestUseCaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 7, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "cleanup_after_merge=false → флаг очистки false на интенте + биндинг suppress до мержа")]
-    public async Task Flags_keep_session_and_disables_cleanup_before_merge_when_off()
+    [Fact(DisplayName = "suppress_auto_close=true → биндинг suppress до мержа")]
+    public async Task Flags_suppress_auto_close_before_merge_when_set()
     {
         var fixture = new Fixture();
 
         var result = await fixture.UseCase.MergeAsync(
             fixture.Binding,
             new MergePullRequestRequest(MergeStrategy.Merge, DeleteBranch: false),
-            cleanupAfterMerge: false,
+            suppressAutoClose: true,
             CancellationToken.None);
 
         result.Merged.Should().BeTrue();
         fixture.Binding.State.SuppressMergeAutoClose.Should().BeTrue();
-        await fixture.Intents.Received(1).SetCleanupLocalStateOnDoneAsync(
-            fixture.Binding.IntentId, false, Now, Arg.Any<CancellationToken>());
         await fixture.Bindings.Received(1).SaveAsync(
             Arg.Is<IntentRepositoryBinding>(b => b.State.SuppressMergeAutoClose),
             Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "cleanup_after_merge=true (default) → флаг очистки true на интенте, биндинг не трогаем")]
-    public async Task Enables_cleanup_and_leaves_binding_untouched_when_on()
+    [Fact(DisplayName = "suppress_auto_close=false (default) → биндинг не трогаем")]
+    public async Task Leaves_binding_untouched_when_not_suppressed()
     {
         var fixture = new Fixture();
 
         await fixture.UseCase.MergeAsync(
             fixture.Binding,
             new MergePullRequestRequest(MergeStrategy.Squash, DeleteBranch: true),
-            cleanupAfterMerge: true,
+            suppressAutoClose: false,
             CancellationToken.None);
 
         fixture.Binding.State.SuppressMergeAutoClose.Should().BeFalse();
-        await fixture.Intents.Received(1).SetCleanupLocalStateOnDoneAsync(
-            fixture.Binding.IntentId, true, Now, Arg.Any<CancellationToken>());
         await fixture.Bindings.DidNotReceive().SaveAsync(
             Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
     }
@@ -73,15 +70,11 @@ public class MergePullRequestUseCaseTests
             var registry = Substitute.For<IGitProviderRegistry>();
             registry.GetByName(GitProviderNames.GitHub).Returns(provider);
 
-            Intents = Substitute.For<IIntentRepository>();
-
             UseCase = new MergePullRequestUseCase(
-                registry, Bindings, Intents, new PassthroughUnitOfWork(), new FixedClock(Now));
+                registry, Bindings, new PassthroughUnitOfWork(), new FixedClock(Now));
         }
 
         public IIntentRepositoryBindingRepository Bindings { get; }
-
-        public IIntentRepository Intents { get; }
 
         public MergePullRequestUseCase UseCase { get; }
 
