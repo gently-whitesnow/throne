@@ -76,7 +76,7 @@ export function ReviewMergeControl({
   onMerge
 }: ReviewMergeControlProps) {
   const [strategy, setStrategy] = useState<MergeStrategy>("merge");
-  const [deleteBranch, setDeleteBranch] = useState(false);
+  const [deleteBranch, setDeleteBranch] = useState(true);
   const [cleanupAfterMerge, setCleanupAfterMerge] = useState(true);
 
   if (statusLoading && status === null) {
