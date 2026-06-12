@@ -151,6 +151,26 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         return part;
     }
 
+    public async Task<DeletePromptPartOutcome> DeleteAsync(PromptPartId id, CancellationToken ct)
+    {
+        var session = sessions.Current
+            ?? throw new InvalidOperationException(
+                "MongoPromptPartRepository.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
+
+        var document = await _parts.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        if (document is null)
+        {
+            return new DeletePromptPartOutcome.NotFound();
+        }
+        if (document.ModeRoles.Count > 0)
+        {
+            return new DeletePromptPartOutcome.HasRoles();
+        }
+
+        await _parts.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct);
+        return new DeletePromptPartOutcome.Deleted();
+    }
+
     private static PromptPartDocument ToDocument(PromptPart part) => new()
     {
         Id = part.Id.Value,

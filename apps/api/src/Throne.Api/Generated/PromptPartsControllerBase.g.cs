@@ -51,6 +51,13 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PromptPartDto>> GetPromptPart([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
         /// <summary>
+        /// Hard-delete a user prompt part (only when it has no roles in any mode).
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-parts/{id}", Name = "deletePromptPart")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<DeletePromptPartResponse>> DeletePromptPart([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
+        /// <summary>
         /// Replace a unique substring of the part text (optimistic concurrency).
         /// </summary>
         /// <returns>OK</returns>
