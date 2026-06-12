@@ -218,9 +218,6 @@ public class RunPreflightOrchestratorTests
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tags = Substitute.For<ITagRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
-            ClaudeSettings = Substitute.For<IClaudeSessionSettingsWriter>();
-            ClaudeSettings.WriteAsync(IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns(SettingsPath);
             var workspace = new StubWorkspaceRoot(WorkspaceRoot);
             // BindingService is only invoked from the autobind path; in these tests
             // we never seed tag defaults so the call site is unreachable. The real
@@ -261,7 +258,7 @@ public class RunPreflightOrchestratorTests
                 Tmux,
                 workspace,
                 Substitute.For<IWorkspaceTrust>(),
-                ClaudeSettings,
+                [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             var settingsStore = Substitute.For<ITerminalSettingsStore>();
@@ -276,7 +273,6 @@ public class RunPreflightOrchestratorTests
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
-        public IClaudeSessionSettingsWriter ClaudeSettings { get; }
         public RunPreflightOrchestrator Orchestrator { get; }
 
         public Fixture Setup(
@@ -333,6 +329,14 @@ public class RunPreflightOrchestratorTests
     private sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider
     {
         public string ResolvedRoot { get; } = root;
+    }
+
+    private sealed class StubHookAdapter(string vendor, IReadOnlyList<string> args) : ISessionHookAdapter
+    {
+        public string Vendor => vendor;
+
+        public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
+            string intentId, string workspacePath, CancellationToken ct) => Task.FromResult(args);
     }
 
     private sealed class PassthroughUnitOfWork : IUnitOfWork
