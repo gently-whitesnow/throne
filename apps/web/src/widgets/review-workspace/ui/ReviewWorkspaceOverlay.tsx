@@ -3,6 +3,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useIntent } from "@/entities/intent";
 import {
   deletePullRequestComment,
   syncPullRequest,
@@ -10,6 +11,7 @@ import {
   usePullRequestComments,
   type PullRequestComment
 } from "@/entities/pull-request-comment";
+import { setIntentCleanupOnDone } from "@/features/set-intent-cleanup-on-done";
 import {
   changeRequestKindLabel,
   hasPullRequest,
@@ -98,6 +100,14 @@ export function ReviewWorkspaceOverlay({
     mergeNonce
   );
 
+  // Same «Очистить состояние» flag (D1) as the intent page, seeded from the intent so the
+  // checkbox reflects its current value; merge writes it via the intent endpoint and, when
+  // cleared, additionally suppresses auto-close (D2) so the intent stays open after the merge.
+  const intentQuery = useIntent(intentId);
+  const [cleanupOverride, setCleanupOverride] = useState<boolean | null>(null);
+  const cleanup =
+    cleanupOverride ?? intentQuery.data?.cleanup_local_state_on_done ?? true;
+
   const handleSync = useCallback(() => {
     setSyncing(true);
     void (async () => {
@@ -115,19 +125,16 @@ export function ReviewWorkspaceOverlay({
   }, [intentId, binding.id, queryClient, refresh]);
 
   const handleMerge = useCallback(
-    (
-      strategy: MergeStrategy,
-      deleteBranch: boolean,
-      cleanupAfterMerge: boolean
-    ) => {
+    (strategy: MergeStrategy, deleteBranch: boolean) => {
       setMerging(true);
       setMergeError(null);
       void (async () => {
         try {
+          await setIntentCleanupOnDone(intentId, cleanup);
           await mergePullRequest(intentId, binding.id, {
             strategy,
             delete_branch: deleteBranch,
-            cleanup_after_merge: cleanupAfterMerge
+            suppress_auto_close: !cleanup
           });
           handleSync();
         } catch (err) {
@@ -137,7 +144,7 @@ export function ReviewWorkspaceOverlay({
         }
       })();
     },
-    [intentId, binding.id, handleSync]
+    [intentId, binding.id, cleanup, handleSync]
   );
 
   // Delete + resolve/reopen act at the provider; on success we refresh the feed
@@ -220,6 +227,8 @@ export function ReviewWorkspaceOverlay({
               statusLoading={mergeStatus.loading}
               merging={merging}
               mergeError={mergeError}
+              cleanup={cleanup}
+              onCleanupChange={setCleanupOverride}
               onMerge={handleMerge}
             />
           ) : undefined

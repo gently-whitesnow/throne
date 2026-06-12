@@ -39,6 +39,20 @@ public class TerminalKillOnIntentDoneHandlerTests
         });
     }
 
+    [Fact(DisplayName = "done c cleanup_local_state_on_done=false: сессия не трогается (единый teardown)")]
+    public async Task Does_not_kill_when_gate_off()
+    {
+        var fixture = new Fixture();
+
+        await fixture.Handler.HandleAsync(
+            new IntentStatusChanged(Intent.Restore(
+                new IntentId(IntentIdValue), "x", IntentStatusNames.Done, 1, [], Now, Now,
+                cleanupLocalStateOnDone: false)),
+            CancellationToken.None);
+
+        await fixture.Tmux.DidNotReceive().KillSessionAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "IntentStatusChanged → reject: сессия не трогается")]
     public async Task Does_not_kill_on_reject()
     {

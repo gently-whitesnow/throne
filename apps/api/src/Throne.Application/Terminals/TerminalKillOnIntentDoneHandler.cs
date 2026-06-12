@@ -10,6 +10,11 @@ namespace Throne.Application.Terminals;
 /// PR-merge auto-close and the operator's manual «закрыть как готово» — both land on the
 /// same <see cref="IntentStatusChanged"/> event. <c>reject</c>/<c>fridge</c> are left alone.
 ///
+/// Gated by <see cref="IntentState.CleanupLocalStateOnDone"/> (default true) so terminal-stop is
+/// one half of a single teardown-on-done decision, the sibling of the workspace/trust wipe in
+/// <c>IntentLocalStateCleanupOnDoneHandler</c>: clearing the gate keeps both the session and the
+/// local state alive past <c>done</c>, regardless of which path reached it.
+///
 /// Best-effort and idempotent: a missing session is a silent no-op, and a tmux failure is
 /// swallowed so it never aborts the post-commit event fan-out. tmux remains the single source
 /// of truth for liveness — a missed kill self-heals on the next <c>/intents/contexts</c> refresh.
@@ -32,6 +37,12 @@ public sealed partial class TerminalKillOnIntentDoneHandler(
         }
 
         var intentId = changed.Intent.Id.Value;
+        if (!changed.Intent.State.CleanupLocalStateOnDone)
+        {
+            LogSkipDisabled(logger, intentId);
+            return;
+        }
+
         try
         {
             var manager = tmux.Value;
@@ -78,4 +89,9 @@ public sealed partial class TerminalKillOnIntentDoneHandler(
     [LoggerMessage(EventId = 4, Level = LogLevel.Information,
         Message = "TerminalKillOnIntentDone: invoked for intent {IntentId} (status={Status}, pre_alive={PreAlive}).")]
     private static partial void LogInvoked(ILogger logger, string intentId, string status, bool preAlive);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Information,
+        Message = "TerminalKillOnIntentDone: intent {IntentId} terminal kill skipped — gate off "
+            + "(cleanup_local_state_on_done=false).")]
+    private static partial void LogSkipDisabled(ILogger logger, string intentId);
 }

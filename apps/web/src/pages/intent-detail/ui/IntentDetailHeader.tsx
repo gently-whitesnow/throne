@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { OpenIntentInVscodeButton } from "@/features/open-in-vscode";
+import { CleanupOnDoneToggle } from "@/features/set-intent-cleanup-on-done";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { formatRelativeTime } from "@/shared/lib";
 import { Button } from "@/shared/ui";
@@ -113,6 +114,7 @@ export function IntentDetailHeader({
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-base-content/60">
           <SetIntentStatusForm intent={intent} onSaved={onStatusSaved} />
+          <CleanupOnDoneToggle intent={intent} onSaved={onStatusSaved} />
           <span className="tabular-nums font-semibold text-base-content/70">
             v{intent.current_version}
           </span>

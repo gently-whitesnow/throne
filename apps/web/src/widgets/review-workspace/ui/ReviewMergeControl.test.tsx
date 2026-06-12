@@ -25,6 +25,8 @@ describe("ReviewMergeControl", () => {
         statusLoading={false}
         merging={false}
         mergeError={null}
+        cleanup={true}
+        onCleanupChange={vi.fn()}
         onMerge={onMerge}
       />
     );
@@ -38,8 +40,7 @@ describe("ReviewMergeControl", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
-    // «Удалить ветку» и «Завершить сессию после мержа» включены по умолчанию → true.
-    expect(onMerge).toHaveBeenCalledWith("squash", true, true);
+    expect(onMerge).toHaveBeenCalledWith("squash", true);
   });
 
   it("снятие «Удалить ветку» передаёт false", () => {
@@ -51,6 +52,8 @@ describe("ReviewMergeControl", () => {
         statusLoading={false}
         merging={false}
         mergeError={null}
+        cleanup={true}
+        onCleanupChange={vi.fn()}
         onMerge={onMerge}
       />
     );
@@ -58,11 +61,11 @@ describe("ReviewMergeControl", () => {
     fireEvent.click(screen.getByLabelText("Удалить ветку"));
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
-    expect(onMerge).toHaveBeenCalledWith("merge", false, true);
+    expect(onMerge).toHaveBeenCalledWith("merge", false);
   });
 
-  it("очистка состояния включена по умолчанию; снятие передаёт false", () => {
-    const onMerge = vi.fn();
+  it("«Очистить состояние» отражает проп и сообщает изменение наверх", () => {
+    const onCleanupChange = vi.fn();
     render(
       <ReviewMergeControl
         kind="PR"
@@ -70,19 +73,19 @@ describe("ReviewMergeControl", () => {
         statusLoading={false}
         merging={false}
         mergeError={null}
-        onMerge={onMerge}
+        cleanup={true}
+        onCleanupChange={onCleanupChange}
+        onMerge={vi.fn()}
       />
     );
 
-    const cleanup = screen.getByLabelText<HTMLInputElement>(
-      "Очистить состояние после мержа"
-    );
-    expect(cleanup.checked).toBe(true);
+    const cleanupBox =
+      screen.getByLabelText<HTMLInputElement>("Очистить состояние");
+    expect(cleanupBox.checked).toBe(true);
 
-    fireEvent.click(cleanup);
-    fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
+    fireEvent.click(cleanupBox);
 
-    expect(onMerge).toHaveBeenCalledWith("merge", true, false);
+    expect(onCleanupChange).toHaveBeenCalledWith(false);
   });
 
   it("блокирует мерж и показывает ссылку на провайдера, когда мерж недоступен", () => {
@@ -98,6 +101,8 @@ describe("ReviewMergeControl", () => {
         statusLoading={false}
         merging={false}
         mergeError={null}
+        cleanup={true}
+        onCleanupChange={vi.fn()}
         onMerge={onMerge}
       />
     );
@@ -118,6 +123,8 @@ describe("ReviewMergeControl", () => {
         statusLoading={false}
         merging={false}
         mergeError="Provider refused: branch protection"
+        cleanup={true}
+        onCleanupChange={vi.fn()}
         onMerge={vi.fn()}
       />
     );
