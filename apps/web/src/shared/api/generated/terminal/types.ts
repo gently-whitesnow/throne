@@ -117,6 +117,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/terminal/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve the embedded prompt composition before spawn (ADR-0035).
+         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`free` are supported — `dream` returns 422.
+         */
+        post: operations["previewIntentTerminal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -170,6 +190,42 @@ export interface components {
             bindings: components["schemas"]["RunIntentBindingStatusDto"][];
             /** @description IDs of bindings whose `clone_status` is `failed` or `broken`. Present when `session_state=blocked`; the UI uses them to render an actionable error per row. */
             blocking_bindings?: string[];
+        };
+        PreviewIntentTerminalRequest: {
+            mode: components["schemas"]["TerminalRunMode"];
+            /** @description Explicit selection of optional part ids. Omitted → the mode defaults (every `default_on` optional part). Mandatory parts are always included regardless. */
+            selected_part_ids?: string[] | null;
+        };
+        PromptPartPreviewDto: {
+            /** @description Part id. For mandatory parts projected from the manifest — synthetic `system:<kind>` or the user instruction id. For optional parts — the Mongo id. */
+            part_id: string;
+            /** @description Part key (instruction kind for projected mandatory parts). */
+            key: string;
+            /** @description system | user. */
+            scope: string;
+            /** @description mandatory | default_on | default_off. */
+            role: string;
+            /** Format: int32 */
+            order: number;
+            /** @description True for operator-authored parts and user instructions; false for system entries. */
+            editable: boolean;
+            /** @description False when a projected user instruction has no Mongo record yet. */
+            present: boolean;
+            /** @description Whether the part is included in the assembled system_prompt. */
+            selected: boolean;
+            text: string;
+        };
+        IntentTerminalPreviewResponse: {
+            intent_id: string;
+            mode: components["schemas"]["TerminalRunMode"];
+            /** @description Every part available in the mode (mandatory + optional), ordered as assembled. */
+            parts: components["schemas"]["PromptPartPreviewDto"][];
+            /** @description Part ids included in system_prompt (mandatory + selected optional). */
+            selected_part_ids: string[];
+            /** @description Assembled rules block destined for `--append-system-prompt`. */
+            system_prompt: string;
+            /** @description Intent body draft for the task zone (first user message). */
+            user_prompt: string;
         };
         ProblemDetails: {
             type: string;
@@ -389,6 +445,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    previewIntentTerminal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewIntentTerminalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentTerminalPreviewResponse"];
+                };
+            };
+            /** @description Intent not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Mode not supported for embedded preview (e.g. dream). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

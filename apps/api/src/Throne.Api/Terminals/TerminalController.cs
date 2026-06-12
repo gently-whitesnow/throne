@@ -12,8 +12,28 @@ public sealed class TerminalController(
     TerminalSessionStatusService statusService,
     TerminalSessionKillService killService,
     TerminalHookStatusHandler hookStatus,
+    IntentTerminalPreviewHandler previewHandler,
     ILogger<TerminalController> logger) : TerminalControllerBase
 {
+    public override async Task<ActionResult<IntentTerminalPreviewResponse>> PreviewIntentTerminal(
+        string intent_id,
+        PreviewIntentTerminalRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        try
+        {
+            var mode = TerminalRunResponseMapper.ToDomainMode(body.Mode);
+            var composition = await previewHandler.HandleAsync(
+                new IntentTerminalPreviewQuery(intent_id, mode, body.Selected_part_ids?.ToArray()),
+                HttpContext.RequestAborted);
+            return Ok(TerminalPreviewMapper.ToDto(intent_id, body.Mode, composition));
+        }
+        catch (ApiException ex)
+        {
+            return TerminalErrorMapper.Problem(ex);
+        }
+    }
+
     public override Task<ActionResult<RunIntentTerminalResponse>> RunIntentTerminal(
         string intent_id,
         RunIntentTerminalRequest body) =>

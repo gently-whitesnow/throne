@@ -15,6 +15,7 @@
     <Project Path="src/Throne.Settings.Contracts/Throne.Settings.Contracts.csproj" />
     <Project Path="src/Throne.Capabilities.Contracts/Throne.Capabilities.Contracts.csproj" />
     <Project Path="src/Throne.Terminal.Contracts/Throne.Terminal.Contracts.csproj" />
+    <Project Path="src/Throne.PromptParts.Contracts/Throne.PromptParts.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Throne.Api.Tests/Throne.Api.Tests.csproj" />
