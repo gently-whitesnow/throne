@@ -35,7 +35,7 @@ export const intentStatusOrder: IntentStatus[] = [
   "ready_for_work",
   "work",
   "ready_for_review",
-  "needs_help",
+  "awaiting_operator",
   "done",
   "reject",
   "fridge"
@@ -69,8 +69,8 @@ export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
     ink: "#A87900",
     surface: "#FFF3D6"
   },
-  needs_help: {
-    label: "Нужна помощь",
+  awaiting_operator: {
+    label: "Жду ответа",
     ink: "#B14E1A",
     surface: "#FDE6D6"
   },
@@ -93,12 +93,12 @@ export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
 
 /**
  * Statuses that signal the operator is expected to act:
- * agent finished the pass (`ready_for_review`) or got stuck (`needs_help`).
+ * agent finished the pass (`ready_for_review`) or stopped mid-pass (`awaiting_operator`).
  * Drives the cross-context Inbox widget in the sidebar.
  */
 export const INBOX_STATUSES: ReadonlySet<IntentStatus> = new Set([
   "ready_for_review",
-  "needs_help"
+  "awaiting_operator"
 ]);
 
 export const ARCHIVE_STATUSES: ReadonlySet<IntentStatus> = new Set([

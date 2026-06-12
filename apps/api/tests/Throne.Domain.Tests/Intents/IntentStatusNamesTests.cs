@@ -7,11 +7,11 @@ public class IntentStatusNamesTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "IsKnown пропускает needs_help")]
-    public void IsKnown_accepts_needs_help()
+    [Fact(DisplayName = "IsKnown пропускает awaiting_operator")]
+    public void IsKnown_accepts_awaiting_operator()
     {
-        IntentStatusNames.IsKnown(IntentStatusNames.NeedsHelp).Should().BeTrue();
-        IntentStatusNames.All.Should().Contain(IntentStatusNames.NeedsHelp);
+        IntentStatusNames.IsKnown(IntentStatusNames.AwaitingOperator).Should().BeTrue();
+        IntentStatusNames.All.Should().Contain(IntentStatusNames.AwaitingOperator);
     }
 
     [Fact(DisplayName = "IsKnown пропускает fridge")]
@@ -21,13 +21,13 @@ public class IntentStatusNamesTests
         IntentStatusNames.All.Should().Contain(IntentStatusNames.Fridge);
     }
 
-    [Fact(DisplayName = "SetStatus принимает needs_help")]
-    public void SetStatus_accepts_needs_help()
+    [Fact(DisplayName = "SetStatus принимает awaiting_operator")]
+    public void SetStatus_accepts_awaiting_operator()
     {
         var intent = Intent.Create(IntentId.New(), "hello", tagIds: null, Now);
 
-        intent.SetStatus(IntentStatusNames.NeedsHelp, Now.AddMinutes(5)).Should().BeTrue();
-        intent.State.Status.Should().Be(IntentStatusNames.NeedsHelp);
+        intent.SetStatus(IntentStatusNames.AwaitingOperator, Now.AddMinutes(5)).Should().BeTrue();
+        intent.State.Status.Should().Be(IntentStatusNames.AwaitingOperator);
     }
 
     [Fact(DisplayName = "SetStatus принимает fridge")]
