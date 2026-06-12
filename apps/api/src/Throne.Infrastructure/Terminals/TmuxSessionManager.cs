@@ -21,6 +21,13 @@ internal sealed class TmuxSessionManager(
         var sessionName = TmuxSessionName.For(request?.IntentId ?? string.Empty);
         var args = TmuxSpawnArgsBuilder.Build(sessionName, request!);
 
+        // Fail clearly before tmux returns its opaque "command too long" / exit 1.
+        if (TmuxCommandLimit.Exceeds(args, out var limitDetail))
+        {
+            TerminalsLog.TmuxSpawnFailed(log, sessionName, -1, limitDetail);
+            return new TmuxSpawnResult(sessionName, false, limitDetail);
+        }
+
         var outcome = await tmux.RunAsync(args, ct);
         var detail = TmuxOutcomeDetail.Extract(outcome);
 

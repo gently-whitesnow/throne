@@ -28,6 +28,7 @@ public class IntentLocalStateCleanupOnDoneHandlerTests
         await fixture.Handler.HandleAsync(StatusEvent(IntentStatusNames.Done, cleanup: true), CancellationToken.None);
 
         await fixture.Trust.Received(1).RemoveTrustedUnderAsync(IntentDir, Arg.Any<CancellationToken>());
+        await fixture.SpawnAdapter.Received(1).CleanupAsync(IntentIdValue, Arg.Any<CancellationToken>());
         await fixture.Directories.Received(1).RemoveAsync(IntentDir, Arg.Any<CancellationToken>());
     }
 
@@ -95,13 +96,16 @@ public class IntentLocalStateCleanupOnDoneHandlerTests
             Directories = Substitute.For<IWorkspaceDirectoryRemover>();
             var root = Substitute.For<IWorkspaceRootProvider>();
             root.ResolvedRoot.Returns(Root);
+            SpawnAdapter = Substitute.For<ISessionHookAdapter>();
+            SpawnAdapter.Vendor.Returns(TerminalAgentCatalog.VendorCodex);
             Handler = new IntentLocalStateCleanupOnDoneHandler(
-                Trust, Directories, root,
+                Trust, Directories, root, [SpawnAdapter],
                 NullLogger<IntentLocalStateCleanupOnDoneHandler>.Instance);
         }
 
         public IWorkspaceTrust Trust { get; }
         public IWorkspaceDirectoryRemover Directories { get; }
+        public ISessionHookAdapter SpawnAdapter { get; }
         public IntentLocalStateCleanupOnDoneHandler Handler { get; }
     }
 }

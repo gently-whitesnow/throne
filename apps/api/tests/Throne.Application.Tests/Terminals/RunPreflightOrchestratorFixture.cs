@@ -189,7 +189,10 @@ public partial class RunPreflightOrchestratorTests
         public string Vendor => vendor;
 
         public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-            string intentId, string workspacePath, string mode, CancellationToken ct) => Task.FromResult(args);
+            string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct) =>
+            Task.FromResult(args);
+
+        public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class PassthroughUnitOfWork : IUnitOfWork

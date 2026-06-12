@@ -6,12 +6,16 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Claude flavour of <see cref="ISessionHookAdapter"/>: writes a per-session settings file in the
-/// intent workspace root and points the CLI at it with <c>--settings &lt;file&gt;</c>. The file lives
-/// beside the clone (never inside it), so the repo stays free of runtime state.
+/// intent workspace root and points the CLI at it with <c>--settings &lt;file&gt;</c>. The assembled
+/// rules block is written beside it and referenced with <c>--append-system-prompt-file</c> (a
+/// native Claude flag) rather than inlined — a multi-KB <c>--append-system-prompt</c> token would
+/// blow past tmux's spawn-argv imsg limit. Both files live beside the clone (never inside it), so
+/// the repo stays free of runtime state and the workspace teardown on intent-done reaps them.
 /// </summary>
 public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
 {
     private const string SettingsFileName = "throne-session.settings.json";
+    private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -22,7 +26,7 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     public string Vendor => TerminalAgentCatalog.VendorClaude;
 
     public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, string mode, CancellationToken ct)
+        string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
@@ -36,8 +40,22 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
 
-        return ["--settings", settingsPath];
+        var args = new List<string> { "--settings", settingsPath };
+
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            var systemPromptPath = Path.Combine(workspacePath, SystemPromptFileName);
+            await File.WriteAllTextAsync(systemPromptPath, systemPrompt, ct);
+            args.Add("--append-system-prompt-file");
+            args.Add(systemPromptPath);
+        }
+
+        return args;
     }
+
+    // Claude's per-session files (settings + system prompt) live inside the intent workspace, so the
+    // workspace-folder removal on intent-done reaps them — no out-of-workspace state to clean here.
+    public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
 
     private object BuildSettings(string intentId, string mode) =>
         new
