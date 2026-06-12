@@ -17,22 +17,29 @@ namespace Throne.Infrastructure.Terminals;
 /// </summary>
 public sealed class CodexSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
 {
-    private const string StopEvent = "Stop";
     private const string BypassHookTrustFlag = "--dangerously-bypass-hook-trust";
 
     public string Vendor => TerminalAgentCatalog.VendorCodex;
 
     public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, CancellationToken ct)
+        string intentId, string workspacePath, string mode, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
-        var command = TerminalHookCallback.CurlCommand(options.ApiBaseUrl, intentId, StopEvent);
-        var hooksToml =
-            $"hooks.{StopEvent}=[{{hooks=[{{type=\"command\",command={TomlBasicString(command)},timeout=10}}]}}]";
+        // One `-c hooks.<event>=...` override per event: each targets a distinct leaf under `hooks`,
+        // so Codex merges them rather than the second clobbering the first.
+        var args = new List<string>();
+        foreach (var hookEvent in TerminalHookEvents.All)
+        {
+            var command = TerminalHookCallback.CurlCommand(options.ApiBaseUrl, intentId, hookEvent, mode);
+            args.Add("-c");
+            args.Add(
+                $"hooks.{hookEvent}=[{{hooks=[{{type=\"command\",command={TomlBasicString(command)},timeout=10}}]}}]");
+        }
 
-        IReadOnlyList<string> args = ["-c", hooksToml, BypassHookTrustFlag];
-        return Task.FromResult(args);
+        args.Add(BypassHookTrustFlag);
+        return Task.FromResult<IReadOnlyList<string>>(args);
     }
 
     private static string TomlBasicString(string value)

@@ -336,7 +336,7 @@ public class RunPreflightOrchestratorTests
         public string Vendor => vendor;
 
         public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-            string intentId, string workspacePath, CancellationToken ct) => Task.FromResult(args);
+            string intentId, string workspacePath, string mode, CancellationToken ct) => Task.FromResult(args);
     }
 
     private sealed class PassthroughUnitOfWork : IUnitOfWork

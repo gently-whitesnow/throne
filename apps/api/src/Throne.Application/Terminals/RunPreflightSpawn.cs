@@ -37,7 +37,7 @@ public sealed class RunPreflightSpawn(
         // Free mode boots the agent bare and pre-types the prompt instead of passing it as argv —
         // an argv prompt auto-runs, but free mode hands an editable starter line to the operator.
         var hookArgs = _hookAdapters.TryGetValue(launch.Vendor, out var adapter)
-            ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, ct)
+            ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, ct)
             : [];
         var invocation = AgentSpawnCommand.Build(launch, prompt, isFree, hookArgs);
         var spawn = await tmux.SpawnAsync(
