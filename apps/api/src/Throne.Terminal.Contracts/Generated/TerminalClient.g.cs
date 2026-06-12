@@ -311,6 +311,10 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"Stop")]
         Stop = 0,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"UserPromptSubmit")]
+        [System.Runtime.Serialization.EnumMember(Value = @"UserPromptSubmit")]
+        UserPromptSubmit = 1,
+
     }
 
 

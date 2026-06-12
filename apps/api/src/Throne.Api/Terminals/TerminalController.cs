@@ -11,6 +11,7 @@ public sealed class TerminalController(
     RunPreflightOrchestrator orchestrator,
     TerminalSessionStatusService statusService,
     TerminalSessionKillService killService,
+    TerminalHookStatusHandler hookStatus,
     ILogger<TerminalController> logger) : TerminalControllerBase
 {
     public override Task<ActionResult<RunIntentTerminalResponse>> RunIntentTerminal(
@@ -49,13 +50,33 @@ public sealed class TerminalController(
         }
     }
 
-    public override Task<IActionResult> ReceiveIntentTerminalHook(
+    public override async Task<IActionResult> ReceiveIntentTerminalHook(
         string intent_id,
-        Event @event)
+        Event @event,
+        TerminalRunMode? mode)
     {
         TerminalEndpointLog.HookReceived(logger, intent_id, @event);
-        return Task.FromResult<IActionResult>(Ok());
+        var domainMode = mode is null ? null : TerminalRunResponseMapper.ToDomainMode(mode.Value);
+        try
+        {
+            await hookStatus.HandleAsync(intent_id, ToHookEvent(@event), domainMode, HttpContext.RequestAborted);
+        }
+        catch (ApiException ex)
+        {
+            // Fire-and-forget callback: a status-derivation failure must not surface to the agent's
+            // hook (it would noise up the session), so we log and still ack 200.
+            TerminalEndpointLog.HookStatusFailed(logger, intent_id, @event, ex);
+        }
+
+        return Ok();
     }
+
+    private static string ToHookEvent(Event @event) => @event switch
+    {
+        Event.Stop => TerminalHookEvents.Stop,
+        Event.UserPromptSubmit => TerminalHookEvents.UserPromptSubmit,
+        _ => throw new ArgumentOutOfRangeException(nameof(@event), $"Unknown terminal hook event '{@event}'."),
+    };
 
     private async Task<ActionResult<RunIntentTerminalResponse>> ExecuteAsync(
         string intentId,
