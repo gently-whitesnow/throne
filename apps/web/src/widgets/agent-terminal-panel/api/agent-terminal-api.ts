@@ -1,27 +1,46 @@
 import { httpGet, httpPost, terminalEndpoints } from "@/shared/api";
 
 import type {
+  IntentTerminalPreviewResponse,
   RunIntentTerminalResponse,
-  TerminalLaunchArgs
+  TerminalRunMode,
+  TerminalRunPayload
 } from "../model/types";
 
-function toRequestBody(launch: TerminalLaunchArgs) {
+function toRequestBody(payload: TerminalRunPayload) {
   return {
-    mode: launch.mode,
-    vendor: launch.vendor,
-    model: launch.model,
-    effort: launch.effort
+    mode: payload.launch.mode,
+    vendor: payload.launch.vendor,
+    model: payload.launch.model,
+    effort: payload.launch.effort,
+    selected_part_ids: payload.selectedPartIds,
+    system_prompt: payload.systemPrompt,
+    user_prompt: payload.userPrompt,
+    intent_text_update: payload.intentTextUpdate
   };
+}
+
+export function previewIntentTerminal(
+  intentId: string,
+  mode: TerminalRunMode,
+  selectedPartIds: string[] | null,
+  signal?: AbortSignal
+): Promise<IntentTerminalPreviewResponse> {
+  return httpPost<IntentTerminalPreviewResponse>(
+    terminalEndpoints.previewIntentTerminal(intentId),
+    { mode, selected_part_ids: selectedPartIds },
+    signal
+  );
 }
 
 export function runIntentTerminal(
   intentId: string,
-  launch: TerminalLaunchArgs,
+  payload: TerminalRunPayload,
   signal?: AbortSignal
 ): Promise<RunIntentTerminalResponse> {
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.runIntentTerminal(intentId),
-    toRequestBody(launch),
+    toRequestBody(payload),
     signal
   );
 }
@@ -38,12 +57,12 @@ export function getIntentTerminalSession(
 
 export function restartIntentTerminal(
   intentId: string,
-  launch: TerminalLaunchArgs,
+  payload: TerminalRunPayload,
   signal?: AbortSignal
 ): Promise<RunIntentTerminalResponse> {
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.restartIntentTerminal(intentId),
-    toRequestBody(launch),
+    toRequestBody(payload),
     signal
   );
 }

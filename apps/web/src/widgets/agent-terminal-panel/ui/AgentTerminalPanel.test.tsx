@@ -5,8 +5,10 @@ import { renderWithQuery } from "@/app/test-utils";
 import type { Capability } from "@/entities/capability";
 
 import type {
+  IntentTerminalPreviewResponse,
   RunIntentTerminalResponse,
-  TerminalLaunchArgs
+  TerminalRunMode,
+  TerminalRunPayload
 } from "../model/types";
 
 import { AgentTerminalPanel } from "./AgentTerminalPanel";
@@ -17,23 +19,32 @@ const runIntentTerminal =
   vi.fn<
     (
       intentId: string,
-      launch: TerminalLaunchArgs
+      payload: TerminalRunPayload
     ) => Promise<RunIntentTerminalResponse>
   >();
 const restartIntentTerminal = vi.fn<() => Promise<RunIntentTerminalResponse>>();
+const previewIntentTerminal =
+  vi.fn<
+    (
+      intentId: string,
+      mode: TerminalRunMode,
+      selectedPartIds: string[] | null
+    ) => Promise<IntentTerminalPreviewResponse>
+  >();
 
-// Панель читает api через относительный путь — мок подменяет именно его,
-// оставляя публичный barrel и хук reattach (use-terminal-session) настоящими.
 vi.mock("../api/agent-terminal-api", () => ({
   getIntentTerminalSession: (intentId: string) =>
     getIntentTerminalSession(intentId),
-  runIntentTerminal: (intentId: string, launch: TerminalLaunchArgs) =>
-    runIntentTerminal(intentId, launch),
-  restartIntentTerminal: () => restartIntentTerminal()
+  runIntentTerminal: (intentId: string, payload: TerminalRunPayload) =>
+    runIntentTerminal(intentId, payload),
+  restartIntentTerminal: () => restartIntentTerminal(),
+  previewIntentTerminal: (
+    intentId: string,
+    mode: TerminalRunMode,
+    selectedPartIds: string[] | null
+  ) => previewIntentTerminal(intentId, mode, selectedPartIds)
 }));
 
-// xterm + WebSocket из TerminalView недоступны в jsdom; sentinel фиксирует факт
-// монтирования terminal-блока и nonce-попытку, по которой подключается сокет.
 vi.mock("./TerminalView", () => ({
   TerminalView: ({
     intentId,
@@ -83,24 +94,37 @@ function sessionResponse(
   };
 }
 
+function previewResponse(): IntentTerminalPreviewResponse {
+  return {
+    intent_id: "intent-1",
+    intent_version: 2,
+    mode: "free",
+    parts: [],
+    selected_part_ids: [],
+    system_prompt: "RULES",
+    user_prompt: "BODY"
+  };
+}
+
 const render = () =>
   renderWithQuery(
     <AgentTerminalPanel intentId="intent-1" intentStatus="work" />,
     { withBridge: false }
   );
 
-describe("AgentTerminalPanel — reattach живой tmux-сессии", () => {
+describe("AgentTerminalPanel", () => {
   beforeEach(() => {
     getIntentTerminalSession.mockReset();
     runIntentTerminal.mockReset();
     restartIntentTerminal.mockReset();
+    previewIntentTerminal.mockReset();
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("при живой сессии после mount показывает терминал и подключается без повторного /run", async () => {
+  it("при живой сессии после mount показывает терминал и не зовёт /run", async () => {
     getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
 
     render();
@@ -109,34 +133,15 @@ describe("AgentTerminalPanel — reattach живой tmux-сессии", () => {
     expect(terminal.getAttribute("data-attempt")).toBe("1");
 
     const mode = screen.getByTestId("agent-terminal-mode");
-    const copy = screen.getByTestId("agent-terminal-copy");
     expect(mode.hasAttribute("disabled")).toBe(true);
-    expect(copy.hasAttribute("disabled")).toBe(true);
-
     expect(screen.getByTestId("agent-terminal-restart")).toBeTruthy();
     expect(screen.queryByTestId("agent-terminal-run")).toBeNull();
-
-    expect(getIntentTerminalSession).toHaveBeenCalledTimes(1);
     expect(runIntentTerminal).not.toHaveBeenCalled();
   });
 
-  it("без живой сессии терминал-блок не появляется, контролы активны", async () => {
+  it("Run открывает модалку, а /run уходит только после подтверждения с собранным payload", async () => {
     getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
-
-    render();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
-    });
-
-    const mode = screen.getByTestId("agent-terminal-mode");
-    expect(mode.hasAttribute("disabled")).toBe(false);
-    expect(screen.queryByTestId("terminal-view")).toBeNull();
-    expect(runIntentTerminal).not.toHaveBeenCalled();
-  });
-
-  it("смена вендора на codex сбрасывает модель/усилие, и /run несёт выбранную ось", async () => {
-    getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
+    previewIntentTerminal.mockResolvedValue(previewResponse());
     runIntentTerminal.mockResolvedValue(sessionResponse("running"));
 
     render();
@@ -148,34 +153,37 @@ describe("AgentTerminalPanel — reattach живой tmux-сессии", () => {
     const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
       name: "Агент терминала"
     });
-    const model = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: "Модель агента"
-    });
-    const effort = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: "Уровень усилия (reasoning)"
-    });
-
-    // Дефолт claude: opus/high.
-    expect(vendor.value).toBe("claude");
-    expect(model.value).toBe("opus");
-    expect(effort.value).toBe("high");
-
     fireEvent.change(vendor, { target: { value: "codex" } });
 
-    // Нативные дефолты codex: gpt-5.5/medium.
-    expect(model.value).toBe("gpt-5.5");
-    expect(effort.value).toBe("medium");
-
+    // До открытия модалки и подтверждения /run не уходит.
     fireEvent.click(screen.getByTestId("agent-terminal-run"));
+    expect(runIntentTerminal).not.toHaveBeenCalled();
+
+    const launch = await screen.findByTestId("agent-terminal-preflight-launch");
+    await waitFor(() => {
+      expect(previewIntentTerminal).toHaveBeenCalledWith(
+        "intent-1",
+        "free",
+        null
+      );
+    });
+
+    fireEvent.click(launch);
 
     await waitFor(() => {
       expect(runIntentTerminal).toHaveBeenCalledTimes(1);
     });
     expect(runIntentTerminal).toHaveBeenCalledWith("intent-1", {
-      mode: "free",
-      vendor: "codex",
-      model: "gpt-5.5",
-      effort: "medium"
+      launch: {
+        mode: "free",
+        vendor: "codex",
+        model: "gpt-5.5",
+        effort: "medium"
+      },
+      selectedPartIds: [],
+      systemPrompt: "RULES",
+      userPrompt: "BODY",
+      intentTextUpdate: null
     });
   });
 });

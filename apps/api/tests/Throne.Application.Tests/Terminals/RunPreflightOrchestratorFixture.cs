@@ -2,10 +2,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Events;
 using Throne.Application.Git;
+using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
+using Throne.Application.PromptParts;
 using Throne.Application.Repositories;
 using Throne.Application.Terminals;
+using Throne.Application.Tests.Instructions;
 using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
@@ -97,7 +100,14 @@ public partial class RunPreflightOrchestratorTests
             settingsStore.GetDefaultVendorAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(TerminalAgentCatalog.VendorClaude));
             var launchResolver = new TerminalLaunchResolver(settingsStore);
-            Orchestrator = new RunPreflightOrchestrator(guards, autoBind, queue, cloneWait, spawn, launchResolver);
+            var promptResolver = new PromptCompositionResolver(
+                SkillManifestFixtures.Provider(),
+                new UserBundleEntries(Substitute.For<IInstructionRepository>()),
+                Substitute.For<IPromptPartRepository>());
+            var promptGate = new RunPreflightPromptGate(
+                promptResolver, new ReplaceIntentTextHandler(Intents, uow, clockShared));
+            Orchestrator = new RunPreflightOrchestrator(
+                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver);
         }
 
         public IIntentRepository Intents { get; }

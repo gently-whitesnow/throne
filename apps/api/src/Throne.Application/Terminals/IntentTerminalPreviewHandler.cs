@@ -11,6 +11,12 @@ public sealed record IntentTerminalPreviewQuery(
     IReadOnlyList<string>? SelectedPartIds);
 
 /// <summary>
+/// Pre-flight preview result: the resolved composition plus the intent version the modal echoes
+/// back as <c>expected_version</c> when it persists a task-zone edit on run.
+/// </summary>
+public sealed record IntentTerminalPreview(PromptComposition Composition, int IntentVersion);
+
+/// <summary>
 /// Pre-flight preview (ADR-0035): reads the intent body for the task zone and resolves the
 /// embedded prompt composition for the requested mode. Unsupported modes (e.g. <c>dream</c>)
 /// are rejected by <see cref="PromptCompositionResolver"/>.
@@ -19,7 +25,7 @@ public sealed class IntentTerminalPreviewHandler(
     IIntentRepository intents,
     PromptCompositionResolver resolver)
 {
-    public async Task<PromptComposition> HandleAsync(IntentTerminalPreviewQuery query, CancellationToken ct)
+    public async Task<IntentTerminalPreview> HandleAsync(IntentTerminalPreviewQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -29,8 +35,9 @@ public sealed class IntentTerminalPreviewHandler(
                 $"Intent '{query.IntentId}' not found.",
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
-        return await resolver.ResolveAsync(
+        var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, intent.State.Text),
             ct);
+        return new IntentTerminalPreview(composition, intent.State.CurrentVersion);
     }
 }

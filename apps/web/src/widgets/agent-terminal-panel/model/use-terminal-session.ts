@@ -11,7 +11,7 @@ import {
 
 import type {
   RunIntentTerminalResponse,
-  TerminalLaunchArgs,
+  TerminalRunPayload,
   TerminalSessionState
 } from "./types";
 
@@ -31,8 +31,8 @@ export interface TerminalSessionView {
   isStarting: boolean;
   isStopping: boolean;
   startedAt: TerminalSessionStartedAt | null;
-  start: (launch: TerminalLaunchArgs) => Promise<void>;
-  restart: (launch: TerminalLaunchArgs) => Promise<void>;
+  start: (payload: TerminalRunPayload) => Promise<void>;
+  restart: (payload: TerminalRunPayload) => Promise<void>;
   /** Kill the live tmux session without respawning. */
   kill: () => Promise<void>;
   /** Local-only signal that the WebSocket bridge observed a clean close. */
@@ -107,12 +107,12 @@ export function useTerminalSession(
   }, [intentId, terminalEnabled, apply]);
 
   const runImpl = useCallback(
-    async (launch: TerminalLaunchArgs, restart: boolean) => {
+    async (payload: TerminalRunPayload, restart: boolean) => {
       setIsStarting(true);
       try {
         const response = restart
-          ? await restartIntentTerminal(intentId, launch)
-          : await runIntentTerminal(intentId, launch);
+          ? await restartIntentTerminal(intentId, payload)
+          : await runIntentTerminal(intentId, payload);
         apply(response);
       } catch (err) {
         setInternal((prev) => ({
@@ -127,11 +127,11 @@ export function useTerminalSession(
   );
 
   const start = useCallback(
-    (launch: TerminalLaunchArgs) => runImpl(launch, false),
+    (payload: TerminalRunPayload) => runImpl(payload, false),
     [runImpl]
   );
   const restart = useCallback(
-    (launch: TerminalLaunchArgs) => runImpl(launch, true),
+    (payload: TerminalRunPayload) => runImpl(payload, true),
     [runImpl]
   );
 
@@ -172,8 +172,10 @@ export function useTerminalSession(
 function deriveErrorMessage(err: unknown): string {
   if (err instanceof HttpError) {
     if (err.status === 409) {
-      // Server already has a live session — treat as guidance, not error.
-      return "Сессия уже запущена — нажмите «Перезапустить», чтобы прервать и запустить заново.";
+      // 409 covers two pre-flight aborts: a live session already exists, or the
+      // intent body changed since preview (stale expected_version). Both resolve
+      // by reopening the modal — the agent did not start.
+      return "Запуск отклонён: сессия уже запущена или тело интента изменилось с момента предпросмотра. Откройте модалку заново.";
     }
     if (err.status === 400) {
       return "Недопустимая комбинация вендора, модели и усилия.";

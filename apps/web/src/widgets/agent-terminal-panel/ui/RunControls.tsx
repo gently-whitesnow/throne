@@ -1,5 +1,4 @@
-import { Check, Copy, Play, RotateCcw, Square } from "lucide-react";
-import { useState } from "react";
+import { Play, RotateCcw, Square } from "lucide-react";
 
 import {
   EFFORT_LABEL,
@@ -27,14 +26,15 @@ interface RunControlsProps {
   onModelChange: (model: string) => void;
   effort: TerminalReasoningEffort;
   onEffortChange: (effort: TerminalReasoningEffort) => void;
-  promptText: string;
+  /** Открывает preflight-модалку для нового запуска. */
   onRun: () => void;
+  /** Открывает preflight-модалку для перезапуска живой сессии. */
   onRestart: () => void;
   onKill: () => void;
   /** True когда disabled-state триггерится pre-flight'ом или live-сессией. */
   runDisabled: boolean;
   runDisabledReason: string | null;
-  /** True когда `tmux has-session` → true: dropdown и Copy prompt замораживаются. */
+  /** True когда `tmux has-session` → true: dropdown замораживаются. */
   sessionLive: boolean;
   /** True пока POST /run или /restart в полёте. */
   isStarting: boolean;
@@ -53,7 +53,6 @@ export function RunControls({
   onModelChange,
   effort,
   onEffortChange,
-  promptText,
   onRun,
   onRestart,
   onKill,
@@ -64,24 +63,7 @@ export function RunControls({
   isStopping,
   terminalEnabled
 }: RunControlsProps) {
-  const [copied, setCopied] = useState(false);
-
-  function handleCopyPrompt() {
-    void (async () => {
-      try {
-        await navigator.clipboard.writeText(promptText);
-        setCopied(true);
-        window.setTimeout(() => {
-          setCopied(false);
-        }, 1500);
-      } catch {
-        setCopied(false);
-      }
-    })();
-  }
-
   const dropdownDisabled = sessionLive;
-  const copyDisabled = sessionLive;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -164,26 +146,6 @@ export function RunControls({
           ))}
         </select>
       </label>
-
-      <Button
-        data-testid="agent-terminal-copy"
-        aria-label={
-          copied
-            ? "Промпт скопирован"
-            : "Скопировать промпт для запуска агента вручную"
-        }
-        icon={
-          copied ? (
-            <Check aria-hidden size={14} strokeWidth={2} />
-          ) : (
-            <Copy aria-hidden size={14} strokeWidth={2} />
-          )
-        }
-        disabled={copyDisabled}
-        onClick={handleCopyPrompt}
-      >
-        {copied ? "Скопировано" : "Copy prompt"}
-      </Button>
 
       {terminalEnabled ? (
         sessionLive ? (

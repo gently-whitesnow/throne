@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightCloneScheduler>();
         services.AddSingleton<RunPreflightCloneWait>();
         services.AddSingleton<RunPreflightSpawn>();
+        services.AddSingleton<RunPreflightPromptGate>();
         services.AddSingleton<RunPreflightGuards>();
         services.AddSingleton<RunPreflightOrchestrator>();
         services.AddSingleton<TerminalLaunchResolver>();
