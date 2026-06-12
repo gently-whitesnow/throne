@@ -3,6 +3,7 @@ using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Events;
 using Throne.Application.Git;
+using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
 using Throne.Domain.Capabilities;
@@ -93,6 +94,7 @@ public class TerminalSessionKillServiceTests
                 new StubWorkspaceRoot(WorkspaceRoot),
                 Substitute.For<IWorkspaceTrust>(),
                 Array.Empty<ISessionHookAdapter>(),
+                new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             Service = new TerminalSessionKillService(guards, Bindings, spawn);
@@ -143,5 +145,17 @@ public class TerminalSessionKillServiceTests
     private sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider
     {
         public string ResolvedRoot { get; } = root;
+    }
+
+    private sealed class PassthroughUnitOfWork : IUnitOfWork
+    {
+        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
+        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+    }
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 }

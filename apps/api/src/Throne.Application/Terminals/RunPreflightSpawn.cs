@@ -1,6 +1,8 @@
 using Throne.Application.Events;
 using Throne.Application.Git;
+using Throne.Application.Intents;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 
 namespace Throne.Application.Terminals;
 
@@ -13,8 +15,11 @@ public sealed class RunPreflightSpawn(
     IWorkspaceRootProvider workspaceRoot,
     IWorkspaceTrust workspaceTrust,
     IEnumerable<ISessionHookAdapter> hookAdapters,
+    SetIntentStatusHandler setStatus,
     IDomainEventDispatcher events)
 {
+    private const string SourcePrefix = "terminal:spawn:";
+
     private readonly Dictionary<string, ISessionHookAdapter> _hookAdapters =
         hookAdapters.ToDictionary(a => a.Vendor, StringComparer.Ordinal);
 
@@ -53,6 +58,8 @@ public sealed class RunPreflightSpawn(
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
         }
 
+        await SetSpawnPhaseAsync(intentId.Value, mode, ct);
+
         if (isFree)
         {
             await tmux.SendLiteralTextAsync(intentId.Value, prompt, ct);
@@ -66,4 +73,29 @@ public sealed class RunPreflightSpawn(
 
     public Task<bool> KillSessionAsync(string intentId, CancellationToken ct) =>
         tmux.KillSessionAsync(intentId, ct);
+
+    private async Task SetSpawnPhaseAsync(string intentId, string mode, CancellationToken ct)
+    {
+        var status = SpawnPhaseStatus(mode);
+        if (status is null)
+        {
+            return;
+        }
+
+        await setStatus.HandleAsync(
+            new SetIntentStatusCommand(
+                intentId,
+                status,
+                Reason: null,
+                IntentTrainingAuthor.System,
+                SourcePrefix + mode),
+            ct);
+    }
+
+    private static string? SpawnPhaseStatus(string mode) => mode switch
+    {
+        TerminalRunModes.Work => IntentStatusNames.Work,
+        TerminalRunModes.Interview => IntentStatusNames.Interview,
+        _ => null,
+    };
 }
