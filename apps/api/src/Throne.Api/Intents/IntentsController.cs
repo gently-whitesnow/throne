@@ -22,6 +22,7 @@ public sealed class IntentsController(
     SetIntentTagsEndpoint setIntentTags,
     ReplaceIntentTextEndpoint replaceIntentText,
     SetIntentStatusEndpoint setIntentStatus,
+    SetIntentCleanupOnDoneEndpoint setIntentCleanupOnDone,
     MoveIntentEndpoint moveIntent,
     DeleteIntentEndpoint deleteIntent,
     ListIntentVersionsEndpoint listIntentVersions) : IntentsControllerBase
@@ -59,6 +60,10 @@ public sealed class IntentsController(
 
     public override Task<ActionResult<IntentDetailDto>> SetIntentStatus(string id, SetIntentStatusRequest body) =>
         setIntentStatus.RunAsync(id, body, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<IntentDetailDto>> SetIntentCleanupOnDone(
+        string id, SetIntentCleanupOnDoneRequest body) =>
+        setIntentCleanupOnDone.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> MoveIntent(string id, MoveIntentRequest body) =>
         moveIntent.RunAsync(id, body, HttpContext.RequestAborted);

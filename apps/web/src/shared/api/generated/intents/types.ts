@@ -89,6 +89,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/cleanup-on-done": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set the teardown-on-done gate.
+         * @description Sets `cleanup_local_state_on_done` on the intent. When true (default), reaching `done` wipes the workspace folder + agent trust entries and kills the agent terminal session; when false both survive past `done`. Targeted metadata write — does not bump version nor touch text/status. Exposed on both the intent page and the review merge control.
+         */
+        post: operations["setIntentCleanupOnDone"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}/tags": {
         parameters: {
             query?: never;
@@ -416,6 +436,10 @@ export interface components {
             /** @description Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason. */
             reason?: string;
         };
+        SetIntentCleanupOnDoneRequest: {
+            /** @description New value of the teardown-on-done gate. */
+            cleanup_local_state_on_done: boolean;
+        };
         /**
          * @description Sort order applied to the list page. `sort_key_asc` (default) reflects the user-defined fractional sort_key — same order the board renders.
          * @enum {string}
@@ -523,6 +547,8 @@ export interface components {
             links: components["schemas"]["IntentLinkViewDto"][];
             /** @description Per-context pin entries for this intent. Empty array means «not pinned anywhere». Each entry carries the tag id and the fractional pin_sort_key, so clients can render the per-context Pinned list in the server-defined order. */
             pinned_in: components["schemas"]["PinnedContextDto"][];
+            /** @description Teardown-on-done gate (default true). When the intent reaches `done` and this is true, its local state is destroyed — the workspace folder + agent trust entries are wiped and the agent terminal session is killed. Cleared keeps both alive past `done`. Edited via `setIntentCleanupOnDone`; surfaced here so the UI can render the current value. */
+            cleanup_local_state_on_done: boolean;
         };
         IntentEventDto: {
             /** @description Event identifier. */
@@ -896,6 +922,42 @@ export interface operations {
             };
             /** @description Validation failed */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    setIntentCleanupOnDone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetIntentCleanupOnDoneRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

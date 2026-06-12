@@ -15,7 +15,6 @@ namespace Throne.Application.Repositories;
 public sealed class MergePullRequestUseCase(
     IGitProviderRegistry providers,
     IIntentRepositoryBindingRepository bindings,
-    IIntentRepository intents,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -26,29 +25,25 @@ public sealed class MergePullRequestUseCase(
                 await provider.GetPullRequestMergeStatusAsync(owner, repo, number, ct)
                 ?? throw RepositoryBindingFailures.UpstreamGone(binding));
 
-    /// <param name="cleanupAfterMerge">
-    /// Mirrors the merge-control «очистить состояние после мержа» checkbox and is persisted on the
-    /// intent as <c>CleanupLocalStateOnDone</c> before the provider merge fires, so it is durable
-    /// before the PR can flip to <c>merged</c> upstream. When false the binding is additionally
-    /// flagged to skip auto-close-on-merge, so the intent stays open (and its agent session alive)
-    /// once the sync tick observes the merge, and no cleanup runs. When true (default) the binding
-    /// is left untouched and reaching <c>done</c> wipes the intent's local state.
+    /// <param name="suppressAutoClose">
+    /// Owns only the auto-close-on-merge decision (D2). When true the binding is flagged before the
+    /// provider merge fires, so once the sync tick observes the merge the intent is left open (and
+    /// its agent session alive) instead of being auto-closed to <c>done</c>. When false (default)
+    /// the binding is left untouched and the merge auto-closes the intent as before. The
+    /// teardown-on-done gate (<c>CleanupLocalStateOnDone</c>) is no longer touched here — it is
+    /// owned by the intent and edited via the intents cleanup-on-done endpoint.
     /// </param>
     public async Task<PullRequestMergeResult> MergeAsync(
         IntentRepositoryBinding binding,
         MergePullRequestRequest request,
-        bool cleanupAfterMerge,
+        bool suppressAutoClose,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(binding);
         ArgumentNullException.ThrowIfNull(request);
-        var now = clock.GetUtcNow();
-        await unitOfWork.ExecuteAsync(
-            inner => intents.SetCleanupLocalStateOnDoneAsync(binding.IntentId, cleanupAfterMerge, now, inner),
-            ct);
-        if (!cleanupAfterMerge && !binding.State.SuppressMergeAutoClose)
+        if (suppressAutoClose && !binding.State.SuppressMergeAutoClose)
         {
-            binding.SuppressMergeAutoClose(now);
+            binding.SuppressMergeAutoClose(clock.GetUtcNow());
             await unitOfWork.ExecuteAsync(inner => bindings.SaveAsync(binding, inner), ct);
         }
         return await RunAsync(

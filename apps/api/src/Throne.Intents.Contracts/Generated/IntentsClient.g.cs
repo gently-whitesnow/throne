@@ -344,6 +344,27 @@ namespace Throne.Intents.Contracts.Generated
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetIntentCleanupOnDoneRequest
+    {
+
+        /// <summary>
+        /// New value of the teardown-on-done gate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cleanup_local_state_on_done")]
+        public bool Cleanup_local_state_on_done { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     /// <summary>
     /// Sort order applied to the list page. `sort_key_asc` (default) reflects the user-defined fractional sort_key — same order the board renders.
     /// <br/>
@@ -645,6 +666,13 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("pinned_in")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PinnedContextDto> Pinned_in { get; set; } = new System.Collections.ObjectModel.Collection<PinnedContextDto>();
+
+        /// <summary>
+        /// Teardown-on-done gate (default true). When the intent reaches `done` and this is true, its local state is destroyed — the workspace folder + agent trust entries are wiped and the agent terminal session is killed. Cleared keeps both alive past `done`. Edited via `setIntentCleanupOnDone`; surfaced here so the UI can render the current value.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cleanup_local_state_on_done")]
+        public bool Cleanup_local_state_on_done { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

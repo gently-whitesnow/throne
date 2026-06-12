@@ -32,6 +32,7 @@ internal static class IntentEndpointServices
         services.AddSingleton<SetIntentTagsEndpoint>();
         services.AddSingleton<ReplaceIntentTextEndpoint>();
         services.AddSingleton<SetIntentStatusEndpoint>();
+        services.AddSingleton<SetIntentCleanupOnDoneEndpoint>();
         services.AddSingleton<MoveIntentEndpoint>();
         services.AddSingleton<DeleteIntentEndpoint>();
         services.AddSingleton<ListIntentVersionsEndpoint>();
