@@ -9,4 +9,5 @@ export const terminalEndpoints = {
   restartIntentTerminal: (intent_id: string) => `/intents/${intent_id}/terminal/restart`,
   killIntentTerminal: (intent_id: string) => `/intents/${intent_id}/terminal/kill`,
   receiveIntentTerminalHook: (intent_id: string, event: string) => `/intents/${intent_id}/terminal/hooks/${event}`,
+  previewIntentTerminal: (intent_id: string) => `/intents/${intent_id}/terminal/preview`,
 } as const;

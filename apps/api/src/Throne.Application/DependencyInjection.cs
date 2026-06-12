@@ -7,6 +7,7 @@ using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;
 using Throne.Application.Ports;
+using Throne.Application.PromptParts;
 using Throne.Application.Repositories;
 using Throne.Application.Tags;
 using Throne.Application.Terminals;
@@ -39,6 +40,15 @@ public static class DependencyInjection
         services.AddSingleton<ReplaceInstructionTextHandler>();
         services.AddSingleton<CreateInstructionHandler>();
         services.AddSingleton<ListInstructionVersionsHandler>();
+        // Prompt parts (ADR-0035): operator-authored optional parts + embedded composition.
+        // PromptCompositionResolver reuses UserBundleEntries to project mandatory instructions.
+        services.AddSingleton<CreatePromptPartHandler>();
+        services.AddSingleton<ListPromptPartsHandler>();
+        services.AddSingleton<GetPromptPartHandler>();
+        services.AddSingleton<ReplacePromptPartTextHandler>();
+        services.AddSingleton<SetPromptPartRolesHandler>();
+        services.AddSingleton<PromptCompositionResolver>();
+        services.AddSingleton<IntentTerminalPreviewHandler>();
         // Lazy<IUnitOfWork> breaks the singleton-resolution cycle: the
         // IUnitOfWork factory pulls in IDomainEventDispatcher, which pulls in
         // every IDomainEventHandler — and these two handlers themselves need

@@ -93,6 +93,16 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/hooks/{event}", Name = "receiveIntentTerminalHook")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> ReceiveIntentTerminalHook([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] Event @event, [Microsoft.AspNetCore.Mvc.FromQuery] TerminalRunMode? mode = null);
 
+        /// <summary>
+        /// Resolve the embedded prompt composition before spawn (ADR-0035).
+        /// </summary>
+        /// <remarks>
+        /// Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`free` are supported — `dream` returns 422.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/preview", Name = "previewIntentTerminal")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentTerminalPreviewResponse>> PreviewIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PreviewIntentTerminalRequest body);
+
     }
 
     

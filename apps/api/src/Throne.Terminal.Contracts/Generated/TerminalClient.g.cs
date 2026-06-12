@@ -269,6 +269,155 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PreviewIntentTerminalRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalRunMode>))]
+        public TerminalRunMode Mode { get; set; }
+
+        /// <summary>
+        /// Explicit selection of optional part ids. Omitted → the mode defaults (every `default_on` optional part). Mandatory parts are always included regardless.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected_part_ids")]
+        public System.Collections.Generic.ICollection<string> Selected_part_ids { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PromptPartPreviewDto
+    {
+
+        /// <summary>
+        /// Part id. For mandatory parts projected from the manifest — synthetic `system:&lt;kind&gt;` or the user instruction id. For optional parts — the Mongo id.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("part_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Part_id { get; set; }
+
+        /// <summary>
+        /// Part key (instruction kind for projected mandatory parts).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; }
+
+        /// <summary>
+        /// system | user.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Scope { get; set; }
+
+        /// <summary>
+        /// mandatory | default_on | default_off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Role { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Order { get; set; }
+
+        /// <summary>
+        /// True for operator-authored parts and user instructions; false for system entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editable")]
+        public bool Editable { get; set; }
+
+        /// <summary>
+        /// False when a projected user instruction has no Mongo record yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("present")]
+        public bool Present { get; set; }
+
+        /// <summary>
+        /// Whether the part is included in the assembled system_prompt.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected")]
+        public bool Selected { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Text { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentTerminalPreviewResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("intent_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Intent_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalRunMode>))]
+        public TerminalRunMode Mode { get; set; }
+
+        /// <summary>
+        /// Every part available in the mode (mandatory + optional), ordered as assembled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parts")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<PromptPartPreviewDto> Parts { get; set; } = new System.Collections.ObjectModel.Collection<PromptPartPreviewDto>();
+
+        /// <summary>
+        /// Part ids included in system_prompt (mandatory + selected optional).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected_part_ids")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Selected_part_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Assembled rules block destined for `--append-system-prompt`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("system_prompt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string System_prompt { get; set; }
+
+        /// <summary>
+        /// Intent body draft for the task zone (first user message).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("user_prompt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string User_prompt { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProblemDetails
     {
 
