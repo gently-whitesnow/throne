@@ -3,8 +3,9 @@ import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
-import type { InstructionDetail } from "@/entities/instruction";
-import { ReplaceInstructionTextForm } from "@/features/replace-instruction-text";
+import { useReplacePromptPartText } from "@/entities/prompt-part";
+import { HttpError } from "@/shared/api";
+import { computeMinimalTextDelta } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { bundlesTreeQueryKeys } from "../model/use-bundles-tree";
@@ -16,8 +17,10 @@ interface InstructionEditDialogProps {
 }
 
 /**
- * View / edit dialog for a projected mandatory instruction. System-scope is
- * read-only; user-scope reuses ReplaceInstructionTextForm (create or replace).
+ * View / edit dialog for a projected mandatory part. System-scope is read-only
+ * (seeded from the manifest). Present user-scope parts can have their text
+ * edited in place via replace-text; missing user-scope parts are seeded from
+ * the manifest on first apply and are shown read-only here.
  */
 export function InstructionEditDialog({
   instruction,
@@ -48,14 +51,10 @@ export function InstructionEditDialog({
     onClose();
   };
 
-  const detail: InstructionDetail = {
-    id: instruction.instructionId ?? "",
-    kind: instruction.kind,
-    current_version: instruction.currentVersion,
-    text: instruction.text,
-    created_at: new Date(0).toISOString(),
-    updated_at: new Date(0).toISOString()
-  };
+  const isEditableUser =
+    instruction.scope === "user" &&
+    instruction.present &&
+    instruction.prompt_part_id !== null;
 
   return createPortal(
     <div
@@ -75,14 +74,14 @@ export function InstructionEditDialog({
           <div>
             <p className="m-0 mb-1 text-[11px] font-bold uppercase tracking-wider text-primary">
               {instruction.scope === "user"
-                ? "User-инструкция"
-                : "System-инструкция"}
+                ? "User-часть (mandatory)"
+                : "System-часть (mandatory)"}
             </p>
             <h2
               id={titleId}
               className="m-0 font-mono text-xl font-bold tracking-tight"
             >
-              {instruction.kind}
+              {instruction.key}
             </h2>
             <p className="m-0 mt-1.5 text-[13px] text-base-content/70">
               Режимы: {instruction.modes.join(", ")}
@@ -101,20 +100,23 @@ export function InstructionEditDialog({
         <div className="flex flex-col gap-4 overflow-y-auto">
           {instruction.scope !== "user" ? (
             <ReadOnlyText
-              hint="System-инструкция. Меняется только через манифест."
+              hint="System-часть. Меняется только через манифест."
               text={instruction.text}
             />
-          ) : editing || !instruction.present ? (
-            <ReplaceInstructionTextForm
-              instruction={detail}
+          ) : !isEditableUser ? (
+            <ReadOnlyText
+              hint="User-часть ещё не создана — она засевается из манифеста при первом применении патча."
+              text={instruction.text}
+            />
+          ) : editing ? (
+            <ReplaceTextForm
+              partId={instruction.prompt_part_id ?? ""}
+              currentVersion={instruction.currentVersion}
+              text={instruction.text}
               onSaved={handleSaved}
-              onCancel={
-                instruction.present
-                  ? () => {
-                      setEditing(false);
-                    }
-                  : onClose
-              }
+              onCancel={() => {
+                setEditing(false);
+              }}
             />
           ) : (
             <>
@@ -141,6 +143,93 @@ export function InstructionEditDialog({
   );
 }
 
+interface ReplaceTextFormProps {
+  partId: string;
+  currentVersion: number;
+  text: string;
+  onSaved: () => void;
+  onCancel: () => void;
+}
+
+function ReplaceTextForm({
+  partId,
+  currentVersion,
+  text,
+  onSaved,
+  onCancel
+}: ReplaceTextFormProps) {
+  const [draft, setDraft] = useState(text);
+  const [error, setError] = useState<string | null>(null);
+  const replaceText = useReplacePromptPartText();
+
+  const submit = () => {
+    if (replaceText.isPending) return;
+    const delta = computeMinimalTextDelta(text, draft);
+    if (delta === null) {
+      onCancel();
+      return;
+    }
+    setError(null);
+    replaceText.mutate(
+      {
+        id: partId,
+        expectedVersion: currentVersion,
+        oldText: delta.oldText,
+        newText: delta.newText
+      },
+      {
+        onSuccess: () => {
+          onSaved();
+        },
+        onError: (err: unknown) => {
+          setError(formatReplaceError(err));
+        }
+      }
+    );
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="flex flex-col gap-3"
+    >
+      <textarea
+        className="textarea textarea-bordered min-h-80 w-full font-mono text-[13px] leading-relaxed"
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+        }}
+        rows={20}
+        aria-label="Текст части"
+      />
+      {error ? (
+        <p role="alert" className="m-0 text-sm text-error">
+          {error}
+        </p>
+      ) : null}
+      <div className="flex gap-2">
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={replaceText.isPending}
+        >
+          {replaceText.isPending ? "Сохраняем…" : "Сохранить"}
+        </Button>
+        <Button
+          type="button"
+          onClick={onCancel}
+          disabled={replaceText.isPending}
+        >
+          Отмена
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 function ReadOnlyText({ text, hint }: { text: string; hint?: string }) {
   return (
     <section className="flex flex-col gap-1.5">
@@ -150,4 +239,17 @@ function ReadOnlyText({ text, hint }: { text: string; hint?: string }) {
       </pre>
     </section>
   );
+}
+
+function formatReplaceError(err: unknown): string {
+  if (err instanceof HttpError) {
+    if (err.status === 409) {
+      return "Версия устарела — обновите страницу и повторите правку.";
+    }
+    if (err.status === 422) {
+      return "Не удалось применить правку (текст не совпал).";
+    }
+    return `Ошибка сохранения (${String(err.status)}).`;
+  }
+  return "Не удалось сохранить.";
 }

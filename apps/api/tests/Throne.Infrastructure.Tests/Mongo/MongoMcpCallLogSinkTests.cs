@@ -97,7 +97,7 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         var entry = new McpCallLogEntry(
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
-            ToolName: "get_instruction_bundle",
+            ToolName: "get_prompt_bundle",
             Arguments: new Dictionary<string, object?> { ["intent_id"] = "intent_123", ["mode"] = "work" },
             IntentId: "intent_123",
             ModeHint: "work",

@@ -27,7 +27,7 @@ internal static class McpArgumentSummaries
                 ["after_line"] = TryInt(arguments, "after_line"),
                 ["insert_text_preview"] = Preview(arguments, "insert_text"),
             },
-            "get_instruction_bundle" => new Dictionary<string, object?>(StringComparer.Ordinal)
+            "get_prompt_bundle" => new Dictionary<string, object?>(StringComparer.Ordinal)
             {
                 ["mode"] = TryString(arguments, "mode"),
                 ["intent_id"] = TryString(arguments, "intent_id"),
@@ -37,10 +37,11 @@ internal static class McpArgumentSummaries
                 ["text_preview"] = Preview(arguments, "text"),
                 ["tags"] = TryStringArray(arguments, "tags"),
             },
-            "propose_instruction_patch" => new Dictionary<string, object?>(StringComparer.Ordinal)
+            "propose_prompt_part_patch" => new Dictionary<string, object?>(StringComparer.Ordinal)
             {
-                ["target_kind"] = TryString(arguments, "target_kind"),
-                ["base_instruction_version"] = TryInt(arguments, "base_instruction_version"),
+                ["target_scope"] = TryString(arguments, "target_scope"),
+                ["target_key"] = TryString(arguments, "target_key"),
+                ["base_version"] = TryInt(arguments, "base_version"),
                 ["evidence_card_count"] = TryStringArray(arguments, "evidence_card_ids")?.Count,
                 ["rationale_preview"] = Preview(arguments, "rationale"),
                 ["patch_text_preview"] = Preview(arguments, "patch_text"),

@@ -85,7 +85,7 @@ namespace Throne.Dreams.Contracts.Generated
         public string Reflection { get; set; }
 
         /// <summary>
-        /// InstructionPatch ids created during this pass (opaque on the server).
+        /// PromptPartPatch ids created during this pass (opaque on the server).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("proposed_patch_ids")]
         [System.ComponentModel.DataAnnotations.Required]

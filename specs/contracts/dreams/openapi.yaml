@@ -5,7 +5,7 @@ info:
   description: >
     HTTP surface for DreamSession (ADR-0022). A DreamSession is the agent's
     memory of a single /dream pass: which conversations it read, what summary
-    and reflection it produced, which InstructionPatches it proposed. Records
+    and reflection it produced, which PromptPartPatches it proposed. Records
     are immutable and owner-scoped via the ambient `ICurrentUserAccessor`.
     Writes happen exclusively through MCP (`record_dream_session`) — there is
     no POST endpoint, because only the frontier agent at the end of a /dream
@@ -146,7 +146,7 @@ components:
           type: array
           items:
             type: string
-          description: InstructionPatch ids created during this pass (opaque on the server).
+          description: PromptPartPatch ids created during this pass (opaque on the server).
     DreamSessionPageDto:
       type: object
       required: [items]

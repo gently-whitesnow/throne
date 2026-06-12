@@ -1,13 +1,13 @@
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 
-import { httpGet, instructionsEndpoints } from "@/shared/api";
-import type { InstructionsComponents } from "@/shared/api";
+import { httpGet, promptPartsEndpoints } from "@/shared/api";
+import type { PromptPartsComponents } from "@/shared/api";
 
 export type BundlesTreeData =
-  InstructionsComponents["schemas"]["BundlesTreeDto"];
-export type BundleNode = InstructionsComponents["schemas"]["BundleNodeDto"];
+  PromptPartsComponents["schemas"]["BundlesTreeDto"];
+export type BundleNode = PromptPartsComponents["schemas"]["BundleNodeDto"];
 export type BundleEntryNode =
-  InstructionsComponents["schemas"]["BundleEntryNodeDto"];
+  PromptPartsComponents["schemas"]["BundleEntryNodeDto"];
 
 export const bundlesTreeQueryKeys = {
   all: ["bundles-tree"] as const,
@@ -18,6 +18,6 @@ export function useBundlesTreeQuery(): UseQueryResult<BundlesTreeData> {
   return useQuery({
     queryKey: bundlesTreeQueryKeys.current(),
     queryFn: ({ signal }) =>
-      httpGet<BundlesTreeData>(instructionsEndpoints.getBundlesTree(), signal)
+      httpGet<BundlesTreeData>(promptPartsEndpoints.getBundlesTree(), signal)
   });
 }

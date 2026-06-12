@@ -27,6 +27,112 @@ namespace Throne.PromptParts.Contracts.Generated
     
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BundlesTreeDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("bundles")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<BundleNodeDto> Bundles { get; set; } = new System.Collections.ObjectModel.Collection<BundleNodeDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BundleNodeDto
+    {
+
+        /// <summary>
+        /// Bundle mode (interview | work | dream | schema_map).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Mode { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("includes")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<BundleEntryNodeDto> Includes { get; set; } = new System.Collections.ObjectModel.Collection<BundleEntryNodeDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class BundleEntryNodeDto
+    {
+
+        /// <summary>
+        /// system | user.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Scope { get; set; }
+
+        /// <summary>
+        /// Prompt part key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; }
+
+        /// <summary>
+        /// PromptPart id. Null when a user entry is missing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("prompt_part_id")]
+        public string Prompt_part_id { get; set; }
+
+        /// <summary>
+        /// Mongo current_version, or 0 if no record exists yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("current_version")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Current_version { get; set; }
+
+        /// <summary>
+        /// Full text of the prompt part (empty string when a user entry is missing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Text { get; set; }
+
+        /// <summary>
+        /// True only for user-scope entries.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("editable")]
+        public bool Editable { get; set; }
+
+        /// <summary>
+        /// False when a user-scope record does not yet exist in Mongo.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("present")]
+        public bool Present { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PromptPartModeRoleDto
     {
 
@@ -323,6 +429,99 @@ namespace Throne.PromptParts.Contracts.Generated
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TextVersionDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Version { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TextVersionDtoKind>))]
+        public TextVersionDtoKind Kind { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("changed_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Changed_at { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("changed_by")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TextVersionDtoChanged_by>))]
+        public TextVersionDtoChanged_by Changed_by { get; set; }
+
+        /// <summary>
+        /// Full text snapshot. Present for kind=create (v1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("snapshot")]
+        public string Snapshot { get; set; }
+
+        /// <summary>
+        /// Replaced fragment. Present for kind=replace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("old_text")]
+        public string Old_text { get; set; }
+
+        /// <summary>
+        /// New fragment. Present for kind=replace.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("new_text")]
+        public string New_text { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("after_line")]
+        public int After_line { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("insert_text")]
+        public string Insert_text { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TextVersionDtoKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"create")]
+        [System.Runtime.Serialization.EnumMember(Value = @"create")]
+        Create = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"replace")]
+        [System.Runtime.Serialization.EnumMember(Value = @"replace")]
+        Replace = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"insert")]
+        [System.Runtime.Serialization.EnumMember(Value = @"insert")]
+        Insert = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TextVersionDtoChanged_by
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"user")]
+        [System.Runtime.Serialization.EnumMember(Value = @"user")]
+        User = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"agent")]
+        [System.Runtime.Serialization.EnumMember(Value = @"agent")]
+        Agent = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"system")]
+        [System.Runtime.Serialization.EnumMember(Value = @"system")]
+        System = 2,
 
     }
 

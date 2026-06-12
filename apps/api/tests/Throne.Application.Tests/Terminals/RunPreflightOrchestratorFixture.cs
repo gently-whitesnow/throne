@@ -100,10 +100,11 @@ public partial class RunPreflightOrchestratorTests
             settingsStore.GetDefaultVendorAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(TerminalAgentCatalog.VendorClaude));
             var launchResolver = new TerminalLaunchResolver(settingsStore);
+            var promptPartsRepo = Substitute.For<IPromptPartRepository>();
             var promptResolver = new PromptCompositionResolver(
                 SkillManifestFixtures.Provider(),
-                new UserBundleEntries(Substitute.For<IInstructionRepository>()),
-                Substitute.For<IPromptPartRepository>());
+                new PromptBundleResolver(promptPartsRepo),
+                promptPartsRepo);
             var promptGate = new RunPreflightPromptGate(
                 promptResolver, new ReplaceIntentTextHandler(Intents, uow, clockShared));
             Orchestrator = new RunPreflightOrchestrator(

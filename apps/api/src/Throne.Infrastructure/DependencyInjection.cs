@@ -55,7 +55,6 @@ public static class DependencyInjection
         services.AddSingleton<IIntentLinkRepository, MongoIntentLinkRepository>();
         services.AddSingleton<ITagRepository, MongoTagRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
-        services.AddSingleton<IInstructionRepository, MongoInstructionRepository>();
         services.AddSingleton<IPromptPartRepository, MongoPromptPartRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IIntentEventRepository, MongoIntentEventRepository>();
@@ -65,7 +64,7 @@ public static class DependencyInjection
         services.AddOptions<IntentAttachmentCompressionOptions>()
             .BindConfiguration(IntentAttachmentCompressionOptions.SectionName);
         services.AddHostedService<IntentAttachmentCompressionWorker>();
-        services.AddSingleton<IInstructionPatchRepository, MongoInstructionPatchRepository>();
+        services.AddSingleton<IPromptPartPatchRepository, MongoPromptPartPatchRepository>();
         services.AddSingleton<IDreamSessionRepository, MongoDreamSessionRepository>();
         services.AddSingleton<IIntentRepositoryBindingRepository, MongoIntentRepositoryBindingStore>();
         services.AddSingleton<IRepositoryRegistry, MongoRepositoryRegistry>();
@@ -73,6 +72,9 @@ public static class DependencyInjection
         services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
         services.AddSingleton<ITerminalSettingsStore, MongoTerminalSettingsStore>();
         services.AddHostedService<MongoIndexInitializer>();
+        // PromptPartSeeder runs after the index initializer: it relies on the (scope,key) unique
+        // index being in flight and reconciles system parts + migrates legacy instructions (ADR-0036).
+        services.AddHostedService<PromptPartSeeder>();
 
         return services;
     }

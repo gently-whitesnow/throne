@@ -1,0 +1,291 @@
+openapi: "3.1.0"
+info:
+  title: Throne Prompt Part Patches
+  version: "1.0.0"
+  description: >
+    HTTP surface for PromptPartPatch (ADR-0036 supersedes ADR-0021). Patches are
+    first-class entities: a frontier agent proposes a patch via MCP
+    `propose_prompt_part_patch`, and the operator decides through this HTTP
+    surface — apply (verbatim or with edit) or reject (with mandatory comment
+    ≥10 chars). Apply replaces the target PromptPart text at
+    expectedVersion=base_version; a mismatch returns
+    `409 prompt_part_patch.needs_rebase` without mutation. A patch targets a
+    PromptPart by (target_scope, target_key). All endpoints are owner-scoped via
+    the ambient `ICurrentUserAccessor`.
+  x-csharp-namespace: Throne.PromptPartPatches.Contracts.Generated
+paths:
+  /api/v1/prompt-part-patches:
+    get:
+      operationId: listPromptPartPatches
+      tags: [PromptPartPatches]
+      summary: List PromptPartPatches (newest first), paginated.
+      parameters:
+        - in: query
+          name: target_scope
+          required: false
+          schema:
+            type: string
+            description: Filter by target scope (system | user).
+        - in: query
+          name: target_key
+          required: false
+          schema:
+            type: string
+            description: Filter by target prompt part key.
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/PromptPartPatchStatus'
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+            description: Opaque continuation cursor returned by the previous page.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptPartPatchPageDto'
+  /api/v1/prompt-part-patches/{patch_id}:
+    get:
+      operationId: getPromptPartPatch
+      tags: [PromptPartPatches]
+      summary: Single PromptPartPatch with current target part text.
+      parameters:
+        - in: path
+          name: patch_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptPartPatchDetailDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/prompt-part-patches/{patch_id}/apply:
+    post:
+      operationId: applyPromptPartPatch
+      tags: [PromptPartPatches]
+      summary: Apply a patch (verbatim or with operator edit).
+      description: >
+        When `final_text` is omitted the patch is applied verbatim and the
+        resulting status is `applied`. When `final_text` differs from
+        `patch_text` the resulting status is `applied_edited` and `applied_text`
+        records the user's edit. Validates `base_version`; mismatch returns 409
+        `prompt_part_patch.needs_rebase` without mutation.
+      parameters:
+        - in: path
+          name: patch_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyPromptPartPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptPartPatchDto'
+        '404':
+          description: Patch or target prompt part not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Already decided or needs rebase
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/prompt-part-patches/{patch_id}/reject:
+    post:
+      operationId: rejectPromptPartPatch
+      tags: [PromptPartPatches]
+      summary: Reject a patch with a mandatory comment (≥10 chars after trimming).
+      parameters:
+        - in: path
+          name: patch_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectPromptPartPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptPartPatchDto'
+        '404':
+          description: Patch not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Already decided
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed (e.g. comment too short)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    PromptPartPatchStatus:
+      type: string
+      enum: [proposed, applied, applied_edited, rejected, superseded]
+    PromptPartPatchDto:
+      type: object
+      required:
+        - id
+        - target_scope
+        - target_key
+        - status
+        - patch_text
+        - evidence_card_ids
+        - rationale
+        - base_version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: Server-generated id (32 hex chars).
+        target_scope:
+          type: string
+          description: Scope of the target prompt part (system | user).
+        target_key:
+          type: string
+          description: Key of the target prompt part.
+        status:
+          $ref: '#/components/schemas/PromptPartPatchStatus'
+        patch_text:
+          type: string
+          description: Original proposal as submitted by the agent.
+        applied_text:
+          type: string
+          description: What the user actually applied (may differ from patch_text).
+        evidence_card_ids:
+          type: array
+          items:
+            type: string
+        rationale:
+          type: string
+          maxLength: 500
+        reject_comment:
+          type: string
+          minLength: 10
+          description: Required when status=rejected; ≥10 chars after trimming.
+        base_version:
+          type: integer
+          format: int32
+          minimum: 0
+        applied_version:
+          type: integer
+          format: int32
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        decided_at:
+          type: string
+          format: date-time
+    PromptPartPatchPageDto:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptPartPatchDto'
+        next_cursor:
+          type: string
+          description: Opaque continuation token; null when the page exhausted the result set.
+    PromptPartPatchDetailDto:
+      type: object
+      required:
+        - patch
+        - current_part_text
+        - current_part_version
+        - base_version_matches_current
+        - base_part_text
+      properties:
+        patch:
+          $ref: '#/components/schemas/PromptPartPatchDto'
+        current_part_text:
+          type: string
+          description: Current text of the target prompt part; empty string when missing.
+        current_part_version:
+          type: integer
+          format: int32
+          minimum: 0
+        base_version_matches_current:
+          type: boolean
+          description: True when patch.base_version == current_part_version.
+        base_part_text:
+          type: string
+          description: >
+            Prompt part text reconstructed at `patch.base_version` — i.e. the text
+            the agent saw when proposing the patch. Empty string when the patch
+            creates the part from scratch (`base_version=0`) or when version
+            history is not available. Used by the operator UI to render a diff.
+    ApplyPromptPartPatchRequest:
+      type: object
+      properties:
+        final_text:
+          type: string
+          description: Operator-edited text. When omitted, the server uses patch_text verbatim.
+    RejectPromptPartPatchRequest:
+      type: object
+      required: [comment]
+      properties:
+        comment:
+          type: string
+          minLength: 10
+          description: Why the user is rejecting the patch. Stored as part of the patch state.

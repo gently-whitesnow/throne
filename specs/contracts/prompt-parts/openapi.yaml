@@ -184,8 +184,109 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/prompt-parts/bundles-tree:
+    get:
+      operationId: getBundlesTree
+      tags: [PromptParts]
+      summary: Precomputed bundle → prompt-parts tree.
+      description: >
+        Returns the runtime composition that a frontier agent receives for each bundle mode.
+        Source of truth is the declarative manifest (specs/manifest/throne-skills.yaml) for the
+        ordering of mandatory parts; the texts are read from the prompt_parts collection.
+        For every bundle mode the response includes the mode and its ordered includes (system +
+        user parts) with full text payload. User-scope entries carry editable=true; system
+        entries are read-only.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BundlesTreeDto'
+  /api/v1/prompt-parts/{id}/versions:
+    get:
+      operationId: listPromptPartVersions
+      tags: [PromptParts]
+      summary: List the text-version history of a prompt part.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../shared.yaml#/components/schemas/TextVersionDto'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
+    BundlesTreeDto:
+      type: object
+      required:
+        - bundles
+      properties:
+        bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleNodeDto'
+    BundleNodeDto:
+      type: object
+      required:
+        - mode
+        - includes
+      properties:
+        mode:
+          type: string
+          description: Bundle mode (interview | work | dream | schema_map).
+        includes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleEntryNodeDto'
+    BundleEntryNodeDto:
+      type: object
+      required:
+        - scope
+        - key
+        - current_version
+        - text
+        - editable
+        - present
+      properties:
+        scope:
+          type: string
+          description: system | user.
+        key:
+          type: string
+          description: Prompt part key.
+        prompt_part_id:
+          type: string
+          nullable: true
+          description: PromptPart id. Null when a user entry is missing.
+        current_version:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Mongo current_version, or 0 if no record exists yet.
+        text:
+          type: string
+          description: Full text of the prompt part (empty string when a user entry is missing).
+        editable:
+          type: boolean
+          description: True only for user-scope entries.
+        present:
+          type: boolean
+          description: False when a user-scope record does not yet exist in Mongo.
     PromptPartModeRoleDto:
       type: object
       required:

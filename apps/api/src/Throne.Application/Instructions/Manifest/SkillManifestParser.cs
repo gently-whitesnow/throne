@@ -1,4 +1,3 @@
-using Throne.Domain.Instructions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 

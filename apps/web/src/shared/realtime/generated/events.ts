@@ -4,8 +4,8 @@
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
 import type { components as DreamsComponents } from "@/shared/api/generated/dreams/types";
-import type { components as InstructionPatchesComponents } from "@/shared/api/generated/instruction-patches/types";
 import type { components as IntentsComponents } from "@/shared/api/generated/intents/types";
+import type { components as PromptPartPatchesComponents } from "@/shared/api/generated/prompt-part-patches/types";
 import type { components as RepositoriesComponents } from "@/shared/api/generated/repositories/types";
 import type { components as TagsComponents } from "@/shared/api/generated/tags/types";
 
@@ -13,10 +13,6 @@ import type { components as TagsComponents } from "@/shared/api/generated/tags/t
 /** Discriminated payload type for each realtime event name. */
 export interface RealtimeEventMap {
   "dream_session.recorded": DreamsComponents["schemas"]["DreamSessionDto"];
-  "instruction_patch.applied": InstructionPatchesComponents["schemas"]["InstructionPatchDto"];
-  "instruction_patch.proposed": InstructionPatchesComponents["schemas"]["InstructionPatchDto"];
-  "instruction_patch.rejected": InstructionPatchesComponents["schemas"]["InstructionPatchDto"];
-  "instruction_patch.superseded": InstructionPatchesComponents["schemas"]["InstructionPatchDto"];
   "intent.attachment_added": IntentsComponents["schemas"]["IntentAttachmentDto"];
   "intent.attachment_deleted": { intent_id: string; attachment_id: string };
   "intent.created": IntentsComponents["schemas"]["IntentDetailDto"];
@@ -34,6 +30,10 @@ export interface RealtimeEventMap {
   "intent.tags_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.text_changed": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.unpinned": { intent_id: string; context_tag_id: string };
+  "prompt_part_patch.applied": PromptPartPatchesComponents["schemas"]["PromptPartPatchDto"];
+  "prompt_part_patch.proposed": PromptPartPatchesComponents["schemas"]["PromptPartPatchDto"];
+  "prompt_part_patch.rejected": PromptPartPatchesComponents["schemas"]["PromptPartPatchDto"];
+  "prompt_part_patch.superseded": PromptPartPatchesComponents["schemas"]["PromptPartPatchDto"];
   "repository.document_updated": { provider: string; owner: string; repo: string; slug: string; version: number };
   "repository.registered": RepositoriesComponents["schemas"]["RepositoryDto"];
   "tag.created": TagsComponents["schemas"]["TagDto"];
@@ -47,10 +47,6 @@ export type RealtimeEventName = keyof RealtimeEventMap;
 
 export const realtimeEventNames: readonly RealtimeEventName[] = [
   "dream_session.recorded",
-  "instruction_patch.applied",
-  "instruction_patch.proposed",
-  "instruction_patch.rejected",
-  "instruction_patch.superseded",
   "intent.attachment_added",
   "intent.attachment_deleted",
   "intent.created",
@@ -68,6 +64,10 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "intent.tags_changed",
   "intent.text_changed",
   "intent.unpinned",
+  "prompt_part_patch.applied",
+  "prompt_part_patch.proposed",
+  "prompt_part_patch.rejected",
+  "prompt_part_patch.superseded",
   "repository.document_updated",
   "repository.registered",
   "tag.created",

@@ -1,8 +1,8 @@
 import { useState } from "react";
 
-import type { InstructionPatchDetail } from "@/entities/instruction-patch";
-import { applyInstructionPatch } from "@/features/apply-instruction-patch";
-import { rejectInstructionPatch } from "@/features/reject-instruction-patch";
+import type { PromptPartPatchDetail } from "@/entities/prompt-part-patch";
+import { applyPromptPartPatch } from "@/features/apply-prompt-part-patch";
+import { rejectPromptPartPatch } from "@/features/reject-prompt-part-patch";
 import { Button } from "@/shared/ui";
 
 import { ApplyEditModal } from "./ApplyEditModal";
@@ -11,7 +11,7 @@ import { PatchStatusBadge } from "./PatchStatusBadge";
 import { RejectPatchModal } from "./RejectPatchModal";
 
 export interface PatchDetailPanelProps {
-  detail: InstructionPatchDetail;
+  detail: PromptPartPatchDetail;
   onChanged: () => void;
 }
 
@@ -43,15 +43,15 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
   return (
     <section
       className="flex flex-col gap-4 rounded-lg border border-base-300 bg-base-50 p-4"
-      aria-label={`InstructionPatch ${detail.patch.id}`}
+      aria-label={`PromptPartPatch ${detail.patch.id}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         <PatchStatusBadge status={detail.patch.status} />
         <span className="badge badge-soft badge-neutral">
-          target: {detail.patch.target_kind}
+          target: {detail.patch.target_scope}/{detail.patch.target_key}
         </span>
         <span className="badge badge-soft badge-neutral">
-          base v{String(detail.patch.base_instruction_version)}
+          base v{String(detail.patch.base_version)}
         </span>
         {!detail.base_version_matches_current ? (
           <span className="badge badge-soft badge-warning">needs rebase</span>
@@ -94,7 +94,7 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
             disabled={busy !== "idle"}
             onClick={() =>
               void runAction("apply", () =>
-                applyInstructionPatch({ patchId: detail.patch.id })
+                applyPromptPartPatch({ patchId: detail.patch.id })
               )
             }
           >
@@ -137,7 +137,7 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
         }}
         onConfirm={async (finalText) => {
           await runAction("apply-edit", () =>
-            applyInstructionPatch({ patchId: detail.patch.id, finalText })
+            applyPromptPartPatch({ patchId: detail.patch.id, finalText })
           );
           setShowEdit(false);
         }}
@@ -150,7 +150,7 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
         }}
         onConfirm={async (comment) => {
           await runAction("reject", () =>
-            rejectInstructionPatch({ patchId: detail.patch.id, comment })
+            rejectPromptPartPatch({ patchId: detail.patch.id, comment })
           );
           setShowReject(false);
         }}

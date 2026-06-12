@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 
 import type {
-  InstructionPatchDetail,
-  InstructionPatchStatus
-} from "@/entities/instruction-patch";
+  PromptPartPatchDetail,
+  PromptPartPatchStatus
+} from "@/entities/prompt-part-patch";
 
 import {
   buildSideBySideDiff,
@@ -12,7 +12,7 @@ import {
 } from "../lib/build-side-by-side-diff";
 
 /**
- * Patch preview with line-level red/green diff against the instruction's
+ * Patch preview with line-level red/green diff against the prompt part's
  * **base** version — i.e. the text the agent saw when proposing the patch.
  * The right side is status-aware:
  *
@@ -21,15 +21,14 @@ import {
  *   • rejected / superseded   → `patch_text` (what was proposed and discarded)
  *
  * For `proposed` patches with `base_version_matches_current=false` (someone
- * updated the instruction after the patch was proposed) we still diff
- * `base → proposed` cleanly and show a separate warning about current drift —
- * the previous "plain text both panes" fallback was illegible at a glance,
- * which is exactly what intent 22a26e3083e34a398e2cc59ac8114cf2 asked to fix.
+ * updated the prompt part after the patch was proposed) we still diff
+ * `base → proposed` cleanly and show a separate warning about current drift,
+ * instead of falling back to illegible "plain text in both panes".
  */
 export function PatchDiffPreview({
   detail
 }: {
-  detail: InstructionPatchDetail;
+  detail: PromptPartPatchDetail;
 }) {
   const view = useMemo(() => resolveDiffView(detail), [detail]);
   const rows = useMemo(
@@ -43,9 +42,9 @@ export function PatchDiffPreview({
     <div className="flex flex-col gap-2">
       {showStaleWarning ? (
         <p className="m-0 rounded border border-warning/30 bg-warning/10 px-3 py-2 text-xs leading-relaxed text-warning-content/90">
-          Патч предложен против v{String(detail.patch.base_instruction_version)}
-          , текущая инструкция — v{String(detail.current_instruction_version)}.
-          Дифф ниже сравнивает base → proposed; apply без правок повлечёт 409
+          Патч предложен против v{String(detail.patch.base_version)}, текущая
+          версия части — v{String(detail.current_part_version)}. Дифф ниже
+          сравнивает base → proposed; apply без правок повлечёт 409
           needs_rebase.
         </p>
       ) : null}
@@ -75,14 +74,14 @@ interface DiffView {
   rightLabel: string;
 }
 
-function resolveDiffView(detail: InstructionPatchDetail): DiffView {
-  const baseVersion = detail.patch.base_instruction_version;
+function resolveDiffView(detail: PromptPartPatchDetail): DiffView {
+  const baseVersion = detail.patch.base_version;
   const leftLabel = `Base v${String(baseVersion)}`;
-  const leftText = detail.base_instruction_text;
-  const status: InstructionPatchStatus = detail.patch.status;
+  const leftText = detail.base_part_text;
+  const status: PromptPartPatchStatus = detail.patch.status;
 
   if (status === "applied" || status === "applied_edited") {
-    const appliedVersion = detail.patch.applied_instruction_version;
+    const appliedVersion = detail.patch.applied_version;
     const rightLabel = `Applied${
       appliedVersion ? ` v${String(appliedVersion)}` : ""
     }${status === "applied_edited" ? " (edited)" : ""}`;
