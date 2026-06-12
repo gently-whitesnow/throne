@@ -51,6 +51,7 @@ public static class ErrorCodes
     public const string PromptPartNotFound = "prompt_part.not_found";
     public const string PromptPartAlreadyExists = "prompt_part.already_exists";
     public const string PromptPartVersionConflict = "prompt_part.version_conflict";
+    public const string PromptPartHasRoles = "prompt_part.has_roles";
 
     // Single 422 code for both no-match and ambiguous-match; the reason is carried in the
     // problem extensions (kept as one constant to stay within the ErrorCodes member budget).

@@ -15,6 +15,8 @@ internal static class PromptPartsErrorMapper
             new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Prompt part already exists", ex)),
         ErrorCodes.PromptPartVersionConflict =>
             new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Prompt part version conflict", ex)),
+        ErrorCodes.PromptPartHasRoles =>
+            new ConflictObjectResult(ApiProblems.Build(StatusCodes.Status409Conflict, "Prompt part still has roles", ex)),
         ErrorCodes.PromptPartTextMatchFailed =>
             new UnprocessableEntityObjectResult(ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Prompt part text match error", ex)),
         ErrorCodes.ValidationFailed =>

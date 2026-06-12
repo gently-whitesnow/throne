@@ -23,4 +23,6 @@ public interface IPromptPartRepository
         IReadOnlyList<PromptPartModeRole> modeRoles,
         DateTimeOffset now,
         CancellationToken ct);
+
+    Task<DeletePromptPartOutcome> DeleteAsync(PromptPartId id, CancellationToken ct);
 }

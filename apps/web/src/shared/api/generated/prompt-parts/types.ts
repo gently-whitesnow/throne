@@ -33,7 +33,8 @@ export interface paths {
         get: operations["getPromptPart"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Hard-delete a user prompt part (only when it has no roles in any mode). */
+        delete: operations["deletePromptPart"];
         options?: never;
         head?: never;
         patch?: never;
@@ -131,6 +132,10 @@ export interface components {
         SetPromptPartRolesRequest: {
             /** @description Whole-replace list of per-mode roles. Empty array detaches the part from every mode. */
             mode_roles: components["schemas"]["PromptPartModeRoleDto"][];
+        };
+        DeletePromptPartResponse: {
+            /** @description Id of the deleted prompt part. */
+            prompt_part_id: string;
         };
         ProblemDetails: {
             type: string;
@@ -247,6 +252,46 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    deletePromptPart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletePromptPartResponse"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The part still has roles in one or more modes. Detach all roles first. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

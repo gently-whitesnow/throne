@@ -77,6 +77,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    delete:
+      operationId: deletePromptPart
+      tags: [PromptParts]
+      summary: Hard-delete a user prompt part (only when it has no roles in any mode).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletePromptPartResponse'
+        '404':
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: The part still has roles in one or more modes. Detach all roles first.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/prompt-parts/{id}/replace-text:
     post:
       operationId: replacePromptPartText
@@ -285,3 +314,11 @@ components:
           description: Whole-replace list of per-mode roles. Empty array detaches the part from every mode.
           items:
             $ref: '#/components/schemas/PromptPartModeRoleDto'
+    DeletePromptPartResponse:
+      type: object
+      required:
+        - prompt_part_id
+      properties:
+        prompt_part_id:
+          type: string
+          description: Id of the deleted prompt part.

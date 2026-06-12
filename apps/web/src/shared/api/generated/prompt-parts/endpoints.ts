@@ -7,6 +7,7 @@ export const promptPartsEndpoints = {
   listPromptParts: () => "/prompt-parts",
   createPromptPart: () => "/prompt-parts",
   getPromptPart: (id: string) => `/prompt-parts/${id}`,
+  deletePromptPart: (id: string) => `/prompt-parts/${id}`,
   replacePromptPartText: (id: string) => `/prompt-parts/${id}/replace-text`,
   setPromptPartRoles: (id: string) => `/prompt-parts/${id}/roles`,
 } as const;
