@@ -10,7 +10,8 @@ namespace Throne.Api.Terminals;
 public sealed class TerminalController(
     RunPreflightOrchestrator orchestrator,
     TerminalSessionStatusService statusService,
-    TerminalSessionKillService killService) : TerminalControllerBase
+    TerminalSessionKillService killService,
+    ILogger<TerminalController> logger) : TerminalControllerBase
 {
     public override Task<ActionResult<RunIntentTerminalResponse>> RunIntentTerminal(
         string intent_id,
@@ -46,6 +47,14 @@ public sealed class TerminalController(
         {
             return TerminalErrorMapper.Map(ex);
         }
+    }
+
+    public override Task<IActionResult> ReceiveIntentTerminalHook(
+        string intent_id,
+        Event @event)
+    {
+        TerminalEndpointLog.HookReceived(logger, intent_id, @event);
+        return Task.FromResult<IActionResult>(Ok());
     }
 
     private async Task<ActionResult<RunIntentTerminalResponse>> ExecuteAsync(
