@@ -407,10 +407,10 @@ export interface components {
             name: string;
         };
         /**
-         * @description Current workflow status of the intent. `ready_for_review` and `needs_help` together form the «inbox»: agent finished successfully (`ready_for_review`) or got stuck and asks the operator for input (`needs_help`). `fridge` is the user-only «later» bucket.
+         * @description Current workflow status of the intent. `ready_for_review` and `awaiting_operator` together form the «inbox»: agent finished successfully (`ready_for_review`) or stopped mid-pass and waits for operator input (`awaiting_operator`). `fridge` is the user-only «later» bucket.
          * @enum {string}
          */
-        IntentStatus: "draft" | "interview" | "ready_for_work" | "work" | "ready_for_review" | "needs_help" | "done" | "reject" | "fridge";
+        IntentStatus: "draft" | "interview" | "ready_for_work" | "work" | "ready_for_review" | "awaiting_operator" | "done" | "reject" | "fridge";
         SetIntentStatusRequest: {
             status: components["schemas"]["IntentStatus"];
             /** @description Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason. */
@@ -465,7 +465,7 @@ export interface components {
             inbox_review: number;
             /**
              * Format: int32
-             * @description Intents in status `needs_help` (inbox «нужна помощь»).
+             * @description Intents in status `awaiting_operator` (inbox «жду ответа»).
              */
             inbox_help: number;
             /**

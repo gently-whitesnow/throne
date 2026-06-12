@@ -27,14 +27,14 @@ public sealed class IntentStatusTools(
         "Move an Intent to any workflow status. Single write-surface for status transitions — there are no per-status tools. " +
         "Agent-driven transitions you initiate on your own: 'ready_for_work' when interview is done and the formulation is clear, " +
         "'ready_for_review' when a work pass is finished and the operator can come for acceptance, " +
-        "'needs_help' when you are genuinely blocked (missing access/info, ambiguous architecture, external dependency) — " +
-        "before calling needs_help, append a short note to Intent.text describing what is needed from the operator. " +
+        "'awaiting_operator' when you stopped mid-pass and need operator input (missing access/info, ambiguous architecture, external dependency, a question to confirm) — " +
+        "before calling awaiting_operator, append a short note to Intent.text describing what is needed from the operator. " +
         "Other statuses ('draft', 'interview', 'work', 'done', 'reject', 'fridge') are visible and applicable, but apply them only when the operator explicitly asks " +
         "(\"send to fridge\", \"reject this\", \"close as done\", etc.). 'interview' / 'work' are also auto-set by the server on read of the matching instruction bundle. " +
         "Reason is optional for any transition (recorded in the status-change log) and required for 'reject' (also appended to Intent.text as the rejection reason).")]
     public Task<Intent> SetIntentStatus(
         [Description("Intent id to mutate.")] string intent_id,
-        [Description("Target status: draft | interview | ready_for_work | work | ready_for_review | needs_help | done | reject | fridge.")] string status,
+        [Description("Target status: draft | interview | ready_for_work | work | ready_for_review | awaiting_operator | done | reject | fridge.")] string status,
         [Description("Optional free-text reason for the transition. Recorded in intent_status_changes.reason. Required when status='reject' (also appended to Intent.text).")] string? reason = null,
         CancellationToken cancellationToken = default) =>
         setStatus.HandleAsync(

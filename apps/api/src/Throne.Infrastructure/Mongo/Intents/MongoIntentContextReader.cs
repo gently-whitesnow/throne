@@ -24,7 +24,7 @@ internal sealed class MongoIntentContextReader(
     private static readonly string[] ActiveStatuses =
     [
         IntentStatusNames.Draft, IntentStatusNames.Interview, IntentStatusNames.ReadyForWork,
-        IntentStatusNames.Work, IntentStatusNames.ReadyForReview, IntentStatusNames.NeedsHelp,
+        IntentStatusNames.Work, IntentStatusNames.ReadyForReview, IntentStatusNames.AwaitingOperator,
     ];
 
     private static readonly string[] ArchiveStatuses =
@@ -73,7 +73,7 @@ internal sealed class MongoIntentContextReader(
 
         return new IntentContextCounts(
             InboxReview: Lookup(byStatus, IntentStatusNames.ReadyForReview),
-            InboxHelp: Lookup(byStatus, IntentStatusNames.NeedsHelp),
+            InboxHelp: Lookup(byStatus, IntentStatusNames.AwaitingOperator),
             Fridge: Lookup(byStatus, IntentStatusNames.Fridge),
             Archive: Lookup(byStatus, IntentStatusNames.Done) + Lookup(byStatus, IntentStatusNames.Reject),
             Pinned: pinned,

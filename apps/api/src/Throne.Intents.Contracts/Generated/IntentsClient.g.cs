@@ -271,7 +271,7 @@ namespace Throne.Intents.Contracts.Generated
     }
 
     /// <summary>
-    /// Current workflow status of the intent. `ready_for_review` and `needs_help` together form the «inbox»: agent finished successfully (`ready_for_review`) or got stuck and asks the operator for input (`needs_help`). `fridge` is the user-only «later» bucket.
+    /// Current workflow status of the intent. `ready_for_review` and `awaiting_operator` together form the «inbox»: agent finished successfully (`ready_for_review`) or stopped mid-pass and waits for operator input (`awaiting_operator`). `fridge` is the user-only «later» bucket.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -298,9 +298,9 @@ namespace Throne.Intents.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"ready_for_review")]
         Ready_for_review = 4,
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"needs_help")]
-        [System.Runtime.Serialization.EnumMember(Value = @"needs_help")]
-        Needs_help = 5,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"awaiting_operator")]
+        [System.Runtime.Serialization.EnumMember(Value = @"awaiting_operator")]
+        Awaiting_operator = 5,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"done")]
         [System.Runtime.Serialization.EnumMember(Value = @"done")]
@@ -507,7 +507,7 @@ namespace Throne.Intents.Contracts.Generated
         public int Inbox_review { get; set; }
 
         /// <summary>
-        /// Intents in status `needs_help` (inbox «нужна помощь»).
+        /// Intents in status `awaiting_operator` (inbox «жду ответа»).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("inbox_help")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]

@@ -16,7 +16,7 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 {
     // ACTIVE bucket statuses (non-archive, non-fridge) used by the "untagged" / tag contexts.
     private const string ActiveStatusQuery =
-        "status=draft&status=interview&status=ready_for_work&status=work&status=ready_for_review&status=needs_help";
+        "status=draft&status=interview&status=ready_for_work&status=work&status=ready_for_review&status=awaiting_operator";
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
@@ -80,7 +80,7 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
         var review = await CreateAsync("r1", []);
         await SetStatusAsync(review.Id, "ready_for_review");
         var help = await CreateAsync("h1", []);
-        await SetStatusAsync(help.Id, "needs_help");
+        await SetStatusAsync(help.Id, "awaiting_operator");
         var fridge = await CreateAsync("f1", []);
         await SetStatusAsync(fridge.Id, "fridge");
 
@@ -109,7 +109,7 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 
         // Definition of done: every bucket equals what LIST returns with the matching context filter.
         (await ListCountAsync("status=ready_for_review")).Should().Be(counts.InboxReview);
-        (await ListCountAsync("status=needs_help")).Should().Be(counts.InboxHelp);
+        (await ListCountAsync("status=awaiting_operator")).Should().Be(counts.InboxHelp);
         (await ListCountAsync("status=fridge")).Should().Be(counts.Fridge);
         (await ListCountAsync("status=done&status=reject")).Should().Be(counts.Archive);
         (await ListCountAsync("pinned=true")).Should().Be(counts.Pinned);
