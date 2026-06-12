@@ -17,12 +17,13 @@ public class AgentSpawnCommandTests
             "--model", "opus", "--effort", "high", "Прочитай бандл work и выполни интент x");
     }
 
-    [Fact(DisplayName = "claude: settings-файл передаётся через --settings до позиционного промпта")]
-    public void Claude_adds_settings_flag_before_prompt()
+    [Fact(DisplayName = "hook-аргументы адаптера вставляются после флагов и до позиционного промпта")]
+    public void Hook_args_inserted_before_prompt()
     {
         var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorClaude, "opus", "high");
 
-        var invocation = AgentSpawnCommand.Build(options, "промпт", isFree: false, "/tmp/settings.json");
+        var invocation = AgentSpawnCommand.Build(
+            options, "промпт", isFree: false, ["--settings", "/tmp/settings.json"]);
 
         invocation.Arguments.Should().Equal(
             "--model", "opus", "--effort", "high", "--settings", "/tmp/settings.json", "промпт");
@@ -43,15 +44,21 @@ public class AgentSpawnCommandTests
             "промпт");
     }
 
-    [Fact(DisplayName = "codex: settings-файл Claude игнорируется")]
-    public void Codex_ignores_claude_settings()
+    [Fact(DisplayName = "codex: hook-аргументы добавляются после bypass-флага и до промпта")]
+    public void Codex_appends_hook_args()
     {
         var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorCodex, "gpt-5.5", "medium");
 
-        var invocation = AgentSpawnCommand.Build(options, "промпт", isFree: false, "/tmp/settings.json");
+        var invocation = AgentSpawnCommand.Build(
+            options, "промпт", isFree: false, ["-c", "hooks.Stop=[]", "--dangerously-bypass-hook-trust"]);
 
-        invocation.Arguments.Should().NotContain("--settings");
-        invocation.Arguments.Should().NotContain("/tmp/settings.json");
+        invocation.Arguments.Should().Equal(
+            "-m", "gpt-5.5",
+            "-c", "model_reasoning_effort=medium",
+            "--dangerously-bypass-approvals-and-sandbox",
+            "-c", "hooks.Stop=[]",
+            "--dangerously-bypass-hook-trust",
+            "промпт");
     }
 
     [Fact(DisplayName = "free-режим не добавляет позиционный промпт, но сохраняет флаги")]

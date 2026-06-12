@@ -5,21 +5,23 @@ using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.Tests.Terminals;
 
-public class ClaudeSessionSettingsWriterTests
+public class ClaudeSessionHookAdapterTests
 {
-    [Fact(DisplayName = "Пишет per-session settings с Stop-hook на локальный API")]
-    public async Task Writes_stop_hook_settings()
+    [Fact(DisplayName = "Пишет per-session settings с Stop-hook и возвращает --settings <файл>")]
+    public async Task Writes_stop_hook_settings_and_returns_flag()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionSettingsWriter(new ClaudeSessionHookOptions
+        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions
         {
             ApiBaseUrl = "http://localhost:5008/",
         });
 
-        var path = await sut.WriteAsync("intent-1", root, CancellationToken.None);
+        var args = await sut.PrepareSpawnArgsAsync("intent-1", root, CancellationToken.None);
 
-        path.Should().Be(Path.Combine(root, "throne-session.settings.json"));
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path));
+        var settingsPath = Path.Combine(root, "throne-session.settings.json");
+        args.Should().Equal("--settings", settingsPath);
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(settingsPath));
         var command = document.RootElement
             .GetProperty("hooks")
             .GetProperty("Stop")[0]

@@ -4,7 +4,12 @@ using Throne.Application.Terminals;
 
 namespace Throne.Infrastructure.Terminals;
 
-public sealed class ClaudeSessionSettingsWriter(ClaudeSessionHookOptions options) : IClaudeSessionSettingsWriter
+/// <summary>
+/// Claude flavour of <see cref="ISessionHookAdapter"/>: writes a per-session settings file in the
+/// intent workspace root and points the CLI at it with <c>--settings &lt;file&gt;</c>. The file lives
+/// beside the clone (never inside it), so the repo stays free of runtime state.
+/// </summary>
+public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
 {
     private const string SettingsFileName = "throne-session.settings.json";
     private const string StopEvent = "Stop";
@@ -15,18 +20,23 @@ public sealed class ClaudeSessionSettingsWriter(ClaudeSessionHookOptions options
         WriteIndented = true,
     };
 
-    public async Task<string> WriteAsync(string intentId, string workspacePath, CancellationToken ct)
+    public string Vendor => TerminalAgentCatalog.VendorClaude;
+
+    public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
+        string intentId, string workspacePath, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
 
         Directory.CreateDirectory(workspacePath);
         var settingsPath = Path.Combine(workspacePath, SettingsFileName);
-        var settings = BuildSettings(intentId);
-        await using var stream = File.Create(settingsPath);
-        await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, ct);
-        await stream.WriteAsync("\n"u8.ToArray(), ct);
-        return settingsPath;
+        await using (var stream = File.Create(settingsPath))
+        {
+            await JsonSerializer.SerializeAsync(stream, BuildSettings(intentId), JsonOptions, ct);
+            await stream.WriteAsync("\n"u8.ToArray(), ct);
+        }
+
+        return ["--settings", settingsPath];
     }
 
     private object BuildSettings(string intentId) =>
@@ -43,7 +53,8 @@ public sealed class ClaudeSessionSettingsWriter(ClaudeSessionHookOptions options
                             new
                             {
                                 type = "command",
-                                command = BuildCurlCommand(intentId, StopEvent),
+                                command = TerminalHookCallback.CurlCommand(
+                                    options.ApiBaseUrl, intentId, StopEvent),
                                 timeout = 10,
                             },
                         },
@@ -51,14 +62,4 @@ public sealed class ClaudeSessionSettingsWriter(ClaudeSessionHookOptions options
                 ],
             },
         };
-
-    private string BuildCurlCommand(string intentId, string hookEvent)
-    {
-        var baseUrl = options.ApiBaseUrl.TrimEnd('/');
-        var url = $"{baseUrl}/api/v1/intents/{Uri.EscapeDataString(intentId)}/terminal/hooks/{hookEvent}";
-        return $"curl -s -X POST {ShellQuote(url)} -H 'Content-Type: application/json' -d @-";
-    }
-
-    private static string ShellQuote(string value) =>
-        $"'{value.Replace("'", "'\"'\"'", StringComparison.Ordinal)}'";
 }
