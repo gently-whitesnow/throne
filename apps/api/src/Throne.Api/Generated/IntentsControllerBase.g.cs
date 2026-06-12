@@ -96,6 +96,17 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> SetIntentStatus([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetIntentStatusRequest body);
 
         /// <summary>
+        /// Set the teardown-on-done gate.
+        /// </summary>
+        /// <remarks>
+        /// Sets `cleanup_local_state_on_done` on the intent. When true (default), reaching `done` wipes the workspace folder + agent trust entries and kills the agent terminal session; when false both survive past `done`. Targeted metadata write — does not bump version nor touch text/status. Exposed on both the intent page and the review merge control.
+        /// </remarks>
+        /// <param name="id">Intent identifier (24 hex chars, ObjectId-shaped).</param>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/cleanup-on-done", Name = "setIntentCleanupOnDone")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> SetIntentCleanupOnDone([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetIntentCleanupOnDoneRequest body);
+
+        /// <summary>
         /// Replace the set of tags attached to an Intent.
         /// </summary>
         /// <returns>OK</returns>

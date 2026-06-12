@@ -47,6 +47,14 @@ internal static class IntentsErrorMapper
             _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
         };
 
+    public static ActionResult<IntentDetailDto> MapSetCleanupOnDone(ApiException ex) =>
+        ex.Code switch
+        {
+            ErrorCodes.IntentNotFound =>
+                new NotFoundObjectResult(ApiProblems.NotFound("Intent not found", ex.Detail)),
+            _ => throw new InvalidOperationException($"Unexpected API error code: {ex.Code}.", ex),
+        };
+
     public static ActionResult<IntentDetailDto> MapMove(ApiException ex) =>
         ex.Code switch
         {
