@@ -19,6 +19,12 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// <c>-c model_reasoning_effort="high"</c> for a shell, here it is the unquoted
 /// <c>model_reasoning_effort=high</c> token.
 ///
+/// Upfront context (ADR-0034): the embedded contour injects the assembled rules block and the
+/// task as the session's starting context instead of asking the agent to read a bundle. The
+/// rules go to a per-vendor system-context channel (Claude <c>--append-system-prompt</c>, Codex
+/// <c>-c developer_instructions</c> — additive, not a base-prompt replacement), the task is the
+/// positional initial user message. Empty rules/task drop their tokens so a bare boot stays bare.
+///
 /// codex launches with <c>--dangerously-bypass-approvals-and-sandbox</c> (alias <c>--yolo</c>):
 /// the operator presses run and walks away, so mid-task approval prompts on routine work
 /// (git fetch / branch from a remote ref, dependency install — all blocked by the default
@@ -27,51 +33,78 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// </summary>
 public static class AgentSpawnCommand
 {
-    /// <param name="prompt">Boot prompt. Appended as a positional arg unless <paramref name="isFree"/>.</param>
-    /// <param name="isFree">
-    /// Free mode boots the agent bare (no positional prompt — it would auto-run) and the
-    /// operator's editable prompt is pre-typed afterwards. Model/effort flags still apply.
+    /// <param name="systemPrompt">
+    /// Assembled rules block for the agent's system-context channel. Null/blank → no system
+    /// context is injected (e.g. free mode with no curated parts).
+    /// </param>
+    /// <param name="userPrompt">
+    /// Task delivered as the positional initial user message. Null/blank → the agent boots
+    /// without a pre-filled prompt (operator types into the live session themselves).
     /// </param>
     /// <param name="hookArgs">
     /// Per-session hook injection tokens from the vendor's <see cref="ISessionHookAdapter"/>,
-    /// inserted after the base model/effort flags and before the positional prompt. Vendor-neutral
+    /// inserted after the model/effort/system flags and before the positional task. Vendor-neutral
     /// here — the adapter owns what they mean (Claude <c>--settings &lt;file&gt;</c>, Codex inline
     /// <c>-c hooks...</c> + bypass flag).
     /// </param>
     public static AgentSpawnInvocation Build(
         TerminalLaunchOptions options,
-        string prompt,
-        bool isFree,
+        string? systemPrompt,
+        string? userPrompt,
         IReadOnlyList<string>? hookArgs = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
 
-        var args = options.Vendor switch
-        {
-            TerminalAgentCatalog.VendorClaude =>
-                new List<string> { "--model", options.Model, "--effort", options.Effort },
-            TerminalAgentCatalog.VendorCodex =>
-                new List<string>
-                {
-                    "-m", options.Model,
-                    "-c", $"model_reasoning_effort={options.Effort}",
-                    "--dangerously-bypass-approvals-and-sandbox",
-                },
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
-        };
+        var args = BaseArgs(options);
+        AppendSystemPrompt(options.Vendor, args, systemPrompt);
 
         if (hookArgs is { Count: > 0 })
         {
             args.AddRange(hookArgs);
         }
 
-        if (!isFree)
+        if (!string.IsNullOrWhiteSpace(userPrompt))
         {
-            args.Add(prompt);
+            args.Add(userPrompt);
         }
 
         return new AgentSpawnInvocation(options.Vendor, args);
+    }
+
+    private static List<string> BaseArgs(TerminalLaunchOptions options) => options.Vendor switch
+    {
+        TerminalAgentCatalog.VendorClaude =>
+            ["--model", options.Model, "--effort", options.Effort],
+        TerminalAgentCatalog.VendorCodex =>
+            [
+                "-m", options.Model,
+                "-c", $"model_reasoning_effort={options.Effort}",
+                "--dangerously-bypass-approvals-and-sandbox",
+            ],
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
+    };
+
+    private static void AppendSystemPrompt(string vendor, List<string> args, string? systemPrompt)
+    {
+        if (string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            return;
+        }
+
+        switch (vendor)
+        {
+            case TerminalAgentCatalog.VendorClaude:
+                args.Add("--append-system-prompt");
+                args.Add(systemPrompt);
+                break;
+            case TerminalAgentCatalog.VendorCodex:
+                args.Add("-c");
+                args.Add($"developer_instructions={CodexConfigValue.ToToml(systemPrompt)}");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(vendor), $"Unknown terminal vendor '{vendor}'.");
+        }
     }
 }

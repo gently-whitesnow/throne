@@ -21,6 +21,29 @@ export type TerminalSessionState =
 export type RunIntentTerminalResponse =
   TerminalComponents["schemas"]["RunIntentTerminalResponse"];
 
+export type IntentTerminalPreviewResponse =
+  TerminalComponents["schemas"]["IntentTerminalPreviewResponse"];
+
+export type PromptPartPreview =
+  TerminalComponents["schemas"]["PromptPartPreviewDto"];
+
+export type IntentTextUpdate =
+  TerminalComponents["schemas"]["IntentTextUpdate"];
+
+/**
+ * Полезная нагрузка одного запуска из preflight-модалки: ось запуска плюс
+ * собранный контекст (выбранные части, итоговые system/user промпты) и
+ * опциональное сохранение тела интента. Backend берёт system/user verbatim —
+ * фронт runtime-промпт не пересобирает (ADR-0030/0035).
+ */
+export interface TerminalRunPayload {
+  launch: TerminalLaunchArgs;
+  selectedPartIds: string[];
+  systemPrompt: string;
+  userPrompt: string;
+  intentTextUpdate: IntentTextUpdate | null;
+}
+
 // Dream намеренно отсутствует: dream-режим запускается вне контекста интента,
 // поэтому в панели запуска агента на странице интента он не предлагается.
 // free доступен в любом статусе — оператор сам формулирует задачу терминалу.

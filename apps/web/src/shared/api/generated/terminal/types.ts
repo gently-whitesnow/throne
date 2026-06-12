@@ -24,9 +24,12 @@ export interface paths {
          *     3. Wait until every binding reaches `clone_status=ready`. If anything settles
          *        on `failed` / `broken`, the spawn is skipped and `session_state=blocked`
          *        with `blocking_bindings` populated.
-         *     4. Spawn `tmux new -ADs throne-{intent_id} -- claude "{prompt}"` only after
-         *        all bindings are ready. `tmux has-session -t throne-{intent_id}` is the
-         *        single source of truth — Throne persists nothing about the session.
+         *     4. Validate `selected_part_ids`, optionally persist `intent_text_update`
+         *        (optimistic concurrency — a conflict aborts here), then spawn the chosen
+         *        agent with `system_prompt` as upfront system context and `user_prompt` as the
+         *        initial message, only after all bindings are ready.
+         *        `tmux has-session -t throne-{intent_id}` is the single source of truth —
+         *        Throne persists nothing about the session.
          *
          *     Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
          */
@@ -142,7 +145,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Bundle-mode the spawned `claude` process is asked to read. For `work`/`interview`/`dream` the prompt is hardcoded into the template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`). `free` reads no bundle: claude is spawned bare and the editable text `прочитай интент {id} и <твой вопрос>` is pre-typed into the prompt (not submitted) so the operator finishes the question themselves.
+         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
          * @enum {string}
          */
         TerminalRunMode: "work" | "interview" | "dream" | "free";
@@ -170,6 +173,25 @@ export interface components {
             model?: string | null;
             /** @description Omitted → the chosen vendor's native default effort. */
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
+            /** @description Optional part ids the operator left enabled in the pre-flight modal. The server validates each id against the parts available in `mode` (unknown ids → 422) but does NOT recompose `system_prompt` from them — the assembled text travels in `system_prompt`. Omitted → no optional parts were curated for this run. */
+            selected_part_ids?: string[] | null;
+            /** @description Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected. */
+            system_prompt?: string | null;
+            /** @description Final task text (intent body draft plus the operator's per-run input) delivered verbatim as the agent's initial user message. Empty/omitted → the agent boots without a pre-filled prompt. */
+            user_prompt?: string | null;
+            /** @description Present only when the operator opted to persist their task-zone edit to `Intent.text` before spawn. Applied with optimistic concurrency; a version conflict aborts the spawn (the agent never starts on a stale edit). */
+            intent_text_update?: components["schemas"]["IntentTextUpdate"] | null;
+        };
+        IntentTextUpdate: {
+            /**
+             * Format: int32
+             * @description current_version observed at preview time; must still match or the spawn is blocked with 409.
+             */
+            expected_version: number;
+            /** @description Intent body as shown in the modal before editing (the full pre-edit text). */
+            old_text: string;
+            /** @description Edited intent body to persist. */
+            new_text: string;
         };
         /**
          * @description Mirror of `repositories#/components/schemas/CloneStatus`. Duplicated here so this contract generator never reaches out across files (NSwag does not resolve relative `$ref` between OpenAPI documents). Keep enum values in sync — see ADR-0024 § 5 for the lifecycle.
@@ -217,6 +239,11 @@ export interface components {
         };
         IntentTerminalPreviewResponse: {
             intent_id: string;
+            /**
+             * Format: int32
+             * @description current_version of the intent at preview time. The modal echoes it back as `intent_text_update.expected_version` when the operator persists a task-zone edit.
+             */
+            intent_version: number;
             mode: components["schemas"]["TerminalRunMode"];
             /** @description Every part available in the mode (mandatory + optional), ordered as assembled. */
             parts: components["schemas"]["PromptPartPreviewDto"][];
@@ -280,7 +307,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description A tmux session for this intent is already running — call `restart` instead. */
+            /** @description A tmux session for this intent is already running (call `restart` instead), or the `intent_text_update.expected_version` no longer matches — the spawn was aborted. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -289,7 +316,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Capability `terminal` disabled, prerequisite missing, or invalid mode. */
+            /** @description Capability `terminal` disabled, prerequisite missing, invalid mode, or unknown selected parts. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -373,7 +400,16 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Capability `terminal` disabled, prerequisite missing, or invalid mode. */
+            /** @description The `intent_text_update.expected_version` no longer matches — the spawn was aborted. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Capability `terminal` disabled, prerequisite missing, invalid mode, or unknown selected parts. */
             422: {
                 headers: {
                     [name: string]: unknown;

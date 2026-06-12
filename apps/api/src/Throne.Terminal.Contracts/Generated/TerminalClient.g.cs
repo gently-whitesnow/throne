@@ -27,7 +27,7 @@ namespace Throne.Terminal.Contracts.Generated
     
 
     /// <summary>
-    /// Bundle-mode the spawned `claude` process is asked to read. For `work`/`interview`/`dream` the prompt is hardcoded into the template `Прочитай бандл {mode} и {verb} интент {id}` — see Slice 2 decisions Q8 (`feedback_throne_bundle_prompt`). `free` reads no bundle: claude is spawned bare and the editable text `прочитай интент {id} и &lt;твой вопрос&gt;` is pre-typed into the prompt (not submitted) so the operator finishes the question themselves.
+    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -153,6 +153,70 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("effort")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
         public TerminalReasoningEffort? Effort { get; set; }
+
+        /// <summary>
+        /// Optional part ids the operator left enabled in the pre-flight modal. The server validates each id against the parts available in `mode` (unknown ids → 422) but does NOT recompose `system_prompt` from them — the assembled text travels in `system_prompt`. Omitted → no optional parts were curated for this run.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected_part_ids")]
+        public System.Collections.Generic.ICollection<string> Selected_part_ids { get; set; }
+
+        /// <summary>
+        /// Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("system_prompt")]
+        public string System_prompt { get; set; }
+
+        /// <summary>
+        /// Final task text (intent body draft plus the operator's per-run input) delivered verbatim as the agent's initial user message. Empty/omitted → the agent boots without a pre-filled prompt.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("user_prompt")]
+        public string User_prompt { get; set; }
+
+        /// <summary>
+        /// Present only when the operator opted to persist their task-zone edit to `Intent.text` before spawn. Applied with optimistic concurrency; a version conflict aborts the spawn (the agent never starts on a stale edit).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_text_update")]
+        public IntentTextUpdate Intent_text_update { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentTextUpdate
+    {
+
+        /// <summary>
+        /// current_version observed at preview time; must still match or the spawn is blocked with 409.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Expected_version { get; set; }
+
+        /// <summary>
+        /// Intent body as shown in the modal before editing (the full pre-edit text).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("old_text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Old_text { get; set; }
+
+        /// <summary>
+        /// Edited intent body to persist.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("new_text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string New_text { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -372,6 +436,14 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("intent_id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Intent_id { get; set; }
+
+        /// <summary>
+        /// current_version of the intent at preview time. The modal echoes it back as `intent_text_update.expected_version` when the operator persists a task-zone edit.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intent_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Intent_version { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("mode")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

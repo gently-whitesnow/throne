@@ -1,4 +1,3 @@
-using System.Text;
 using Throne.Application.Terminals;
 
 namespace Throne.Infrastructure.Terminals;
@@ -35,30 +34,10 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options) : ISessi
             var command = TerminalHookCallback.CurlCommand(options.ApiBaseUrl, intentId, hookEvent, mode);
             args.Add("-c");
             args.Add(
-                $"hooks.{hookEvent}=[{{hooks=[{{type=\"command\",command={TomlBasicString(command)},timeout=10}}]}}]");
+                $"hooks.{hookEvent}=[{{hooks=[{{type=\"command\",command={CodexConfigValue.ToToml(command)},timeout=10}}]}}]");
         }
 
         args.Add(BypassHookTrustFlag);
         return Task.FromResult<IReadOnlyList<string>>(args);
-    }
-
-    private static string TomlBasicString(string value)
-    {
-        var sb = new StringBuilder(value.Length + 2);
-        sb.Append('"');
-        foreach (var ch in value)
-        {
-            switch (ch)
-            {
-                case '\\': sb.Append("\\\\"); break;
-                case '"': sb.Append("\\\""); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\t': sb.Append("\\t"); break;
-                default: sb.Append(ch); break;
-            }
-        }
-        sb.Append('"');
-        return sb.ToString();
     }
 }

@@ -13,16 +13,19 @@ public sealed class RunPreflightOrchestrator(
     RunPreflightCloneScheduler cloneQueue,
     RunPreflightCloneWait cloneWait,
     RunPreflightSpawn spawner,
+    RunPreflightPromptGate promptGate,
     TerminalLaunchResolver launchResolver)
 {
     public async Task<RunPreflightResult> RunAsync(
         string intentId,
         string mode,
         TerminalLaunchInput launch,
+        TerminalSpawnPrompt prompt,
         bool restart,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(launch);
+        ArgumentNullException.ThrowIfNull(prompt);
         RunPreflightModeGuard.EnsureKnown(mode);
         var launchOptions = await launchResolver.ResolveAsync(launch.Vendor, launch.Model, launch.Effort, ct);
         await guards.EnsureCapabilityEnabledAsync(ct);
@@ -43,7 +46,11 @@ public sealed class RunPreflightOrchestrator(
                 intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking);
         }
 
-        await spawner.SpawnAsync(intent.Id, sessionName, mode, launchOptions, ct);
+        // Validate the curated selection and persist the task-zone edit (optimistic concurrency)
+        // before spawn — a version conflict throws here so the agent never starts on a stale edit.
+        await promptGate.ApplyAsync(intent, mode, prompt, ct);
+
+        await spawner.SpawnAsync(intent.Id, sessionName, mode, launchOptions, prompt, ct);
         return RunPreflightSession.BuildResult(
             intent.Id.Value, sessionName, TerminalSessionStates.Running, waitResult.Bindings, blockingBindings: []);
     }
