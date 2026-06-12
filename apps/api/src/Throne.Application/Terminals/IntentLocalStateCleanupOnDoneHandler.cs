@@ -26,6 +26,7 @@ public sealed partial class IntentLocalStateCleanupOnDoneHandler(
     IWorkspaceTrust trust,
     IWorkspaceDirectoryRemover directories,
     IWorkspaceRootProvider workspaceRoot,
+    IEnumerable<ISessionHookAdapter> spawnAdapters,
     ILogger<IntentLocalStateCleanupOnDoneHandler> logger) : IDomainEventHandler
 {
     public async Task HandleAsync(IDomainEvent evt, CancellationToken ct)
@@ -59,6 +60,8 @@ public sealed partial class IntentLocalStateCleanupOnDoneHandler(
             LogTrustFailed(logger, intentId, ex);
         }
 
+        await CleanupSpawnAdaptersAsync(intentId, ct);
+
         try
         {
             await directories.RemoveAsync(intentDir, ct);
@@ -71,6 +74,28 @@ public sealed partial class IntentLocalStateCleanupOnDoneHandler(
         catch (Exception ex)
         {
             LogDirectoryFailed(logger, intentId, intentDir, ex);
+        }
+    }
+
+    // Best-effort fan-out: each vendor adapter reaps its own out-of-workspace per-session files
+    // (Codex's $CODEX_HOME profile; Claude's live in the workspace folder removed below). Kept in its
+    // own method so HandleAsync stays a thin sequencer within the type-level complexity budget.
+    private async Task CleanupSpawnAdaptersAsync(string intentId, CancellationToken ct)
+    {
+        foreach (var adapter in spawnAdapters)
+        {
+            try
+            {
+                await adapter.CleanupAsync(intentId, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                LogSpawnCleanupFailed(logger, intentId, adapter.Vendor, ex);
+            }
         }
     }
 
@@ -96,4 +121,9 @@ public sealed partial class IntentLocalStateCleanupOnDoneHandler(
         Message = "IntentLocalStateCleanupOnDone: removing workspace folder {IntentDir} threw for "
             + "intent {IntentId} — swallowed (best-effort), the folder may remain on disk.")]
     private static partial void LogDirectoryFailed(ILogger logger, string intentId, string intentDir, Exception ex);
+
+    [LoggerMessage(EventId = 6, Level = LogLevel.Warning,
+        Message = "IntentLocalStateCleanupOnDone: {Vendor} spawn-adapter cleanup threw for intent "
+            + "{IntentId} — swallowed (best-effort), a per-session file may remain.")]
+    private static partial void LogSpawnCleanupFailed(ILogger logger, string intentId, string vendor, Exception ex);
 }

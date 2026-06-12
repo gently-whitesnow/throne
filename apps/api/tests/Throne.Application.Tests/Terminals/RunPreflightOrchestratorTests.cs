@@ -65,8 +65,9 @@ public partial class RunPreflightOrchestratorTests
                 && r.Arguments.Contains("opus")
                 && r.Arguments.Contains("--effort")
                 && r.Arguments.Contains("high")
-                && r.Arguments.Contains("--append-system-prompt")
-                && r.Arguments.Contains("RULES")
+                // The rules block is no longer an argv token — it is file-backed behind the spawn
+                // adapter (see Claude/CodexSessionHookAdapterTests). The orchestrator only threads
+                // the adapter's prepared args (here the stub's --settings) and the positional task.
                 && r.Arguments.Contains("--settings")
                 && r.Arguments.Contains(SettingsPath)
                 && r.Arguments[r.Arguments.Count - 1] == "TASK"

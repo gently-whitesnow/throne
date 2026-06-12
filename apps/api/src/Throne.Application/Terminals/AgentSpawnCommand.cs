@@ -20,10 +20,13 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// <c>model_reasoning_effort=high</c> token.
 ///
 /// Upfront context (ADR-0034): the embedded contour injects the assembled rules block and the
-/// task as the session's starting context instead of asking the agent to read a bundle. The
-/// rules go to a per-vendor system-context channel (Claude <c>--append-system-prompt</c>, Codex
-/// <c>-c developer_instructions</c> — additive, not a base-prompt replacement), the task is the
-/// positional initial user message. Empty rules/task drop their tokens so a bare boot stays bare.
+/// task as the session's starting context instead of asking the agent to read a bundle. The task
+/// is the positional initial user message; empty task drops its token so a bare boot stays bare.
+/// The rules block does NOT travel on this argv — it is multi-KB and tmux packs the whole spawn
+/// argv into one ~16 KB imsg (<c>command too long</c> above that). Instead the vendor's
+/// <see cref="ISessionHookAdapter"/> materialises it to a per-session file and hands back small
+/// reference tokens (<c>--append-system-prompt-file</c> for Claude, a <c>-p</c> profile for Codex)
+/// that ride in via <paramref name="preparedArgs"/>.
 ///
 /// codex launches with <c>--dangerously-bypass-approvals-and-sandbox</c> (alias <c>--yolo</c>):
 /// the operator presses run and walks away, so mid-task approval prompts on routine work
@@ -33,34 +36,27 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// </summary>
 public static class AgentSpawnCommand
 {
-    /// <param name="systemPrompt">
-    /// Assembled rules block for the agent's system-context channel. Null/blank → no system
-    /// context is injected (e.g. free mode with no curated parts).
-    /// </param>
     /// <param name="userPrompt">
     /// Task delivered as the positional initial user message. Null/blank → the agent boots
     /// without a pre-filled prompt (operator types into the live session themselves).
     /// </param>
-    /// <param name="hookArgs">
-    /// Per-session hook injection tokens from the vendor's <see cref="ISessionHookAdapter"/>,
-    /// inserted after the model/effort/system flags and before the positional task. Vendor-neutral
-    /// here — the adapter owns what they mean (Claude <c>--settings &lt;file&gt;</c>, Codex inline
-    /// <c>-c hooks...</c> + bypass flag).
+    /// <param name="preparedArgs">
+    /// Per-session injection tokens from the vendor's <see cref="ISessionHookAdapter"/> (hooks +
+    /// the file-backed system-context reference), inserted after the model/effort flags and before
+    /// the positional task. Vendor-neutral here — the adapter owns what they mean.
     /// </param>
     public static AgentSpawnInvocation Build(
         TerminalLaunchOptions options,
-        string? systemPrompt,
         string? userPrompt,
-        IReadOnlyList<string>? hookArgs = null)
+        IReadOnlyList<string>? preparedArgs = null)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         var args = BaseArgs(options);
-        AppendSystemPrompt(options.Vendor, args, systemPrompt);
 
-        if (hookArgs is { Count: > 0 })
+        if (preparedArgs is { Count: > 0 })
         {
-            args.AddRange(hookArgs);
+            args.AddRange(preparedArgs);
         }
 
         if (!string.IsNullOrWhiteSpace(userPrompt))
@@ -84,27 +80,4 @@ public static class AgentSpawnCommand
         _ => throw new ArgumentOutOfRangeException(
             nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
     };
-
-    private static void AppendSystemPrompt(string vendor, List<string> args, string? systemPrompt)
-    {
-        if (string.IsNullOrWhiteSpace(systemPrompt))
-        {
-            return;
-        }
-
-        switch (vendor)
-        {
-            case TerminalAgentCatalog.VendorClaude:
-                args.Add("--append-system-prompt");
-                args.Add(systemPrompt);
-                break;
-            case TerminalAgentCatalog.VendorCodex:
-                args.Add("-c");
-                args.Add($"developer_instructions={CodexConfigValue.ToToml(systemPrompt)}");
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(
-                    nameof(vendor), $"Unknown terminal vendor '{vendor}'.");
-        }
-    }
 }

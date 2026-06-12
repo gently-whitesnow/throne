@@ -40,12 +40,13 @@ public sealed class RunPreflightSpawn(
         await workspaceTrust.EnsureTrustedAsync(launch.Vendor, workspacePath, ct);
 
         // Embedded contour injects the operator-curated rules/task upfront (ADR-0034) instead of a
-        // hardcoded bundle prompt: rules to the vendor's system-context channel, task as the initial
-        // user message. An empty task boots the agent bare so the operator types it themselves.
-        var hookArgs = _hookAdapters.TryGetValue(launch.Vendor, out var adapter)
-            ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, ct)
+        // hardcoded bundle prompt: rules to the vendor's system-context channel (file-backed, off
+        // the argv), task as the positional initial user message. An empty task boots the agent bare
+        // so the operator types it themselves.
+        var preparedArgs = _hookAdapters.TryGetValue(launch.Vendor, out var adapter)
+            ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, prompt.SystemPrompt, ct)
             : [];
-        var invocation = AgentSpawnCommand.Build(launch, prompt.SystemPrompt, prompt.UserPrompt, hookArgs);
+        var invocation = AgentSpawnCommand.Build(launch, prompt.UserPrompt, preparedArgs);
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,

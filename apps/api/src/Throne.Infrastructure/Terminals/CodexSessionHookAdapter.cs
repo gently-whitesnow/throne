@@ -3,25 +3,28 @@ using Throne.Application.Terminals;
 namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
-/// Codex flavour of <see cref="ISessionHookAdapter"/>. Codex has no flag to load an arbitrary
-/// external config file (<c>--profile</c> reads only <c>$CODEX_HOME/&lt;name&gt;.config.toml</c>), so
-/// the per-session hook is injected inline through <c>-c hooks.Stop=...</c> — a single argv token
-/// whose value Codex parses as TOML. This keeps every byte out of the clone, out of the operator's
-/// <c>$CODEX_HOME</c>, and away from auth, which a generated profile file or a <c>CODEX_HOME</c>
-/// overlay could not.
+/// Codex flavour of <see cref="ISessionHookAdapter"/>. Two per-session concerns, handled
+/// differently because of what fits where:
 ///
-/// <c>--dangerously-bypass-hook-trust</c> rides along: a freshly generated command hook is otherwise
-/// untrusted and Codex would skip it (or block on interactive <c>/hooks</c> review), stranding the
-/// unattended tmux flow. Trusting our own generated hook is safe — Throne authored it.
+/// <para>Hooks stay inline through <c>-c hooks.&lt;event&gt;=...</c> tokens (small) — Codex has no
+/// flag to load an arbitrary external config file, and an inline override keeps every hook byte out
+/// of the clone and out of <c>$CODEX_HOME</c>. <c>--dangerously-bypass-hook-trust</c> rides along so
+/// a freshly generated command hook is not skipped or blocked on interactive review.</para>
+///
+/// <para>The assembled rules block does NOT fit inline: it is multi-KB and the whole spawn argv is
+/// packed into one ~16 KB tmux imsg (<c>command too long</c> above that). Codex's only file-backed
+/// channel for <c>developer_instructions</c> is a <c>-p &lt;name&gt;</c> profile under
+/// <c>$CODEX_HOME</c>, so the block is written there and referenced by a tiny <c>-p</c> token. That
+/// one profile per intent is reaped by <see cref="CleanupAsync"/> on intent-done.</para>
 /// </summary>
-public sealed class CodexSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
+public sealed class CodexSessionHookAdapter(SessionHookOptions options, string codexHome) : ISessionHookAdapter
 {
     private const string BypassHookTrustFlag = "--dangerously-bypass-hook-trust";
 
     public string Vendor => TerminalAgentCatalog.VendorCodex;
 
-    public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, string mode, CancellationToken ct)
+    public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
+        string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
@@ -38,6 +41,38 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options) : ISessi
         }
 
         args.Add(BypassHookTrustFlag);
-        return Task.FromResult<IReadOnlyList<string>>(args);
+
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            await WriteProfileAsync(intentId, systemPrompt, ct);
+            args.Add("-p");
+            args.Add(CodexSessionProfile.Name(intentId));
+        }
+
+        return args;
+    }
+
+    public Task CleanupAsync(string intentId, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        var profilePath = CodexSessionProfile.PathFor(codexHome, intentId);
+        if (File.Exists(profilePath))
+        {
+            File.Delete(profilePath);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task WriteProfileAsync(string intentId, string systemPrompt, CancellationToken ct)
+    {
+        Directory.CreateDirectory(codexHome);
+        var profilePath = CodexSessionProfile.PathFor(codexHome, intentId);
+        // `-p` layers this file over the base config; the `-c model_reasoning_effort` / `-m` flags
+        // still apply. The value is a TOML basic string — Codex parses the file as config.toml.
+        await File.WriteAllTextAsync(
+            profilePath,
+            $"developer_instructions = {CodexConfigValue.ToToml(systemPrompt)}\n",
+            ct);
     }
 }
