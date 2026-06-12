@@ -32,7 +32,11 @@ public static class AgentSpawnCommand
     /// Free mode boots the agent bare (no positional prompt — it would auto-run) and the
     /// operator's editable prompt is pre-typed afterwards. Model/effort flags still apply.
     /// </param>
-    public static AgentSpawnInvocation Build(TerminalLaunchOptions options, string prompt, bool isFree)
+    public static AgentSpawnInvocation Build(
+        TerminalLaunchOptions options,
+        string prompt,
+        bool isFree,
+        string? settingsPath = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
@@ -51,6 +55,12 @@ public static class AgentSpawnCommand
             _ => throw new ArgumentOutOfRangeException(
                 nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
         };
+
+        if (options.Vendor == TerminalAgentCatalog.VendorClaude && !string.IsNullOrWhiteSpace(settingsPath))
+        {
+            args.Add("--settings");
+            args.Add(settingsPath);
+        }
 
         if (!isFree)
         {

@@ -39,6 +39,12 @@ public static class TerminalsModule
         services.AddSingleton<IWorkspaceTrustSeeder, CodexTrustSeeder>();
         services.AddSingleton<IWorkspaceTrust, WorkspaceTrust>();
         services.AddSingleton<ITerminalStreamBridge, TmuxStreamBridge>();
+        services.AddSingleton(new ClaudeSessionHookOptions
+        {
+            ApiBaseUrl = configuration?[ClaudeSessionHookOptions.ApiBaseUrlKey]
+                ?? ClaudeSessionHookOptions.DefaultApiBaseUrl,
+        });
+        services.AddSingleton<IClaudeSessionSettingsWriter, ClaudeSessionSettingsWriter>();
         // Application orchestrators consume the bare options instance (see
         // PullRequestSyncBackoff for the same pattern) so Throne.Application
         // does not need a reference to Microsoft.Extensions.Options.
