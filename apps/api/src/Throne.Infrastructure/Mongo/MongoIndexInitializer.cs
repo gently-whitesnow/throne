@@ -48,6 +48,15 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
                 new CreateIndexOptions { Unique = true, Name = "name_unique" }),
             cancellationToken: cancellationToken);
 
+        var promptParts = database.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
+        await promptParts.Indexes.CreateOneAsync(
+            new CreateIndexModel<PromptPartDocument>(
+                Builders<PromptPartDocument>.IndexKeys
+                    .Ascending(x => x.Scope)
+                    .Ascending(x => x.Key),
+                new CreateIndexOptions { Unique = true, Name = "scope_key_unique" }),
+            cancellationToken: cancellationToken);
+
         var intentsCollection = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
         await intentsCollection.Indexes.CreateManyAsync(
             [

@@ -225,6 +225,51 @@ paths:
       responses:
         '200':
           description: Hook callback accepted.
+  /api/v1/intents/{intent_id}/terminal/preview:
+    post:
+      operationId: previewIntentTerminal
+      tags: [Terminal]
+      summary: Resolve the embedded prompt composition before spawn (ADR-0035).
+      description: >
+        Returns the effective prompt composition for the requested embedded mode: mandatory
+        parts (projected from the skill manifest) plus the operator-authored optional parts
+        with their per-mode roles. `selected_part_ids` overrides the default-on optional
+        selection; omit it to get the mode defaults. `system_prompt` is the assembled rules
+        block (mandatory + selected optional) destined for `--append-system-prompt`;
+        `user_prompt` is the intent body draft for the task zone. The frontend renders the
+        pre-flight modal from this response and never assembles the runtime prompt itself.
+        Only embedded modes `work`/`interview`/`free` are supported — `dream` returns 422.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewIntentTerminalRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentTerminalPreviewResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Mode not supported for embedded preview (e.g. dream).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     TerminalRunMode:
@@ -358,3 +403,90 @@ components:
           description: >
             IDs of bindings whose `clone_status` is `failed` or `broken`. Present when
             `session_state=blocked`; the UI uses them to render an actionable error per row.
+    PreviewIntentTerminalRequest:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          $ref: '#/components/schemas/TerminalRunMode'
+        selected_part_ids:
+          type: array
+          nullable: true
+          description: >
+            Explicit selection of optional part ids. Omitted → the mode defaults (every
+            `default_on` optional part). Mandatory parts are always included regardless.
+          items:
+            type: string
+    PromptPartPreviewDto:
+      type: object
+      required:
+        - part_id
+        - key
+        - scope
+        - role
+        - order
+        - editable
+        - present
+        - selected
+        - text
+      properties:
+        part_id:
+          type: string
+          description: >
+            Part id. For mandatory parts projected from the manifest — synthetic
+            `system:<kind>` or the user instruction id. For optional parts — the Mongo id.
+        key:
+          type: string
+          description: Part key (instruction kind for projected mandatory parts).
+        scope:
+          type: string
+          description: system | user.
+        role:
+          type: string
+          description: mandatory | default_on | default_off.
+        order:
+          type: integer
+          format: int32
+          minimum: 0
+        editable:
+          type: boolean
+          description: True for operator-authored parts and user instructions; false for system entries.
+        present:
+          type: boolean
+          description: False when a projected user instruction has no Mongo record yet.
+        selected:
+          type: boolean
+          description: Whether the part is included in the assembled system_prompt.
+        text:
+          type: string
+    IntentTerminalPreviewResponse:
+      type: object
+      required:
+        - intent_id
+        - mode
+        - parts
+        - selected_part_ids
+        - system_prompt
+        - user_prompt
+      properties:
+        intent_id:
+          type: string
+        mode:
+          $ref: '#/components/schemas/TerminalRunMode'
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptPartPreviewDto'
+          description: Every part available in the mode (mandatory + optional), ordered as assembled.
+        selected_part_ids:
+          type: array
+          items:
+            type: string
+          description: Part ids included in system_prompt (mandatory + selected optional).
+        system_prompt:
+          type: string
+          description: Assembled rules block destined for `--append-system-prompt`.
+        user_prompt:
+          type: string
+          description: Intent body draft for the task zone (first user message).
