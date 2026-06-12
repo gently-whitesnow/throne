@@ -32,11 +32,17 @@ public static class AgentSpawnCommand
     /// Free mode boots the agent bare (no positional prompt — it would auto-run) and the
     /// operator's editable prompt is pre-typed afterwards. Model/effort flags still apply.
     /// </param>
+    /// <param name="hookArgs">
+    /// Per-session hook injection tokens from the vendor's <see cref="ISessionHookAdapter"/>,
+    /// inserted after the base model/effort flags and before the positional prompt. Vendor-neutral
+    /// here — the adapter owns what they mean (Claude <c>--settings &lt;file&gt;</c>, Codex inline
+    /// <c>-c hooks...</c> + bypass flag).
+    /// </param>
     public static AgentSpawnInvocation Build(
         TerminalLaunchOptions options,
         string prompt,
         bool isFree,
-        string? settingsPath = null)
+        IReadOnlyList<string>? hookArgs = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
@@ -56,10 +62,9 @@ public static class AgentSpawnCommand
                 nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
         };
 
-        if (options.Vendor == TerminalAgentCatalog.VendorClaude && !string.IsNullOrWhiteSpace(settingsPath))
+        if (hookArgs is { Count: > 0 })
         {
-            args.Add("--settings");
-            args.Add(settingsPath);
+            args.AddRange(hookArgs);
         }
 
         if (!isFree)
