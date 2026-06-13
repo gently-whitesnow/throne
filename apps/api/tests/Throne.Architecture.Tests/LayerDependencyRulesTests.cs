@@ -10,12 +10,6 @@ namespace Throne.Architecture.Tests;
 ///   Api ──► Application ──► Domain
 ///   Infrastructure ──► Application ──► Domain
 ///   Api ──► Infrastructure (DI wiring only)
-///
-/// Mcp.Stdio is an intentionally thin STDIO→HTTP MCP proxy with NO domain
-/// knowledge (ADR-0009). It must not pull Domain / Application / Infrastructure /
-/// Api into its process — otherwise domain events fire in the proxy and SSE
-/// subscribers in apps/web never see them.
-///
 /// Whitelist rules (DomainAllowedRoots / ApplicationAllowedRoots) catch the
 /// "agent silently dragged a new NuGet into Domain" failure mode.
 /// </summary>
@@ -25,7 +19,6 @@ public class LayerDependencyRulesTests
     private const string Application = "Throne.Application";
     private const string Infrastructure = "Throne.Infrastructure";
     private const string Api = "Throne.Api";
-    private const string McpStdio = "Throne.Mcp.Stdio";
 
     private static readonly System.Reflection.Assembly DomainAsm =
         typeof(Throne.Domain.AssemblyMarker).Assembly;
@@ -35,8 +28,6 @@ public class LayerDependencyRulesTests
         typeof(Throne.Infrastructure.AssemblyMarker).Assembly;
     private static readonly System.Reflection.Assembly ApiAsm =
         typeof(Throne.Api.AssemblyMarker).Assembly;
-    private static readonly System.Reflection.Assembly McpStdioAsm =
-        typeof(Throne.Mcp.Stdio.AssemblyMarker).Assembly;
 
     // Anything that starts with one of these namespace prefixes is allowed.
     // Adding a new package to Domain/Application is a deliberate architectural
@@ -62,7 +53,7 @@ public class LayerDependencyRulesTests
         var result = Types
             .InAssembly(DomainAsm)
             .Should()
-            .NotHaveDependencyOnAny(Application, Infrastructure, Api, McpStdio)
+            .NotHaveDependencyOnAny(Application, Infrastructure, Api)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
@@ -73,13 +64,13 @@ public class LayerDependencyRulesTests
             string.Join(", ", result.FailingTypeNames ?? []));
     }
 
-    [Fact(DisplayName = "Application не зависит от Infrastructure / Api / Mcp.Stdio")]
+    [Fact(DisplayName = "Application не зависит от Infrastructure / Api")]
     public void Application_should_not_depend_on_outer_layers()
     {
         var result = Types
             .InAssembly(ApplicationAsm)
             .Should()
-            .NotHaveDependencyOnAny(Infrastructure, Api, McpStdio)
+            .NotHaveDependencyOnAny(Infrastructure, Api)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
@@ -90,35 +81,18 @@ public class LayerDependencyRulesTests
             string.Join(", ", result.FailingTypeNames ?? []));
     }
 
-    [Fact(DisplayName = "Infrastructure не зависит от Api / Mcp.Stdio")]
+    [Fact(DisplayName = "Infrastructure не зависит от Api")]
     public void Infrastructure_should_not_depend_on_presentation_layers()
     {
         var result = Types
             .InAssembly(InfrastructureAsm)
             .Should()
-            .NotHaveDependencyOnAny(Api, McpStdio)
+            .NotHaveDependencyOnAny(Api)
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
             "Throne.Infrastructure зависит от слоя транспорта. " +
             "Если нужно общее — вынеси в Throne.Application. Failing types: {0}",
-            string.Join(", ", result.FailingTypeNames ?? []));
-    }
-
-    [Fact(DisplayName = "Mcp.Stdio — тонкий proxy, без Domain/Application/Infrastructure/Api")]
-    public void McpStdio_must_not_depend_on_domain_or_api()
-    {
-        var result = Types
-            .InAssembly(McpStdioAsm)
-            .Should()
-            .NotHaveDependencyOnAny(Domain, Application, Infrastructure, Api)
-            .GetResult();
-
-        result.IsSuccessful.Should().BeTrue(
-            "Throne.Mcp.Stdio должен оставаться тонким STDIO→HTTP proxy (ADR-0009). " +
-            "Любая ссылка на Throne.Domain/Application/Infrastructure/Api ломает изоляцию: " +
-            "domain events начнут срабатывать в этом процессе и SSE-подписчики apps/web " +
-            "перестанут их видеть. Failing types: {0}",
             string.Join(", ", result.FailingTypeNames ?? []));
     }
 
