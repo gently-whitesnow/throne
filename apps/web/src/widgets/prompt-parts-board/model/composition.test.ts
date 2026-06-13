@@ -77,6 +77,19 @@ describe("buildModeComposition", () => {
     expect(parts.map((p) => p.order)).toEqual([0, 1, 2]);
   });
 
+  it("не дублирует user-часть, которая уже входит в бандл как mandatory", () => {
+    // bundle work includes user:work with prompt_part_id "pid-work"; the same part
+    // also surfaces in the optional listing with role=mandatory. It must appear once.
+    const parts = buildModeComposition("work", bundlesTree, [
+      optional("pid-work", "work", [
+        { mode: "work", role: "mandatory", order: 0 }
+      ])
+    ]);
+    const workRows = parts.filter((p) => p.key === "work");
+    expect(workRows).toHaveLength(1);
+    expect(workRows[0].kind).toBe("mandatory");
+  });
+
   it("free не имеет mandatory-частей", () => {
     const parts = buildModeComposition("free", bundlesTree, [
       optional("o1", "alpha", [{ mode: "free", role: "default_on", order: 0 }])
