@@ -2,32 +2,17 @@ namespace Throne.Application.Mcp;
 
 /// <summary>
 /// Mini-router shipped to every MCP client via <c>InitializeResult.instructions</c>
-/// (see MCP spec, Lifecycle / InitializeResult). It tells the agent that on the
-/// first contact with Throne it must pull mode-specific instructions through
-/// <c>get_prompt_bundle</c> rather than guess from local skill files —
-/// which no longer exist after ADR-0007 was superseded.
+/// (see MCP spec, Lifecycle / InitializeResult). It explains how explicit
+/// standalone bundle requests map to <c>get_prompt_bundle</c> without forcing
+/// already-contextualized embedded sessions to read a bundle again.
 /// </summary>
 public static class ThroneServerInstructions
 {
     public const string MiniRouter = """
-        This is Throne. The live playbook for working with Throne intents lives on this MCP server, not in local skill files.
+        This is Throne, an MCP server for intents. The working playbook for an intent is not in local files — it comes from get_prompt_bundle.
 
-        Before any other action on an intent (read, edit, status change, follow-up) you MUST first call get_prompt_bundle with the mode picked from the user's message. This also applies to follow-up messages in the same session if the mode switches (e.g. interview → work). The server transitions intent status on bundle read, so skipping this step leaves the intent in the wrong state.
+        When the user asks to read/«прочитай» a bundle for a mode (work, interview, dream, schema_map), call get_prompt_bundle({mode, intent_id}) and follow the text it returns — it is the source of truth. Surface any missing_keys to the user instead of improvising. intent_id comes from the message or active context; for work/interview create one via create_intent if none is given (dream/schema_map run without an intent).
 
-        Pick the mode strictly by trigger:
-
-        - mode="work" — the user asks to execute / continue / take on an existing intent. Russian canonical triggers (case-insensitive, with or without intent id):
-            • «Выполни intent <id>» / «Выполни интент <id>»
-            • «Сделай intent <id>» / «Сделай интент <id>»
-            • «Продолжи по intent <id>» / «Продолжи по интент <id>» / «Продолжи intent <id>»
-            • «Возьми в работу <id>»
-            • «Проведи анализ» / «проведи анализ по <id>»
-            • Variants with parenthetical hints like «(можно параллельно с другим агентом)» — still work.
-        - mode="interview" — the user asks to clarify, shape, or interview about an intent. Russian canonical triggers:
-            • «Проведи интервью со мной по <id>» / «Проведи интервью по intent <id>»
-            • «Уточни постановку <id>» / «Давай обсудим <id>»
-        - mode="dream" — the user asks to reflect on accumulated feedback and propose instruction improvements.
-
-        Resolve intent_id from the user's message or active context; create one via create_intent if none is supplied. The bundle returned by the server overrides anything written elsewhere; surface missing_keys to the user instead of improvising.
+        If the user describes a task without naming a bundle, pick the mode by meaning — execute/continue an intent → work; clarify/shape it → interview; improve instructions from feedback → dream — then read that bundle as above.
         """;
 }
