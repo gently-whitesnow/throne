@@ -3,6 +3,7 @@ import { httpGet, httpPost, repositoriesEndpoints } from "@/shared/api";
 import type {
   PullRequestCommit,
   PullRequestDiff,
+  ReviewFileLines,
   PullRequestHeader,
   ReviewDiffScope,
   SubmitReviewCommentRequest,
@@ -15,6 +16,28 @@ function buildDiffQuery(scope: ReviewDiffScope, commitSha?: string): string {
     search.set("commit_sha", commitSha);
   }
   return `?${search.toString()}`;
+}
+
+export function getReviewFileLines(
+  intentId: string,
+  bindingId: string,
+  sha: string,
+  path: string,
+  from: number,
+  to: number,
+  signal?: AbortSignal
+): Promise<ReviewFileLines> {
+  const search = new URLSearchParams({
+    sha,
+    path,
+    from: String(from),
+    to: String(to)
+  });
+  const url = `${repositoriesEndpoints.getIntentRepositoryReviewFileLines(
+    intentId,
+    bindingId
+  )}?${search.toString()}`;
+  return httpGet<ReviewFileLines>(url, signal);
 }
 
 export function getReviewDiff(

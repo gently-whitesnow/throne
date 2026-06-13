@@ -13,7 +13,7 @@ public sealed class IntentRepositoriesController(
     SyncIntentRepositoryPullRequestEndpoint syncEndpoint,
     AttachIntentRepositoryPullRequestEndpoint attachPrEndpoint,
     ListIntentRepositoryPullRequestCommentsEndpoint listCommentsEndpoint,
-    GetIntentRepositoryReviewDiffEndpoint reviewDiffEndpoint,
+    ReviewWorkspaceReadEndpoints reviewReadEndpoints,
     GetIntentRepositoryPullRequestEndpoint pullRequestEndpoint,
     ListIntentRepositoryReviewCommitsEndpoint reviewCommitsEndpoint,
     SubmitIntentRepositoryReviewCommentEndpoint submitReviewCommentEndpoint,
@@ -60,11 +60,27 @@ public sealed class IntentRepositoriesController(
         string binding_id,
         ReviewDiffScope? scope = null,
         string? commit_sha = null) =>
-        reviewDiffEndpoint.RunAsync(
+        reviewReadEndpoints.GetDiffAsync(
             intent_id,
             binding_id,
             scope is null ? null : ToAppScope(scope.Value),
             commit_sha,
+            HttpContext.RequestAborted);
+
+    public override Task<ActionResult<ReviewFileLinesDto>> GetIntentRepositoryReviewFileLines(
+        string intent_id,
+        string binding_id,
+        string sha,
+        string path,
+        int from,
+        int to) =>
+        reviewReadEndpoints.GetFileLinesAsync(
+            intent_id,
+            binding_id,
+            sha,
+            path,
+            from,
+            to,
             HttpContext.RequestAborted);
 
     public override Task<ActionResult<PullRequestHeaderDto>> GetIntentRepositoryPullRequest(

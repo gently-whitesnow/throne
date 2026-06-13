@@ -42,6 +42,7 @@ internal static class GitInfrastructureModule
         services.AddSingleton<IWorkspaceDirectoryProbe, WorkspaceDirectoryProbe>();
         services.AddSingleton<IProcessLauncher, ProcessRunner>();
         services.AddSingleton<ILocalGitBranchReader, LocalGitBranchReader>();
+        services.AddSingleton<IRepositoryBlobReader, LocalGitBlobReader>();
         services.AddSingleton<GhCliInvoker>();
         services.AddSingleton<GhRepoListExecutor>();
         services.AddSingleton<GhRepoSearcher>();

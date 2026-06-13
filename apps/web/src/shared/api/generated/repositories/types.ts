@@ -228,6 +228,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/file-lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a line range from a file blob in the binding's local clone.
+         * @description Backs review diff context expansion. The server reads `path` from `sha` in the local workspace clone via plain git, retries once with `git fetch --filter=blob:none origin {sha}` when the object is missing, and returns only a typed ProblemDetails error when the object/path remains unavailable. Context is always read from the new file side; clients pass `PullRequestDiffDto.head_sha` and `PullRequestDiffFileDto.path`.
+         */
+        get: operations["getIntentRepositoryReviewFileLines"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/repositories/{binding_id}/review/pull-request": {
         parameters: {
             query?: never;
@@ -699,6 +719,33 @@ export interface components {
             /** @description Start SHA — equals `base_sha` for the request scope on GitHub. GitLab MRs distinguish `start_sha` from `base_sha` for the discussion position; the UI must round-trip both back into `submitIntentRepositoryReviewComment`. */
             start_sha: string;
             files: components["schemas"]["PullRequestDiffFileDto"][];
+        };
+        ReviewFileLineDto: {
+            /**
+             * Format: int32
+             * @description 1-based line number in the requested file blob.
+             */
+            line: number;
+            /** @description Line content without a trailing newline. */
+            content: string;
+        };
+        ReviewFileLinesDto: {
+            /**
+             * Format: int32
+             * @description Requested start line.
+             */
+            from: number;
+            /**
+             * Format: int32
+             * @description Actual inclusive end line returned; less than `from` when the range starts after EOF.
+             */
+            to: number;
+            /**
+             * Format: int32
+             * @description Total line count of the blob at `sha:path`.
+             */
+            total_lines: number;
+            lines: components["schemas"]["ReviewFileLineDto"][];
         };
         PullRequestCommitDto: {
             /** @description Full commit SHA. */
@@ -1357,6 +1404,61 @@ export interface operations {
                 };
             };
             /** @description Provider unauthenticated, scope mismatch, or missing commit_sha. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getIntentRepositoryReviewFileLines: {
+        parameters: {
+            query: {
+                sha: string;
+                path: string;
+                from: number;
+                to: number;
+            };
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewFileLinesDto"];
+                };
+            };
+            /** @description Intent, binding, git object or file path not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Local repository clone is not ready. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Invalid line range or query parameter. */
             422: {
                 headers: {
                     [name: string]: unknown;
