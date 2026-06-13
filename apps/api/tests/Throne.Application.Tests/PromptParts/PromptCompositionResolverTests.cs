@@ -3,7 +3,7 @@ using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
-using Throne.Application.Tests.Instructions;
+using Throne.Application.Tests.Manifest;
 using Throne.Domain.Intents;
 using Throne.Domain.PromptParts;
 
@@ -141,7 +141,7 @@ public class PromptCompositionResolverTests
                     string.Equals(p.Scope, scope, StringComparison.Ordinal)
                     && string.Equals(p.Key, key, StringComparison.Ordinal));
             });
-        repo.ListAsync(Arg.Any<CancellationToken>()).Returns(optionalParts);
+        repo.ListAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(optionalParts);
         return repo;
     }
 

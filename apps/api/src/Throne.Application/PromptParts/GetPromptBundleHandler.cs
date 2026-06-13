@@ -1,4 +1,4 @@
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 
 namespace Throne.Application.PromptParts;
 

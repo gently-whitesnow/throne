@@ -45,7 +45,7 @@ export function McpBundleCompatibility({
               mode: {bundle.mode}
             </span>
             <span className="ml-auto text-xs text-base-content/50">
-              {bundle.includes.length} инструкций
+              {bundle.includes.length} частей
             </span>
           </div>
           <ul className="m-0 mt-2 flex list-none flex-col gap-1 border-l border-dashed border-base-300 p-0 pl-3">

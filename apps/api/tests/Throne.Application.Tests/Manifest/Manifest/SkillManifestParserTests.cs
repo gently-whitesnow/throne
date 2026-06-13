@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 
-namespace Throne.Application.Tests.Instructions.Manifest;
+namespace Throne.Application.Tests.Manifest.Manifest;
 
 public class SkillManifestParserTests
 {

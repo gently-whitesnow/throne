@@ -9,7 +9,7 @@ using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.PromptParts;
 
-namespace Throne.Application.Tests.Instructions;
+namespace Throne.Application.Tests.Manifest;
 
 public class GetPromptBundleHandlerTests
 {

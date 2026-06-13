@@ -7,12 +7,7 @@ import {
 } from "@/entities/prompt-part";
 import { HttpError } from "@/shared/api";
 
-import {
-  dedupeProjectedInstructions,
-  type ProjectedInstruction
-} from "../model/composition";
 import { useBundlesTreeQuery } from "../model/use-bundles-tree";
-import { InstructionEditDialog } from "./InstructionEditDialog";
 import { McpBundleCompatibility } from "./McpBundleCompatibility";
 import { ModeCompositionPanel } from "./ModeCompositionPanel";
 import { PartsList } from "./PartsList";
@@ -22,26 +17,21 @@ import {
 } from "./PromptPartDetailDialog";
 
 export function PromptPartsBoard() {
-  const bundlesQuery = useBundlesTreeQuery();
   const partsQuery = useListPromptParts();
+  const bundlesQuery = useBundlesTreeQuery();
 
   const [partDialog, setPartDialog] = useState<PromptPartDialogTarget | null>(
     null
   );
-  const [instructionDialog, setInstructionDialog] =
-    useState<ProjectedInstruction | null>(null);
 
-  const instructions = useMemo(
-    () => dedupeProjectedInstructions(bundlesQuery.data),
-    [bundlesQuery.data]
+  const parts: PromptPartListItem[] = partsQuery.data ?? [];
+  const userParts = useMemo(
+    () => parts.filter((p) => p.scope === "user"),
+    [parts]
   );
-  const optionalParts: PromptPartListItem[] = partsQuery.data ?? [];
 
-  const error =
-    (bundlesQuery.error ?? partsQuery.error)
-      ? errorMessage(bundlesQuery.error ?? partsQuery.error)
-      : null;
-  const loading = bundlesQuery.isPending || partsQuery.isPending;
+  const error = partsQuery.error ? errorMessage(partsQuery.error) : null;
+  const loading = partsQuery.isPending;
 
   return (
     <section
@@ -51,9 +41,9 @@ export function PromptPartsBoard() {
       <header className="flex flex-col gap-1.5">
         <h1 className="m-0 text-2xl font-bold tracking-tight">Части промпта</h1>
         <p className="m-0 text-sm leading-relaxed text-base-content/70">
-          Управление частями промпта и их ролями по режимам встроенного
-          терминала. Mandatory-инструкции проецируются из манифеста бандлов;
-          optional-части курируете вы.
+          Один список prompt_parts, поделённый по scope. System засеяны из
+          манифеста; user курируете вы. Бандл расширяется и ужимается через роли
+          частей по режимам.
         </p>
       </header>
 
@@ -70,16 +60,14 @@ export function PromptPartsBoard() {
         <>
           <Section
             title="Части промпта"
-            description="Все части: спроецированные инструкции (mandatory) и ваши optional-части с ролями по режимам."
+            description="Сгруппированы по scope. Роли по режимам (работа / интервью / свободный) — инлайн в ряду части."
           >
             <PartsList
-              instructions={instructions}
-              optionalParts={optionalParts}
-              onOpenInstruction={setInstructionDialog}
-              onOpenOptional={(part) => {
-                setPartDialog({ mode: "edit", part });
+              parts={parts}
+              onOpenPart={(part) => {
+                setPartDialog({ mode: "detail", part });
               }}
-              onCreateOptional={() => {
+              onCreatePart={() => {
                 setPartDialog({ mode: "create" });
               }}
             />
@@ -95,7 +83,7 @@ export function PromptPartsBoard() {
                   key={mode}
                   mode={mode}
                   bundlesTree={bundlesQuery.data}
-                  optionalParts={optionalParts}
+                  optionalParts={userParts}
                 />
               ))}
             </div>
@@ -103,7 +91,7 @@ export function PromptPartsBoard() {
 
           <Section
             title="Совместимость MCP get_prompt_bundle"
-            description="Что получает внешний агент через MCP get_prompt_bundle(mode) — read-only обзор по всем режимам (включая dream/fix). Источник правды — манифест."
+            description="Что получает внешний агент через MCP get_prompt_bundle(mode) — read-only обзор по всем режимам (включая dream/schema_map). Источник правды — манифест."
           >
             <McpBundleCompatibility bundlesTree={bundlesQuery.data} />
           </Section>
@@ -115,14 +103,6 @@ export function PromptPartsBoard() {
           target={partDialog}
           onClose={() => {
             setPartDialog(null);
-          }}
-        />
-      ) : null}
-      {instructionDialog ? (
-        <InstructionEditDialog
-          instruction={instructionDialog}
-          onClose={() => {
-            setInstructionDialog(null);
           }}
         />
       ) : null}

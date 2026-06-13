@@ -58,9 +58,15 @@ public sealed class PromptPartsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         detail.GetProperty("current_version").GetInt32().Should().Be(1);
         detail.GetProperty("mode_roles").GetArrayLength().Should().Be(1);
 
+        // The list returns all scopes (system + user, ADR-0036). The created user part must be present.
         var list = await _client.GetFromJsonAsync<JsonElement>(PromptPartsUri);
-        list.EnumerateArray().Should().ContainSingle()
-            .Which.GetProperty("text_short").GetString().Should().Be("arch rules");
+        var items = list.EnumerateArray().ToList();
+        items.Should().Contain(p =>
+            p.GetProperty("scope").GetString() == "user"
+            && p.GetProperty("key").GetString() == "architecture"
+            && p.GetProperty("text_short").GetString() == "arch rules");
+        items.Should().Contain(p => p.GetProperty("scope").GetString() == "system",
+            "the list groups system parts alongside user parts");
     }
 
     [Fact(DisplayName = "POST /prompt-parts с дублирующим key отдаёт 409")]

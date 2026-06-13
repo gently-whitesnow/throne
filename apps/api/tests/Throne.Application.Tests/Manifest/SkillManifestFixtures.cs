@@ -1,8 +1,8 @@
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 using Throne.Application.PromptParts;
 using Throne.Domain.PromptParts;
 
-namespace Throne.Application.Tests.Instructions;
+namespace Throne.Application.Tests.Manifest;
 
 internal static class SkillManifestFixtures
 {

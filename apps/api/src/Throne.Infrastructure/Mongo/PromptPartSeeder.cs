@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Hosting;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
 using Throne.Domain.PromptParts;
@@ -10,34 +8,23 @@ using Throne.Domain.TextVersions;
 namespace Throne.Infrastructure.Mongo;
 
 /// <summary>
-/// Idempotent startup service (ADR-0036). On every start it:
-///   1. SEED — reconciles <c>system</c> prompt parts with the manifest (creates missing as v1,
-///      writes a new version on text drift, reconciles mode-roles);
-///   2. MIGRATE — one-time import of legacy user <c>instructions</c> into <c>prompt_parts</c>
-///      (current text as the first version, mandatory roles from the manifest);
-///   3. RETIRE — drops the legacy <c>instructions</c> collection and stale
-///      <c>text_versions</c> rows written under owner_kind=instruction.
-/// All steps are idempotent and run after <see cref="MongoIndexInitializer"/>.
+/// Idempotent startup service (ADR-0036). On every start it SEEDs/reconciles <c>system</c>
+/// prompt parts with the skill manifest: creates missing parts as v1, writes a new version on
+/// text drift, and reconciles mode-roles. Runs after <see cref="MongoIndexInitializer"/>.
 /// </summary>
 internal sealed class PromptPartSeeder(
-    IMongoDatabase database,
     ISkillManifestProvider manifestProvider,
     IPromptPartRepository parts,
     IUnitOfWork unitOfWork,
     TimeProvider clock) : BackgroundService
 {
-    private const string LegacyInstructionsCollection = "instructions";
-    private const int LegacyInstructionOwnerKind = 2;
-
     protected override Task ExecuteAsync(CancellationToken stoppingToken) => RunAsync(stoppingToken);
 
-    /// <summary>Runs the full seed → migrate → retire pass once. Exposed for integration tests.</summary>
+    /// <summary>Runs the system-part seed/reconcile pass once. Exposed for integration tests.</summary>
     internal async Task RunAsync(CancellationToken ct)
     {
         var manifest = manifestProvider.Current;
         await SeedSystemPartsAsync(manifest, ct);
-        await MigrateUserInstructionsAsync(manifest, ct);
-        await RetireLegacyAsync(ct);
     }
 
     private async Task SeedSystemPartsAsync(SkillManifest manifest, CancellationToken ct)
@@ -84,48 +71,6 @@ internal sealed class PromptPartSeeder(
         }
     }
 
-    private async Task MigrateUserInstructionsAsync(SkillManifest manifest, CancellationToken ct)
-    {
-        if (!await CollectionExistsAsync(LegacyInstructionsCollection, ct))
-        {
-            return;
-        }
-
-        var legacy = database.GetCollection<BsonDocument>(LegacyInstructionsCollection);
-        var userFilter = Builders<BsonDocument>.Filter.Eq("scope", PromptPartScopeNames.User);
-        var docs = await legacy.Find(userFilter).ToListAsync(ct);
-
-        foreach (var doc in docs)
-        {
-            var key = doc.GetValue("kind", BsonNull.Value).IsString ? doc["kind"].AsString : null;
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                continue;
-            }
-            if (await parts.GetByScopeKeyAsync(PromptPartScopeNames.User, key, ct) is not null)
-            {
-                continue;
-            }
-            var text = doc.GetValue("text", BsonString.Empty).IsString ? doc["text"].AsString : string.Empty;
-            await CreateAsync(LegacyPromptPartId(doc), PromptPartScopeNames.User, key, text, manifest, ct);
-        }
-    }
-
-    private async Task RetireLegacyAsync(CancellationToken ct)
-    {
-        if (await CollectionExistsAsync(LegacyInstructionsCollection, ct))
-        {
-            await database.DropCollectionAsync(LegacyInstructionsCollection, ct);
-        }
-
-        var textVersions = database.GetCollection<BsonDocument>(MongoCollectionNames.TextVersions);
-        await textVersions.DeleteManyAsync(
-            Builders<BsonDocument>.Filter.Or(
-                Builders<BsonDocument>.Filter.Eq("owner_kind", "instruction"),
-                Builders<BsonDocument>.Filter.Eq("owner_kind", LegacyInstructionOwnerKind)),
-            ct);
-    }
-
     private async Task CreateAsync(
         PromptPartId id,
         string scope,
@@ -147,23 +92,7 @@ internal sealed class PromptPartSeeder(
         await unitOfWork.ExecuteAsync(inner => parts.CreateAsync(part, initialVersion, inner), ct);
     }
 
-    private async Task<bool> CollectionExistsAsync(string name, CancellationToken ct)
-    {
-        var filter = new BsonDocument("name", name);
-        using var cursor = await database.ListCollectionNamesAsync(
-            new ListCollectionNamesOptions { Filter = filter }, ct);
-        return await cursor.AnyAsync(ct);
-    }
-
     private static PromptPartId SystemPromptPartId(string key) => new($"system:{key}");
-
-    private static PromptPartId LegacyPromptPartId(BsonDocument doc)
-    {
-        var raw = doc.GetValue("_id", BsonNull.Value);
-        return raw.IsString && !string.IsNullOrWhiteSpace(raw.AsString)
-            ? new PromptPartId(raw.AsString)
-            : PromptPartId.New();
-    }
 
     private static bool RolesEqual(IReadOnlyList<PromptPartModeRole> a, IReadOnlyList<PromptPartModeRole> b)
     {

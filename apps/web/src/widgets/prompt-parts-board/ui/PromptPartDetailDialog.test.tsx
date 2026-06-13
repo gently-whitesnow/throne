@@ -62,7 +62,23 @@ function listItem(): PromptPartListItem {
   };
 }
 
-const editTarget: PromptPartDialogTarget = { mode: "edit", part: listItem() };
+const editTarget: PromptPartDialogTarget = {
+  mode: "detail",
+  part: listItem()
+};
+
+function systemListItem(): PromptPartListItem {
+  return {
+    id: "sys-common",
+    key: "common",
+    scope: "system",
+    text_short: "SYS",
+    current_version: 1,
+    mode_roles: [{ mode: "work", role: "mandatory", order: 0 }],
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z"
+  };
+}
 
 afterEach(() => {
   cleanup();
@@ -147,6 +163,35 @@ describe("PromptPartDetailDialog — редактирование", () => {
     await waitFor(() => {
       expect(httpDelete).toHaveBeenCalledWith("/prompt-parts/p1", undefined);
     });
+  });
+
+  it("system-часть открывается read-only: текст из API, без сохранения и удаления", async () => {
+    httpGet.mockResolvedValue({
+      id: "sys-common",
+      key: "common",
+      scope: "system",
+      text: "SYSTEM BODY",
+      current_version: 1,
+      mode_roles: [{ mode: "work", role: "mandatory", order: 0 }],
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z"
+    });
+
+    render(
+      <PromptPartDetailDialog
+        target={{ mode: "detail", part: systemListItem() }}
+        onClose={noop}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("SYSTEM BODY")).toBeTruthy();
+    });
+    expect(screen.queryByLabelText("Текст части")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Сохранить текст" })
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Удалить" })).toBeNull();
   });
 
   it("удаление при 409 показывает сообщение про снятие ролей", async () => {
