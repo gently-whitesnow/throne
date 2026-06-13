@@ -9,6 +9,7 @@ import { ApplyEditModal } from "./ApplyEditModal";
 import { PatchDiffPreview } from "./PatchDiffPreview";
 import { PatchStatusBadge } from "./PatchStatusBadge";
 import { RejectPatchModal } from "./RejectPatchModal";
+import { StructuralPatchPreview } from "./StructuralPatchPreview";
 
 export interface PatchDetailPanelProps {
   detail: PromptPartPatchDetail;
@@ -24,6 +25,9 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
   const [showReject, setShowReject] = useState(false);
 
   const isProposed = detail.patch.status === "proposed";
+  const isTextOperation =
+    detail.patch.operation === "replace_text" ||
+    detail.patch.operation === "create";
 
   const runAction = async (action: Action, fn: () => Promise<unknown>) => {
     setBusy(action);
@@ -53,6 +57,9 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
         <span className="badge badge-soft badge-neutral">
           base v{String(detail.patch.base_version)}
         </span>
+        <span className="badge badge-soft badge-neutral">
+          {detail.patch.operation}
+        </span>
         {!detail.base_version_matches_current ? (
           <span className="badge badge-soft badge-warning">needs rebase</span>
         ) : null}
@@ -67,7 +74,11 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
         </p>
       ) : null}
 
-      <PatchDiffPreview detail={detail} />
+      {isTextOperation ? (
+        <PatchDiffPreview detail={detail} />
+      ) : (
+        <StructuralPatchPreview detail={detail} />
+      )}
 
       {detail.patch.applied_text &&
       detail.patch.applied_text !== detail.patch.patch_text ? (
@@ -100,14 +111,16 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
           >
             {busy === "apply" ? "Применяем..." : "Apply"}
           </Button>
-          <Button
-            disabled={busy !== "idle"}
-            onClick={() => {
-              setShowEdit(true);
-            }}
-          >
-            Apply with edit
-          </Button>
+          {isTextOperation ? (
+            <Button
+              disabled={busy !== "idle"}
+              onClick={() => {
+                setShowEdit(true);
+              }}
+            >
+              Apply with edit
+            </Button>
+          ) : null}
           <Button
             disabled={busy !== "idle"}
             onClick={() => {
