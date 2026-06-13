@@ -18,34 +18,9 @@ Throne — кокпит цикла разработки для человека,
 
 ## Запуск
 
-Throne работает локально. Агент общается с ним через тонкий STDIO-прокси — без облака и без авторизации. Три шага до первого Intent.
+Throne работает локально, без облака и без сетевой авторизации. Основной путь - embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст и ведёт lifecycle через hooks. Standalone MCP-клиенты поддерживаются как вторичный путь через прямой Streamable HTTP endpoint `http://localhost:5008/mcp` (см. [ADR-0037](specs/ADR/0037-direct-http-mcp-for-standalone-agents.md)).
 
-### 1. Поставить STDIO-прокси
-
-`Throne.Mcp.Stdio` — это [global .NET tool](https://learn.microsoft.com/en-us/dotnet/core/tools/global-tools) в NuGet (`PackageId=Throne.Mcp.Stdio`, команда `throne-mcp-stdio`), нужен .NET 10 SDK. Это единственный поддерживаемый способ подключения внешних MCP-клиентов (Claude Desktop/Code, Cursor, Codex) — пути до локального чекаута и пред-собранные бинари в Releases намеренно не используются (см. [ADR-0009 § Distribution](specs/ADR/0009-cross-process-realtime-fanout.md#distribution)).
-
-**macOS / Linux**
-
-```bash
-dotnet tool install -g Throne.Mcp.Stdio
-
-# GUI-приложения (Claude.app, Cursor) не подхватывают ~/.dotnet/tools.
-# Симлинк в системный PATH делает throne-mcp-stdio видимым везде:
-sudo ln -sf "$HOME/.dotnet/tools/throne-mcp-stdio" /usr/local/bin/throne-mcp-stdio
-```
-
-**Windows**
-
-```bat
-dotnet tool install -g Throne.Mcp.Stdio
-
-REM %USERPROFILE%\.dotnet\tools уже в PATH.
-REM Открой новое окно терминала/IDE, чтобы PATH перечитался.
-```
-
-Обновление — `dotnet tool update -g Throne.Mcp.Stdio`. Публикация в NuGet — workflow [.github/workflows/publish-mcp-stdio.yml](.github/workflows/publish-mcp-stdio.yml) по тегу `v*`.
-
-### 2. Поднять Throne локально
+### 1. Поднять Throne локально
 
 У Throne два режима запуска (см. [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). Базовая работа (MCP-память, интенты, инструкции) одинакова в обоих; различие — где живёт backend и доступны ли host-фичи (терминал, Run, «Open in VS Code», репозитории).
 
@@ -81,53 +56,85 @@ ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
 docker compose --profile db up -d
 ```
 
-### 3. Прописать сервер в агенте
+### 2. Работать через embedded-терминал
 
-Команда везде одна — `throne-mcp-stdio`. Откройте свой клиент и вставьте сниппет в указанный конфиг.
+Embedded-терминал - приоритетный контур. Он требует **host-backend режим**: нативный `Throne.Api` видит host CLI (`claude`, `codex`, `gh`, `git`, `tmux`, `code`) и может запускать агента в `tmux` из UI. Для этого поставь нужный CLI, залогинься в него на хосте и включи capability в `/settings`.
 
-**Claude Desktop** — `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) · `%APPDATA%\Claude\claude_desktop_config.json` (Windows)
+### 3. Standalone MCP: прямой HTTP `/mcp`
+
+Standalone нужен, если агент запускается вне UI Throne. В этом режиме оператор должен явно просить агента работать через Throne и читать нужный prompt bundle: mini-router из MCP `initialize` - подсказка, а не надёжный lifecycle hook.
+
+Запусти `Throne.Api` на `http://localhost:5008`, затем добавь MCP endpoint в клиент.
+
+**Claude Code**
+
+```bash
+claude mcp add --transport http throne http://localhost:5008/mcp
+```
+
+Ручной вариант в `~/.claude.json` (`mcpServers`):
 
 ```json
 {
   "mcpServers": {
     "throne": {
-      "command": "throne-mcp-stdio"
+      "type": "http",
+      "url": "http://localhost:5008/mcp"
     }
   }
 }
 ```
 
-**Claude Code** — через CLI: `claude mcp add throne -s user -- throne-mcp-stdio` · вручную: `~/.claude.json` (`mcpServers`)
+**Cursor** - `~/.cursor/mcp.json` (macOS/Linux) или `%USERPROFILE%\.cursor\mcp.json` (Windows)
 
 ```json
 {
   "mcpServers": {
     "throne": {
-      "type": "stdio",
-      "command": "throne-mcp-stdio"
+      "url": "http://localhost:5008/mcp"
     }
   }
 }
 ```
 
-**Cursor** — `~/.cursor/mcp.json` (macOS/Linux) · `%USERPROFILE%\.cursor\mcp.json` (Windows)
+Cursor HTTP transport стоит проверять после перезапуска IDE: при reconnect/keep-alive проблемах открой MCP settings, переподключи сервер и проверь, что инструменты снова видны.
 
-```json
-{
-  "mcpServers": {
-    "throne": {
-      "command": "throne-mcp-stdio"
-    }
-  }
-}
-```
-
-**Codex** — `~/.codex/config.toml` (macOS/Linux) · `%USERPROFILE%\.codex\config.toml` (Windows)
+**Codex** - `~/.codex/config.toml` (macOS/Linux) или `%USERPROFILE%\.codex\config.toml` (Windows)
 
 ```toml
 [mcp_servers.throne]
-command = "throne-mcp-stdio"
+url = "http://localhost:5008/mcp"
 ```
+
+CLI-вариант:
+
+```bash
+codex mcp add throne --url http://localhost:5008/mcp
+```
+
+**Claude Desktop** - через стандартный stdio↔HTTP bridge `mcp-remote`
+
+Claude Desktop для локально запускаемых MCP-серверов использует stdio и не подключается к plain HTTP localhost напрямую. Поддерживаемый путь - внешний bridge `mcp-remote`, а не собственный прокси Throne.
+
+`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) или `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "throne": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://localhost:5008/mcp",
+        "--allow-http"
+      ]
+    }
+  }
+}
+```
+
+`--allow-http` обязателен для plain HTTP. Если локальная политика/CORS/bridge-блокировка мешает localhost, используй туннель (ngrok/cloudflared) или основной путь: embedded-терминал / Claude Code CLI.
 
 ### Host-фичи: репозитории, агент-терминал, VS Code
 

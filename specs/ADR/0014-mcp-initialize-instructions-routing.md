@@ -46,7 +46,7 @@ MCP-протокол уже даёт штатный канал для серве
 
    Имя режима `dream` сохраняется ради совместимости конфигов и манифеста; меняется только содержимое bundle и набор MCP-инструментов, на которые он опирается.
 
-3. **Forwarding в STDIO-проксе.** [Throne.Mcp.Stdio](../../apps/api/src/Throne.Mcp.Stdio/Program.cs) — STDIO→HTTP MCP прокси (см. [ADR-0009](0009-cross-process-realtime-fanout.md)) — забирает `IMcpClient.ServerInstructions` от upstream и пробрасывает их в свой собственный `McpServerOptions.ServerInstructions`. Так STDIO-only клиенты получают идентичный mini-router без отдельного дублирования текста.
+3. **Прямой HTTP MCP.** После [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md) standalone-клиенты подключаются к `Throne.Api /mcp` напрямую и получают mini-router из `InitializeResult.instructions` без дополнительного forwarding-процесса. Claude Desktop, которому локально нужен stdio, использует внешний bridge `mcp-remote`.
 
 4. **Slash-команд `/tinterview | /twork | /tfix | /tdream` нет.** Единственный путь начать поток — текст пользователя. Агент читает mini-router из `InitializeResult.instructions`, классифицирует намерение (interview / work / fix / dream) и сам зовёт `get_instruction_bundle(mode, intent_id?)`. Вход в поток теперь осуществляется естественной просьбой, не жестом «набери команду».
 

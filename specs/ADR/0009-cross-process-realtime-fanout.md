@@ -3,6 +3,11 @@
 ## Status
 Accepted.
 
+Update 2026-06-13: superseded for standalone client setup by
+[ADR-0037](0037-direct-http-mcp-for-standalone-agents.md). Standalone clients
+now connect directly to `Throne.Api /mcp`; the former repository-local proxy
+project and its publish workflow were removed.
+
 Тесно связан с [ADR-0008](0008-realtime-contract-first-events.md) — снимает явно отложенное там ограничение "broker in-memory; multi-instance потребует внешнего pub/sub — отдельное ADR" в той части, что касается раздельных STDIO- и Web-процессов в self-hosted dev/single-instance деплое. Multi-instance fanout остаётся открытым ADR.
 
 ## Context
@@ -11,7 +16,7 @@ Accepted.
 
 Root cause:
 
-- `Throne.Mcp.Stdio` — отдельный OS-процесс, который Claude Code запускает как STDIO MCP server. До этого ADR он напрямую подключался к Mongo через `AddThroneMcpCore` → `AddThroneInfrastructure`.
+- Former stdio MCP server — отдельный OS-процесс, который Claude Code запускал как STDIO MCP server. До этого ADR он напрямую подключался к Mongo через `AddThroneMcpCore` → `AddThroneInfrastructure`.
 - `Throne.Api` — отдельный процесс (docker-compose `apps/api`, порт 5008). Здесь живёт `RealtimeController` (`GET /api/v1/realtime/stream`) и SSE-подписчики из браузера.
 - Оба процесса регистрируют один и тот же DI-граф: `MongoUnitOfWork` обёрнут декоратором `DomainEventDispatchingUnitOfWork`, который фанаутит domain events в `IDomainEventHandler`. Единственный handler — `RealtimeDomainEventHandler` пишет в `InMemoryRealtimeBroker`.
 - `InMemoryRealtimeBroker` — `ConcurrentDictionary<Guid, Subscription>` в памяти процесса. Cross-process транспорта нет (так и задумано в ADR-0008).
@@ -20,12 +25,12 @@ Root cause:
 
 Контекст принятия решения:
 - Throne сейчас self-hosted-first; SaaS-режим — следующая итерация. Горизонтальный масштаб `Throne.Api` в обозримом будущем не нужен.
-- Claude Code на дату ADR не позволяет указать MCP-сервер по plain-HTTP localhost (только STDIO или HTTPS). Поэтому STDIO-процесс остаётся обязательной точкой входа в self-hosted деплое.
+- Claude Code на дату ADR не позволяет указать MCP-сервер по plain-HTTP localhost (только STDIO или HTTPS). Поэтому STDIO-процесс остаётся обязательной точкой входа в self-hosted деплое. Это ограничение снято в [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md).
 - ADR-0008 уже зафиксировал `IRealtimeEventBroker` как seam: любая будущая cross-instance имплементация (Redis/NATS) подключается без изменений domain pipeline или фронтового контракта.
 
 ## Decision
 
-`Throne.Mcp.Stdio` превращён в **тонкий STDIO→HTTP MCP прокси**:
+Former stdio MCP server превращён в **тонкий STDIO→HTTP MCP прокси**:
 
 - При старте процесс читает `Throne:ApiBaseUrl` (env / config; default `http://localhost:5008`) и поднимает `IMcpClient` через `SseClientTransport` к `<base>/mcp` (auto-detect Streamable HTTP / SSE — оба поддерживаются `app.MapMcp("/mcp")` на Throne.Api).
 - `client.ListToolsAsync()` возвращает `IList<McpClientTool>`; для каждого `McpClientTool` (это `Microsoft.Extensions.AI.AIFunction`) регистрируется `McpServerTool.Create(tool)` — pass-through, который инвокирует upstream-инструмент со всеми аргументами «как есть» и возвращает upstream-`CallToolResult` без модификаций.
@@ -39,7 +44,7 @@ Root cause:
 
 ## Cloud trajectory
 
-- **Self-hosted single-instance (now)**: одна сборка docker-compose `--profile full`, `Throne.Api` на 5008, веб на 8080, `Throne.Mcp.Stdio` запускается Claude Code и проксирует на 5008. Баг снят без новых зависимостей.
+- **Self-hosted single-instance (original decision)**: одна сборка docker-compose `--profile full`, `Throne.Api` на 5008, веб на 8080, отдельный stdio→HTTP proxy запускается клиентом и проксирует на 5008. Баг снят без новых зависимостей. После [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md) standalone-клиенты ходят в `Throne.Api /mcp` напрямую.
 - **SaaS single-instance (next)**: тот же `Throne.Api` под HTTPS, добавляются auth + `user_id` на Intent/Tag/QA/Review (отдельные intents). Брокер остаётся in-memory, потому что инстанс один.
 - **SaaS multi-instance (потом)**: новая реализация `IRealtimeEventBroker` поверх Redis Streams или NATS — по seam'у, описанному в ADR-0008. Domain events / outcomes / handlers / фронтовый `useRealtimeEvent` без изменений. Это уже отдельное ADR.
 
@@ -47,7 +52,7 @@ Root cause:
 
 Положительные:
 - баг "UI не обновляется после MCP-write" уходит для всех актуальных deploy-сценариев (dev, self-hosted prod, SaaS single-instance).
-- `Throne.Mcp.Stdio` теряет всю Application/Infrastructure-поверхность — он больше физически не может выполнять прямые мутации в обход Api. Это закрывает целый класс будущих регрессий: невозможно «по ошибке» добавить new write-tool на Stdio-стороне, который пропустит SSE.
+- Former proxy теряет всю Application/Infrastructure-поверхность — он больше физически не может выполнять прямые мутации в обход Api. Это закрывает целый класс будущих регрессий: невозможно «по ошибке» добавить new write-tool на Stdio-стороне, который пропустит SSE.
 - Audit live в одном месте — никаких двойных записей `mcp_call_log` от двух процессов.
 - Stdio-процесс становится простым (~70 строк) и переиспользуемым: тот же бинарник работает и для self-hosted, и для будущего SaaS, и для CI-проверок.
 
@@ -66,27 +71,24 @@ Root cause:
 
 - Auth / `user_id` на Intent/Tag/QA/Review — необходимо перед публичным SaaS, делается отдельным intent'ом.
 - Multi-instance `Throne.Api` и cross-instance fanout — будущее ADR поверх seam'а из ADR-0008.
-- Удаление `Throne.Mcp.Stdio` целиком — возможно, когда Claude Code/Codex/Cursor разрешат указывать non-HTTPS HTTP MCP-сервер локально. Тогда launcher'ы будут указывать на `http://localhost:5008/mcp` напрямую, а Stdio станет ненужным.
+- Удаление stdio→HTTP proxy целиком — возможно, когда Claude Code/Codex/Cursor разрешат указывать non-HTTPS HTTP MCP-сервер локально. Выполнено в [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md): launcher'ы указывают на `http://localhost:5008/mcp` напрямую.
 
 ## Distribution
 
-`Throne.Mcp.Stdio` распространяется как **global .NET tool** (`PackAsTool=true`, `ToolCommandName=throne-mcp-stdio`) и публикуется в NuGet.org из workflow [.github/workflows/publish-mcp-stdio.yml](../../.github/workflows/publish-mcp-stdio.yml) по тегу `v*`. Пользователь ставит прокси одной командой `dotnet tool install -g Throne.Mcp.Stdio`, а MCP-клиент видит его как `command: "throne-mcp-stdio"` без путей до чекаута.
+Original decision: the proxy was distributed as a global .NET tool and published to NuGet.org from a release workflow, so MCP clients could start it without paths to a local checkout.
+
+Update 2026-06-13: this distribution path is retired by [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md). The workflow and project were removed from the repository; the package is deprecated on nuget.org by an operator action.
 
 Что **не** делаем:
 - не публикуем single-file бинари в GitHub Releases — отдельный путь, осознанно отложен до запроса;
 - не пакуем через Homebrew/winget — следующий шаг по запросу;
 - не предлагаем пользователю `dotnet run --project <local-path>` как вход — это работает только у автора.
 
-Если когда-нибудь STDIO-прокси станет ненужен (см. «Out of scope»), пакет деприкейтится; до этого момента лендинг и любые внешние инструкции должны ссылаться именно на dotnet tool.
-
 ## References
 
 - [ADR-0008](0008-realtime-contract-first-events.md) — текущий realtime pipeline и seam `IRealtimeEventBroker`.
-- [Throne.Mcp.Stdio/Program.cs](../../apps/api/src/Throne.Mcp.Stdio/Program.cs)
 - [Throne.Api/Program.cs](../../apps/api/src/Throne.Api/Program.cs)
 - [Throne.Api/Realtime/InMemoryRealtimeBroker.cs](../../apps/api/src/Throne.Api/Realtime/InMemoryRealtimeBroker.cs)
 - [Throne.Api/Realtime/RealtimeDomainEventHandler.cs](../../apps/api/src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs)
 - [Throne.Application/Events/DomainEventDispatchingUnitOfWork.cs](../../apps/api/src/Throne.Application/Events/DomainEventDispatchingUnitOfWork.cs)
 - [docker-compose.yml](../../docker-compose.yml)
-- [Throne.Mcp.Stdio.csproj](../../apps/api/src/Throne.Mcp.Stdio/Throne.Mcp.Stdio.csproj)
-- [.github/workflows/publish-mcp-stdio.yml](../../.github/workflows/publish-mcp-stdio.yml)
