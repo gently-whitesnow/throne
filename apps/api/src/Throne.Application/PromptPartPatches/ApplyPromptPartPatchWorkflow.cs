@@ -1,4 +1,4 @@
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
 using Throne.Domain.PromptParts;

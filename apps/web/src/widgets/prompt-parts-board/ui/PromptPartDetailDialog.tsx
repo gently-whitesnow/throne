@@ -6,10 +6,11 @@ import type { PromptPartListItem } from "@/entities/prompt-part";
 
 import { CreatePromptPartBody } from "./CreatePromptPartBody";
 import { EditPromptPartBody } from "./EditPromptPartBody";
+import { SystemPartBody } from "./SystemPartBody";
 
 export type PromptPartDialogTarget =
   | { mode: "create" }
-  | { mode: "edit"; part: PromptPartListItem };
+  | { mode: "detail"; part: PromptPartListItem };
 
 interface PromptPartDetailDialogProps {
   target: PromptPartDialogTarget;
@@ -38,6 +39,8 @@ export function PromptPartDetailDialog({
     };
   }, [onClose]);
 
+  const isSystem = target.mode === "detail" && target.part.scope === "system";
+
   return createPortal(
     <div
       className="modal modal-open"
@@ -55,7 +58,11 @@ export function PromptPartDetailDialog({
         <header className="mb-4 flex justify-between gap-4">
           <div>
             <p className="m-0 mb-1 text-[11px] font-bold uppercase tracking-wider text-primary">
-              Optional-часть
+              {target.mode === "create"
+                ? "Новая часть"
+                : isSystem
+                  ? "System-часть"
+                  : "User-часть"}
             </p>
             <h2
               id={titleId}
@@ -77,6 +84,8 @@ export function PromptPartDetailDialog({
         <div className="flex flex-col gap-4 overflow-y-auto">
           {target.mode === "create" ? (
             <CreatePromptPartBody onClose={onClose} />
+          ) : isSystem ? (
+            <SystemPartBody part={target.part} onClose={onClose} />
           ) : (
             <EditPromptPartBody part={target.part} onClose={onClose} />
           )}

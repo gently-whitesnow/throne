@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Client;
 using Throne.Api.Tests.Infrastructure;
-using Throne.Application.Instructions;
+using Throne.Application.Mcp;
 
 namespace Throne.Api.Tests.Mcp;
 

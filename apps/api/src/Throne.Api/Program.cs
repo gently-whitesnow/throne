@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Intents;
 using Throne.Api.Mcp;
-using Throne.Application.Instructions;
+using Throne.Application.Mcp;
 
 var builder = WebApplication.CreateBuilder(args);
 

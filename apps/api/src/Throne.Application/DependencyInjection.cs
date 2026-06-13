@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Dreams;
 using Throne.Application.Events;
-using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;

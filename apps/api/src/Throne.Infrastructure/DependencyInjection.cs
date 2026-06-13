@@ -4,8 +4,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Throne.Application.Events;
-using Throne.Application.Instructions.Manifest;
 using Throne.Application.Intents.Attachments;
+using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
 using Throne.Infrastructure.Git;
@@ -73,7 +73,7 @@ public static class DependencyInjection
         services.AddSingleton<ITerminalSettingsStore, MongoTerminalSettingsStore>();
         services.AddHostedService<MongoIndexInitializer>();
         // PromptPartSeeder runs after the index initializer: it relies on the (scope,key) unique
-        // index being in flight and reconciles system parts + migrates legacy instructions (ADR-0036).
+        // index being in flight and reconciles system parts from the skill manifest (ADR-0036).
         services.AddHostedService<PromptPartSeeder>();
 
         return services;

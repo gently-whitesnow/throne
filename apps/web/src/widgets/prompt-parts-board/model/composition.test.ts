@@ -9,7 +9,6 @@ import type {
 import {
   assembleSystemPrompt,
   buildModeComposition,
-  dedupeProjectedInstructions,
   mergeRoleForMode
 } from "./composition";
 
@@ -100,7 +99,7 @@ describe("buildModeComposition", () => {
       .map((p) => p.key);
     expect(optionalKeys).toEqual(["alpha", "beta", "zeta"]);
     // mandatory block first
-    expect(parts[0].kind).toBe("instruction");
+    expect(parts[0].kind).toBe("mandatory");
   });
 
   it("selected = mandatory + default_on, не default_off", () => {
@@ -191,17 +190,5 @@ describe("mergeRoleForMode", () => {
       order: 7
     });
     expect(next).toHaveLength(3);
-  });
-});
-
-describe("dedupeProjectedInstructions", () => {
-  it("схлопывает common по (scope,kind) и собирает режимы", () => {
-    const projected = dedupeProjectedInstructions(bundlesTree);
-    const common = projected.find((p) => p.key === "common");
-    expect(common?.modes.sort()).toEqual(["interview", "work"]);
-    const work = projected.find((p) => p.key === "work");
-    expect(work?.modes).toEqual(["work"]);
-    // unique (scope, key): system, common, work, interview
-    expect(projected).toHaveLength(4);
   });
 });

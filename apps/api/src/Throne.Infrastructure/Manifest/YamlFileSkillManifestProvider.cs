@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 
 namespace Throne.Infrastructure.Manifest;
 

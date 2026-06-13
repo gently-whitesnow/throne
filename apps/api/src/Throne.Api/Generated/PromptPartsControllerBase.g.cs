@@ -30,8 +30,11 @@ namespace Throne.Api.Generated
     public abstract class PromptPartsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
-        /// List user prompt parts (metadata + roles + short text preview).
+        /// List all prompt parts (system + user) with roles + short text preview.
         /// </summary>
+        /// <remarks>
+        /// Returns every prompt part across both scopes (system + user), each with its per-mode roles and a short text preview, ordered system-first then by key.
+        /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-parts", Name = "listPromptParts")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<PromptPartListItemDto>>> ListPromptParts();

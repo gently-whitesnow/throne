@@ -11,8 +11,11 @@ public interface IPromptPartRepository
     /// </summary>
     Task<CreatePromptPartOutcome> CreateAsync(PromptPart part, TextVersion initialVersion, CancellationToken ct);
 
-    /// <summary>Lists user-scope parts (operator board). Ordered by key.</summary>
-    Task<IReadOnlyList<PromptPart>> ListAsync(CancellationToken ct);
+    /// <summary>
+    /// Lists prompt parts ordered by scope then key. When <paramref name="scope"/> is null,
+    /// returns parts across all scopes (system + user); otherwise filters to that scope.
+    /// </summary>
+    Task<IReadOnlyList<PromptPart>> ListAsync(string? scope, CancellationToken ct);
 
     Task<PromptPart?> GetByIdAsync(PromptPartId id, CancellationToken ct);
 
