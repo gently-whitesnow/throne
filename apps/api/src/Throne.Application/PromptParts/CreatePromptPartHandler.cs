@@ -27,7 +27,7 @@ public sealed class CreatePromptPartHandler(
 
         // Deterministic conflict check (the unique (scope,key) index is a backstop that may
         // still be materializing on a fresh database). Single-user local surface — no race.
-        var existing = await repository.ListAsync(ct);
+        var existing = await repository.ListAsync(PromptPartScopeNames.User, ct);
         if (existing.Any(p => string.Equals(p.Key, command.Key, StringComparison.Ordinal)))
         {
             throw new ApiException(

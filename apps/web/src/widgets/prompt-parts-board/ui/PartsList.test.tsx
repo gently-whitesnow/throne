@@ -5,7 +5,6 @@ import { renderWithQuery } from "@/app/test-utils";
 
 import type { PromptPartListItem } from "@/entities/prompt-part";
 
-import type { ProjectedInstruction } from "../model/composition";
 import { PartsList } from "./PartsList";
 
 vi.mock("@/shared/api", () => ({
@@ -25,20 +24,23 @@ const noop = () => {
   /* row callback no-op */
 };
 
-function systemInstruction(): ProjectedInstruction {
+function systemPart(): PromptPartListItem {
   return {
-    scope: "system",
+    id: "sys-common",
     key: "common",
-    prompt_part_id: null,
-    currentVersion: 1,
-    text: "SYS",
-    editable: false,
-    present: true,
-    modes: ["work", "interview"]
+    scope: "system",
+    text_short: "SYS",
+    current_version: 1,
+    mode_roles: [
+      { mode: "work", role: "mandatory", order: 0 },
+      { mode: "interview", role: "mandatory", order: 0 }
+    ],
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z"
   };
 }
 
-function optional(): PromptPartListItem {
+function userPart(): PromptPartListItem {
   return {
     id: "p1",
     key: "opt-one",
@@ -56,37 +58,27 @@ afterEach(() => {
 });
 
 describe("PartsList", () => {
-  it("system-инструкция отрендерена read-only с [must], без select", () => {
+  it("system-часть отрендерена read-only, без select управления ролями", () => {
     render(
-      <PartsList
-        instructions={[systemInstruction()]}
-        optionalParts={[]}
-        onOpenInstruction={noop}
-        onOpenOptional={noop}
-        onCreateOptional={noop}
-      />
+      <PartsList parts={[systemPart()]} onOpenPart={noop} onCreatePart={noop} />
     );
 
     const sysRow = screen.getByText("common").closest("li");
     expect(sysRow).not.toBeNull();
-    expect(within(sysRow as HTMLElement).getByText("must")).toBeTruthy();
     expect(within(sysRow as HTMLElement).queryByRole("combobox")).toBeNull();
+    expect(
+      within(sysRow as HTMLElement).getByText("из манифеста")
+    ).toBeTruthy();
   });
 
-  it("optional-часть отрендерена с управлением ролями (select per mode)", () => {
+  it("user-часть отрендерена с управлением ролями (select per mode)", () => {
     render(
-      <PartsList
-        instructions={[]}
-        optionalParts={[optional()]}
-        onOpenInstruction={noop}
-        onOpenOptional={noop}
-        onCreateOptional={noop}
-      />
+      <PartsList parts={[userPart()]} onOpenPart={noop} onCreatePart={noop} />
     );
 
     const optRow = screen.getByText("opt-one").closest("li");
     expect(optRow).not.toBeNull();
-    // one select per mode (work / interview / free)
+    // one select per embedded mode (work / interview / free)
     expect(within(optRow as HTMLElement).getAllByRole("combobox")).toHaveLength(
       3
     );

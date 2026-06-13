@@ -17,9 +17,9 @@ interface ModeCompositionRowProps {
 }
 
 /**
- * One row in a mode composition: mandatory instruction parts are read-only
- * `[must]`; optional user parts expose an inline RoleSelect. Selected parts
- * (those entering system_prompt) are visually emphasised.
+ * One row in a mode composition: mandatory parts are read-only `[must]`; optional
+ * user parts expose an inline RoleSelect. Selected parts (those entering
+ * system_prompt) are visually emphasised.
  */
 export function ModeCompositionRow({
   part,

@@ -1,6 +1,6 @@
 using Throne.Domain.PromptParts;
 
-namespace Throne.Application.Instructions.Manifest;
+namespace Throne.Application.Manifest;
 
 internal static class SkillManifestValidator
 {

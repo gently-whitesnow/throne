@@ -1,4 +1,4 @@
-namespace Throne.Application.Instructions.Manifest;
+namespace Throne.Application.Manifest;
 
 public sealed record SkillManifest(
     int Version,

@@ -10,6 +10,6 @@ public sealed class ListPromptPartsHandler(IPromptPartRepository repository)
     public Task<IReadOnlyList<PromptPart>> HandleAsync(ListPromptPartsQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
-        return repository.ListAsync(ct);
+        return repository.ListAsync(null, ct);
     }
 }

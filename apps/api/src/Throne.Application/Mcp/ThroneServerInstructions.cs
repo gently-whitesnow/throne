@@ -1,4 +1,4 @@
-namespace Throne.Application.Instructions;
+namespace Throne.Application.Mcp;
 
 /// <summary>
 /// Mini-router shipped to every MCP client via <c>InitializeResult.instructions</c>

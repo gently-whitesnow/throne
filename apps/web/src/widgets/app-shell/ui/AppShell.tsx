@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
   { to: "/tags", label: "Tags", icon: Hash },
   { to: "/repositories", label: "Repositories", icon: FolderGit2 },
-  { to: "/instructions", label: "Instructions", icon: FileText },
+  { to: "/instructions", label: "Prompt parts", icon: FileText },
   { to: "/improvements", label: "Improvements", icon: Sprout },
   { to: "/settings", label: "Settings", icon: Settings }
 ] as const;

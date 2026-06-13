@@ -1,6 +1,6 @@
 using FluentAssertions;
 
-namespace Throne.Api.Tests.Instructions;
+namespace Throne.Api.Tests.Manifest;
 
 public class SkillManifestPublishTests
 {

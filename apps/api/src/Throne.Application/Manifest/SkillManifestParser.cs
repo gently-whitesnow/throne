@@ -1,7 +1,7 @@
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Throne.Application.Instructions.Manifest;
+namespace Throne.Application.Manifest;
 
 public static class SkillManifestParser
 {

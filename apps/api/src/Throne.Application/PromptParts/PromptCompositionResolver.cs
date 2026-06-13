@@ -1,5 +1,5 @@
 using Throne.Application.Errors;
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Domain.PromptParts;
 
@@ -83,7 +83,7 @@ public sealed class PromptCompositionResolver(
         HashSet<string> mandatoryIds,
         CancellationToken ct)
     {
-        var all = await promptParts.ListAsync(ct);
+        var all = await promptParts.ListAsync(PromptPartScopeNames.User, ct);
         var selection = selectedPartIds is null ? null : new HashSet<string>(selectedPartIds, StringComparer.Ordinal);
 
         var parts = new List<EffectivePart>();
