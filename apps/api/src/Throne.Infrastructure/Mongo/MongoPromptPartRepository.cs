@@ -39,13 +39,15 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         return new CreatePromptPartOutcome.Created(part);
     }
 
-    public async Task<IReadOnlyList<PromptPart>> ListAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<PromptPart>> ListAsync(string? scope, CancellationToken ct)
     {
-        var filter = Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, PromptPartScopeNames.User);
+        var filter = scope is null
+            ? Builders<PromptPartDocument>.Filter.Empty
+            : Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, scope);
         var session = sessions.Current;
         var documents = session is null
-            ? await _parts.Find(filter).SortBy(x => x.Key).ToListAsync(ct)
-            : await _parts.Find(session, filter).SortBy(x => x.Key).ToListAsync(ct);
+            ? await _parts.Find(filter).SortBy(x => x.Scope).ThenBy(x => x.Key).ToListAsync(ct)
+            : await _parts.Find(session, filter).SortBy(x => x.Scope).ThenBy(x => x.Key).ToListAsync(ct);
 
         var result = new List<PromptPart>(documents.Count);
         foreach (var doc in documents)

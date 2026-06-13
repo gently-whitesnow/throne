@@ -8,7 +8,6 @@ import type {
 } from "@/entities/prompt-part";
 
 type BundlesTree = PromptPartsComponents["schemas"]["BundlesTreeDto"];
-type BundleEntryNode = PromptPartsComponents["schemas"]["BundleEntryNodeDto"];
 
 /**
  * One resolved entry in a mode's effective embedded composition. Mirrors the
@@ -27,7 +26,7 @@ export interface EffectivePart {
   text: string;
   /** Whether the full text is known (false for optionals built from text_short). */
   textIsFull: boolean;
-  kind: "instruction" | "optional";
+  kind: "mandatory" | "optional";
 }
 
 /**
@@ -68,7 +67,7 @@ function buildMandatory(
     selected: true,
     text: entry.text,
     textIsFull: true,
-    kind: "instruction" as const
+    kind: "mandatory" as const
   }));
 }
 
@@ -142,57 +141,4 @@ export function mergeRoleForMode(
     order: existing?.order ?? orderForNew
   };
   return [...others, entry];
-}
-
-/** A mandatory bundle part deduped across modes, with the modes it participates in. */
-export interface ProjectedInstruction {
-  scope: string;
-  key: string;
-  prompt_part_id: string | null;
-  currentVersion: number;
-  text: string;
-  editable: boolean;
-  present: boolean;
-  modes: string[];
-}
-
-/**
- * Collapses the bundles tree into unique (scope, key) mandatory parts. `common`
- * repeats in every bundle — it is collapsed to one row tagged with all the
- * modes it appears in.
- */
-export function dedupeProjectedInstructions(
-  bundlesTree: BundlesTree | undefined
-): ProjectedInstruction[] {
-  const byKey = new Map<string, ProjectedInstruction>();
-  for (const bundle of bundlesTree?.bundles ?? []) {
-    for (const entry of bundle.includes) {
-      const mapKey = `${entry.scope}:${entry.key}`;
-      const existing = byKey.get(mapKey);
-      if (existing) {
-        if (!existing.modes.includes(bundle.mode)) {
-          existing.modes.push(bundle.mode);
-        }
-        continue;
-      }
-      byKey.set(mapKey, projectEntry(entry, bundle.mode));
-    }
-  }
-  return [...byKey.values()];
-}
-
-function projectEntry(
-  entry: BundleEntryNode,
-  mode: string
-): ProjectedInstruction {
-  return {
-    scope: entry.scope,
-    key: entry.key,
-    prompt_part_id: entry.prompt_part_id ?? null,
-    currentVersion: entry.current_version,
-    text: entry.text,
-    editable: entry.editable,
-    present: entry.present,
-    modes: [mode]
-  };
 }

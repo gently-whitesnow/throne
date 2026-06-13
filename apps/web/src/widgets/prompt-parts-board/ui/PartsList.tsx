@@ -4,97 +4,114 @@ import { useState } from "react";
 import type { PromptPartListItem } from "@/entities/prompt-part";
 import { Button } from "@/shared/ui";
 
-import type { ProjectedInstruction } from "../model/composition";
-import { InstructionRow, OptionalRow } from "./PartsListRow";
+import { PartRow } from "./PartRow";
 
 interface PartsListProps {
-  instructions: ProjectedInstruction[];
-  optionalParts: PromptPartListItem[];
-  onOpenInstruction: (instruction: ProjectedInstruction) => void;
-  onOpenOptional: (part: PromptPartListItem) => void;
-  onCreateOptional: () => void;
+  parts: PromptPartListItem[];
+  onOpenPart: (part: PromptPartListItem) => void;
+  onCreatePart: () => void;
 }
 
 /**
- * Unified parts list: projected mandatory instructions (read-only / editable
- * user instructions) and operator-authored optional parts with per-mode role
- * controls.
+ * Single prompt-parts list grouped by scope. System parts are manifest-managed
+ * (read-only text and roles); user parts get full CRUD plus inline per-mode role
+ * controls. "Expanding/shrinking the bundle" = changing a part's role in a mode.
  */
-export function PartsList({
-  instructions,
-  optionalParts,
-  onOpenInstruction,
-  onOpenOptional,
-  onCreateOptional
-}: PartsListProps) {
+export function PartsList({ parts, onOpenPart, onCreatePart }: PartsListProps) {
   const [roleError, setRoleError] = useState<string | null>(null);
+
+  const systemParts = parts.filter((p) => p.scope === "system");
+  const userParts = parts.filter((p) => p.scope === "user");
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex flex-col gap-2">
-        <h3 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/70">
-          Инструкции (mandatory)
-        </h3>
-        <p className="m-0 text-xs text-base-content/60">
-          Спроецированы из манифеста бандлов. System read-only, user
-          редактируются. Всегда обязательны в своих режимах.
+      {roleError ? (
+        <p role="alert" className="m-0 text-sm text-error">
+          {roleError}
         </p>
-        {instructions.length === 0 ? (
-          <p className="m-0 text-[13px] text-base-content/60">
-            Нет инструкций.
-          </p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {instructions.map((instruction) => (
-              <InstructionRow
-                key={`${instruction.scope}:${instruction.key}`}
-                instruction={instruction}
-                onOpen={() => {
-                  onOpenInstruction(instruction);
-                }}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+      ) : null}
 
-      <section className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/70">
-            Optional-части
-          </h3>
+      <ScopeGroup
+        title="System"
+        hint="Засеяны из манифеста и реконсайлятся на старте. Текст и роли read-only."
+        empty="Нет system-частей."
+        parts={systemParts}
+        readOnly
+        onOpenPart={onOpenPart}
+        onRoleError={setRoleError}
+      />
+
+      <ScopeGroup
+        title="User"
+        hint="Курируете вы: текст, описание и роли по режимам."
+        empty="Пока нет user-частей. Создайте первую."
+        parts={userParts}
+        readOnly={false}
+        onOpenPart={onOpenPart}
+        onRoleError={setRoleError}
+        action={
           <Button
             variant="primary"
             icon={<Plus aria-hidden size={14} strokeWidth={2.5} />}
-            onClick={onCreateOptional}
+            onClick={onCreatePart}
           >
-            Создать optional-часть
+            Создать часть
           </Button>
-        </div>
-        {roleError ? (
-          <p role="alert" className="m-0 text-sm text-error">
-            {roleError}
-          </p>
-        ) : null}
-        {optionalParts.length === 0 ? (
-          <p className="m-0 text-[13px] text-base-content/60">
-            Пока нет optional-частей. Создайте первую.
-          </p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-            {optionalParts.map((part) => (
-              <OptionalRow
-                key={part.id}
-                part={part}
-                onOpen={() => {
-                  onOpenOptional(part);
-                }}
-                onRoleError={setRoleError}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+        }
+      />
     </div>
+  );
+}
+
+interface ScopeGroupProps {
+  title: string;
+  hint: string;
+  empty: string;
+  parts: PromptPartListItem[];
+  readOnly: boolean;
+  onOpenPart: (part: PromptPartListItem) => void;
+  onRoleError: (message: string | null) => void;
+  action?: React.ReactNode;
+}
+
+function ScopeGroup({
+  title,
+  hint,
+  empty,
+  parts,
+  readOnly,
+  onOpenPart,
+  onRoleError,
+  action
+}: ScopeGroupProps) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/70">
+            {title}
+          </h3>
+          <p className="m-0 text-xs text-base-content/60">{hint}</p>
+        </div>
+        {action}
+      </div>
+      {parts.length === 0 ? (
+        <p className="m-0 text-[13px] text-base-content/60">{empty}</p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+          {parts.map((part) => (
+            <PartRow
+              key={part.id}
+              part={part}
+              readOnly={readOnly}
+              onOpen={() => {
+                onOpenPart(part);
+              }}
+              onRoleError={onRoleError}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

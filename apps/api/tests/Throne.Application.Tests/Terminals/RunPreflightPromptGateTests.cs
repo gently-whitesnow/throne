@@ -5,7 +5,7 @@ using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
 using Throne.Application.Terminals;
-using Throne.Application.Tests.Instructions;
+using Throne.Application.Tests.Manifest;
 using Throne.Domain.Intents;
 using Throne.Domain.PromptParts;
 
@@ -96,7 +96,7 @@ public class RunPreflightPromptGateTests
             .Returns(call => PromptPart.Create(
                 PromptPartId.New(), call.ArgAt<string>(0), call.ArgAt<string>(1),
                 $"{call.ArgAt<string>(0)} {call.ArgAt<string>(1)}", null, [], Now));
-        promptParts.ListAsync(Arg.Any<CancellationToken>()).Returns(optionalParts);
+        promptParts.ListAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(optionalParts);
         var resolver = new PromptCompositionResolver(
             SkillManifestFixtures.Provider(), new PromptBundleResolver(promptParts), promptParts);
 

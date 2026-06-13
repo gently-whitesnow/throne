@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List user prompt parts (metadata + roles + short text preview). */
+        /**
+         * List all prompt parts (system + user) with roles + short text preview.
+         * @description Returns every prompt part across both scopes (system + user), each with its per-mode roles and a short text preview, ordered system-first then by key.
+         */
         get: operations["listPromptParts"];
         put?: never;
         /** Create a user prompt part. */

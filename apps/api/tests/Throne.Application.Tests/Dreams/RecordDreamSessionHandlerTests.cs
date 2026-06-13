@@ -2,9 +2,9 @@ using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Dreams;
 using Throne.Application.Errors;
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 using Throne.Application.Ports;
-using Throne.Application.Tests.Instructions;
+using Throne.Application.Tests.Manifest;
 using Throne.Domain.Dreams;
 
 namespace Throne.Application.Tests.Dreams;

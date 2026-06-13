@@ -1,5 +1,5 @@
 using Throne.Application.Errors;
-using Throne.Application.Instructions.Manifest;
+using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Domain.Dreams;
 

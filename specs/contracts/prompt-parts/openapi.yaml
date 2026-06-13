@@ -4,17 +4,20 @@ info:
   version: "1.0.0"
   x-csharp-namespace: Throne.PromptParts.Contracts.Generated
   description: >
-    User-authored optional prompt parts for the embedded terminal (ADR-0035). A part is a
-    named unit of rule text with per-mode roles (mandatory | default_on | default_off). The
-    mandatory system/user instructions are NOT managed here — they are projected from the
-    skill manifest into the embedded composition (see terminal/preview). This module owns only
-    the operator-authored optional parts stored in Mongo.
+    Prompt parts for the embedded terminal (ADR-0035, ADR-0036). A part is a named unit of
+    rule text with per-mode roles (mandatory | default_on | default_off). This module manages
+    all prompt_parts — both scopes. System parts are reconciled from the skill manifest and are
+    read-only here (manifest-managed); user parts are operator-authored and fully CRUD-able. The
+    list endpoint returns both scopes (the client groups by scope).
 paths:
   /api/v1/prompt-parts:
     get:
       operationId: listPromptParts
       tags: [PromptParts]
-      summary: List user prompt parts (metadata + roles + short text preview).
+      summary: List all prompt parts (system + user) with roles + short text preview.
+      description: >
+        Returns every prompt part across both scopes (system + user), each with its per-mode
+        roles and a short text preview, ordered system-first then by key.
       responses:
         '200':
           description: OK
