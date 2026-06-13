@@ -31,7 +31,6 @@ Api ──► Infrastructure (только в Program.cs / DI wiring)
 - **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про MongoDB и MCP.
 - **Throne.Infrastructure** — реализация портов (Mongo).
 - **Throne.Api** — composition root + транспорт. Сейчас MCP, в будущем HTTP для `apps/web`.
-- **Throne.Mcp.Stdio** — тонкий STDIO→HTTP MCP proxy ([ADR-0009](ADR/0009-cross-process-realtime-fanout.md)). Не должен зависеть от Domain/Application/Infrastructure/Api: иначе domain events срабатывают в proxy и SSE-подписчики apps/web их не видят.
 
 Нарушение направления зависимостей провалит `Throne.Architecture.Tests`.
 

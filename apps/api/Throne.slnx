@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Throne.Mcp.Stdio/Throne.Mcp.Stdio.csproj" />
     <Project Path="src/Throne.Api/Throne.Api.csproj" />
     <Project Path="src/Throne.Application/Throne.Application.csproj" />
     <Project Path="src/Throne.Domain/Throne.Domain.csproj" />
@@ -22,6 +21,5 @@
     <Project Path="tests/Throne.Architecture.Tests/Throne.Architecture.Tests.csproj" />
     <Project Path="tests/Throne.Domain.Tests/Throne.Domain.Tests.csproj" />
     <Project Path="tests/Throne.Infrastructure.Tests/Throne.Infrastructure.Tests.csproj" />
-    <Project Path="tests/Throne.Mcp.Stdio.Tests/Throne.Mcp.Stdio.Tests.csproj" />
   </Folder>
 </Solution>

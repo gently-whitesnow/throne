@@ -89,13 +89,6 @@
           }
         },
         {
-          "_comment": "Stdio MCP proxy log surface mirrors LoggerMessage source-generated partial methods.",
-          "glob": "**/Throne.Mcp.Stdio/StdioProxyLog.cs",
-          "limits": {
-            "typeMaxPublicMembers": 20
-          }
-        },
-        {
           "_comment": "CLI provider façades (ADR-0024 gh, ADR-0032 glab) mechanically implement IGitProvider as one-line delegations to collaborator types; public surface == interface method count, same structural-surface precedent as REST controllers above.",
           "glob": "**/Throne.Infrastructure/Git/*Cli/*CliProvider.cs",
           "limits": {
