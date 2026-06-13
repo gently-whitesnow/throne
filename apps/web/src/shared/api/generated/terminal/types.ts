@@ -111,7 +111,7 @@ export interface paths {
         put?: never;
         /**
          * Receive a local agent hook callback.
-         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file / Codex inline `-c hooks.*` override) for both vendors. Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4): `Stop` parks the intent in `awaiting_operator`, `UserPromptSubmit` returns it to the spawn phase (`work`/`interview`). The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less modes (`dream`/`free`) pass through without a status change.
+         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file / Codex inline `-c hooks.*` override) for both vendors. Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4): `Stop` parks the intent in `awaiting_operator`, `UserPromptSubmit` returns it to the spawn phase (`work`/`free` → `work`, `interview` → `interview`). The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change.
          */
         post: operations["receiveIntentTerminalHook"];
         delete?: never;
