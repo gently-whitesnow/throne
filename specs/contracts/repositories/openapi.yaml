@@ -539,6 +539,80 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/review/file-lines:
+    get:
+      operationId: getIntentRepositoryReviewFileLines
+      tags: [IntentRepositories]
+      summary: Read a line range from a file blob in the binding's local clone.
+      description: >
+        Backs review diff context expansion. The server reads `path` from `sha` in
+        the local workspace clone via plain git, retries once with
+        `git fetch --filter=blob:none origin {sha}` when the object is missing,
+        and returns only a typed ProblemDetails error when the object/path remains
+        unavailable. Context is always read from the new file side; clients pass
+        `PullRequestDiffDto.head_sha` and `PullRequestDiffFileDto.path`.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: sha
+          required: true
+          schema:
+            type: string
+            minLength: 7
+        - in: query
+          name: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewFileLinesDto'
+        '404':
+          description: Intent, binding, git object or file path not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Local repository clone is not ready.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Invalid line range or query parameter.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/repositories/{binding_id}/review/pull-request:
     get:
       operationId: getIntentRepositoryPullRequest
@@ -1671,6 +1745,47 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PullRequestDiffFileDto'
+    ReviewFileLineDto:
+      type: object
+      required:
+        - line
+        - content
+      properties:
+        line:
+          type: integer
+          format: int32
+          minimum: 1
+          description: 1-based line number in the requested file blob.
+        content:
+          type: string
+          description: Line content without a trailing newline.
+    ReviewFileLinesDto:
+      type: object
+      required:
+        - from
+        - to
+        - total_lines
+        - lines
+      properties:
+        from:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Requested start line.
+        to:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Actual inclusive end line returned; less than `from` when the range starts after EOF.
+        total_lines:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Total line count of the blob at `sha:path`.
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewFileLineDto'
     PullRequestCommitDto:
       type: object
       required:

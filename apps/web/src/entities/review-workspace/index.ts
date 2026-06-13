@@ -3,6 +3,8 @@ export type {
   ReviewCommentSide,
   PullRequestDiff,
   PullRequestDiffFile,
+  ReviewFileLines,
+  ReviewFileLine,
   PullRequestDiffFileStatus,
   PullRequestCommit,
   PullRequestHeader,
@@ -19,6 +21,7 @@ export type {
 
 export {
   getReviewDiff,
+  getReviewFileLines,
   getReviewPullRequest,
   listReviewCommits,
   submitReviewComment
@@ -41,6 +44,13 @@ export {
   type DiffHunk,
   type ChangeCounts
 } from "./lib/parse-unified-diff";
+
+export {
+  fileLinesToContextRows,
+  findDiffGaps,
+  mergeFullFileLinesWithDiff,
+  type DiffGap
+} from "./lib/diff-context";
 
 export {
   loadDraft,

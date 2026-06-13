@@ -12,6 +12,12 @@ export type PullRequestDiff =
 export type PullRequestDiffFile =
   RepositoriesComponents["schemas"]["PullRequestDiffFileDto"];
 
+export type ReviewFileLines =
+  RepositoriesComponents["schemas"]["ReviewFileLinesDto"];
+
+export type ReviewFileLine =
+  RepositoriesComponents["schemas"]["ReviewFileLineDto"];
+
 export type PullRequestDiffFileStatus =
   RepositoriesComponents["schemas"]["PullRequestDiffFileStatus"];
 

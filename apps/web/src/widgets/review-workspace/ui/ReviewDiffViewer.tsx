@@ -1,27 +1,27 @@
-import { MessageSquarePlus } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import type { PullRequestComment } from "@/entities/pull-request-comment";
 import {
   detectLanguage,
-  highlightLine,
+  fileLinesToContextRows,
+  findDiffGaps,
+  mergeFullFileLinesWithDiff,
   parseUnifiedDiff,
+  type DiffGap,
   type DiffRow,
   type PullRequestDiffFile,
+  type ReviewFileLine,
   type ReviewCommentAnchorShas
 } from "@/entities/review-workspace";
 
-import {
-  indexInlineComments,
-  rowAnchorKey
-} from "../lib/match-inline-comments";
+import { indexInlineComments } from "../lib/match-inline-comments";
+import { useReviewFileLines } from "../model/use-review-file-lines";
 import type { ScrollTarget } from "../model/use-review-workspace";
+import { ReviewContextSeparator } from "./ReviewContextSeparator";
+import { ReviewDiffRow } from "./ReviewDiffRow";
 import type { CommentActions } from "./ReviewCommentCard";
-import {
-  ReviewInlineComposer,
-  type ComposerAnchor
-} from "./ReviewInlineComposer";
-import { ReviewInlineThread } from "./ReviewInlineThread";
+import type { ComposerAnchor } from "./ReviewInlineComposer";
 
 interface ReviewDiffViewerProps {
   file: PullRequestDiffFile;
@@ -34,58 +34,7 @@ interface ReviewDiffViewerProps {
   onSubmitted: () => void;
 }
 
-function anchorFromRow(
-  file: PullRequestDiffFile,
-  row: DiffRow
-): ComposerAnchor | null {
-  if (row.kind === "del") {
-    if (row.oldLine === null) return null;
-    return {
-      path: file.path,
-      previousPath: file.previous_path ?? null,
-      side: "left",
-      line: row.oldLine,
-      oldLine: row.oldLine,
-      newLine: null
-    };
-  }
-  if (row.newLine === null) return null;
-  return {
-    path: file.path,
-    previousPath: file.previous_path ?? null,
-    side: "right",
-    line: row.newLine,
-    // context rows carry both — GitLab requires both new_line and old_line on
-    // unchanged-line anchors, otherwise the discussion lands as a non-positioned
-    // MR comment.
-    oldLine: row.kind === "context" ? row.oldLine : null,
-    newLine: row.newLine
-  };
-}
-
-const ROW_STYLE: Record<DiffRow["kind"], string> = {
-  context: "bg-base-100 border-l-2 border-transparent",
-  add: "bg-success/15 border-l-2 border-success/70",
-  del: "bg-error/15 border-l-2 border-error/70"
-};
-
-const GUTTER_STYLE: Record<DiffRow["kind"], string> = {
-  context: "text-base-content/40",
-  add: "bg-success/10 text-success/80",
-  del: "bg-error/10 text-error/80"
-};
-
-const SIGN_STYLE: Record<DiffRow["kind"], string> = {
-  context: "text-base-content/30",
-  add: "text-success",
-  del: "text-error"
-};
-
-const SIGN: Record<DiffRow["kind"], string> = {
-  context: " ",
-  add: "+",
-  del: "-"
-};
+const FULL_FILE_TO_LINE = 2_147_483_647;
 
 export function ReviewDiffViewer({
   file,
@@ -100,10 +49,28 @@ export function ReviewDiffViewer({
   const hunks = useMemo(() => parseUnifiedDiff(file.patch), [file.patch]);
   const language = useMemo(() => detectLanguage(file.path), [file.path]);
   const [target, setTarget] = useState<ComposerAnchor | null>(null);
+  const [fullFile, setFullFile] = useState(false);
+  const fileLines = useReviewFileLines(
+    intentId,
+    bindingId,
+    shas.commit_sha,
+    file.path
+  );
   const commentsByAnchor = useMemo(
     () => indexInlineComments(file, comments),
     [file, comments]
   );
+  const gaps = useMemo(
+    () => findDiffGaps(hunks, fileLines.totalLines),
+    [hunks, fileLines.totalLines]
+  );
+  const fullFileRows = useMemo(() => {
+    if (!fullFile || fileLines.totalLines === null) return [];
+    return mergeFullFileLinesWithDiff(
+      fileLines.getLines(1, fileLines.totalLines),
+      hunks
+    );
+  }, [fileLines, fullFile, hunks]);
 
   // Scroll the requested row into view and briefly highlight it. The nonce makes
   // the effect re-run even when the same row is requested twice in a row.
@@ -141,115 +108,128 @@ export function ReviewDiffViewer({
 
   return (
     <div className="diff-hl font-mono text-[12px] leading-[1.5]">
-      {hunks.map((hunk, hi) => (
-        <div key={hi} className="border-b border-base-300 last:border-b-0">
-          <div className="bg-base-200 px-3 py-1 text-[11px] text-base-content/60">
-            {hunk.header}
-          </div>
-          {hunk.rows.map((row, ri) => {
-            const anchor = anchorFromRow(file, row);
-            const rowKey = `${row.kind}-${String(row.oldLine)}-${String(
-              row.newLine
-            )}-${String(ri)}`;
-            const isTarget =
-              anchor !== null &&
-              composerKey === `${anchor.side}:${String(anchor.line)}`;
-            const anchorKey = rowAnchorKey(row);
-            const rowComments =
-              anchorKey !== null
-                ? (commentsByAnchor.get(anchorKey) ?? null)
-                : null;
-            const isFlashing = anchorKey !== null && anchorKey === flashKey;
-            return (
-              <Fragment key={rowKey}>
-                <div
-                  ref={
-                    anchorKey !== null
-                      ? (node) => {
-                          if (node !== null) {
-                            rowRefs.current.set(anchorKey, node);
-                          } else {
-                            rowRefs.current.delete(anchorKey);
-                          }
-                        }
-                      : undefined
-                  }
-                  className={`group grid grid-cols-[3rem_3rem_1.25rem_1fr] ${ROW_STYLE[row.kind]} ${
-                    isFlashing
-                      ? "outline outline-2 -outline-offset-2 outline-primary"
-                      : ""
-                  }`}
-                >
-                  <Gutter value={row.oldLine} kind={row.kind} />
-                  <Gutter value={row.newLine} kind={row.kind} />
-                  <span
-                    className={`select-none text-center ${SIGN_STYLE[row.kind]}`}
-                  >
-                    {SIGN[row.kind]}
-                  </span>
-                  <span className="flex items-start gap-1 pr-2">
-                    <code
-                      className="min-w-0 flex-1 whitespace-pre-wrap break-words"
-                      dangerouslySetInnerHTML={{
-                        __html: highlightLine(row.content, language)
-                      }}
-                    />
-                    {anchor !== null ? (
-                      <button
-                        type="button"
-                        aria-label="Добавить inline-комментарий"
-                        onClick={() => {
-                          setTarget(isTarget ? null : anchor);
-                        }}
-                        className="invisible mt-0.5 shrink-0 text-base-content/40 hover:text-primary group-hover:visible"
-                      >
-                        <MessageSquarePlus size={13} strokeWidth={2} />
-                      </button>
-                    ) : null}
-                  </span>
-                </div>
-                {rowComments !== null ? (
-                  <ReviewInlineThread
-                    comments={rowComments}
-                    actions={commentActions}
-                  />
-                ) : null}
-                {isTarget && target !== null ? (
-                  <ReviewInlineComposer
-                    intentId={intentId}
-                    bindingId={bindingId}
-                    anchor={target}
-                    shas={shas}
-                    onCancel={() => {
-                      setTarget(null);
-                    }}
-                    onSubmitted={() => {
-                      setTarget(null);
-                      onSubmitted();
-                    }}
-                  />
-                ) : null}
-              </Fragment>
-            );
-          })}
+      <div className="flex items-center justify-end border-b border-base-300 bg-base-100 px-2 py-1">
+        <button
+          type="button"
+          className="inline-flex h-7 items-center gap-1 rounded border border-base-300 px-2 text-[11px] text-base-content/70 hover:border-primary hover:text-primary disabled:cursor-wait disabled:opacity-50"
+          disabled={fileLines.loadingKey === "full-file"}
+          onClick={() => {
+            const next = !fullFile;
+            setFullFile(next);
+            if (next) {
+              void fileLines.loadRange("full-file", 1, FULL_FILE_TO_LINE);
+            }
+          }}
+        >
+          <FileText size={13} />
+          {fullFile ? "Патч" : "Весь файл"}
+        </button>
+      </div>
+      {fullFile && fileLines.totalLines !== null ? (
+        <div className="border-b border-base-300 last:border-b-0">
+          {fullFileRows.map((row, index) =>
+            renderRow(row, `full-${String(index)}`)
+          )}
         </div>
-      ))}
+      ) : (
+        hunks.map((hunk, hi) => (
+          <div key={hi} className="border-b border-base-300 last:border-b-0">
+            {renderGap(gaps.find((gap) => gap.id === gapIdBefore(hi)))}
+            <div className="bg-base-200 px-3 py-1 text-[11px] text-base-content/60">
+              {hunk.header}
+            </div>
+            {hunk.rows.map((row, ri) =>
+              renderRow(row, `hunk-${String(hi)}-${String(ri)}`)
+            )}
+            {hi === hunks.length - 1
+              ? renderGap(gaps.find((gap) => gap.id === "bottom"))
+              : null}
+          </div>
+        ))
+      )}
     </div>
   );
+
+  function renderGap(gap: DiffGap | undefined) {
+    if (gap === undefined) return null;
+    const to = gap.to ?? gap.from - 1;
+    const topRows =
+      gap.to === null ? fileLines.getLines(gap.from, to) : leadingLoaded(gap);
+    const bottomRows =
+      gap.to === null
+        ? []
+        : trailingLoaded(gap, topRows.at(-1)?.line ?? gap.from - 1);
+    const loaded = new Set(
+      [...topRows, ...bottomRows].map((line) => line.line)
+    );
+    const loadedRows = [
+      ...fileLinesToContextRows(topRows, gap.oldLineDelta),
+      ...fileLinesToContextRows(bottomRows, gap.oldLineDelta)
+    ];
+    return (
+      <Fragment key={gap.id}>
+        {loadedRows.map((row, index) =>
+          renderRow(row, `${gap.id}-${String(index)}`)
+        )}
+        <ReviewContextSeparator
+          gap={gap}
+          loadedLines={loaded}
+          loading={fileLines.loadingKey === gap.id}
+          error={fileLines.error}
+          onLoad={(from, toLine) => {
+            void fileLines.loadRange(gap.id, from, toLine);
+          }}
+        />
+      </Fragment>
+    );
+  }
+
+  function renderRow(row: DiffRow, rowKey: string) {
+    return (
+      <ReviewDiffRow
+        key={rowKey}
+        row={row}
+        file={file}
+        language={language}
+        composerKey={composerKey}
+        target={target}
+        setTarget={setTarget}
+        commentsByAnchor={commentsByAnchor}
+        flashKey={flashKey}
+        rowRefs={rowRefs}
+        commentActions={commentActions}
+        intentId={intentId}
+        bindingId={bindingId}
+        shas={shas}
+        onSubmitted={onSubmitted}
+      />
+    );
+  }
+
+  function leadingLoaded(gap: DiffGap) {
+    const lines: ReviewFileLine[] = [];
+    for (let line = gap.from; gap.to !== null && line <= gap.to; line += 1) {
+      const content = fileLines.lines.get(line);
+      if (content === undefined) break;
+      lines.push({ line, content });
+    }
+    return lines;
+  }
+
+  function trailingLoaded(gap: DiffGap, topEnd: number) {
+    const lines: ReviewFileLine[] = [];
+    if (gap.to === null) return lines;
+    for (let line = gap.to; line > topEnd; line -= 1) {
+      const content = fileLines.lines.get(line);
+      if (content === undefined) break;
+      lines.unshift({ line, content });
+    }
+    return lines;
+  }
 }
 
-function Gutter({
-  value,
-  kind
-}: {
-  value: number | null;
-  kind: DiffRow["kind"];
-}) {
-  return (
-    <span
-      className={`select-none border-r border-base-300 px-2 text-right tabular-nums ${GUTTER_STYLE[kind]}`}
-    >
-      {value ?? ""}
-    </span>
-  );
+function gapIdBefore(hunkIndex: number): string {
+  return hunkIndex === 0
+    ? "top"
+    : `between-${String(hunkIndex - 1)}-${String(hunkIndex)}`;
 }

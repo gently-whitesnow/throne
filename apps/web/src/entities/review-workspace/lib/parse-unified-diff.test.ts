@@ -17,6 +17,12 @@ describe("parseUnifiedDiff", () => {
     const [hunk] = parseUnifiedDiff(PATCH);
 
     expect(hunk.header).toBe("@@ -1,4 +1,5 @@");
+    expect(hunk).toMatchObject({
+      oldStart: 1,
+      oldLines: 4,
+      newStart: 1,
+      newLines: 5
+    });
     expect(hunk.rows).toEqual([
       { kind: "context", oldLine: 1, newLine: 1, content: "context-a" },
       { kind: "del", oldLine: 2, newLine: null, content: "removed-b" },
@@ -50,6 +56,17 @@ describe("parseUnifiedDiff", () => {
     expect(hunks).toHaveLength(2);
     expect(hunks[1].rows[0]).toMatchObject({ oldLine: 10, newLine: 10 });
     expect(hunks[1].rows[1]).toMatchObject({ newLine: 11, oldLine: null });
+  });
+
+  it("читает нулевую длину из hunk-заголовка удалённого файла", () => {
+    const [hunk] = parseUnifiedDiff(["@@ -1,2 +0,0 @@", "-a", "-b"].join("\n"));
+
+    expect(hunk).toMatchObject({
+      oldStart: 1,
+      oldLines: 2,
+      newStart: 0,
+      newLines: 0
+    });
   });
 });
 

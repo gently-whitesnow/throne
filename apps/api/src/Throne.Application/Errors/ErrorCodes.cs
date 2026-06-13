@@ -29,6 +29,7 @@ public static class ErrorCodes
     public const string RepositoryPullRequestAlreadyAttached = "repository_binding.pull_request_already_attached";
     public const string RepositoryUpstreamGone = "repository.upstream_gone";
     public const string RepositoryReviewAnchorInvalid = "repository_binding.review.anchor_invalid";
+    public const string RepositoryBlobNotFound = "repository.blob_not_found";
     public const string RepositoryPullRequestMergeRejected = "repository_binding.pull_request.merge_rejected";
     public const string RepositoryWorkspaceRemovalFailed = "repository_binding.workspace_removal_failed";
     public const string RepositoryArtifactVersionConflict = "repository_artifact.version_conflict";

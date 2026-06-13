@@ -158,6 +158,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestDiffDto>> GetIntentRepositoryReviewDiff([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromQuery] ReviewDiffScope? scope = null, [Microsoft.AspNetCore.Mvc.FromQuery] string commit_sha = null);
 
         /// <summary>
+        /// Read a line range from a file blob in the binding's local clone.
+        /// </summary>
+        /// <remarks>
+        /// Backs review diff context expansion. The server reads `path` from `sha` in the local workspace clone via plain git, retries once with `git fetch --filter=blob:none origin {sha}` when the object is missing, and returns only a typed ProblemDetails error when the object/path remains unavailable. Context is always read from the new file side; clients pass `PullRequestDiffDto.head_sha` and `PullRequestDiffFileDto.path`.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/review/file-lines", Name = "getIntentRepositoryReviewFileLines")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<ReviewFileLinesDto>> GetIntentRepositoryReviewFileLines([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.FromQuery] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string sha, [Microsoft.AspNetCore.Mvc.FromQuery] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string path, [Microsoft.AspNetCore.Mvc.FromQuery] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] int from, [Microsoft.AspNetCore.Mvc.FromQuery] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] int to);
+
+        /// <summary>
         /// Read the header of the binding's pull request (title, state, author, branches, description).
         /// </summary>
         /// <remarks>
