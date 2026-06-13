@@ -22,6 +22,10 @@ export interface DiffRow {
 export interface DiffHunk {
   /** Сырая строка `@@ -a,b +c,d @@ section`. */
   header: string;
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
   rows: DiffRow[];
 }
 
@@ -30,7 +34,7 @@ export interface ChangeCounts {
   deletions: number;
 }
 
-const HUNK_HEADER = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
 
 export function parseUnifiedDiff(patch: string): DiffHunk[] {
   if (patch.length === 0) return [];
@@ -43,10 +47,17 @@ export function parseUnifiedDiff(patch: string): DiffHunk[] {
   for (const raw of patch.split("\n")) {
     const headerMatch = HUNK_HEADER.exec(raw);
     if (headerMatch !== null) {
-      current = { header: raw, rows: [] };
+      current = {
+        header: raw,
+        oldStart: Number(headerMatch[1]),
+        oldLines: Number(headerMatch[2] || "1"),
+        newStart: Number(headerMatch[3]),
+        newLines: Number(headerMatch[4] || "1"),
+        rows: []
+      };
       hunks.push(current);
       oldLine = Number(headerMatch[1]);
-      newLine = Number(headerMatch[2]);
+      newLine = Number(headerMatch[3]);
       continue;
     }
 
