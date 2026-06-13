@@ -120,6 +120,22 @@ public class ProposePromptPartPatchHandlerTests
         ex.Which.Extensions["current_version"].Should().Be(0);
     }
 
+    [Fact(DisplayName = "Propose отвергает target_scope=system: system parts manifest-managed")]
+    public async Task Propose_rejects_system_scope()
+    {
+        var patches = Substitute.For<IPromptPartPatchRepository>();
+        var handler = NewHandler(patches, currentVersion: 3);
+
+        var command = NewCommand() with { TargetScope = PromptPartScopeNames.System };
+        var act = async () => await handler.HandleAsync(command, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+        ex.Which.Extensions["allowed_scope"].Should().Be(PromptPartScopeNames.User);
+        await patches.DidNotReceive().CreateAsync(
+            Arg.Any<PromptPartPatch>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "CreatePromptPartPatchOutcome IsExisting=true не эмитит PromptPartPatchProposed")]
     public void Outcome_existing_emits_no_events()
     {

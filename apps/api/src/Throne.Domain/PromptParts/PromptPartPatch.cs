@@ -73,7 +73,7 @@ public sealed class PromptPartPatch
         EnsureRequiredStringsForCreate(id, targetScope, targetKey, rationale);
         ArgumentNullException.ThrowIfNull(patchText);
         ArgumentNullException.ThrowIfNull(evidenceCardIds);
-        EnsureKnownScope(targetScope);
+        EnsurePatchableScope(targetScope);
         PromptPartPatchBudgets.EnsureAll(patchText, evidenceCardIds, rationale, baseVersion);
 
         var identity = new PromptPartPatchIdentity(id, targetScope, targetKey, baseVersion, now);
@@ -95,7 +95,7 @@ public sealed class PromptPartPatch
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(state);
         ArgumentException.ThrowIfNullOrWhiteSpace(identity.Id);
-        EnsureKnownScope(identity.TargetScope);
+        EnsurePatchableScope(identity.TargetScope);
         ArgumentException.ThrowIfNullOrWhiteSpace(identity.TargetKey);
         EnsureKnownStatus(state.Status);
         return new PromptPartPatch(identity, state, patchText, [.. evidenceCardIds], rationale);
@@ -157,7 +157,7 @@ public sealed class PromptPartPatch
 
     private static (string Status, string AppliedText) ResolveApplied(string? editedText, string patchText)
     {
-        if (string.IsNullOrEmpty(editedText) || string.Equals(editedText, patchText, StringComparison.Ordinal))
+        if (editedText is null || string.Equals(editedText, patchText, StringComparison.Ordinal))
         {
             return (PromptPartPatchStatusNames.Applied, patchText);
         }
@@ -176,13 +176,19 @@ public sealed class PromptPartPatch
         ArgumentException.ThrowIfNullOrWhiteSpace(rationale);
     }
 
-    private static void EnsureKnownScope(string scope)
+    private static void EnsurePatchableScope(string scope)
     {
         if (!PromptPartScopeNames.IsKnown(scope))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(scope),
                 $"Unknown prompt part scope: {scope}.");
+        }
+        if (!string.Equals(scope, PromptPartScopeNames.User, StringComparison.Ordinal))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(scope),
+                "PromptPartPatch targets must use scope='user'. System prompt parts are manifest-managed.");
         }
     }
 

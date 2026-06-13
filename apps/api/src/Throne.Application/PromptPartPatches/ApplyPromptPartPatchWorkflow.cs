@@ -75,7 +75,11 @@ public sealed class ApplyPromptPartPatchWorkflow(
                 snapshot: part.Text,
                 changedAt: now,
                 changedBy: TextVersionAuthor.User);
-            await promptParts.CreateAsync(part, initialVersion, inner);
+            var createOutcome = await promptParts.CreateAsync(part, initialVersion, inner);
+            if (createOutcome is CreatePromptPartOutcome.KeyConflict)
+            {
+                throw PromptPartPatchExceptions.NeedsRebase(patch, currentVersion: 1);
+            }
 
             return await PersistApplyAsync(patch, newText, part.CurrentVersion, now, inner);
         }, ct);

@@ -47,7 +47,7 @@ internal sealed class PromptPartSeeder(
             var existing = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, entry.Kind, ct);
             if (existing is null)
             {
-                await CreateAsync(PromptPartScopeNames.System, entry.Kind, entry.Text, manifest, ct);
+                await CreateAsync(SystemPromptPartId(entry.Kind), PromptPartScopeNames.System, entry.Kind, entry.Text, manifest, ct);
                 continue;
             }
 
@@ -107,7 +107,7 @@ internal sealed class PromptPartSeeder(
                 continue;
             }
             var text = doc.GetValue("text", BsonString.Empty).IsString ? doc["text"].AsString : string.Empty;
-            await CreateAsync(PromptPartScopeNames.User, key, text, manifest, ct);
+            await CreateAsync(LegacyPromptPartId(doc), PromptPartScopeNames.User, key, text, manifest, ct);
         }
     }
 
@@ -126,11 +126,17 @@ internal sealed class PromptPartSeeder(
             ct);
     }
 
-    private async Task CreateAsync(string scope, string key, string text, SkillManifest manifest, CancellationToken ct)
+    private async Task CreateAsync(
+        PromptPartId id,
+        string scope,
+        string key,
+        string text,
+        SkillManifest manifest,
+        CancellationToken ct)
     {
         var now = clock.GetUtcNow();
         var modeRoles = PromptPartManifestRoles.MandatoryRolesFor(scope, key, manifest);
-        var part = PromptPart.Create(PromptPartId.New(), scope, key, text, description: null, modeRoles, now);
+        var part = PromptPart.Create(id, scope, key, text, description: null, modeRoles, now);
         var initialVersion = TextVersion.CreateSnapshot(
             id: Guid.NewGuid().ToString("N"),
             ownerKind: TextVersionOwnerKind.PromptPart,
@@ -147,6 +153,16 @@ internal sealed class PromptPartSeeder(
         using var cursor = await database.ListCollectionNamesAsync(
             new ListCollectionNamesOptions { Filter = filter }, ct);
         return await cursor.AnyAsync(ct);
+    }
+
+    private static PromptPartId SystemPromptPartId(string key) => new($"system:{key}");
+
+    private static PromptPartId LegacyPromptPartId(BsonDocument doc)
+    {
+        var raw = doc.GetValue("_id", BsonNull.Value);
+        return raw.IsString && !string.IsNullOrWhiteSpace(raw.AsString)
+            ? new PromptPartId(raw.AsString)
+            : PromptPartId.New();
     }
 
     private static bool RolesEqual(IReadOnlyList<PromptPartModeRole> a, IReadOnlyList<PromptPartModeRole> b)

@@ -46,6 +46,33 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
         versions[0].Snapshot.Should().Be("work text");
     }
 
+    [Fact(DisplayName = "CreateAsync duplicate key не оставляет orphan TextVersion")]
+    public async Task Create_duplicate_key_does_not_persist_orphan_version()
+    {
+        var (db, repo, uow) = await NewScopeAsync();
+        await EnsurePromptPartUniqueIndexAsync(db);
+        var first = MakePart("work", "work text");
+        var duplicate = PromptPart.Create(
+            PromptPartId.New(),
+            PromptPartScopeNames.User,
+            "work",
+            "other text",
+            description: null,
+            modeRoles: [],
+            Now);
+        await uow.ExecuteAsync(ct => repo.CreateAsync(first, MakeV1(first), ct), CancellationToken.None);
+
+        var outcome = await uow.ExecuteAsync(
+            ct => repo.CreateAsync(duplicate, MakeV1(duplicate), ct),
+            CancellationToken.None);
+
+        outcome.Should().BeOfType<CreatePromptPartOutcome.KeyConflict>();
+        var duplicateVersions = await db.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions)
+            .Find(x => x.OwnerId == duplicate.Id.Value)
+            .ToListAsync();
+        duplicateVersions.Should().BeEmpty();
+    }
+
     [Fact(DisplayName = "GetByScopeKeyAsync возвращает part по (scope, key)")]
     public async Task GetByScopeKey_returns_part()
     {
@@ -134,5 +161,16 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
         var repo = new MongoPromptPartRepository(db, sessions);
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
         return (db, repo, uow);
+    }
+
+    private static Task EnsurePromptPartUniqueIndexAsync(IMongoDatabase db)
+    {
+        var promptParts = db.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
+        return promptParts.Indexes.CreateOneAsync(
+            new CreateIndexModel<PromptPartDocument>(
+                Builders<PromptPartDocument>.IndexKeys
+                    .Ascending(x => x.Scope)
+                    .Ascending(x => x.Key),
+                new CreateIndexOptions { Unique = true, Name = "scope_key_unique" }));
     }
 }

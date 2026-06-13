@@ -55,12 +55,16 @@ public class PromptPartPatchTests
         patch.State.DecidedAt.Should().BeNull();
     }
 
-    [Fact(DisplayName = "Create отвергает unknown target_scope, base_version<0, evidence>лимита")]
+    [Fact(DisplayName = "Create отвергает unknown/system target_scope, base_version<0, evidence>лимита")]
     public void Create_validates_inputs()
     {
         var act1 = () => PromptPartPatch.Create(
             "id", "wat", "work", "text", [], "r", 1, Now);
         act1.Should().Throw<ArgumentOutOfRangeException>();
+
+        var actSystem = () => PromptPartPatch.Create(
+            "id", PromptPartScopeNames.System, "work", "text", [], "r", 1, Now);
+        actSystem.Should().Throw<ArgumentOutOfRangeException>();
 
         var act2 = () => PromptPartPatch.Create(
             "id", PromptPartScopeNames.User, "work", "text", [], "r", -1, Now);
@@ -98,6 +102,18 @@ public class PromptPartPatchTests
         result.Should().Be(PromptPartPatch.ApplyResult.Ok);
         patch.State.Status.Should().Be(PromptPartPatchStatusNames.AppliedEdited);
         patch.State.AppliedText.Should().Be("operator-edited text");
+    }
+
+    [Fact(DisplayName = "Apply с пустой операторской правкой сохраняет applied_edited и пустой applied_text")]
+    public void Apply_empty_edit_is_not_verbatim()
+    {
+        var patch = NewPatch();
+
+        var result = patch.Apply(editedText: string.Empty, appliedVersion: 6, Now);
+
+        result.Should().Be(PromptPartPatch.ApplyResult.Ok);
+        patch.State.Status.Should().Be(PromptPartPatchStatusNames.AppliedEdited);
+        patch.State.AppliedText.Should().Be(string.Empty);
     }
 
     [Fact(DisplayName = "Apply отвергает applied_version <= base_version")]

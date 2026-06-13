@@ -97,6 +97,10 @@ internal static class ProposePromptPartPatchValidator
         {
             throw PromptPartPatchExceptions.UnknownTargetScope(command.TargetScope);
         }
+        if (!string.Equals(command.TargetScope, PromptPartScopeNames.User, StringComparison.Ordinal))
+        {
+            throw PromptPartPatchExceptions.UnpatchableTargetScope(command.TargetScope);
+        }
         if (string.IsNullOrWhiteSpace(command.TargetKey))
         {
             throw PromptPartPatchExceptions.ValidationFailed("target_key", "target_key must not be empty.");

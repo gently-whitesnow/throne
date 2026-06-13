@@ -53,6 +53,29 @@ public class McpToolWireShapeTests
         AssertPromptLikeWireShape(payload);
     }
 
+    [Fact(DisplayName = "PromptBundleRenderer сохраняет legacy-visible headers при сохранённых ids")]
+    public void PromptBundle_text_keeps_legacy_visible_headers()
+    {
+        var bundle = new PromptBundle(
+            Mode: "work",
+            IntentId: "intent-1",
+            Parts:
+            [
+                new PromptBundlePart("system", "common", "system:common", 1, "sys common"),
+                new PromptBundlePart("user", "work", "i-work", 4, "legacy user work"),
+            ],
+            MissingKeys: []);
+
+        var text = PromptBundleRenderer.RenderText(bundle);
+
+        text.Should().Be(
+            "mode=work intent_id=intent-1\n" +
+            "\n===== system:common (v1, id=system:common) =====\n\n" +
+            "sys common\n" +
+            "\n===== user:work (v4, id=i-work) =====\n\n" +
+            "legacy user work\n");
+    }
+
     [Fact(DisplayName = "IntentReadResultRenderer: Intent.text в Content, wire StructuredContent=null")]
     public void IntentReadResult_wire_has_null_structured_content()
     {

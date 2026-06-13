@@ -25,7 +25,7 @@ paths:
           required: false
           schema:
             type: string
-            description: Filter by target scope (system | user).
+            description: Filter by target scope. PromptPartPatch targets are user-scoped.
         - in: query
           name: target_key
           required: false
@@ -196,7 +196,7 @@ components:
           description: Server-generated id (32 hex chars).
         target_scope:
           type: string
-          description: Scope of the target prompt part (system | user).
+          description: Scope of the target prompt part. Always `user`; system prompt parts are manifest-managed.
         target_key:
           type: string
           description: Key of the target prompt part.

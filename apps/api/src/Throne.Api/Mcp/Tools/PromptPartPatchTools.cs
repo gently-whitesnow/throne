@@ -28,9 +28,9 @@ public sealed class PromptPartPatchTools(
     GetCurrentPromptPartHandler currentHandler)
 {
     [McpServerTool(Name = "propose_prompt_part_patch")]
-    [Description("Propose a new PromptPartPatch in status 'proposed' for a prompt part identified by (target_scope, target_key). base_version must match the live PromptPart.current_version (use get_current_prompt_part to read it; for dream this is usually scope=\"user\", key in {work, interview}). evidence_card_ids are opaque agent-side references. Apply / reject is a user action via UI/HTTP — agents cannot decide their own proposals. Pass a unique idempotency_key per logical proposal so a transport-level retry returns the original patch instead of creating a duplicate.")]
+    [Description("Propose a new PromptPartPatch in status 'proposed' for a user prompt part identified by (target_scope=\"user\", target_key). base_version must match the live PromptPart.current_version (use get_current_prompt_part to read it; for dream this is usually key in {work, interview}). evidence_card_ids are opaque agent-side references. Apply / reject is a user action via UI/HTTP — agents cannot decide their own proposals. Pass a unique idempotency_key per logical proposal so a transport-level retry returns the original patch instead of creating a duplicate.")]
     public async Task<McpToolPayload> ProposePromptPartPatch(
-        [Description("Scope of the target prompt part: system | user (dream targets user).")] string target_scope,
+        [Description("Scope of the target prompt part. Must be \"user\"; system prompt parts are manifest-managed and cannot be patched.")] string target_scope,
         [Description("Key of the target prompt part (e.g. work | interview).")] string target_key,
         [Description("Whole new text of the target prompt part (the apply path replaces the text verbatim with this).")] string patch_text,
         [Description("Opaque agent-side evidence ids; stored verbatim on the patch for audit but not validated.")] IReadOnlyList<string> evidence_card_ids,
@@ -55,7 +55,7 @@ public sealed class PromptPartPatchTools(
     [McpServerTool(Name = "list_prompt_part_patches", ReadOnly = true)]
     [Description("List PromptPartPatches owned by the caller, ordered by created_at descending. Filter by target_scope, target_key and/or status. Pagination is opaque-cursor based. Useful for de-duplication: read past 'rejected' patches with reject_comment to avoid re-proposing the same rule. Empty `items` is a valid success state — do NOT treat it as an error.")]
     public async Task<McpToolPayload> ListPromptPartPatches(
-        [Description("Optional target_scope filter: system | user.")] string? target_scope = null,
+        [Description("Optional target_scope filter. PromptPartPatch targets are user-scoped; pass \"user\" or omit.")] string? target_scope = null,
         [Description("Optional target_key filter (prompt part key).")] string? target_key = null,
         [Description("Optional status filter: proposed | applied | applied_edited | rejected | superseded.")] string? status = null,
         [Description("Page size, default 50, capped at 200.")] int? limit = null,

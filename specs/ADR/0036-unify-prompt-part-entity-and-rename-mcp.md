@@ -46,7 +46,7 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 
 ### Один patch-агрегат `PromptPartPatch`
 
-Домен `InstructionPatch → PromptPartPatch`. Target патча — `(scope, key)` вместо `target_kind`; `base_version` = `current_version` целевой части, optimistic concurrency на apply (409 needs_rebase). Apply, отсутствующей пока user-части (`base_version=0`), лениво создаёт её c `mode_roles` из манифеста (как миграция). **Apply остаётся операторским** (UI/HTTP `/improvements`); в MCP — только `propose` + чтения, новых write-tool'ов не вводим ([ADR-0030](0030-mcp-surface-policy-cli-first.md)).
+Домен `InstructionPatch → PromptPartPatch`. Target патча — `(scope, key)` вместо `target_kind`, но patchable scope закрыт до `scope=user`: `system`-части manifest-managed и на каждом старте реконсайлятся из YAML, поэтому операторские патчи к ним были бы перетёрты seeder'ом. `base_version` = `current_version` целевой user-части, optimistic concurrency на apply (409 needs_rebase). Apply, отсутствующей пока user-части (`base_version=0`), лениво создаёт её c `mode_roles` из манифеста (как миграция). **Apply остаётся операторским** (UI/HTTP `/improvements`); в MCP — только `propose` + чтения, новых write-tool'ов не вводим ([ADR-0030](0030-mcp-surface-policy-cli-first.md)).
 
 ### Сквозное переименование (чистый cutover, без алиасов — амендит [ADR-0023](0023-mcp-tools-snake-case-naming.md))
 
@@ -67,7 +67,7 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 
 ### Positive
 
-- Один жизненный цикл, одно хранилище (`prompt_parts`), один резолвер, один патч-таргет. Dream таргетит любые части по `(scope, key)`, не только legacy-kind'ы.
+- Один жизненный цикл, одно хранилище (`prompt_parts`), один резолвер, один patch-агрегат. Dream таргетит user-части по `(scope=user, key)`, не только legacy-kind'ы.
 - Бандл и embedded-композиция by construction читают один источник — расхождение невозможно.
 - Имена поверхности перестают быть legacy-долгом.
 
