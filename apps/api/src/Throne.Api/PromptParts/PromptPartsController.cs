@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
 using Throne.Application.Errors;
 using Throne.Application.PromptParts;
+using Throne.Application.TextVersions;
 using Throne.PromptParts.Contracts.Generated;
 
 namespace Throne.Api.PromptParts;
@@ -12,8 +13,35 @@ public sealed class PromptPartsController(
     CreatePromptPartHandler createHandler,
     ReplacePromptPartTextHandler replaceHandler,
     SetPromptPartRolesHandler setRolesHandler,
-    DeletePromptPartHandler deleteHandler) : PromptPartsControllerBase
+    DeletePromptPartHandler deleteHandler,
+    GetBundlesTreeHandler bundlesTreeHandler,
+    ListPromptPartVersionsHandler listVersionsHandler) : PromptPartsControllerBase
 {
+    public override async Task<ActionResult<BundlesTreeDto>> GetBundlesTree()
+    {
+        var tree = await bundlesTreeHandler.HandleAsync(new GetBundlesTreeQuery(), HttpContext.RequestAborted);
+        return Ok(BundlesTreeDtoMapper.ToDto(tree));
+    }
+
+    public override async Task<ActionResult<ICollection<TextVersionDto>>> ListPromptPartVersions(string id)
+    {
+        try
+        {
+            var versions = await listVersionsHandler.HandleAsync(
+                new ListPromptPartVersionsQuery(id), HttpContext.RequestAborted);
+            var dtos = new List<TextVersionDto>(versions.Count);
+            foreach (var v in versions)
+            {
+                dtos.Add(TextVersionDtoMapper.ToDto(v));
+            }
+            return Ok(dtos);
+        }
+        catch (ApiException ex)
+        {
+            return PromptPartsErrorMapper.Problem(ex);
+        }
+    }
+
     public override async Task<ActionResult<ICollection<PromptPartListItemDto>>> ListPromptParts()
     {
         var parts = await listHandler.HandleAsync(new ListPromptPartsQuery(), HttpContext.RequestAborted);

@@ -1,41 +1,47 @@
 using MongoDB.Driver;
 using Throne.Application.Ports;
-using Throne.Domain.Instructions;
 using Throne.Domain.PromptParts;
+using Throne.Domain.TextVersions;
 using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
 internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSessionAccessor sessions) : IPromptPartRepository
 {
-    private const int DuplicateKeyCode = 11000;
-
     private readonly IMongoCollection<PromptPartDocument> _parts =
         database.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
 
-    public async Task<CreatePromptPartOutcome> CreateAsync(PromptPart part, CancellationToken ct)
+    private readonly IMongoCollection<TextVersionDocument> _textVersions =
+        database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
+
+    public async Task<CreatePromptPartOutcome> CreateAsync(PromptPart part, TextVersion initialVersion, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(part);
+        ArgumentNullException.ThrowIfNull(initialVersion);
 
         var session = sessions.Current
             ?? throw new InvalidOperationException(
                 "MongoPromptPartRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        try
-        {
-            await _parts.InsertOneAsync(session, ToDocument(part), options: null, ct);
-        }
-        catch (MongoWriteException ex) when (ex.WriteError?.Code == DuplicateKeyCode)
+        var existing = await _parts.Find(
+                session,
+                d => d.Scope == part.Scope && d.Key == part.Key)
+            .Project(d => d.Id)
+            .FirstOrDefaultAsync(ct);
+        if (existing is not null)
         {
             return new CreatePromptPartOutcome.KeyConflict();
         }
+
+        await _parts.InsertOneAsync(session, ToDocument(part), options: null, ct);
+        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct);
 
         return new CreatePromptPartOutcome.Created(part);
     }
 
     public async Task<IReadOnlyList<PromptPart>> ListAsync(CancellationToken ct)
     {
-        var filter = Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, InstructionScopeNames.User);
+        var filter = Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, PromptPartScopeNames.User);
         var session = sessions.Current;
         var documents = session is null
             ? await _parts.Find(filter).SortBy(x => x.Key).ToListAsync(ct)
@@ -58,11 +64,57 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         return doc is null ? null : ToDomain(doc);
     }
 
+    public async Task<PromptPart?> GetByScopeKeyAsync(string scope, string key, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scope);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        var filter = Builders<PromptPartDocument>.Filter.And(
+            Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, scope),
+            Builders<PromptPartDocument>.Filter.Eq(x => x.Key, key));
+
+        var session = sessions.Current;
+        var doc = session is null
+            ? await _parts.Find(filter).FirstOrDefaultAsync(ct)
+            : await _parts.Find(session, filter).FirstOrDefaultAsync(ct);
+        return doc is null ? null : ToDomain(doc);
+    }
+
+    public async Task<IReadOnlyList<PromptPart>> GetByScopeAndKeysAsync(
+        string scope,
+        IReadOnlyList<string> keys,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scope);
+        ArgumentNullException.ThrowIfNull(keys);
+        if (keys.Count == 0)
+        {
+            return [];
+        }
+
+        var filter = Builders<PromptPartDocument>.Filter.And(
+            Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, scope),
+            Builders<PromptPartDocument>.Filter.In(x => x.Key, keys));
+
+        var session = sessions.Current;
+        var documents = session is null
+            ? await _parts.Find(filter).SortBy(x => x.Key).ToListAsync(ct)
+            : await _parts.Find(session, filter).SortBy(x => x.Key).ToListAsync(ct);
+
+        var result = new List<PromptPart>(documents.Count);
+        foreach (var doc in documents)
+        {
+            result.Add(ToDomain(doc));
+        }
+        return result;
+    }
+
     public async Task<ReplacePromptPartTextOutcome> ReplaceTextAsync(
         PromptPartId id,
         int expectedVersion,
         string oldText,
         string newText,
+        TextVersionAuthor changedBy,
         DateTimeOffset now,
         CancellationToken ct)
     {
@@ -84,7 +136,8 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         }
 
         var part = ToDomain(document);
-        var domainResult = part.ReplaceText(oldText, newText, now);
+        var newVersionId = Guid.NewGuid().ToString("N");
+        var domainResult = part.ReplaceText(oldText, newText, newVersionId, now, changedBy);
 
         switch (domainResult)
         {
@@ -94,7 +147,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
             case ReplacePromptPartTextResult.MatchAmbiguous matchAmbiguous:
                 return new ReplacePromptPartTextOutcome.MatchAmbiguous(matchAmbiguous.MatchesCount, matchAmbiguous.MatchLines);
 
-            case ReplacePromptPartTextResult.Replaced:
+            case ReplacePromptPartTextResult.Replaced replaced:
                 {
                     var update = Builders<PromptPartDocument>.Update
                         .Set(d => d.Text, part.Text)
@@ -114,6 +167,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
                         return new ReplacePromptPartTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
                     }
 
+                    await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct);
                     return new ReplacePromptPartTextOutcome.Replaced(part);
                 }
 
@@ -186,6 +240,22 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
 
     private static List<PromptPartModeRoleDocument> MapRoles(IReadOnlyList<PromptPartModeRole> roles) =>
         roles.Select(r => new PromptPartModeRoleDocument { Mode = r.Mode, Role = r.Role, Order = r.Order }).ToList();
+
+    private static TextVersionDocument MapVersion(TextVersion v) => new()
+    {
+        Id = v.Id,
+        OwnerKind = v.OwnerKind.ToWire(),
+        OwnerId = v.OwnerId,
+        Version = v.Version,
+        Kind = v.Kind.ToWire(),
+        Snapshot = v.Delta.Snapshot,
+        OldText = v.Delta.OldText,
+        NewText = v.Delta.NewText,
+        AfterLine = v.Delta.AfterLine,
+        InsertText = v.Delta.InsertText,
+        ChangedAt = v.ChangedAt.UtcDateTime,
+        ChangedBy = v.ChangedBy.ToWire(),
+    };
 
     private static PromptPart ToDomain(PromptPartDocument doc) => PromptPart.Restore(
         id: new PromptPartId(doc.Id),

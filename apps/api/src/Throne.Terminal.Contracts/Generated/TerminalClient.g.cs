@@ -364,15 +364,14 @@ namespace Throne.Terminal.Contracts.Generated
     {
 
         /// <summary>
-        /// Part id. For mandatory parts projected from the manifest — synthetic `system:&lt;kind&gt;` or the user instruction id. For optional parts — the Mongo id.
-        /// <br/>
+        /// Mongo id of the prompt part (ADR-0036).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("part_id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Part_id { get; set; }
 
         /// <summary>
-        /// Part key (instruction kind for projected mandatory parts).
+        /// Part key, unique within scope.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("key")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -397,13 +396,13 @@ namespace Throne.Terminal.Contracts.Generated
         public int Order { get; set; }
 
         /// <summary>
-        /// True for operator-authored parts and user instructions; false for system entries.
+        /// True for user-scope parts; false for system parts.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("editable")]
         public bool Editable { get; set; }
 
         /// <summary>
-        /// False when a projected user instruction has no Mongo record yet.
+        /// False when a mandatory user part has no record yet (seeded on first patch apply).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("present")]
         public bool Present { get; set; }

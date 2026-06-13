@@ -1,12 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Dreams;
 using Throne.Application.Events;
-using Throne.Application.InstructionPatches;
 using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;
 using Throne.Application.Ports;
+using Throne.Application.PromptPartPatches;
 using Throne.Application.PromptParts;
 using Throne.Application.Repositories;
 using Throne.Application.Tags;
@@ -32,16 +32,12 @@ public static class DependencyInjection
         services.AddSingleton<RenameTagHandler>();
         services.AddSingleton<DeleteTagHandler>();
         services.AddSingleton<GetTagUsageHandler>();
-        services.AddSingleton<UserBundleEntries>();
-        services.AddSingleton<GetInstructionBundleHandler>();
+        // Prompt parts + bundle (ADR-0036): single unified entity. The bundle resolver and the
+        // embedded composition both read prompt_parts so they share one source of truth.
+        services.AddSingleton<PromptBundleResolver>();
+        services.AddSingleton<GetPromptBundleHandler>();
         services.AddSingleton<GetBundlesTreeHandler>();
-        services.AddSingleton<ListInstructionsHandler>();
-        services.AddSingleton<GetInstructionHandler>();
-        services.AddSingleton<ReplaceInstructionTextHandler>();
-        services.AddSingleton<CreateInstructionHandler>();
-        services.AddSingleton<ListInstructionVersionsHandler>();
-        // Prompt parts (ADR-0035): operator-authored optional parts + embedded composition.
-        // PromptCompositionResolver reuses UserBundleEntries to project mandatory instructions.
+        services.AddSingleton<ListPromptPartVersionsHandler>();
         services.AddSingleton<CreatePromptPartHandler>();
         services.AddSingleton<ListPromptPartsHandler>();
         services.AddSingleton<GetPromptPartHandler>();
@@ -56,16 +52,16 @@ public static class DependencyInjection
         // an IUnitOfWork to commit their cascade. Without Lazy, MS DI would
         // recurse through its own resolution lock and deadlock under load.
         services.AddSingleton(sp => new Lazy<IUnitOfWork>(sp.GetRequiredService<IUnitOfWork>));
-        // InstructionPatch handlers (ADR-0021 supersedes ADR-0011): supersede the
-        // DreamRun + DreamProposal pair with a flat first-class entity.
-        services.AddSingleton<UserInstructionLookup>();
-        services.AddSingleton<ProposeInstructionPatchHandler>();
-        services.AddSingleton<ApplyInstructionPatchWorkflow>();
-        services.AddSingleton<ApplyInstructionPatchHandler>();
-        services.AddSingleton<RejectInstructionPatchHandler>();
-        services.AddSingleton<ListInstructionPatchesHandler>();
-        services.AddSingleton<GetInstructionPatchHandler>();
-        services.AddSingleton<GetCurrentInstructionHandler>();
+        // PromptPartPatch handlers (ADR-0036 supersedes ADR-0021): patches target a PromptPart
+        // by (scope, key); apply / reject is operator-only.
+        services.AddSingleton<UserPromptPartLookup>();
+        services.AddSingleton<ProposePromptPartPatchHandler>();
+        services.AddSingleton<ApplyPromptPartPatchWorkflow>();
+        services.AddSingleton<ApplyPromptPartPatchHandler>();
+        services.AddSingleton<RejectPromptPartPatchHandler>();
+        services.AddSingleton<ListPromptPartPatchesHandler>();
+        services.AddSingleton<GetPromptPartPatchHandler>();
+        services.AddSingleton<GetCurrentPromptPartHandler>();
         // DreamSession handlers (ADR-0022): the frontier agent reads dialogs
         // locally and records its own memory of each /dream pass through MCP.
         services.AddSingleton<RecordDreamSessionHandler>();

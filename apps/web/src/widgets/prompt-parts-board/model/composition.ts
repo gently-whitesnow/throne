@@ -1,4 +1,4 @@
-import type { InstructionsComponents } from "@/shared/api";
+import type { PromptPartsComponents } from "@/shared/api";
 import type {
   PromptPartListItem,
   PromptPartMode,
@@ -7,8 +7,8 @@ import type {
   PromptPartUiRole
 } from "@/entities/prompt-part";
 
-type BundlesTree = InstructionsComponents["schemas"]["BundlesTreeDto"];
-type BundleEntryNode = InstructionsComponents["schemas"]["BundleEntryNodeDto"];
+type BundlesTree = PromptPartsComponents["schemas"]["BundlesTreeDto"];
+type BundleEntryNode = PromptPartsComponents["schemas"]["BundleEntryNodeDto"];
 
 /**
  * One resolved entry in a mode's effective embedded composition. Mirrors the
@@ -58,8 +58,8 @@ function buildMandatory(
   const includes =
     bundlesTree?.bundles.find((b) => b.mode === mode)?.includes ?? [];
   return includes.map((entry, index) => ({
-    partId: entry.instruction_id ?? `instruction:${entry.scope}:${entry.kind}`,
-    key: entry.kind,
+    partId: entry.prompt_part_id ?? `part:${entry.scope}:${entry.key}`,
+    key: entry.key,
     scope: entry.scope,
     role: "mandatory" as const,
     order: index,
@@ -144,11 +144,11 @@ export function mergeRoleForMode(
   return [...others, entry];
 }
 
-/** A bundle instruction deduped across modes, with the modes it participates in. */
+/** A mandatory bundle part deduped across modes, with the modes it participates in. */
 export interface ProjectedInstruction {
   scope: string;
-  kind: string;
-  instructionId: string | null;
+  key: string;
+  prompt_part_id: string | null;
   currentVersion: number;
   text: string;
   editable: boolean;
@@ -157,7 +157,7 @@ export interface ProjectedInstruction {
 }
 
 /**
- * Collapses the bundles tree into unique (scope, kind) instructions. `common`
+ * Collapses the bundles tree into unique (scope, key) mandatory parts. `common`
  * repeats in every bundle — it is collapsed to one row tagged with all the
  * modes it appears in.
  */
@@ -167,7 +167,7 @@ export function dedupeProjectedInstructions(
   const byKey = new Map<string, ProjectedInstruction>();
   for (const bundle of bundlesTree?.bundles ?? []) {
     for (const entry of bundle.includes) {
-      const mapKey = `${entry.scope}:${entry.kind}`;
+      const mapKey = `${entry.scope}:${entry.key}`;
       const existing = byKey.get(mapKey);
       if (existing) {
         if (!existing.modes.includes(bundle.mode)) {
@@ -187,8 +187,8 @@ function projectEntry(
 ): ProjectedInstruction {
   return {
     scope: entry.scope,
-    kind: entry.kind,
-    instructionId: entry.instruction_id ?? null,
+    key: entry.key,
+    prompt_part_id: entry.prompt_part_id ?? null,
     currentVersion: entry.current_version,
     text: entry.text,
     editable: entry.editable,

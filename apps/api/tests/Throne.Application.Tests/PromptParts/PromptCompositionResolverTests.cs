@@ -1,11 +1,10 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
-using Throne.Application.Instructions;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
 using Throne.Application.Tests.Instructions;
-using Throne.Domain.Instructions;
+using Throne.Domain.Intents;
 using Throne.Domain.PromptParts;
 
 namespace Throne.Application.Tests.PromptParts;
@@ -23,10 +22,10 @@ public class PromptCompositionResolverTests
             new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, "intent body"), CancellationToken.None);
 
         composition.Parts.Select(p => (p.Scope, p.Key)).Should().Equal(
-            (InstructionScopeNames.System, InstructionKindNames.Common),
-            (InstructionScopeNames.System, InstructionKindNames.Work),
-            (InstructionScopeNames.User, InstructionKindNames.Common),
-            (InstructionScopeNames.User, InstructionKindNames.Work));
+            (PromptPartScopeNames.System, "common"),
+            (PromptPartScopeNames.System, "work"),
+            (PromptPartScopeNames.User, "common"),
+            (PromptPartScopeNames.User, "work"));
         composition.Parts.Should().OnlyContain(p => p.Role == PromptPartRoleNames.Mandatory && p.Selected);
         composition.UserPrompt.Should().Be("intent body");
         composition.SystemPrompt.Should().Contain("system text for work").And.Contain("user work text");
@@ -79,68 +78,91 @@ public class PromptCompositionResolverTests
         composition.SelectedPartIds.Should().Contain(off.Id.Value).And.NotContain(on.Id.Value);
     }
 
-    [Fact(DisplayName = "Resolve отклоняет не-embedded режим (dream)")]
-    public async Task Rejects_non_embedded_mode()
+    [Fact(DisplayName = "Resolve отклоняет неизвестный режим")]
+    public async Task Rejects_unknown_mode()
     {
         var resolver = NewResolver(out _, optionalParts: []);
 
         var act = () => resolver.ResolveAsync(
-            new ResolvePromptCompositionQuery("dream", null, ""), CancellationToken.None);
+            new ResolvePromptCompositionQuery("bogus_mode", null, ""), CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    [Fact(DisplayName = "Mandatory-проекция совпадает с MCP-бандлом get_instruction_bundle(work)")]
+    [Fact(DisplayName = "Mandatory-проекция совпадает с MCP-бандлом get_prompt_bundle(work)")]
     public async Task Mandatory_projection_matches_mcp_bundle()
     {
-        var resolver = NewResolver(out var instructions, optionalParts: []);
-        var bundleHandler = BundleHandler(instructions);
+        var resolver = NewResolver(out var repository, optionalParts: []);
+        var bundleHandler = BundleHandler(repository);
 
         var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, ""), CancellationToken.None);
         var bundle = await bundleHandler.HandleAsync(
-            new GetInstructionBundleQuery(InstructionBundleModeNames.Work, IntentId: null), CancellationToken.None);
+            new GetPromptBundleQuery(PromptBundleModeNames.Work, IntentId: null), CancellationToken.None);
 
         var mandatory = composition.Parts
             .Where(p => p.Role == PromptPartRoleNames.Mandatory)
             .Select(p => (p.Scope, p.Key, p.PartId, p.Text));
-        mandatory.Should().Equal(bundle.Instructions.Select(i => (i.Scope, i.Kind, i.InstructionId, i.Text)));
+        mandatory.Should().Equal(bundle.Parts.Select(i => (i.Scope, i.Key, i.PromptPartId, i.Text)));
     }
 
     private static PromptPart OptionalPart(string key, string mode, string role, int order, string text) =>
         PromptPart.Create(
-            PromptPartId.New(), InstructionScopeNames.User, key, text, null,
+            PromptPartId.New(), PromptPartScopeNames.User, key, text, null,
             [new PromptPartModeRole(mode, role, order)], Now);
 
-    private static PromptCompositionResolver NewResolver(
-        out IInstructionRepository instructions,
-        IReadOnlyList<PromptPart> optionalParts)
+    private static PromptPart SeedPart(string scope, string key, string text) =>
+        PromptPart.Create(PromptPartId.New(), scope, key, text, null, [], Now);
+
+    private static IPromptPartRepository BuildRepository(IReadOnlyList<PromptPart> optionalParts)
     {
-        instructions = Substitute.For<IInstructionRepository>();
-        var userCommon = Instruction.Create(
-            InstructionId.New(), InstructionScopeNames.User, InstructionKindNames.Common, "user common text", Now);
-        var userWork = Instruction.Create(
-            InstructionId.New(), InstructionScopeNames.User, InstructionKindNames.Work, "user work text", Now);
-        instructions.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns([userCommon, userWork]);
+        // Mandatory parts: every (scope, key) in the manifest bundles materialised in prompt_parts.
+        var seeded = new List<PromptPart>
+        {
+            SeedPart(PromptPartScopeNames.System, "common", "system text for common"),
+            SeedPart(PromptPartScopeNames.System, "interview", "system text for interview"),
+            SeedPart(PromptPartScopeNames.System, "work", "system text for work"),
+            SeedPart(PromptPartScopeNames.System, "dream", "system text for dream"),
+            SeedPart(PromptPartScopeNames.System, "schema_map", "system text for schema_map"),
+            SeedPart(PromptPartScopeNames.User, "common", "user common text"),
+            SeedPart(PromptPartScopeNames.User, "interview", "user interview text"),
+            SeedPart(PromptPartScopeNames.User, "work", "user work text"),
+            SeedPart(PromptPartScopeNames.User, "dream", "user dream text"),
+        };
 
-        var promptParts = Substitute.For<IPromptPartRepository>();
-        promptParts.ListAsync(Arg.Any<CancellationToken>()).Returns(optionalParts);
-
-        return new PromptCompositionResolver(
-            SkillManifestFixtures.Provider(),
-            new UserBundleEntries(instructions),
-            promptParts);
+        var repo = Substitute.For<IPromptPartRepository>();
+        repo.GetByScopeKeyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var scope = call.ArgAt<string>(0);
+                var key = call.ArgAt<string>(1);
+                return seeded.FirstOrDefault(p =>
+                    string.Equals(p.Scope, scope, StringComparison.Ordinal)
+                    && string.Equals(p.Key, key, StringComparison.Ordinal));
+            });
+        repo.ListAsync(Arg.Any<CancellationToken>()).Returns(optionalParts);
+        return repo;
     }
 
-    private static GetInstructionBundleHandler BundleHandler(IInstructionRepository instructions)
+    private static PromptCompositionResolver NewResolver(
+        out IPromptPartRepository repository,
+        IReadOnlyList<PromptPart> optionalParts)
+    {
+        repository = BuildRepository(optionalParts);
+        return new PromptCompositionResolver(
+            SkillManifestFixtures.Provider(),
+            new PromptBundleResolver(repository),
+            repository);
+    }
+
+    private static GetPromptBundleHandler BundleHandler(IPromptPartRepository repository)
     {
         var auto = new IntentStatusAutoTransition(
             Substitute.For<IIntentRepository>(),
             new PassThroughUnitOfWork(),
             new FixedTimeProvider(Now));
-        return new GetInstructionBundleHandler(SkillManifestFixtures.Provider(), auto, new UserBundleEntries(instructions));
+        return new GetPromptBundleHandler(SkillManifestFixtures.Provider(), auto, new PromptBundleResolver(repository));
     }
 
     private sealed class PassThroughUnitOfWork : IUnitOfWork

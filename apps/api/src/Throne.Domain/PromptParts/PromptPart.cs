@@ -1,12 +1,13 @@
-using Throne.Domain.Instructions;
+using Throne.Domain.TextVersions;
 
 namespace Throne.Domain.PromptParts;
 
 /// <summary>
-/// Operator-authored optional unit of prompt text for the embedded terminal (ADR-0035).
-/// Carries a stable key, canonical text with a monotonic version counter, and per-mode
-/// roles. Unlike <see cref="Instruction"/> it keeps no append-only text history — parts
-/// are short and their edits are not dream-patch targets.
+/// Unified prompt part (ADR-0036 collapses the legacy Instruction aggregate into this).
+/// Carries a stable key (unique within scope), canonical text with a monotonic version
+/// counter, per-mode roles, and an append-only text history (replayed from
+/// <see cref="TextVersion"/> entries persisted by the repository). Mandatory parts back
+/// the agent-visible bundle; optional parts drive the embedded terminal composition.
 /// </summary>
 public sealed class PromptPart
 {
@@ -81,13 +82,22 @@ public sealed class PromptPart
     }
 
     /// <summary>
-    /// Replace a unique substring of <see cref="Text"/>. Mirrors
-    /// <see cref="Instruction.ReplaceText"/> semantics but bumps only the version counter.
+    /// Apply a textual replace-edit and append a <see cref="TextVersion"/> delta. The
+    /// previous text must be exactly <paramref name="oldText"/> at one position; empty
+    /// <paramref name="oldText"/> is allowed only for the initial-fill case
+    /// (<see cref="Text"/> is empty). Mirrors the legacy <c>Instruction.ReplaceText</c>
+    /// semantics (match-not-found / ambiguous).
     /// </summary>
-    public ReplacePromptPartTextResult ReplaceText(string oldText, string newText, DateTimeOffset now)
+    public ReplacePromptPartTextResult ReplaceText(
+        string oldText,
+        string newText,
+        string newVersionId,
+        DateTimeOffset now,
+        TextVersionAuthor changedBy)
     {
         ArgumentNullException.ThrowIfNull(oldText);
         ArgumentNullException.ThrowIfNull(newText);
+        ArgumentException.ThrowIfNullOrEmpty(newVersionId);
         if (oldText.Length == 0 && Text.Length != 0)
         {
             throw new ArgumentException(
@@ -111,7 +121,18 @@ public sealed class PromptPart
         Text = string.Concat(Text.AsSpan(0, index), newText, Text.AsSpan(index + oldText.Length));
         CurrentVersion += 1;
         UpdatedAt = now;
-        return new ReplacePromptPartTextResult.Replaced();
+
+        var version = new TextVersion(
+            Id: newVersionId,
+            OwnerKind: TextVersionOwnerKind.PromptPart,
+            OwnerId: Id.Value,
+            Version: CurrentVersion,
+            Kind: TextVersionKind.Replace,
+            Delta: new TextVersionDelta(null, oldText, newText, null, null),
+            ChangedAt: now,
+            ChangedBy: changedBy);
+
+        return new ReplacePromptPartTextResult.Replaced(version);
     }
 
     /// <summary>Validates a mode-role set without an aggregate instance (e.g. for request validation).</summary>
@@ -129,7 +150,7 @@ public sealed class PromptPart
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(scope);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        if (!InstructionScopeNames.IsKnown(scope))
+        if (!PromptPartScopeNames.IsKnown(scope))
         {
             throw new ArgumentOutOfRangeException(nameof(scope), $"Unknown prompt part scope: {scope}.");
         }

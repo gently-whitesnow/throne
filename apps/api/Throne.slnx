@@ -6,8 +6,7 @@
     <Project Path="src/Throne.Domain/Throne.Domain.csproj" />
     <Project Path="src/Throne.Infrastructure/Throne.Infrastructure.csproj" />
     <Project Path="src/Throne.Intents.Contracts/Throne.Intents.Contracts.csproj" />
-    <Project Path="src/Throne.Instructions.Contracts/Throne.Instructions.Contracts.csproj" />
-    <Project Path="src/Throne.InstructionPatches.Contracts/Throne.InstructionPatches.Contracts.csproj" />
+    <Project Path="src/Throne.PromptPartPatches.Contracts/Throne.PromptPartPatches.Contracts.csproj" />
     <Project Path="src/Throne.Dreams.Contracts/Throne.Dreams.Contracts.csproj" />
     <Project Path="src/Throne.Realtime.Contracts/Throne.Realtime.Contracts.csproj" />
     <Project Path="src/Throne.Tags.Contracts/Throne.Tags.Contracts.csproj" />

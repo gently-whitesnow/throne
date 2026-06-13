@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query";
 
 import { dreamsQueryKeys } from "@/entities/dream-session";
-import { instructionPatchesQueryKeys } from "@/entities/instruction-patch";
+import { promptPartPatchesQueryKeys } from "@/entities/prompt-part-patch";
 import {
   intentContextsQueryKeys,
   intentLinksSummaryQueryKeys,
@@ -111,24 +111,24 @@ export function RealtimeQueryBridge() {
     void qc.invalidateQueries({ queryKey: tagsQueryKeys.all });
   });
 
-  useRealtimeEvent("instruction_patch.proposed", () => {
-    void qc.invalidateQueries({ queryKey: instructionPatchesQueryKeys.all });
+  useRealtimeEvent("prompt_part_patch.proposed", () => {
+    void qc.invalidateQueries({ queryKey: promptPartPatchesQueryKeys.all });
   });
-  useRealtimeEvent("instruction_patch.applied", () => {
-    void qc.invalidateQueries({ queryKey: instructionPatchesQueryKeys.all });
+  useRealtimeEvent("prompt_part_patch.applied", () => {
+    void qc.invalidateQueries({ queryKey: promptPartPatchesQueryKeys.all });
   });
-  useRealtimeEvent("instruction_patch.rejected", () => {
-    void qc.invalidateQueries({ queryKey: instructionPatchesQueryKeys.all });
+  useRealtimeEvent("prompt_part_patch.rejected", () => {
+    void qc.invalidateQueries({ queryKey: promptPartPatchesQueryKeys.all });
   });
-  useRealtimeEvent("instruction_patch.superseded", () => {
-    void qc.invalidateQueries({ queryKey: instructionPatchesQueryKeys.all });
+  useRealtimeEvent("prompt_part_patch.superseded", () => {
+    void qc.invalidateQueries({ queryKey: promptPartPatchesQueryKeys.all });
   });
   // A new DreamSession typically lands together with a batch of fresh
   // proposed patches (ADR-0022) — invalidate both branches so the UI surfaces
   // them without waiting for a manual reload.
   useRealtimeEvent("dream_session.recorded", () => {
     void qc.invalidateQueries({ queryKey: dreamsQueryKeys.all });
-    void qc.invalidateQueries({ queryKey: instructionPatchesQueryKeys.all });
+    void qc.invalidateQueries({ queryKey: promptPartPatchesQueryKeys.all });
   });
 
   useRealtimeEvent("intent.created", () => {

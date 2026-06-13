@@ -8,10 +8,10 @@ using ModelContextProtocol.Server;
 using NSubstitute;
 using Throne.Api.Mcp;
 using Throne.Api.Mcp.Tools;
-using Throne.Application.InstructionPatches;
-using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
+using Throne.Application.PromptPartPatches;
+using Throne.Application.PromptParts;
 
 namespace Throne.Api.Tests.Mcp;
 
@@ -70,26 +70,26 @@ public class McpAuditPayloadWireTests
     public async Task Renderers_produce_null_structured_content_through_audit_wrapper()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var bundle = new InstructionBundle(
+        var bundle = new PromptBundle(
             Mode: "work",
             IntentId: "intent-1",
-            Instructions:
+            Parts:
             [
-                new InstructionWithText("system", "common", "instr-sys", 1, "Системный common."),
-                new InstructionWithText("user", "work", "instr-user", 7, "User work тело."),
+                new PromptBundlePart("system", "common", "part-sys", 1, "Системный common."),
+                new PromptBundlePart("user", "work", "part-user", 7, "User work тело."),
             ],
-            MissingKinds: []);
+            MissingKeys: []);
         var renderers = new Func<object?>[]
         {
-            () => InstructionBundleRenderer.Render(bundle),
+            () => PromptBundleRenderer.Render(bundle),
             () => IntentReadResultRenderer.Render(new McpIntentReadResult(
                 "intent-1", "Body.", "work", 1, [], "K", Now, Now, [], [], [])),
             () => TextSliceRenderer.Render(new TextSlice(1, 1, 1, 1, "x", false, null)),
             () => AttachmentTextSliceRenderer.Render(new IntentAttachmentTextSlice("text/plain", 1, 0, 1, false, "x")),
             () => TextSearchResultRenderer.Render(new TextSearchResult([], null)),
-            () => CurrentInstructionRenderer.Render(new CurrentInstructionView("instr", "work", "body", 1, Now)),
-            () => InstructionPatchRenderer.RenderProposed(NewPatch()),
-            () => InstructionPatchRenderer.RenderList([NewPatch()], null),
+            () => CurrentPromptPartRenderer.Render(new CurrentPromptPartView("part", "user", "work", "body", 1, Now)),
+            () => PromptPartPatchRenderer.RenderProposed(NewPatch()),
+            () => PromptPartPatchRenderer.RenderList([NewPatch()], null),
         };
 
         foreach (var make in renderers)
@@ -106,28 +106,28 @@ public class McpAuditPayloadWireTests
         }
     }
 
-    [Fact(DisplayName = "Wire-size budget: get_instruction_bundle (system+user × common+work) < 30 KB end-to-end")]
-    public async Task InstructionBundle_wire_size_below_budget()
+    [Fact(DisplayName = "Wire-size budget: get_prompt_bundle (system+user × common+work) < 30 KB end-to-end")]
+    public async Task PromptBundle_wire_size_below_budget()
     {
         // Acceptance из intent ef25f66c: bundle штатного набора укладывается в 30 KB на wire.
         // До амендмента §8.1 цифра уплывала за 70 KB из-за дубля payload в Content +
         // StructuredContent с \uXXXX-эскейпом кириллицы.
         var sink = Substitute.For<IMcpCallLogSink>();
-        var bundle = new InstructionBundle(
+        var bundle = new PromptBundle(
             Mode: "work",
             IntentId: "intent-9",
-            Instructions:
+            Parts:
             [
-                new InstructionWithText("system", "common", "instr-sys-common", 1, MakeRussianInstruction("system common", 1000)),
-                new InstructionWithText("system", "work", "instr-sys-work", 1, MakeRussianInstruction("system work", 1000)),
-                new InstructionWithText("user", "common", "instr-user-common", 1, MakeRussianInstruction("user common", 1000)),
-                new InstructionWithText("user", "work", "instr-user-work", 1, MakeRussianInstruction("user work", 1000)),
+                new PromptBundlePart("system", "common", "part-sys-common", 1, MakeRussianInstruction("system common", 1000)),
+                new PromptBundlePart("system", "work", "part-sys-work", 1, MakeRussianInstruction("system work", 1000)),
+                new PromptBundlePart("user", "common", "part-user-common", 1, MakeRussianInstruction("user common", 1000)),
+                new PromptBundlePart("user", "work", "part-user-work", 1, MakeRussianInstruction("user work", 1000)),
             ],
-            MissingKinds: []);
+            MissingKeys: []);
 
-        var tool = NewWrapper("get_instruction_bundle", _ => InstructionBundleRenderer.Render(bundle), sink);
+        var tool = NewWrapper("get_prompt_bundle", _ => PromptBundleRenderer.Render(bundle), sink);
         var result = await tool.InvokeAsync(
-            NewCallContext("get_instruction_bundle", new Dictionary<string, JsonElement>
+            NewCallContext("get_prompt_bundle", new Dictionary<string, JsonElement>
             {
                 ["mode"] = JsonDocument.Parse("\"work\"").RootElement,
             }),
@@ -150,17 +150,18 @@ public class McpAuditPayloadWireTests
         return sb.ToString();
     }
 
-    private static McpInstructionPatchReadModel NewPatch() => new(
+    private static McpPromptPartPatchReadModel NewPatch() => new(
         Id: "patch-1",
-        TargetKind: "work",
+        TargetScope: "user",
+        TargetKey: "work",
         Status: "proposed",
         PatchText: "body",
         AppliedText: null,
         EvidenceCardIds: [],
         Rationale: "r",
         RejectComment: null,
-        BaseInstructionVersion: 1,
-        AppliedInstructionVersion: null,
+        BaseVersion: 1,
+        AppliedVersion: null,
         CreatedAt: Now,
         UpdatedAt: Now,
         DecidedAt: null);

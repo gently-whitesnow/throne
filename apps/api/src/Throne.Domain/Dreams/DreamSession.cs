@@ -4,7 +4,7 @@ namespace Throne.Domain.Dreams;
 /// Immutable record of a single /dream pass performed by a frontier agent.
 /// Stores only the agent's memory of the pass: which conversations it read,
 /// what summary / reflection it produced, which
-/// <see cref="Instructions.InstructionPatch"/> proposals it created. The
+/// <see cref="PromptParts.PromptPartPatch"/> proposals it created. The
 /// dialog bytes themselves never reach the server — the agent reads them
 /// locally from filesystem paths declared in the manifest
 /// (<c>dream_sources</c>).

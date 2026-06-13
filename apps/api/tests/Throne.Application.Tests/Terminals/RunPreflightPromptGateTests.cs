@@ -1,7 +1,6 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
-using Throne.Application.Instructions;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
@@ -92,13 +91,14 @@ public class RunPreflightPromptGateTests
 
     private static (RunPreflightPromptGate Gate, IIntentRepository Intents) NewGate(IReadOnlyList<PromptPart> optionalParts)
     {
-        var instructions = Substitute.For<IInstructionRepository>();
-        instructions.GetUserInstructionsByKindsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns([]);
         var promptParts = Substitute.For<IPromptPartRepository>();
+        promptParts.GetByScopeKeyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => PromptPart.Create(
+                PromptPartId.New(), call.ArgAt<string>(0), call.ArgAt<string>(1),
+                $"{call.ArgAt<string>(0)} {call.ArgAt<string>(1)}", null, [], Now));
         promptParts.ListAsync(Arg.Any<CancellationToken>()).Returns(optionalParts);
         var resolver = new PromptCompositionResolver(
-            SkillManifestFixtures.Provider(), new UserBundleEntries(instructions), promptParts);
+            SkillManifestFixtures.Provider(), new PromptBundleResolver(promptParts), promptParts);
 
         var intents = Substitute.For<IIntentRepository>();
         var replaceText = new ReplaceIntentTextHandler(intents, new PassthroughUnitOfWork(), new FixedClock(Now));

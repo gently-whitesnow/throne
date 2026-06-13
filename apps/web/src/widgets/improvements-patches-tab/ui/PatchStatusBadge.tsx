@@ -1,6 +1,6 @@
-import type { InstructionPatchStatus } from "@/entities/instruction-patch";
+import type { PromptPartPatchStatus } from "@/entities/prompt-part-patch";
 
-const STATUS_LABELS: Record<InstructionPatchStatus, string> = {
+const STATUS_LABELS: Record<PromptPartPatchStatus, string> = {
   proposed: "Proposed",
   applied: "Applied",
   applied_edited: "Applied (edited)",
@@ -8,7 +8,7 @@ const STATUS_LABELS: Record<InstructionPatchStatus, string> = {
   superseded: "Superseded"
 };
 
-const STATUS_CLASSES: Record<InstructionPatchStatus, string> = {
+const STATUS_CLASSES: Record<PromptPartPatchStatus, string> = {
   proposed: "badge badge-soft badge-info",
   applied: "badge badge-soft badge-success",
   applied_edited: "badge badge-soft badge-success",
@@ -24,7 +24,7 @@ const STATUS_CLASSES: Record<InstructionPatchStatus, string> = {
 export function PatchStatusBadge({
   status
 }: {
-  status: InstructionPatchStatus;
+  status: PromptPartPatchStatus;
 }) {
   return (
     <span className={STATUS_CLASSES[status]}>{STATUS_LABELS[status]}</span>

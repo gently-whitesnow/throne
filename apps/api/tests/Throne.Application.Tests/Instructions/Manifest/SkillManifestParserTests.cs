@@ -45,18 +45,35 @@ public class SkillManifestParserTests
         act.Should().Throw<SkillManifestException>().WithMessage("*version*");
     }
 
-    [Fact(DisplayName = "SkillManifestParser отвергает неизвестный kind в system_instructions")]
-    public void Rejects_unknown_system_kind()
+    [Fact(DisplayName = "SkillManifestParser допускает произвольный непустой key в system_instructions (whitelist отменён ADR-0036)")]
+    public void Allows_arbitrary_non_empty_system_key()
     {
         var yaml = """
             version: 1
             system_instructions:
-              - kind: not_a_real_kind
+              - kind: my_custom_part
+                text: "x"
+            bundles:
+              - mode: work
+                includes:
+                  - { scope: system, kind: my_custom_part }
+            """;
+        var manifest = SkillManifestParser.Parse(yaml);
+        manifest.SystemInstructions.Should().ContainSingle().Which.Kind.Should().Be("my_custom_part");
+    }
+
+    [Fact(DisplayName = "SkillManifestParser отвергает пустой key в system_instructions")]
+    public void Rejects_empty_system_key()
+    {
+        var yaml = """
+            version: 1
+            system_instructions:
+              - kind: ""
                 text: "x"
             bundles: []
             """;
         var act = () => SkillManifestParser.Parse(yaml);
-        act.Should().Throw<SkillManifestException>().WithMessage("*not_a_real_kind*");
+        act.Should().Throw<SkillManifestException>().WithMessage("*key*");
     }
 
     [Fact(DisplayName = "SkillManifestParser отвергает bundle, требующий system kind без записи в system_instructions")]

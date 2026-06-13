@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
-  type InstructionPatchDetail,
-  getInstructionPatch
-} from "@/entities/instruction-patch";
+  type PromptPartPatchDetail,
+  getPromptPartPatch
+} from "@/entities/prompt-part-patch";
 
 type LoadState =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "ready"; detail: InstructionPatchDetail }
+  | { kind: "ready"; detail: PromptPartPatchDetail }
   | { kind: "error"; message: string };
 
 export function usePatchDetail(patchId: string | null): {
@@ -25,7 +25,7 @@ export function usePatchDetail(patchId: string | null): {
     }
     setState({ kind: "loading" });
     const controller = new AbortController();
-    getInstructionPatch(patchId, controller.signal)
+    getPromptPartPatch(patchId, controller.signal)
       .then((detail) => {
         setState({ kind: "ready", detail });
       })
