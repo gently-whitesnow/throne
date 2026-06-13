@@ -64,7 +64,7 @@ namespace Throne.PromptPartPatches.Contracts.Generated
         public string Id { get; set; }
 
         /// <summary>
-        /// Scope of the target prompt part (system | user).
+        /// Scope of the target prompt part. Always `user`; system prompt parts are manifest-managed.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("target_scope")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

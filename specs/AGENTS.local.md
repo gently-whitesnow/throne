@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Проектные правила для агентов. Bundle-маппинг `mode → kinds` и тексты system-инструкций (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это единственный источник правды для backend runtime и frontend `/instructions` дерева. Runtime-инструкции попадают агенту через MCP `InitializeResult.instructions` (mini-router) и далее `get_instruction_bundle(mode, intent_id?)` — см. [ADR-0014](ADR/0014-mcp-initialize-instructions-routing.md). Локальных skill-launcher файлов в `.claude/skills/` или `.agents/skills/` больше нет.
+Проектные правила для агентов. Bundle-маппинг `mode → keys` и тексты system-частей (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это seed/source для backend runtime и frontend `/instructions` дерева. Runtime-инструкции попадают агенту через MCP `InitializeResult.instructions` (mini-router) и далее `get_prompt_bundle(mode, intent_id?)` — см. [ADR-0014](ADR/0014-mcp-initialize-instructions-routing.md) + [ADR-0036](ADR/0036-unify-prompt-part-entity-and-rename-mcp.md). Локальных skill-launcher файлов в `.claude/skills/` или `.agents/skills/` больше нет.
 
 ## Перед завершением хода
 
@@ -28,7 +28,7 @@ Api ──► Infrastructure (только в Program.cs / DI wiring)
 ```
 
 - **Throne.Domain** — entities, value objects, доменные правила. Без внешних зависимостей.
-- **Throne.Application** — use cases и порты (`IIntentRepository`, `IInstructionRepository`). Не знает про MongoDB и MCP.
+- **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про MongoDB и MCP.
 - **Throne.Infrastructure** — реализация портов (Mongo).
 - **Throne.Api** — composition root + транспорт. Сейчас MCP, в будущем HTTP для `apps/web`.
 - **Throne.Mcp.Stdio** — тонкий STDIO→HTTP MCP proxy ([ADR-0009](ADR/0009-cross-process-realtime-fanout.md)). Не должен зависеть от Domain/Application/Infrastructure/Api: иначе domain events срабатывают в proxy и SSE-подписчики apps/web их не видят.

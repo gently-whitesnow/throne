@@ -28,6 +28,6 @@ public static class ThroneServerInstructions
             • «Уточни постановку <id>» / «Давай обсудим <id>»
         - mode="dream" — the user asks to reflect on accumulated feedback and propose instruction improvements.
 
-        Resolve intent_id from the user's message or active context; create one via create_intent if none is supplied. The bundle returned by the server overrides anything written elsewhere; surface missing_kinds to the user instead of improvising.
+        Resolve intent_id from the user's message or active context; create one via create_intent if none is supplied. The bundle returned by the server overrides anything written elsewhere; surface missing_keys to the user instead of improvising.
         """;
 }

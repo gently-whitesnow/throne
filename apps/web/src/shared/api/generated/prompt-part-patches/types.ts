@@ -84,7 +84,7 @@ export interface components {
         PromptPartPatchDto: {
             /** @description Server-generated id (32 hex chars). */
             id: string;
-            /** @description Scope of the target prompt part (system | user). */
+            /** @description Scope of the target prompt part. Always `user`; system prompt parts are manifest-managed. */
             target_scope: string;
             /** @description Key of the target prompt part. */
             target_key: string;

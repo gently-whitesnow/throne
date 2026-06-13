@@ -59,4 +59,14 @@ internal static class PromptPartPatchExceptions
 
     public static ApiException UnknownTargetScope(string targetScope) =>
         ValidationFailed("target_scope", $"Unknown target_scope: {targetScope}.");
+
+    public static ApiException UnpatchableTargetScope(string targetScope) => new(
+        ErrorCodes.ValidationFailed,
+        "PromptPartPatch targets must use target_scope='user'. System prompt parts are manifest-managed.",
+        new Dictionary<string, object?>
+        {
+            ["field"] = "target_scope",
+            ["target_scope"] = targetScope,
+            ["allowed_scope"] = PromptPartScopeNames.User,
+        });
 }

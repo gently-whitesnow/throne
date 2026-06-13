@@ -25,6 +25,7 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
 
         var sysCommon = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
         sysCommon.Should().NotBeNull();
+        sysCommon!.Id.Value.Should().Be("system:common", "MCP bundle text keeps the legacy synthetic system id");
         sysCommon!.Text.Should().Be("sys common", "system text comes from the manifest, not the legacy instructions doc");
         sysCommon.CurrentVersion.Should().Be(1);
         sysCommon.ModeRoles.Should().ContainSingle(r =>
@@ -32,6 +33,7 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
 
         var userWork = await parts.GetByScopeKeyAsync(PromptPartScopeNames.User, "work", CancellationToken.None);
         userWork.Should().NotBeNull();
+        userWork!.Id.Value.Should().Be("i-work", "migration preserves legacy instruction id in the PromptPart id");
         userWork!.Text.Should().Be("legacy user work");
         userWork.CurrentVersion.Should().Be(1, "migration imports the current text as the first version without backfilling history");
         userWork.ModeRoles.Should().ContainSingle(r =>

@@ -8,8 +8,6 @@ namespace Throne.Infrastructure.Mongo;
 
 internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSessionAccessor sessions) : IPromptPartRepository
 {
-    private const int DuplicateKeyCode = 11000;
-
     private readonly IMongoCollection<PromptPartDocument> _parts =
         database.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
 
@@ -25,15 +23,18 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
             ?? throw new InvalidOperationException(
                 "MongoPromptPartRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
 
-        try
-        {
-            await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct);
-            await _parts.InsertOneAsync(session, ToDocument(part), options: null, ct);
-        }
-        catch (MongoWriteException ex) when (ex.WriteError?.Code == DuplicateKeyCode)
+        var existing = await _parts.Find(
+                session,
+                d => d.Scope == part.Scope && d.Key == part.Key)
+            .Project(d => d.Id)
+            .FirstOrDefaultAsync(ct);
+        if (existing is not null)
         {
             return new CreatePromptPartOutcome.KeyConflict();
         }
+
+        await _parts.InsertOneAsync(session, ToDocument(part), options: null, ct);
+        await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct);
 
         return new CreatePromptPartOutcome.Created(part);
     }
