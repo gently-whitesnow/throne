@@ -4,10 +4,9 @@
     <ProjectReference Include="..\Throne.Application\Throne.Application.csproj" />
     <ProjectReference Include="..\Throne.Infrastructure\Throne.Infrastructure.csproj" />
     <ProjectReference Include="..\Throne.Intents.Contracts\Throne.Intents.Contracts.csproj" />
-    <ProjectReference Include="..\Throne.Instructions.Contracts\Throne.Instructions.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Realtime.Contracts\Throne.Realtime.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Tags.Contracts\Throne.Tags.Contracts.csproj" />
-    <ProjectReference Include="..\Throne.InstructionPatches.Contracts\Throne.InstructionPatches.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.PromptPartPatches.Contracts\Throne.PromptPartPatches.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Dreams.Contracts\Throne.Dreams.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Repositories.Contracts\Throne.Repositories.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Settings.Contracts\Throne.Settings.Contracts.csproj" />

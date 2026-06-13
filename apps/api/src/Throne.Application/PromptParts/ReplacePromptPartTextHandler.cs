@@ -1,6 +1,7 @@
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.PromptParts;
+using Throne.Domain.TextVersions;
 
 namespace Throne.Application.PromptParts;
 
@@ -28,7 +29,7 @@ public sealed class ReplacePromptPartTextHandler(
         try
         {
             outcome = await unitOfWork.ExecuteAsync(
-                inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, now, inner),
+                inner => repository.ReplaceTextAsync(id, command.ExpectedVersion, command.OldText, command.NewText, TextVersionAuthor.User, now, inner),
                 ct);
         }
         catch (ArgumentException ex) when (ex.ParamName == "oldText")

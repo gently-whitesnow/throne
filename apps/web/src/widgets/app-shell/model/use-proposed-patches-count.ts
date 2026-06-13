@@ -1,11 +1,11 @@
-import { useProposedInstructionPatchesCount } from "@/entities/instruction-patch";
+import { useProposedPromptPartPatchesCount } from "@/entities/prompt-part-patch";
 
 /**
- * Sidebar counter for the /improvements badge — counts InstructionPatches
+ * Sidebar counter for the /improvements badge — counts PromptPartPatches
  * currently in `proposed` status owned by the caller. Realtime fanout
- * (`instruction_patch.*`) инвалидирует ключ через `RealtimeQueryBridge`.
+ * (`prompt_part_patch.*`) инвалидирует ключ через `RealtimeQueryBridge`.
  */
 export function useProposedPatchesCount(): number {
-  const query = useProposedInstructionPatchesCount();
+  const query = useProposedPromptPartPatchesCount();
   return query.data ?? 0;
 }

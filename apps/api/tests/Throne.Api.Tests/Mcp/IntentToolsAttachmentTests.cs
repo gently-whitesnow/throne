@@ -59,7 +59,7 @@ public class IntentToolsAttachmentTests
         return new(
             create: null!,
             get: new GetIntentHandler(intentRepo),
-            getInstructionBundle: null!,
+            getPromptBundle: null!,
             listIntents: null!,
             moveIntentHandler: null!,
             linkRepository: linkRepo,

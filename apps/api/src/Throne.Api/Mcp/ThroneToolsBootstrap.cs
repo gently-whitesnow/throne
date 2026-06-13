@@ -20,7 +20,7 @@ public static class ThroneToolsBootstrap
         services.AddThroneTool<IntentLinkTools>();
         services.AddThroneTool<IntentStatusTools>();
         services.AddThroneTool<IntentAttachmentTools>();
-        services.AddThroneTool<InstructionPatchTools>();
+        services.AddThroneTool<PromptPartPatchTools>();
         services.AddThroneTool<DreamTools>();
         services.AddThroneTool<RepositoryDocumentTools>();
 

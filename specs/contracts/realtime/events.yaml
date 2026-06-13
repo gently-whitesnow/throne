@@ -194,18 +194,18 @@ events:
       properties:
         tag_id:
           type: string
-  instruction_patch.proposed:
-    description: A frontier agent proposed a new patch for a user instruction (ADR-0021).
-    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
-  instruction_patch.applied:
-    description: A patch was applied (verbatim or after user edit). The target instruction got a new text version.
-    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
-  instruction_patch.rejected:
+  prompt_part_patch.proposed:
+    description: A frontier agent proposed a new patch for a prompt part (ADR-0036).
+    payload_ref: prompt-part-patches#/components/schemas/PromptPartPatchDto
+  prompt_part_patch.applied:
+    description: A patch was applied (verbatim or after user edit). The target prompt part got a new text version.
+    payload_ref: prompt-part-patches#/components/schemas/PromptPartPatchDto
+  prompt_part_patch.rejected:
     description: A user rejected the patch with a comment (≥10 chars after trimming).
-    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
-  instruction_patch.superseded:
+    payload_ref: prompt-part-patches#/components/schemas/PromptPartPatchDto
+  prompt_part_patch.superseded:
     description: A newer patch on the same target invalidated this one.
-    payload_ref: instruction-patches#/components/schemas/InstructionPatchDto
+    payload_ref: prompt-part-patches#/components/schemas/PromptPartPatchDto
   dream_session.recorded:
     description: A frontier agent recorded a DreamSession at the end of a /dream pass (ADR-0022).
     payload_ref: dreams#/components/schemas/DreamSessionDto

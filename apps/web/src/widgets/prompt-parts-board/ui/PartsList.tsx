@@ -47,7 +47,7 @@ export function PartsList({
           <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
             {instructions.map((instruction) => (
               <InstructionRow
-                key={`${instruction.scope}:${instruction.kind}`}
+                key={`${instruction.scope}:${instruction.key}`}
                 instruction={instruction}
                 onOpen={() => {
                   onOpenInstruction(instruction);

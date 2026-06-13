@@ -10,7 +10,7 @@ interface McpBundleCompatibilityProps {
 }
 
 /**
- * Read-only overview of the MCP `get_instruction_bundle(mode)` payload for all
+ * Read-only overview of the MCP `get_prompt_bundle(mode)` payload for all
  * modes (including dream/fix). Source of truth is the skill manifest; this is
  * exactly what an external agent receives over MCP.
  */
@@ -51,7 +51,7 @@ export function McpBundleCompatibility({
           <ul className="m-0 mt-2 flex list-none flex-col gap-1 border-l border-dashed border-base-300 p-0 pl-3">
             {bundle.includes.map((entry, index) => (
               <EntryLine
-                key={`${entry.scope}:${entry.kind}:${String(index)}`}
+                key={`${entry.scope}:${entry.key}:${String(index)}`}
                 entry={entry}
               />
             ))}
@@ -73,7 +73,7 @@ function EntryLine({ entry }: { entry: BundleEntryNode }) {
       />
       <span className="font-mono text-base-content/40">{entry.scope}</span>
       <span className="font-mono font-semibold text-base-content">
-        {entry.kind}
+        {entry.key}
       </span>
       <span className="ml-auto inline-flex items-center gap-1 text-base-content/60">
         {entry.editable ? (

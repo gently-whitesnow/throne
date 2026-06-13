@@ -50,6 +50,7 @@ internal sealed class MongoTextVersionRepository(IMongoDatabase database, MongoS
     {
         "intent" => TextVersionOwnerKind.Intent,
         "instruction" => TextVersionOwnerKind.Instruction,
+        "prompt_part" => TextVersionOwnerKind.PromptPart,
         _ => throw new ArgumentOutOfRangeException(nameof(wire), wire, "Unknown owner_kind."),
     };
 

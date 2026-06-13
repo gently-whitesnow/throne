@@ -1,42 +1,44 @@
-using Throne.Application.Instructions;
 using Throne.Application.Instructions.Manifest;
-using Throne.Domain.Instructions;
+using Throne.Application.PromptParts;
+using Throne.Domain.PromptParts;
 
 namespace Throne.Application.Tests.Instructions;
 
 internal static class SkillManifestFixtures
 {
+    public static readonly IReadOnlyList<string> Keys = ["common", "interview", "work", "dream", "schema_map"];
+
     public static SkillManifest Sample()
     {
-        var systemInstructions = InstructionKindNames.All
-            .Select(kind => new SystemInstructionEntry(kind, $"system text for {kind}"))
+        var systemInstructions = Keys
+            .Select(key => new SystemInstructionEntry(key, $"system text for {key}"))
             .ToArray();
 
-        BundleDefinition Bundle(string mode, string kind) => new(
+        BundleDefinition Bundle(string mode, string key) => new(
             Mode: mode,
             Includes:
             [
-                new BundleInclude(InstructionScopeNames.System, InstructionKindNames.Common),
-                new BundleInclude(InstructionScopeNames.System, kind),
-                new BundleInclude(InstructionScopeNames.User, InstructionKindNames.Common),
-                new BundleInclude(InstructionScopeNames.User, kind),
+                new BundleInclude(PromptPartScopeNames.System, "common"),
+                new BundleInclude(PromptPartScopeNames.System, key),
+                new BundleInclude(PromptPartScopeNames.User, "common"),
+                new BundleInclude(PromptPartScopeNames.User, key),
             ]);
 
         // schema_map is launched without an intent and has no user-scope counterpart:
         // system common + system schema_map + user common only (mirrors the real manifest).
         var schemaMapBundle = new BundleDefinition(
-            InstructionBundleModeNames.SchemaMap,
+            PromptBundleModeNames.SchemaMap,
             [
-                new BundleInclude(InstructionScopeNames.System, InstructionKindNames.Common),
-                new BundleInclude(InstructionScopeNames.System, InstructionKindNames.SchemaMap),
-                new BundleInclude(InstructionScopeNames.User, InstructionKindNames.Common),
+                new BundleInclude(PromptPartScopeNames.System, "common"),
+                new BundleInclude(PromptPartScopeNames.System, "schema_map"),
+                new BundleInclude(PromptPartScopeNames.User, "common"),
             ]);
 
         var bundles = new[]
         {
-            Bundle(InstructionBundleModeNames.Interview, InstructionKindNames.Interview),
-            Bundle(InstructionBundleModeNames.Work, InstructionKindNames.Work),
-            Bundle(InstructionBundleModeNames.Dream, InstructionKindNames.Dream),
+            Bundle(PromptBundleModeNames.Interview, "interview"),
+            Bundle(PromptBundleModeNames.Work, "work"),
+            Bundle(PromptBundleModeNames.Dream, "dream"),
             schemaMapBundle,
         };
 

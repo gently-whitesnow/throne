@@ -1,7 +1,7 @@
 using Throne.Application.Errors;
 using Throne.Application.Ports;
-using Throne.Domain.Instructions;
 using Throne.Domain.PromptParts;
+using Throne.Domain.TextVersions;
 
 namespace Throne.Application.PromptParts;
 
@@ -42,7 +42,7 @@ public sealed class CreatePromptPartHandler(
         {
             part = PromptPart.Create(
                 id: PromptPartId.New(),
-                scope: InstructionScopeNames.User,
+                scope: PromptPartScopeNames.User,
                 key: command.Key,
                 text: command.Text,
                 description: command.Description,
@@ -54,8 +54,16 @@ public sealed class CreatePromptPartHandler(
             throw PromptPartErrors.Validation(ex);
         }
 
+        var initialVersion = TextVersion.CreateSnapshot(
+            id: Guid.NewGuid().ToString("N"),
+            ownerKind: TextVersionOwnerKind.PromptPart,
+            ownerId: part.Id.Value,
+            snapshot: part.Text,
+            changedAt: now,
+            changedBy: TextVersionAuthor.User);
+
         var outcome = await unitOfWork.ExecuteAsync(
-            inner => repository.CreateAsync(part, inner),
+            inner => repository.CreateAsync(part, initialVersion, inner),
             ct);
 
         return outcome switch

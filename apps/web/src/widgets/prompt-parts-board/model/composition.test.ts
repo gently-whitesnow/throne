@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { InstructionsComponents } from "@/shared/api";
+import type { PromptPartsComponents } from "@/shared/api";
 import type {
   PromptPartListItem,
   PromptPartModeRole
@@ -13,17 +13,17 @@ import {
   mergeRoleForMode
 } from "./composition";
 
-type BundlesTree = InstructionsComponents["schemas"]["BundlesTreeDto"];
+type BundlesTree = PromptPartsComponents["schemas"]["BundlesTreeDto"];
 
 function entry(
   scope: "system" | "user",
-  kind: string,
+  key: string,
   text: string
-): InstructionsComponents["schemas"]["BundleEntryNodeDto"] {
+): PromptPartsComponents["schemas"]["BundleEntryNodeDto"] {
   return {
     scope,
-    kind,
-    instruction_id: scope === "user" ? `iid-${kind}` : null,
+    key,
+    prompt_part_id: scope === "user" ? `pid-${key}` : null,
     current_version: 1,
     text,
     editable: scope === "user",
@@ -197,11 +197,11 @@ describe("mergeRoleForMode", () => {
 describe("dedupeProjectedInstructions", () => {
   it("схлопывает common по (scope,kind) и собирает режимы", () => {
     const projected = dedupeProjectedInstructions(bundlesTree);
-    const common = projected.find((p) => p.kind === "common");
+    const common = projected.find((p) => p.key === "common");
     expect(common?.modes.sort()).toEqual(["interview", "work"]);
-    const work = projected.find((p) => p.kind === "work");
+    const work = projected.find((p) => p.key === "work");
     expect(work?.modes).toEqual(["work"]);
-    // unique (scope, kind): system, common, work, interview
+    // unique (scope, key): system, common, work, interview
     expect(projected).toHaveLength(4);
   });
 });

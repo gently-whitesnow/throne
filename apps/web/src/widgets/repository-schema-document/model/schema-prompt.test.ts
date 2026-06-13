@@ -6,6 +6,6 @@ describe("buildSchemaMapPrompt", () => {
   it("включает имя репозитория и load-bearing вызов бандла schema_map", () => {
     const prompt = buildSchemaMapPrompt("octocat/hello-world");
     expect(prompt).toContain("octocat/hello-world");
-    expect(prompt).toContain('get_instruction_bundle({mode: "schema_map"})');
+    expect(prompt).toContain('get_prompt_bundle({mode: "schema_map"})');
   });
 });

@@ -86,8 +86,8 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         doc.ExceptionType.Should().Be("System.ArgumentException");
     }
 
-    [Fact(DisplayName = "WriteAsync сохраняет nested InstructionBundleUse summary")]
-    public async Task WriteAsync_persists_instruction_bundle_summary()
+    [Fact(DisplayName = "WriteAsync сохраняет nested PromptBundleUse summary")]
+    public async Task WriteAsync_persists_prompt_bundle_summary()
     {
         var dbName = $"throne_audit_{Guid.NewGuid():N}";
         await fixture.Client.DropDatabaseAsync(dbName);
@@ -97,7 +97,7 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         var entry = new McpCallLogEntry(
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
-            ToolName: "get_instruction_bundle",
+            ToolName: "get_prompt_bundle",
             Arguments: new Dictionary<string, object?> { ["intent_id"] = "intent_123", ["mode"] = "work" },
             IntentId: "intent_123",
             ModeHint: "work",
@@ -107,16 +107,16 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
             ExceptionType: null,
             ResultSummary: new Dictionary<string, object?>
             {
-                ["instructions"] = new List<Dictionary<string, object?>>
+                ["parts"] = new List<Dictionary<string, object?>>
                 {
                     new()
                     {
-                        ["kind"] = "work",
-                        ["instruction_id"] = "instr_light_1",
-                        ["version"] = 4,
+                        ["key"] = "work",
+                        ["prompt_part_id"] = "i-work",
+                        ["current_version"] = 4,
                     },
                 },
-                ["missing_kinds"] = Array.Empty<string>(),
+                ["missing_keys"] = Array.Empty<string>(),
             },
             DurationMs: 17,
             ServerVersion: "0.1.0");
@@ -127,8 +127,8 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
             .Find(_ => true).SingleAsync();
 
         doc.ResultSummary.Should().NotBeNull();
-        var first = doc.ResultSummary!["instructions"].AsBsonArray[0].AsBsonDocument;
-        first["instruction_id"].AsString.Should().Be("instr_light_1");
-        first["version"].AsInt32.Should().Be(4);
+        var first = doc.ResultSummary!["parts"].AsBsonArray[0].AsBsonDocument;
+        first["prompt_part_id"].AsString.Should().Be("i-work");
+        first["current_version"].AsInt32.Should().Be(4);
     }
 }

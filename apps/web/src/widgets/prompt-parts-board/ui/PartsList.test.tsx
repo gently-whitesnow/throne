@@ -28,8 +28,8 @@ const noop = () => {
 function systemInstruction(): ProjectedInstruction {
   return {
     scope: "system",
-    kind: "common",
-    instructionId: null,
+    key: "common",
+    prompt_part_id: null,
     currentVersion: 1,
     text: "SYS",
     editable: false,

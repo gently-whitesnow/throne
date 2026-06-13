@@ -10,6 +10,7 @@ internal static class MongoEnumNames
     {
         TextVersionOwnerKind.Intent => "intent",
         TextVersionOwnerKind.Instruction => "instruction",
+        TextVersionOwnerKind.PromptPart => "prompt_part",
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
     };
 

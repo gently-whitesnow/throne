@@ -82,7 +82,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
             ],
             cancellationToken);
 
-        await MongoInstructionPatchIndexes.CreateAsync(database, cancellationToken);
+        await MongoPromptPartPatchIndexes.CreateAsync(database, cancellationToken);
         await MongoDreamSessionIndexes.CreateAsync(database, cancellationToken);
 
         await CreateIntentLinkIndexesAsync(cancellationToken);

@@ -13,11 +13,11 @@ const TABS: { id: TabKey; label: string }[] = [
 
 const DREAM_PROMPT =
   "Запусти dream — улучшим мои user-инструкции по моим последним диалогам. " +
-  'Зачитай бандл dream через MCP get_instruction_bundle({mode: "dream"}) и следуй инструкции.';
+  'Зачитай бандл dream через MCP get_prompt_bundle({mode: "dream"}) и следуй инструкции.';
 
 /**
  * `/improvements` — две вкладки:
- *   * Patches — InstructionPatch list + diff preview + apply / apply-with-edit / reject;
+ *   * Patches — PromptPartPatch list + diff preview + apply / apply-with-edit / reject;
  *   * Dreams — история проходов фронтир-агента (DreamSession) + dream_sources.
  *
  * Кнопка «Скопировать промпт» отдаёт подсказку для запуска dream-прохода в

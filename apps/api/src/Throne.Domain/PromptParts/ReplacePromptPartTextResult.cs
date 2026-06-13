@@ -1,10 +1,12 @@
+using Throne.Domain.TextVersions;
+
 namespace Throne.Domain.PromptParts;
 
 public abstract record ReplacePromptPartTextResult
 {
     private ReplacePromptPartTextResult() { }
 
-    public sealed record Replaced : ReplacePromptPartTextResult;
+    public sealed record Replaced(TextVersion Version) : ReplacePromptPartTextResult;
 
     public sealed record MatchNotFound(string QueryPreview) : ReplacePromptPartTextResult;
 

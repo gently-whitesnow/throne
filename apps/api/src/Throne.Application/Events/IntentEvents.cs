@@ -1,9 +1,9 @@
 using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Domain.Dreams;
-using Throne.Domain.Instructions;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Linking;
+using Throne.Domain.PromptParts;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
 
@@ -55,19 +55,19 @@ public sealed record TagUpdated(Tag Tag) : IDomainEvent;
 public sealed record TagDeleted(string TagId) : IDomainEvent;
 
 /// <summary>
-/// InstructionPatch lifecycle (ADR-0021 supersedes ADR-0011). Carried by
-/// <see cref="Throne.Application.Ports.CreateInstructionPatchOutcome"/>,
-/// <see cref="Throne.Application.Ports.ApplyInstructionPatchPersistenceOutcome"/> and
-/// <see cref="Throne.Application.Ports.RejectInstructionPatchPersistenceOutcome"/>; the
+/// PromptPartPatch lifecycle (ADR-0036 supersedes ADR-0021). Carried by
+/// <see cref="Throne.Application.Ports.CreatePromptPartPatchOutcome"/>,
+/// <see cref="Throne.Application.Ports.ApplyPromptPartPatchPersistenceOutcome"/> and
+/// <see cref="Throne.Application.Ports.RejectPromptPartPatchPersistenceOutcome"/>; the
 /// dispatching unit-of-work decorator fans them out after a successful commit.
 /// </summary>
-public sealed record InstructionPatchProposed(InstructionPatch Patch) : IDomainEvent;
+public sealed record PromptPartPatchProposed(PromptPartPatch Patch) : IDomainEvent;
 
-public sealed record InstructionPatchApplied(InstructionPatch Patch) : IDomainEvent;
+public sealed record PromptPartPatchApplied(PromptPartPatch Patch) : IDomainEvent;
 
-public sealed record InstructionPatchRejected(InstructionPatch Patch) : IDomainEvent;
+public sealed record PromptPartPatchRejected(PromptPartPatch Patch) : IDomainEvent;
 
-public sealed record InstructionPatchSuperseded(InstructionPatch Patch) : IDomainEvent;
+public sealed record PromptPartPatchSuperseded(PromptPartPatch Patch) : IDomainEvent;
 
 /// <summary>
 /// A frontier agent finished a /dream pass and recorded its memory of it via

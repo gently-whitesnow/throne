@@ -10,4 +10,6 @@ export const promptPartsEndpoints = {
   deletePromptPart: (id: string) => `/prompt-parts/${id}`,
   replacePromptPartText: (id: string) => `/prompt-parts/${id}/replace-text`,
   setPromptPartRoles: (id: string) => `/prompt-parts/${id}/roles`,
+  getBundlesTree: () => "/prompt-parts/bundles-tree",
+  listPromptPartVersions: (id: string) => `/prompt-parts/${id}/versions`,
 } as const;

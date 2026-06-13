@@ -82,7 +82,7 @@ export interface components {
             summary: string;
             /** @description Agent's notes on prior applied patches (whether they landed in practice). */
             reflection?: string;
-            /** @description InstructionPatch ids created during this pass (opaque on the server). */
+            /** @description PromptPartPatch ids created during this pass (opaque on the server). */
             proposed_patch_ids: string[];
         };
         DreamSessionPageDto: {

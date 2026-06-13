@@ -71,6 +71,23 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-parts/{id}/roles", Name = "setPromptPartRoles")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PromptPartDto>> SetPromptPartRoles([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetPromptPartRolesRequest body);
 
+        /// <summary>
+        /// Precomputed bundle → prompt-parts tree.
+        /// </summary>
+        /// <remarks>
+        /// Returns the runtime composition that a frontier agent receives for each bundle mode. Source of truth is the declarative manifest (specs/manifest/throne-skills.yaml) for the ordering of mandatory parts; the texts are read from the prompt_parts collection. For every bundle mode the response includes the mode and its ordered includes (system + user parts) with full text payload. User-scope entries carry editable=true; system entries are read-only.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-parts/bundles-tree", Name = "getBundlesTree")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<BundlesTreeDto>> GetBundlesTree();
+
+        /// <summary>
+        /// List the text-version history of a prompt part.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-parts/{id}/versions", Name = "listPromptPartVersions")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TextVersionDto>>> ListPromptPartVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
     }
 
     

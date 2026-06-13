@@ -6,7 +6,7 @@ namespace Throne.Domain.TextVersions;
 ///
 /// Used by read-only views that need to compare a current state against a
 /// historical baseline — e.g. patch diff preview which compares
-/// <c>InstructionPatch.PatchText</c> against the instruction text at
+/// <c>PromptPartPatch.PatchText</c> against the prompt part text at
 /// <c>base_instruction_version</c>.
 ///
 /// The replay is pure: it operates on the same delta semantics that
