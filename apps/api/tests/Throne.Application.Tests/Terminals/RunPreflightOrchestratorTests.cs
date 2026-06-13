@@ -105,13 +105,13 @@ public partial class RunPreflightOrchestratorTests
             Arg.Any<CancellationToken>());
         await fixture.Tmux.DidNotReceive().SendLiteralTextAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await fixture.Intents.DidNotReceive().SetStatusAsync(
+        await fixture.Intents.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
-            Arg.Any<string>(),
-            Arg.Any<string?>(),
-            Arg.Any<string?>(),
-            Arg.Any<IntentTrainingAuthor>(),
-            Arg.Any<string>(),
+            IntentStatusNames.Work,
+            appendText: null,
+            reason: null,
+            IntentTrainingAuthor.System,
+            "terminal:spawn:free",
             Arg.Any<DateTimeOffset>(),
             Arg.Any<CancellationToken>());
     }
