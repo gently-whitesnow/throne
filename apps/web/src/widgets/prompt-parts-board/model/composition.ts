@@ -44,7 +44,15 @@ export function buildModeComposition(
   optionalTexts?: Record<string, string>
 ): EffectivePart[] {
   const mandatory = buildMandatory(mode, bundlesTree);
-  const optional = buildOptional(mode, optionalParts, optionalTexts);
+  // A user part that is a manifest bundle include (e.g. user:work) already shows
+  // as a mandatory row; skipping it among optionals mirrors the backend resolver,
+  // which dedups on partId so the part isn't listed — and its role isn't toggled —
+  // twice. Without this the preview both duplicates the part and renders a role
+  // dropdown that the bundle path ignores.
+  const mandatoryIds = new Set(mandatory.map((p) => p.partId));
+  const optional = buildOptional(mode, optionalParts, optionalTexts).filter(
+    (p) => !mandatoryIds.has(p.partId)
+  );
   return mandatory.concat(optional);
 }
 
