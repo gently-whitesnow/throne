@@ -48,17 +48,20 @@ public sealed class TerminalHookStatusHandler(IIntentRepository repository, SetI
 
     /// <summary>
     /// Maps (event, spawn mode) to the intent status the hook drives, or <c>null</c> when the hook
-    /// is a no-op for status. Bundle-less modes (<c>dream</c>/<c>free</c>) never touch the status
-    /// machine — they have no work/interview phase to park or return to.
+    /// is a no-op for status. Bundle-less <c>dream</c> never touches the status machine — it runs
+    /// without an intent and has no phase to park or return to. <c>free</c> is phased like work
+    /// (spawn→work, Stop→awaiting_operator, UserPromptSubmit→work); only its context injection is
+    /// bare (the operator curates everything), not its status lifecycle.
     /// </summary>
     private static string? ResolveTargetStatus(string hookEvent, string? mode) => hookEvent switch
     {
         TerminalHookEvents.Stop when IsPhasedMode(mode) => IntentStatusNames.AwaitingOperator,
         TerminalHookEvents.UserPromptSubmit when mode == TerminalRunModes.Work => IntentStatusNames.Work,
+        TerminalHookEvents.UserPromptSubmit when mode == TerminalRunModes.Free => IntentStatusNames.Work,
         TerminalHookEvents.UserPromptSubmit when mode == TerminalRunModes.Interview => IntentStatusNames.Interview,
         _ => null,
     };
 
     private static bool IsPhasedMode(string? mode) =>
-        mode is TerminalRunModes.Work or TerminalRunModes.Interview;
+        mode is TerminalRunModes.Work or TerminalRunModes.Interview or TerminalRunModes.Free;
 }

@@ -92,6 +92,7 @@ public sealed class RunPreflightSpawn(
     private static string? SpawnPhaseStatus(string mode) => mode switch
     {
         TerminalRunModes.Work => IntentStatusNames.Work,
+        TerminalRunModes.Free => IntentStatusNames.Work,
         TerminalRunModes.Interview => IntentStatusNames.Interview,
         _ => null,
     };
