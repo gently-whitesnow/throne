@@ -38,6 +38,26 @@ internal static class ReviewWorkspaceDtoMapper
         return dto;
     }
 
+    public static ReviewFileLinesDto ToFileLinesDto(RepositoryFileLineSlice slice)
+    {
+        ArgumentNullException.ThrowIfNull(slice);
+        var dto = new ReviewFileLinesDto
+        {
+            From = slice.From,
+            To = slice.To,
+            Total_lines = slice.TotalLines,
+        };
+        foreach (var line in slice.Lines)
+        {
+            dto.Lines.Add(new ReviewFileLineDto
+            {
+                Line = line.Line,
+                Content = line.Content,
+            });
+        }
+        return dto;
+    }
+
     public static PullRequestHeaderDto ToHeaderDto(PullRequestSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
