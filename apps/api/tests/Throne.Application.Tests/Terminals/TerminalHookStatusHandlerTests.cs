@@ -12,8 +12,9 @@ public class TerminalHookStatusHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 12, 12, 0, 0, TimeSpan.Zero);
 
-    [Theory(DisplayName = "Stop-хук в work/interview паркует интент в awaiting_operator")]
+    [Theory(DisplayName = "Stop-хук в work/free/interview паркует интент в awaiting_operator")]
     [InlineData(TerminalRunModes.Work)]
+    [InlineData(TerminalRunModes.Free)]
     [InlineData(TerminalRunModes.Interview)]
     public async Task Stop_parks_in_awaiting_operator(string mode)
     {
@@ -26,6 +27,7 @@ public class TerminalHookStatusHandlerTests
 
     [Theory(DisplayName = "UserPromptSubmit возвращает интент в исходную фазу спавна")]
     [InlineData(TerminalRunModes.Work, IntentStatusNames.Work)]
+    [InlineData(TerminalRunModes.Free, IntentStatusNames.Work)]
     [InlineData(TerminalRunModes.Interview, IntentStatusNames.Interview)]
     public async Task UserPromptSubmit_returns_to_spawn_phase(string mode, string expected)
     {
@@ -36,11 +38,9 @@ public class TerminalHookStatusHandlerTests
         await ReceivedStatusSet(repo, expected);
     }
 
-    [Theory(DisplayName = "Bundle-less режимы (dream/free) и пустой mode статус не трогают")]
+    [Theory(DisplayName = "Bundle-less dream и пустой mode статус не трогают")]
     [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Dream)]
-    [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Free)]
     [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Dream)]
-    [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Free)]
     [InlineData(TerminalHookEvents.Stop, null)]
     [InlineData(TerminalHookEvents.UserPromptSubmit, null)]
     public async Task No_status_change_for_unphased(string hookEvent, string? mode)
