@@ -43,19 +43,25 @@ public sealed class PromptPartPatch
     private PromptPartPatch(
         PromptPartPatchIdentity identity,
         PromptPartPatchState state,
+        string operation,
         string patchText,
+        IReadOnlyList<PromptPartModeRole>? modeRoles,
         IReadOnlyList<string> evidenceCardIds,
         string rationale)
     {
         Identity = identity;
         State = state;
+        Operation = operation;
         PatchText = patchText;
+        ModeRoles = modeRoles is null ? null : [.. modeRoles];
         EvidenceCardIds = evidenceCardIds;
         Rationale = rationale;
     }
 
     public PromptPartPatchIdentity Identity { get; }
+    public string Operation { get; }
     public string PatchText { get; }
+    public IReadOnlyList<PromptPartModeRole>? ModeRoles { get; }
     public IReadOnlyList<string> EvidenceCardIds { get; }
     public string Rationale { get; }
     public PromptPartPatchState State { get; private set; }
@@ -64,7 +70,9 @@ public sealed class PromptPartPatch
         string id,
         string targetScope,
         string targetKey,
+        string operation,
         string patchText,
+        IReadOnlyList<PromptPartModeRole>? modeRoles,
         IReadOnlyList<string> evidenceCardIds,
         string rationale,
         int baseVersion,
@@ -74,21 +82,47 @@ public sealed class PromptPartPatch
         ArgumentNullException.ThrowIfNull(patchText);
         ArgumentNullException.ThrowIfNull(evidenceCardIds);
         EnsurePatchableScope(targetScope);
+        EnsureOperationPayload(operation, patchText, modeRoles);
         PromptPartPatchBudgets.EnsureAll(patchText, evidenceCardIds, rationale, baseVersion);
 
         var identity = new PromptPartPatchIdentity(id, targetScope, targetKey, baseVersion, now);
         return new PromptPartPatch(
             identity,
             PromptPartPatchState.Initial(now),
+            operation,
             patchText,
+            modeRoles,
             [.. evidenceCardIds],
             rationale);
     }
 
+    public static PromptPartPatch Create(
+        string id,
+        string targetScope,
+        string targetKey,
+        string patchText,
+        IReadOnlyList<string> evidenceCardIds,
+        string rationale,
+        int baseVersion,
+        DateTimeOffset now) =>
+        Create(
+            id,
+            targetScope,
+            targetKey,
+            PromptPartPatchOperationNames.ReplaceText,
+            patchText,
+            modeRoles: null,
+            evidenceCardIds,
+            rationale,
+            baseVersion,
+            now);
+
     public static PromptPartPatch Restore(
         PromptPartPatchIdentity identity,
         PromptPartPatchState state,
+        string? operation,
         string patchText,
+        IReadOnlyList<PromptPartModeRole>? modeRoles,
         IReadOnlyList<string> evidenceCardIds,
         string rationale)
     {
@@ -98,8 +132,20 @@ public sealed class PromptPartPatch
         EnsurePatchableScope(identity.TargetScope);
         ArgumentException.ThrowIfNullOrWhiteSpace(identity.TargetKey);
         EnsureKnownStatus(state.Status);
-        return new PromptPartPatch(identity, state, patchText, [.. evidenceCardIds], rationale);
+        var restoredOperation = string.IsNullOrWhiteSpace(operation)
+            ? PromptPartPatchOperationNames.ReplaceText
+            : operation;
+        EnsureOperationPayload(restoredOperation, patchText, modeRoles);
+        return new PromptPartPatch(identity, state, restoredOperation, patchText, modeRoles, [.. evidenceCardIds], rationale);
     }
+
+    public static PromptPartPatch Restore(
+        PromptPartPatchIdentity identity,
+        PromptPartPatchState state,
+        string patchText,
+        IReadOnlyList<string> evidenceCardIds,
+        string rationale) =>
+        Restore(identity, state, null, patchText, null, evidenceCardIds, rationale);
 
     /// <summary>
     /// User-driven apply transition. Verbatim apply (<paramref name="editedText"/>
@@ -114,7 +160,11 @@ public sealed class PromptPartPatch
         {
             return ApplyResult.AlreadyDecided;
         }
-        if (appliedVersion < Identity.BaseVersion + 1)
+        var minAppliedVersion = Operation == PromptPartPatchOperationNames.ReplaceText
+            || Operation == PromptPartPatchOperationNames.Create
+            ? Identity.BaseVersion + 1
+            : Identity.BaseVersion;
+        if (appliedVersion < minAppliedVersion)
         {
             return ApplyResult.InvalidAppliedVersion;
         }
@@ -199,6 +249,32 @@ public sealed class PromptPartPatch
             throw new ArgumentOutOfRangeException(
                 nameof(status),
                 $"Unknown PromptPartPatch status: {status}.");
+        }
+    }
+
+    private static void EnsureOperationPayload(
+        string operation,
+        string patchText,
+        IReadOnlyList<PromptPartModeRole>? modeRoles)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        if (!PromptPartPatchOperationNames.IsKnown(operation))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(operation),
+                $"Unknown PromptPartPatch operation: {operation}.");
+        }
+        if ((operation == PromptPartPatchOperationNames.ReplaceText
+             || operation == PromptPartPatchOperationNames.Create)
+            && string.IsNullOrWhiteSpace(patchText))
+        {
+            throw new ArgumentException("patch_text must not be empty for text operations.", nameof(patchText));
+        }
+        if (operation == PromptPartPatchOperationNames.Create
+            || operation == PromptPartPatchOperationNames.SetRoles)
+        {
+            ArgumentNullException.ThrowIfNull(modeRoles);
+            PromptPart.ValidateModeRoles(modeRoles);
         }
     }
 }

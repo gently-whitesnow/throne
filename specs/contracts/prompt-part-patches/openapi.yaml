@@ -6,8 +6,9 @@ info:
     HTTP surface for PromptPartPatch (ADR-0036 supersedes ADR-0021). Patches are
     first-class entities: a frontier agent proposes a patch via MCP
     `propose_prompt_part_patch`, and the operator decides through this HTTP
-    surface — apply (verbatim or with edit) or reject (with mandatory comment
-    ≥10 chars). Apply replaces the target PromptPart text at
+    surface — apply (verbatim or with edit for text operations) or reject (with
+    mandatory comment ≥10 chars). A patch can replace text, create a user part
+    with roles, replace roles, or delete a user part. Apply validates
     expectedVersion=base_version; a mismatch returns
     `409 prompt_part_patch.needs_rebase` without mutation. A patch targets a
     PromptPart by (target_scope, target_key). All endpoints are owner-scoped via
@@ -86,13 +87,12 @@ paths:
     post:
       operationId: applyPromptPartPatch
       tags: [PromptPartPatches]
-      summary: Apply a patch (verbatim or with operator edit).
+      summary: Apply a patch (verbatim or with operator edit for text operations).
       description: >
-        When `final_text` is omitted the patch is applied verbatim and the
-        resulting status is `applied`. When `final_text` differs from
-        `patch_text` the resulting status is `applied_edited` and `applied_text`
-        records the user's edit. Validates `base_version`; mismatch returns 409
-        `prompt_part_patch.needs_rebase` without mutation.
+        When `final_text` is omitted the patch is applied verbatim. For
+        replace_text/create, a divergent `final_text` records `applied_edited`.
+        Structural operations ignore `final_text`. Validates `base_version`;
+        mismatch returns 409 `prompt_part_patch.needs_rebase` without mutation.
       parameters:
         - in: path
           name: patch_id
@@ -177,6 +177,23 @@ components:
     PromptPartPatchStatus:
       type: string
       enum: [proposed, applied, applied_edited, rejected, superseded]
+    PromptPartPatchOperation:
+      type: string
+      enum: [replace_text, create, set_roles, delete]
+    PromptPartModeRoleDto:
+      type: object
+      required: [mode, role, order]
+      properties:
+        mode:
+          type: string
+          description: Prompt part mode.
+        role:
+          type: string
+          description: Prompt part role.
+        order:
+          type: integer
+          format: int32
+          minimum: 0
     PromptPartPatchDto:
       type: object
       required:
@@ -184,6 +201,7 @@ components:
         - target_scope
         - target_key
         - status
+        - operation
         - patch_text
         - evidence_card_ids
         - rationale
@@ -202,9 +220,16 @@ components:
           description: Key of the target prompt part.
         status:
           $ref: '#/components/schemas/PromptPartPatchStatus'
+        operation:
+          $ref: '#/components/schemas/PromptPartPatchOperation'
         patch_text:
           type: string
-          description: Original proposal as submitted by the agent.
+          description: Text payload for replace_text/create; empty for structural operations.
+        mode_roles:
+          type: array
+          description: Desired role set for create/set_roles operations.
+          items:
+            $ref: '#/components/schemas/PromptPartModeRoleDto'
         applied_text:
           type: string
           description: What the user actually applied (may differ from patch_text).

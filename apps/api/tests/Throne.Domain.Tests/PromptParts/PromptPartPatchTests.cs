@@ -55,6 +55,31 @@ public class PromptPartPatchTests
         patch.State.DecidedAt.Should().BeNull();
     }
 
+    [Fact(DisplayName = "Create для structural proposal сохраняет operation и mode_roles")]
+    public void Create_structural_payload()
+    {
+        var roles = new[]
+        {
+            new PromptPartModeRole(PromptPartModeNames.Work, PromptPartRoleNames.DefaultOn, 40),
+        };
+
+        var patch = PromptPartPatch.Create(
+            id: "p-roles",
+            targetScope: PromptPartScopeNames.User,
+            targetKey: "dotnet",
+            operation: PromptPartPatchOperationNames.SetRoles,
+            patchText: string.Empty,
+            modeRoles: roles,
+            evidenceCardIds: [],
+            rationale: "rationale",
+            baseVersion: 3,
+            now: Now);
+
+        patch.Operation.Should().Be(PromptPartPatchOperationNames.SetRoles);
+        patch.ModeRoles.Should().Equal(roles);
+        patch.PatchText.Should().BeEmpty();
+    }
+
     [Fact(DisplayName = "Create отвергает unknown/system target_scope, base_version<0, evidence>лимита")]
     public void Create_validates_inputs()
     {
@@ -125,6 +150,25 @@ public class PromptPartPatchTests
 
         result.Should().Be(PromptPartPatch.ApplyResult.InvalidAppliedVersion);
         patch.State.Status.Should().Be(PromptPartPatchStatusNames.Proposed);
+    }
+
+    [Fact(DisplayName = "Apply для roles/delete разрешает applied_version равный base_version")]
+    public void Apply_structural_allows_same_version()
+    {
+        var patch = PromptPartPatch.Create(
+            id: "p-roles",
+            targetScope: PromptPartScopeNames.User,
+            targetKey: "work",
+            operation: PromptPartPatchOperationNames.SetRoles,
+            patchText: string.Empty,
+            modeRoles: [],
+            evidenceCardIds: [],
+            rationale: "rationale",
+            baseVersion: 5,
+            now: Now);
+
+        patch.Apply(editedText: null, appliedVersion: 5, Now)
+            .Should().Be(PromptPartPatch.ApplyResult.Ok);
     }
 
     [Fact(DisplayName = "Apply на уже-Applied возвращает AlreadyDecided без мутации")]

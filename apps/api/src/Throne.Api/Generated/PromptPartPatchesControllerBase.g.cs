@@ -44,10 +44,10 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PromptPartPatchDetailDto>> GetPromptPartPatch([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string patch_id);
 
         /// <summary>
-        /// Apply a patch (verbatim or with operator edit).
+        /// Apply a patch (verbatim or with operator edit for text operations).
         /// </summary>
         /// <remarks>
-        /// When `final_text` is omitted the patch is applied verbatim and the resulting status is `applied`. When `final_text` differs from `patch_text` the resulting status is `applied_edited` and `applied_text` records the user's edit. Validates `base_version`; mismatch returns 409 `prompt_part_patch.needs_rebase` without mutation.
+        /// When `final_text` is omitted the patch is applied verbatim. For replace_text/create, a divergent `final_text` records `applied_edited`. Structural operations ignore `final_text`. Validates `base_version`; mismatch returns 409 `prompt_part_patch.needs_rebase` without mutation.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-part-patches/{patch_id}/apply", Name = "applyPromptPartPatch")]

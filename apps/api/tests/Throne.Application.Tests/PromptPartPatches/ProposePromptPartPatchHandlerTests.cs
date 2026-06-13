@@ -105,6 +105,68 @@ public class ProposePromptPartPatchHandlerTests
         await patches.Received(1).CreateAsync(Arg.Any<PromptPartPatch>(), null, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Propose create принимает mode_roles для новой user-части")]
+    public async Task Propose_create_accepts_mode_roles()
+    {
+        var patches = Substitute.For<IPromptPartPatchRepository>();
+        patches.CreateAsync(Arg.Any<PromptPartPatch>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(new CreatePromptPartPatchOutcome(call.Arg<PromptPartPatch>())));
+        var handler = NewHandlerWithoutPart(patches);
+        var roles = new[]
+        {
+            new PromptPartModeRole(PromptPartModeNames.Work, PromptPartRoleNames.DefaultOn, 40),
+        };
+
+        var result = await handler.HandleAsync(
+            NewCommand(idempotencyKey: null, baseVersion: 0) with
+            {
+                TargetKey = "dotnet",
+                Operation = PromptPartPatchOperationNames.Create,
+                ModeRoles = roles,
+            },
+            CancellationToken.None);
+
+        result.Operation.Should().Be(PromptPartPatchOperationNames.Create);
+        result.ModeRoles.Should().Equal(roles);
+    }
+
+    [Fact(DisplayName = "Propose delete разрешает пустой patch_text для существующей user-части")]
+    public async Task Propose_delete_allows_empty_patch_text()
+    {
+        var patches = Substitute.For<IPromptPartPatchRepository>();
+        patches.CreateAsync(Arg.Any<PromptPartPatch>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(new CreatePromptPartPatchOutcome(call.Arg<PromptPartPatch>())));
+        var handler = NewHandler(patches, currentVersion: 3);
+
+        var result = await handler.HandleAsync(
+            NewCommand() with
+            {
+                Operation = PromptPartPatchOperationNames.Delete,
+                PatchText = string.Empty,
+            },
+            CancellationToken.None);
+
+        result.Operation.Should().Be(PromptPartPatchOperationNames.Delete);
+        result.PatchText.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "Propose create без mode_roles отвергается validation_failed")]
+    public async Task Propose_create_requires_mode_roles()
+    {
+        var patches = Substitute.For<IPromptPartPatchRepository>();
+        var handler = NewHandlerWithoutPart(patches);
+
+        var act = async () => await handler.HandleAsync(
+            NewCommand(idempotencyKey: null, baseVersion: 0) with
+            {
+                Operation = PromptPartPatchOperationNames.Create,
+            },
+            CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+    }
+
     [Fact(DisplayName = "Propose с base_version=3 на отсутствующей части — 409 needs_rebase (текущая=0)")]
     public async Task Propose_rejects_non_zero_base_when_part_missing()
     {
