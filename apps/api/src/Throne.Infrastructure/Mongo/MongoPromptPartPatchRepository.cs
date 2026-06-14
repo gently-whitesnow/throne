@@ -213,7 +213,14 @@ internal sealed class MongoPromptPartPatchRepository(
         TargetScope = patch.Identity.TargetScope,
         TargetKey = patch.Identity.TargetKey,
         Status = patch.State.Status,
+        Operation = patch.Operation,
         PatchText = patch.PatchText,
+        ModeRoles = patch.ModeRoles?.Select(r => new PromptPartModeRoleDocument
+        {
+            Mode = r.Mode,
+            Role = r.Role,
+            Order = r.Order,
+        }).ToList(),
         AppliedText = patch.State.AppliedText,
         EvidenceCardIds = patch.EvidenceCardIds.ToList(),
         Rationale = patch.Rationale,
@@ -239,7 +246,9 @@ internal sealed class MongoPromptPartPatchRepository(
             AppliedVersion: doc.AppliedVersion,
             UpdatedAt: ToUtcOffset(doc.UpdatedAt),
             DecidedAt: doc.DecidedAt is { } d ? ToUtcOffset(d) : null),
+        operation: doc.Operation,
         patchText: doc.PatchText,
+        modeRoles: doc.ModeRoles?.Select(r => new PromptPartModeRole(r.Mode, r.Role, r.Order)).ToList(),
         evidenceCardIds: doc.EvidenceCardIds ?? new List<string>(),
         rationale: doc.Rationale ?? string.Empty);
 

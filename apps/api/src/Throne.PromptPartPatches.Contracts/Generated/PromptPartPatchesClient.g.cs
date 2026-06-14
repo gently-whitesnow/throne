@@ -53,6 +53,61 @@ namespace Throne.PromptPartPatches.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PromptPartPatchOperation
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"replace_text")]
+        [System.Runtime.Serialization.EnumMember(Value = @"replace_text")]
+        Replace_text = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"create")]
+        [System.Runtime.Serialization.EnumMember(Value = @"create")]
+        Create = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"set_roles")]
+        [System.Runtime.Serialization.EnumMember(Value = @"set_roles")]
+        Set_roles = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"delete")]
+        [System.Runtime.Serialization.EnumMember(Value = @"delete")]
+        Delete = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PromptPartModeRoleDto
+    {
+
+        /// <summary>
+        /// Prompt part mode.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Mode { get; set; }
+
+        /// <summary>
+        /// Prompt part role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("role")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Role { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Order { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PromptPartPatchDto
     {
 
@@ -82,12 +137,23 @@ namespace Throne.PromptPartPatches.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PromptPartPatchStatus>))]
         public PromptPartPatchStatus Status { get; set; }
 
+        [System.Text.Json.Serialization.JsonPropertyName("operation")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PromptPartPatchOperation>))]
+        public PromptPartPatchOperation Operation { get; set; }
+
         /// <summary>
-        /// Original proposal as submitted by the agent.
+        /// Text payload for replace_text/create; empty for structural operations.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("patch_text")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Patch_text { get; set; }
+
+        /// <summary>
+        /// Desired role set for create/set_roles operations.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode_roles")]
+        public System.Collections.Generic.ICollection<PromptPartModeRoleDto> Mode_roles { get; set; }
 
         /// <summary>
         /// What the user actually applied (may differ from patch_text).

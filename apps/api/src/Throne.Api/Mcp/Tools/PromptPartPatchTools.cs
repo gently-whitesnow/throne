@@ -28,26 +28,30 @@ public sealed class PromptPartPatchTools(
     GetCurrentPromptPartHandler currentHandler)
 {
     [McpServerTool(Name = "propose_prompt_part_patch")]
-    [Description("Propose a new PromptPartPatch in status 'proposed' for a user prompt part identified by (target_scope=\"user\", target_key). base_version must match the live PromptPart.current_version (use get_current_prompt_part to read it; for dream this is usually key in {work, interview}). evidence_card_ids are opaque agent-side references. Apply / reject is a user action via UI/HTTP — agents cannot decide their own proposals. Pass a unique idempotency_key per logical proposal so a transport-level retry returns the original patch instead of creating a duplicate.")]
+    [Description("Propose a new PromptPartPatch in status 'proposed' for a user prompt part identified by (target_scope=\"user\", target_key). operation defaults to replace_text; use create with patch_text+mode_roles, set_roles with mode_roles, or delete with empty patch_text. base_version must match the live PromptPart.current_version (0 when creating a missing part). Apply / reject is a user action via UI/HTTP.")]
     public async Task<McpToolPayload> ProposePromptPartPatch(
         [Description("Scope of the target prompt part. Must be \"user\"; system prompt parts are manifest-managed and cannot be patched.")] string target_scope,
         [Description("Key of the target prompt part (e.g. work | interview).")] string target_key,
-        [Description("Whole new text of the target prompt part (the apply path replaces the text verbatim with this).")] string patch_text,
+        [Description("Whole new text for replace_text/create. May be empty for set_roles/delete.")] string patch_text,
         [Description("Opaque agent-side evidence ids; stored verbatim on the patch for audit but not validated.")] IReadOnlyList<string> evidence_card_ids,
         [Description("Short rationale; ≤500 characters.")] string rationale,
         [Description("PromptPart.current_version the agent is editing on top of. Mismatch → 409 prompt_part_patch.needs_rebase.")] int base_version,
         [Description("Optional client-generated dedup key (≤64 chars). When present, the server returns the previously created patch on a retry with the same key instead of inserting a new one.")] string? idempotency_key = null,
+        [Description("Patch operation: replace_text | create | set_roles | delete. Defaults to replace_text.")] string operation = PromptPartPatchOperationNames.ReplaceText,
+        [Description("Desired mode_roles for create/set_roles. Each item has mode, role and order.")] IReadOnlyList<McpPromptPartModeRole>? mode_roles = null,
         CancellationToken cancellationToken = default)
     {
         var patch = await proposeHandler.HandleAsync(
             new ProposePromptPartPatchCommand(
                 target_scope,
                 target_key,
-                patch_text,
+                patch_text ?? string.Empty,
                 evidence_card_ids ?? Array.Empty<string>(),
                 rationale,
                 base_version,
-                idempotency_key),
+                idempotency_key,
+                operation,
+                mode_roles?.Select(r => new PromptPartModeRole(r.mode, r.role, r.order)).ToList()),
             cancellationToken);
         return PromptPartPatchRenderer.RenderProposed(PromptPartPatchMcpMapper.ToReadModel(patch));
     }
@@ -108,7 +112,9 @@ internal static class PromptPartPatchMcpMapper
         patch.Identity.TargetScope,
         patch.Identity.TargetKey,
         patch.State.Status,
+        patch.Operation,
         patch.PatchText,
+        patch.ModeRoles?.Select(r => new McpPromptPartModeRole(r.Mode, r.Role, r.Order)).ToList(),
         patch.State.AppliedText,
         patch.EvidenceCardIds.ToList(),
         patch.Rationale,
@@ -125,7 +131,9 @@ public sealed record McpPromptPartPatchReadModel(
     [property: Description("Target prompt part scope.")] string TargetScope,
     [property: Description("Target prompt part key.")] string TargetKey,
     [property: Description("Lifecycle status: proposed | applied | applied_edited | rejected | superseded.")] string Status,
+    [property: Description("Patch operation: replace_text | create | set_roles | delete.")] string Operation,
     [property: Description("Original proposal as submitted by the agent.")] string PatchText,
+    [property: Description("Desired mode_roles for create/set_roles operations.")] IReadOnlyList<McpPromptPartModeRole>? ModeRoles,
     [property: Description("What the user actually applied; null until decided.")] string? AppliedText,
     [property: Description("Opaque agent-side evidence ids cited at propose time; stored verbatim.")] IReadOnlyList<string> EvidenceCardIds,
     [property: Description("Short rationale (≤500 chars).")] string Rationale,
@@ -135,3 +143,8 @@ public sealed record McpPromptPartPatchReadModel(
     [property: Description("Patch creation timestamp (UTC).")] DateTimeOffset CreatedAt,
     [property: Description("Last status / payload change (UTC).")] DateTimeOffset UpdatedAt,
     [property: Description("Apply / reject timestamp (UTC); null while still proposed.")] DateTimeOffset? DecidedAt);
+
+public sealed record McpPromptPartModeRole(
+    [property: Description("Prompt mode: interview | work | dream | schema_map | free.")] string mode,
+    [property: Description("Role: mandatory | default_on | default_off.")] string role,
+    [property: Description("Sort order inside the role/mode block.")] int order);

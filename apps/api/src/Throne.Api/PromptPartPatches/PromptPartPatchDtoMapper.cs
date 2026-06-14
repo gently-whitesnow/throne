@@ -20,7 +20,9 @@ public static class PromptPartPatchDtoMapper
             Target_scope = patch.Identity.TargetScope,
             Target_key = patch.Identity.TargetKey,
             Status = ToStatus(patch.State.Status),
+            Operation = ToOperation(patch.Operation),
             Patch_text = patch.PatchText,
+            Mode_roles = patch.ModeRoles?.Select(ToRoleDto).ToList(),
             Applied_text = patch.State.AppliedText,
             Evidence_card_ids = patch.EvidenceCardIds.ToList(),
             Rationale = patch.Rationale,
@@ -81,5 +83,21 @@ public static class PromptPartPatchDtoMapper
         PromptPartPatchStatus.Rejected => PromptPartPatchStatusNames.Rejected,
         PromptPartPatchStatus.Superseded => PromptPartPatchStatusNames.Superseded,
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown patch status."),
+    };
+
+    private static PromptPartPatchOperation ToOperation(string operation) => operation switch
+    {
+        PromptPartPatchOperationNames.ReplaceText => PromptPartPatchOperation.Replace_text,
+        PromptPartPatchOperationNames.Create => PromptPartPatchOperation.Create,
+        PromptPartPatchOperationNames.SetRoles => PromptPartPatchOperation.Set_roles,
+        PromptPartPatchOperationNames.Delete => PromptPartPatchOperation.Delete,
+        _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unknown patch operation."),
+    };
+
+    private static PromptPartModeRoleDto ToRoleDto(PromptPartModeRole role) => new()
+    {
+        Mode = role.Mode,
+        Role = role.Role,
+        Order = role.Order,
     };
 }

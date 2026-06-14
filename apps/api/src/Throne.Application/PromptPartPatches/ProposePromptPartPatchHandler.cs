@@ -11,7 +11,9 @@ public sealed record ProposePromptPartPatchCommand(
     IReadOnlyList<string> EvidenceCardIds,
     string Rationale,
     int BaseVersion,
-    string? IdempotencyKey = null);
+    string? IdempotencyKey = null,
+    string Operation = PromptPartPatchOperationNames.ReplaceText,
+    IReadOnlyList<PromptPartModeRole>? ModeRoles = null);
 
 internal static class IdempotencyKeyValidator
 {
@@ -93,6 +95,16 @@ internal static class ProposePromptPartPatchValidator
 {
     public static void ValidateCommand(ProposePromptPartPatchCommand command)
     {
+        ValidateTarget(command);
+        ValidateOperation(command);
+        if (command.ModeRoles is not null)
+        {
+            ValidateModeRoles(command.ModeRoles);
+        }
+    }
+
+    private static void ValidateTarget(ProposePromptPartPatchCommand command)
+    {
         if (!PromptPartScopeNames.IsKnown(command.TargetScope))
         {
             throw PromptPartPatchExceptions.UnknownTargetScope(command.TargetScope);
@@ -105,9 +117,51 @@ internal static class ProposePromptPartPatchValidator
         {
             throw PromptPartPatchExceptions.ValidationFailed("target_key", "target_key must not be empty.");
         }
-        if (string.IsNullOrWhiteSpace(command.PatchText))
+    }
+
+    private static void ValidateOperation(ProposePromptPartPatchCommand command)
+    {
+        if (!PromptPartPatchOperationNames.IsKnown(command.Operation))
+        {
+            throw PromptPartPatchExceptions.ValidationFailed(
+                "operation",
+                $"Unknown operation: {command.Operation}.");
+        }
+        ValidateTextPayload(command);
+        ValidateRolePayload(command);
+    }
+
+    private static void ValidateTextPayload(ProposePromptPartPatchCommand command)
+    {
+        var needsText = command.Operation == PromptPartPatchOperationNames.ReplaceText
+            || command.Operation == PromptPartPatchOperationNames.Create;
+        if (needsText && string.IsNullOrWhiteSpace(command.PatchText))
         {
             throw PromptPartPatchExceptions.ValidationFailed("patch_text", "patch_text must not be empty.");
+        }
+    }
+
+    private static void ValidateRolePayload(ProposePromptPartPatchCommand command)
+    {
+        var needsRoles = command.Operation == PromptPartPatchOperationNames.Create
+            || command.Operation == PromptPartPatchOperationNames.SetRoles;
+        if (needsRoles && command.ModeRoles is null)
+        {
+            throw PromptPartPatchExceptions.ValidationFailed(
+                "mode_roles",
+                "mode_roles must be provided for create and set_roles operations.");
+        }
+    }
+
+    private static void ValidateModeRoles(IReadOnlyList<PromptPartModeRole> modeRoles)
+    {
+        try
+        {
+            PromptPart.ValidateModeRoles(modeRoles);
+        }
+        catch (ArgumentException ex)
+        {
+            throw PromptPartPatchExceptions.ValidationFailed("mode_roles", ex.Message);
         }
     }
 }
@@ -124,7 +178,9 @@ internal static class ProposePromptPartPatchFactory
                 id: Guid.NewGuid().ToString("N"),
                 targetScope: command.TargetScope,
                 targetKey: command.TargetKey,
+                operation: command.Operation,
                 patchText: command.PatchText,
+                modeRoles: command.ModeRoles,
                 evidenceCardIds: command.EvidenceCardIds ?? [],
                 rationale: command.Rationale ?? string.Empty,
                 baseVersion: command.BaseVersion,

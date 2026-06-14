@@ -92,6 +92,7 @@ internal static class PromptPartPatchRenderer
 
     private static void AppendPatchBodies(StringBuilder sb, McpPromptPartPatchReadModel patch)
     {
+        AppendModeRoles(sb, patch);
         AppendSection(sb, "patch_text", patch.PatchText);
         if (patch.AppliedText is { } applied)
         {
@@ -135,8 +136,10 @@ internal static class PromptPartPatchRenderer
         ["target_scope"] = patch.TargetScope,
         ["target_key"] = patch.TargetKey,
         ["status"] = patch.Status,
+        ["operation"] = patch.Operation,
         ["base_version"] = patch.BaseVersion,
         ["applied_version"] = patch.AppliedVersion,
+        ["mode_roles"] = BuildModeRoles(patch.ModeRoles),
         ["evidence_card_ids"] = BuildEvidenceRefs(patch.EvidenceCardIds),
         ["created_at"] = FormatTime(patch.CreatedAt),
         ["updated_at"] = FormatTime(patch.UpdatedAt),
@@ -159,6 +162,7 @@ internal static class PromptPartPatchRenderer
         sb.Append("target_scope=").Append(patch.TargetScope).Append('\n');
         sb.Append("target_key=").Append(patch.TargetKey).Append('\n');
         sb.Append("status=").Append(patch.Status).Append('\n');
+        sb.Append("operation=").Append(patch.Operation).Append('\n');
         sb.Append("base_version=").Append(patch.BaseVersion).Append('\n');
         sb.Append("applied_version=")
           .Append(patch.AppliedVersion?.ToString(CultureInfo.InvariantCulture) ?? string.Empty)
@@ -173,6 +177,43 @@ internal static class PromptPartPatchRenderer
         {
             sb.Append("evidence_card_ids=").Append(string.Join(", ", patch.EvidenceCardIds)).Append('\n');
         }
+    }
+
+    private static void AppendModeRoles(StringBuilder sb, McpPromptPartPatchReadModel patch)
+    {
+        if (patch.ModeRoles is null || patch.ModeRoles.Count == 0)
+        {
+            return;
+        }
+        sb.Append("\n===== mode_roles =====\n\n");
+        foreach (var role in patch.ModeRoles)
+        {
+            sb.Append(role.mode)
+              .Append('\t')
+              .Append(role.role)
+              .Append('\t')
+              .Append(role.order.ToString(CultureInfo.InvariantCulture))
+              .Append('\n');
+        }
+    }
+
+    private static JsonArray BuildModeRoles(IReadOnlyList<McpPromptPartModeRole>? modeRoles)
+    {
+        var arr = new JsonArray();
+        if (modeRoles is null)
+        {
+            return arr;
+        }
+        foreach (var role in modeRoles)
+        {
+            arr.Add(new JsonObject
+            {
+                ["mode"] = role.mode,
+                ["role"] = role.role,
+                ["order"] = role.order,
+            });
+        }
+        return arr;
     }
 
     private static void AppendSection(StringBuilder sb, string label, string body)
