@@ -7,7 +7,7 @@ using Throne.Domain.PromptParts;
 namespace Throne.Api.Mcp.Tools;
 
 /// <summary>
-/// MCP surface for PromptPartPatch (ADR-0036 supersedes ADR-0021). Four tools:
+/// MCP surface for PromptPartPatch (ADR-0036). Four tools:
 ///   * <c>propose_prompt_part_patch</c> — frontier creates a fresh proposed patch;
 ///   * <c>list_prompt_part_patches</c> — paginated list (newest first);
 ///   * <c>get_prompt_part_patch</c> — single patch with current target text;

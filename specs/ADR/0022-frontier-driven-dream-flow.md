@@ -2,17 +2,17 @@
 
 ## Status
 
-Accepted (supersedes [ADR-0011](0011-dream-run-model.md), [ADR-0015](0015-chat-history-transfer.md), [ADR-0021](0021-insight-pipeline-and-instruction-patches.md)).
+Accepted. Заменяет ранний серверный insight-pipeline (chat-uploads → static extractor → local LLM → InsightCard → InstructionPatch), поток chat-history transfer и предыдущую DreamRun-модель — см. Context.
 
 ## Context
 
-[ADR-0021](0021-insight-pipeline-and-instruction-patches.md) спроектировал серверный pipeline `chat_uploads → static extractor → local LLM (Qwen3-Coder через MLX) → InsightCard → InstructionPatch`. Реализация запускалась, фиксировались парсерные дефекты и улучшался промпт, но после фактического прогона ([intent `38ab9409`](#)) и постмортема стало ясно:
+Ранее был спроектирован серверный pipeline `chat_uploads → static extractor → local LLM (Qwen3-Coder через MLX) → InsightCard → InstructionPatch`. Реализация запускалась, фиксировались парсерные дефекты и улучшался промпт, но после фактического прогона ([intent `38ab9409`](#)) и постмортема стало ясно:
 
 - Фронтир-модель справляется с разбором диалогов «изи» прямо в своём контексте и засоряет его меньше, чем казалось при проектировании. Static extractor + local LLM решают задачу, которой нет: лимит контекста фронтир-модели не упирался.
 - На построение pipeline (vendor parsers, FIFO worker, llama.cpp adapter, парсер JSON-ответа, защита от concat/truncation, telemetry, multi-tenant изоляция) ушло непропорционально много времени относительно ценности результата.
 - Local LLM (Qwen3-Coder-30B-A3B) даёт нестабильный recall на коротких операторских правилах даже после правок парсера/промпта/static-extractor — технический потолок модели.
 - `ConversationFlattener` режет vendor-специфику (`tool_use`, `tool_result`, `system-reminder`, attachments), а это часть сигнала «что делал агент и как» — ровно тот контекст, который нужен, чтобы извлечь операторскую правку.
-- Chat-uploads ([ADR-0015](0015-chat-history-transfer.md)) ввели целый отдельный поток данных (CLI `throne sync` + serverside vendor parsing + blob storage), но без серверного анализатора эта инфраструктура теряет смысл.
+- Chat-uploads ввели целый отдельный поток данных (CLI `throne sync` + serverside vendor parsing + blob storage), но без серверного анализатора эта инфраструктура теряет смысл.
 
 Фича не была в проде → миграция/совместимость не требуются, всё остаётся в git history.
 
@@ -60,7 +60,7 @@ Accepted (supersedes [ADR-0011](0011-dream-run-model.md), [ADR-0015](0015-chat-h
 - API: `InsightCardsController`, `ChatUploadsController`, `AnalysisQueueController`, MCP `InsightCardTools`, `ChatSpanTools`.
 - Contracts: `Throne.{Insights,ChatUploads,AnalysisQueue}.Contracts`.
 - Realtime: события `insight_card.*`, `analysis_job.*`, `chat_upload.*`, `chat_conversation.*`.
-- Bundle `transfer` и весь поток chat-history transfer (ADR-0015).
+- Bundle `transfer` и весь поток chat-history transfer.
 - CLI `apps/cli` (sidecar `@gently-whitesnow/throne-cli` без серверного приёмника больше не нужен).
 - Mongo collections: `analysis_jobs`, `insight_cards`, `chat_uploads`, `chat_conversations`, `chat_messages` — `MongoIndexInitializer` дропает их при старте как retired.
 
@@ -79,16 +79,16 @@ Accepted (supersedes [ADR-0011](0011-dream-run-model.md), [ADR-0015](0015-chat-h
 
 - **Cross-device usage**: `DreamSession.processed_conversation_ids` ссылается на локальные пути / vendor-id, которые на другой машине пользователя могут отсутствовать. Это допустимо: `summary` + `reflection` + `proposed_patch_ids` всё равно дают агенту понимание «что разбирали и какие правила приняли», даже если конкретный диалог не открыть. Сложный кросс-устройственный merge — отдельный интент, если понадобится.
 - **Лимит контекста фронтира** становится практическим потолком объёма прохода. На сегодняшних моделях (Claude 4.6/4.7) хватает с запасом; на меньших — пользователь явно ограничивает периметр.
-- **Нет автоматической периодической ловли инсайтов**. `dream` строго on-demand через кнопку «Скопировать промпт» на `/improvements`. Это сознательный шаг: автотриггер из ADR-0021 (cron 1h) на практике почти не давал сигнала и создавал шум в realtime-стриме.
+- **Нет автоматической периодической ловли инсайтов**. `dream` строго on-demand через кнопку «Скопировать промпт» на `/improvements`. Это сознательный шаг: автотриггер прошлого pipeline (cron 1h) на практике почти не давал сигнала и создавал шум в realtime-стриме.
 - **Один свежий тип данных в Mongo** — `dream_sessions`. Индексы `(owner_user_id, created_at desc)` и `(owner_user_id, vendor, created_at desc)`; sharding-impact нулевой на ожидаемых объёмах.
 
 ## Migration
 
-Не требуется. Старые коллекции `analysis_jobs`/`insight_cards`/`chat_uploads`/`chat_conversations`/`chat_messages` помечены retired в `MongoIndexInitializer` и дропаются при старте API. Если у self-hosted пользователя там были данные — это локальная эфемерная отладка периода ADR-0021, потеря приемлема (фича не была в проде).
+Не требуется. Старые коллекции `analysis_jobs`/`insight_cards`/`chat_uploads`/`chat_conversations`/`chat_messages` помечены retired в `MongoIndexInitializer` и дропаются при старте API. Если у self-hosted пользователя там были данные — это локальная эфемерная отладка периода раннего pipeline, потеря приемлема (фича не была в проде).
 
 ## References
 
-- Постмортем + ход рассуждений: интент `d2a6c7f08cab4095bd8ac12fb4483e0c` (`derived_from` ADR-0021 интента `3a042303f99d4ddf93bbda08f6055671`).
+- Постмортем + ход рассуждений: интент `d2a6c7f08cab4095bd8ac12fb4483e0c` (`derived_from` интента раннего pipeline `3a042303f99d4ddf93bbda08f6055671`).
 - Реализация бандла: [`specs/manifest/throne-skills.yaml`](../manifest/throne-skills.yaml) → `system_instructions[kind: dream]` + `dream_sources`.
 - HTTP контракт: [`specs/contracts/dreams/openapi.yaml`](../contracts/dreams/openapi.yaml).
 - Realtime: [`specs/contracts/realtime/events.yaml`](../contracts/realtime/events.yaml) → `dream_session.recorded`.

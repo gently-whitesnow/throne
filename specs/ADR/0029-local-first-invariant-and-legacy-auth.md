@@ -4,14 +4,13 @@
 
 Accepted
 Date: 2026-06-06
-Related: [ADR-0016](0016-mcp-oauth-authorization.md) (PAT/JWT/OAuth — переводятся в легаси-совместимость), [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0027](0027-runtime-model-native-host-process.md) (host-режим, `Auth:Mode=Disabled` как дефолт). Резолвит висячую ссылку на несуществующий «ADR-0012».
+Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0027](0027-runtime-model-native-host-process.md) (host-режим, `Auth:Mode=Disabled` как дефолт). Внутренняя авторизация (PAT/JWT/OAuth) переводится в легаси-совместимость. Резолвит висячую ссылку на несуществующий «ADR-0012».
 
 ## Context
 
 Ранняя архитектурная посылка предполагала multi-user / multi-tenant. От неё осталась серия решений,
 ссылающихся на **`ADR-0012`** («multi-user изоляция», «PAT authentication»), которого физически
-**не существует**: реестр прыгает с [ADR-0011](0011-dream-run-model.md) на
-[ADR-0013](0013-mcp-attachment-delivery-tools.md), файла `0012-*.md` нет. При этом на `ADR-0012`
+**не существует**: отдельного решения с номером `0012` в реестре нет, файла `0012-*.md` нет. При этом на `ADR-0012`
 ссылаются живые правила репозитория ([AGENTS.local.md](../AGENTS.local.md) — `OwnerUserIdRulesTests`),
 архитектурные тесты и ~13 комментариев в коде. Несуществующее решение продолжает рулить дизайном.
 
@@ -21,7 +20,7 @@ Related: [ADR-0016](0016-mcp-oauth-authorization.md) (PAT/JWT/OAuth — пере
 (см. [readme.md](../../readme.md)). Внутренняя авторизация **не является продуктовой осью**
 локального кокпита: один оператор на инстанс.
 
-`owner_user_id`, `ICurrentUserAccessor`, PAT/JWT/OAuth ([ADR-0016](0016-mcp-oauth-authorization.md))
+`owner_user_id`, `ICurrentUserAccessor`, PAT/JWT/OAuth
 остаются в коде как совместимость с прежней multi-user посылкой. Когда их трактуют как **текущий
 продуктовый инвариант**, это искажает дизайн новых сущностей (repository binding, project-memory,
 task-memory): `owner_user_id` становится первичной продуктовой границей, а ownership-проверки
@@ -33,7 +32,7 @@ task-memory): `owner_user_id` становится первичной проду
    команд не вводятся в продуктовую поверхность ядра как скрытая ось.
 
 2. **Внутренняя авторизация — вне локальной продуктовой поверхности.** Существующие PAT/JWT/OAuth
-   ([ADR-0016](0016-mcp-oauth-authorization.md)) и `owner_user_id` — это **легаси-совместимость**,
+   (PAT/JWT/OAuth) и `owner_user_id` — это **легаси-совместимость**,
    а не фундамент для будущих команд или воркспейсов.
 
 3. **«ADR-0012» — фантомная ссылка.** Отдельного решения с этим номером не существует. Везде, где
@@ -91,4 +90,5 @@ localhost без сетевого auth-гейта; owner-оси больше н�
 внутренней авторизации **выполнено**. Соответственно отпали и связанные легаси-формы:
 гард `OwnerUserIdRulesTests` и owner-scoped инфраструктура удалены, а не сохраняются
 как форма-гард (см. п. 4 Decision — он относился к состоянию до демонтажа).
-[ADR-0016](0016-mcp-oauth-authorization.md) переведён в **Rejected**.
+Раннее предложение поднять OAuth 2.1 / resource-server на MCP-эндпоинте Throne (рядом с PAT)
+**отклонено** этим решением: внутренняя авторизация — вне продуктовой поверхности local-first ядра.

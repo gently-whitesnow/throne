@@ -1,6 +1,8 @@
 # ADR-0023 — MCP tool parameter snake_case is legal at the protocol boundary
 
-Status: Accepted
+## Status
+
+Accepted
 Date: 2026-05-16
 Related: [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0022](0022-frontier-driven-dream-flow.md)
 
