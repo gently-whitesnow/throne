@@ -1,0 +1,38 @@
+name: quality
+
+# Enforces the quality gates declared in .quality/quality.config.json on every PR.
+# Without this, the 18 gates are honour-based — one commit bypasses them all.
+# Decision: PR-only, full run (no separate --fast push job); merges always go
+# through a PR, so post-merge master is covered transitively. Branch protection
+# (required status check) is enabled by the operator in the GitHub UI.
+
+on:
+  pull_request:
+
+# A new push to the same PR cancels the in-flight run.
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # pnpm version comes from the "packageManager" field in apps/web/package.json.
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Quality verify
+        run: bash scripts/quality/verify.sh

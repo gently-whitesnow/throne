@@ -11,8 +11,7 @@ info:
     with roles, replace roles, or delete a user part. Apply validates
     expectedVersion=base_version; a mismatch returns
     `409 prompt_part_patch.needs_rebase` without mutation. A patch targets a
-    PromptPart by (target_scope, target_key). All endpoints are owner-scoped via
-    the ambient `ICurrentUserAccessor`.
+    PromptPart by (target_scope, target_key).
   x-csharp-namespace: Throne.PromptPartPatches.Contracts.Generated
 paths:
   /api/v1/prompt-part-patches:
