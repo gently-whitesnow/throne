@@ -535,6 +535,14 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"UserPromptSubmit")]
         UserPromptSubmit = 1,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"Notification")]
+        [System.Runtime.Serialization.EnumMember(Value = @"Notification")]
+        Notification = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"PostToolUse")]
+        [System.Runtime.Serialization.EnumMember(Value = @"PostToolUse")]
+        PostToolUse = 3,
+
     }
 
 

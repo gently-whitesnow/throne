@@ -12,37 +12,47 @@ public class TerminalHookStatusHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 12, 12, 0, 0, TimeSpan.Zero);
 
-    [Theory(DisplayName = "Stop-хук в work/free/interview паркует интент в awaiting_operator")]
-    [InlineData(TerminalRunModes.Work)]
-    [InlineData(TerminalRunModes.Free)]
-    [InlineData(TerminalRunModes.Interview)]
-    public async Task Stop_parks_in_awaiting_operator(string mode)
+    [Theory(DisplayName = "Stop и Notification в work/free/interview паркуют интент в awaiting_operator")]
+    [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Work)]
+    [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Free)]
+    [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Interview)]
+    [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Work)]
+    [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Free)]
+    [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Interview)]
+    public async Task Park_events_set_awaiting_operator(string hookEvent, string mode)
     {
         var (repo, handler) = NewHandler(currentStatus: IntentStatusNames.Work);
 
-        await handler.HandleAsync("intent-1", TerminalHookEvents.Stop, mode, CancellationToken.None);
+        await handler.HandleAsync("intent-1", hookEvent, mode, CancellationToken.None);
 
         await ReceivedStatusSet(repo, IntentStatusNames.AwaitingOperator);
     }
 
-    [Theory(DisplayName = "UserPromptSubmit возвращает интент в исходную фазу спавна")]
-    [InlineData(TerminalRunModes.Work, IntentStatusNames.Work)]
-    [InlineData(TerminalRunModes.Free, IntentStatusNames.Work)]
-    [InlineData(TerminalRunModes.Interview, IntentStatusNames.Interview)]
-    public async Task UserPromptSubmit_returns_to_spawn_phase(string mode, string expected)
+    [Theory(DisplayName = "UserPromptSubmit и PostToolUse возвращают интент в исходную фазу спавна")]
+    [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Work, IntentStatusNames.Work)]
+    [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Free, IntentStatusNames.Work)]
+    [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Interview, IntentStatusNames.Interview)]
+    [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Work, IntentStatusNames.Work)]
+    [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Free, IntentStatusNames.Work)]
+    [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Interview, IntentStatusNames.Interview)]
+    public async Task Resume_events_return_to_spawn_phase(string hookEvent, string mode, string expected)
     {
         var (repo, handler) = NewHandler(currentStatus: IntentStatusNames.AwaitingOperator);
 
-        await handler.HandleAsync("intent-1", TerminalHookEvents.UserPromptSubmit, mode, CancellationToken.None);
+        await handler.HandleAsync("intent-1", hookEvent, mode, CancellationToken.None);
 
         await ReceivedStatusSet(repo, expected);
     }
 
     [Theory(DisplayName = "Bundle-less dream и пустой mode статус не трогают")]
     [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Dream)]
+    [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Dream)]
     [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Dream)]
+    [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Dream)]
     [InlineData(TerminalHookEvents.Stop, null)]
+    [InlineData(TerminalHookEvents.Notification, null)]
     [InlineData(TerminalHookEvents.UserPromptSubmit, null)]
+    [InlineData(TerminalHookEvents.PostToolUse, null)]
     public async Task No_status_change_for_unphased(string hookEvent, string? mode)
     {
         var (repo, handler) = NewHandler(currentStatus: IntentStatusNames.Work);

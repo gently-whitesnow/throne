@@ -60,24 +60,33 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     private object BuildSettings(string intentId, string mode) =>
         new
         {
-            hooks = TerminalHookEvents.All.ToDictionary(
-                hookEvent => hookEvent,
-                hookEvent => new object[]
-                {
-                    new
-                    {
-                        hooks = new[]
-                        {
-                            new
-                            {
-                                type = "command",
-                                command = TerminalHookCallback.CurlCommand(
-                                    options.ApiBaseUrl, intentId, hookEvent, mode),
-                                timeout = 10,
-                            },
-                        },
-                    },
-                },
+            hooks = TerminalHookEvents.ClaudeBindings.ToDictionary(
+                binding => binding.Event,
+                binding => new[] { BuildHookGroup(binding, intentId, mode) },
                 StringComparer.Ordinal),
         };
+
+    // A Claude hook group is `{ hooks: [...] }`, optionally prefixed with a `matcher` that scopes
+    // which instances of the event fire it (e.g. only `permission_prompt` Notifications). The matcher
+    // key is omitted entirely when absent so unscoped events keep matching every occurrence.
+    private object BuildHookGroup(TerminalHookBinding binding, string intentId, string mode)
+    {
+        var hooks = new[]
+        {
+            new
+            {
+                type = "command",
+                command = TerminalHookCallback.CurlCommand(
+                    options.ApiBaseUrl, intentId, binding.Event, mode),
+                timeout = 10,
+            },
+        };
+
+        if (binding.Matcher is null)
+        {
+            return new { hooks };
+        }
+
+        return new { matcher = binding.Matcher, hooks };
+    }
 }
