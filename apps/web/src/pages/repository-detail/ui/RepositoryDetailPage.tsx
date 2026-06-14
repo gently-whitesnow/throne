@@ -5,7 +5,7 @@ import {
   useRepositoryQuery,
   type RepositoryCoordinate
 } from "@/entities/repository";
-import { HttpError } from "@/shared/api";
+import { httpErrorStatus } from "@/shared/lib";
 import { RepositorySchemaDocument } from "@/widgets/repository-schema-document";
 
 export function RepositoryDetailPage() {
@@ -19,7 +19,7 @@ export function RepositoryDetailPage() {
   const fullName =
     data?.full_name ??
     (coordinate ? `${coordinate.owner}/${coordinate.repo}` : "");
-  const missing = error instanceof HttpError && error.status === 404;
+  const missing = httpErrorStatus(error) === 404;
 
   return (
     <div className="w-full px-7 pb-12 pt-6">

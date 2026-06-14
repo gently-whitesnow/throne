@@ -9,7 +9,7 @@ import {
   type WorkspaceCleanMode,
   type WorkspaceCleanResult
 } from "@/entities/workspace-setting";
-import { HttpError } from "@/shared/api";
+import { httpErrorStatus } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 const MODE_LABEL: Record<WorkspaceCleanMode, string> = {
@@ -52,9 +52,10 @@ export function WorkspaceCleanupControl() {
         queryKey: workspaceSettingsQueryKeys.all
       });
     } catch (err) {
+      const status = httpErrorStatus(err);
       setError(
-        err instanceof HttpError
-          ? `Не удалось очистить (${String(err.status)}). Папка могла быть занята — закройте процессы и повторите.`
+        status !== undefined
+          ? `Не удалось очистить (${String(status)}). Папка могла быть занята — закройте процессы и повторите.`
           : "Не удалось очистить workspace."
       );
     } finally {

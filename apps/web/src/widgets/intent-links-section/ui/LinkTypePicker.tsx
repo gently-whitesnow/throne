@@ -1,5 +1,5 @@
 import { useIntent } from "@/entities/intent";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { BUCKET_ORDER, bucketLabel, type DisplayBucket } from "../model/types";
@@ -26,9 +26,10 @@ export function LinkTypePicker({
   const peerQuery = useIntent(peerId);
   const peer = peerQuery.data ?? null;
   const error = peerQuery.isError
-    ? peerQuery.error instanceof HttpError
-      ? `Ошибка (${String(peerQuery.error.status)}).`
-      : "Не удалось загрузить intent."
+    ? errorMessage(peerQuery.error, {
+        base: "Ошибка",
+        fallback: "Не удалось загрузить intent."
+      })
     : null;
 
   const title = peer?.text.split(/\r?\n/, 1)[0] ?? peerId;

@@ -15,12 +15,12 @@ import type { LinksSummaryMap } from "@/entities/intent";
  * and red/orange (= reject/warning) so the stripe never mimics a status.
  */
 const PALETTE: readonly string[] = [
-  "#a855f7", // purple
-  "#ec4899", // pink
-  "#14b8a6", // teal
-  "#8b5cf6", // violet
-  "#d946ef", // fuchsia
-  "#0ea5e9" // sky
+  "var(--color-family-1)", // purple
+  "var(--color-family-2)", // pink
+  "var(--color-family-3)", // teal
+  "var(--color-family-4)", // violet
+  "var(--color-family-5)", // fuchsia
+  "var(--color-family-6)" // sky
 ];
 
 export function computeFamilyTints(

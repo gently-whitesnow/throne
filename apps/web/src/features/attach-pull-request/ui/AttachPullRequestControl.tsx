@@ -6,7 +6,7 @@ import {
   attachIntentRepositoryPullRequest,
   intentRepositoriesQueryKeys
 } from "@/entities/repository-binding";
-import { HttpError } from "@/shared/api";
+import { httpErrorStatus } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface AttachPullRequestControlProps {
@@ -71,7 +71,7 @@ export function AttachPullRequestControl({
         reset();
       } catch (err) {
         setPending(false);
-        if (err instanceof HttpError && err.status === 409) {
+        if (httpErrorStatus(err) === 409) {
           setError("PR уже привязан к этому репозиторию.");
         } else {
           setError("Не удалось привязать PR.");

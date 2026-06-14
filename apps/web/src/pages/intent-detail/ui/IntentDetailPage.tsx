@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 
 import { useIntent } from "@/entities/intent";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { useRealtimeEvent } from "@/shared/realtime";
 
 import { IntentDetailShell } from "./IntentDetailShell";
@@ -23,13 +23,10 @@ export function IntentDetailPage() {
     );
   }
   if (intentQuery.isError) {
-    const err = intentQuery.error;
-    const message =
-      err instanceof HttpError
-        ? err.status === 404
-          ? "Intent не найден."
-          : `Ошибка загрузки (${String(err.status)}).`
-        : "Ошибка загрузки.";
+    const message = errorMessage(intentQuery.error, {
+      base: "Ошибка загрузки",
+      byStatus: { 404: "Intent не найден." }
+    });
     return (
       <p role="alert" className="px-6 py-4 text-[13px] text-error">
         {message}

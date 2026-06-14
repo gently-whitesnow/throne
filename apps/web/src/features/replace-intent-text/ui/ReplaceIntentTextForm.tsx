@@ -2,13 +2,16 @@ import { useState } from "react";
 
 import type { IntentAttachment, IntentDetail } from "@/entities/intent";
 import {
-  HttpError,
   INTENT_ATTACHMENTS_CHANGED_EVENT,
   httpPost,
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
-import { computeMinimalTextDelta, filesFromClipboard } from "@/shared/lib";
+import {
+  computeMinimalTextDelta,
+  errorMessage,
+  filesFromClipboard
+} from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface ReplaceIntentTextFormProps {
@@ -47,11 +50,16 @@ export function ReplaceIntentTextForm({
       );
       onSaved(next);
     } catch (err: unknown) {
-      if (err instanceof HttpError) {
-        setError(formatError(err));
-      } else {
-        setError("Не удалось сохранить.");
-      }
+      setError(
+        errorMessage(err, {
+          base: "Ошибка сохранения",
+          byStatus: {
+            409: "Версия устарела — обновите страницу и повторите правку.",
+            422: "Не удалось применить правку (текст не совпал)."
+          },
+          fallback: "Не удалось сохранить."
+        })
+      );
     } finally {
       setBusy(false);
     }
@@ -135,10 +143,9 @@ async function uploadAttachments(
         })
       );
     } catch (err) {
-      const message =
-        err instanceof HttpError
-          ? `Не удалось загрузить ${file.name} (${String(err.status)}).`
-          : `Не удалось загрузить ${file.name}.`;
+      const message = errorMessage(err, {
+        base: `Не удалось загрузить ${file.name}`
+      });
       window.dispatchEvent(
         new CustomEvent(INTENT_ATTACHMENTS_CHANGED_EVENT, {
           detail: { intentId, error: message }
@@ -147,14 +154,4 @@ async function uploadAttachments(
     }
   }
   return success;
-}
-
-function formatError(err: HttpError): string {
-  if (err.status === 409) {
-    return "Версия устарела — обновите страницу и повторите правку.";
-  }
-  if (err.status === 422) {
-    return "Не удалось применить правку (текст не совпал).";
-  }
-  return `Ошибка сохранения (${String(err.status)}).`;
 }

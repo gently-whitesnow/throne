@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { useIntent } from "@/entities/intent";
 import {
@@ -25,7 +24,7 @@ import {
   type MergeStrategy
 } from "@/entities/review-workspace";
 import { useResizablePane } from "@/shared/lib";
-import { ResizeHandle } from "@/shared/ui";
+import { Modal, ResizeHandle } from "@/shared/ui";
 
 import { useMergeStatus } from "../model/use-merge-status";
 import {
@@ -184,27 +183,8 @@ export function ReviewWorkspaceOverlay({
     });
   }, [onStateChange, ws.scope, ws.selectedCommitSha, ws.activePath]);
 
-  // Esc закрывает, фон страницы не скроллится, пока открыт fullscreen.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Review workspace"
-      className="fixed inset-0 z-50 flex flex-col bg-base-100"
-    >
+  return (
+    <Modal variant="fullscreen" ariaLabel="Review workspace" onClose={onClose}>
       <ReviewScopeBar
         binding={binding}
         scope={ws.scope}
@@ -287,8 +267,7 @@ export function ReviewWorkspaceOverlay({
           />
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }
 

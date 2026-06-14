@@ -15,6 +15,23 @@ interface TerminalViewProps {
   onClosed: (code: number) => void;
 }
 
+/**
+ * xterm parses theme colours itself и не понимает `var(--token)`/oklch(), поэтому
+ * резолвим дизайн-токен в конкретный rgb руками браузера (probe-элемент). Fallback
+ * (rgb, не hex) держит детерминизм в jsdom, где computed-цвет пустой.
+ */
+function resolveTokenColor(token: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  const probe = document.createElement("span");
+  probe.style.color = `var(${token})`;
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  document.body.appendChild(probe);
+  const resolved = getComputedStyle(probe).color;
+  probe.remove();
+  return resolved || fallback;
+}
+
 interface InputFrame {
   type: "input";
   data: string;
@@ -94,9 +111,15 @@ export function TerminalView({
       convertEol: true,
       scrollback: 5000,
       theme: {
-        background: "#0F1217",
-        foreground: "#E6E8EE",
-        cursor: "#7AA7FF"
+        background: resolveTokenColor("--color-terminal-bg", "rgb(15, 18, 23)"),
+        foreground: resolveTokenColor(
+          "--color-terminal-fg",
+          "rgb(230, 232, 238)"
+        ),
+        cursor: resolveTokenColor(
+          "--color-terminal-cursor",
+          "rgb(122, 167, 255)"
+        )
       }
     });
     const fitAddon = new FitAddon();
@@ -196,7 +219,7 @@ export function TerminalView({
         ref={containerRef}
         data-testid="agent-terminal-xterm"
         style={{ height }}
-        className="w-full overflow-hidden rounded-b-md border border-base-300 bg-[#0F1217] p-2"
+        className="w-full overflow-hidden rounded-b-md border border-base-300 bg-[var(--color-terminal-bg)] p-2"
       />
     </div>
   );

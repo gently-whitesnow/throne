@@ -7,7 +7,8 @@ import {
   type IntentDetail,
   type IntentStatus
 } from "@/entities/intent";
-import { HttpError, httpPost, intentsEndpoints } from "@/shared/api";
+import { httpPost, intentsEndpoints } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 interface SetIntentStatusFormProps {
@@ -230,17 +231,11 @@ export function SetIntentStatusForm({
 }
 
 function toErrorMessage(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 409) {
-      return "Intent уже изменился. Перезагрузите карточку и попробуйте снова.";
+  return errorMessage(err, {
+    base: "Не удалось обновить статус",
+    byStatus: {
+      409: "Intent уже изменился. Перезагрузите карточку и попробуйте снова.",
+      422: "Проверьте статус и причину отклонения."
     }
-
-    if (err.status === 422) {
-      return "Проверьте статус и причину отклонения.";
-    }
-
-    return `Не удалось обновить статус (${String(err.status)}).`;
-  }
-
-  return "Не удалось обновить статус.";
+  });
 }

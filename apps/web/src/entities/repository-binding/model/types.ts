@@ -39,32 +39,32 @@ export interface CloneStatusMeta {
 export const cloneStatusMeta: Record<CloneStatus, CloneStatusMeta> = {
   pending: {
     label: "В очереди",
-    ink: "#4C5567",
-    surface: "#F6F7FB",
+    ink: "var(--color-status-neutral-ink)",
+    surface: "var(--color-status-neutral-surface)",
     pending: true
   },
   cloning: {
     label: "Клонируем",
-    ink: "#3C78F2",
-    surface: "#E8F0FF",
+    ink: "var(--color-status-info-ink)",
+    surface: "var(--color-status-info-surface)",
     pending: true
   },
   ready: {
     label: "Готово",
-    ink: "#1F8F5F",
-    surface: "#E7F5ED",
+    ink: "var(--color-status-success-ink)",
+    surface: "var(--color-status-success-surface)",
     pending: false
   },
   failed: {
     label: "Ошибка клона",
-    ink: "#CF4D4D",
-    surface: "#FDEAEA",
+    ink: "var(--color-status-danger-ink)",
+    surface: "var(--color-status-danger-surface)",
     pending: false
   },
   broken: {
     label: "Upstream 404",
-    ink: "#B14E1A",
-    surface: "#FDE6D6",
+    ink: "var(--color-status-attention-ink)",
+    surface: "var(--color-status-attention-surface)",
     pending: false
   }
 };
@@ -81,17 +81,17 @@ export const pullRequestStateMeta: Record<
 > = {
   open: {
     label: "Open",
-    ink: "#1F8F5F",
-    surface: "#E7F5ED"
+    ink: "var(--color-status-success-ink)",
+    surface: "var(--color-status-success-surface)"
   },
   closed: {
     label: "Closed",
-    ink: "#CF4D4D",
-    surface: "#FDEAEA"
+    ink: "var(--color-status-danger-ink)",
+    surface: "var(--color-status-danger-surface)"
   },
   merged: {
     label: "Merged",
-    ink: "#5C49C7",
-    surface: "#EEE9FF"
+    ink: "var(--color-status-merged-ink)",
+    surface: "var(--color-status-merged-surface)"
   }
 };

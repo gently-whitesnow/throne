@@ -6,7 +6,7 @@ import {
   type TagDefaultRepository,
   type TagDetail
 } from "@/entities/tag";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { useDefaultRepositoriesMutation } from "../model/use-default-repositories-mutation";
@@ -35,11 +35,9 @@ export function TagDefaultRepositoriesSection({
   }
 
   if (tagQuery.isError) {
-    const err = tagQuery.error;
-    const message =
-      err instanceof HttpError
-        ? `Ошибка загрузки тега (${String(err.status)}).`
-        : "Ошибка загрузки тега.";
+    const message = errorMessage(tagQuery.error, {
+      base: "Ошибка загрузки тега"
+    });
     return (
       <p role="alert" className="m-0 text-sm text-error">
         {message}

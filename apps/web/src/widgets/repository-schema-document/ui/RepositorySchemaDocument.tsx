@@ -6,7 +6,7 @@ import {
   useRepositoryDocumentQuery,
   type RepositoryCoordinate
 } from "@/entities/repository";
-import { HttpError } from "@/shared/api";
+import { httpErrorStatus } from "@/shared/lib";
 import { MarkdownView } from "@/shared/ui";
 
 import { CopySchemaPromptButton } from "./CopySchemaPromptButton";
@@ -34,7 +34,8 @@ export function RepositorySchemaDocument({
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const missing = error instanceof HttpError && error.status === 404;
+  const errorStatus = httpErrorStatus(error);
+  const missing = errorStatus === 404;
 
   return (
     <section
@@ -105,7 +106,7 @@ export function RepositorySchemaDocument({
       ) : error !== null ? (
         <p role="alert" className="m-0 text-sm text-error">
           Не удалось загрузить карту схемы
-          {error instanceof HttpError ? ` (${String(error.status)})` : ""}.
+          {errorStatus !== undefined ? ` (${String(errorStatus)})` : ""}.
         </p>
       ) : (
         <MarkdownView markdown={data.document} />

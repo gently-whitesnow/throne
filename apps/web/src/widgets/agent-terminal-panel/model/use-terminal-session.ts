@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 import {
   getIntentTerminalSession,
@@ -170,23 +170,16 @@ export function useTerminalSession(
 }
 
 function deriveErrorMessage(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 409) {
+  return errorMessage(err, {
+    base: "Не удалось запустить сессию",
+    byStatus: {
       // 409 covers two pre-flight aborts: a live session already exists, or the
       // intent body changed since preview (stale expected_version). Both resolve
       // by reopening the modal — the agent did not start.
-      return "Запуск отклонён: сессия уже запущена или тело интента изменилось с момента предпросмотра. Откройте модалку заново.";
+      409: "Запуск отклонён: сессия уже запущена или тело интента изменилось с момента предпросмотра. Откройте модалку заново.",
+      400: "Недопустимая комбинация вендора, модели и усилия.",
+      422: "Возможность «Терминал агента» выключена или tmux недоступен.",
+      404: "Интент не найден."
     }
-    if (err.status === 400) {
-      return "Недопустимая комбинация вендора, модели и усилия.";
-    }
-    if (err.status === 422) {
-      return "Возможность «Терминал агента» выключена или tmux недоступен.";
-    }
-    if (err.status === 404) {
-      return "Интент не найден.";
-    }
-    return `Не удалось запустить сессию (${String(err.status)}).`;
-  }
-  return "Не удалось запустить сессию.";
+  });
 }
