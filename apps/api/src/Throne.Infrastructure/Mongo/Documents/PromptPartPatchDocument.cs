@@ -17,8 +17,15 @@ internal sealed class PromptPartPatchDocument
     [BsonElement("status")]
     public string Status { get; set; } = string.Empty;
 
+    [BsonElement("operation")]
+    public string Operation { get; set; } = string.Empty;
+
     [BsonElement("patch_text")]
     public string PatchText { get; set; } = string.Empty;
+
+    [BsonElement("mode_roles")]
+    [BsonIgnoreIfNull]
+    public List<PromptPartModeRoleDocument>? ModeRoles { get; set; }
 
     [BsonElement("applied_text")]
     [BsonIgnoreIfNull]

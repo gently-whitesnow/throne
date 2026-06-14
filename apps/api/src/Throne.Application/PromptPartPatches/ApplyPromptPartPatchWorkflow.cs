@@ -24,10 +24,18 @@ public sealed class ApplyPromptPartPatchWorkflow(
         PromptPart? part,
         string newText,
         DateTimeOffset now,
-        CancellationToken ct) =>
-        part is null
-            ? ApplyAsInitialCreateAsync(patch, newText, now, ct)
-            : ApplyOverExistingAsync(patch, part, newText, now, ct);
+        CancellationToken ct) => patch.Operation switch
+        {
+            PromptPartPatchOperationNames.ReplaceText => part is null
+                ? ApplyAsInitialCreateAsync(patch, newText, null, now, ct)
+                : ApplyOverExistingAsync(patch, part, newText, now, ct),
+            PromptPartPatchOperationNames.Create => ApplyCreateAsync(patch, part, newText, now, ct),
+            PromptPartPatchOperationNames.SetRoles => ApplySetRolesAsync(patch, part, now, ct),
+            PromptPartPatchOperationNames.Delete => ApplyDeleteAsync(patch, part, now, ct),
+            _ => throw PromptPartPatchExceptions.ValidationFailed(
+                "operation",
+                $"Unknown operation: {patch.Operation}."),
+        };
 
     private Task<PromptPartPatch> ApplyOverExistingAsync(
         PromptPartPatch patch,
@@ -54,12 +62,14 @@ public sealed class ApplyPromptPartPatchWorkflow(
     private Task<PromptPartPatch> ApplyAsInitialCreateAsync(
         PromptPartPatch patch,
         string newText,
+        IReadOnlyList<PromptPartModeRole>? requestedModeRoles,
         DateTimeOffset now,
         CancellationToken ct) =>
         unitOfWork.ExecuteAsync<PromptPartPatch>(async inner =>
         {
-            var modeRoles = PromptPartManifestRoles.MandatoryRolesFor(
-                patch.Identity.TargetScope, patch.Identity.TargetKey, manifestProvider.Current);
+            var modeRoles = requestedModeRoles
+                ?? PromptPartManifestRoles.MandatoryRolesFor(
+                    patch.Identity.TargetScope, patch.Identity.TargetKey, manifestProvider.Current);
             var part = PromptPart.Create(
                 id: PromptPartId.New(),
                 scope: patch.Identity.TargetScope,
@@ -83,6 +93,65 @@ public sealed class ApplyPromptPartPatchWorkflow(
 
             return await PersistApplyAsync(patch, newText, part.CurrentVersion, now, inner);
         }, ct);
+
+    private Task<PromptPartPatch> ApplyCreateAsync(
+        PromptPartPatch patch,
+        PromptPart? part,
+        string newText,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        if (part is not null)
+        {
+            throw PromptPartPatchExceptions.NeedsRebase(patch, part.CurrentVersion);
+        }
+        return ApplyAsInitialCreateAsync(patch, newText, patch.ModeRoles, now, ct);
+    }
+
+    private Task<PromptPartPatch> ApplySetRolesAsync(
+        PromptPartPatch patch,
+        PromptPart? part,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        if (part is null)
+        {
+            throw PromptPartPatchExceptions.PartNotFound(patch.Identity.TargetScope, patch.Identity.TargetKey);
+        }
+        return unitOfWork.ExecuteAsync<PromptPartPatch>(async inner =>
+        {
+            var updatedPart = await promptParts.SetModeRolesAsync(
+                part.Id,
+                patch.ModeRoles ?? [],
+                now,
+                inner) ?? throw PromptPartPatchExceptions.PartNotFound(
+                    patch.Identity.TargetScope,
+                    patch.Identity.TargetKey);
+            return await PersistApplyAsync(patch, patch.PatchText, updatedPart.CurrentVersion, now, inner);
+        }, ct);
+    }
+
+    private Task<PromptPartPatch> ApplyDeleteAsync(
+        PromptPartPatch patch,
+        PromptPart? part,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        if (part is null)
+        {
+            throw PromptPartPatchExceptions.PartNotFound(patch.Identity.TargetScope, patch.Identity.TargetKey);
+        }
+        return unitOfWork.ExecuteAsync<PromptPartPatch>(async inner =>
+        {
+            await promptParts.SetModeRolesAsync(part.Id, [], now, inner);
+            var outcome = await promptParts.DeleteAsync(part.Id, inner);
+            if (outcome is DeletePromptPartOutcome.NotFound)
+            {
+                throw PromptPartPatchExceptions.PartNotFound(patch.Identity.TargetScope, patch.Identity.TargetKey);
+            }
+            return await PersistApplyAsync(patch, patch.PatchText, part.CurrentVersion, now, inner);
+        }, ct);
+    }
 
     private async Task<PromptPartPatch> PersistApplyAsync(
         PromptPartPatch patch,

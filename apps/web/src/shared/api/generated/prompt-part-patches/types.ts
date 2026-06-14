@@ -48,8 +48,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Apply a patch (verbatim or with operator edit).
-         * @description When `final_text` is omitted the patch is applied verbatim and the resulting status is `applied`. When `final_text` differs from `patch_text` the resulting status is `applied_edited` and `applied_text` records the user's edit. Validates `base_version`; mismatch returns 409 `prompt_part_patch.needs_rebase` without mutation.
+         * Apply a patch (verbatim or with operator edit for text operations).
+         * @description When `final_text` is omitted the patch is applied verbatim. For replace_text/create, a divergent `final_text` records `applied_edited`. Structural operations ignore `final_text`. Validates `base_version`; mismatch returns 409 `prompt_part_patch.needs_rebase` without mutation.
          */
         post: operations["applyPromptPartPatch"];
         delete?: never;
@@ -81,6 +81,16 @@ export interface components {
     schemas: {
         /** @enum {string} */
         PromptPartPatchStatus: "proposed" | "applied" | "applied_edited" | "rejected" | "superseded";
+        /** @enum {string} */
+        PromptPartPatchOperation: "replace_text" | "create" | "set_roles" | "delete";
+        PromptPartModeRoleDto: {
+            /** @description Prompt part mode. */
+            mode: string;
+            /** @description Prompt part role. */
+            role: string;
+            /** Format: int32 */
+            order: number;
+        };
         PromptPartPatchDto: {
             /** @description Server-generated id (32 hex chars). */
             id: string;
@@ -89,8 +99,11 @@ export interface components {
             /** @description Key of the target prompt part. */
             target_key: string;
             status: components["schemas"]["PromptPartPatchStatus"];
-            /** @description Original proposal as submitted by the agent. */
+            operation: components["schemas"]["PromptPartPatchOperation"];
+            /** @description Text payload for replace_text/create; empty for structural operations. */
             patch_text: string;
+            /** @description Desired role set for create/set_roles operations. */
+            mode_roles?: components["schemas"]["PromptPartModeRoleDto"][];
             /** @description What the user actually applied (may differ from patch_text). */
             applied_text?: string;
             evidence_card_ids: string[];

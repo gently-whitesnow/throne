@@ -119,6 +119,9 @@ function PatchList({
                   {`${p.target_scope}/${p.target_key}`}
                 </span>
                 <PatchStatusBadge status={p.status} />
+                <span className="badge badge-soft badge-neutral text-[10px]">
+                  {p.operation}
+                </span>
                 <span className="ml-auto text-[10px] text-base-content/60">
                   {p.evidence_card_ids.length} ev.
                 </span>
