@@ -6,14 +6,14 @@ info:
     HTTP surface for DreamSession (ADR-0022). A DreamSession is the agent's
     memory of a single /dream pass: which conversations it read, what summary
     and reflection it produced, which PromptPartPatches it proposed. Records
-    are immutable and owner-scoped via the ambient `ICurrentUserAccessor`.
+    are immutable.
     Writes happen exclusively through MCP (`record_dream_session`) — there is
     no POST endpoint, because only the frontier agent at the end of a /dream
     pass is allowed to record a session. The UI is read-only.
 
     `/api/v1/dream-sources` exposes the static manifest list of vendor → path
-    pairs declared in `specs/manifest/throne-skills.yaml`; sources are global
-    in v1 (no per-user override).
+    pairs declared in `specs/manifest/throne-skills.yaml`; sources are a single
+    global manifest.
   x-csharp-namespace: Throne.Dreams.Contracts.Generated
 paths:
   /api/v1/dream-sessions:
@@ -63,7 +63,7 @@ paths:
     get:
       operationId: getDreamSession
       tags: [DreamSessions]
-      summary: Single DreamSession by id (owner-scoped).
+      summary: Single DreamSession by id.
       parameters:
         - in: path
           name: dream_session_id
