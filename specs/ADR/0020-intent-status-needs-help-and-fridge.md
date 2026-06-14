@@ -1,6 +1,8 @@
 # ADR-0020 — Inbox-pair (`needs_help` + `ready_for_review`) и `fridge` в статус-машине Intent
 
-Status: Accepted
+## Status
+
+Accepted
 Date: 2026-05-09
 Extends: [ADR-0017](0017-removal-of-review-stage.md)
 

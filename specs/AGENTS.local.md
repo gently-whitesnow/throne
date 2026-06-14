@@ -19,13 +19,7 @@ bash scripts/quality/verify.sh --scope backend|frontend    # одна сторо
 
 ## Архитектурные слои (apps/api)
 
-Зависимости — строго внутрь:
-
-```
-Api ──► Application ──► Domain
-Infrastructure ──► Application ──► Domain
-Api ──► Infrastructure (только в Program.cs / DI wiring)
-```
+Направление зависимостей (диаграмма — канон в [readme.md → «Архитектура»](../readme.md#архитектура)): строго внутрь, `Api → Application → Domain`, `Infrastructure → Application → Domain`, `Api → Infrastructure` только в `Program.cs` / DI wiring.
 
 - **Throne.Domain** — entities, value objects, доменные правила. Без внешних зависимостей.
 - **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про MongoDB и MCP.

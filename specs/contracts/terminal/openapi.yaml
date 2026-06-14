@@ -248,7 +248,7 @@ paths:
     post:
       operationId: previewIntentTerminal
       tags: [Terminal]
-      summary: Resolve the embedded prompt composition before spawn (ADR-0035).
+      summary: Resolve the embedded prompt composition before spawn (ADR-0036).
       description: >
         Returns the effective prompt composition for the requested embedded mode: mandatory
         parts (projected from the skill manifest) plus the operator-authored optional parts

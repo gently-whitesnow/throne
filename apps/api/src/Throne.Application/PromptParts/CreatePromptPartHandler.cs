@@ -13,7 +13,7 @@ public sealed record CreatePromptPartCommand(
 
 /// <summary>
 /// Creates an operator-authored optional prompt part (always <c>user</c> scope in this
-/// slice — system optional parts are not introduced, ADR-0035). A duplicate key yields 409.
+/// slice — system optional parts are not introduced, ADR-0036). A duplicate key yields 409.
 /// </summary>
 public sealed class CreatePromptPartHandler(
     IPromptPartRepository repository,

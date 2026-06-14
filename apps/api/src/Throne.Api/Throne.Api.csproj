@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <!--
-      Skill manifest is the runtime source of truth (see ADR-0007). It must travel
+      Skill manifest is the runtime source of truth (see ADR-0014). It must travel
       with the published binary, otherwise the API fails to boot in environments
       where the repo tree is not available next to /app (Docker, CI artefacts).
       Link= preserves the directory layout so the provider's existing path lookup

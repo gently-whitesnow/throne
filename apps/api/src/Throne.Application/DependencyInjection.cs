@@ -51,7 +51,7 @@ public static class DependencyInjection
         // an IUnitOfWork to commit their cascade. Without Lazy, MS DI would
         // recurse through its own resolution lock and deadlock under load.
         services.AddSingleton(sp => new Lazy<IUnitOfWork>(sp.GetRequiredService<IUnitOfWork>));
-        // PromptPartPatch handlers (ADR-0036 supersedes ADR-0021): patches target a PromptPart
+        // PromptPartPatch handlers (ADR-0036): patches target a PromptPart
         // by (scope, key); apply / reject is operator-only.
         services.AddSingleton<UserPromptPartLookup>();
         services.AddSingleton<ProposePromptPartPatchHandler>();

@@ -97,7 +97,7 @@ intent-агрегата. Принципы:
 - Полное удаление коллекции `text_versions` — отложено до отдельного
   «cleanup» интента после периода стабильности.
 - Cross-tenant миграция / batch-tools — миграция per-database (каждый юзер
-  держит свой self-hosted Throne; см. ADR-0012).
+  держит свой self-hosted Throne; легаси owner-scoping демонтирован, см. [ADR-0029](0029-local-first-invariant-and-legacy-auth.md)).
 
 ## Consequences
 

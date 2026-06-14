@@ -172,8 +172,9 @@ throne/
 │   └── AGENTS.local.md
 ├── scripts/quality/         # verify.sh + sub-scripts
 ├── .quality/                # quality.config.json
-├── AGENTS.md                # Codex/agent entrypoint
-├── CLAUDE.md                # Claude entrypoint
+├── ROOT.md                  # общие правила для агентов (канон)
+├── AGENTS.md                # Codex/agent entrypoint (стаб → ROOT.md)
+├── CLAUDE.md                # Claude entrypoint (стаб → ROOT.md)
 └── DESIGN.md                # frontend design system
 ```
 
@@ -225,7 +226,11 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 |---|---|
 | [specs/ADR/REGISTRY.md](specs/ADR/REGISTRY.md) | Реестр архитектурных решений |
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
+| [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) | HTTP API контракты (OpenAPI source of truth) |
+| [specs/contracts/realtime/events.yaml](specs/contracts/realtime/events.yaml) | Realtime server→client события (yaml source of truth) + [ADR-0008](specs/ADR/0008-realtime-contract-first-events.md) |
 | [specs/manifest/throne-skills.yaml](specs/manifest/throne-skills.yaml) | System instructions + bundle манифест (источник правды) |
+| [specs/ADR/0014-mcp-initialize-instructions-routing.md](specs/ADR/0014-mcp-initialize-instructions-routing.md) | MCP-доставка инструкций (mini-router в `InitializeResult.instructions`) |
 | [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |
-| [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов |
-| [CLAUDE.md](CLAUDE.md) | Точка входа для Claude |
+| [ROOT.md](ROOT.md) | Общие правила для агентов (канон) |
+| [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов (стаб → ROOT.md) |
+| [CLAUDE.md](CLAUDE.md) | Точка входа для Claude (стаб → ROOT.md) |
