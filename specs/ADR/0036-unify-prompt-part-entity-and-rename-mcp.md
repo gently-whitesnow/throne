@@ -4,15 +4,15 @@
 
 Accepted
 Date: 2026-06-12
-Supersedes [ADR-0035](0035-prompt-parts-model-and-composition.md) (две сущности → одна).
+Заменяет раннюю модель prompt parts с двумя сущностями (`Instruction` + отдельный `PromptPart`) на одну — см. Context.
 Amends [ADR-0014](0014-mcp-initialize-instructions-routing.md) (backing бандла), [ADR-0022](0022-frontier-driven-dream-flow.md) (target патчей), [ADR-0023](0023-mcp-tools-snake-case-naming.md) (одноразовое сквозное переименование контракта), [ADR-0002](0002-domain-model-and-text-versioning.md) (новый owner-kind истории).
 Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md), [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md).
 
 ## Context
 
-[ADR-0035](0035-prompt-parts-model-and-composition.md) сознательно завёл **две** сущности: `Instruction` (legacy whitelist `common/interview/work/dream/schema_map` + system, источник правды бандла для standalone-агентов) и отдельный `PromptPart` (optional runtime-части под embedded-терминал). Mandatory-инструкции при этом не дублировались, а **проецировались** в `EffectivePart` из манифеста.
+Ранняя модель prompt parts сознательно завела **две** сущности: `Instruction` (legacy whitelist `common/interview/work/dream/schema_map` + system, источник правды бандла для standalone-агентов) и отдельный `PromptPart` (optional runtime-части под embedded-терминал). Mandatory-инструкции при этом не дублировались, а **проецировались** в `EffectivePart` из манифеста.
 
-На практике две сущности дают два жизненных цикла, два хранилища (`instructions` collection + манифест YAML vs `prompt_parts`), два патч-контура и два резолвера (`get_instruction_bundle` vs `PromptCompositionResolver`). Dream-патчи таргетят только legacy `InstructionKindNames`. Оператор хочет вести и доулучшать **единый** набор частей в одной модели, где инструкции — это просто mandatory-части, а новые — optional. Это инвертирует развилку 0035: не «расширяем whitelist инструкций optional-kind'ами», а «растворяем инструкции в parts».
+На практике две сущности дают два жизненных цикла, два хранилища (`instructions` collection + манифест YAML vs `prompt_parts`), два патч-контура и два резолвера (`get_instruction_bundle` vs `PromptCompositionResolver`). Dream-патчи таргетят только legacy `InstructionKindNames`. Оператор хочет вести и доулучшать **единый** набор частей в одной модели, где инструкции — это просто mandatory-части, а новые — optional. Это инвертирует прежнюю развилку: не «расширяем whitelist инструкций optional-kind'ами», а «растворяем инструкции в parts».
 
 Имена `*_instruction_*` на MCP/HTTP-поверхности после схлопывания стали бы вечным legacy-долгом. Все потребители ходят через манифест/skills/server-instructions самого Throne (mini-router в `InitializeResult.instructions`, [ADR-0014](0014-mcp-initialize-instructions-routing.md)), контракт под нашим контролем — есть окно атомарно переименовать его без обратных алиасов.
 

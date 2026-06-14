@@ -12,7 +12,7 @@
 # `bundles[].includes` with `scope: user`).
 #
 # There is no `skills:` section: vendor skill launchers were superseded by
-# delivery via MCP `InitializeResult.instructions` (see ADR superseding ADR-0007).
+# delivery via MCP `InitializeResult.instructions` (see ADR-0014).
 
 version: 1
 
@@ -61,7 +61,7 @@ system_instructions:
 
   - kind: dream
     text: |
-      Цель dream — улучшить НАБОР user-частей промпта (`scope=user`) на основе анализа реальных диалогов оператора с агентами. После ADR-0036 пользовательская инструкция — это не пара {work, interview}, а множество `prompt_part` с ролями по режимам (ADR-0035): ядро (`common`, `work`, `interview`, `dream`) и модульные/опциональные части (`dotnet`, `contracts`, `tests`, `commit`, `postgres`, `mongo`, `frontend` и другие). Поэтому dream думает структурой частей: не «какую строку дописать в work», а «в какой части должно жить это правило, не дублируется ли оно, и не пора ли часть схлопнуть/вынести». Output — PromptPartPatch'и к user-частям; apply / edit / reject — оператор через UI на `/improvements`. Throne не хранит диалогов — ты сам читаешь их локально через Read/Glob по путям из get_dream_sources. См. ADR-0036 (единая сущность PromptPart), ADR-0035 (роли и композиция), ADR-0022 (dream-flow).
+      Цель dream — улучшить НАБОР user-частей промпта (`scope=user`) на основе анализа реальных диалогов оператора с агентами. После ADR-0036 пользовательская инструкция — это не пара {work, interview}, а множество `prompt_part` с ролями по режимам: ядро (`common`, `work`, `interview`, `dream`) и модульные/опциональные части (`dotnet`, `contracts`, `tests`, `commit`, `postgres`, `mongo`, `frontend` и другие). Поэтому dream думает структурой частей: не «какую строку дописать в work», а «в какой части должно жить это правило, не дублируется ли оно, и не пора ли часть схлопнуть/вынести». Output — PromptPartPatch'и к user-частям; apply / edit / reject — оператор через UI на `/improvements`. Throne не хранит диалогов — ты сам читаешь их локально через Read/Glob по путям из get_dream_sources. См. ADR-0036 (единая сущность PromptPart, роли и композиция), ADR-0022 (dream-flow).
 
       Алгоритм (объём выбирает оператор — не подтягивай больше, чем явно попросили):
 

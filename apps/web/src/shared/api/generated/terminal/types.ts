@@ -130,7 +130,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Resolve the embedded prompt composition before spawn (ADR-0035).
+         * Resolve the embedded prompt composition before spawn (ADR-0036).
          * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`free` are supported — `dream` returns 422.
          */
         post: operations["previewIntentTerminal"];

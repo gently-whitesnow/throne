@@ -19,7 +19,7 @@ public sealed record EffectivePart(
     string Text);
 
 /// <summary>Result of <see cref="PromptCompositionResolver"/>: the ordered parts plus the
-/// assembled system/user prompt zones for the pre-flight modal (ADR-0035).</summary>
+/// assembled system/user prompt zones for the pre-flight modal (ADR-0036).</summary>
 public sealed record PromptComposition(
     string Mode,
     IReadOnlyList<EffectivePart> Parts,

@@ -4,7 +4,7 @@
 
 Accepted
 Date: 2026-06-04
-Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0016](0016-mcp-oauth-authorization.md)
+Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0029](0029-local-first-invariant-and-legacy-auth.md) (local-first, `Auth:Mode=Disabled` дефолт; внутренняя авторизация — легаси)
 
 ## Context
 

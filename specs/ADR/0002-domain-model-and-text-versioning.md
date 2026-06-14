@@ -50,7 +50,7 @@ Intent (canonical document, collection: intents)
 ```text
 Instruction (canonical document, collection: instructions)
 - id              : string
-- scope           : enum { user }   ; system-инструкции живут в коде, не в Mongo (см. ADR-0007 update 2026-05-02)
+- scope           : enum { user }   ; system-части manifest-managed, в Mongo не живут (см. [ADR-0014](0014-mcp-initialize-instructions-routing.md))
 - user_id         : string?         ; обязателен для scope=user, MVP — "mvp-user"
 - kind            : enum { common | interview | work | dream | fix }
 - text            : string          ; пустая строка допустима для незаполненных user-антагонистов

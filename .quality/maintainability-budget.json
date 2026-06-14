@@ -103,7 +103,7 @@
           }
         },
         {
-          "_comment": "Pin/Move handlers ship as one file per command group (ADR-0007), with multiple AddPin/RemovePin/MovePin handlers in the same file.",
+          "_comment": "Pin/Move handlers ship as one file per command group, with multiple AddPin/RemovePin/MovePin handlers in the same file.",
           "glob": "**/Throne.Application/Intents/PinIntentHandlers.cs",
           "limits": {
             "methodMaxLoc": 80

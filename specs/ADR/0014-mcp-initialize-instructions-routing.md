@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted (supersedes [ADR-0007](0007-vendor-skill-launchers.md))
+Accepted. Заменяет ранний UX-вход через vendor-локальные skill-лаунчеры (`.claude/skills/`, `.agents/skills/`) — см. Context.
 
 ## Context
 
-[ADR-0007](0007-vendor-skill-launchers.md) ввёл vendor-локальные skill-лаунчеры (`.claude/skills/<name>/SKILL.md`, `.agents/skills/<name>/SKILL.md`) как UX-вход в Throne workflow. Лаунчеры были тонкими: агент получал команду `/tinterview | /twork | /tfix | /tdream`, читал markdown, далее звал серверный `get_instruction_bundle(mode)`. Это решало vendor parity по сравнению с MCP prompts, но оставило операционные проблемы:
+Ранний UX-вход в Throne workflow был сделан через vendor-локальные skill-лаунчеры (`.claude/skills/<name>/SKILL.md`, `.agents/skills/<name>/SKILL.md`). Лаунчеры были тонкими: агент получал команду `/tinterview | /twork | /tfix | /tdream`, читал markdown, далее звал серверный `get_instruction_bundle(mode)`. Это решало vendor parity по сравнению с MCP prompts, но оставило операционные проблемы:
 
 1. **Команда геморна для пользователя.** Запомнить и набрать `/twork` каждый раз — дополнительный когнитивный налог.
 2. **Геморна установка.** В каждый репозиторий, где работают агенты, нужно положить два набора SKILL-файлов (`.claude/skills/`, `.agents/skills/`), синхронизировать их с манифестом, подтянуть архитектурный тест парности. Без installer-а это ручная процедура; с installer-ом — лишний шаг релиза в чужие проекты.
@@ -35,14 +35,7 @@ MCP-протокол уже даёт штатный канал для серве
 
    Канонический текст — константа [`ThroneServerInstructions.MiniRouter`](../../apps/api/src/Throne.Application/Mcp/ThroneServerInstructions.cs). Сервер выставляет её через `AddMcpServer(o => o.ServerInstructions = ThroneServerInstructions.MiniRouter)` в [apps/api/src/Throne.Api/Program.cs](../../apps/api/src/Throne.Api/Program.cs).
 
-   **Update (ADR-0021):** строка для режима `dream` уточнена под новый pipeline insight-карточек и instruction-патчей (см. [ADR-0021](0021-insight-pipeline-and-instruction-patches.md)). Вариант текста:
-
-   ```
-     - improve user instructions from accumulated chat insights → mode="dream"
-       (uses list_insight_cards + propose_instruction_patch; no DreamRun)
-   ```
-
-   Имя режима `dream` сохраняется ради совместимости конфигов и манифеста; меняется только содержимое bundle и набор MCP-инструментов, на которые он опирается.
+   **Update ([ADR-0022](0022-frontier-driven-dream-flow.md)):** режим `dream` переведён на frontier-driven flow — агент сам читает свежие диалоги локально (`get_dream_sources` + `Read`/`Glob`) и предлагает патчи через `propose_prompt_part_patch`; серверный insight-pipeline демонтирован. Имя режима `dream` сохраняется ради совместимости конфигов и манифеста; меняется только содержимое bundle и набор MCP-инструментов, на которые он опирается.
 
 3. **Прямой HTTP MCP.** После [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md) standalone-клиенты подключаются к `Throne.Api /mcp` напрямую и получают mini-router из `InitializeResult.instructions` без дополнительного forwarding-процесса. Claude Desktop, которому локально нужен stdio, использует внешний bridge `mcp-remote`.
 
@@ -59,4 +52,4 @@ MCP-протокол уже даёт штатный канал для серве
 - **Историческая телеметрия по `prompts/get:<name>` теряет смысл.** ADR-0004 фиксировал prompts/get в `mcp_call_log`; этот канал больше не используется ни одним клиентом, события естественно перестают появляться. Чистка кода аудит-лога не требуется — он не падает на отсутствие записей.
 - **vendor parity больше не задача проекта.** Архитектурный тест `SkillLauncherParityTests` снят. Если в будущем понадобится дополнительный канал доставки (например, публичные prompts для меню Cursor), вводить его как отдельный supplemental-канал поверх mini-router, не вместо него.
 - **Текст mini-router'а — продуктовый интерфейс.** Меняется ревью + релизом `Throne.Api`. Если хочется править его данными, как user-инструкции, — это отдельный future ADR; пока mini-router короткий и стабильный, держим его в коде.
-- **ADR-0007 переходит в Superseded.** Раздел Update 2026-05-02 о манифесте остаётся релевантным как описание текущего состояния `system_instructions`/`bundles`; части про лаунчеры и `SkillLauncherParityTests` — историчны.
+- **Манифест остаётся source of truth для `system_instructions`/`bundles`.** Skill-лаунчеры и их parity-тест удалены как историчные; секция `skills:` манифеста снята, остальная часть манифеста описывает текущее состояние.

@@ -17,7 +17,7 @@ public sealed record IntentTerminalPreviewQuery(
 public sealed record IntentTerminalPreview(PromptComposition Composition, int IntentVersion);
 
 /// <summary>
-/// Pre-flight preview (ADR-0035): reads the intent body for the task zone and resolves the
+/// Pre-flight preview (ADR-0036): reads the intent body for the task zone and resolves the
 /// embedded prompt composition for the requested mode. Unsupported modes (e.g. <c>dream</c>)
 /// are rejected by <see cref="PromptCompositionResolver"/>.
 /// </summary>

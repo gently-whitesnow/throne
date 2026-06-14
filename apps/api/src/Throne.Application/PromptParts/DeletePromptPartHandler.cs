@@ -6,7 +6,7 @@ namespace Throne.Application.PromptParts;
 public sealed record DeletePromptPartCommand(string PromptPartId);
 
 /// <summary>
-/// Hard-deletes an operator-authored optional prompt part (ADR-0035). The part may be
+/// Hard-deletes an operator-authored optional prompt part (ADR-0036). The part may be
 /// removed only after it has been detached from every mode — the read + role check + delete
 /// run inside one unit of work so the guard stays atomic with the removal.
 /// </summary>
