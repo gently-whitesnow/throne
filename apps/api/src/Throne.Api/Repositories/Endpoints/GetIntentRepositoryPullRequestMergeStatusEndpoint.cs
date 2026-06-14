@@ -11,23 +11,18 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class GetIntentRepositoryPullRequestMergeStatusEndpoint(
     RepositoryBindingResolver resolver,
-    MergePullRequestUseCase useCase)
+    MergePullRequestUseCase useCase
+)
 {
     public async Task<ActionResult<PullRequestMergeStatusDto>> RunAsync(
         string intentId,
         string bindingId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var status = await useCase.GetStatusAsync(binding, ct);
-            return new OkObjectResult(ReviewWorkspaceDtoMapper.ToMergeStatusDto(status));
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapMergeStatus(ex);
-        }
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var status = await useCase.GetStatusAsync(binding, ct);
+        return new OkObjectResult(ReviewWorkspaceDtoMapper.ToMergeStatusDto(status));
     }
 }

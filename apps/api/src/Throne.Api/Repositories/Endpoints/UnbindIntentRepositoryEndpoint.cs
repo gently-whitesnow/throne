@@ -11,21 +11,13 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class UnbindIntentRepositoryEndpoint(RepositoryBindingService service)
 {
-    public async Task<IActionResult> RunAsync(string intentId, string bindingId, CancellationToken ct)
+    public async Task<IActionResult> RunAsync(
+        string intentId,
+        string bindingId,
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await service.UnbindAsync(new UnbindRepositoryCommand(intentId, bindingId), ct);
-            return new NoContentResult();
-        }
-        catch (ApiException ex) when (ex.Code is ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound)
-        {
-            // Contract treats unbind as idempotent — 204 even when the binding is absent.
-            return new NoContentResult();
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapUnbind(ex);
-        }
+        await service.TryUnbindAsync(new UnbindRepositoryCommand(intentId, bindingId), ct);
+        return new NoContentResult();
     }
 }

@@ -12,27 +12,22 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class SubmitIntentRepositoryReviewCommentEndpoint(
     RepositoryBindingResolver resolver,
-    SubmitReviewWorkspaceCommentUseCase useCase)
+    SubmitReviewWorkspaceCommentUseCase useCase
+)
 {
     public async Task<ActionResult<SubmittedReviewCommentDto>> RunAsync(
         string intentId,
         string bindingId,
         SubmitReviewCommentRequest body,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(body);
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var request = ReviewWorkspaceDtoMapper.ToSubmitRequest(body);
-            var submitted = await useCase.SubmitAsync(binding, request, ct);
-            var dto = ReviewWorkspaceDtoMapper.ToSubmittedDto(submitted, binding.Id.Value);
-            return new ObjectResult(dto) { StatusCode = StatusCodes.Status201Created };
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapSubmit(ex);
-        }
+        ArgumentNullException.ThrowIfNull(body);
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var request = ReviewWorkspaceDtoMapper.ToSubmitRequest(body);
+        var submitted = await useCase.SubmitAsync(binding, request, ct);
+        var dto = ReviewWorkspaceDtoMapper.ToSubmittedDto(submitted, binding.Id.Value);
+        return new ObjectResult(dto) { StatusCode = StatusCodes.Status201Created };
     }
 }

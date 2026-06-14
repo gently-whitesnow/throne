@@ -15,17 +15,13 @@ public sealed class RefreshIntentRepositoryEndpoint(RepositoryBindingService ser
     public async Task<ActionResult<RepositoryBindingDto>> RunAsync(
         string intentId,
         string bindingId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var binding = await service.RefreshAsync(
-                new RefreshRepositoryBindingCommand(intentId, bindingId), ct);
-            return new OkObjectResult(RepositoryDtoMapper.ToBindingDto(binding));
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRefresh(ex);
-        }
+        var binding = await service.RefreshAsync(
+            new RefreshRepositoryBindingCommand(intentId, bindingId),
+            ct
+        );
+        return new OkObjectResult(RepositoryDtoMapper.ToBindingDto(binding));
     }
 }

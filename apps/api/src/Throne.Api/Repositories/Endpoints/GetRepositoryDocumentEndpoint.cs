@@ -12,18 +12,18 @@ public sealed class GetRepositoryDocumentEndpoint(GetRepositoryDocumentHandler h
         string owner,
         string repo,
         string slug,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var coordinate = RepositoryCoordinateFactory.Create(
-                RepositoryEnumDtoMapper.ToProviderName(provider), owner, repo);
-            var artifact = await handler.HandleAsync(new GetRepositoryDocumentQuery(coordinate, slug), ct);
-            return new OkObjectResult(RepositoryRegistryDtoMapper.ToDocumentDto(artifact));
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRepositoryDocument<RepositoryDocumentDto>(ex);
-        }
+        var coordinate = RepositoryCoordinateFactory.Create(
+            RepositoryEnumDtoMapper.ToProviderName(provider),
+            owner,
+            repo
+        );
+        var artifact = await handler.HandleAsync(
+            new GetRepositoryDocumentQuery(coordinate, slug),
+            ct
+        );
+        return new OkObjectResult(RepositoryRegistryDtoMapper.ToDocumentDto(artifact));
     }
 }

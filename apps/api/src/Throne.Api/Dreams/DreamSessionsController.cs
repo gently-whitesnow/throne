@@ -14,34 +14,36 @@ namespace Throne.Api.Dreams;
 public sealed class DreamSessionsController(
     ListDreamSessionsHandler listHandler,
     GetDreamSessionHandler getHandler,
-    GetDreamSourcesHandler sourcesHandler) : DreamsControllerBase
+    GetDreamSourcesHandler sourcesHandler
+) : DreamsControllerBase
 {
     public override async Task<ActionResult<DreamSessionPageDto>> ListDreamSessions(
-        string vendor = null!, string host = null!, int? limit = null, string cursor = null!)
+        string vendor = null!,
+        string host = null!,
+        int? limit = null,
+        string cursor = null!
+    )
     {
         var page = await listHandler.HandleAsync(
             new ListDreamSessionsQuery(vendor, host, limit, cursor),
-            HttpContext.RequestAborted);
+            HttpContext.RequestAborted
+        );
         return Ok(DreamSessionDtoMapper.ToPageDto(page));
     }
 
-    public override async Task<ActionResult<DreamSessionDto>> GetDreamSession(string dream_session_id)
+    public override async Task<ActionResult<DreamSessionDto>> GetDreamSession(
+        string dream_session_id
+    )
     {
-        try
-        {
-            var session = await getHandler.HandleAsync(dream_session_id, HttpContext.RequestAborted);
-            return Ok(DreamSessionDtoMapper.ToDto(session));
-        }
-        catch (ApiException ex) when (ex.Code == ErrorCodes.DreamSessionNotFound)
-        {
-            return NotFound(ApiProblems.NotFound("DreamSession not found", ex.Detail));
-        }
+        var session = await getHandler.HandleAsync(dream_session_id, HttpContext.RequestAborted);
+        return Ok(DreamSessionDtoMapper.ToDto(session));
     }
 
     public override Task<ActionResult<DreamSourcePageDto>> ListDreamSources()
     {
         var entries = sourcesHandler.Handle();
         return Task.FromResult<ActionResult<DreamSourcePageDto>>(
-            Ok(DreamSessionDtoMapper.ToSourcePageDto(entries)));
+            Ok(DreamSessionDtoMapper.ToSourcePageDto(entries))
+        );
     }
 }

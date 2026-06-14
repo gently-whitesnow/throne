@@ -20,33 +20,37 @@ public sealed class SearchGitProviderRepositoriesEndpoint(IGitProviderRegistry p
         string? q,
         WireScope? scope,
         int? limit,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
-            var gitProvider = providers.GetByName(providerName)
-                ?? throw Unsupported(providerName);
+        var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
+        var gitProvider = providers.GetByName(providerName) ?? throw Unsupported(providerName);
 
-            var resolvedScope = scope is null ? AppScope.Mine : ToApplicationScope(scope.Value);
-            var refs = await gitProvider.SearchRepositoriesAsync(resolvedScope, q, limit ?? DefaultLimit, ct);
-            return new OkObjectResult(refs.Select(RepositoryDtoMapper.ToRepositoryRefDto).ToList());
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapSearch(ex);
-        }
+        var resolvedScope = scope is null ? AppScope.Mine : ToApplicationScope(scope.Value);
+        var refs = await gitProvider.SearchRepositoriesAsync(
+            resolvedScope,
+            q,
+            limit ?? DefaultLimit,
+            ct
+        );
+        return new OkObjectResult(refs.Select(RepositoryDtoMapper.ToRepositoryRefDto).ToList());
     }
 
-    private static AppScope ToApplicationScope(WireScope scope) => scope switch
-    {
-        WireScope.Mine => AppScope.Mine,
-        WireScope.Involved => AppScope.Involved,
-        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown search scope."),
-    };
+    private static AppScope ToApplicationScope(WireScope scope) =>
+        scope switch
+        {
+            WireScope.Mine => AppScope.Mine,
+            WireScope.Involved => AppScope.Involved,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(scope),
+                scope,
+                "Unknown search scope."
+            ),
+        };
 
     private static ApiException Unsupported(string providerName) =>
         new(
             ErrorCodes.RepositoryProviderUnsupported,
-            $"Git provider '{providerName}' is not supported on this Throne build.");
+            $"Git provider '{providerName}' is not supported on this Throne build."
+        );
 }

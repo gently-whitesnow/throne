@@ -10,19 +10,21 @@ public sealed class SetIntentTagsEndpoint(SetIntentTagsHandler handler, IntentsA
     public async Task<ActionResult<IntentDetailDto>> RunAsync(
         string id,
         SetIntentTagsRequest body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var intent = await handler.HandleAsync(
-                new SetIntentTagsCommand(id, body.Expected_version, TagIds: null, body.Tag_names?.ToList()),
-                cancellationToken);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
-        }
-        catch (ApiException ex)
-        {
-            return IntentsErrorMapper.MapSetTags(ex);
-        }
+        var intent = await handler.HandleAsync(
+            new SetIntentTagsCommand(
+                id,
+                body.Expected_version,
+                TagIds: null,
+                body.Tag_names?.ToList()
+            ),
+            cancellationToken
+        );
+        return new OkObjectResult(
+            await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken)
+        );
     }
 }
