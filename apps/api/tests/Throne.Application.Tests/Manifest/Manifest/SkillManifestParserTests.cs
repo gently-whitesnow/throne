@@ -5,7 +5,8 @@ namespace Throne.Application.Tests.Manifest.Manifest;
 
 public class SkillManifestParserTests
 {
-    private static readonly string[] ExpectedBundleModes = ["interview", "work", "dream", "schema_map"];
+    // work is split by contour (ADR-0034), so it appears twice.
+    private static readonly string[] ExpectedBundleModes = ["interview", "work", "work", "dream", "schema_map"];
 
     private const string ValidYaml = """
         version: 1
@@ -102,11 +103,88 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(5);
-        manifest.Bundles.Should().HaveCount(4);
+        manifest.SystemInstructions.Should().HaveCount(7);
+        manifest.Bundles.Should().HaveCount(5);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
         manifest.DreamSources.Should().HaveCount(3);
         manifest.DreamSources.Select(s => s.Vendor).Should().BeEquivalentTo("claude-code", "claude-desktop", "codex-cli");
+    }
+
+    [Fact(DisplayName = "Реальный manifest разводит work по контурам standalone/embedded с разным финалом")]
+    public void Real_manifest_splits_work_by_contour()
+    {
+        var manifest = SkillManifestParser.Parse(File.ReadAllText(ResolveManifestPath()));
+
+        var workBundles = manifest.Bundles.Where(b => b.Mode == "work").ToArray();
+        workBundles.Select(b => b.Contour).Should().BeEquivalentTo("standalone", "embedded");
+
+        var standalone = workBundles.Single(b => b.Contour == "standalone");
+        var embedded = workBundles.Single(b => b.Contour == "embedded");
+        standalone.Includes.Should().Contain(i => i.Kind == "finale_standalone");
+        embedded.Includes.Should().Contain(i => i.Kind == "finale_embedded");
+        // The non-work bundles stay contour-neutral.
+        manifest.Bundles.Where(b => b.Mode != "work").Should().OnlyContain(b => b.Contour == null);
+    }
+
+    [Fact(DisplayName = "SkillManifestParser парсит поле contour на bundle")]
+    public void Parses_contour_field()
+    {
+        var yaml = """
+            version: 1
+            system_instructions:
+              - kind: common
+                text: "x"
+            bundles:
+              - mode: work
+                contour: embedded
+                includes:
+                  - { scope: system, kind: common }
+            """;
+        var manifest = SkillManifestParser.Parse(yaml);
+        manifest.Bundles.Should().ContainSingle().Which.Contour.Should().Be("embedded");
+    }
+
+    [Fact(DisplayName = "SkillManifestParser отвергает неизвестный contour")]
+    public void Rejects_unknown_contour()
+    {
+        var yaml = """
+            version: 1
+            system_instructions:
+              - kind: common
+                text: "x"
+            bundles:
+              - mode: work
+                contour: bogus
+                includes:
+                  - { scope: system, kind: common }
+            """;
+        var act = () => SkillManifestParser.Parse(yaml);
+        act.Should().Throw<SkillManifestException>().WithMessage("*contour*bogus*");
+    }
+
+    [Fact(DisplayName = "SkillManifestParser допускает один mode в двух контурах, но отвергает дубль (mode, contour)")]
+    public void Rejects_duplicate_mode_contour_pair()
+    {
+        var twoContours = """
+            version: 1
+            system_instructions:
+              - kind: common
+                text: "x"
+            bundles:
+              - mode: work
+                contour: standalone
+                includes:
+                  - { scope: system, kind: common }
+              - mode: work
+                contour: embedded
+                includes:
+                  - { scope: system, kind: common }
+            """;
+        SkillManifestParser.Parse(twoContours).Bundles.Should().HaveCount(2);
+
+        var duplicate = twoContours.Replace("contour: embedded", "contour: standalone", StringComparison.Ordinal);
+        var act = () => SkillManifestParser.Parse(duplicate);
+        act.Should().Throw<SkillManifestException>().WithMessage("*duplicate mode*work*");
     }
 
     private static string ResolveManifestPath()

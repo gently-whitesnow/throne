@@ -8,7 +8,12 @@ public sealed record SkillManifest(
 
 public sealed record SystemInstructionEntry(string Kind, string Text);
 
-public sealed record BundleDefinition(string Mode, IReadOnlyList<BundleInclude> Includes);
+/// <summary>
+/// A bundle composition for a mode. <paramref name="Contour"/> is the execution contour
+/// (<c>standalone</c>/<c>embedded</c>, ADR-0034) the bundle targets, or <c>null</c> for a
+/// contour-neutral bundle that resolves for any request.
+/// </summary>
+public sealed record BundleDefinition(string Mode, string? Contour, IReadOnlyList<BundleInclude> Includes);
 
 public sealed record BundleInclude(string Scope, string Kind);
 

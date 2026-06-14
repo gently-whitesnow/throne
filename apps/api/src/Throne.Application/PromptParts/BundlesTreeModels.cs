@@ -9,6 +9,7 @@ public sealed record BundlesTree(
 
 public sealed record BundleNode(
     [property: JsonPropertyName("mode")] string Mode,
+    [property: JsonPropertyName("contour")] string? Contour,
     [property: JsonPropertyName("includes")] IReadOnlyList<BundleEntryNode> Includes);
 
 public sealed record BundleEntryNode(

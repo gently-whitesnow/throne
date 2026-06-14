@@ -31,7 +31,7 @@ public sealed class PromptCompositionResolver(
                 });
         }
 
-        var mandatory = await BuildMandatoryAsync(query.Mode, ct);
+        var mandatory = await BuildMandatoryAsync(query.Mode, query.Contour, ct);
         var mandatoryIds = new HashSet<string>(mandatory.Select(p => p.PartId), StringComparer.Ordinal);
         var optional = await BuildOptionalAsync(query.Mode, query.SelectedPartIds, mandatoryIds, ct);
 
@@ -47,7 +47,7 @@ public sealed class PromptCompositionResolver(
             query.IntentText ?? string.Empty);
     }
 
-    private async Task<List<EffectivePart>> BuildMandatoryAsync(string mode, CancellationToken ct)
+    private async Task<List<EffectivePart>> BuildMandatoryAsync(string mode, string contour, CancellationToken ct)
     {
         // free curates everything by hand — no mandatory parts and no manifest bundle.
         if (string.Equals(mode, PromptPartModeNames.Free, StringComparison.Ordinal))
@@ -56,7 +56,7 @@ public sealed class PromptCompositionResolver(
         }
 
         var manifest = manifestProvider.Current;
-        var bundle = BundleResolver.ResolveOrThrow(manifest, mode);
+        var bundle = BundleResolver.ResolveOrThrow(manifest, mode, contour);
         var (entries, _) = await bundleResolver.BuildAsync(bundle, ct);
 
         var parts = new List<EffectivePart>(entries.Count);

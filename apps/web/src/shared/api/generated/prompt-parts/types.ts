@@ -124,6 +124,8 @@ export interface components {
         BundleNodeDto: {
             /** @description Bundle mode (interview | work | dream | schema_map). */
             mode: string;
+            /** @description Execution contour this bundle targets (standalone | embedded, ADR-0034), or null for a contour-neutral bundle. A mode may appear as several nodes, one per contour. */
+            contour?: string | null;
             includes: components["schemas"]["BundleEntryNodeDto"][];
         };
         BundleEntryNodeDto: {

@@ -1,4 +1,5 @@
 using Throne.Application.Manifest;
+using Throne.Domain.PromptParts;
 
 namespace Throne.Application.PromptParts;
 
@@ -12,7 +13,9 @@ public sealed class GetPromptBundleHandler(
         ArgumentNullException.ThrowIfNull(query);
 
         var manifest = manifestProvider.Current;
-        var bundle = BundleResolver.ResolveOrThrow(manifest, query.Mode);
+        // get_prompt_bundle is the MCP standalone path (ADR-0034); the contour is fixed here, not
+        // an operator-facing parameter.
+        var bundle = BundleResolver.ResolveOrThrow(manifest, query.Mode, PromptContourNames.Standalone);
 
         var intentId = string.IsNullOrWhiteSpace(query.IntentId) ? null : query.IntentId;
         await autoTransition.RunAsync(intentId, query.Mode, ct);

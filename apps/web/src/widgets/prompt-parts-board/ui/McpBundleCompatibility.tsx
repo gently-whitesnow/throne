@@ -17,7 +17,12 @@ interface McpBundleCompatibilityProps {
 export function McpBundleCompatibility({
   bundlesTree
 }: McpBundleCompatibilityProps) {
-  const bundles = bundlesTree?.bundles ?? [];
+  // This panel is the standalone/MCP view — exactly what an external agent receives over
+  // get_prompt_bundle. For a mode split by contour (ADR-0034) the embedded variant is hidden;
+  // standalone and contour-neutral bundles remain.
+  const bundles = (bundlesTree?.bundles ?? []).filter(
+    (b) => b.contour !== "embedded"
+  );
 
   if (bundles.length === 0) {
     return (
