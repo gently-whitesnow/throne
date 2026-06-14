@@ -79,10 +79,12 @@ internal static class BundlesValidator
         HashSet<string> knownScopes,
         HashSet<string> systemKeys)
     {
-        var modes = new HashSet<string>(StringComparer.Ordinal);
+        // A mode may have several bundles only when each targets a distinct contour
+        // (ADR-0034); uniqueness is therefore on the (mode, contour) pair.
+        var modeContours = new HashSet<(string Mode, string? Contour)>();
         foreach (var b in bundles)
         {
-            ValidateBundle(b, knownScopes, systemKeys, modes);
+            ValidateBundle(b, knownScopes, systemKeys, modeContours);
         }
     }
 
@@ -90,15 +92,21 @@ internal static class BundlesValidator
         BundleDefinition b,
         HashSet<string> knownScopes,
         HashSet<string> systemKeys,
-        HashSet<string> modes)
+        HashSet<(string Mode, string? Contour)> modeContours)
     {
         if (string.IsNullOrWhiteSpace(b.Mode))
         {
             throw new SkillManifestException("bundles: empty mode.");
         }
-        if (!modes.Add(b.Mode))
+        if (b.Contour is not null && !PromptContourNames.IsKnown(b.Contour))
         {
-            throw new SkillManifestException($"bundles: duplicate mode '{b.Mode}'.");
+            throw new SkillManifestException(
+                $"bundles: '{b.Mode}' has unknown contour '{b.Contour}'.");
+        }
+        if (!modeContours.Add((b.Mode, b.Contour)))
+        {
+            throw new SkillManifestException(
+                $"bundles: duplicate mode '{b.Mode}' for contour '{b.Contour ?? "(neutral)"}'.");
         }
         if (b.Includes.Count == 0)
         {

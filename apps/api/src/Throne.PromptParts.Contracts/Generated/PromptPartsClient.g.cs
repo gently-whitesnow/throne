@@ -56,6 +56,12 @@ namespace Throne.PromptParts.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Mode { get; set; }
 
+        /// <summary>
+        /// Execution contour this bundle targets (standalone | embedded, ADR-0034), or null for a contour-neutral bundle. A mode may appear as several nodes, one per contour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("contour")]
+        public string Contour { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("includes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<BundleEntryNodeDto> Includes { get; set; } = new System.Collections.ObjectModel.Collection<BundleEntryNodeDto>();

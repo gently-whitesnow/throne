@@ -25,6 +25,7 @@ public static class SkillManifestParser
             Bundles: raw.Bundles
                 .Select(b => new BundleDefinition(
                     Mode: b.Mode ?? "",
+                    Contour: string.IsNullOrWhiteSpace(b.Contour) ? null : b.Contour,
                     Includes: b.Includes
                         .Select(i => new BundleInclude(i.Scope ?? "", i.Kind ?? ""))
                         .ToArray()))
@@ -61,6 +62,7 @@ public static class SkillManifestParser
     private sealed class RawBundle
     {
         public string? Mode { get; set; }
+        public string? Contour { get; set; }
         public List<RawInclude> Includes { get; set; } = new();
     }
 

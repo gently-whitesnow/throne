@@ -2,7 +2,8 @@
 # and bundle composition.
 #
 # Backend runtime (`ISkillManifestProvider`) reads this file and uses it to:
-#   * resolve `mode → mandatory (scope, key)` for `mcp__throne__get_prompt_bundle`,
+#   * resolve `(mode, contour) → mandatory (scope, key)` for `mcp__throne__get_prompt_bundle`
+#     (contour = standalone | embedded; absent on a bundle = contour-neutral, ADR-0034),
 #   * seed mandatory system prompt parts (texts below) and their per-mode roles
 #     into the `prompt_parts` collection (ADR-0036),
 #   * compute the precomputed `/api/v1/prompt-parts/bundles-tree`.
@@ -28,7 +29,7 @@ system_instructions:
       - `interview` — постановка уточняется. Авто-выставляется сервером при чтении `get_prompt_bundle(interview)`.
       - `ready_for_work` — постановка готова к исполнению. Ставь сам, когда уверен, что интервью закончено.
       - `work` — идёт работа. Авто-выставляется сервером при чтении `get_prompt_bundle(work)`.
-      - `ready_for_review` — работа закончена, оператор может идти на приёмку. Ставь сам по завершении прохода.
+      - `ready_for_review` — работа закончена, оператор может идти на приёмку. Кто и как переводит в этот статус — зависит от контура исполнения (см. инструкцию финала прохода в этом же бандле).
       - `awaiting_operator` («жду ответа») — агент остановился по ходу задачи, нужен инпут оператора (нет доступа/информации, неоднозначное решение, внешняя блокировка). Перед вызовом припиши в Intent.text, что именно нужно от оператора.
       - `done` / `reject` / `fridge` — пользовательские состояния (закрыто / отклонено / отложено). Применяй только по явной просьбе оператора. При `reject` параметр `reason` обязателен и записывается в конец Intent.text.
 
@@ -53,11 +54,20 @@ system_instructions:
       - Реализуй end-to-end: код, точечные тесты и проверка результата.
       - Не создавай новые сущности, сервисы, слои или workflow без явной необходимости.
       - Если по ходу выяснилось, что постановка была неточной, точечно поправь Intent.text через MCP.
-      - Сервер сам пометил Intent статусом work при чтении этого bundle. По завершении работы агент сам выбирает один из двух финалов прохода через `set_intent_status(intent_id, status, reason?)`:
-          - `ready_for_review` — когда осмысленный кусок работы завершён, и оператор может приходить на приёмку. Используй, если ты сам считаешь результат пригодным для ревью; не злоупотребляй частыми «ready_for_review» после каждого мелкого шага. `reason` опционален — короткая ремарка по проходу при желании.
-          - `awaiting_operator` («жду ответа») — когда ты действительно не можешь продолжить без оператора (нет доступа/информации, неоднозначное архитектурное решение, нужно подтверждение пользователя, внешняя блокировка). Перед вызовом обязательно припиши в Intent.text короткую пометку: что именно нужно от оператора. `awaiting_operator` — это сигнал «остановился, жду инпута», а не способ передать рутинное уточнение. Если в состоянии разобраться сам — разберись.
+      - Сервер сам пометил Intent статусом work при чтении этого bundle. Как завершать проход — см. инструкцию финала прохода ниже в этом же бандле (она зависит от контура исполнения).
       - Если пользователь даёт обратную связь по предыдущему проходу и просит продолжить — оставайся в режиме work, точечно поправь только то, что проблематизируется, не переоткрывай решённые вопросы и не делай unrelated refactor.
       - Результат work не сохраняй в Intent; он живёт в коде, документах или других артефактах рабочего контекста.
+
+  - kind: finale_standalone
+    text: |
+      Финал work-прохода (standalone-контур: внешний агент по MCP). По завершении работы ты сам выбираешь один из двух финалов прохода через `set_intent_status(intent_id, status, reason?)`:
+      - `ready_for_review` — когда осмысленный кусок работы завершён, и оператор может приходить на приёмку. Используй, если ты сам считаешь результат пригодным для ревью; не злоупотребляй частыми «ready_for_review» после каждого мелкого шага. `reason` опционален — короткая ремарка по проходу при желании.
+      - `awaiting_operator` («жду ответа») — когда ты действительно не можешь продолжить без оператора (нет доступа/информации, неоднозначное архитектурное решение, нужно подтверждение пользователя, внешняя блокировка). Перед вызовом обязательно припиши в Intent.text короткую пометку: что именно нужно от оператора. `awaiting_operator` — это сигнал «остановился, жду инпута», а не способ передать рутинное уточнение. Если в состоянии разобраться сам — разберись.
+
+  - kind: finale_embedded
+    text: |
+      Финал work-прохода (embedded-контур: встроенный терминал на хуках). По завершении прохода просто доложи результат в чат — статус выставит среда, не ты. НЕ вызывай `set_intent_status(ready_for_review)` сам: конец прохода среда сама паркует в «жду ответа» (`awaiting_operator`), и лишний агентский переход только шумит.
+      Единственный финал, который ты выставляешь сам через `set_intent_status` — `awaiting_operator`, и только если реально застрял и не можешь продолжить без оператора (нет доступа/информации, неоднозначное архитектурное решение, нужно подтверждение пользователя, внешняя блокировка). Перед вызовом припиши в Intent.text короткую пометку: что именно нужно от оператора. Если в состоянии разобраться сам — разберись и просто продолжай.
 
   - kind: dream
     text: |
@@ -191,10 +201,23 @@ bundles:
       - { scope: system, kind: interview }
       - { scope: user,   kind: common }
       - { scope: user,   kind: interview }
+  # work is split by execution contour (ADR-0034): the finale part differs —
+  # standalone emits ready_for_review explicitly, embedded reports and lets the
+  # Stop-hook park into awaiting_operator. Everything else is contour-neutral.
   - mode: work
+    contour: standalone
     includes:
       - { scope: system, kind: common }
       - { scope: system, kind: work }
+      - { scope: system, kind: finale_standalone }
+      - { scope: user,   kind: common }
+      - { scope: user,   kind: work }
+  - mode: work
+    contour: embedded
+    includes:
+      - { scope: system, kind: common }
+      - { scope: system, kind: work }
+      - { scope: system, kind: finale_embedded }
       - { scope: user,   kind: common }
       - { scope: user,   kind: work }
   - mode: dream

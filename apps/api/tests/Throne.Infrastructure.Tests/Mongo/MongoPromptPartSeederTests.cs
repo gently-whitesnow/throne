@@ -62,6 +62,7 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
             Bundles:
             [
                 new BundleDefinition("work",
+                    Contour: null,
                 [
                     new BundleInclude("system", "common"),
                     new BundleInclude("system", "work"),

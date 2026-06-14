@@ -20,6 +20,7 @@ public sealed class GetBundlesTreeHandler(
         var bundles = manifest.Bundles
             .Select(bundle => new BundleNode(
                 bundle.Mode,
+                bundle.Contour,
                 bundle.Includes.Select(inc => BuildEntry(inc, byScopeKey)).ToList()))
             .ToList();
 

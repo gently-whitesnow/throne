@@ -1,9 +1,17 @@
+using Throne.Domain.PromptParts;
+
 namespace Throne.Application.PromptParts;
 
+/// <summary>
+/// Request to resolve an embedded composition. <paramref name="Contour"/> defaults to
+/// <c>embedded</c> because every caller of this resolver is the built-in terminal path (preview
+/// and run pre-flight); the MCP standalone path goes through <see cref="GetPromptBundleHandler"/>.
+/// </summary>
 public sealed record ResolvePromptCompositionQuery(
     string Mode,
     IReadOnlyList<string>? SelectedPartIds,
-    string IntentText);
+    string IntentText,
+    string Contour = PromptContourNames.Embedded);
 
 /// <summary>One resolved part in an embedded composition: a manifest-projected mandatory
 /// instruction or an operator-authored optional part, with its selection state.</summary>
