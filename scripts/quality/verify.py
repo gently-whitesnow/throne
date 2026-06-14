@@ -31,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--scope",
-        choices=("all", "backend", "frontend", "cli"),
+        choices=("all", "backend", "frontend"),
         default="all",
         help="Run only gates with matching scope. Default: all.",
     )
@@ -185,42 +185,6 @@ def gate_frontend_audit(_g: dict, root: pathlib.Path) -> int:
     return run(["pnpm", "audit", "--audit-level", "high"], web(root))
 
 
-def cli(root: pathlib.Path) -> pathlib.Path:
-    return root / "apps" / "cli"
-
-
-def gate_cli_deps(_g: dict, root: pathlib.Path) -> int:
-    return run(
-        ["pnpm", "install", "--frozen-lockfile", "--prefer-offline"],
-        cli(root),
-        env={"CI": "true"},
-    )
-
-
-def gate_cli_format(_g: dict, root: pathlib.Path) -> int:
-    return run(["pnpm", "format:check"], cli(root))
-
-
-def gate_cli_lint(_g: dict, root: pathlib.Path) -> int:
-    return run(["pnpm", "lint"], cli(root))
-
-
-def gate_cli_typecheck(_g: dict, root: pathlib.Path) -> int:
-    return run(["pnpm", "typecheck"], cli(root))
-
-
-def gate_cli_test(_g: dict, root: pathlib.Path) -> int:
-    return run(["pnpm", "test"], cli(root))
-
-
-def gate_cli_build(_g: dict, root: pathlib.Path) -> int:
-    return run(["pnpm", "build"], cli(root))
-
-
-def gate_cli_audit(_g: dict, root: pathlib.Path) -> int:
-    return run(["pnpm", "audit", "--audit-level", "high"], cli(root))
-
-
 GATE_RUNNERS: dict[str, Callable[[dict, pathlib.Path], int]] = {
     "backend-contracts": gate_backend_contracts,
     "backend-realtime": gate_backend_realtime,
@@ -240,13 +204,6 @@ GATE_RUNNERS: dict[str, Callable[[dict, pathlib.Path], int]] = {
     "frontend-test": gate_frontend_test,
     "frontend-build": gate_frontend_build,
     "frontend-audit": gate_frontend_audit,
-    "cli-deps": gate_cli_deps,
-    "cli-format": gate_cli_format,
-    "cli-lint": gate_cli_lint,
-    "cli-typecheck": gate_cli_typecheck,
-    "cli-test": gate_cli_test,
-    "cli-build": gate_cli_build,
-    "cli-audit": gate_cli_audit,
 }
 
 

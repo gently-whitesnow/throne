@@ -55,7 +55,7 @@ public sealed record TagUpdated(Tag Tag) : IDomainEvent;
 public sealed record TagDeleted(string TagId) : IDomainEvent;
 
 /// <summary>
-/// PromptPartPatch lifecycle (ADR-0036 supersedes ADR-0021). Carried by
+/// PromptPartPatch lifecycle (ADR-0036). Carried by
 /// <see cref="Throne.Application.Ports.CreatePromptPartPatchOutcome"/>,
 /// <see cref="Throne.Application.Ports.ApplyPromptPartPatchPersistenceOutcome"/> and
 /// <see cref="Throne.Application.Ports.RejectPromptPartPatchPersistenceOutcome"/>; the

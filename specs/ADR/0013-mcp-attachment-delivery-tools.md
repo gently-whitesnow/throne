@@ -41,7 +41,7 @@ Accepted — 2026-05-06.
    - `read_intent_attachment_text(intent_id, attachment_id, offset?, max_chars?)` → `IntentAttachmentTextSlice` с полями `content_type`, `total_size_bytes`, `returned_bytes_start`, `returned_bytes_end`, `truncated`, `text`. `UseStructuredContent = true`. `offset` в байтах, `max_chars` в символах (default 50 000, абсолютный max 200 000). UTF-8-aware дроп partial-rune в начале при `offset > 0`. При `truncated=true` агент дочитывает следующим вызовом с `offset = returned_bytes_end`.
 3. **MCP Resources провайдер удаляется**: класс `IntentAttachmentsResources`, регистрация в `Throne.Api/Mcp/ThroneToolsBootstrap.cs`, `WithListResourcesHandler` / `WithReadResourceHandler` в `Throne.Api/Program.cs`, тесты `IntentAttachmentsResourcesTests`. URI scheme `intent://` уходит вместе с провайдером.
 4. **Bundle не трогаем**.
-5. **Ownership** наследуется автоматически через `IIntentRepository` / `IIntentAttachmentRepository` (см. ADR-0012).
+5. **Ownership** наследуется автоматически через `IIntentRepository` / `IIntentAttachmentRepository` (легаси owner-scoping, демонтирован — см. [ADR-0029](0029-local-first-invariant-and-legacy-auth.md)).
 6. **Не-image, не-text** (например, `application/pdf`) → `kind="unsupported"`, оба tool-а отвечают `validation.failed` с подсказкой. Поддержка PDF — отдельная итерация.
 
 ## Consequences

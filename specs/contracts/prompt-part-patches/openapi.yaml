@@ -3,7 +3,7 @@ info:
   title: Throne Prompt Part Patches
   version: "1.0.0"
   description: >
-    HTTP surface for PromptPartPatch (ADR-0036 supersedes ADR-0021). Patches are
+    HTTP surface for PromptPartPatch (ADR-0036). Patches are
     first-class entities: a frontier agent proposes a patch via MCP
     `propose_prompt_part_patch`, and the operator decides through this HTTP
     surface — apply (verbatim or with edit for text operations) or reject (with
