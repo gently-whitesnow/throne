@@ -23,7 +23,7 @@ import {
 } from "@/entities/repository-binding";
 import { AttachPullRequestControl } from "@/features/attach-pull-request";
 import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
-import { HttpError } from "@/shared/api";
+import { errorMessage, httpErrorStatus } from "@/shared/lib";
 
 import { BindingRowMenu } from "./BindingRowMenu";
 
@@ -76,9 +76,10 @@ export function RepositoryBindingRow({
       onRefreshed(await refreshIntentRepository(intentId, binding.id));
     } catch (err) {
       setRefreshError(
-        err instanceof HttpError
-          ? `Не удалось обновить (${String(err.status)}).`
-          : "Не удалось обновить репозиторий."
+        errorMessage(err, {
+          base: "Не удалось обновить",
+          fallback: "Не удалось обновить репозиторий."
+        })
       );
     } finally {
       setRefreshing(false);
@@ -99,9 +100,10 @@ export function RepositoryBindingRow({
       await unbindIntentRepository(intentId, binding.id);
       onUnbound(binding.id);
     } catch (err) {
+      const status = httpErrorStatus(err);
       setUnbindError(
-        err instanceof HttpError
-          ? `Не удалось удалить (${String(err.status)}). Папка могла быть занята — закройте процессы и повторите.`
+        status !== undefined
+          ? `Не удалось удалить (${String(status)}). Папка могла быть занята — закройте процессы и повторите.`
           : "Не удалось удалить репозиторий."
       );
       setUnbinding(false);
@@ -266,8 +268,8 @@ function PullRequestChip({ binding }: { binding: RepositoryBinding }) {
         meta
           ? { backgroundColor: meta.surface, color: meta.ink }
           : {
-              backgroundColor: "#F6F7FB",
-              color: "#4C5567"
+              backgroundColor: "var(--color-status-neutral-surface)",
+              color: "var(--color-status-neutral-ink)"
             }
       }
       data-testid={`binding-pr-${binding.id}`}

@@ -28,15 +28,15 @@ const LANE_SPACING = 6;
 
 const STYLES = {
   blocks: {
-    stroke: "var(--color-warning, #d97706)",
+    stroke: "var(--color-warning)",
     baseOpacity: 0.85
   },
   derived: {
-    stroke: "var(--color-base-content, #4c5567)",
+    stroke: "var(--color-base-content)",
     baseOpacity: 0.55
   },
   relates: {
-    stroke: "var(--color-base-content, #4c5567)",
+    stroke: "var(--color-base-content)",
     dash: "3 3",
     baseOpacity: 0.35
   }

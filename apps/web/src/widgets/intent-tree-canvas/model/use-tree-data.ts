@@ -7,7 +7,7 @@ import {
   useLinksSummary,
   type IntentListItem
 } from "@/entities/intent";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 import { layoutTree } from "./layout";
 import { parentsFromSummary } from "./parents";
@@ -27,9 +27,7 @@ export function useTreeData(
   const items = intentsQuery.data ?? null;
 
   const error = intentsQuery.isError
-    ? intentsQuery.error instanceof HttpError
-      ? `Не удалось загрузить intents (${String(intentsQuery.error.status)}).`
-      : "Не удалось загрузить intents."
+    ? errorMessage(intentsQuery.error, { base: "Не удалось загрузить intents" })
     : null;
 
   // Realtime-апдейты (status/tags/pin/reordered/text_changed) идут через

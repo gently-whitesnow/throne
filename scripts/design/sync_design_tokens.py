@@ -70,6 +70,37 @@ EXTRA_KEYS: tuple[str, ...] = (
     "success-soft",
     "warning-soft",
     "error-soft",
+    # Status-badge palette (intent lifecycle, clone state, PR state).
+    "status-neutral-surface",
+    "status-neutral-ink",
+    "status-info-surface",
+    "status-info-ink",
+    "status-info-strong-ink",
+    "status-progress-surface",
+    "status-progress-ink",
+    "status-review-surface",
+    "status-review-ink",
+    "status-attention-surface",
+    "status-attention-ink",
+    "status-success-surface",
+    "status-success-ink",
+    "status-danger-surface",
+    "status-danger-ink",
+    "status-archive-surface",
+    "status-archive-ink",
+    "status-merged-surface",
+    "status-merged-ink",
+    # Embedded terminal surface.
+    "terminal-bg",
+    "terminal-fg",
+    "terminal-cursor",
+    # Family-marker stripe hues (intent board).
+    "family-1",
+    "family-2",
+    "family-3",
+    "family-4",
+    "family-5",
+    "family-6",
 )
 
 ALL_KEYS: tuple[str, ...] = DAISY_KEYS + EXTRA_KEYS

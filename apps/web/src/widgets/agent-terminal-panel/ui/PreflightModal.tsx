@@ -1,8 +1,7 @@
 import { Play, X } from "lucide-react";
-import { useEffect, useId } from "react";
-import { createPortal } from "react-dom";
+import { useId } from "react";
 
-import { Button } from "@/shared/ui";
+import { Button, Modal } from "@/shared/ui";
 
 import { usePreflightPreview } from "../model/use-preflight-preview";
 import { RUN_MODE_LABEL } from "../model/types";
@@ -40,96 +39,65 @@ export function PreflightModal({
   const preview = usePreflightPreview(intentId, launch.mode, open);
   const titleId = useId();
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, onClose]);
-
   if (!open) return null;
 
   const busy = preview.status === "loading";
   const launchDisabled = busy || isSubmitting || preview.status === "error";
 
-  return createPortal(
-    <div
-      className="modal modal-open modal-bottom sm:modal-middle"
-      role="presentation"
-      onClick={onClose}
+  return (
+    <Modal
+      onClose={onClose}
+      labelledBy={titleId}
+      boxClassName="flex max-h-[min(820px,calc(100vh-32px))] w-full max-w-3xl flex-col gap-4"
     >
-      <div
-        className="modal-box flex max-h-[min(820px,calc(100vh-32px))] w-full max-w-3xl flex-col gap-4 border border-base-300 bg-base-100"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <header className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
-              Перед запуском · {RUN_MODE_LABEL[launch.mode]}
-            </p>
-            <h3
-              id={titleId}
-              className="m-0 text-lg font-semibold leading-tight"
-            >
-              Что уйдёт агенту
-            </h3>
-          </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-circle btn-ghost"
-            onClick={onClose}
-            aria-label="Закрыть"
-          >
-            <X aria-hidden size={16} strokeWidth={2} />
-          </button>
-        </header>
-
-        {preview.status === "error" ? (
-          <p
-            role="alert"
-            className="m-0 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
-          >
-            {preview.error}
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
+            Перед запуском · {RUN_MODE_LABEL[launch.mode]}
           </p>
-        ) : null}
-
-        <div className="flex flex-col gap-4 overflow-y-auto">
-          <SystemZone preview={preview} busy={busy} />
-          <TaskZone preview={preview} />
+          <h3 id={titleId} className="m-0 text-lg font-semibold leading-tight">
+            Что уйдёт агенту
+          </h3>
         </div>
+        <button
+          type="button"
+          className="btn btn-sm btn-circle btn-ghost"
+          onClick={onClose}
+          aria-label="Закрыть"
+        >
+          <X aria-hidden size={16} strokeWidth={2} />
+        </button>
+      </header>
 
-        <footer className="flex items-center justify-end gap-2">
-          <Button onClick={onClose}>Отмена</Button>
-          <Button
-            data-testid="agent-terminal-preflight-launch"
-            variant="primary"
-            icon={<Play aria-hidden size={14} strokeWidth={2} />}
-            disabled={launchDisabled}
-            onClick={() => {
-              onLaunch(preview.buildPayload(launch));
-            }}
-          >
-            {isSubmitting ? "Запускаем…" : actionLabel}
-          </Button>
-        </footer>
+      {preview.status === "error" ? (
+        <p
+          role="alert"
+          className="m-0 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+        >
+          {preview.error}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-4 overflow-y-auto">
+        <SystemZone preview={preview} busy={busy} />
+        <TaskZone preview={preview} />
       </div>
-    </div>,
-    document.body
+
+      <footer className="flex items-center justify-end gap-2">
+        <Button onClick={onClose}>Отмена</Button>
+        <Button
+          data-testid="agent-terminal-preflight-launch"
+          variant="primary"
+          icon={<Play aria-hidden size={14} strokeWidth={2} />}
+          disabled={launchDisabled}
+          onClick={() => {
+            onLaunch(preview.buildPayload(launch));
+          }}
+        >
+          {isSubmitting ? "Запускаем…" : actionLabel}
+        </Button>
+      </footer>
+    </Modal>
   );
 }
 

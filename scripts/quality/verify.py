@@ -169,6 +169,16 @@ def gate_frontend_typecheck(_g: dict, root: pathlib.Path) -> int:
     return run(["pnpm", "typecheck"], web(root))
 
 
+def gate_frontend_maintainability(gate: dict, root: pathlib.Path) -> int:
+    cmd = [
+        "python3", "scripts/quality/frontend_loc_check.py",
+        "--config", gate.get("config", ".quality/frontend-budget.json"),
+    ]
+    if "ratchet" in gate:
+        cmd.extend(["--baseline-snapshot", gate["ratchet"]])
+    return run(cmd, root)
+
+
 def gate_frontend_architecture(_g: dict, root: pathlib.Path) -> int:
     return run(["pnpm", "architecture"], web(root))
 
@@ -200,6 +210,7 @@ GATE_RUNNERS: dict[str, Callable[[dict, pathlib.Path], int]] = {
     "frontend-format": gate_frontend_format,
     "frontend-lint": gate_frontend_lint,
     "frontend-typecheck": gate_frontend_typecheck,
+    "frontend-maintainability": gate_frontend_maintainability,
     "frontend-architecture": gate_frontend_architecture,
     "frontend-test": gate_frontend_test,
     "frontend-build": gate_frontend_build,

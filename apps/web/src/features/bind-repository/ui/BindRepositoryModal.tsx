@@ -1,6 +1,5 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
 
 import {
   bindIntentRepository,
@@ -8,8 +7,8 @@ import {
   type GitRepositoryRef,
   type RepositoryBinding
 } from "@/entities/repository-binding";
-import { HttpError } from "@/shared/api";
-import { Button } from "@/shared/ui";
+import { errorMessage } from "@/shared/lib";
+import { Button, Modal } from "@/shared/ui";
 
 import { parsePrNumber } from "../model/pr-number";
 import {
@@ -83,23 +82,10 @@ export function BindRepositoryModal({
     setError(null);
   }, [open]);
 
-  // Escape closes — matches CreateIntentButton convention.
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, busy, onClose]);
+  // Закрытие по Escape / клику вне окна игнорируется, пока идёт привязка.
+  const closeIfIdle = () => {
+    if (!busy) onClose();
+  };
 
   const prNumberParsed = parsePrNumber(form.prNumber);
   const canSubmit =
@@ -152,120 +138,100 @@ export function BindRepositoryModal({
 
   if (!open) return null;
 
-  return createPortal(
-    <div
-      className="modal modal-open modal-bottom sm:modal-middle"
-      role="presentation"
-      onClick={() => {
-        if (!busy) onClose();
-      }}
+  return (
+    <Modal
+      onClose={closeIfIdle}
+      labelledBy={titleId}
+      boxClassName="max-h-[min(960px,calc(100vh-32px))] w-full max-w-2xl"
     >
-      <div
-        className="modal-box max-h-[min(960px,calc(100vh-32px))] w-full max-w-2xl border border-base-300 bg-base-100"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
-              Привязать репозиторий
-            </p>
-            <h3
-              id={titleId}
-              className="m-0 text-lg font-semibold leading-tight"
-            >
-              Выберите репозиторий и опционально укажите PR
-            </h3>
-          </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-circle btn-ghost"
-            onClick={onClose}
-            disabled={busy}
-            aria-label="Закрыть"
-          >
-            <X aria-hidden size={16} strokeWidth={2} />
-          </button>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
+            Привязать репозиторий
+          </p>
+          <h3 id={titleId} className="m-0 text-lg font-semibold leading-tight">
+            Выберите репозиторий и опционально укажите PR
+          </h3>
         </div>
-
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleSubmit();
-          }}
-          className="flex flex-col gap-4"
+        <button
+          type="button"
+          className="btn btn-sm btn-circle btn-ghost"
+          onClick={onClose}
+          disabled={busy}
+          aria-label="Закрыть"
         >
-          <BindRepositorySearchControls
-            provider={provider}
-            onProviderChange={changeProvider}
-            query={query}
-            onQueryChange={setQuery}
-            scope={scope}
-            onScopeChange={setScope}
-            disabled={busy}
-          />
-
-          <RepositorySearchList
-            results={results}
-            isLoading={isLoading}
-            error={searchError}
-            selectedFullName={selected?.full_name ?? null}
-            onSelect={pickRepository}
-          />
-
-          <BindRepositorySelectionForm
-            selected={selected}
-            form={form}
-            onChange={setForm}
-            disabled={busy}
-          />
-
-          {error ? (
-            <p
-              role="alert"
-              className="m-0 text-sm text-error"
-              data-testid="bind-repository-error"
-            >
-              {error}
-            </p>
-          ) : null}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" onClick={onClose} disabled={busy}>
-              Отмена
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={!canSubmit}
-              data-testid="bind-repository-submit"
-            >
-              {busy ? "Привязываем…" : "Привязать"}
-            </Button>
-          </div>
-        </form>
+          <X aria-hidden size={16} strokeWidth={2} />
+        </button>
       </div>
-    </div>,
-    document.body
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit();
+        }}
+        className="flex flex-col gap-4"
+      >
+        <BindRepositorySearchControls
+          provider={provider}
+          onProviderChange={changeProvider}
+          query={query}
+          onQueryChange={setQuery}
+          scope={scope}
+          onScopeChange={setScope}
+          disabled={busy}
+        />
+
+        <RepositorySearchList
+          results={results}
+          isLoading={isLoading}
+          error={searchError}
+          selectedFullName={selected?.full_name ?? null}
+          onSelect={pickRepository}
+        />
+
+        <BindRepositorySelectionForm
+          selected={selected}
+          form={form}
+          onChange={setForm}
+          disabled={busy}
+        />
+
+        {error ? (
+          <p
+            role="alert"
+            className="m-0 text-sm text-error"
+            data-testid="bind-repository-error"
+          >
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={onClose} disabled={busy}>
+            Отмена
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!canSubmit}
+            data-testid="bind-repository-submit"
+          >
+            {busy ? "Привязываем…" : "Привязать"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
 function formatBindError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 409) {
-      return "Этот репозиторий уже привязан к интенту. Чтобы изменить PR — сначала отвяжите.";
-    }
-    if (err.status === 422) {
-      return "Не удалось привязать: сервер отклонил параметры (422). Проверьте провайдера и owner/repo.";
-    }
-    if (err.status === 404) {
-      return "Интент не найден (404).";
-    }
-    return `Не удалось привязать (${String(err.status)}).`;
-  }
-  return "Не удалось привязать репозиторий.";
+  return errorMessage(err, {
+    base: "Не удалось привязать",
+    byStatus: {
+      409: "Этот репозиторий уже привязан к интенту. Чтобы изменить PR — сначала отвяжите.",
+      422: "Не удалось привязать: сервер отклонил параметры (422). Проверьте провайдера и owner/repo.",
+      404: "Интент не найден (404)."
+    },
+    fallback: "Не удалось привязать репозиторий."
+  });
 }

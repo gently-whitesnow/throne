@@ -1,5 +1,5 @@
 import { Loader2, Send, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 
 import {
   clearDraft,
@@ -9,7 +9,7 @@ import {
   type ReviewCommentAnchorShas,
   type ReviewCommentSide
 } from "@/entities/review-workspace";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 export interface ComposerAnchor {
@@ -31,16 +31,15 @@ interface ReviewInlineComposerProps {
 }
 
 function describeError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 422) {
-      return "Якорь строки устарел или не принят провайдером. Обнови diff и попробуй снова.";
-    }
-    if (err.status === 401 || err.status === 403) {
-      return "Нет доступа к провайдеру для отправки комментария.";
-    }
-    return `Не удалось отправить (${String(err.status)}).`;
-  }
-  return "Не удалось отправить комментарий.";
+  return errorMessage(err, {
+    base: "Не удалось отправить",
+    byStatus: {
+      422: "Якорь строки устарел или не принят провайдером. Обнови diff и попробуй снова.",
+      401: "Нет доступа к провайдеру для отправки комментария.",
+      403: "Нет доступа к провайдеру для отправки комментария."
+    },
+    fallback: "Не удалось отправить комментарий."
+  });
 }
 
 export function ReviewInlineComposer({
@@ -61,11 +60,15 @@ export function ReviewInlineComposer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // draftAnchor пересоздаётся каждый рендер, поэтому persist читается как
+  // effect-event (всегда свежие draftAnchor+value), а триггер — только смена
+  // содержимого якоря или значения, а не ссылки на объект.
+  const persistDraft = useEffectEvent(() => {
     saveDraft(draftAnchor, value);
-    // draftAnchor пересоздаётся на каждый рендер, но завязка нужна только на
-    // содержимое якоря, не на ссылку.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+
+  useEffect(() => {
+    persistDraft();
   }, [value, bindingId, anchor.path, anchor.side, anchor.line]);
 
   const submit = () => {
