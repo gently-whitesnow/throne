@@ -10,19 +10,16 @@ public sealed class UnpinIntentEndpoint(UnpinIntentHandler handler, IntentsApiHe
     public async Task<ActionResult<IntentDetailDto>> RunAsync(
         string id,
         UnpinIntentRequest body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var intent = await handler.HandleAsync(
-                new UnpinIntentCommand(id, body.Context_tag_id),
-                cancellationToken);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
-        }
-        catch (ApiException ex)
-        {
-            return IntentsErrorMapper.MapPin(ex);
-        }
+        var intent = await handler.HandleAsync(
+            new UnpinIntentCommand(id, body.Context_tag_id),
+            cancellationToken
+        );
+        return new OkObjectResult(
+            await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken)
+        );
     }
 }

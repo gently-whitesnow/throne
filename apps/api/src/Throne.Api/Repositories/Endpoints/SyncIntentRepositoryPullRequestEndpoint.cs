@@ -15,17 +15,13 @@ public sealed class SyncIntentRepositoryPullRequestEndpoint(RepositoryBindingSer
     public async Task<ActionResult<PullRequestSyncResultDto>> RunAsync(
         string intentId,
         string bindingId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var result = await service.SyncPullRequestAsync(
-                new SyncRepositoryPullRequestCommand(intentId, bindingId), ct);
-            return new OkObjectResult(RepositoryDtoMapper.ToSyncResultDto(result));
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapSync(ex);
-        }
+        var result = await service.SyncPullRequestAsync(
+            new SyncRepositoryPullRequestCommand(intentId, bindingId),
+            ct
+        );
+        return new OkObjectResult(RepositoryDtoMapper.ToSyncResultDto(result));
     }
 }

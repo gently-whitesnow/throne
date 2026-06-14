@@ -13,17 +13,21 @@ public static class TerminalEndpointsRegistration
     public static IServiceCollection AddThroneTerminalEndpoints(this IServiceCollection services)
     {
         services.AddSingleton<TerminalWebSocketEndpoint>();
+        services.AddSingleton<TerminalHookStatusAck>();
         return services;
     }
 
-    public static IEndpointRouteBuilder MapThroneTerminalEndpoints(this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapThroneTerminalEndpoints(
+        this IEndpointRouteBuilder endpoints
+    )
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
         endpoints.Map(
             TerminalWebSocketRoutes.IntentsTerminalWs,
             static (HttpContext context, string intent_id, TerminalWebSocketEndpoint endpoint) =>
-                endpoint.HandleAsync(context, intent_id));
+                endpoint.HandleAsync(context, intent_id)
+        );
 
         return endpoints;
     }

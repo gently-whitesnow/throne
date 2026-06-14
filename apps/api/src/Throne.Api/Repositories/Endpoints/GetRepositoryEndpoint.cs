@@ -11,17 +11,15 @@ public sealed class GetRepositoryEndpoint(GetRepositoryHandler handler)
         GitProvider provider,
         string owner,
         string repo,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var repository = await handler.HandleAsync(
-                RepositoryEnumDtoMapper.ToProviderName(provider), owner, repo, ct);
-            return new OkObjectResult(RepositoryRegistryDtoMapper.ToRepositoryDto(repository));
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRepositoryDocument<RepositoryDto>(ex);
-        }
+        var repository = await handler.HandleAsync(
+            RepositoryEnumDtoMapper.ToProviderName(provider),
+            owner,
+            repo,
+            ct
+        );
+        return new OkObjectResult(RepositoryRegistryDtoMapper.ToRepositoryDto(repository));
     }
 }

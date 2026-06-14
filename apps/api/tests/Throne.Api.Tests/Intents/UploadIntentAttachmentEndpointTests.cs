@@ -4,12 +4,14 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using Throne.Api.Tests.Infrastructure;
+using Throne.Application.Errors;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -40,14 +42,18 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
                 o.ValidateScopes = false;
                 o.ValidateOnBuild = false;
             });
-            builder.ConfigureAppConfiguration((_, cfg) =>
-            {
-                cfg.AddInMemoryCollection(new Dictionary<string, string?>
+            builder.ConfigureAppConfiguration(
+                (_, cfg) =>
                 {
-                    ["Mongo:ConnectionString"] = connectionString,
-                    ["Mongo:Database"] = dbName,
-                });
-            });
+                    cfg.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["Mongo:ConnectionString"] = connectionString,
+                            ["Mongo:Database"] = dbName,
+                        }
+                    );
+                }
+            );
         });
 
         _client = _factory.CreateClient();
@@ -67,9 +73,16 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
         using var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent([1, 2, 3]), "file", "a.bin");
 
-        var response = await _client.PostAsync(new Uri($"/api/v1/intents/{missingId}/attachments", UriKind.Relative), content);
+        var response = await _client.PostAsync(
+            new Uri($"/api/v1/intents/{missingId}/attachments", UriKind.Relative),
+            content
+        );
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        problem.Should().NotBeNull();
+        problem!.Extensions.Should().ContainKey("code");
+        problem.Extensions["code"]?.ToString().Should().Be(ErrorCodes.IntentNotFound);
     }
 
     [Fact(DisplayName = "POST /api/v1/intents/{id}/attachments сохраняет файл и возвращает 201")]
@@ -101,25 +114,36 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
         var attachment = uploaded!;
 
         var list = await _client.GetFromJsonAsync<List<IntentAttachmentView>>(
-            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative));
+            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative)
+        );
         list.Should().ContainSingle(x => x.Id == attachment.Id);
 
         var download = await _client.GetAsync(
-            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}/content", UriKind.Relative));
+            new Uri(
+                $"/api/v1/intents/{intentId}/attachments/{attachment.Id}/content",
+                UriKind.Relative
+            )
+        );
         download.StatusCode.Should().Be(HttpStatusCode.OK);
         download.Content.Headers.ContentType!.MediaType.Should().Be("image/png");
         (await download.Content.ReadAsByteArrayAsync()).Should().Equal(bytes);
 
         var deleted = await _client.DeleteAsync(
-            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}", UriKind.Relative));
+            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}", UriKind.Relative)
+        );
         deleted.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var empty = await _client.GetFromJsonAsync<List<IntentAttachmentView>>(
-            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative));
+            new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative)
+        );
         empty.Should().BeEmpty();
 
         var missing = await _client.GetAsync(
-            new Uri($"/api/v1/intents/{intentId}/attachments/{attachment.Id}/content", UriKind.Relative));
+            new Uri(
+                $"/api/v1/intents/{intentId}/attachments/{attachment.Id}/content",
+                UriKind.Relative
+            )
+        );
         missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -134,7 +158,8 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
             multipart.Add(new ByteArrayContent([(byte)i]), "file", $"f{i}.bin");
             var ok = await _client.PostAsync(
                 new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative),
-                multipart);
+                multipart
+            );
             ok.StatusCode.Should().Be(HttpStatusCode.Created, $"iteration {i}");
         }
 
@@ -142,7 +167,8 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
         last.Add(new ByteArrayContent([0xff]), "file", "overflow.bin");
         var response = await _client.PostAsync(
             new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative),
-            last);
+            last
+        );
 
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
@@ -160,11 +186,20 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
             intent.Id.Value,
             intent.State.Text,
             Now,
-            TextVersionAuthor.User);
+            TextVersionAuthor.User
+        );
 
         await uow.ExecuteAsync(
-            ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
-            CancellationToken.None);
+            ct =>
+                repo.CreateAsync(
+                    intent,
+                    version,
+                    InitialStatusChange(intent),
+                    Array.Empty<Throne.Domain.Tags.Tag>(),
+                    ct
+                ),
+            CancellationToken.None
+        );
         return intent.Id.Value;
     }
 
@@ -177,13 +212,13 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
             intent.State.Status,
             "test:create",
             Now,
-            IntentTrainingAuthor.User);
+            IntentTrainingAuthor.User
+        );
 
-    private async Task<(HttpResponseMessage Response, IntentAttachmentView? Attachment)> UploadAsync(
-        string intentId,
-        byte[] bytes,
-        string fileName,
-        string contentType)
+    private async Task<(
+        HttpResponseMessage Response,
+        IntentAttachmentView? Attachment
+    )> UploadAsync(string intentId, byte[] bytes, string fileName, string contentType)
     {
         using var multipart = new MultipartFormDataContent();
         var fileContent = new ByteArrayContent(bytes);
@@ -192,7 +227,8 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
 
         var response = await _client.PostAsync(
             new Uri($"/api/v1/intents/{intentId}/attachments", UriKind.Relative),
-            multipart);
+            multipart
+        );
         var dto = await response.Content.ReadFromJsonAsync<IntentAttachmentView>();
         return (response, dto);
     }

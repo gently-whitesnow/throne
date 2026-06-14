@@ -12,26 +12,29 @@ namespace Throne.Api.Intents;
 public sealed class GetIntentEndpoint(
     GetIntentHandler handler,
     IIntentLinkRepository linkRepository,
-    IntentsApiHelpers helpers)
+    IntentsApiHelpers helpers
+)
 {
-    public async Task<ActionResult<IntentDetailDto>> RunAsync(string id, CancellationToken cancellationToken)
+    public async Task<ActionResult<IntentDetailDto>> RunAsync(
+        string id,
+        CancellationToken cancellationToken
+    )
     {
-        try
-        {
-            var intent = await handler.HandleAsync(new GetIntentQuery(id), cancellationToken);
-            var links = await linkRepository.ListByIntentAsync(intent.Id, cancellationToken);
-            var tagMap = await helpers.BuildTagMapAsync(CollectTagIds(intent, links), cancellationToken);
-            var linkDtos = links.Select(v => IntentLinkDtoMapper.ToLinkViewDto(v, tagMap)).ToList();
-            var pinnedIn = await helpers.GetPinnedInAsync(intent.Id.Value, cancellationToken);
-            return new OkObjectResult(IntentDtoMapper.ToDetailDto(intent, tagMap, linkDtos, pinnedIn));
-        }
-        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
-        {
-            return new NotFoundObjectResult(ApiProblems.NotFound("Intent not found", ex.Detail));
-        }
+        var intent = await handler.HandleAsync(new GetIntentQuery(id), cancellationToken);
+        var links = await linkRepository.ListByIntentAsync(intent.Id, cancellationToken);
+        var tagMap = await helpers.BuildTagMapAsync(
+            CollectTagIds(intent, links),
+            cancellationToken
+        );
+        var linkDtos = links.Select(v => IntentLinkDtoMapper.ToLinkViewDto(v, tagMap)).ToList();
+        var pinnedIn = await helpers.GetPinnedInAsync(intent.Id.Value, cancellationToken);
+        return new OkObjectResult(IntentDtoMapper.ToDetailDto(intent, tagMap, linkDtos, pinnedIn));
     }
 
-    private static IEnumerable<TagId> CollectTagIds(Intent intent, IReadOnlyList<IntentLinkView> links)
+    private static IEnumerable<TagId> CollectTagIds(
+        Intent intent,
+        IReadOnlyList<IntentLinkView> links
+    )
     {
         foreach (var id in intent.TagIds)
         {

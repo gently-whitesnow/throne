@@ -12,26 +12,29 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class ListRepositoryDocumentVersionsEndpoint(
     GetRepositoryDocumentHandler getDocument,
-    IRepositoryArtifactRepository artifacts)
+    IRepositoryArtifactRepository artifacts
+)
 {
     public async Task<ActionResult<ICollection<RepositoryDocumentVersionDto>>> RunAsync(
         GitProvider provider,
         string owner,
         string repo,
         string slug,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var coordinate = RepositoryCoordinateFactory.Create(
-                RepositoryEnumDtoMapper.ToProviderName(provider), owner, repo);
-            var artifact = await getDocument.HandleAsync(new GetRepositoryDocumentQuery(coordinate, slug), ct);
-            var versions = await artifacts.ListVersionsAsync(artifact.Id, ct);
-            return new OkObjectResult(versions.Select(RepositoryRegistryDtoMapper.ToDocumentVersionDto).ToList());
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRepositoryDocument<ICollection<RepositoryDocumentVersionDto>>(ex);
-        }
+        var coordinate = RepositoryCoordinateFactory.Create(
+            RepositoryEnumDtoMapper.ToProviderName(provider),
+            owner,
+            repo
+        );
+        var artifact = await getDocument.HandleAsync(
+            new GetRepositoryDocumentQuery(coordinate, slug),
+            ct
+        );
+        var versions = await artifacts.ListVersionsAsync(artifact.Id, ct);
+        return new OkObjectResult(
+            versions.Select(RepositoryRegistryDtoMapper.ToDocumentVersionDto).ToList()
+        );
     }
 }

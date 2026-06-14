@@ -19,7 +19,8 @@ public sealed class RepositoryBindingService(
     RepositoryBindingPersistence persistence,
     RepositoryPullRequestSyncWorkflow syncWorkflow,
     RepositoryCloneTransitionWriter cloneWriter,
-    IRepositoryCloneRequests cloneQueue)
+    IRepositoryCloneRequests cloneQueue
+)
 {
     /// <param name="enqueueClone">
     /// Schedule the clone right after persisting the binding. The standalone manual-bind
@@ -29,7 +30,10 @@ public sealed class RepositoryBindingService(
     /// bind-time enqueue here would queue the same binding twice for one Run.
     /// </param>
     public async Task<IntentRepositoryBinding> BindAsync(
-        BindRepositoryCommand command, CancellationToken ct, bool enqueueClone = true)
+        BindRepositoryCommand command,
+        CancellationToken ct,
+        bool enqueueClone = true
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -55,6 +59,20 @@ public sealed class RepositoryBindingService(
         await persistence.DeleteAsync(binding, ct);
     }
 
+    public async Task<bool> TryUnbindAsync(UnbindRepositoryCommand command, CancellationToken ct)
+    {
+        try
+        {
+            await UnbindAsync(command, ct);
+            return true;
+        }
+        catch (ApiException ex)
+            when (ex.Code is ErrorCodes.IntentNotFound or ErrorCodes.RepositoryBindingNotFound)
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// «Обновить» disk-recovery (ADR-0024): trigger is purely the on-disk folder — the Mongo
     /// <c>clone_status</c> is ignored. Folder present → no-op, return the current binding (the
@@ -65,7 +83,8 @@ public sealed class RepositoryBindingService(
     /// </summary>
     public async Task<IntentRepositoryBinding> RefreshAsync(
         RefreshRepositoryBindingCommand command,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -80,7 +99,10 @@ public sealed class RepositoryBindingService(
             var outcome = await cloneWriter.MarkPendingForRefreshAsync(binding, ct);
             if (!outcome.WasPersisted)
             {
-                throw RepositoryBindingFailures.BindingNotFound(command.IntentId, command.BindingId);
+                throw RepositoryBindingFailures.BindingNotFound(
+                    command.IntentId,
+                    command.BindingId
+                );
             }
         }
         await cloneQueue.EnqueueAsync(binding.Id, ct);
@@ -89,7 +111,8 @@ public sealed class RepositoryBindingService(
 
     public async Task<IReadOnlyList<IntentRepositoryBinding>> ListByIntentAsync(
         string intentId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         var resolved = await resolver.EnsureIntentExistsAsync(intentId, ct);
         return await persistence.FindByIntentAsync(resolved, ct);
@@ -97,7 +120,8 @@ public sealed class RepositoryBindingService(
 
     public async Task<IntentRepositoryBinding> AttachPullRequestAsync(
         AttachRepositoryPullRequestCommand command,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -112,7 +136,8 @@ public sealed class RepositoryBindingService(
                 {
                     ["binding_id"] = binding.Id.Value,
                     ["pull_request_number"] = binding.State.PullRequestNumber,
-                });
+                }
+            );
         }
 
         return await persistence.AttachPullRequestAsync(binding, command.PullRequestNumber, ct);
@@ -120,7 +145,8 @@ public sealed class RepositoryBindingService(
 
     public async Task<SyncRepositoryPullRequestResult> SyncPullRequestAsync(
         SyncRepositoryPullRequestCommand command,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(command);
 

@@ -11,27 +11,34 @@ public sealed class CreateRepositoryEndpoint(CreateRepositoryHandler handler)
     public async Task<ActionResult<RepositoryDto>> RunAsync(
         CreateRepositoryRequest body,
         IUrlHelper url,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
         var provider = RepositoryEnumDtoMapper.ToProviderName(body.Provider);
-        try
+        var result = await handler.HandleAsync(
+            provider,
+            body.Owner,
+            body.Repo,
+            body.Host,
+            body.Project_id,
+            ct
+        );
+        var dto = RepositoryRegistryDtoMapper.ToRepositoryDto(result.Repository);
+        if (!result.Created)
         {
-            var result = await handler.HandleAsync(provider, body.Owner, body.Repo, body.Host, body.Project_id, ct);
-            var dto = RepositoryRegistryDtoMapper.ToRepositoryDto(result.Repository);
-            if (!result.Created)
-            {
-                return new OkObjectResult(dto);
-            }
+            return new OkObjectResult(dto);
+        }
 
-            var location = url.Action(
-                action: "GetRepository",
-                values: new { provider, owner = dto.Owner, repo = dto.Repo });
-            return new CreatedResult(location, dto);
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRepositoryDocument<RepositoryDto>(ex);
-        }
+        var location = url.Action(
+            action: "GetRepository",
+            values: new
+            {
+                provider,
+                owner = dto.Owner,
+                repo = dto.Repo,
+            }
+        );
+        return new CreatedResult(location, dto);
     }
 }

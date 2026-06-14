@@ -6,29 +6,30 @@ using Throne.Intents.Contracts.Generated;
 
 namespace Throne.Api.Intents;
 
-public sealed class SetIntentStatusEndpoint(SetIntentStatusHandler handler, IntentsApiHelpers helpers)
+public sealed class SetIntentStatusEndpoint(
+    SetIntentStatusHandler handler,
+    IntentsApiHelpers helpers
+)
 {
     public async Task<ActionResult<IntentDetailDto>> RunAsync(
         string id,
         SetIntentStatusRequest body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var intent = await handler.HandleAsync(
-                new SetIntentStatusCommand(
-                    id,
-                    IntentStatusDtoMapper.FromContractStatus(body.Status),
-                    body.Reason,
-                    IntentTrainingAuthor.User,
-                    "http:set_intent_status"),
-                cancellationToken);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
-        }
-        catch (ApiException ex)
-        {
-            return IntentsErrorMapper.MapSetStatus(ex);
-        }
+        var intent = await handler.HandleAsync(
+            new SetIntentStatusCommand(
+                id,
+                IntentStatusDtoMapper.FromContractStatus(body.Status),
+                body.Reason,
+                IntentTrainingAuthor.User,
+                "http:set_intent_status"
+            ),
+            cancellationToken
+        );
+        return new OkObjectResult(
+            await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken)
+        );
     }
 }
