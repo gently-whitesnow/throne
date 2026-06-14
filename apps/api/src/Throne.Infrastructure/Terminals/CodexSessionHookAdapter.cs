@@ -32,12 +32,12 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
         // One `-c hooks.<event>=...` override per event: each targets a distinct leaf under `hooks`,
         // so Codex merges them rather than the second clobbering the first.
         var args = new List<string>();
-        foreach (var hookEvent in TerminalHookEvents.All)
+        foreach (var binding in TerminalHookEvents.CodexBindings)
         {
-            var command = TerminalHookCallback.CurlCommand(options.ApiBaseUrl, intentId, hookEvent, mode);
+            var command = TerminalHookCallback.CurlCommand(options.ApiBaseUrl, intentId, binding.Event, mode);
             args.Add("-c");
             args.Add(
-                $"hooks.{hookEvent}=[{{hooks=[{{type=\"command\",command={CodexConfigValue.ToToml(command)},timeout=10}}]}}]");
+                $"hooks.{binding.Event}=[{{hooks=[{{type=\"command\",command={CodexConfigValue.ToToml(command)},timeout=10}}]}}]");
         }
 
         args.Add(BypassHookTrustFlag);
