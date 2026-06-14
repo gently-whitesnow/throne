@@ -7,24 +7,19 @@ namespace Throne.Api.Intents;
 
 public sealed class DownloadIntentAttachmentEndpoint(DownloadIntentAttachmentHandler handler)
 {
-    public async Task<IActionResult> RunAsync(string id, string attachmentId, CancellationToken cancellationToken)
+    public async Task<IActionResult> RunAsync(
+        string id,
+        string attachmentId,
+        CancellationToken cancellationToken
+    )
     {
-        try
+        var attachment = await handler.HandleAsync(
+            new DownloadIntentAttachmentQuery(id, attachmentId),
+            cancellationToken
+        );
+        return new FileStreamResult(attachment.Content, attachment.Attachment.ContentType)
         {
-            var attachment = await handler.HandleAsync(
-                new DownloadIntentAttachmentQuery(id, attachmentId), cancellationToken);
-            return new FileStreamResult(attachment.Content, attachment.Attachment.ContentType)
-            {
-                FileDownloadName = attachment.Attachment.FileName,
-            };
-        }
-        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentNotFound)
-        {
-            return new NotFoundObjectResult(ApiProblems.NotFound("Intent not found", ex.Detail));
-        }
-        catch (ApiException ex) when (ex.Code == ErrorCodes.IntentAttachmentNotFound)
-        {
-            return new NotFoundObjectResult(ApiProblems.NotFound("Attachment not found", ex.Detail));
-        }
+            FileDownloadName = attachment.Attachment.FileName,
+        };
     }
 }

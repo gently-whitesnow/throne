@@ -14,30 +14,26 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class GetIntentRepositoryReviewDiffEndpoint(
     RepositoryBindingResolver resolver,
-    GetReviewWorkspaceDiffUseCase useCase)
+    GetReviewWorkspaceDiffUseCase useCase
+)
 {
     public async Task<ActionResult<PullRequestDiffDto>> RunAsync(
         string intentId,
         string bindingId,
         ReviewDiffScope? scope,
         string? commitSha,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var effectiveScope = scope ?? ReviewDiffScope.Request;
-            EnsureCommitSha(effectiveScope, commitSha);
-            var diff = effectiveScope == ReviewDiffScope.Request
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var effectiveScope = scope ?? ReviewDiffScope.Request;
+        EnsureCommitSha(effectiveScope, commitSha);
+        var diff =
+            effectiveScope == ReviewDiffScope.Request
                 ? await useCase.GetRequestDiffAsync(binding, ct)
                 : await useCase.GetCommitDiffAsync(binding, commitSha!, ct);
-            return new OkObjectResult(ReviewWorkspaceDtoMapper.ToDiffDto(diff));
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapDiff(ex);
-        }
+        return new OkObjectResult(ReviewWorkspaceDtoMapper.ToDiffDto(diff));
     }
 
     private static void EnsureCommitSha(ReviewDiffScope scope, string? commitSha)
@@ -46,7 +42,8 @@ public sealed class GetIntentRepositoryReviewDiffEndpoint(
         {
             throw new ApiException(
                 ErrorCodes.ValidationFailed,
-                "Query parameter 'commit_sha' is required when scope=commit.");
+                "Query parameter 'commit_sha' is required when scope=commit."
+            );
         }
     }
 }

@@ -16,18 +16,14 @@ public sealed class AttachIntentRepositoryPullRequestEndpoint(RepositoryBindingS
         string intentId,
         string bindingId,
         AttachIntentRepositoryPullRequestRequest body,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var binding = await service.AttachPullRequestAsync(
-                new AttachRepositoryPullRequestCommand(intentId, bindingId, body.Pull_request_number), ct);
-            return new OkObjectResult(RepositoryDtoMapper.ToBindingDto(binding));
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapAttachPullRequest(ex);
-        }
+        var binding = await service.AttachPullRequestAsync(
+            new AttachRepositoryPullRequestCommand(intentId, bindingId, body.Pull_request_number),
+            ct
+        );
+        return new OkObjectResult(RepositoryDtoMapper.ToBindingDto(binding));
     }
 }

@@ -10,27 +10,22 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class ListIntentRepositoryReviewCommitsEndpoint(
     RepositoryBindingResolver resolver,
-    ListReviewWorkspaceCommitsUseCase useCase)
+    ListReviewWorkspaceCommitsUseCase useCase
+)
 {
     public async Task<ActionResult<ICollection<PullRequestCommitDto>>> RunAsync(
         string intentId,
         string bindingId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var commits = await useCase.ListByBindingAsync(binding, ct);
-            var dtos = commits
-                .OrderBy(c => c.CommittedAt)
-                .Select(ReviewWorkspaceDtoMapper.ToCommitDto)
-                .ToList();
-            return new OkObjectResult(dtos);
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapCommits(ex);
-        }
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var commits = await useCase.ListByBindingAsync(binding, ct);
+        var dtos = commits
+            .OrderBy(c => c.CommittedAt)
+            .Select(ReviewWorkspaceDtoMapper.ToCommitDto)
+            .ToList();
+        return new OkObjectResult(dtos);
     }
 }

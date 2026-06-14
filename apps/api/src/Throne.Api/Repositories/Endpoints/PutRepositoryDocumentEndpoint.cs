@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Shared;
-using Throne.Application.Errors;
 using Throne.Application.Repositories;
 using Throne.Domain.Repositories;
 using Throne.Repositories.Contracts.Generated;
@@ -21,31 +20,37 @@ public sealed class PutRepositoryDocumentEndpoint(RepositoryArtifactWriter write
         string repo,
         string slug,
         PutRepositoryDocumentRequest body,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
         try
         {
             var coordinate = RepositoryCoordinateFactory.Create(
-                RepositoryEnumDtoMapper.ToProviderName(provider), owner, repo);
+                RepositoryEnumDtoMapper.ToProviderName(provider),
+                owner,
+                repo
+            );
             var command = new WriteRepositoryArtifactCommand(
                 coordinate,
                 slug,
                 body.Title,
                 body.Document,
                 RepositoryArtifactRenderHints.ForSlug(slug),
-                body.Expected_version);
+                body.Expected_version
+            );
             var artifact = await writer.WriteAsync(command, ct);
             return new OkObjectResult(RepositoryRegistryDtoMapper.ToDocumentDto(artifact));
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRepositoryDocument<RepositoryDocumentDto>(ex);
         }
         catch (ArgumentException ex)
         {
             return new UnprocessableEntityObjectResult(
-                ApiProblems.Build(StatusCodes.Status422UnprocessableEntity, "Validation failed", ex.Message));
+                ApiProblems.Build(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Validation failed",
+                    ex.Message
+                )
+            );
         }
     }
 }

@@ -7,7 +7,8 @@ namespace Throne.Api.Repositories.Endpoints;
 
 public sealed class GetIntentRepositoryReviewFileLinesEndpoint(
     RepositoryBindingResolver resolver,
-    GetRepositoryFileLinesUseCase useCase)
+    GetRepositoryFileLinesUseCase useCase
+)
 {
     public async Task<ActionResult<ReviewFileLinesDto>> RunAsync(
         string intentId,
@@ -16,18 +17,12 @@ public sealed class GetIntentRepositoryReviewFileLinesEndpoint(
         string path,
         int from,
         int to,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var lines = await useCase.GetAsync(binding, sha, path, from, to, ct);
-            return new OkObjectResult(ReviewWorkspaceDtoMapper.ToFileLinesDto(lines));
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapFileLines(ex);
-        }
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var lines = await useCase.GetAsync(binding, sha, path, from, to, ct);
+        return new OkObjectResult(ReviewWorkspaceDtoMapper.ToFileLinesDto(lines));
     }
 }

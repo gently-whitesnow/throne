@@ -11,10 +11,16 @@ public sealed class PromptPartPatchesController(
     ListPromptPartPatchesHandler listHandler,
     GetPromptPartPatchHandler getHandler,
     ApplyPromptPartPatchHandler applyHandler,
-    RejectPromptPartPatchHandler rejectHandler) : PromptPartPatchesControllerBase
+    RejectPromptPartPatchHandler rejectHandler
+) : PromptPartPatchesControllerBase
 {
     public override async Task<ActionResult<PromptPartPatchPageDto>> ListPromptPartPatches(
-        string target_scope, string target_key, PromptPartPatchStatus? status, int? limit, string cursor)
+        string target_scope,
+        string target_key,
+        PromptPartPatchStatus? status,
+        int? limit,
+        string cursor
+    )
     {
         try
         {
@@ -22,62 +28,58 @@ public sealed class PromptPartPatchesController(
                 new ListPromptPartPatchesQuery(
                     TargetScope: string.IsNullOrWhiteSpace(target_scope) ? null : target_scope,
                     TargetKey: string.IsNullOrWhiteSpace(target_key) ? null : target_key,
-                    Status: status is null ? null : PromptPartPatchDtoMapper.FromStatus(status.Value),
+                    Status: status is null
+                        ? null
+                        : PromptPartPatchDtoMapper.FromStatus(status.Value),
                     Limit: limit,
-                    Cursor: cursor),
-                HttpContext.RequestAborted);
+                    Cursor: cursor
+                ),
+                HttpContext.RequestAborted
+            );
             return Ok(PromptPartPatchDtoMapper.ToPageDto(page));
         }
         catch (ArgumentOutOfRangeException ex)
         {
-            return UnprocessableEntity(ApiProblems.Build(
-                StatusCodes.Status422UnprocessableEntity, "Validation failed", ex.Message));
+            return UnprocessableEntity(
+                ApiProblems.Build(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Validation failed",
+                    ex.Message
+                )
+            );
         }
     }
 
-    public override async Task<ActionResult<PromptPartPatchDetailDto>> GetPromptPartPatch(string patch_id)
+    public override async Task<ActionResult<PromptPartPatchDetailDto>> GetPromptPartPatch(
+        string patch_id
+    )
     {
-        try
-        {
-            var view = await getHandler.HandleAsync(patch_id, HttpContext.RequestAborted);
-            return Ok(PromptPartPatchDtoMapper.ToDetailDto(view));
-        }
-        catch (ApiException ex) when (ex.Code == ErrorCodes.PromptPartPatchNotFound)
-        {
-            return NotFound(ApiProblems.NotFound("PromptPartPatch not found", ex.Detail));
-        }
+        var view = await getHandler.HandleAsync(patch_id, HttpContext.RequestAborted);
+        return Ok(PromptPartPatchDtoMapper.ToDetailDto(view));
     }
 
     public override async Task<ActionResult<PromptPartPatchDto>> ApplyPromptPartPatch(
-        string patch_id, ApplyPromptPartPatchRequest body = null!)
+        string patch_id,
+        ApplyPromptPartPatchRequest body = null!
+    )
     {
-        try
-        {
-            var patch = await applyHandler.HandleAsync(
-                new ApplyPromptPartPatchCommand(patch_id, body?.Final_text),
-                HttpContext.RequestAborted);
-            return Ok(PromptPartPatchDtoMapper.ToDto(patch));
-        }
-        catch (ApiException ex)
-        {
-            return PromptPartPatchesErrorMapper.MapDecision(ex);
-        }
+        var patch = await applyHandler.HandleAsync(
+            new ApplyPromptPartPatchCommand(patch_id, body?.Final_text),
+            HttpContext.RequestAborted
+        );
+        return Ok(PromptPartPatchDtoMapper.ToDto(patch));
     }
 
     public override async Task<ActionResult<PromptPartPatchDto>> RejectPromptPartPatch(
-        string patch_id, RejectPromptPartPatchRequest body)
+        string patch_id,
+        RejectPromptPartPatchRequest body
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var patch = await rejectHandler.HandleAsync(
-                new RejectPromptPartPatchCommand(patch_id, body.Comment),
-                HttpContext.RequestAborted);
-            return Ok(PromptPartPatchDtoMapper.ToDto(patch));
-        }
-        catch (ApiException ex)
-        {
-            return PromptPartPatchesErrorMapper.MapDecision(ex);
-        }
+        var patch = await rejectHandler.HandleAsync(
+            new RejectPromptPartPatchCommand(patch_id, body.Comment),
+            HttpContext.RequestAborted
+        );
+        return Ok(PromptPartPatchDtoMapper.ToDto(patch));
     }
 }

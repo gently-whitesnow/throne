@@ -21,25 +21,25 @@ public sealed class ListGitProviderRepositoryPullRequestsEndpoint(IGitProviderRe
         string repo,
         string? q,
         int? limit,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
-            var gitProvider = providers.GetByName(providerName)
-                ?? throw Unsupported(providerName);
+        var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
+        var gitProvider = providers.GetByName(providerName) ?? throw Unsupported(providerName);
 
-            var refs = await gitProvider.ListPullRequestsAsync(owner, repo, q, limit ?? DefaultLimit, ct);
-            return new OkObjectResult(refs.Select(RepositoryDtoMapper.ToPullRequestRefDto).ToList());
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapListPullRequests(ex);
-        }
+        var refs = await gitProvider.ListPullRequestsAsync(
+            owner,
+            repo,
+            q,
+            limit ?? DefaultLimit,
+            ct
+        );
+        return new OkObjectResult(refs.Select(RepositoryDtoMapper.ToPullRequestRefDto).ToList());
     }
 
     private static ApiException Unsupported(string providerName) =>
         new(
             ErrorCodes.RepositoryProviderUnsupported,
-            $"Git provider '{providerName}' is not supported on this Throne build.");
+            $"Git provider '{providerName}' is not supported on this Throne build."
+        );
 }

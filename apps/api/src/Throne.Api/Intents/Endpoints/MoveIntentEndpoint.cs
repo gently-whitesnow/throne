@@ -10,17 +10,16 @@ public sealed class MoveIntentEndpoint(MoveIntentHandler handler, IntentsApiHelp
     public async Task<ActionResult<IntentDetailDto>> RunAsync(
         string id,
         MoveIntentRequest body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var intent = await handler.HandleAsync(new MoveIntentCommand(id, body.Before_id, body.After_id), cancellationToken);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
-        }
-        catch (ApiException ex)
-        {
-            return IntentsErrorMapper.MapMove(ex);
-        }
+        var intent = await handler.HandleAsync(
+            new MoveIntentCommand(id, body.Before_id, body.After_id),
+            cancellationToken
+        );
+        return new OkObjectResult(
+            await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken)
+        );
     }
 }
