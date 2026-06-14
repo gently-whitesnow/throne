@@ -37,7 +37,7 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<DreamSessionPageDto>> ListDreamSessions([Microsoft.AspNetCore.Mvc.FromQuery] string vendor = null, [Microsoft.AspNetCore.Mvc.FromQuery] string host = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null, [Microsoft.AspNetCore.Mvc.FromQuery] string cursor = null);
 
         /// <summary>
-        /// Single DreamSession by id (owner-scoped).
+        /// Single DreamSession by id.
         /// </summary>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/dream-sessions/{dream_session_id}", Name = "getDreamSession")]

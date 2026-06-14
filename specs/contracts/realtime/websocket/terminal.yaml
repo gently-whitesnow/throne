@@ -10,9 +10,9 @@ version: 1
 #
 # Transport: HTTP upgrade to WebSocket at
 #   GET /api/v1/intents/{intent_id}/terminal/ws
-# Auth: none in Slice 2 — Throne is local-only by design (Slice 2 Q5). When
-# Throne becomes multi-user a separate intent introduces a token flow for all
-# HTTP+WS endpoints simultaneously.
+# Auth: none — Throne is single-operator local-first by design (ADR-0029).
+# Multi-operator access is out of scope for the local core and would live in a
+# separate service, not as a token flow grafted onto these endpoints.
 #
 # Lifecycle:
 #   - Server bridges the per-intent tmux session to the socket via the tmux CLI

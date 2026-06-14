@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Single DreamSession by id (owner-scoped). */
+        /** Single DreamSession by id. */
         get: operations["getDreamSession"];
         put?: never;
         post?: never;
