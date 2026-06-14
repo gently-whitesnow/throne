@@ -5,7 +5,7 @@ import {
   useListPromptParts,
   type PromptPartListItem
 } from "@/entities/prompt-part";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 import { useBundlesTreeQuery } from "../model/use-bundles-tree";
 import { McpBundleCompatibility } from "./McpBundleCompatibility";
@@ -30,7 +30,9 @@ export function PromptPartsBoard() {
     [parts]
   );
 
-  const error = partsQuery.error ? errorMessage(partsQuery.error) : null;
+  const error = partsQuery.error
+    ? errorMessage(partsQuery.error, { base: "Не удалось загрузить данные" })
+    : null;
   const loading = partsQuery.isPending;
 
   return (
@@ -128,11 +130,4 @@ function Section({
       {children}
     </section>
   );
-}
-
-function errorMessage(err: unknown): string {
-  if (err instanceof HttpError) {
-    return `Не удалось загрузить данные (${String(err.status)}).`;
-  }
-  return "Не удалось загрузить данные.";
 }

@@ -7,7 +7,7 @@ import {
   type PromptPartMode,
   type PromptPartUiRole
 } from "@/entities/prompt-part";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 import { mergeRoleForMode } from "../model/composition";
 
@@ -48,11 +48,7 @@ export function RoleSelect({
       { id: part.id, modeRoles },
       {
         onError: (err) => {
-          onError?.(
-            err instanceof HttpError
-              ? `Не удалось изменить роль (${String(err.status)}).`
-              : "Не удалось изменить роль."
-          );
+          onError?.(errorMessage(err, { base: "Не удалось изменить роль" }));
         }
       }
     );

@@ -19,7 +19,7 @@ import {
   syncPullRequest,
   usePullRequestComments
 } from "@/entities/pull-request-comment";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { PullRequestCommentItem } from "./PullRequestCommentItem";
@@ -96,9 +96,10 @@ export function PullRequestCommentsCard({
         refresh();
       } catch (err) {
         setSyncError(
-          err instanceof HttpError
-            ? `Не удалось обновить (${String(err.status)}).`
-            : "Не удалось обновить комментарии."
+          errorMessage(err, {
+            base: "Не удалось обновить",
+            fallback: "Не удалось обновить комментарии."
+          })
         );
       } finally {
         setSyncing(false);
@@ -134,7 +135,10 @@ export function PullRequestCommentsCard({
               style={
                 stateMeta
                   ? { backgroundColor: stateMeta.surface, color: stateMeta.ink }
-                  : { backgroundColor: "#F6F7FB", color: "#4C5567" }
+                  : {
+                      backgroundColor: "var(--color-status-neutral-surface)",
+                      color: "var(--color-status-neutral-ink)"
+                    }
               }
               data-testid={`pr-comments-pr-${binding.id}`}
             >

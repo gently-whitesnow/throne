@@ -7,7 +7,7 @@ import {
   type RepositoryCoordinate,
   type RepositoryDocument
 } from "@/entities/repository";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button, MarkdownView } from "@/shared/ui";
 
 interface SchemaDocumentEditorProps {
@@ -142,14 +142,12 @@ export function SchemaDocumentEditor({
 }
 
 function formatError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 409) {
-      return "Версия устарела — обновите страницу и повторите правку.";
-    }
-    if (err.status === 422) {
-      return "Не удалось сохранить: проверьте заголовок и тело.";
-    }
-    return `Ошибка сохранения (${String(err.status)}).`;
-  }
-  return "Не удалось сохранить.";
+  return errorMessage(err, {
+    base: "Ошибка сохранения",
+    byStatus: {
+      409: "Версия устарела — обновите страницу и повторите правку.",
+      422: "Не удалось сохранить: проверьте заголовок и тело."
+    },
+    fallback: "Не удалось сохранить."
+  });
 }

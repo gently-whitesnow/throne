@@ -7,13 +7,13 @@ import {
   type IntentAttachment
 } from "@/entities/intent";
 import {
-  HttpError,
   INTENT_ATTACHMENTS_CHANGED_EVENT,
   httpDelete,
   httpGetBlob,
   httpPostForm,
   intentsEndpoints
 } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 export const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -95,9 +95,7 @@ export function useAttachmentUploads(intentId: string) {
       invalidateAttachments();
     } catch (err: unknown) {
       setActionError(
-        err instanceof HttpError
-          ? `Не удалось удалить вложение (${String(err.status)}).`
-          : "Не удалось удалить вложение."
+        errorMessage(err, { base: "Не удалось удалить вложение" })
       );
     } finally {
       setBusyDeleteId(null);
@@ -144,9 +142,7 @@ export function useAttachmentUploads(intentId: string) {
         invalidateAttachments();
       } catch (err: unknown) {
         setActionError(
-          err instanceof HttpError
-            ? `Не удалось загрузить ${file.name} (${String(err.status)}).`
-            : `Не удалось загрузить ${file.name}.`
+          errorMessage(err, { base: `Не удалось загрузить ${file.name}` })
         );
       } finally {
         setUploadingCount((count) => Math.max(0, count - 1));
@@ -165,9 +161,9 @@ export function useAttachmentUploads(intentId: string) {
     uploadingCount === 0;
 
   const loadErrorMessage = attachmentsQuery.isError
-    ? attachmentsQuery.error instanceof HttpError
-      ? `Не удалось загрузить вложения (${String(attachmentsQuery.error.status)}).`
-      : "Не удалось загрузить вложения."
+    ? errorMessage(attachmentsQuery.error, {
+        base: "Не удалось загрузить вложения"
+      })
     : null;
 
   return {

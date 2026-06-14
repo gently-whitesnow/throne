@@ -44,50 +44,50 @@ export const intentStatusOrder: IntentStatus[] = [
 export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
   draft: {
     label: "Черновик",
-    ink: "#4C5567",
-    surface: "#F6F7FB"
+    ink: "var(--color-status-neutral-ink)",
+    surface: "var(--color-status-neutral-surface)"
   },
   interview: {
     label: "Интервью",
-    ink: "#3C78F2",
-    surface: "#E8F0FF"
+    ink: "var(--color-status-info-ink)",
+    surface: "var(--color-status-info-surface)"
   },
   ready_for_work: {
     label: "Готов к работе",
-    ink: "#274DC6",
-    surface: "#E8F0FF"
+    ink: "var(--color-status-info-strong-ink)",
+    surface: "var(--color-status-info-surface)"
   },
   work: {
     label: "В работе",
-    // Purple (design-system `secondary` oklch(0.48 0.14 280)) so `work` reads
-    // apart from the green `done` status instead of a near-identical teal.
-    ink: "#5351AA",
-    surface: "#ECEAFB"
+    // Purple (design-system `secondary`) so `work` reads apart from the green
+    // `done` status instead of a near-identical teal.
+    ink: "var(--color-status-progress-ink)",
+    surface: "var(--color-status-progress-surface)"
   },
   ready_for_review: {
     label: "Жду ревью",
-    ink: "#A87900",
-    surface: "#FFF3D6"
+    ink: "var(--color-status-review-ink)",
+    surface: "var(--color-status-review-surface)"
   },
   awaiting_operator: {
     label: "Жду ответа",
-    ink: "#B14E1A",
-    surface: "#FDE6D6"
+    ink: "var(--color-status-attention-ink)",
+    surface: "var(--color-status-attention-surface)"
   },
   done: {
     label: "Готово",
-    ink: "#1F8F5F",
-    surface: "#E7F5ED"
+    ink: "var(--color-status-success-ink)",
+    surface: "var(--color-status-success-surface)"
   },
   reject: {
     label: "Отклонено",
-    ink: "#CF4D4D",
-    surface: "#FDEAEA"
+    ink: "var(--color-status-danger-ink)",
+    surface: "var(--color-status-danger-surface)"
   },
   fridge: {
     label: "Холодильник",
-    ink: "#4F6F94",
-    surface: "#E8EEF7"
+    ink: "var(--color-status-archive-ink)",
+    surface: "var(--color-status-archive-surface)"
   }
 };
 

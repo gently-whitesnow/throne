@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { IntentDetail } from "@/entities/intent";
 import { useTagPicker } from "@/entities/tag";
-import { HttpError, httpPut, intentsEndpoints } from "@/shared/api";
+import { httpPut, intentsEndpoints } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { TagMultiSelect } from "@/shared/ui";
 
 interface IntentTagsInlineProps {
@@ -35,17 +36,15 @@ export function IntentTagsInline({ intent, onSaved }: IntentTagsInlineProps) {
         );
         onSaved(updated);
       } catch (err: unknown) {
-        if (err instanceof HttpError) {
-          if (err.status === 409) {
-            setError("Версия устарела — обновите страницу.");
-          } else if (err.status === 422) {
-            setError("Недопустимое имя тега.");
-          } else {
-            setError(`Не удалось сохранить (${String(err.status)}).`);
-          }
-        } else {
-          setError("Не удалось сохранить.");
-        }
+        setError(
+          errorMessage(err, {
+            base: "Не удалось сохранить",
+            byStatus: {
+              409: "Версия устарела — обновите страницу.",
+              422: "Недопустимое имя тега."
+            }
+          })
+        );
         setDraft(intent.tags.map((t) => t.name));
       } finally {
         setBusy(false);

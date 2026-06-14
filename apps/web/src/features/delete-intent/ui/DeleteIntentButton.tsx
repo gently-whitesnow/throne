@@ -1,7 +1,8 @@
 import { MoreVertical, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { HttpError, httpDelete, intentsEndpoints } from "@/shared/api";
+import { httpDelete, intentsEndpoints } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 interface DeleteIntentButtonProps {
   intentId: string;
@@ -43,10 +44,7 @@ export function DeleteIntentButton({
       await httpDelete(intentsEndpoints.deleteIntent(intentId));
       onDeleted();
     } catch (err: unknown) {
-      const message =
-        err instanceof HttpError
-          ? `Не удалось удалить (${String(err.status)}).`
-          : "Не удалось удалить.";
+      const message = errorMessage(err, { base: "Не удалось удалить" });
       setError(message);
       setBusy(false);
       setOpen(false);

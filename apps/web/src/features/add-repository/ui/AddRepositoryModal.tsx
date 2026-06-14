@@ -12,7 +12,7 @@ import type {
   GitProvider,
   GitRepositoryRef
 } from "@/entities/repository-binding";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 import { useRepositorySearch } from "../model/use-repository-search";
 
@@ -79,9 +79,10 @@ export function AddRepositoryModal({
       onAdded(repo);
     } catch (err: unknown) {
       setError(
-        err instanceof HttpError
-          ? `Не удалось добавить (${String(err.status)}).`
-          : "Не удалось добавить репозиторий."
+        errorMessage(err, {
+          base: "Не удалось добавить",
+          fallback: "Не удалось добавить репозиторий."
+        })
       );
       setSubmitting(null);
     }

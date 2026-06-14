@@ -1,0 +1,12 @@
+{
+  "$schema": "https://example.invalid/throne-quality/frontend-budget.schema.json",
+  "description": "Per-file LOC budget for apps/web (.ts/.tsx). Лимит на файл + ratchet через frontend-loc-baseline.json: существующие нарушители заморожены, новые файлы обязаны влезать в лимит. Декомпозируй, не правь лимит.",
+  "fileMaxLoc": 300,
+  "extensions": [".ts", ".tsx"],
+  "scanRoots": ["apps/web/src"],
+  "excludeGlobs": [
+    "**/generated/**",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}

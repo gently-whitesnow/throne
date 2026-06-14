@@ -2,7 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import { useCapabilityEnabled } from "@/entities/capability";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { openBindingInVscode } from "../api/open-in-vscode-api";
@@ -94,14 +94,12 @@ export function OpenBindingInVscodeButton({
 }
 
 function formatError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 422) {
-      return "Не удалось открыть: код-CLI недоступен, capability выключена или клон не готов.";
-    }
-    if (err.status === 404) {
-      return "Binding не найден.";
-    }
-    return `Не удалось открыть (${String(err.status)}).`;
-  }
-  return "Не удалось открыть в VS Code.";
+  return errorMessage(err, {
+    base: "Не удалось открыть",
+    byStatus: {
+      422: "Не удалось открыть: код-CLI недоступен, capability выключена или клон не готов.",
+      404: "Binding не найден."
+    },
+    fallback: "Не удалось открыть в VS Code."
+  });
 }

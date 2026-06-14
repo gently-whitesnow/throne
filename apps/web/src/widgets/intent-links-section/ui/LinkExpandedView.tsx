@@ -1,5 +1,5 @@
 import { useIntent } from "@/entities/intent";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 import { LinkAttachmentsReadOnly } from "./LinkAttachmentsReadOnly";
 
@@ -25,11 +25,10 @@ export function LinkExpandedView({ peerId }: LinkExpandedViewProps) {
     );
   }
   if (intentQuery.isError) {
-    const err = intentQuery.error;
-    const message =
-      err instanceof HttpError
-        ? `Ошибка загрузки (${String(err.status)}).`
-        : "Не удалось загрузить связанный intent.";
+    const message = errorMessage(intentQuery.error, {
+      base: "Ошибка загрузки",
+      fallback: "Не удалось загрузить связанный intent."
+    });
     return (
       <p role="alert" className="m-0 text-[12px] text-error">
         {message}

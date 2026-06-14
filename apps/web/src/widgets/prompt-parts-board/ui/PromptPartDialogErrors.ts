@@ -1,31 +1,35 @@
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 export function formatCreateError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 409) return "Часть с таким key уже есть.";
-    if (err.status === 422) return "Валидация не прошла (проверьте key/текст).";
-    return `Ошибка создания (${String(err.status)}).`;
-  }
-  return "Не удалось создать часть.";
+  return errorMessage(err, {
+    base: "Ошибка создания",
+    byStatus: {
+      409: "Часть с таким key уже есть.",
+      422: "Валидация не прошла (проверьте key/текст)."
+    },
+    fallback: "Не удалось создать часть."
+  });
 }
 
 export function formatReplaceError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 404) return "Часть не найдена.";
-    if (err.status === 409)
-      return "Версия устарела — обновите страницу и повторите правку.";
-    if (err.status === 422) return "Текст не совпал — нечего заменять.";
-    return `Ошибка сохранения (${String(err.status)}).`;
-  }
-  return "Не удалось сохранить.";
+  return errorMessage(err, {
+    base: "Ошибка сохранения",
+    byStatus: {
+      404: "Часть не найдена.",
+      409: "Версия устарела — обновите страницу и повторите правку.",
+      422: "Текст не совпал — нечего заменять."
+    },
+    fallback: "Не удалось сохранить."
+  });
 }
 
 export function formatDeleteError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 404) return "Часть уже удалена.";
-    if (err.status === 409)
-      return "Сначала снимите все роли части во всех режимах, затем удалите.";
-    return `Ошибка удаления (${String(err.status)}).`;
-  }
-  return "Не удалось удалить часть.";
+  return errorMessage(err, {
+    base: "Ошибка удаления",
+    byStatus: {
+      404: "Часть уже удалена.",
+      409: "Сначала снимите все роли части во всех режимах, затем удалите."
+    },
+    fallback: "Не удалось удалить часть."
+  });
 }

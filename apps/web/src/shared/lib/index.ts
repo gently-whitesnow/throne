@@ -1,5 +1,11 @@
 export { filesFromClipboard } from "./clipboard-images";
 export {
+  errorMessage,
+  httpErrorCode,
+  httpErrorStatus,
+  type ErrorMessageOptions
+} from "./error-message";
+export {
   ARCHIVE_CONTEXT,
   UNTAGGED_CONTEXT,
   FRIDGE_CONTEXT,
