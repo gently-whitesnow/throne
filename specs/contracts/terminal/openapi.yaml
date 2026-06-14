@@ -205,11 +205,16 @@ paths:
       description: >
         Agent-only local runtime callback injected into the per-session agent config
         (Claude `--settings` file / Codex inline `-c hooks.*` override) for both vendors.
-        Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4):
-        `Stop` parks the intent in `awaiting_operator`, `UserPromptSubmit` returns it to the
-        spawn phase (`work`/`free` → `work`, `interview` → `interview`). The `mode` query
-        carries that spawn phase so the return is stateless — the hook knows its own session
-        mode. Bundle-less `dream` passes through without a status change.
+        Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4).
+        Two events park the intent in `awaiting_operator` — `Stop` (turn yielded) and
+        `Notification` (a permission prompt blocks the agent without ending the turn, so no
+        `Stop` fires; Claude scopes it to `permission_prompt` via matcher) — and two return it
+        to the spawn phase (`work`/`free` → `work`, `interview` → `interview`):
+        `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an
+        approval, which is not a `UserPromptSubmit`). The `mode` query carries that spawn phase
+        so the return is stateless — the hook knows its own session mode. Bundle-less `dream`
+        passes through without a status change. `Notification`/`PostToolUse` are injected by the
+        Claude adapter only.
       parameters:
         - in: path
           name: intent_id
@@ -224,13 +229,16 @@ paths:
             enum:
               - Stop
               - UserPromptSubmit
+              - Notification
+              - PostToolUse
         - in: query
           name: mode
           required: false
           description: >
             Spawn phase of the session the hook fires from. Baked into the per-session hook
             URL at spawn time; the endpoint maps it to the return status on `UserPromptSubmit`
-            and gates the `Stop` → `awaiting_operator` park. Omitted only by legacy callers.
+            /`PostToolUse` and gates the `Stop`/`Notification` → `awaiting_operator` park.
+            Omitted only by legacy callers.
           schema:
             $ref: '#/components/schemas/TerminalRunMode'
       responses:

@@ -95,6 +95,8 @@ public sealed class TerminalController(
     {
         Event.Stop => TerminalHookEvents.Stop,
         Event.UserPromptSubmit => TerminalHookEvents.UserPromptSubmit,
+        Event.Notification => TerminalHookEvents.Notification,
+        Event.PostToolUse => TerminalHookEvents.PostToolUse,
         _ => throw new ArgumentOutOfRangeException(nameof(@event), $"Unknown terminal hook event '{@event}'."),
     };
 
