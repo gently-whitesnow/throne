@@ -15,32 +15,27 @@ public sealed class BindIntentRepositoryEndpoint(RepositoryBindingService servic
         string intentId,
         BindIntentRepositoryRequest body,
         IUrlHelper url,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var command = new BindRepositoryCommand(
-                IntentId: intentId,
-                Provider: RepositoryEnumDtoMapper.ToProviderName(body.Provider),
-                Owner: body.Owner,
-                Repo: body.Repo,
-                Host: body.Host,
-                ProjectId: body.Project_id,
-                DefaultBranch: body.Default_branch,
-                PullRequestNumber: body.Pull_request_number);
+        var command = new BindRepositoryCommand(
+            IntentId: intentId,
+            Provider: RepositoryEnumDtoMapper.ToProviderName(body.Provider),
+            Owner: body.Owner,
+            Repo: body.Repo,
+            Host: body.Host,
+            ProjectId: body.Project_id,
+            DefaultBranch: body.Default_branch,
+            PullRequestNumber: body.Pull_request_number
+        );
 
-            var binding = await service.BindAsync(command, ct);
-            var dto = RepositoryDtoMapper.ToBindingDto(binding);
-            var location = url.Action(
-                action: "ListIntentRepositories",
-                values: new { intent_id = binding.IntentId.Value });
-            return new CreatedResult(location, dto);
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapBind(ex);
-        }
+        var binding = await service.BindAsync(command, ct);
+        var dto = RepositoryDtoMapper.ToBindingDto(binding);
+        var location = url.Action(
+            action: "ListIntentRepositories",
+            values: new { intent_id = binding.IntentId.Value }
+        );
+        return new CreatedResult(location, dto);
     }
-
 }

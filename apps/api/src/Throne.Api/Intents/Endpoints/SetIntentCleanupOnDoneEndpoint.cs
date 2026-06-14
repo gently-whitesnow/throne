@@ -7,24 +7,22 @@ namespace Throne.Api.Intents;
 
 public sealed class SetIntentCleanupOnDoneEndpoint(
     SetIntentCleanupOnDoneHandler handler,
-    IntentsApiHelpers helpers)
+    IntentsApiHelpers helpers
+)
 {
     public async Task<ActionResult<IntentDetailDto>> RunAsync(
         string id,
         SetIntentCleanupOnDoneRequest body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var intent = await handler.HandleAsync(
-                new SetIntentCleanupOnDoneCommand(id, body.Cleanup_local_state_on_done),
-                cancellationToken);
-            return new OkObjectResult(await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken));
-        }
-        catch (ApiException ex)
-        {
-            return IntentsErrorMapper.MapSetCleanupOnDone(ex);
-        }
+        var intent = await handler.HandleAsync(
+            new SetIntentCleanupOnDoneCommand(id, body.Cleanup_local_state_on_done),
+            cancellationToken
+        );
+        return new OkObjectResult(
+            await IntentDetailDtoBuilder.BuildAsync(intent, helpers, cancellationToken)
+        );
     }
 }

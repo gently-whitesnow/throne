@@ -12,26 +12,21 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class UpdateIntentRepositoryReviewThreadEndpoint(
     RepositoryBindingResolver resolver,
-    ResolveReviewThreadUseCase useCase)
+    ResolveReviewThreadUseCase useCase
+)
 {
     public async Task<ActionResult<ReviewThreadDto>> RunAsync(
         string intentId,
         string bindingId,
         string threadId,
         UpdateReviewThreadRequest body,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(body);
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var state = await useCase.ResolveAsync(binding, threadId, body.Resolved, ct);
-            return new OkObjectResult(ReviewWorkspaceDtoMapper.ToThreadDto(state));
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapResolveThread(ex);
-        }
+        ArgumentNullException.ThrowIfNull(body);
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var state = await useCase.ResolveAsync(binding, threadId, body.Resolved, ct);
+        return new OkObjectResult(ReviewWorkspaceDtoMapper.ToThreadDto(state));
     }
 }

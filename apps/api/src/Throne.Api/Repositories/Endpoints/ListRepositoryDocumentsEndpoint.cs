@@ -13,18 +13,17 @@ public sealed class ListRepositoryDocumentsEndpoint(IRepositoryArtifactRepositor
         GitProvider provider,
         string owner,
         string repo,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var coordinate = RepositoryCoordinateFactory.Create(
-                RepositoryEnumDtoMapper.ToProviderName(provider), owner, repo);
-            var pages = await artifacts.ListByCoordinateAsync(coordinate, ct);
-            return new OkObjectResult(pages.Select(RepositoryRegistryDtoMapper.ToDocumentSummaryDto).ToList());
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapRepositoryDocument<ICollection<RepositoryDocumentSummaryDto>>(ex);
-        }
+        var coordinate = RepositoryCoordinateFactory.Create(
+            RepositoryEnumDtoMapper.ToProviderName(provider),
+            owner,
+            repo
+        );
+        var pages = await artifacts.ListByCoordinateAsync(coordinate, ct);
+        return new OkObjectResult(
+            pages.Select(RepositoryRegistryDtoMapper.ToDocumentSummaryDto).ToList()
+        );
     }
 }

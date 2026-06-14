@@ -12,23 +12,18 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class GetIntentRepositoryPullRequestEndpoint(
     RepositoryBindingResolver resolver,
-    GetReviewWorkspacePullRequestUseCase useCase)
+    GetReviewWorkspacePullRequestUseCase useCase
+)
 {
     public async Task<ActionResult<PullRequestHeaderDto>> RunAsync(
         string intentId,
         string bindingId,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var snapshot = await useCase.GetAsync(binding, ct);
-            return new OkObjectResult(ReviewWorkspaceDtoMapper.ToHeaderDto(snapshot));
-        }
-        catch (ApiException ex)
-        {
-            return ReviewWorkspaceErrorMapper.MapHeader(ex);
-        }
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var snapshot = await useCase.GetAsync(binding, ct);
+        return new OkObjectResult(ReviewWorkspaceDtoMapper.ToHeaderDto(snapshot));
     }
 }

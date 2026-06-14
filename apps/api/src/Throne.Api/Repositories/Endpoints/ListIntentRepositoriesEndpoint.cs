@@ -11,16 +11,12 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class ListIntentRepositoriesEndpoint(RepositoryBindingService service)
 {
-    public async Task<ActionResult<ICollection<RepositoryBindingDto>>> RunAsync(string intentId, CancellationToken ct)
+    public async Task<ActionResult<ICollection<RepositoryBindingDto>>> RunAsync(
+        string intentId,
+        CancellationToken ct
+    )
     {
-        try
-        {
-            var bindings = await service.ListByIntentAsync(intentId, ct);
-            return new OkObjectResult(bindings.Select(RepositoryDtoMapper.ToBindingDto).ToList());
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapListBindings(ex);
-        }
+        var bindings = await service.ListByIntentAsync(intentId, ct);
+        return new OkObjectResult(bindings.Select(RepositoryDtoMapper.ToBindingDto).ToList());
     }
 }

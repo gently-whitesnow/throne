@@ -13,31 +13,26 @@ namespace Throne.Api.Repositories.Endpoints;
 /// </summary>
 public sealed class ListIntentRepositoryPullRequestCommentsEndpoint(
     RepositoryBindingResolver resolver,
-    ListPullRequestCommentsUseCase useCase)
+    ListPullRequestCommentsUseCase useCase
+)
 {
     public async Task<ActionResult<ICollection<PullRequestCommentDto>>> RunAsync(
         string intentId,
         string bindingId,
         DateTimeOffset? since,
-        CancellationToken ct)
+        CancellationToken ct
+    )
     {
-        try
-        {
-            await resolver.EnsureIntentExistsAsync(intentId, ct);
-            var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
-            var comments = await useCase.ListByBindingAsync(binding, ct);
-            var filtered = since is null
-                ? comments
-                : comments.Where(c => c.CreatedAt >= since.Value).ToList();
-            var dtos = filtered
-                .OrderBy(c => c.CreatedAt)
-                .Select(c => RepositoryDtoMapper.ToCommentDto(c, binding.Id))
-                .ToList();
-            return new OkObjectResult(dtos);
-        }
-        catch (ApiException ex)
-        {
-            return RepositoriesErrorMapper.MapListComments(ex);
-        }
+        await resolver.EnsureIntentExistsAsync(intentId, ct);
+        var binding = await resolver.LoadBindingAsync(intentId, bindingId, ct);
+        var comments = await useCase.ListByBindingAsync(binding, ct);
+        var filtered = since is null
+            ? comments
+            : comments.Where(c => c.CreatedAt >= since.Value).ToList();
+        var dtos = filtered
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => RepositoryDtoMapper.ToCommentDto(c, binding.Id))
+            .ToList();
+        return new OkObjectResult(dtos);
     }
 }

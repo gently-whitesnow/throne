@@ -19,20 +19,15 @@ public sealed class CapabilitiesController(CapabilitiesService service) : Capabi
 
     public override async Task<ActionResult<CapabilityDto>> SetCapabilityEnabled(
         CapabilityName name,
-        SetCapabilityEnabledRequest body)
+        SetCapabilityEnabledRequest body
+    )
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
-        {
-            var view = await service.ToggleAsync(
-                CapabilityDtoMapper.ToDomainName(name),
-                body.Enabled,
-                HttpContext.RequestAborted);
-            return Ok(CapabilityDtoMapper.ToDto(view));
-        }
-        catch (ApiException ex) when (ex.Code == ErrorCodes.CapabilityNotFound)
-        {
-            return NotFound(ApiProblems.NotFound("Capability not found", ex.Detail));
-        }
+        var view = await service.ToggleAsync(
+            CapabilityDtoMapper.ToDomainName(name),
+            body.Enabled,
+            HttpContext.RequestAborted
+        );
+        return Ok(CapabilityDtoMapper.ToDto(view));
     }
 }
