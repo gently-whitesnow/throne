@@ -1,6 +1,5 @@
 import { X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
 
 import {
   BindRepositorySearchControls,
@@ -9,7 +8,7 @@ import {
   type SearchScope
 } from "@/features/bind-repository";
 import type { GitProvider } from "@/entities/repository-binding";
-import { Button } from "@/shared/ui";
+import { Button, Modal } from "@/shared/ui";
 
 interface AddDefaultRepositoryModalProps {
   open: boolean;
@@ -57,99 +56,68 @@ export function AddDefaultRepositoryModal({
     setScope("mine");
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, onClose]);
-
   if (!open) return null;
 
-  return createPortal(
-    <div
-      className="modal modal-open modal-bottom sm:modal-middle"
-      role="presentation"
-      onClick={onClose}
+  return (
+    <Modal
+      onClose={onClose}
+      labelledBy={titleId}
+      boxClassName="max-h-[min(720px,calc(100vh-32px))] w-full max-w-2xl"
     >
-      <div
-        className="modal-box max-h-[min(720px,calc(100vh-32px))] w-full max-w-2xl border border-base-300 bg-base-100"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => {
-          e.stopPropagation();
-        }}
-      >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
-              Default repository
-            </p>
-            <h3
-              id={titleId}
-              className="m-0 text-lg font-semibold leading-tight"
-            >
-              Выберите репозиторий
-            </h3>
-            <p className="m-0 text-xs text-base-content/60">
-              Будет добавлен в default-список тега. На Run pre-flight'е каждый
-              интент с этим тегом получит binding к этому репозиторию.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-circle btn-ghost"
-            onClick={onClose}
-            aria-label="Закрыть"
-          >
-            <X aria-hidden size={16} strokeWidth={2} />
-          </button>
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
+            Default repository
+          </p>
+          <h3 id={titleId} className="m-0 text-lg font-semibold leading-tight">
+            Выберите репозиторий
+          </h3>
+          <p className="m-0 text-xs text-base-content/60">
+            Будет добавлен в default-список тега. На Run pre-flight'е каждый
+            интент с этим тегом получит binding к этому репозиторию.
+          </p>
         </div>
+        <button
+          type="button"
+          className="btn btn-sm btn-circle btn-ghost"
+          onClick={onClose}
+          aria-label="Закрыть"
+        >
+          <X aria-hidden size={16} strokeWidth={2} />
+        </button>
+      </div>
 
-        <div className="flex flex-col gap-4">
-          <BindRepositorySearchControls
-            provider={provider}
-            onProviderChange={setProvider}
-            query={query}
-            onQueryChange={setQuery}
-            scope={scope}
-            onScopeChange={setScope}
-            disabled={false}
-          />
-          <RepositorySearchList
-            results={results}
-            isLoading={isLoading}
-            error={error}
-            selectedFullName={null}
-            onSelect={(repo) => {
-              onPicked({
-                provider: repo.provider,
-                host: repo.host,
-                owner: repo.owner,
-                repo: repo.repo,
-                project_id: repo.project_id,
-                default_branch: repo.default_branch
-              });
-              onClose();
-            }}
-          />
-          <div className="flex justify-end">
-            <Button onClick={onClose}>Закрыть</Button>
-          </div>
+      <div className="flex flex-col gap-4">
+        <BindRepositorySearchControls
+          provider={provider}
+          onProviderChange={setProvider}
+          query={query}
+          onQueryChange={setQuery}
+          scope={scope}
+          onScopeChange={setScope}
+          disabled={false}
+        />
+        <RepositorySearchList
+          results={results}
+          isLoading={isLoading}
+          error={error}
+          selectedFullName={null}
+          onSelect={(repo) => {
+            onPicked({
+              provider: repo.provider,
+              host: repo.host,
+              owner: repo.owner,
+              repo: repo.repo,
+              project_id: repo.project_id,
+              default_branch: repo.default_branch
+            });
+            onClose();
+          }}
+        />
+        <div className="flex justify-end">
+          <Button onClick={onClose}>Закрыть</Button>
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

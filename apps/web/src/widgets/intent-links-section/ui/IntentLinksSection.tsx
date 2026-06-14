@@ -2,7 +2,7 @@ import { AlertTriangle, Link2, Plus, X } from "lucide-react";
 import { useMemo, useState, type DragEvent, type ReactNode } from "react";
 
 import { useIntent } from "@/entities/intent";
-import { HttpError } from "@/shared/api";
+import { errorMessage, httpErrorCode } from "@/shared/lib";
 import { CollapsibleSection, INTENT_DND_MIME } from "@/shared/ui";
 
 import { createIntentLink, deleteIntentLink } from "../api/intent-links-api";
@@ -34,9 +34,10 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   const loadError = intentQuery.isError
-    ? intentQuery.error instanceof HttpError
-      ? `Ошибка (${String(intentQuery.error.status)}).`
-      : "Не удалось загрузить связи."
+    ? errorMessage(intentQuery.error, {
+        base: "Ошибка",
+        fallback: "Не удалось загрузить связи."
+      })
     : null;
   const error = actionError ?? loadError;
 
@@ -69,9 +70,10 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
     const toId = view.direction === "outgoing" ? peerId : intentId;
     deleteIntentLink(fromId, toId, view.link.type).catch((err: unknown) => {
       setActionError(
-        err instanceof HttpError
-          ? `Ошибка удаления (${String(err.status)}).`
-          : "Не удалось удалить связь."
+        errorMessage(err, {
+          base: "Ошибка удаления",
+          fallback: "Не удалось удалить связь."
+        })
       );
     });
   };
@@ -82,15 +84,16 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
       to_id: params.toId,
       type: params.type
     }).catch((err: unknown) => {
-      const code = err instanceof HttpError ? err.code : undefined;
+      const code = httpErrorCode(err);
       setActionError(
         code === "link.duplicate"
           ? "Такая связь уже существует."
           : code === "link.self_link"
             ? "Нельзя связать intent сам с собой."
-            : err instanceof HttpError
-              ? `Ошибка (${String(err.status)}).`
-              : "Не удалось создать связь."
+            : errorMessage(err, {
+                base: "Ошибка",
+                fallback: "Не удалось создать связь."
+              })
       );
     });
   };

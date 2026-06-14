@@ -103,6 +103,14 @@
       "description": "TypeScript project references build."
     },
     {
+      "id": "frontend-maintainability",
+      "scope": "frontend",
+      "enabled": true,
+      "config": ".quality/frontend-budget.json",
+      "ratchet": ".quality/frontend-loc-baseline.json",
+      "description": "Per-file LOC budget для apps/web (.ts/.tsx), лимит 300 + ratchet vs baseline. Generated/test исключены."
+    },
+    {
       "id": "frontend-architecture",
       "scope": "frontend",
       "enabled": true,

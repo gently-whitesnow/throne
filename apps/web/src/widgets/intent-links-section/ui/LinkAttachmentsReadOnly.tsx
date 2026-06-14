@@ -2,7 +2,8 @@ import { Image } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useIntentAttachments, type IntentAttachment } from "@/entities/intent";
-import { HttpError, apiUrl, httpGetBlob, intentsEndpoints } from "@/shared/api";
+import { apiUrl, httpGetBlob, intentsEndpoints } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 
 interface LinkAttachmentsReadOnlyProps {
   intentId: string;
@@ -50,11 +51,9 @@ export function LinkAttachmentsReadOnly({
     );
   }
   if (attachmentsQuery.isError) {
-    const err = attachmentsQuery.error;
-    const message =
-      err instanceof HttpError
-        ? `Не удалось загрузить вложения (${String(err.status)}).`
-        : "Не удалось загрузить вложения.";
+    const message = errorMessage(attachmentsQuery.error, {
+      base: "Не удалось загрузить вложения"
+    });
     return (
       <p role="alert" className="m-0 text-[12px] text-error">
         {message}

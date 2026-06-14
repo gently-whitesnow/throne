@@ -42,6 +42,41 @@ colors:
   error: "oklch(0.55 0.24 25)"
   error-content: "oklch(1 0 0)"
   error-soft: "oklch(0.95 0.05 25)"
+  # Status-badge palette (intent lifecycle, clone state, PR state). surface =
+  # soft fill, ink = strong text/icon. Theme-independent for now (dark inherits
+  # these via the generator); add a `dark:` override here when a dark badge set
+  # is designed. Consumed as inline style var(--color-status-*).
+  status-neutral-surface: "oklch(0.9765 0.0054 274.97)"
+  status-neutral-ink: "oklch(0.4486 0.0317 264.18)"
+  status-info-surface: "oklch(0.9535 0.0219 263.19)"
+  status-info-ink: "oklch(0.6002 0.1941 262.44)"
+  status-info-strong-ink: "oklch(0.4731 0.1933 265.74)"
+  status-progress-surface: "oklch(0.9436 0.0228 291.36)"
+  status-progress-ink: "oklch(0.4839 0.1386 280.89)"
+  status-review-surface: "oklch(0.9661 0.04 88.2)"
+  status-review-ink: "oklch(0.6072 0.1253 81.31)"
+  status-attention-surface: "oklch(0.9393 0.0331 57.13)"
+  status-attention-ink: "oklch(0.5439 0.1431 44.28)"
+  status-success-surface: "oklch(0.9575 0.0182 161.12)"
+  status-success-ink: "oklch(0.5776 0.1222 159.34)"
+  status-danger-surface: "oklch(0.9522 0.0207 17.52)"
+  status-danger-ink: "oklch(0.5958 0.1652 23.56)"
+  status-archive-surface: "oklch(0.9472 0.0137 258.35)"
+  status-archive-ink: "oklch(0.5326 0.0694 252.65)"
+  status-merged-surface: "oklch(0.9444 0.0299 296.23)"
+  status-merged-ink: "oklch(0.499 0.1873 284.19)"
+  # Embedded terminal surface (xterm theme + its container).
+  terminal-bg: "oklch(0.1813 0.0114 260.64)"
+  terminal-fg: "oklch(0.9312 0.0084 271.32)"
+  terminal-cursor: "oklch(0.7334 0.1374 262.86)"
+  # Family-marker stripe hues (intent board). Decorative, deliberately off the
+  # semantic axes (no blue/green/red) so a stripe never mimics a status.
+  family-1: "oklch(0.6268 0.2325 303.9)"
+  family-2: "oklch(0.6559 0.2118 354.31)"
+  family-3: "oklch(0.7038 0.123 182.5)"
+  family-4: "oklch(0.6056 0.2189 292.72)"
+  family-5: "oklch(0.6668 0.2591 322.15)"
+  family-6: "oklch(0.6847 0.1479 237.32)"
 dark:
   # throne-dark theme — overrides for [data-theme="throne-dark"]
   primary: "oklch(0.68 0.17 250)"

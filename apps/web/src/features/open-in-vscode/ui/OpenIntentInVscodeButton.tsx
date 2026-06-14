@@ -2,7 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import { useCapabilityEnabled } from "@/entities/capability";
-import { HttpError } from "@/shared/api";
+import { errorMessage } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { openIntentInVscode } from "../api/open-in-vscode-api";
@@ -61,14 +61,12 @@ export function OpenIntentInVscodeButton({
 }
 
 function formatError(err: unknown): string {
-  if (err instanceof HttpError) {
-    if (err.status === 422) {
-      return "Не удалось открыть: code CLI недоступен или capability выключена.";
-    }
-    if (err.status === 404) {
-      return "Интент не найден.";
-    }
-    return `Не удалось открыть (${String(err.status)}).`;
-  }
-  return "Не удалось открыть в VS Code.";
+  return errorMessage(err, {
+    base: "Не удалось открыть",
+    byStatus: {
+      422: "Не удалось открыть: code CLI недоступен или capability выключена.",
+      404: "Интент не найден."
+    },
+    fallback: "Не удалось открыть в VS Code."
+  });
 }

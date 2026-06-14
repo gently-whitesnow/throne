@@ -6,6 +6,7 @@ export type {
 } from "./entity-list/EntityList";
 export { VirtualEntityList } from "./entity-list/VirtualEntityList";
 export { MarkdownView, MermaidDiagram } from "./markdown";
+export { Modal } from "./modal";
 export { ResizeHandle } from "./resize-handle/ResizeHandle";
 export { CollapsibleSection, SectionCount, SectionHeading } from "./section";
 export { TagMultiSelect } from "./tag-multi-select";

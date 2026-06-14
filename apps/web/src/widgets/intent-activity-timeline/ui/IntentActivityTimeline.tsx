@@ -2,8 +2,12 @@ import { Activity, Bot, Cog, Link2, Link2Off, User } from "lucide-react";
 import { useMemo } from "react";
 
 import { useIntentEvents, type IntentEvent } from "@/entities/intent-event";
-import { HttpError } from "@/shared/api";
-import { dayKey, formatDateLabel, formatRelativeTime } from "@/shared/lib";
+import {
+  dayKey,
+  errorMessage,
+  formatDateLabel,
+  formatRelativeTime
+} from "@/shared/lib";
 import { CollapsibleSection } from "@/shared/ui";
 
 import { type ActivityFeedItem, buildActivityFeed } from "../model/types";
@@ -58,11 +62,9 @@ export function IntentActivityTimeline({
   // секции на странице нет вовсе (прогрессивное раскрытие).
   if (eventsQuery.isPending) return null;
   if (eventsQuery.isError) {
-    const err = eventsQuery.error;
-    const message =
-      err instanceof HttpError
-        ? `Не удалось загрузить активность (${String(err.status)}).`
-        : "Не удалось загрузить активность.";
+    const message = errorMessage(eventsQuery.error, {
+      base: "Не удалось загрузить активность"
+    });
     return (
       <p role="alert" className="m-0 text-xs text-error">
         {message}

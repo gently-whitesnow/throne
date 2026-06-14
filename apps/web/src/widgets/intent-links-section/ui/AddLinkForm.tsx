@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useInfiniteIntents } from "@/entities/intent";
-import { HttpError } from "@/shared/api";
-import { useDebouncedValue } from "@/shared/lib";
+import { errorMessage, httpErrorCode, useDebouncedValue } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { createIntentLink } from "../api/intent-links-api";
@@ -88,7 +87,7 @@ export function AddLinkForm({
         onCreated?.();
       })
       .catch((err: unknown) => {
-        const code = err instanceof HttpError ? err.code : undefined;
+        const code = httpErrorCode(err);
         setError(
           code === "link.duplicate"
             ? "Такая связь уже существует."
@@ -96,9 +95,10 @@ export function AddLinkForm({
               ? "Нельзя связать intent сам с собой."
               : code === "link.type_unsupported"
                 ? "Этот тип пока не поддержан."
-                : err instanceof HttpError
-                  ? `Ошибка (${String(err.status)}).`
-                  : "Не удалось создать связь."
+                : errorMessage(err, {
+                    base: "Ошибка",
+                    fallback: "Не удалось создать связь."
+                  })
         );
         setSubmitting(false);
       });

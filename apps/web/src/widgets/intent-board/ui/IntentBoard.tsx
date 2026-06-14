@@ -7,8 +7,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { intentsQueryKeys, useLinksSummary } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
-import { HttpError, type IntentsComponents } from "@/shared/api";
-import { isTagContext } from "@/shared/lib";
+import { type IntentsComponents } from "@/shared/api";
+import { errorMessage, isTagContext } from "@/shared/lib";
 import { VirtualEntityList, type EntityListReorder } from "@/shared/ui";
 
 import {
@@ -50,10 +50,8 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     fetchNextPage
   } = useBoardItems(context);
 
-  const errorMessage = isError
-    ? error instanceof HttpError
-      ? `Не удалось загрузить intents (${String(error.status)}).`
-      : "Не удалось загрузить intents."
+  const loadErrorMessage = isError
+    ? errorMessage(error, { base: "Не удалось загрузить intents" })
     : null;
 
   const tagNameToId = useMemo(() => {
@@ -237,12 +235,12 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
             Загрузка…
           </p>
         )}
-        {errorMessage !== null && (
+        {loadErrorMessage !== null && (
           <p
             role="alert"
             className="m-0 px-3.5 py-4 text-[13px] text-base-content/60"
           >
-            {errorMessage}
+            {loadErrorMessage}
           </p>
         )}
         {isSuccess && (
