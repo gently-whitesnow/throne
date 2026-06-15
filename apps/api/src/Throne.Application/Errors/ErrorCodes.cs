@@ -41,6 +41,7 @@ public static class ErrorCodes
     public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
     public const string TerminalRunPreflightBlocked = "terminal.run_preflight_blocked";
     public const string TerminalSpawnFailed = "terminal.spawn_failed";
+    public const string TerminalTuiReadinessTimeout = "terminal.tui_readiness_timeout";
     public const string TerminalCloneWaitTimeout = "terminal.clone_wait_timeout";
     public const string TerminalModeInvalid = "terminal.mode_invalid";
     public const string TerminalArgsInvalid = "terminal.args_invalid";

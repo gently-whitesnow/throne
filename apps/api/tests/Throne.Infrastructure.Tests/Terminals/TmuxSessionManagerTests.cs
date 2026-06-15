@@ -126,6 +126,42 @@ public class TmuxSessionManagerTests
         await events.DidNotReceive().DispatchAsync(Arg.Any<IDomainEvent>(), Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "CapturePaneAsync шеллится в tmux capture-pane -p -t throne-<id> и возвращает stdout как есть")]
+    public async Task Capture_pane_returns_stdout()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(
+                ExitCode: 0,
+                StandardOutput: "╭─╮\n│ > _ │\n╰─╯",
+                StandardError: string.Empty,
+                Elapsed: TimeSpan.Zero)));
+        var sut = NewManager(launcher);
+
+        var snapshot = await sut.CapturePaneAsync(IntentId, CancellationToken.None);
+
+        snapshot.Should().Be("╭─╮\n│ > _ │\n╰─╯");
+        var argv = (ProcessRunRequest)launcher.ReceivedCalls().Single().GetArguments()[0]!;
+        argv.Arguments.Should().Equal("capture-pane", "-p", "-t", "throne-intent-abc");
+    }
+
+    [Fact(DisplayName = "CapturePaneAsync глотает non-zero exit и возвращает пустую строку для безопасной диагностики")]
+    public async Task Capture_pane_returns_empty_on_failure()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(
+                ExitCode: 1,
+                StandardOutput: string.Empty,
+                StandardError: "no session",
+                Elapsed: TimeSpan.Zero)));
+        var sut = NewManager(launcher);
+
+        var snapshot = await sut.CapturePaneAsync(IntentId, CancellationToken.None);
+
+        snapshot.Should().BeEmpty();
+    }
+
     [Fact(DisplayName = "ListThroneSessions фильтрует список по префиксу 'throne-'")]
     public async Task ListThroneSessions_filters_prefix()
     {

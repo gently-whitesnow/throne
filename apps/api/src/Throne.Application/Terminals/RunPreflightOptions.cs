@@ -21,4 +21,18 @@ public sealed class RunPreflightOptions
     /// Small enough to feel responsive in the UI, large enough not to hammer Mongo.
     /// </summary>
     public int PollIntervalMilliseconds { get; set; } = 500;
+
+    /// <summary>
+    /// Upper bound (milliseconds) for the post-spawn wait that gates user-prompt delivery on
+    /// vendor TUI readiness — see <see cref="TmuxTuiReadinessWaiter"/>. Claude Code on this
+    /// box cold-starts in 1200–1500 ms; 5000 ms leaves headroom for slower machines without
+    /// hanging the Run pre-flight indefinitely on a stuck TUI.
+    /// </summary>
+    public int TuiReadinessTimeoutMilliseconds { get; set; } = 5000;
+
+    /// <summary>
+    /// Poll interval (milliseconds) for the TUI readiness wait. <c>tmux capture-pane</c> is a
+    /// cheap shell-out so polling at 100 ms gives sub-second detection without flooding tmux.
+    /// </summary>
+    public int TuiReadinessPollIntervalMilliseconds { get; set; } = 100;
 }

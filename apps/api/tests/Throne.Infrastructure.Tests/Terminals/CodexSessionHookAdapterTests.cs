@@ -94,6 +94,17 @@ public class CodexSessionHookAdapterTests
         Directory.GetFileSystemEntries(root).Should().BeEmpty();
     }
 
+    [Theory(DisplayName = "Codex IsTuiReady распознаёт композёр по input-row маркеру и игнорирует splash")]
+    [InlineData("", false)]
+    [InlineData("OpenAI Codex\nloading model…", false)]
+    [InlineData("╭─────╮\n│ > _                 │\n╰─────╯", true)]
+    public void Is_tui_ready_matches_composer_input_row(string snapshot, bool expected)
+    {
+        var sut = NewAdapter("http://localhost:5008");
+
+        sut.IsTuiReady(snapshot).Should().Be(expected);
+    }
+
     private static string NewHome()
     {
         var home = Path.Combine(Path.GetTempPath(), $"throne-codexhome-{Guid.NewGuid():N}");
