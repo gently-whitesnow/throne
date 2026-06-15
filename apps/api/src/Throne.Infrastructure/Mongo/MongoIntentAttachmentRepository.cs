@@ -9,17 +9,27 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentAttachmentRepository(
-    IMongoDatabase database) : IIntentAttachmentRepository
+internal sealed class MongoIntentAttachmentRepository
+    : MongoRepositoryBase<IntentAttachmentDocument, string>, IIntentAttachmentRepository
 {
     private const string GridFsBucketName = "intent_attachment_fs";
     private const string CompressionStatePending = "pending";
     private const string CompressionStateReady = "ready";
 
-    private readonly IMongoCollection<IntentAttachmentDocument> _attachments =
-        database.GetCollection<IntentAttachmentDocument>(MongoCollectionNames.IntentAttachments);
+    // GridFS is the second "collection" for this aggregate — kept as a field outside
+    // the base because it isn't an IMongoCollection<T> at all.
+    private readonly IMongoDatabase _database;
 
-    private GridFSBucket Bucket => new(database, new GridFSBucketOptions { BucketName = GridFsBucketName });
+    public MongoIntentAttachmentRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.IntentAttachments, sessions)
+    {
+        _database = database;
+    }
+
+    protected override FilterDefinition<IntentAttachmentDocument> ById(string id) =>
+        Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, id);
+
+    private GridFSBucket Bucket => new(_database, new GridFSBucketOptions { BucketName = GridFsBucketName });
 
     private static FilterDefinition<IntentAttachmentDocument> ByIntent(IntentId intentId) =>
         Builders<IntentAttachmentDocument>.Filter.Eq(x => x.IntentId, intentId.Value);
@@ -27,18 +37,16 @@ internal sealed class MongoIntentAttachmentRepository(
     public async Task<int> CountByIntentAsync(IntentId intentId, CancellationToken ct)
     {
         var filter = ByIntent(intentId);
-        var count = await _attachments.CountDocumentsAsync(filter, cancellationToken: ct);
+        var count = await Collection.CountDocumentsAsync(filter, cancellationToken: ct);
         return count > int.MaxValue ? int.MaxValue : (int)count;
     }
 
     public async Task<IReadOnlyList<IntentAttachment>> ListByIntentAsync(IntentId intentId, CancellationToken ct)
     {
         var filter = ByIntent(intentId);
-        var docs = await _attachments
-            .Find(filter)
+        var docs = await Find(filter)
             .SortByDescending(x => x.CreatedAt)
-            .ToListAsync(ct)
-            ;
+            .ToListAsync(ct);
 
         return docs.Select(ToDomain).ToArray();
     }
@@ -92,7 +100,7 @@ internal sealed class MongoIntentAttachmentRepository(
                 : null,
         };
 
-        await _attachments.InsertOneAsync(doc, cancellationToken: ct);
+        await Collection.InsertOneAsync(doc, cancellationToken: ct);
 
         return new UploadIntentAttachmentOutcome(ToDomain(doc));
     }
@@ -139,7 +147,7 @@ internal sealed class MongoIntentAttachmentRepository(
         var filter = Builders<IntentAttachmentDocument>.Filter.And(
             ByIntent(intentId),
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
-        var result = await _attachments.DeleteOneAsync(filter, ct);
+        var result = await Collection.DeleteOneAsync(filter, ct);
         if (result.DeletedCount == 0)
         {
             return new DeleteIntentAttachmentOutcome.NotFound();
@@ -151,7 +159,7 @@ internal sealed class MongoIntentAttachmentRepository(
     public async Task DeleteAllForIntentAsync(IntentId intentId, CancellationToken ct)
     {
         var filter = ByIntent(intentId);
-        var list = await _attachments.Find(filter).ToListAsync(ct);
+        var list = await Collection.Find(filter).ToListAsync(ct);
         foreach (var doc in list)
         {
             if (!ObjectId.TryParse(doc.GridFsId, out var oid))
@@ -169,7 +177,7 @@ internal sealed class MongoIntentAttachmentRepository(
             }
         }
 
-        await _attachments.DeleteManyAsync(filter, ct);
+        await Collection.DeleteManyAsync(filter, ct);
     }
 
     private async Task<IntentAttachmentDocument?> FindByIntentAndAttachmentAsync(
@@ -180,7 +188,7 @@ internal sealed class MongoIntentAttachmentRepository(
         var filter = Builders<IntentAttachmentDocument>.Filter.And(
             ByIntent(intentId),
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId));
-        return await _attachments.Find(filter).FirstOrDefaultAsync(ct);
+        return await Collection.Find(filter).FirstOrDefaultAsync(ct);
     }
 
     public async Task<IReadOnlyList<PendingCompressionItem>> ListPendingCompressionAsync(int batchSize, CancellationToken ct)
@@ -197,7 +205,7 @@ internal sealed class MongoIntentAttachmentRepository(
         var filter = filterBuilder.And(
             filterBuilder.Regex(x => x.ContentType, new BsonRegularExpression("^image/", "i")),
             filterBuilder.Ne(x => x.CompressionState, CompressionStateReady));
-        var docs = await _attachments
+        var docs = await Collection
             .Find(filter)
             .SortBy(x => x.CreatedAt)
             .Limit(batchSize)
@@ -237,7 +245,7 @@ internal sealed class MongoIntentAttachmentRepository(
         ArgumentException.ThrowIfNullOrWhiteSpace(previousGridFsId);
 
         var newFileId = ObjectId.GenerateNewId();
-        var existing = await _attachments
+        var existing = await Collection
             .Find(Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId))
             .FirstOrDefaultAsync(ct)
             ;
@@ -274,7 +282,7 @@ internal sealed class MongoIntentAttachmentRepository(
             Builders<IntentAttachmentDocument>.Filter.Eq(x => x.Id, attachmentId),
             Builders<IntentAttachmentDocument>.Filter.Ne(x => x.CompressionState, CompressionStateReady));
 
-        var updateResult = await _attachments
+        var updateResult = await Collection
             .UpdateOneAsync(updateFilter, update, cancellationToken: ct)
             ;
 

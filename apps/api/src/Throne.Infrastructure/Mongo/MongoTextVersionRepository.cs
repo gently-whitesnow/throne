@@ -5,10 +5,16 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoTextVersionRepository(IMongoDatabase database, MongoSessionAccessor sessions) : ITextVersionRepository
+internal sealed class MongoTextVersionRepository
+    : MongoRepositoryBase<TextVersionDocument, string>, ITextVersionRepository
 {
-    private readonly IMongoCollection<TextVersionDocument> _textVersions =
-        database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
+    public MongoTextVersionRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.TextVersions, sessions)
+    {
+    }
+
+    protected override FilterDefinition<TextVersionDocument> ById(string id) =>
+        Builders<TextVersionDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<IReadOnlyList<TextVersion>> ListByOwnerAsync(
         TextVersionOwnerKind ownerKind,
@@ -22,10 +28,7 @@ internal sealed class MongoTextVersionRepository(IMongoDatabase database, MongoS
             Builders<TextVersionDocument>.Filter.Eq(d => d.OwnerKind, ownerKindWire),
             Builders<TextVersionDocument>.Filter.Eq(d => d.OwnerId, ownerId));
 
-        var session = sessions.Current;
-        var documents = session is null
-            ? await _textVersions.Find(filter).SortBy(d => d.Version).ToListAsync(ct)
-            : await _textVersions.Find(session, filter).SortBy(d => d.Version).ToListAsync(ct);
+        var documents = await Find(filter).SortBy(d => d.Version).ToListAsync(ct);
 
         var result = new List<TextVersion>(documents.Count);
         foreach (var doc in documents)

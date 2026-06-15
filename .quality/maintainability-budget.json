@@ -41,7 +41,7 @@
   },
   "profiles": {
     "strict": {
-      "description": "Default profile. Tight budgets для нового кода + ratchet через baseline. constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR. Throne.Domain выведен из size-бюджета через exclude: rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest), а не LOC/CC-лимитами.",
+      "description": "Default profile (blocking). constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR. Throne.Domain включён в size/CC-бюджет (override ниже): rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest) на уровне инвариантов, а LOC/CC ловит разрастание агрегатов.",
       "gateMode": "blocking",
       "limits": {
         "fileMaxLoc": 400,
@@ -53,9 +53,7 @@
         "typeMaxPublicMembers": 12,
         "fileMaxFanOut": 15
       },
-      "exclude": [
-        "**/Throne.Domain/**.cs"
-      ],
+      "exclude": [],
       "pathOverrides": [
         {
           "_comment": "intent:4b43b94c4a194a30b8ddb99c67643d7f — NSwag-generated REST controllers compose one abstract override per route, so ctor surface grows linearly with endpoint count.",
@@ -72,13 +70,13 @@
           }
         },
         {
-          "_comment": "intent:aa5b39b430c54685a08f475d3be167b9 — Mongo adapter layer wraps Builders<TDoc> chains + atomic read-then-update sequences. Type/method budgets stay at legacy thresholds; per-method CC ≤25 still catches real complexity. Same precedent as REST controllers above.",
+          "_comment": "ADR-0040: Mongo adapter layer wraps Builders<TDoc> chains + atomic read-then-update sequences. После введения MongoRepositoryBase лимит fileMaxLoc понижен 800→500; per-method CC ≤20 still catches real complexity. Same precedent as REST controllers above.",
           "glob": "**/Throne.Infrastructure/Mongo/**.cs",
           "limits": {
-            "fileMaxLoc": 800,
-            "typeMaxLoc": 500,
-            "methodMaxLoc": 120,
-            "methodMaxCyclomaticComplexity": 25
+            "fileMaxLoc": 500,
+            "typeMaxLoc": 400,
+            "methodMaxLoc": 100,
+            "methodMaxCyclomaticComplexity": 20
           }
         },
         {
@@ -92,7 +90,27 @@
           "_comment": "CLI provider façades (ADR-0024 gh, ADR-0032 glab) mechanically implement IGitProvider as one-line delegations to collaborator types; public surface == interface method count, same structural-surface precedent as REST controllers above.",
           "glob": "**/Throne.Infrastructure/Git/*Cli/*CliProvider.cs",
           "limits": {
-            "typeMaxPublicMembers": 16
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
+          "_comment": "ADR-0040: NSwag-generated controllers с одним OpenAPI tag дают one-class-per-tag диспатчер; public surface == route count. IntentRepositoriesController покрывает 16 routes (binding lifecycle + PR + review threads + commits) — single аггрегат с точки зрения клиента. Split на 3 контроллера потребовал бы tag-split в OpenAPI + регенерации TS-клиента и churn 7 frontend-консьюмеров; вынесено как follow-up. Структурная surface, не code-smell.",
+          "glob": "**/Throne.Api/Repositories/IntentRepositoriesController.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
+          "_comment": "ADR-0040: Throne.Domain включён в size/CC-бюджет (rich-DDD стиль через ADR-0025 + DomainEncapsulationRulesTests). Лимиты дают воздух для агрегатов (Intent 331 LOC, IntentRepositoryBinding 321, DreamSession.Create 109/CC 20, PromptPart/RepositoryArtifact ctor=9 data fields) при сохранении сигнала на дальнейшее разрастание. record-DTO и encapsulation охраняет NetArchTest, не budget.",
+          "glob": "**/Throne.Domain/**.cs",
+          "limits": {
+            "fileMaxLoc": 500,
+            "typeMaxLoc": 400,
+            "methodMaxLoc": 120,
+            "methodMaxCyclomaticComplexity": 20,
+            "constructorMaxDependencies": 12,
+            "typeMaxPublicMembers": 25,
+            "fileMaxFanOut": 20
           }
         },
         {

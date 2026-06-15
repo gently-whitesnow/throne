@@ -6,24 +6,30 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSessionAccessor sessions) : IPromptPartRepository
+internal sealed class MongoPromptPartRepository
+    : MongoRepositoryBase<PromptPartDocument, string>, IPromptPartRepository
 {
-    private readonly IMongoCollection<PromptPartDocument> _parts =
-        database.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
+    // Versions live in a sibling collection — only the primary `prompt_parts` collection
+    // is wired through the base, the history feed stays on its own field.
+    private readonly IMongoCollection<TextVersionDocument> _textVersions;
 
-    private readonly IMongoCollection<TextVersionDocument> _textVersions =
-        database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
+    public MongoPromptPartRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.PromptParts, sessions)
+    {
+        _textVersions = database.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions);
+    }
+
+    protected override FilterDefinition<PromptPartDocument> ById(string id) =>
+        Builders<PromptPartDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<CreatePromptPartOutcome> CreateAsync(PromptPart part, TextVersion initialVersion, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(part);
         ArgumentNullException.ThrowIfNull(initialVersion);
 
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoPromptPartRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
+        var session = RequireSession(nameof(CreateAsync));
 
-        var existing = await _parts.Find(
+        var existing = await Collection.Find(
                 session,
                 d => d.Scope == part.Scope && d.Key == part.Key)
             .Project(d => d.Id)
@@ -33,7 +39,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
             return new CreatePromptPartOutcome.KeyConflict();
         }
 
-        await _parts.InsertOneAsync(session, ToDocument(part), options: null, ct);
+        await InsertOneAsync(ToDocument(part), ct);
         await _textVersions.InsertOneAsync(session, MapVersion(initialVersion), options: null, ct);
 
         return new CreatePromptPartOutcome.Created(part);
@@ -44,10 +50,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         var filter = scope is null
             ? Builders<PromptPartDocument>.Filter.Empty
             : Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, scope);
-        var session = sessions.Current;
-        var documents = session is null
-            ? await _parts.Find(filter).SortBy(x => x.Scope).ThenBy(x => x.Key).ToListAsync(ct)
-            : await _parts.Find(session, filter).SortBy(x => x.Scope).ThenBy(x => x.Key).ToListAsync(ct);
+        var documents = await Find(filter).SortBy(x => x.Scope).ThenBy(x => x.Key).ToListAsync(ct);
 
         var result = new List<PromptPart>(documents.Count);
         foreach (var doc in documents)
@@ -59,10 +62,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
 
     public async Task<PromptPart?> GetByIdAsync(PromptPartId id, CancellationToken ct)
     {
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _parts.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct)
-            : await _parts.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id.Value, ct);
         return doc is null ? null : ToDomain(doc);
     }
 
@@ -74,11 +74,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         var filter = Builders<PromptPartDocument>.Filter.And(
             Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, scope),
             Builders<PromptPartDocument>.Filter.Eq(x => x.Key, key));
-
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _parts.Find(filter).FirstOrDefaultAsync(ct)
-            : await _parts.Find(session, filter).FirstOrDefaultAsync(ct);
+        var doc = await FindOneAsync(filter, ct);
         return doc is null ? null : ToDomain(doc);
     }
 
@@ -97,11 +93,7 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         var filter = Builders<PromptPartDocument>.Filter.And(
             Builders<PromptPartDocument>.Filter.Eq(x => x.Scope, scope),
             Builders<PromptPartDocument>.Filter.In(x => x.Key, keys));
-
-        var session = sessions.Current;
-        var documents = session is null
-            ? await _parts.Find(filter).SortBy(x => x.Key).ToListAsync(ct)
-            : await _parts.Find(session, filter).SortBy(x => x.Key).ToListAsync(ct);
+        var documents = await Find(filter).SortBy(x => x.Key).ToListAsync(ct);
 
         var result = new List<PromptPart>(documents.Count);
         foreach (var doc in documents)
@@ -123,11 +115,9 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         ArgumentNullException.ThrowIfNull(oldText);
         ArgumentNullException.ThrowIfNull(newText);
 
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoPromptPartRepository.ReplaceTextAsync must run inside IUnitOfWork.ExecuteAsync.");
+        var session = RequireSession(nameof(ReplaceTextAsync));
 
-        var document = await _parts.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var document = await FindByIdAsync(id.Value, ct);
         if (document is null)
         {
             return new ReplacePromptPartTextOutcome.NotFound();
@@ -155,18 +145,15 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
                         .Set(d => d.Text, part.Text)
                         .Set(d => d.CurrentVersion, part.CurrentVersion)
                         .Set(d => d.UpdatedAt, part.UpdatedAt.UtcDateTime);
+                    var casFilter = Builders<PromptPartDocument>.Filter.And(
+                        ById(id.Value),
+                        Builders<PromptPartDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
 
-                    var updateResult = await _parts.UpdateOneAsync(
-                        session,
-                        d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
-                        update,
-                        options: null,
-                        ct);
-
-                    if (updateResult.ModifiedCount == 0)
+                    if (!await TryUpdateAsync(casFilter, update, ct))
                     {
-                        var fresh = await _parts.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
-                        return new ReplacePromptPartTextOutcome.VersionConflict(fresh?.CurrentVersion ?? expectedVersion);
+                        var fresh = await FindByIdAsync(id.Value, ct);
+                        return new ReplacePromptPartTextOutcome.VersionConflict(
+                            fresh?.CurrentVersion ?? expectedVersion);
                     }
 
                     await _textVersions.InsertOneAsync(session, MapVersion(replaced.Version), options: null, ct);
@@ -185,12 +172,9 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(modeRoles);
+        _ = RequireSession(nameof(SetModeRolesAsync));
 
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoPromptPartRepository.SetModeRolesAsync must run inside IUnitOfWork.ExecuteAsync.");
-
-        var document = await _parts.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var document = await FindByIdAsync(id.Value, ct);
         if (document is null)
         {
             return null;
@@ -203,17 +187,15 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
             .Set(d => d.ModeRoles, MapRoles(part.ModeRoles))
             .Set(d => d.UpdatedAt, part.UpdatedAt.UtcDateTime);
 
-        await _parts.UpdateOneAsync(session, d => d.Id == id.Value, update, options: null, ct);
+        await TryUpdateAsync(ById(id.Value), update, ct);
         return part;
     }
 
     public async Task<DeletePromptPartOutcome> DeleteAsync(PromptPartId id, CancellationToken ct)
     {
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoPromptPartRepository.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
+        _ = RequireSession(nameof(DeleteAsync));
 
-        var document = await _parts.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var document = await FindByIdAsync(id.Value, ct);
         if (document is null)
         {
             return new DeletePromptPartOutcome.NotFound();
@@ -223,9 +205,14 @@ internal sealed class MongoPromptPartRepository(IMongoDatabase database, MongoSe
             return new DeletePromptPartOutcome.HasRoles();
         }
 
-        await _parts.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct);
+        await DeleteOneAsync(ById(id.Value), ct);
         return new DeletePromptPartOutcome.Deleted();
     }
+
+    private IClientSessionHandle RequireSession(string method) =>
+        Sessions.Current
+            ?? throw new InvalidOperationException(
+                $"MongoPromptPartRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 
     private static PromptPartDocument ToDocument(PromptPart part) => new()
     {

@@ -12,12 +12,16 @@ namespace Throne.Infrastructure.Mongo.Repositories;
 /// <see cref="IUnitOfWork.ExecuteAsync"/> participate in the transaction; reads outside a
 /// session are still safe (no implicit writes).
 /// </summary>
-internal sealed class MongoIntentRepositoryBindingStore(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IIntentRepositoryBindingRepository
+internal sealed class MongoIntentRepositoryBindingStore
+    : MongoRepositoryBase<IntentRepositoryBindingDocument, string>, IIntentRepositoryBindingRepository
 {
-    private readonly IMongoCollection<IntentRepositoryBindingDocument> _bindings =
-        database.GetCollection<IntentRepositoryBindingDocument>(MongoCollectionNames.IntentRepositoryBindings);
+    public MongoIntentRepositoryBindingStore(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.IntentRepositoryBindings, sessions)
+    {
+    }
+
+    protected override FilterDefinition<IntentRepositoryBindingDocument> ById(string id) =>
+        Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<CreateBindingOutcome> CreateAsync(IntentRepositoryBinding binding, CancellationToken ct)
     {
@@ -29,20 +33,11 @@ internal sealed class MongoIntentRepositoryBindingStore(
             return new CreateBindingOutcome.Duplicate(IntentRepositoryBindingDocumentMapper.ToDomain(existing));
         }
 
-        var session = sessions.Current;
-        var doc = IntentRepositoryBindingDocumentMapper.ToDocument(binding);
         try
         {
-            if (session is null)
-            {
-                await _bindings.InsertOneAsync(doc, options: null, ct);
-            }
-            else
-            {
-                await _bindings.InsertOneAsync(session, doc, options: null, ct);
-            }
+            await InsertOneAsync(IntentRepositoryBindingDocumentMapper.ToDocument(binding), ct);
         }
-        catch (MongoWriteException ex) when (IsDuplicateKey(ex))
+        catch (MongoWriteException ex) when (MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
             // Lost the race against a concurrent insert. Re-read so the caller sees the
             // winning row instead of a misleading «server error» bubble.
@@ -59,11 +54,7 @@ internal sealed class MongoIntentRepositoryBindingStore(
 
     public async Task<IntentRepositoryBinding?> GetByIdAsync(BindingId id, CancellationToken ct)
     {
-        var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.Id, id.Value);
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _bindings.Find(filter).FirstOrDefaultAsync(ct)
-            : await _bindings.Find(session, filter).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id.Value, ct);
         return doc is null ? null : IntentRepositoryBindingDocumentMapper.ToDomain(doc);
     }
 
@@ -72,9 +63,7 @@ internal sealed class MongoIntentRepositoryBindingStore(
         CancellationToken ct)
     {
         var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.IntentId, intentId.Value);
-        var session = sessions.Current;
-        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
-        var docs = await find
+        var docs = await Find(filter)
             .SortBy(d => d.CreatedAt)
             .ToListAsync(ct);
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
@@ -82,10 +71,7 @@ internal sealed class MongoIntentRepositoryBindingStore(
 
     public async Task<IReadOnlyList<IntentRepositoryBinding>> FindAllAsync(CancellationToken ct)
     {
-        var filter = Builders<IntentRepositoryBindingDocument>.Filter.Empty;
-        var session = sessions.Current;
-        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
-        var docs = await find
+        var docs = await Find(Builders<IntentRepositoryBindingDocument>.Filter.Empty)
             .SortBy(d => d.CreatedAt)
             .ToListAsync(ct);
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
@@ -101,12 +87,10 @@ internal sealed class MongoIntentRepositoryBindingStore(
                 fb.Eq(d => d.PullRequestState, PullRequestStateNames.Open),
                 fb.Eq(d => d.PullRequestState, null)));
 
-        var session = sessions.Current;
-        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
         // Ascending by LastSyncedAt: Mongo sorts null before non-null values, so bindings
         // that have never been polled go first — matches the «oldest poll wins» policy
         // of PullRequestSyncService.
-        var docs = await find
+        var docs = await Find(filter)
             .Sort(Builders<IntentRepositoryBindingDocument>.Sort.Ascending(d => d.LastSyncedAt))
             .ToListAsync(ct);
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
@@ -119,9 +103,7 @@ internal sealed class MongoIntentRepositoryBindingStore(
             fb.Eq(d => d.CloneStatus, CloneStatusNames.Ready),
             fb.Eq(d => d.PullRequestNumber, null));
 
-        var session = sessions.Current;
-        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
-        var docs = await find
+        var docs = await Find(filter)
             .Sort(Builders<IntentRepositoryBindingDocument>.Sort.Ascending(d => d.UpdatedAt))
             .ToListAsync(ct);
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
@@ -133,9 +115,7 @@ internal sealed class MongoIntentRepositoryBindingStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cloneStatus);
         var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.CloneStatus, cloneStatus);
-        var session = sessions.Current;
-        var find = session is null ? _bindings.Find(filter) : _bindings.Find(session, filter);
-        var docs = await find
+        var docs = await Find(filter)
             .SortBy(d => d.CreatedAt)
             .ToListAsync(ct);
         return docs.Select(IntentRepositoryBindingDocumentMapper.ToDomain).ToList();
@@ -155,11 +135,14 @@ internal sealed class MongoIntentRepositoryBindingStore(
             .Set(d => d.LastSyncedAt, binding.State.LastSyncedAt?.UtcDateTime)
             .Set(d => d.UpdatedAt, binding.State.UpdatedAt.UtcDateTime);
 
-        var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.Id, binding.Id.Value);
-        var session = sessions.Current;
+        // Save isn't a CAS — we must distinguish "no matching id" from "matched but
+        // server saw identical values" (the base TryUpdateAsync only sees ModifiedCount).
+        // So go through the collection directly for the matched-count check.
+        var filter = ById(binding.Id.Value);
+        var session = Sessions.Current;
         var result = session is null
-            ? await _bindings.UpdateOneAsync(filter, update, options: null, ct)
-            : await _bindings.UpdateOneAsync(session, filter, update, options: null, ct);
+            ? await Collection.UpdateOneAsync(filter, update, options: null, ct)
+            : await Collection.UpdateOneAsync(session, filter, update, options: null, ct);
 
         if (result.MatchedCount == 0)
         {
@@ -185,10 +168,12 @@ internal sealed class MongoIntentRepositoryBindingStore(
             .Set(d => d.CloneError, binding.State.CloneError)
             .Set(d => d.UpdatedAt, binding.State.UpdatedAt.UtcDateTime);
 
-        var session = sessions.Current;
+        // Same MatchedCount-vs-ModifiedCount caveat as SaveAsync: a worker that re-sets
+        // identical fields would still hold the claim, but ModifiedCount would be 0.
+        var session = Sessions.Current;
         var result = session is null
-            ? await _bindings.UpdateOneAsync(filter, update, options: null, ct)
-            : await _bindings.UpdateOneAsync(session, filter, update, options: null, ct);
+            ? await Collection.UpdateOneAsync(filter, update, options: null, ct)
+            : await Collection.UpdateOneAsync(session, filter, update, options: null, ct);
 
         if (result.MatchedCount == 0)
         {
@@ -199,19 +184,13 @@ internal sealed class MongoIntentRepositoryBindingStore(
 
     public async Task<DeleteBindingOutcome> DeleteAsync(BindingId id, CancellationToken ct)
     {
-        var filter = Builders<IntentRepositoryBindingDocument>.Filter.Eq(d => d.Id, id.Value);
-        var session = sessions.Current;
-        var existing = session is null
-            ? await _bindings.Find(filter).FirstOrDefaultAsync(ct)
-            : await _bindings.Find(session, filter).FirstOrDefaultAsync(ct);
+        var existing = await FindByIdAsync(id.Value, ct);
         if (existing is null)
         {
             return new DeleteBindingOutcome.NotFound();
         }
 
-        var deleteResult = session is null
-            ? await _bindings.DeleteOneAsync(filter, ct)
-            : await _bindings.DeleteOneAsync(session, filter, options: null, ct);
+        var deleteResult = await DeleteOneAsync(ById(id.Value), ct);
         if (deleteResult.DeletedCount == 0)
         {
             return new DeleteBindingOutcome.NotFound();
@@ -219,7 +198,7 @@ internal sealed class MongoIntentRepositoryBindingStore(
         return new DeleteBindingOutcome.Deleted(IntentRepositoryBindingDocumentMapper.ToDomain(existing));
     }
 
-    private async Task<IntentRepositoryBindingDocument?> FindByCoordinateAsync(
+    private Task<IntentRepositoryBindingDocument?> FindByCoordinateAsync(
         IntentId intentId,
         RepoCoordinate coordinate,
         CancellationToken ct)
@@ -230,13 +209,6 @@ internal sealed class MongoIntentRepositoryBindingStore(
             fb.Eq(d => d.Provider, coordinate.Provider),
             fb.Eq(d => d.Owner, coordinate.Owner),
             fb.Eq(d => d.Repo, coordinate.Repo));
-
-        var session = sessions.Current;
-        return session is null
-            ? await _bindings.Find(filter).FirstOrDefaultAsync(ct)
-            : await _bindings.Find(session, filter).FirstOrDefaultAsync(ct);
+        return FindOneAsync(filter, ct);
     }
-
-    private static bool IsDuplicateKey(MongoWriteException ex) =>
-        ex.WriteError?.Category == ServerErrorCategory.DuplicateKey;
 }
