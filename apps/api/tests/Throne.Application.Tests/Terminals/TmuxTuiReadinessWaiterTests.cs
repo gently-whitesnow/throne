@@ -59,6 +59,25 @@ public class TmuxTuiReadinessWaiterTests
         result.Attempts.Should().BeGreaterThan(1);
     }
 
+    [Fact(DisplayName = "Pane из одних переводов строк (TUI ещё не отрисовался) не должен ловиться стабильностью")]
+    public async Task Whitespace_only_snapshots_do_not_trigger_stability()
+    {
+        // tmux capture-pane against a freshly-spawned TUI returns a column of newlines for the first
+        // ~hundreds of ms — non-empty but visually blank. Treating those as "stable" was the bug
+        // that lost the user prompt for Claude Code: the waiter resolved at t≈200ms and we pasted
+        // into a pane that hadn't even rendered yet.
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        tmux.CapturePaneAsync(IntentId, Arg.Any<CancellationToken>())
+            .Returns(new string('\n', 50));
+        var adapter = new MarkerAdapter("never-matches");
+        var waiter = NewWaiter(tmux, timeoutMs: 150, pollMs: 20);
+
+        var result = await waiter.WaitAsync(IntentId, adapter, CancellationToken.None);
+
+        result.IsReady.Should().BeFalse();
+        result.Attempts.Should().BeGreaterThan(1);
+    }
+
     [Fact(DisplayName = "Если capture-pane всё время разный — таймаут, возвращаем последний snapshot для диагностики")]
     public async Task Returns_timeout_with_last_snapshot()
     {
