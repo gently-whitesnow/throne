@@ -70,6 +70,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TerminalSettingsDto>> SetTerminalSettings([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTerminalSettingsRequest body);
 
         /// <summary>
+        /// Discover models from the configured local OpenAI-compatible endpoint.
+        /// </summary>
+        /// <remarks>
+        /// Reads `Throne:LocalModel:BaseUrl` and probes `GET {BaseUrl}/v1/models`, the single source of truth for dynamic local models (never the human-readable `opencode models`). The response is a controlled state machine so the settings UI never crashes on a missing or unreachable endpoint: `not_configured` when `BaseUrl` is empty, `ready` with the normalized `models` list when the endpoint answers, `empty` when it answers with no models, and `unreachable` with the probe `error` on any transport/HTTP/parse failure.
+        /// </remarks>
+        /// <returns>Discovery snapshot.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/local-model/models", Name = "getLocalModelCatalog")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<LocalModelCatalogDto>> GetLocalModelCatalog();
+
+        /// <summary>
         /// Authentication status for every configured git provider CLI.
         /// </summary>
         /// <remarks>

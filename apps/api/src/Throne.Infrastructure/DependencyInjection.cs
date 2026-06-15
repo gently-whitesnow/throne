@@ -5,11 +5,13 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Throne.Application.Events;
 using Throne.Application.Intents.Attachments;
+using Throne.Application.LocalModels;
 using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
 using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Imaging;
+using Throne.Infrastructure.LocalModels;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Mongo.Repositories;
@@ -32,6 +34,12 @@ public static class DependencyInjection
 
         GitInfrastructureModule.AddThroneGitInfrastructure(services, configuration);
         Throne.Infrastructure.Terminals.TerminalsModule.AddThroneTerminalsInfrastructure(services, configuration);
+
+        services.AddOptions<LocalModelSettings>()
+            .Bind(configuration.GetSection(LocalModelSettings.SectionName));
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<LocalModelSettings>>().Value);
+        services.AddHttpClient(LocalModelCatalogHttpClient.HttpClientName);
+        services.AddSingleton<ILocalModelCatalogPort, LocalModelCatalogHttpClient>();
 
         services.AddSingleton<IMongoClient>(sp =>
             new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
