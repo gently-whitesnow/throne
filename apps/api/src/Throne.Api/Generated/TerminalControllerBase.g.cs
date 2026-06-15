@@ -30,6 +30,16 @@ namespace Throne.Api.Generated
     public abstract class TerminalControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
+        /// Vendor metadata catalog for the embedded-terminal launch surface.
+        /// </summary>
+        /// <remarks>
+        /// Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. Static read with no side effects and no capability gate — the dropdowns are populated even before the `terminal` capability is on. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); dynamic `/v1/models` discovery is out of scope.
+        /// </remarks>
+        /// <returns>Vendor catalog snapshot.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/terminal/vendors", Name = "listTerminalVendors")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TerminalVendorCatalogResponse>> ListTerminalVendors();
+
+        /// <summary>
         /// Pre-flight workspace and spawn the agent in a tmux session.
         /// </summary>
         /// <remarks>

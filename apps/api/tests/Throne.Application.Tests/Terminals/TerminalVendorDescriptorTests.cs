@@ -34,7 +34,9 @@ public class TerminalVendorDescriptorTests
             Label: "Synthetic",
             Models: ["local-model"],
             SupportsEffort: false,
+            Efforts: [],
             DefaultEffort: null,
+            ModelSource: TerminalAgentCatalog.ModelSourceStatic,
             BuildBaseArgs: static options => ["--model", options.Model]);
 
         descriptor.DefaultEffort.Should().BeNull();

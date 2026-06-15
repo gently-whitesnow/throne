@@ -9,23 +9,15 @@ export type TerminalReasoningEffort =
 export type TerminalSettings =
   SettingsComponents["schemas"]["TerminalSettingsDto"];
 
-export const TERMINAL_VENDORS: readonly TerminalAgentVendor[] = [
-  "claude",
-  "codex"
-] as const;
+/** Метаданные одного вендора, как их отдаёт backend (`GET /terminal/vendors`). */
+export type TerminalVendorMetadata =
+  TerminalComponents["schemas"]["TerminalVendorMetadataDto"];
 
-export const TERMINAL_EFFORTS: readonly TerminalReasoningEffort[] = [
-  "low",
-  "medium",
-  "high",
-  "xhigh"
-] as const;
+/** Каталог вендоров — единый источник правды для surface запуска и настроек. */
+export type TerminalVendorCatalog =
+  TerminalComponents["schemas"]["TerminalVendorCatalogResponse"];
 
-export const VENDOR_LABEL: Record<TerminalAgentVendor, string> = {
-  claude: "Claude",
-  codex: "Codex"
-};
-
+/** Подписи уровней усилия для UI. Сам список доступных усилий приходит из metadata. */
 export const EFFORT_LABEL: Record<TerminalReasoningEffort, string> = {
   low: "Low",
   medium: "Medium",
@@ -33,39 +25,28 @@ export const EFFORT_LABEL: Record<TerminalReasoningEffort, string> = {
   xhigh: "Xhigh"
 };
 
-/**
- * Курируемые списки моделей по вендору. Хардкод: обновляются правкой кода,
- * свободного ввода модели на surface запуска нет. Зеркалит бэкендовый
- * `TerminalAgentCatalog` — держать в синхроне.
- */
-export const VENDOR_MODELS: Record<TerminalAgentVendor, readonly string[]> = {
-  claude: ["opus", "sonnet", "haiku"],
-  codex: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"]
-};
-
-/** Нативный дефолт модели вендора — первый элемент курируемого списка. */
-export const VENDOR_DEFAULT_MODEL: Record<TerminalAgentVendor, string> = {
-  claude: VENDOR_MODELS.claude[0],
-  codex: VENDOR_MODELS.codex[0]
-};
-
-/** Нативный дефолт усилия: claude по умолчанию high, codex — medium. */
-export const VENDOR_DEFAULT_EFFORT: Record<
-  TerminalAgentVendor,
-  TerminalReasoningEffort
-> = {
-  claude: "high",
-  codex: "medium"
-};
+/** Метаданные вендора из каталога; undefined, если вендор не зарегистрирован. */
+export function findVendorMetadata(
+  catalog: TerminalVendorCatalog | undefined,
+  vendor: TerminalAgentVendor
+): TerminalVendorMetadata | undefined {
+  return catalog?.vendors.find((v) => v.vendor === vendor);
+}
 
 /**
- * Поддерживает ли вендор ось reasoning effort. Зеркалит бэкендовый descriptor
- * (`TerminalVendorDescriptor.SupportsEffort`). Вендор без оси усилия скрывает
- * соответствующий контрол запуска. Оба текущих вендора усилие поддерживают.
+ * Вендор по умолчанию для предзаполнения surface запуска: persisted-настройка
+ * главнее, иначе — дефолт каталога. Возвращает undefined, пока каталог не загружен.
  */
-export const VENDOR_SUPPORTS_EFFORT: Record<TerminalAgentVendor, boolean> = {
-  claude: true,
-  codex: true
-};
-
-export const DEFAULT_TERMINAL_VENDOR: TerminalAgentVendor = "claude";
+export function resolveDefaultVendor(
+  catalog: TerminalVendorCatalog | undefined,
+  settingsVendor: TerminalAgentVendor | undefined
+): TerminalAgentVendor | undefined {
+  if (catalog === undefined) return undefined;
+  if (
+    settingsVendor !== undefined &&
+    catalog.vendors.some((v) => v.vendor === settingsVendor)
+  ) {
+    return settingsVendor;
+  }
+  return catalog.default_vendor;
+}

@@ -9,6 +9,26 @@ info:
     outside OpenAPI — see `specs/contracts/realtime/websocket/terminal.yaml` and the
     Slice 2 ADR for rationale (`realtime/events.yaml` is SSE-only by ADR-0008).
 paths:
+  /api/v1/terminal/vendors:
+    get:
+      operationId: listTerminalVendors
+      tags: [Terminal]
+      summary: Vendor metadata catalog for the embedded-terminal launch surface.
+      description: >
+        Backend is the single source of truth for terminal vendor metadata and curated
+        model lists. The frontend builds its launch dropdowns (vendor / model / effort)
+        and the settings default-vendor selector from this response instead of mirroring
+        `TerminalAgentCatalog` by hand. Static read with no side effects and no capability
+        gate — the dropdowns are populated even before the `terminal` capability is on.
+        Curated model lists for `claude`/`codex` are backend-static (`model_source=static`);
+        dynamic `/v1/models` discovery is out of scope.
+      responses:
+        '200':
+          description: Vendor catalog snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalVendorCatalogResponse'
   /api/v1/intents/{intent_id}/terminal/run:
     post:
       operationId: runIntentTerminal
@@ -291,6 +311,82 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
+    TerminalModelSource:
+      type: string
+      enum:
+        - static
+      description: >
+        Provenance of a vendor's curated model list. `static` — the list is hardcoded in
+        the backend descriptor and changes only by editing the catalog (current state for
+        both `claude` and `codex`). A future dynamic-discovery source would add another
+        value here; that discovery is out of scope for this slice.
+    TerminalVendorMetadataDto:
+      type: object
+      required:
+        - vendor
+        - label
+        - supports_effort
+        - models
+        - default_model
+        - efforts
+        - model_source
+      properties:
+        vendor:
+          $ref: '#/components/schemas/TerminalAgentVendor'
+        label:
+          type: string
+          minLength: 1
+          description: Human-facing vendor label for the launch/settings dropdown.
+        supports_effort:
+          type: boolean
+          description: >
+            Whether the vendor exposes a reasoning-effort axis. False → the launch surface
+            hides the effort control and no effort reaches the spawn argv.
+        models:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+          description: Curated model whitelist, native-default-first.
+        default_model:
+          type: string
+          minLength: 1
+          description: Native default model = first entry of `models`.
+        efforts:
+          type: array
+          items:
+            $ref: '#/components/schemas/TerminalReasoningEffort'
+          description: >
+            Reasoning-effort tiers selectable for this vendor. Empty when
+            `supports_effort=false`.
+        default_effort:
+          nullable: true
+          description: >
+            Native default effort. Present iff `supports_effort=true`; null for an
+            effort-less vendor.
+          allOf:
+            - $ref: '#/components/schemas/TerminalReasoningEffort'
+        model_source:
+          $ref: '#/components/schemas/TerminalModelSource'
+    TerminalVendorCatalogResponse:
+      type: object
+      required:
+        - default_vendor
+        - vendors
+      properties:
+        default_vendor:
+          description: >
+            Vendor pre-selected on the launch surface when neither the request nor the
+            persisted setting pins one.
+          allOf:
+            - $ref: '#/components/schemas/TerminalAgentVendor'
+        vendors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/TerminalVendorMetadataDto'
+          description: Every registered vendor, in catalog order.
     TerminalRunMode:
       type: string
       enum:

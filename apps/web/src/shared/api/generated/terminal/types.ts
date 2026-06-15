@@ -4,6 +4,26 @@
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
 export interface paths {
+    "/api/v1/terminal/vendors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vendor metadata catalog for the embedded-terminal launch surface.
+         * @description Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. Static read with no side effects and no capability gate — the dropdowns are populated even before the `terminal` capability is on. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); dynamic `/v1/models` discovery is out of scope.
+         */
+        get: operations["listTerminalVendors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/terminal/run": {
         parameters: {
             query?: never;
@@ -145,6 +165,33 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * @description Provenance of a vendor's curated model list. `static` — the list is hardcoded in the backend descriptor and changes only by editing the catalog (current state for both `claude` and `codex`). A future dynamic-discovery source would add another value here; that discovery is out of scope for this slice.
+         * @enum {string}
+         */
+        TerminalModelSource: "static";
+        TerminalVendorMetadataDto: {
+            vendor: components["schemas"]["TerminalAgentVendor"];
+            /** @description Human-facing vendor label for the launch/settings dropdown. */
+            label: string;
+            /** @description Whether the vendor exposes a reasoning-effort axis. False → the launch surface hides the effort control and no effort reaches the spawn argv. */
+            supports_effort: boolean;
+            /** @description Curated model whitelist, native-default-first. */
+            models: string[];
+            /** @description Native default model = first entry of `models`. */
+            default_model: string;
+            /** @description Reasoning-effort tiers selectable for this vendor. Empty when `supports_effort=false`. */
+            efforts: components["schemas"]["TerminalReasoningEffort"][];
+            /** @description Native default effort. Present iff `supports_effort=true`; null for an effort-less vendor. */
+            default_effort?: components["schemas"]["TerminalReasoningEffort"] | null;
+            model_source: components["schemas"]["TerminalModelSource"];
+        };
+        TerminalVendorCatalogResponse: {
+            /** @description Vendor pre-selected on the launch surface when neither the request nor the persisted setting pins one. */
+            default_vendor: components["schemas"]["TerminalAgentVendor"];
+            /** @description Every registered vendor, in catalog order. */
+            vendors: components["schemas"]["TerminalVendorMetadataDto"][];
+        };
+        /**
          * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
          * @enum {string}
          */
@@ -274,6 +321,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listTerminalVendors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vendor catalog snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminalVendorCatalogResponse"];
+                };
+            };
+        };
+    };
     runIntentTerminal: {
         parameters: {
             query?: never;

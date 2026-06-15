@@ -7,12 +7,16 @@ import type { TerminalComponents } from "@/shared/api";
 
 export type TerminalRunMode = TerminalComponents["schemas"]["TerminalRunMode"];
 
-/** Полная ось запуска одной сессии: режим + вендор/модель/усилие. */
+/**
+ * Полная ось запуска одной сессии: режим + вендор/модель/усилие. `effort` равен
+ * null для вендора без оси reasoning effort (`supports_effort=false`) — тогда флаг
+ * усилия не доходит до spawn-argv (бэкенд резолвит его в null).
+ */
 export interface TerminalLaunchArgs {
   mode: TerminalRunMode;
   vendor: TerminalAgentVendor;
   model: string;
-  effort: TerminalReasoningEffort;
+  effort: TerminalReasoningEffort | null;
 }
 
 export type TerminalSessionState =

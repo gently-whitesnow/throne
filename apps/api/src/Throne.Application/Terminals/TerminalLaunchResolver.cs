@@ -34,7 +34,7 @@ public sealed class TerminalLaunchResolver(ITerminalSettingsStore settings)
         var descriptor = TerminalAgentCatalog.DescriptorFor(resolvedVendor);
 
         var resolvedModel = model ?? descriptor.DefaultModel;
-        if (!TerminalAgentCatalog.IsKnownModel(resolvedVendor, resolvedModel))
+        if (!descriptor.HasModel(resolvedModel))
         {
             throw TerminalFailures.ModelInvalid(resolvedVendor, resolvedModel);
         }
