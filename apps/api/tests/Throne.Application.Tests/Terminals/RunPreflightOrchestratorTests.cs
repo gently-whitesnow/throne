@@ -77,6 +77,13 @@ public partial class RunPreflightOrchestratorTests
             IntentIdValue,
             Arg.Is<string>(p => p.EndsWith($"intents/{IntentIdValue}/throne-session.user-prompt.txt")),
             Arg.Any<CancellationToken>());
+        Received.InOrder(() =>
+        {
+            fixture.Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
+            fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
+            fixture.Tmux.PasteFileAsSubmittedPromptAsync(
+                IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        });
         await fixture.Intents.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
             IntentStatusNames.Work,
@@ -163,6 +170,29 @@ public partial class RunPreflightOrchestratorTests
         result.SessionState.Should().Be(TerminalSessionStates.Blocked);
         result.BlockingBindings.Should().ContainSingle().Which.Should().Be(broken.Id.Value);
         await fixture.Tmux.DidNotReceive().SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "TUI так и не нарисовал composer → terminal.tui_readiness_timeout, paste не вызывается")]
+    public async Task Run_tui_readiness_timeout_blocks_paste()
+    {
+        var fixture = new Fixture().Setup(
+            capabilityEnabled: true,
+            intentExists: true,
+            hasSession: false,
+            bindings: [NewBinding(cloneStatus: CloneStatusNames.Ready)],
+            spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
+        // Override the default capture-pane stub: pane stays empty forever, so neither the
+        // vendor marker nor the screen-stability fallback fires and the waiter must time out.
+        fixture.Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(string.Empty);
+
+        var act = () => fixture.Orchestrator.RunAsync(
+            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, restart: false, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.TerminalTuiReadinessTimeout);
+        await fixture.Tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Run при живой сессии без restart=true бросает terminal.session_already_running")]

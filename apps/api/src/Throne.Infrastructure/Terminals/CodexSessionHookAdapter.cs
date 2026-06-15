@@ -52,6 +52,13 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
         return args;
     }
 
+    // Codex TUI also draws a box-drawing composer; its input row is `│ >`. Same reason as
+    // the Claude adapter: the input-row glyph is the only point at which a paste can actually
+    // land — the top border alone can appear during the boot splash before stdin is hooked up.
+    public bool IsTuiReady(string paneSnapshot) =>
+        !string.IsNullOrEmpty(paneSnapshot)
+        && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
+
     public Task CleanupAsync(string intentId, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);

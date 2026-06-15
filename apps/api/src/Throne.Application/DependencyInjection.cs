@@ -103,6 +103,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightAutoBind>();
         services.AddSingleton<RunPreflightCloneScheduler>();
         services.AddSingleton<RunPreflightCloneWait>();
+        services.AddSingleton<TmuxTuiReadinessWaiter>();
         services.AddSingleton<RunPreflightSpawn>();
         services.AddSingleton<RunPreflightPromptGate>();
         services.AddSingleton<RunPreflightGuards>();
