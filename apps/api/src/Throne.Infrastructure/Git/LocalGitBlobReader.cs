@@ -18,10 +18,21 @@ internal sealed class LocalGitBlobReader(IProcessLauncher launcher) : IRepositor
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         var first = await ReadBlobAsync(workspacePath, sha, path, ct);
-        var result = first.IsSuccess ? first : await FetchAndReadAsync(workspacePath, sha, path, ct);
+        var result = first;
+        ProcessRunResult? fetch = null;
+        ProcessRunResult? second = null;
+        if (!first.IsSuccess)
+        {
+            fetch = await FetchAsync(workspacePath, sha, ct);
+            if (fetch.IsSuccess)
+            {
+                second = await ReadBlobAsync(workspacePath, sha, path, ct);
+                result = second;
+            }
+        }
         if (!result.IsSuccess)
         {
-            throw new RepositoryBlobReadException("git object or path is unavailable");
+            throw new RepositoryBlobReadException(BuildUnavailableReason(first, fetch, second));
         }
 
         var lines = SplitLines(result.StandardOutput);
@@ -36,20 +47,16 @@ internal sealed class LocalGitBlobReader(IProcessLauncher launcher) : IRepositor
         return new RepositoryFileLineSlice(fromLine, effectiveTo, total, slice);
     }
 
-    private async Task<ProcessRunResult> FetchAndReadAsync(
+    private Task<ProcessRunResult> FetchAsync(
         string workspacePath,
         string sha,
-        string path,
-        CancellationToken ct)
-    {
-        await launcher.RunAsync(
+        CancellationToken ct) =>
+        launcher.RunAsync(
             new ProcessRunRequest(
                 FileName: "git",
-                Arguments: ["-C", workspacePath, "fetch", "--filter=blob:none", "origin", sha],
+                Arguments: ["-C", workspacePath, "fetch", "origin", sha],
                 Timeout: FetchTimeout),
             ct);
-        return await ReadBlobAsync(workspacePath, sha, path, ct);
-    }
 
     private Task<ProcessRunResult> ReadBlobAsync(
         string workspacePath,
@@ -62,6 +69,31 @@ internal sealed class LocalGitBlobReader(IProcessLauncher launcher) : IRepositor
                 Arguments: ["-C", workspacePath, "show", "--no-ext-diff", "--no-textconv", $"{sha}:{path}"],
                 Timeout: ReadTimeout),
             ct);
+
+    private static string BuildUnavailableReason(
+        ProcessRunResult firstShow,
+        ProcessRunResult? fetch,
+        ProcessRunResult? secondShow)
+    {
+        if (fetch is { IsSuccess: false })
+        {
+            return $"git fetch failed: {FormatFailure(fetch)}; initial git show failed: {FormatFailure(firstShow)}";
+        }
+        if (secondShow is not null)
+        {
+            return $"git show failed after fetch: {FormatFailure(secondShow)}; initial git show failed: {FormatFailure(firstShow)}";
+        }
+        return $"git show failed: {FormatFailure(firstShow)}";
+    }
+
+    private static string FormatFailure(ProcessRunResult result)
+    {
+        var output = string.IsNullOrWhiteSpace(result.StandardError)
+            ? result.StandardOutput
+            : result.StandardError;
+        output = string.IsNullOrWhiteSpace(output) ? "no output" : output.Trim();
+        return $"exit {result.ExitCode}: {output}";
+    }
 
     private static List<string> SplitLines(string content)
     {
