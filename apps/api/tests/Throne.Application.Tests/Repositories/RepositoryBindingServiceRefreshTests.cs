@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
+using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
 using Throne.Domain.Repositories;
@@ -69,6 +70,50 @@ public class RepositoryBindingServiceRefreshTests
         result.State.CloneStatus.Should().Be(CloneStatusNames.Ready);
         fixture.Queue.Enqueued.Should().BeEmpty();
         await fixture.Bindings.DidNotReceive().SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Refresh: папка есть, PR ещё не привязан, ровно один open-PR на ветке → PR прикреплён без ожидания поллера")]
+    public async Task Refresh_existing_folder_without_pr_attaches_matching_open_pr()
+    {
+        var fixture = new ServiceFixture();
+        fixture.Probe.DirectoryExists = true;
+        var binding = NewBinding(intentId: IntentIdValue, cloneStatus: CloneStatusNames.Ready);
+        fixture.Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(binding);
+        fixture.Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(ci.Arg<IntentRepositoryBinding>())));
+        fixture.BranchReader.ReadCurrentBranchAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<string?>("feat/x"));
+        fixture.Provider.ListPullRequestsAsync("octo", "hello", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<GitPullRequestRef>>(
+                [new GitPullRequestRef(7, "x", "feat/x", PullRequestStateNames.Open)]));
+
+        var result = await fixture.Service.RefreshAsync(
+            new RefreshRepositoryBindingCommand(IntentIdValue, binding.Id.Value), CancellationToken.None);
+
+        result.State.PullRequestNumber.Should().Be(7);
+        await fixture.Bindings.Received(1).SaveAsync(
+            Arg.Is<IntentRepositoryBinding>(b => b.State.PullRequestNumber == 7),
+            Arg.Any<CancellationToken>());
+        fixture.Queue.Enqueued.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "Refresh: папка есть, PR уже привязан → auto-bind не дёргается, binding без изменений")]
+    public async Task Refresh_existing_folder_with_pr_skips_auto_bind()
+    {
+        var fixture = new ServiceFixture();
+        fixture.Probe.DirectoryExists = true;
+        var binding = NewBinding(
+            intentId: IntentIdValue, cloneStatus: CloneStatusNames.Ready, pullRequestNumber: 11);
+        fixture.Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(binding);
+
+        var result = await fixture.Service.RefreshAsync(
+            new RefreshRepositoryBindingCommand(IntentIdValue, binding.Id.Value), CancellationToken.None);
+
+        result.State.PullRequestNumber.Should().Be(11);
+        await fixture.BranchReader.DidNotReceive().ReadCurrentBranchAsync(
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await fixture.Bindings.DidNotReceive().SaveAsync(
+            Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Refresh на чужой intent_id не находит binding (cross-tenant guard)")]

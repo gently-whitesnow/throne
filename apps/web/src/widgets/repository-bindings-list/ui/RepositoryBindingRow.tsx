@@ -41,9 +41,11 @@ interface RepositoryBindingRowProps {
  * branch, the clone-status pill (with a spinner for transient states), the
  * PR-state pill (when a PR is tracked), and per-row actions:
  *
- *  - Refresh — restores a missing local clone. Хитает `POST .../refresh`: если
- *    папки репозитория нет на диске (другая машина), бэкенд снова ставит клон в
- *    очередь и возвращает binding в `pending`/`cloning`; есть папка — no-op.
+ *  - Refresh — restores a missing local clone **и** дотягивает PR. Хитает
+ *    `POST .../refresh`: если папки репозитория нет на диске (другая машина),
+ *    бэкенд снова ставит клон в очередь и возвращает binding в `pending`/`cloning`;
+ *    папка есть — клон не трогается, но если PR ещё не привязан и clone в `ready`,
+ *    выполняется одна per-binding попытка auto-bind, чтобы не ждать общий поллер.
  *    Строка обновляется из ответа, дальше статус догоняет realtime-событие
  *    `intent.repository_clone_progress`.
  *  - Delete — removes the binding AND its on-disk workspace folder via DELETE,

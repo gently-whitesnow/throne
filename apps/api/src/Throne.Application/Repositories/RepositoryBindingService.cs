@@ -19,7 +19,8 @@ public sealed class RepositoryBindingService(
     RepositoryBindingPersistence persistence,
     RepositoryPullRequestSyncWorkflow syncWorkflow,
     RepositoryCloneTransitionWriter cloneWriter,
-    IRepositoryCloneRequests cloneQueue
+    IRepositoryCloneRequests cloneQueue,
+    PullRequestAutoBindWorkflow autoBind
 )
 {
     /// <param name="enqueueClone">
@@ -74,12 +75,15 @@ public sealed class RepositoryBindingService(
     }
 
     /// <summary>
-    /// «Обновить» disk-recovery (ADR-0024): trigger is purely the on-disk folder — the Mongo
-    /// <c>clone_status</c> is ignored. Folder present → no-op, return the current binding (the
-    /// GET behaviour). Folder missing → flip the binding back to <c>pending</c> (unless already
-    /// queued) and re-enqueue the clone; the worker's <c>pending → cloning</c> CAS de-dupes a
-    /// double enqueue. Realtime <c>IntentRepositoryCloneProgress</c> (raised by the transition
-    /// writer) drives the UI to <c>ready</c>.
+    /// «Обновить» disk-recovery (ADR-0024) + on-demand PR auto-bind. Disk path: trigger is purely
+    /// the on-disk folder — the Mongo <c>clone_status</c> is ignored. Folder missing → flip the
+    /// binding back to <c>pending</c> (unless already queued) and re-enqueue the clone; the
+    /// worker's <c>pending → cloning</c> CAS de-dupes a double enqueue. Realtime
+    /// <c>IntentRepositoryCloneProgress</c> (raised by the transition writer) drives the UI to
+    /// <c>ready</c>. Folder present → no clone work, but when the binding has no PR attached we
+    /// run a single <see cref="PullRequestAutoBindWorkflow"/> pass for it so the user does not
+    /// have to wait for the next <see cref="PullRequestSyncTickWorkflow"/> tick to see a
+    /// freshly-opened PR.
     /// </summary>
     public async Task<IntentRepositoryBinding> RefreshAsync(
         RefreshRepositoryBindingCommand command,
@@ -91,6 +95,11 @@ public sealed class RepositoryBindingService(
         var binding = await resolver.LoadBindingAsync(command.IntentId, command.BindingId, ct);
         if (persistence.LocalCloneExists(binding))
         {
+            if (binding.State.PullRequestNumber is null
+                && binding.State.CloneStatus == CloneStatusNames.Ready)
+            {
+                await autoBind.RunForAsync(binding, ct);
+            }
             return binding;
         }
 
