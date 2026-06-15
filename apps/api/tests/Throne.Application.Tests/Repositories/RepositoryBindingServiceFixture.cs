@@ -104,23 +104,31 @@ internal sealed class ServiceFixture
     public RecordingCloneQueue Queue { get; }
     public ILocalGitBranchReader BranchReader { get; }
     public RepositoryBindingService Service { get; }
+}
 
-    public void IntentExists(string intentIdValue)
+/// <summary>
+/// Stub-arrangement helpers for <see cref="ServiceFixture"/>. Extensions rather than fixture
+/// methods so the fixture's public surface stays within the maintainability budget; callers
+/// still read as <c>fixture.IntentExists(...)</c>.
+/// </summary>
+internal static class ServiceFixtureExtensions
+{
+    public static void IntentExists(this ServiceFixture fixture, string intentIdValue)
     {
         var intent = Intent.Restore(
             new IntentId(intentIdValue), "x", IntentStatusNames.Work, 1, [],
             RepositoryBindingTestData.Now, RepositoryBindingTestData.Now);
-        Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == intentIdValue), Arg.Any<CancellationToken>())
+        fixture.Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == intentIdValue), Arg.Any<CancellationToken>())
             .Returns(intent);
     }
 
-    public void ProviderAuthenticated() =>
-        Provider.GetAuthStatusAsync(Arg.Any<CancellationToken>())
+    public static void ProviderAuthenticated(this ServiceFixture fixture) =>
+        fixture.Provider.GetAuthStatusAsync(Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ProviderAuthStatus(
                 GitProviderNames.GitHub, IsAuthenticated: true, Account: "octocat", Host: "github.com")));
 
-    public void CreateReturnsCreated() =>
-        Bindings.CreateAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
+    public static void CreateReturnsCreated(this ServiceFixture fixture) =>
+        fixture.Bindings.CreateAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
             .Returns(ci => Task.FromResult<CreateBindingOutcome>(
                 new CreateBindingOutcome.Created(ci.Arg<IntentRepositoryBinding>())));
 }
