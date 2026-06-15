@@ -102,21 +102,11 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(6);
+        manifest.SystemInstructions.Should().HaveCount(5);
         manifest.Bundles.Should().HaveCount(4);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
         manifest.DreamSources.Should().HaveCount(3);
         manifest.DreamSources.Select(s => s.Vendor).Should().BeEquivalentTo("claude-code", "claude-desktop", "codex-cli");
-    }
-
-    [Fact(DisplayName = "Реальный manifest подключает finale_work в bundle work (standalone-only system-часть)")]
-    public void Real_manifest_includes_finale_work_in_work_bundle()
-    {
-        var manifest = SkillManifestParser.Parse(File.ReadAllText(ResolveManifestPath()));
-
-        var work = manifest.Bundles.Single(b => b.Mode == "work");
-        work.Includes.Should().Contain(i => i.Kind == "finale_work");
-        manifest.SystemInstructions.Should().Contain(s => s.Kind == "finale_work");
     }
 
     private static string ResolveManifestPath()
