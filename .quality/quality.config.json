@@ -63,7 +63,8 @@
       "scope": "backend",
       "enabled": true,
       "config": ".quality/maintainability-budget.json",
-      "description": "Cross-file duplication по нормализованным окнам. Advisory-only: печатает отчёт, не валит билд (детектор лексический, шумит на идиомах)."
+      "ratchet": ".quality/duplicates-baseline.json",
+      "description": "Cross-file duplication по нормализованным окнам. Blocking + ratchet vs baseline snapshot (ADR-0040): новая копи-паста валит билд, существующие группы grandfathered и могут только уменьшаться."
     },
     {
       "id": "backend-audit",
