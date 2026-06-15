@@ -68,6 +68,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/local-model/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover models from the configured local OpenAI-compatible endpoint.
+         * @description Reads `Throne:LocalModel:BaseUrl` and probes `GET {BaseUrl}/v1/models`, the single source of truth for dynamic local models (never the human-readable `opencode models`). The response is a controlled state machine so the settings UI never crashes on a missing or unreachable endpoint: `not_configured` when `BaseUrl` is empty, `ready` with the normalized `models` list when the endpoint answers, `empty` when it answers with no models, and `unreachable` with the probe `error` on any transport/HTTP/parse failure.
+         */
+        get: operations["getLocalModelCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/git-providers/status": {
         parameters: {
             query?: never;
@@ -146,6 +166,20 @@ export interface components {
             freed_bytes: number;
             /** @description Echoes the request flag so the caller can tell a preview from an executed run. */
             dry_run: boolean;
+        };
+        /**
+         * @description `not_configured` — `Throne:LocalModel:BaseUrl` is empty; nothing was probed. `ready` — the endpoint answered and `models` lists at least one id. `empty` — the endpoint answered but advertises no models. `unreachable` — transport/HTTP/parse failure; see `error`.
+         * @enum {string}
+         */
+        LocalModelDiscoveryStatus: "not_configured" | "ready" | "empty" | "unreachable";
+        LocalModelCatalogDto: {
+            status: components["schemas"]["LocalModelDiscoveryStatus"];
+            /** @description The probed `Throne:LocalModel:BaseUrl`. Null only when `status=not_configured`. */
+            base_url?: string | null;
+            /** @description Normalized model ids from `/v1/models`, deduplicated in advertised order. Stable shape for backend metadata consumers and a future OpenCode `provider.models` map. Empty unless `status=ready`. */
+            models: string[];
+            /** @description Probe failure detail. Present only when `status=unreachable`. */
+            error?: string | null;
         };
         GitProviderAuthStatusDto: {
             /** @description True when the underlying CLI reports a usable session. */
@@ -292,6 +326,26 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getLocalModelCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discovery snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocalModelCatalogDto"];
                 };
             };
         };

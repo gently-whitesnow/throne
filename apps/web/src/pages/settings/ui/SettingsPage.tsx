@@ -1,4 +1,5 @@
 import {
+  Cpu,
   FolderCog,
   GitBranch,
   TerminalSquare,
@@ -9,6 +10,7 @@ import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
 import { WorkspaceCard } from "@/widgets/workspace-card";
 
+import { LocalModelCard } from "./LocalModelCard";
 import { TerminalDefaultsCard } from "./TerminalDefaultsCard";
 
 /**
@@ -58,6 +60,15 @@ export function SettingsPage() {
         description="Привязка локальных Git-провайдеров: статус gh CLI, авторизация и scopes."
       >
         <GitProvidersCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="local-model"
+        title="Локальные модели"
+        icon={Cpu}
+        description="Адрес локального OpenAI-совместимого endpoint (Throne:LocalModel:BaseUrl) и модели, прочитанные через /v1/models. Пустой или недоступный endpoint показывается как состояние, а не ошибка."
+      >
+        <LocalModelCard />
       </SettingsSection>
 
       <SettingsSection

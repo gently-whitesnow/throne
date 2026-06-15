@@ -4,6 +4,7 @@ using Throne.Application.Events;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;
+using Throne.Application.LocalModels;
 using Throne.Application.Ports;
 using Throne.Application.PromptPartPatches;
 using Throne.Application.PromptParts;
@@ -110,6 +111,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightOrchestrator>();
         services.AddSingleton<TerminalLaunchResolver>();
         services.AddSingleton<TerminalSettingsService>();
+        services.AddSingleton<LocalModelDiscoveryService>();
         services.AddSingleton<TerminalSessionStatusService>();
         services.AddSingleton<TerminalSessionKillService>();
         services.AddSingleton<TerminalHookStatusHandler>();

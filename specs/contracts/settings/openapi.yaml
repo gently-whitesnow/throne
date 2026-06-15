@@ -97,6 +97,25 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/settings/local-model/models:
+    get:
+      operationId: getLocalModelCatalog
+      tags: [Settings]
+      summary: Discover models from the configured local OpenAI-compatible endpoint.
+      description: >
+        Reads `Throne:LocalModel:BaseUrl` and probes `GET {BaseUrl}/v1/models`, the single source
+        of truth for dynamic local models (never the human-readable `opencode models`). The response
+        is a controlled state machine so the settings UI never crashes on a missing or unreachable
+        endpoint: `not_configured` when `BaseUrl` is empty, `ready` with the normalized `models` list
+        when the endpoint answers, `empty` when it answers with no models, and `unreachable` with the
+        probe `error` on any transport/HTTP/parse failure.
+      responses:
+        '200':
+          description: Discovery snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocalModelCatalogDto'
   /api/v1/settings/git-providers/status:
     get:
       operationId: getGitProvidersStatus
@@ -214,6 +233,43 @@ components:
         dry_run:
           type: boolean
           description: Echoes the request flag so the caller can tell a preview from an executed run.
+    LocalModelDiscoveryStatus:
+      type: string
+      enum:
+        - not_configured
+        - ready
+        - empty
+        - unreachable
+      description: >
+        `not_configured` — `Throne:LocalModel:BaseUrl` is empty; nothing was probed.
+        `ready` — the endpoint answered and `models` lists at least one id.
+        `empty` — the endpoint answered but advertises no models.
+        `unreachable` — transport/HTTP/parse failure; see `error`.
+    LocalModelCatalogDto:
+      type: object
+      required:
+        - status
+        - models
+      properties:
+        status:
+          $ref: '#/components/schemas/LocalModelDiscoveryStatus'
+        base_url:
+          type: string
+          nullable: true
+          description: The probed `Throne:LocalModel:BaseUrl`. Null only when `status=not_configured`.
+        models:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: >
+            Normalized model ids from `/v1/models`, deduplicated in advertised order. Stable shape
+            for backend metadata consumers and a future OpenCode `provider.models` map. Empty unless
+            `status=ready`.
+        error:
+          type: string
+          nullable: true
+          description: Probe failure detail. Present only when `status=unreachable`.
     GitProviderAuthStatusDto:
       type: object
       required:
