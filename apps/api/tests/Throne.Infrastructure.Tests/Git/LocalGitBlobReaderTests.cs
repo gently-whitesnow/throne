@@ -47,7 +47,8 @@ public sealed class LocalGitBlobReaderTests
 
         slice.Lines.Should().Equal(new RepositoryFileLine(1, "one"));
         fx.Calls.Select(c => c.Arguments[2]).Should().Equal("show", "fetch", "show");
-        fx.Calls.Single(Fixture.IsFetch).Arguments.Should().ContainInOrder("--filter=blob:none", "origin", "def5678");
+        fx.Calls.Single(Fixture.IsFetch).Arguments.Should().ContainInOrder("origin", "def5678");
+        fx.Calls.Single(Fixture.IsFetch).Arguments.Should().NotContain("--filter=blob:none");
     }
 
     [Fact(DisplayName = "GetFileLinesAsync отдаёт типизированную ошибку если объект недоступен после fetch")]
@@ -60,6 +61,48 @@ public sealed class LocalGitBlobReaderTests
 
         await act.Should().ThrowAsync<RepositoryBlobReadException>();
         fx.Calls.Should().Contain(call => Fixture.IsFetch(call));
+    }
+
+    [Fact(DisplayName = "GetFileLinesAsync пробрасывает stderr из неудачных git show и fetch")]
+    public async Task GetFileLinesAsyncIncludesGitDiagnosticsInTypedError()
+    {
+        var fx = new Fixture();
+        fx.OnRun(req => Fixture.IsFetch(req)
+            ? Fixture.Fail(128, "fatal: couldn't find remote ref badcafe")
+            : Fixture.Fail(128, "fatal: Not a valid object name badcafe:missing.txt"));
+
+        var act = () => fx.Reader.GetFileLinesAsync("/repo", "badcafe", "missing.txt", 1, 20, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<RepositoryBlobReadException>();
+        ex.Which.Message.Should().Contain("git fetch failed");
+        ex.Which.Message.Should().Contain("exit 128: fatal: couldn't find remote ref badcafe");
+        ex.Which.Message.Should().Contain("initial git show failed");
+        ex.Which.Message.Should().Contain("fatal: Not a valid object name badcafe:missing.txt");
+    }
+
+    [Fact(DisplayName = "GetFileLinesAsync пробрасывает stderr повторного git show после успешного fetch")]
+    public async Task GetFileLinesAsyncIncludesSecondShowDiagnosticsWhenFetchSucceeds()
+    {
+        var fx = new Fixture();
+        var showCalls = 0;
+        fx.OnRun(req =>
+        {
+            if (Fixture.IsFetch(req))
+            {
+                return Fixture.Ok("");
+            }
+
+            showCalls += 1;
+            return showCalls == 1
+                ? Fixture.Fail(128, "fatal: invalid object name")
+                : Fixture.Fail(128, "fatal: path 'missing.txt' exists on disk, but not in 'badcafe'");
+        });
+
+        var act = () => fx.Reader.GetFileLinesAsync("/repo", "badcafe", "missing.txt", 1, 20, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<RepositoryBlobReadException>();
+        ex.Which.Message.Should().Contain("git show failed after fetch");
+        ex.Which.Message.Should().Contain("fatal: path 'missing.txt' exists on disk, but not in 'badcafe'");
     }
 
     private sealed class Fixture
@@ -95,6 +138,9 @@ public sealed class LocalGitBlobReaderTests
             new(0, stdout, string.Empty, TimeSpan.Zero);
 
         public static ProcessRunResult Fail() =>
-            new(128, string.Empty, "fatal", TimeSpan.Zero);
+            Fail(128, "fatal");
+
+        public static ProcessRunResult Fail(int exit, string stderr) =>
+            new(exit, string.Empty, stderr, TimeSpan.Zero);
     }
 }
