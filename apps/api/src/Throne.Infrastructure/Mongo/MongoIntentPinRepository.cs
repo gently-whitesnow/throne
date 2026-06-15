@@ -6,18 +6,23 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentPinRepository(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IIntentPinRepository
+internal sealed class MongoIntentPinRepository
+    : MongoRepositoryBase<IntentPinDocument, string>, IIntentPinRepository
 {
-    private readonly IMongoCollection<IntentPinDocument> _pins =
-        database.GetCollection<IntentPinDocument>(MongoCollectionNames.IntentPins);
+    // Pin is the primary aggregate; intents/tags are read-only sidecars used for
+    // validation + ordering, so they stay as plain fields outside the base.
+    private readonly IMongoCollection<IntentDocument> _intents;
+    private readonly IMongoCollection<TagDocument> _tags;
 
-    private readonly IMongoCollection<IntentDocument> _intents =
-        database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+    public MongoIntentPinRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.IntentPins, sessions)
+    {
+        _intents = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+        _tags = database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
+    }
 
-    private readonly IMongoCollection<TagDocument> _tags =
-        database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
+    protected override FilterDefinition<IntentPinDocument> ById(string id) =>
+        Builders<IntentPinDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<PinIntentOutcome> PinAsync(
         IntentId intentId,
@@ -27,9 +32,7 @@ internal sealed class MongoIntentPinRepository(
         DateTimeOffset now,
         CancellationToken ct)
     {
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoIntentPinRepository.PinAsync must run inside IUnitOfWork.ExecuteAsync.");
+        var session = RequireSession(nameof(PinAsync));
 
         var intent = await LoadIntentAsync(intentId, session, ct);
         if (intent is null)
@@ -76,11 +79,9 @@ internal sealed class MongoIntentPinRepository(
         if (existing is not null)
         {
             existing.PinSortKey = newKey;
-            await _pins.UpdateOneAsync(
-                session,
-                Builders<IntentPinDocument>.Filter.Eq(d => d.Id, existing.Id),
+            await TryUpdateAsync(
+                ById(existing.Id),
                 Builders<IntentPinDocument>.Update.Set(d => d.PinSortKey, newKey),
-                options: null,
                 ct);
             var pin = new IntentPin(intentId, contextTagId, newKey, ToUtc(existing.CreatedAt));
             return new PinIntentOutcome.Pinned(MapToIntent(intent), pin, Created: false);
@@ -94,7 +95,7 @@ internal sealed class MongoIntentPinRepository(
             PinSortKey = newKey,
             CreatedAt = now.UtcDateTime,
         };
-        await _pins.InsertOneAsync(session, doc, options: null, ct);
+        await InsertOneAsync(doc, ct);
         var created = new IntentPin(intentId, contextTagId, newKey, now);
         return new PinIntentOutcome.Pinned(MapToIntent(intent), created, Created: true);
     }
@@ -104,9 +105,7 @@ internal sealed class MongoIntentPinRepository(
         TagId contextTagId,
         CancellationToken ct)
     {
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoIntentPinRepository.UnpinAsync must run inside IUnitOfWork.ExecuteAsync.");
+        var session = RequireSession(nameof(UnpinAsync));
 
         var intent = await LoadIntentAsync(intentId, session, ct);
         if (intent is null)
@@ -114,12 +113,10 @@ internal sealed class MongoIntentPinRepository(
             return new UnpinIntentOutcome.IntentNotFound();
         }
 
-        var result = await _pins.DeleteOneAsync(
-            session,
+        var result = await DeleteOneAsync(
             Builders<IntentPinDocument>.Filter.And(
                 Builders<IntentPinDocument>.Filter.Eq(d => d.IntentId, intentId.Value),
                 Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value)),
-            options: null,
             ct);
 
         return new UnpinIntentOutcome.Unpinned(MapToIntent(intent), contextTagId.Value, Removed: result.DeletedCount > 0);
@@ -137,9 +134,7 @@ internal sealed class MongoIntentPinRepository(
             throw new ArgumentException("At least one of beforeId / afterId must be supplied.", nameof(beforeId));
         }
 
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoIntentPinRepository.MoveAsync must run inside IUnitOfWork.ExecuteAsync.");
+        var session = RequireSession(nameof(MoveAsync));
 
         var intent = await LoadIntentAsync(intentId, session, ct);
         if (intent is null)
@@ -167,11 +162,9 @@ internal sealed class MongoIntentPinRepository(
         }
 
         existing.PinSortKey = newKey;
-        await _pins.UpdateOneAsync(
-            session,
-            Builders<IntentPinDocument>.Filter.Eq(d => d.Id, existing.Id),
+        await TryUpdateAsync(
+            ById(existing.Id),
             Builders<IntentPinDocument>.Update.Set(d => d.PinSortKey, newKey),
-            options: null,
             ct);
 
         var pin = new IntentPin(intentId, contextTagId, newKey, ToUtc(existing.CreatedAt));
@@ -188,10 +181,8 @@ internal sealed class MongoIntentPinRepository(
             return result;
         }
 
-        var session = sessions.Current;
         var filter = Builders<IntentPinDocument>.Filter.In(d => d.IntentId, intentIds);
-        var find = session is null ? _pins.Find(filter) : _pins.Find(session, filter);
-        var docs = await find.ToListAsync(ct);
+        var docs = await Find(filter).ToListAsync(ct);
 
         foreach (var doc in docs)
         {
@@ -207,12 +198,8 @@ internal sealed class MongoIntentPinRepository(
 
     public async Task<IReadOnlyList<IntentPin>> ListAllAsync(CancellationToken ct)
     {
-        var session = sessions.Current;
         var allFilter = Builders<IntentPinDocument>.Filter.Empty;
-        var find = session is null
-            ? _pins.Find(allFilter)
-            : _pins.Find(session, allFilter);
-        var docs = await find
+        var docs = await Find(allFilter)
             .Sort(Builders<IntentPinDocument>.Sort
                 .Ascending(d => d.ContextTagId)
                 .Ascending(d => d.PinSortKey))
@@ -226,16 +213,19 @@ internal sealed class MongoIntentPinRepository(
         return await _intents.Find(session, filter).FirstOrDefaultAsync(ct);
     }
 
-    private async Task<IntentPinDocument?> FindExistingPinAsync(
+    private Task<IntentPinDocument?> FindExistingPinAsync(
         IClientSessionHandle session,
         IntentId intentId,
         TagId contextTagId,
         CancellationToken ct)
     {
+        // session parameter retained so callers visually thread the transaction through the
+        // resolver chain; the base helper auto-routes via Sessions.Current.
+        _ = session;
         var filter = Builders<IntentPinDocument>.Filter.And(
             Builders<IntentPinDocument>.Filter.Eq(d => d.IntentId, intentId.Value),
             Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value));
-        return await _pins.Find(session, filter).FirstOrDefaultAsync(ct);
+        return FindOneAsync(filter, ct);
     }
 
     private async Task<(string? BeforeKey, string? AfterKey, string? Missing)> ResolvePivotKeysAsync(
@@ -263,7 +253,8 @@ internal sealed class MongoIntentPinRepository(
         var filter = Builders<IntentPinDocument>.Filter.And(
             Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value),
             Builders<IntentPinDocument>.Filter.In(d => d.IntentId, ids));
-        var docs = await _pins.Find(session, filter)
+        _ = session;
+        var docs = await Find(filter)
             .Project(d => new { d.IntentId, d.PinSortKey })
             .ToListAsync(ct);
 
@@ -286,14 +277,20 @@ internal sealed class MongoIntentPinRepository(
 
     private async Task<string?> GetTailKeyAsync(IClientSessionHandle session, TagId contextTagId, CancellationToken ct)
     {
+        _ = session;
         var filter = Builders<IntentPinDocument>.Filter.Eq(d => d.ContextTagId, contextTagId.Value);
-        var doc = await _pins.Find(session, filter)
+        var doc = await Find(filter)
             .Sort(Builders<IntentPinDocument>.Sort.Descending(d => d.PinSortKey))
             .Limit(1)
             .Project(d => d.PinSortKey)
             .FirstOrDefaultAsync(ct);
         return string.IsNullOrEmpty(doc) ? null : doc;
     }
+
+    private IClientSessionHandle RequireSession(string method) =>
+        Sessions.Current
+            ?? throw new InvalidOperationException(
+                $"MongoIntentPinRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 
     private static IntentPin ToDomain(IntentPinDocument doc) => new IntentPin(
         new IntentId(doc.IntentId),

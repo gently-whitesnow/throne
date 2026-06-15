@@ -11,12 +11,16 @@ namespace Throne.Infrastructure.Mongo.Repositories;
 /// inside <see cref="IUnitOfWork.ExecuteAsync"/> joins the surrounding transaction; called
 /// bare it runs as a standalone idempotent upsert.
 /// </summary>
-internal sealed class MongoRepositoryRegistry(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IRepositoryRegistry
+internal sealed class MongoRepositoryRegistry
+    : MongoRepositoryBase<RepositoryDocument, string>, IRepositoryRegistry
 {
-    private readonly IMongoCollection<RepositoryDocument> _repositories =
-        database.GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories);
+    public MongoRepositoryRegistry(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.Repositories, sessions)
+    {
+    }
+
+    protected override FilterDefinition<RepositoryDocument> ById(string id) =>
+        Builders<RepositoryDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<EnsureRepositoryOutcome> EnsureRepositoryAsync(
         RepoCoordinate coordinate, DateTimeOffset now, CancellationToken ct)
@@ -31,20 +35,12 @@ internal sealed class MongoRepositoryRegistry(
 
         var repository = Repository.Create(RepositoryId.New(), coordinate, now);
         var doc = RepositoryDocumentMapper.ToDocument(repository);
-        var session = sessions.Current;
         try
         {
-            if (session is null)
-            {
-                await _repositories.InsertOneAsync(doc, options: null, ct);
-            }
-            else
-            {
-                await _repositories.InsertOneAsync(session, doc, options: null, ct);
-            }
+            await InsertOneAsync(doc, ct);
             return new EnsureRepositoryOutcome.Created(repository);
         }
-        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        catch (MongoWriteException ex) when (MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
             // Lost the race against a concurrent first-appearance: the row now exists but this
             // call did not create it, so it must not raise repository.registered.
@@ -64,21 +60,13 @@ internal sealed class MongoRepositoryRegistry(
             fb.Eq(d => d.Provider, coordinate.Provider),
             fb.Eq(d => d.Owner, coordinate.Owner),
             fb.Eq(d => d.Repo, coordinate.Repo));
-
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _repositories.Find(filter).FirstOrDefaultAsync(ct)
-            : await _repositories.Find(session, filter).FirstOrDefaultAsync(ct);
+        var doc = await FindOneAsync(filter, ct);
         return doc is null ? null : RepositoryDocumentMapper.ToDomain(doc);
     }
 
     public async Task<IReadOnlyList<Repository>> ListAsync(CancellationToken ct)
     {
-        var session = sessions.Current;
-        var find = session is null
-            ? _repositories.Find(FilterDefinition<RepositoryDocument>.Empty)
-            : _repositories.Find(session, FilterDefinition<RepositoryDocument>.Empty);
-        var docs = await find
+        var docs = await Find(FilterDefinition<RepositoryDocument>.Empty)
             .SortBy(d => d.Provider).ThenBy(d => d.Owner).ThenBy(d => d.Repo)
             .ToListAsync(ct);
         return docs.Select(RepositoryDocumentMapper.ToDomain).ToList();

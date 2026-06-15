@@ -8,21 +8,24 @@ using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAccessor sessions) : ITagRepository
+internal sealed class MongoTagRepository : MongoRepositoryBase<TagDocument, string>, ITagRepository
 {
-    private const int DuplicateKeyCode = 11000;
+    // Secondary collection (intent fan-out for tag-detach + usage count) lives here
+    // as a plain field — only the primary `tags` collection goes through the base.
+    private readonly IMongoCollection<IntentDocument> _intents;
 
-    private readonly IMongoCollection<TagDocument> _tags = database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
+    public MongoTagRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.Tags, sessions)
+    {
+        _intents = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+    }
 
-    private readonly IMongoCollection<IntentDocument> _intents = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+    protected override FilterDefinition<TagDocument> ById(string id) =>
+        Builders<TagDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<IReadOnlyList<Tag>> ListAllAsync(CancellationToken ct)
     {
-        var session = sessions.Current;
-        var docs = session is null
-            ? await _tags.Find(FilterDefinition<TagDocument>.Empty).SortBy(d => d.Name).ToListAsync(ct)
-            : await _tags.Find(session, FilterDefinition<TagDocument>.Empty).SortBy(d => d.Name).ToListAsync(ct);
-
+        var docs = await Find(FilterDefinition<TagDocument>.Empty).SortBy(d => d.Name).ToListAsync(ct);
         var result = new List<Tag>(docs.Count);
         foreach (var doc in docs)
         {
@@ -33,27 +36,20 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
 
     public async Task<Tag?> GetByIdAsync(TagId id, CancellationToken ct)
     {
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _tags.Find(d => d.Id == id.Value).FirstOrDefaultAsync(ct)
-            : await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id.Value, ct);
         return doc is null ? null : MongoTagMapper.ToDomain(doc);
     }
 
     public async Task<Tag?> FindByNameAsync(string normalizedName, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(normalizedName);
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _tags.Find(d => d.Name == normalizedName).FirstOrDefaultAsync(ct)
-            : await _tags.Find(session, d => d.Name == normalizedName).FirstOrDefaultAsync(ct);
+        var doc = await FindOneAsync(Builders<TagDocument>.Filter.Eq(d => d.Name, normalizedName), ct);
         return doc is null ? null : MongoTagMapper.ToDomain(doc);
     }
 
     public async Task<EnsureTagOutcome> EnsureByNameAsync(string normalizedName, DateTimeOffset now, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(normalizedName);
-        var session = sessions.Current;
 
         var existing = await FindByNameAsync(normalizedName, ct);
         if (existing is not null)
@@ -66,17 +62,10 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
 
         try
         {
-            if (session is null)
-            {
-                await _tags.InsertOneAsync(doc, options: null, ct);
-            }
-            else
-            {
-                await _tags.InsertOneAsync(session, doc, options: null, ct);
-            }
+            await InsertOneAsync(doc, ct);
             return new EnsureTagOutcome.Created(tag);
         }
-        catch (MongoWriteException ex) when (ex.WriteError?.Code == DuplicateKeyCode)
+        catch (MongoWriteException ex) when (MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
             // Race: another process inserted the same name between FindByNameAsync and InsertOneAsync.
             var raced = await FindByNameAsync(normalizedName, ct)
@@ -89,9 +78,7 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
     public async Task<CreateTagOutcome> CreateAsync(string rawName, DateTimeOffset now, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrEmpty(rawName);
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoTagRepository.CreateAsync must run inside IUnitOfWork.ExecuteAsync.");
+        _ = RequireSession(nameof(CreateAsync));
 
         var normalized = TagNames.Normalize(rawName);
         var existing = await FindByNameAsync(normalized, ct);
@@ -103,10 +90,10 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         var tag = Tag.Create(TagId.New(), normalized, now);
         try
         {
-            await _tags.InsertOneAsync(session, MongoTagMapper.ToDocument(tag), options: null, ct);
+            await InsertOneAsync(MongoTagMapper.ToDocument(tag), ct);
             return new CreateTagOutcome.Created(tag);
         }
-        catch (MongoWriteException ex) when (ex.WriteError?.Code == DuplicateKeyCode)
+        catch (MongoWriteException ex) when (MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
             var raced = await FindByNameAsync(normalized, ct)
                 ?? throw new InvalidOperationException(
@@ -122,16 +109,13 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         DateTimeOffset now,
         CancellationToken ct)
     {
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoTagRepository.RenameAsync must run inside IUnitOfWork.ExecuteAsync.");
+        _ = RequireSession(nameof(RenameAsync));
 
-        var doc = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id.Value, ct);
         if (doc is null)
         {
             return new RenameTagOutcome.NotFound();
         }
-
         if (doc.CurrentVersion != expectedVersion)
         {
             return new RenameTagOutcome.VersionConflict(doc.CurrentVersion);
@@ -144,9 +128,10 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
             return new RenameTagOutcome.NoChange(tag);
         }
 
-        var collision = await _tags
-            .Find(session, d => d.Name == tag.Name && d.Id != id.Value)
-            .FirstOrDefaultAsync(ct);
+        var collisionFilter = Builders<TagDocument>.Filter.And(
+            Builders<TagDocument>.Filter.Eq(d => d.Name, tag.Name),
+            Builders<TagDocument>.Filter.Ne(d => d.Id, id.Value));
+        var collision = await FindOneAsync(collisionFilter, ct);
         if (collision is not null)
         {
             return new RenameTagOutcome.NameTaken(MongoTagMapper.ToDomain(collision));
@@ -156,28 +141,23 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
             .Set(d => d.Name, tag.Name)
             .Set(d => d.CurrentVersion, tag.CurrentVersion)
             .Set(d => d.UpdatedAt, tag.UpdatedAt.UtcDateTime);
+        var casFilter = Builders<TagDocument>.Filter.And(
+            ById(id.Value),
+            Builders<TagDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
 
         try
         {
-            var updateResult = await _tags.UpdateOneAsync(
-                session,
-                d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
-                update,
-                options: null,
-                ct);
-
-            if (updateResult.ModifiedCount == 0)
+            if (!await TryUpdateAsync(casFilter, update, ct))
             {
-                var fresh = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+                var fresh = await FindByIdAsync(id.Value, ct);
                 return fresh is null
                     ? new RenameTagOutcome.NotFound()
                     : new RenameTagOutcome.VersionConflict(fresh.CurrentVersion);
             }
         }
-        catch (MongoWriteException ex) when (ex.WriteError?.Code == DuplicateKeyCode)
+        catch (MongoWriteException ex) when (MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
-            var raced = await _tags.Find(session, d => d.Name == tag.Name && d.Id != id.Value)
-                .FirstOrDefaultAsync(ct);
+            var raced = await FindOneAsync(collisionFilter, ct);
             if (raced is not null)
             {
                 return new RenameTagOutcome.NameTaken(MongoTagMapper.ToDomain(raced));
@@ -196,16 +176,13 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(defaultRepositories);
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoTagRepository.SetDefaultRepositoriesAsync must run inside IUnitOfWork.ExecuteAsync.");
+        _ = RequireSession(nameof(SetDefaultRepositoriesAsync));
 
-        var doc = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id.Value, ct);
         if (doc is null)
         {
             return new SetTagDefaultRepositoriesOutcome.NotFound();
         }
-
         if (doc.CurrentVersion != expectedVersion)
         {
             return new SetTagDefaultRepositoriesOutcome.VersionConflict(doc.CurrentVersion);
@@ -225,17 +202,13 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
             .Set(d => d.DefaultRepositories, subdocuments)
             .Set(d => d.CurrentVersion, tag.CurrentVersion)
             .Set(d => d.UpdatedAt, tag.UpdatedAt.UtcDateTime);
+        var casFilter = Builders<TagDocument>.Filter.And(
+            ById(id.Value),
+            Builders<TagDocument>.Filter.Eq(d => d.CurrentVersion, expectedVersion));
 
-        var updateResult = await _tags.UpdateOneAsync(
-            session,
-            d => d.Id == id.Value && d.CurrentVersion == expectedVersion,
-            update,
-            options: null,
-            ct);
-
-        if (updateResult.ModifiedCount == 0)
+        if (!await TryUpdateAsync(casFilter, update, ct))
         {
-            var fresh = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+            var fresh = await FindByIdAsync(id.Value, ct);
             return fresh is null
                 ? new SetTagDefaultRepositoriesOutcome.NotFound()
                 : new SetTagDefaultRepositoriesOutcome.VersionConflict(fresh.CurrentVersion);
@@ -246,7 +219,7 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
 
     public async Task<TagUsage> GetUsageAsync(TagId id, CancellationToken ct)
     {
-        var session = sessions.Current;
+        var session = Sessions.Current;
         var filter = Builders<IntentDocument>.Filter.AnyEq(d => d.TagIds, id.Value);
         var count = session is null
             ? await _intents.CountDocumentsAsync(filter, options: null, ct)
@@ -256,11 +229,9 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
 
     public async Task<DeleteTagOutcome> DeleteAsync(TagId id, DateTimeOffset now, CancellationToken ct)
     {
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
-                "MongoTagRepository.DeleteAsync must run inside IUnitOfWork.ExecuteAsync.");
+        var session = RequireSession(nameof(DeleteAsync));
 
-        var doc = await _tags.Find(session, d => d.Id == id.Value).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id.Value, ct);
         if (doc is null)
         {
             return new DeleteTagOutcome.NotFound();
@@ -279,7 +250,7 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
             await _intents.UpdateManyAsync(session, attachedFilter, detachUpdate, options: null, ct);
         }
 
-        var deleteResult = await _tags.DeleteOneAsync(session, d => d.Id == id.Value, options: null, ct);
+        var deleteResult = await DeleteOneAsync(ById(id.Value), ct);
         if (deleteResult.DeletedCount == 0)
         {
             return new DeleteTagOutcome.NotFound();
@@ -297,4 +268,9 @@ internal sealed class MongoTagRepository(IMongoDatabase database, MongoSessionAc
 
         return new DeleteTagOutcome.Deleted(id, refreshed);
     }
+
+    private IClientSessionHandle RequireSession(string method) =>
+        Sessions.Current
+            ?? throw new InvalidOperationException(
+                $"MongoTagRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 }

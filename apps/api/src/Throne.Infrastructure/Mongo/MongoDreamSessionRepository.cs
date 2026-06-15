@@ -12,30 +12,30 @@ namespace Throne.Infrastructure.Mongo;
 /// Mongo persistence for <see cref="DreamSession"/>. Sessions are append-only —
 /// no update / delete methods.
 /// </summary>
-internal sealed class MongoDreamSessionRepository(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IDreamSessionRepository
+internal sealed class MongoDreamSessionRepository
+    : MongoRepositoryBase<DreamSessionDocument, string>, IDreamSessionRepository
 {
-    private readonly IMongoCollection<DreamSessionDocument> _collection =
-        database.GetCollection<DreamSessionDocument>(MongoCollectionNames.DreamSessions);
+    public MongoDreamSessionRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.DreamSessions, sessions)
+    {
+    }
+
+    protected override FilterDefinition<DreamSessionDocument> ById(string id) =>
+        Builders<DreamSessionDocument>.Filter.Eq(x => x.Id, id);
 
     public async Task<CreateDreamSessionOutcome> CreateAsync(DreamSession session, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(session);
-        var dbSession = RequireSession(nameof(CreateAsync));
-        var doc = ToDocument(session);
-        await _collection.InsertOneAsync(dbSession, doc, options: null, ct);
+        // Append-only writes always need a session: keep the explicit guard.
+        _ = RequireSession(nameof(CreateAsync));
+        await InsertOneAsync(ToDocument(session), ct);
         return new CreateDreamSessionOutcome(session);
     }
 
     public async Task<DreamSession?> GetAsync(string id, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        var filter = Builders<DreamSessionDocument>.Filter.Eq(x => x.Id, id);
-        var dbSession = sessions.Current;
-        var doc = dbSession is null
-            ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
-            : await _collection.Find(dbSession, filter).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id, ct);
         return doc is null ? null : ToDomain(doc);
     }
 
@@ -72,8 +72,7 @@ internal sealed class MongoDreamSessionRepository(
         var combined = clauses.Count == 0
             ? Builders<DreamSessionDocument>.Filter.Empty
             : Builders<DreamSessionDocument>.Filter.And(clauses);
-        var docs = await _collection
-            .Find(combined)
+        var docs = await Find(combined)
             .Sort(Builders<DreamSessionDocument>.Sort
                 .Descending(x => x.CreatedAt)
                 .Descending(x => x.Id))
@@ -93,7 +92,7 @@ internal sealed class MongoDreamSessionRepository(
     }
 
     private IClientSessionHandle RequireSession(string method) =>
-        sessions.Current
+        Sessions.Current
             ?? throw new InvalidOperationException(
                 $"MongoDreamSessionRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 
