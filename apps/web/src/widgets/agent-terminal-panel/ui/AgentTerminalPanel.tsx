@@ -12,6 +12,7 @@ import {
   useTerminalSettingsQuery,
   VENDOR_DEFAULT_EFFORT,
   VENDOR_DEFAULT_MODEL,
+  VENDOR_SUPPORTS_EFFORT,
   type TerminalAgentVendor,
   type TerminalReasoningEffort
 } from "@/entities/terminal-setting";
@@ -182,6 +183,7 @@ export function AgentTerminalPanel({
         onModelChange={setModel}
         effort={effort}
         onEffortChange={setEffort}
+        supportsEffort={VENDOR_SUPPORTS_EFFORT[vendor]}
         onRun={handleRun}
         onRestart={handleRestart}
         onKill={handleKill}

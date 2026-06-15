@@ -3,8 +3,9 @@ namespace Throne.Application.Terminals;
 /// <summary>
 /// Resolved, validated launch axis for one terminal session. Vendor / model / effort are
 /// already defaulted and whitelist-checked — <see cref="AgentSpawnCommand"/> trusts them.
+/// <see cref="Effort"/> is null for a vendor whose descriptor declares no effort axis.
 /// </summary>
-public sealed record TerminalLaunchOptions(string Vendor, string Model, string Effort);
+public sealed record TerminalLaunchOptions(string Vendor, string Model, string? Effort);
 
 /// <summary>
 /// Pre-split spawn invocation handed to <see cref="ITmuxSessionManager.SpawnAsync"/>:
@@ -13,9 +14,11 @@ public sealed record TerminalLaunchOptions(string Vendor, string Model, string E
 public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> Arguments);
 
 /// <summary>
-/// Builds the per-vendor spawn argv. Vendors configure model and effort entirely through
-/// per-launch CLI flags — no vendor config files are touched. tmux passes the argv straight
-/// to <c>execvp</c>, so flag values are raw tokens (no shell quoting): the codex docs show
+/// Assembles the spawn argv: the vendor's base flags (from its
+/// <see cref="TerminalVendorDescriptor.BuildBaseArgs"/>) plus the per-session injection
+/// tokens. Vendors configure model and effort entirely through per-launch CLI flags — no
+/// vendor config files are touched. tmux passes the argv straight to <c>execvp</c>, so flag
+/// values are raw tokens (no shell quoting): the codex docs show
 /// <c>-c model_reasoning_effort="high"</c> for a shell, here it is the unquoted
 /// <c>model_reasoning_effort=high</c> token.
 ///
@@ -28,12 +31,6 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// for Codex) via <paramref name="preparedArgs"/>. The user task is pasted into the live pane
 /// after spawn by <see cref="ITmuxSessionManager.PasteFileAsSubmittedPromptAsync"/> — also from
 /// a file, server-side, so the argv stays small regardless of prompt size.
-///
-/// codex launches with <c>--dangerously-bypass-approvals-and-sandbox</c> (alias <c>--yolo</c>):
-/// the operator presses run and walks away, so mid-task approval prompts on routine work
-/// (git fetch / branch from a remote ref, dependency install — all blocked by the default
-/// workspace-write sandbox's no-network policy) would strand the session. This is codex's
-/// "no approvals, no sandbox" profile; granular per-command policy is a deliberate future layer.
 /// </summary>
 public static class AgentSpawnCommand
 {
@@ -48,7 +45,8 @@ public static class AgentSpawnCommand
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var args = BaseArgs(options);
+        var descriptor = TerminalAgentCatalog.DescriptorFor(options.Vendor);
+        var args = new List<string>(descriptor.BuildBaseArgs(options));
 
         if (preparedArgs is { Count: > 0 })
         {
@@ -57,18 +55,4 @@ public static class AgentSpawnCommand
 
         return new AgentSpawnInvocation(options.Vendor, args);
     }
-
-    private static List<string> BaseArgs(TerminalLaunchOptions options) => options.Vendor switch
-    {
-        TerminalAgentCatalog.VendorClaude =>
-            ["--model", options.Model, "--effort", options.Effort],
-        TerminalAgentCatalog.VendorCodex =>
-            [
-                "-m", options.Model,
-                "-c", $"model_reasoning_effort={options.Effort}",
-                "--dangerously-bypass-approvals-and-sandbox",
-            ],
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(options), $"Unknown terminal vendor '{options.Vendor}'."),
-    };
 }

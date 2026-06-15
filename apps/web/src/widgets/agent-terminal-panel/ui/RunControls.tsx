@@ -26,6 +26,8 @@ interface RunControlsProps {
   onModelChange: (model: string) => void;
   effort: TerminalReasoningEffort;
   onEffortChange: (effort: TerminalReasoningEffort) => void;
+  /** Скрывает контрол усилия для вендора без оси reasoning effort. */
+  supportsEffort: boolean;
   /** Открывает preflight-модалку для нового запуска. */
   onRun: () => void;
   /** Открывает preflight-модалку для перезапуска живой сессии. */
@@ -53,6 +55,7 @@ export function RunControls({
   onModelChange,
   effort,
   onEffortChange,
+  supportsEffort,
   onRun,
   onRestart,
   onKill,
@@ -127,25 +130,27 @@ export function RunControls({
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-xs text-base-content/70">
-        <span>Усилие</span>
-        <select
-          aria-label="Уровень усилия (reasoning)"
-          data-testid="agent-terminal-effort"
-          className="select select-sm select-bordered"
-          value={effort}
-          disabled={dropdownDisabled}
-          onChange={(event) => {
-            onEffortChange(event.target.value as TerminalReasoningEffort);
-          }}
-        >
-          {TERMINAL_EFFORTS.map((e) => (
-            <option key={e} value={e}>
-              {EFFORT_LABEL[e]}
-            </option>
-          ))}
-        </select>
-      </label>
+      {supportsEffort ? (
+        <label className="flex items-center gap-2 text-xs text-base-content/70">
+          <span>Усилие</span>
+          <select
+            aria-label="Уровень усилия (reasoning)"
+            data-testid="agent-terminal-effort"
+            className="select select-sm select-bordered"
+            value={effort}
+            disabled={dropdownDisabled}
+            onChange={(event) => {
+              onEffortChange(event.target.value as TerminalReasoningEffort);
+            }}
+          >
+            {TERMINAL_EFFORTS.map((e) => (
+              <option key={e} value={e}>
+                {EFFORT_LABEL[e]}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       {terminalEnabled ? (
         sessionLive ? (
