@@ -224,6 +224,72 @@ namespace Throne.Settings.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// `not_configured` — `Throne:LocalModel:BaseUrl` is empty; nothing was probed. `ready` — the endpoint answered and `models` lists at least one id. `empty` — the endpoint answered but advertises no models. `unreachable` — transport/HTTP/parse failure; see `error`.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum LocalModelDiscoveryStatus
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"not_configured")]
+        [System.Runtime.Serialization.EnumMember(Value = @"not_configured")]
+        Not_configured = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready")]
+        [System.Runtime.Serialization.EnumMember(Value = @"ready")]
+        Ready = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"empty")]
+        [System.Runtime.Serialization.EnumMember(Value = @"empty")]
+        Empty = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unreachable")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unreachable")]
+        Unreachable = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LocalModelCatalogDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LocalModelDiscoveryStatus>))]
+        public LocalModelDiscoveryStatus Status { get; set; }
+
+        /// <summary>
+        /// The probed `Throne:LocalModel:BaseUrl`. Null only when `status=not_configured`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_url")]
+        public string Base_url { get; set; }
+
+        /// <summary>
+        /// Normalized model ids from `/v1/models`, deduplicated in advertised order. Stable shape for backend metadata consumers and a future OpenCode `provider.models` map. Empty unless `status=ready`.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("models")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Models { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Probe failure detail. Present only when `status=unreachable`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public string Error { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class GitProviderAuthStatusDto
     {

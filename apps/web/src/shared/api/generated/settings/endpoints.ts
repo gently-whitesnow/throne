@@ -8,5 +8,6 @@ export const settingsEndpoints = {
   cleanWorkspace: () => "/settings/workspace/clean",
   getTerminalSettings: () => "/settings/terminal",
   setTerminalSettings: () => "/settings/terminal",
+  getLocalModelCatalog: () => "/settings/local-model/models",
   getGitProvidersStatus: () => "/settings/git-providers/status",
 } as const;
