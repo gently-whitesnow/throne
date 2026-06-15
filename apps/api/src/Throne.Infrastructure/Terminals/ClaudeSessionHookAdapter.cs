@@ -17,16 +17,15 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     private const string SettingsFileName = "throne-session.settings.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
 
-    // Embedded-finale instruction appended verbatim to the operator-composed system prompt: in
-    // the embedded contour (ADR-0034 §5/§61) the Stop-hook parks the pass into awaiting_operator,
-    // so the agent must NOT call set_intent_status(ready_for_review) itself. The standalone
-    // counterpart is the manifest's `finale_work` system part (filtered out of the embedded
-    // composition by PromptCompositionResolver) — this constant is the embedded equivalent.
+    // Embedded-finale instruction appended verbatim to the operator-composed system prompt for
+    // work/free passes: in the embedded contour (ADR-0034 §5/§61) the agent does NOT touch MCP
+    // `set_intent_status` — the Stop-hook parks the pass into awaiting_operator, and the operator
+    // decides the next move. Interview is the only exception (its bundle prescribes how to call
+    // set_intent_status), so this hint is gated on mode and never appended for interview.
     private const string EmbeddedFinaleInstruction =
-        "По завершении прохода доложи результат — статус выставит Stop-хук, сам " +
-        "`set_intent_status(intent_id, status=\"ready_for_review\")` не вызывай. " +
-        "`awaiting_operator` ставь только если реально застрял и нужен инпут оператора; " +
-        "перед вызовом припиши в Intent.text, что именно нужно.";
+        "В этом контуре (встроенный терминал) ты не вызываешь MCP `set_intent_status` сам. " +
+        "По завершении прохода или когда остановился — просто доложи результат текстом. " +
+        "Конец прохода зафиксирует Stop-хук (поставит `awaiting_operator`), дальше решает оператор.";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -56,7 +55,7 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
             var systemPromptPath = Path.Combine(workspacePath, SystemPromptFileName);
-            await File.WriteAllTextAsync(systemPromptPath, ComposeAppendSystemPrompt(systemPrompt!), ct);
+            await File.WriteAllTextAsync(systemPromptPath, ComposeAppendSystemPrompt(systemPrompt!, mode), ct);
             args.Add("--append-system-prompt-file");
             args.Add(systemPromptPath);
         }
@@ -69,11 +68,14 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
 
     // Append the embedded-finale instruction (a runtime constant, ADR-0034 §5/§61) on top of the
-    // operator-composed system prompt. The standalone counterpart sits in the manifest as the
-    // `finale_work` system part; the embedded resolver filters it out, and this constant takes
-    // its place in the embedded contour.
-    private static string ComposeAppendSystemPrompt(string systemPrompt) =>
-        systemPrompt + "\n\n" + EmbeddedFinaleInstruction;
+    // operator-composed system prompt for work/free passes only. The standalone counterpart sits
+    // in the manifest as the `finale_work` system part (filtered out of the embedded composition
+    // by PromptCompositionResolver). Interview keeps its bundle-prescribed set_intent_status flow,
+    // so the embedded hint must not override it; dream runs without an intent and is irrelevant.
+    private static string ComposeAppendSystemPrompt(string systemPrompt, string mode) =>
+        mode is TerminalRunModes.Work or TerminalRunModes.Free
+            ? systemPrompt + "\n\n" + EmbeddedFinaleInstruction
+            : systemPrompt;
 
     private object BuildSettings(string intentId, string mode) =>
         new
