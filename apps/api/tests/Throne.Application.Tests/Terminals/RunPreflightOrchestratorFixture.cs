@@ -91,9 +91,14 @@ public partial class RunPreflightOrchestratorTests
                 Bindings, uow, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             var cloneQueue = Substitute.For<IRepositoryCloneRequests>();
+            var autoBindWorkflow = new PullRequestAutoBindWorkflow(
+                Bindings,
+                Substitute.For<IGitProviderRegistry>(),
+                Substitute.For<ILocalGitBranchReader>(),
+                persistence);
             var service = new RepositoryBindingService(
                 resolver, persistence, syncWorkflow,
-                new RepositoryCloneTransitionWriter(Bindings, uow, clock), cloneQueue);
+                new RepositoryCloneTransitionWriter(Bindings, uow, clock), cloneQueue, autoBindWorkflow);
             return (service, cloneQueue);
         }
 

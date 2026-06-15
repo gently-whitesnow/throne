@@ -72,6 +72,7 @@ internal sealed class ServiceFixture
         Remover = new RecordingWorkspaceRemover();
         Probe = new StubWorkspaceProbe();
         Queue = new RecordingCloneQueue();
+        BranchReader = Substitute.For<ILocalGitBranchReader>();
         var workspace = new StubWorkspaceRoot(RepositoryBindingTestData.WorkspaceRoot);
         var unitOfWork = new PassthroughUnitOfWork();
         var clock = new FixedClock(RepositoryBindingTestData.Now);
@@ -89,7 +90,9 @@ internal sealed class ServiceFixture
         var stateRefresher = new PullRequestStateRefresher(
             Bindings, unitOfWork, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
         var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
-        Service = new RepositoryBindingService(resolver, persistence, syncWorkflow, cloneWriter, Queue);
+        var autoBind = new PullRequestAutoBindWorkflow(Bindings, Providers, BranchReader, persistence);
+        Service = new RepositoryBindingService(
+            resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind);
     }
 
     public IIntentRepository Intents { get; }
@@ -99,6 +102,7 @@ internal sealed class ServiceFixture
     public RecordingWorkspaceRemover Remover { get; }
     public StubWorkspaceProbe Probe { get; }
     public RecordingCloneQueue Queue { get; }
+    public ILocalGitBranchReader BranchReader { get; }
     public RepositoryBindingService Service { get; }
 
     public void IntentExists(string intentIdValue)
