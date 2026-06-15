@@ -57,12 +57,12 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     // workspace-folder removal on intent-done reaps them — no out-of-workspace state to clean here.
     public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
 
-    // Claude Code's composer is a box-drawing input frame; the input row carries `│ >`. Checking
-    // the row (not just the top border) avoids the false-positive where the boot splash already
-    // painted a `╭─` separator but the composer is not yet rendered/listening for paste.
+    // Claude Code v2.1.x renders the ready composer as a horizontal-rule frame with a `❯` prompt
+    // glyph on the input row (the older `│ >` box-drawing frame is gone). The boot splash never
+    // paints `❯`, so this matches only when the composer is up and listening for paste.
     public bool IsTuiReady(string paneSnapshot) =>
         !string.IsNullOrEmpty(paneSnapshot)
-        && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
+        && paneSnapshot.Contains('❯');
 
     private object BuildSettings(string intentId, string mode) =>
         new
