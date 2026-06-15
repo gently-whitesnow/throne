@@ -48,6 +48,19 @@ public interface ITmuxSessionManager
     /// are drained by claude once its TUI starts reading stdin.
     /// </summary>
     Task SendLiteralTextAsync(string intentId, string text, CancellationToken ct);
+
+    /// <summary>
+    /// Pastes the contents of <paramref name="filePath"/> into the session's pane and submits
+    /// it with Enter. The implementation chains
+    /// <c>tmux load-buffer -b … &lt;path&gt;</c> + <c>tmux paste-buffer -d -p -b … -t …</c> +
+    /// <c>tmux send-keys -t … Enter</c>. The buffer is loaded server-side from
+    /// <paramref name="filePath"/> so multi-KB user prompts never travel on the spawn argv
+    /// and never hit tmux's <c>MAX_IMSGSIZE</c> ceiling. <c>-p</c> wraps the payload in
+    /// bracketed-paste markers so embedded newlines are not interpreted as submits by the
+    /// vendor TUI; the final <c>send-keys Enter</c> is what actually submits the prompt to
+    /// the agent so spawn → think latency stays the same as the old argv-positional path.
+    /// </summary>
+    Task PasteFileAsSubmittedPromptAsync(string intentId, string filePath, CancellationToken ct);
 }
 
 /// <summary>

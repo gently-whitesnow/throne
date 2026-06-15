@@ -20,13 +20,14 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// <c>model_reasoning_effort=high</c> token.
 ///
 /// Upfront context (ADR-0034): the embedded contour injects the assembled rules block and the
-/// task as the session's starting context instead of asking the agent to read a bundle. The task
-/// is the positional initial user message; empty task drops its token so a bare boot stays bare.
-/// The rules block does NOT travel on this argv — it is multi-KB and tmux packs the whole spawn
-/// argv into one ~16 KB imsg (<c>command too long</c> above that). Instead the vendor's
-/// <see cref="ISessionHookAdapter"/> materialises it to a per-session file and hands back small
-/// reference tokens (<c>--append-system-prompt-file</c> for Claude, a <c>-p</c> profile for Codex)
-/// that ride in via <paramref name="preparedArgs"/>.
+/// task as the session's starting context instead of asking the agent to read a bundle. Neither
+/// rides on this argv — both are multi-KB on real workloads and tmux packs the whole spawn argv
+/// into one ~16 KB imsg (<c>command too long</c> above that). The rules block is materialised
+/// to a per-session file by the vendor's <see cref="ISessionHookAdapter"/>, which hands back
+/// small reference tokens (<c>--append-system-prompt-file</c> for Claude, a <c>-p</c> profile
+/// for Codex) via <paramref name="preparedArgs"/>. The user task is pasted into the live pane
+/// after spawn by <see cref="ITmuxSessionManager.PasteFileAsSubmittedPromptAsync"/> — also from
+/// a file, server-side, so the argv stays small regardless of prompt size.
 ///
 /// codex launches with <c>--dangerously-bypass-approvals-and-sandbox</c> (alias <c>--yolo</c>):
 /// the operator presses run and walks away, so mid-task approval prompts on routine work
@@ -36,18 +37,13 @@ public sealed record AgentSpawnInvocation(string Command, IReadOnlyList<string> 
 /// </summary>
 public static class AgentSpawnCommand
 {
-    /// <param name="userPrompt">
-    /// Task delivered as the positional initial user message. Null/blank → the agent boots
-    /// without a pre-filled prompt (operator types into the live session themselves).
-    /// </param>
     /// <param name="preparedArgs">
     /// Per-session injection tokens from the vendor's <see cref="ISessionHookAdapter"/> (hooks +
-    /// the file-backed system-context reference), inserted after the model/effort flags and before
-    /// the positional task. Vendor-neutral here — the adapter owns what they mean.
+    /// the file-backed system-context reference), appended after the model/effort flags.
+    /// Vendor-neutral here — the adapter owns what they mean.
     /// </param>
     public static AgentSpawnInvocation Build(
         TerminalLaunchOptions options,
-        string? userPrompt,
         IReadOnlyList<string>? preparedArgs = null)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -57,11 +53,6 @@ public static class AgentSpawnCommand
         if (preparedArgs is { Count: > 0 })
         {
             args.AddRange(preparedArgs);
-        }
-
-        if (!string.IsNullOrWhiteSpace(userPrompt))
-        {
-            args.Add(userPrompt);
         }
 
         return new AgentSpawnInvocation(options.Vendor, args);
