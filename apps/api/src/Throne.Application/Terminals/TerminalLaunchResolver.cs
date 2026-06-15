@@ -13,7 +13,9 @@ public sealed record TerminalLaunchInput(string? Vendor, string? Model, string? 
 /// Resolves the optional, wire-level launch axis (vendor / model / effort) into a fully
 /// defaulted, whitelist-checked <see cref="TerminalLaunchOptions"/>. Omitted vendor falls
 /// back to the persisted setting; omitted model/effort fall back to the vendor's native
-/// defaults. Anything off the curated whitelist raises a 400.
+/// defaults. Anything off the curated whitelist raises a 400. A vendor whose descriptor
+/// declares no effort axis resolves to a null effort — any effort the caller passed is
+/// dropped and no effort flag reaches the spawn argv.
 /// </summary>
 public sealed class TerminalLaunchResolver(ITerminalSettingsStore settings)
 {
@@ -29,17 +31,22 @@ public sealed class TerminalLaunchResolver(ITerminalSettingsStore settings)
             throw TerminalFailures.VendorInvalid(resolvedVendor);
         }
 
-        // Native default model = first entry of the vendor's curated list.
-        var resolvedModel = model ?? TerminalAgentCatalog.ModelsFor(resolvedVendor)[0];
+        var descriptor = TerminalAgentCatalog.DescriptorFor(resolvedVendor);
+
+        var resolvedModel = model ?? descriptor.DefaultModel;
         if (!TerminalAgentCatalog.IsKnownModel(resolvedVendor, resolvedModel))
         {
             throw TerminalFailures.ModelInvalid(resolvedVendor, resolvedModel);
         }
 
-        var resolvedEffort = effort ?? TerminalAgentCatalog.DefaultEffortFor(resolvedVendor);
-        if (!TerminalAgentCatalog.IsKnownEffort(resolvedEffort))
+        string? resolvedEffort = null;
+        if (descriptor.SupportsEffort)
         {
-            throw TerminalFailures.EffortInvalid(resolvedEffort);
+            resolvedEffort = effort ?? descriptor.DefaultEffort;
+            if (resolvedEffort is null || !TerminalAgentCatalog.IsKnownEffort(resolvedEffort))
+            {
+                throw TerminalFailures.EffortInvalid(resolvedEffort ?? "(none)");
+            }
         }
 
         return new TerminalLaunchOptions(resolvedVendor, resolvedModel, resolvedEffort);

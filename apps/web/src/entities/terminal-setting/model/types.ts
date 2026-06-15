@@ -58,4 +58,14 @@ export const VENDOR_DEFAULT_EFFORT: Record<
   codex: "medium"
 };
 
+/**
+ * Поддерживает ли вендор ось reasoning effort. Зеркалит бэкендовый descriptor
+ * (`TerminalVendorDescriptor.SupportsEffort`). Вендор без оси усилия скрывает
+ * соответствующий контрол запуска. Оба текущих вендора усилие поддерживают.
+ */
+export const VENDOR_SUPPORTS_EFFORT: Record<TerminalAgentVendor, boolean> = {
+  claude: true,
+  codex: true
+};
+
 export const DEFAULT_TERMINAL_VENDOR: TerminalAgentVendor = "claude";
