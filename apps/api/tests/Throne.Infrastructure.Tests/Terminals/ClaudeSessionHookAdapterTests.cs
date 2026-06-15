@@ -47,7 +47,7 @@ public class ClaudeSessionHookAdapterTests
         HookMatcher(document, "PostToolUse").Should().BeNull();
     }
 
-    [Fact(DisplayName = "Непустой systemPrompt пишется в файл и подаётся через --append-system-prompt-file")]
+    [Fact(DisplayName = "Непустой systemPrompt пишется в файл дословно и подаётся через --append-system-prompt-file")]
     public async Task Writes_system_prompt_file_and_references_it()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -59,7 +59,8 @@ public class ClaudeSessionHookAdapterTests
         var settingsPath = Path.Combine(root, "throne-session.settings.json");
         var systemPromptPath = Path.Combine(root, "throne-session.append-system-prompt.txt");
         args.Should().Equal("--settings", settingsPath, "--append-system-prompt-file", systemPromptPath);
-        (await File.ReadAllTextAsync(systemPromptPath)).Should().Be("RULES\nblock");
+        var written = await File.ReadAllTextAsync(systemPromptPath);
+        written.Should().Be("RULES\nblock");
     }
 
     [Fact(DisplayName = "Пустой systemPrompt не пишет файл и не добавляет флаг")]
