@@ -107,40 +107,6 @@ public class PromptCompositionResolverTests
         mandatory.Should().Equal(bundle.Parts.Select(i => (i.Scope, i.Key, i.PromptPartId, i.Text)));
     }
 
-    [Fact(DisplayName = "Embedded-резолвер не отдаёт finale_work в mandatory (standalone-only system-часть)")]
-    public async Task Embedded_resolver_filters_finale_work()
-    {
-        var repository = BuildFinaleRepository();
-        var resolver = new PromptCompositionResolver(
-            SkillManifestFixtures.FinaleProvider(), new PromptBundleResolver(repository), repository);
-
-        var composition = await resolver.ResolveAsync(
-            new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, ""), CancellationToken.None);
-
-        composition.Parts.Select(p => p.Key).Should().NotContain("finale_work");
-        composition.SystemPrompt.Should().NotContain("standalone finale text");
-    }
-
-    private static IPromptPartRepository BuildFinaleRepository()
-    {
-        var seeded = new List<PromptPart>
-        {
-            SeedPart(PromptPartScopeNames.System, "common", "system text for common"),
-            SeedPart(PromptPartScopeNames.System, "work", "system text for work"),
-            SeedPart(PromptPartScopeNames.System, "finale_work", "standalone finale text"),
-            SeedPart(PromptPartScopeNames.User, "common", "user common text"),
-            SeedPart(PromptPartScopeNames.User, "work", "user work text"),
-        };
-        var repo = Substitute.For<IPromptPartRepository>();
-        repo.GetByScopeKeyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(call => seeded.FirstOrDefault(p =>
-                string.Equals(p.Scope, call.ArgAt<string>(0), StringComparison.Ordinal)
-                && string.Equals(p.Key, call.ArgAt<string>(1), StringComparison.Ordinal)));
-        repo.ListAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(Array.Empty<PromptPart>());
-        return repo;
-    }
-
     private static PromptPart OptionalPart(string key, string mode, string role, int order, string text) =>
         PromptPart.Create(
             PromptPartId.New(), PromptPartScopeNames.User, key, text, null,

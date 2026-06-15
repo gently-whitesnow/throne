@@ -16,13 +16,6 @@ public sealed class PromptCompositionResolver(
     PromptBundleResolver bundleResolver,
     IPromptPartRepository promptParts)
 {
-    // System parts that exist only for the standalone (MCP) contour and must be filtered out of
-    // the embedded composition. `finale_work` instructs the agent to emit ready_for_review itself;
-    // in the embedded contour the Stop-hook parks the pass into awaiting_operator (ADR-0034 §5/§61)
-    // and ClaudeSessionHookAdapter appends the embedded finale as a runtime constant.
-    private static readonly HashSet<string> StandaloneOnlySystemKinds =
-        new(StringComparer.Ordinal) { "finale_work" };
-
     public async Task<PromptComposition> ResolveAsync(ResolvePromptCompositionQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -67,19 +60,15 @@ public sealed class PromptCompositionResolver(
         var (entries, _) = await bundleResolver.BuildAsync(bundle, ct);
 
         var parts = new List<EffectivePart>(entries.Count);
-        var order = 0;
-        foreach (var entry in entries)
+        for (var i = 0; i < entries.Count; i++)
         {
-            if (IsStandaloneOnlySystemPart(entry.Scope, entry.Key))
-            {
-                continue;
-            }
+            var entry = entries[i];
             parts.Add(new EffectivePart(
                 PartId: entry.PromptPartId,
                 Key: entry.Key,
                 Scope: entry.Scope,
                 Role: PromptPartRoleNames.Mandatory,
-                Order: order++,
+                Order: i,
                 Editable: string.Equals(entry.Scope, PromptPartScopeNames.User, StringComparison.Ordinal),
                 Present: true,
                 Selected: true,
@@ -87,10 +76,6 @@ public sealed class PromptCompositionResolver(
         }
         return parts;
     }
-
-    private static bool IsStandaloneOnlySystemPart(string scope, string key) =>
-        string.Equals(scope, PromptPartScopeNames.System, StringComparison.Ordinal)
-        && StandaloneOnlySystemKinds.Contains(key);
 
     private async Task<List<EffectivePart>> BuildOptionalAsync(
         string mode,

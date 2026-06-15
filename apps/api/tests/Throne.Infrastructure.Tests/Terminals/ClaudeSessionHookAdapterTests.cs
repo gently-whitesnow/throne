@@ -47,7 +47,7 @@ public class ClaudeSessionHookAdapterTests
         HookMatcher(document, "PostToolUse").Should().BeNull();
     }
 
-    [Fact(DisplayName = "Непустой systemPrompt пишется в файл и подаётся через --append-system-prompt-file; embedded-финал дописан хвостом")]
+    [Fact(DisplayName = "Непустой systemPrompt пишется в файл дословно и подаётся через --append-system-prompt-file")]
     public async Task Writes_system_prompt_file_and_references_it()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -60,23 +60,6 @@ public class ClaudeSessionHookAdapterTests
         var systemPromptPath = Path.Combine(root, "throne-session.append-system-prompt.txt");
         args.Should().Equal("--settings", settingsPath, "--append-system-prompt-file", systemPromptPath);
         var written = await File.ReadAllTextAsync(systemPromptPath);
-        written.Should().StartWith("RULES\nblock\n\n");
-        // The embedded-finale constant (ADR-0034 §5/§61) is appended for work passes: the agent
-        // must NOT call MCP set_intent_status itself — the Stop-hook parks the pass.
-        written.Should().Contain("set_intent_status").And.Contain("Stop-хук");
-    }
-
-    [Fact(DisplayName = "Interview-пасс не получает embedded-финал хвоста — у interview свои правила set_intent_status")]
-    public async Task Interview_pass_omits_embedded_finale_tail()
-    {
-        var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
-
-        await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Interview, systemPrompt: "RULES\nblock", CancellationToken.None);
-
-        var written = await File.ReadAllTextAsync(
-            Path.Combine(root, "throne-session.append-system-prompt.txt"));
         written.Should().Be("RULES\nblock");
     }
 
