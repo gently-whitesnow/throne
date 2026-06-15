@@ -29,7 +29,7 @@ internal static class TerminalFailures
     public static ApiException ModelInvalid(string vendor, string model) =>
         new(
             ErrorCodes.TerminalArgsInvalid,
-            $"Model '{model}' is not in the curated whitelist for vendor '{vendor}'. Allowed: {string.Join(" | ", TerminalAgentCatalog.ModelsFor(vendor))}.",
+            $"Model '{model}' is not in the curated whitelist for vendor '{vendor}'. Allowed: {string.Join(" | ", TerminalAgentCatalog.DescriptorFor(vendor).Models)}.",
             new Dictionary<string, object?> { ["vendor"] = vendor, ["model"] = model });
 
     public static ApiException EffortInvalid(string effort) =>

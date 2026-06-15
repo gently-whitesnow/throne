@@ -4,6 +4,7 @@
 // Regenerate via: scripts/quality/codegen-frontend.sh
 
 export const terminalEndpoints = {
+  listTerminalVendors: () => "/terminal/vendors",
   runIntentTerminal: (intent_id: string) => `/intents/${intent_id}/terminal/run`,
   getIntentTerminalSession: (intent_id: string) => `/intents/${intent_id}/terminal/session`,
   restartIntentTerminal: (intent_id: string) => `/intents/${intent_id}/terminal/restart`,
