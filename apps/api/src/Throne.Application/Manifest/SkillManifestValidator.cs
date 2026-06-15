@@ -2,6 +2,7 @@ using Throne.Domain.PromptParts;
 
 namespace Throne.Application.Manifest;
 
+
 internal static class SkillManifestValidator
 {
     public static void Validate(SkillManifest m)
@@ -79,12 +80,10 @@ internal static class BundlesValidator
         HashSet<string> knownScopes,
         HashSet<string> systemKeys)
     {
-        // A mode may have several bundles only when each targets a distinct contour
-        // (ADR-0034); uniqueness is therefore on the (mode, contour) pair.
-        var modeContours = new HashSet<(string Mode, string? Contour)>();
+        var modes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var b in bundles)
         {
-            ValidateBundle(b, knownScopes, systemKeys, modeContours);
+            ValidateBundle(b, knownScopes, systemKeys, modes);
         }
     }
 
@@ -92,21 +91,15 @@ internal static class BundlesValidator
         BundleDefinition b,
         HashSet<string> knownScopes,
         HashSet<string> systemKeys,
-        HashSet<(string Mode, string? Contour)> modeContours)
+        HashSet<string> modes)
     {
         if (string.IsNullOrWhiteSpace(b.Mode))
         {
             throw new SkillManifestException("bundles: empty mode.");
         }
-        if (b.Contour is not null && !PromptContourNames.IsKnown(b.Contour))
+        if (!modes.Add(b.Mode))
         {
-            throw new SkillManifestException(
-                $"bundles: '{b.Mode}' has unknown contour '{b.Contour}'.");
-        }
-        if (!modeContours.Add((b.Mode, b.Contour)))
-        {
-            throw new SkillManifestException(
-                $"bundles: duplicate mode '{b.Mode}' for contour '{b.Contour ?? "(neutral)"}'.");
+            throw new SkillManifestException($"bundles: duplicate mode '{b.Mode}'.");
         }
         if (b.Includes.Count == 0)
         {

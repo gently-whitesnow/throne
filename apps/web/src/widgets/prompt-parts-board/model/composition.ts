@@ -62,13 +62,8 @@ function buildMandatory(
 ): EffectivePart[] {
   // free curates everything by hand — no mandatory parts.
   if (mode === "free") return [];
-  // This panel previews the embedded composition (what the built-in terminal assembles), so for a
-  // mode split by contour (ADR-0034) we take the embedded bundle, falling back to a neutral one.
-  const bundles = bundlesTree?.bundles ?? [];
-  const bundle =
-    bundles.find((b) => b.mode === mode && b.contour === "embedded") ??
-    bundles.find((b) => b.mode === mode && !b.contour);
-  const includes = bundle?.includes ?? [];
+  const includes =
+    bundlesTree?.bundles.find((b) => b.mode === mode)?.includes ?? [];
   return includes.map((entry, index) => ({
     partId: entry.prompt_part_id ?? `part:${entry.scope}:${entry.key}`,
     key: entry.key,

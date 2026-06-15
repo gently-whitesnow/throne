@@ -47,7 +47,7 @@ public class ClaudeSessionHookAdapterTests
         HookMatcher(document, "PostToolUse").Should().BeNull();
     }
 
-    [Fact(DisplayName = "Непустой systemPrompt пишется в файл и подаётся через --append-system-prompt-file")]
+    [Fact(DisplayName = "Непустой systemPrompt пишется в файл и подаётся через --append-system-prompt-file; embedded-финал дописан хвостом")]
     public async Task Writes_system_prompt_file_and_references_it()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -59,7 +59,11 @@ public class ClaudeSessionHookAdapterTests
         var settingsPath = Path.Combine(root, "throne-session.settings.json");
         var systemPromptPath = Path.Combine(root, "throne-session.append-system-prompt.txt");
         args.Should().Equal("--settings", settingsPath, "--append-system-prompt-file", systemPromptPath);
-        (await File.ReadAllTextAsync(systemPromptPath)).Should().Be("RULES\nblock");
+        var written = await File.ReadAllTextAsync(systemPromptPath);
+        written.Should().StartWith("RULES\nblock\n\n");
+        // The embedded-finale constant (ADR-0034 §5/§61) is appended to the operator-composed prompt:
+        // the agent must NOT call set_intent_status(ready_for_review) — the Stop-hook parks the pass.
+        written.Should().Contain("Stop-хук").And.Contain("ready_for_review");
     }
 
     [Fact(DisplayName = "Пустой systemPrompt не пишет файл и не добавляет флаг")]

@@ -16,6 +16,13 @@ public sealed class PromptCompositionResolver(
     PromptBundleResolver bundleResolver,
     IPromptPartRepository promptParts)
 {
+    // System parts that exist only for the standalone (MCP) contour and must be filtered out of
+    // the embedded composition. `finale_work` instructs the agent to emit ready_for_review itself;
+    // in the embedded contour the Stop-hook parks the pass into awaiting_operator (ADR-0034 §5/§61)
+    // and ClaudeSessionHookAdapter appends the embedded finale as a runtime constant.
+    private static readonly HashSet<string> StandaloneOnlySystemKinds =
+        new(StringComparer.Ordinal) { "finale_work" };
+
     public async Task<PromptComposition> ResolveAsync(ResolvePromptCompositionQuery query, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -31,7 +38,7 @@ public sealed class PromptCompositionResolver(
                 });
         }
 
-        var mandatory = await BuildMandatoryAsync(query.Mode, query.Contour, ct);
+        var mandatory = await BuildMandatoryAsync(query.Mode, ct);
         var mandatoryIds = new HashSet<string>(mandatory.Select(p => p.PartId), StringComparer.Ordinal);
         var optional = await BuildOptionalAsync(query.Mode, query.SelectedPartIds, mandatoryIds, ct);
 
@@ -47,7 +54,7 @@ public sealed class PromptCompositionResolver(
             query.IntentText ?? string.Empty);
     }
 
-    private async Task<List<EffectivePart>> BuildMandatoryAsync(string mode, string contour, CancellationToken ct)
+    private async Task<List<EffectivePart>> BuildMandatoryAsync(string mode, CancellationToken ct)
     {
         // free curates everything by hand — no mandatory parts and no manifest bundle.
         if (string.Equals(mode, PromptPartModeNames.Free, StringComparison.Ordinal))
@@ -56,19 +63,23 @@ public sealed class PromptCompositionResolver(
         }
 
         var manifest = manifestProvider.Current;
-        var bundle = BundleResolver.ResolveOrThrow(manifest, mode, contour);
+        var bundle = BundleResolver.ResolveOrThrow(manifest, mode);
         var (entries, _) = await bundleResolver.BuildAsync(bundle, ct);
 
         var parts = new List<EffectivePart>(entries.Count);
-        for (var i = 0; i < entries.Count; i++)
+        var order = 0;
+        foreach (var entry in entries)
         {
-            var entry = entries[i];
+            if (IsStandaloneOnlySystemPart(entry.Scope, entry.Key))
+            {
+                continue;
+            }
             parts.Add(new EffectivePart(
                 PartId: entry.PromptPartId,
                 Key: entry.Key,
                 Scope: entry.Scope,
                 Role: PromptPartRoleNames.Mandatory,
-                Order: i,
+                Order: order++,
                 Editable: string.Equals(entry.Scope, PromptPartScopeNames.User, StringComparison.Ordinal),
                 Present: true,
                 Selected: true,
@@ -76,6 +87,10 @@ public sealed class PromptCompositionResolver(
         }
         return parts;
     }
+
+    private static bool IsStandaloneOnlySystemPart(string scope, string key) =>
+        string.Equals(scope, PromptPartScopeNames.System, StringComparison.Ordinal)
+        && StandaloneOnlySystemKinds.Contains(key);
 
     private async Task<List<EffectivePart>> BuildOptionalAsync(
         string mode,
