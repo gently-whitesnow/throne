@@ -2,12 +2,9 @@ import { Play, RotateCcw, Square } from "lucide-react";
 
 import {
   EFFORT_LABEL,
-  TERMINAL_EFFORTS,
-  TERMINAL_VENDORS,
-  VENDOR_LABEL,
-  VENDOR_MODELS,
   type TerminalAgentVendor,
-  type TerminalReasoningEffort
+  type TerminalReasoningEffort,
+  type TerminalVendorMetadata
 } from "@/entities/terminal-setting";
 import { Button } from "@/shared/ui";
 
@@ -20,14 +17,24 @@ import {
 interface RunControlsProps {
   mode: TerminalRunMode;
   onModeChange: (mode: TerminalRunMode) => void;
-  vendor: TerminalAgentVendor;
+  /** Список вендоров из backend-каталога; пуст, пока metadata грузится. */
+  vendors: readonly TerminalVendorMetadata[];
+  vendor: TerminalAgentVendor | "";
   onVendorChange: (vendor: TerminalAgentVendor) => void;
+  /** Модели выбранного вендора из metadata. */
+  models: readonly string[];
   model: string;
   onModelChange: (model: string) => void;
-  effort: TerminalReasoningEffort;
+  /** Уровни усилия выбранного вендора из metadata. */
+  efforts: readonly TerminalReasoningEffort[];
+  effort: TerminalReasoningEffort | "";
   onEffortChange: (effort: TerminalReasoningEffort) => void;
   /** Скрывает контрол усилия для вендора без оси reasoning effort. */
   supportsEffort: boolean;
+  /** Метаданные ещё грузятся — dropdown'ы заморожены. */
+  metadataLoading: boolean;
+  /** Метаданные не загрузились — dropdown'ы заморожены, рендерим причину выше. */
+  metadataError: boolean;
   /** Открывает preflight-модалку для нового запуска. */
   onRun: () => void;
   /** Открывает preflight-модалку для перезапуска живой сессии. */
@@ -49,13 +56,18 @@ interface RunControlsProps {
 export function RunControls({
   mode,
   onModeChange,
+  vendors,
   vendor,
   onVendorChange,
+  models,
   model,
   onModelChange,
+  efforts,
   effort,
   onEffortChange,
   supportsEffort,
+  metadataLoading,
+  metadataError,
   onRun,
   onRestart,
   onKill,
@@ -66,7 +78,7 @@ export function RunControls({
   isStopping,
   terminalEnabled
 }: RunControlsProps) {
-  const dropdownDisabled = sessionLive;
+  const dropdownDisabled = sessionLive || metadataLoading || metadataError;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -77,7 +89,7 @@ export function RunControls({
           data-testid="agent-terminal-mode"
           className="select select-sm select-bordered"
           value={mode}
-          disabled={dropdownDisabled}
+          disabled={sessionLive}
           onChange={(event) => {
             onModeChange(event.target.value as TerminalRunMode);
           }}
@@ -102,9 +114,10 @@ export function RunControls({
             onVendorChange(event.target.value as TerminalAgentVendor);
           }}
         >
-          {TERMINAL_VENDORS.map((v) => (
-            <option key={v} value={v}>
-              {VENDOR_LABEL[v]}
+          {vendor === "" ? <option value="" disabled hidden /> : null}
+          {vendors.map((v) => (
+            <option key={v.vendor} value={v.vendor}>
+              {v.label}
             </option>
           ))}
         </select>
@@ -122,7 +135,8 @@ export function RunControls({
             onModelChange(event.target.value);
           }}
         >
-          {VENDOR_MODELS[vendor].map((m) => (
+          {model === "" ? <option value="" disabled hidden /> : null}
+          {models.map((m) => (
             <option key={m} value={m}>
               {m}
             </option>
@@ -143,13 +157,20 @@ export function RunControls({
               onEffortChange(event.target.value as TerminalReasoningEffort);
             }}
           >
-            {TERMINAL_EFFORTS.map((e) => (
+            {effort === "" ? <option value="" disabled hidden /> : null}
+            {efforts.map((e) => (
               <option key={e} value={e}>
                 {EFFORT_LABEL[e]}
               </option>
             ))}
           </select>
         </label>
+      ) : null}
+
+      {metadataLoading ? (
+        <span className="text-[11px] text-base-content/60">
+          Загружаем список агентов…
+        </span>
       ) : null}
 
       {terminalEnabled ? (

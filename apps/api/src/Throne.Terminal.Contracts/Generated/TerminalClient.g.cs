@@ -27,6 +27,123 @@ namespace Throne.Terminal.Contracts.Generated
     
 
     /// <summary>
+    /// Provenance of a vendor's curated model list. `static` — the list is hardcoded in the backend descriptor and changes only by editing the catalog (current state for both `claude` and `codex`). A future dynamic-discovery source would add another value here; that discovery is out of scope for this slice.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TerminalModelSource
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"static")]
+        [System.Runtime.Serialization.EnumMember(Value = @"static")]
+        Static = 0,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalVendorMetadataDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor Vendor { get; set; }
+
+        /// <summary>
+        /// Human-facing vendor label for the launch/settings dropdown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Label { get; set; }
+
+        /// <summary>
+        /// Whether the vendor exposes a reasoning-effort axis. False → the launch surface hides the effort control and no effort reaches the spawn argv.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("supports_effort")]
+        public bool Supports_effort { get; set; }
+
+        /// <summary>
+        /// Curated model whitelist, native-default-first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("models")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<string> Models { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Native default model = first entry of `models`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_model")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Default_model { get; set; }
+
+        /// <summary>
+        /// Reasoning-effort tiers selectable for this vendor. Empty when `supports_effort=false`.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("efforts")]
+        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TerminalReasoningEffort> Efforts { get; set; } = new System.Collections.ObjectModel.Collection<TerminalReasoningEffort>();
+
+        /// <summary>
+        /// Native default effort. Present iff `supports_effort=true`; null for an effort-less vendor.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_effort")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
+        public TerminalReasoningEffort? Default_effort { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("model_source")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalModelSource>))]
+        public TerminalModelSource Model_source { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalVendorCatalogResponse
+    {
+
+        /// <summary>
+        /// Vendor pre-selected on the launch surface when neither the request nor the persisted setting pins one.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor Default_vendor { get; set; }
+
+        /// <summary>
+        /// Every registered vendor, in catalog order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("vendors")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<TerminalVendorMetadataDto> Vendors { get; set; } = new System.Collections.ObjectModel.Collection<TerminalVendorMetadataDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
     /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
     /// <br/>
     /// </summary>

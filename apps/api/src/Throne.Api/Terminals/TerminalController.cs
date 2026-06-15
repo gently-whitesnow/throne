@@ -15,6 +15,9 @@ public sealed class TerminalController(
     ILogger<TerminalController> logger
 ) : TerminalControllerBase
 {
+    public override Task<ActionResult<TerminalVendorCatalogResponse>> ListTerminalVendors() =>
+        Task.FromResult<ActionResult<TerminalVendorCatalogResponse>>(Ok(TerminalVendorCatalogMapper.ToDto()));
+
     public override async Task<ActionResult<IntentTerminalPreviewResponse>> PreviewIntentTerminal(
         string intent_id,
         PreviewIntentTerminalRequest body

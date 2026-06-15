@@ -1,5 +1,5 @@
 import { AlertCircle } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
@@ -7,23 +7,11 @@ import {
   isCloneReady,
   useIntentRepositories
 } from "@/entities/repository-binding";
-import {
-  DEFAULT_TERMINAL_VENDOR,
-  useTerminalSettingsQuery,
-  VENDOR_DEFAULT_EFFORT,
-  VENDOR_DEFAULT_MODEL,
-  VENDOR_SUPPORTS_EFFORT,
-  type TerminalAgentVendor,
-  type TerminalReasoningEffort
-} from "@/entities/terminal-setting";
 
+import { useLaunchAxis } from "../model/use-launch-axis";
 import { useTerminalSession } from "../model/use-terminal-session";
 import { defaultRunModeForStatus } from "../model/types";
-import type {
-  TerminalLaunchArgs,
-  TerminalRunMode,
-  TerminalRunPayload
-} from "../model/types";
+import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
 
 import { PreflightModal } from "./PreflightModal";
 import { PreflightProgress } from "./PreflightProgress";
@@ -38,14 +26,13 @@ interface AgentTerminalPanelProps {
 /**
  * Виджет «Запустить агента» внизу страницы интента.
  *
- * - Dropdown режимов/вендора/модели/усилия задают ось запуска; сам стартовый
- *   контекст (правила + задача) оператор смотрит и правит в preflight-модалке,
- *   которая открывается на Run/Restart и собирает payload через backend-preview
- *   (ADR-0034/0035). Хардкод-промпта и Copy prompt в embedded-контуре больше нет.
+ * - Dropdown режимов/вендора/модели/усилия задают ось запуска. Списки вендоров,
+ *   моделей, усилий и дефолты приходят из backend-каталога (`useLaunchAxis` →
+ *   `GET /terminal/vendors`) — фронт их не хардкодит. Сам стартовый контекст
+ *   (правила + задача) оператор смотрит и правит в preflight-модалке (ADR-0034/0035).
  * - Run-кнопка и xterm-блок рендерятся только при `terminal`-capability == enabled.
- * - Pre-flight: Run disabled пока есть not-ready binding'и; per-binding
- *   прогресс на основе `useIntentRepositories`, который уже подписан на
- *   realtime-эвент `intent.repository_clone_progress`.
+ * - Pre-flight: Run disabled пока есть not-ready binding'и или ещё не пришли
+ *   metadata; per-binding прогресс на основе `useIntentRepositories`.
  * - Live-сессия (`tmux has-session` → true): dropdown замораживаются,
  *   появляется Restart-кнопка.
  */
@@ -56,27 +43,7 @@ export function AgentTerminalPanel({
   const [mode, setMode] = useState<TerminalRunMode>(() =>
     defaultRunModeForStatus(intentStatus)
   );
-  const [vendor, setVendor] = useState<TerminalAgentVendor>(
-    DEFAULT_TERMINAL_VENDOR
-  );
-  const [model, setModel] = useState<string>(
-    VENDOR_DEFAULT_MODEL[DEFAULT_TERMINAL_VENDOR]
-  );
-  const [effort, setEffort] = useState<TerminalReasoningEffort>(
-    VENDOR_DEFAULT_EFFORT[DEFAULT_TERMINAL_VENDOR]
-  );
-
-  // Дефолтный вендор приходит из /settings. Применяем его один раз, пока
-  // оператор сам не тронул селектор: дальше его выбор главнее серверного дефолта.
-  const settingsQuery = useTerminalSettingsQuery();
-  const settingsVendor = settingsQuery.data?.default_vendor;
-  const vendorTouched = useRef(false);
-  useEffect(() => {
-    if (settingsVendor === undefined || vendorTouched.current) return;
-    setVendor(settingsVendor);
-    setModel(VENDOR_DEFAULT_MODEL[settingsVendor]);
-    setEffort(VENDOR_DEFAULT_EFFORT[settingsVendor]);
-  }, [settingsVendor]);
+  const axis = useLaunchAxis();
 
   const { capabilities, isLoading: capabilitiesLoading } = useCapabilities();
   const { bindings } = useIntentRepositories(intentId);
@@ -94,23 +61,17 @@ export function AgentTerminalPanel({
 
   const runDisabledReason = !terminalEnabled
     ? "Включите «Терминал агента» в настройках, чтобы запускать сессии."
-    : hasBlockingBinding
-      ? "Дождитесь готовности клонов всех репозиториев."
-      : null;
+    : axis.metadataError
+      ? "Не удалось загрузить список агентов. Обновите страницу."
+      : !axis.launchReady
+        ? "Загружаем список агентов…"
+        : hasBlockingBinding
+          ? "Дождитесь готовности клонов всех репозиториев."
+          : null;
 
   const [preflight, setPreflight] = useState<"run" | "restart" | null>(null);
 
-  const launchArgs = useMemo<TerminalLaunchArgs>(
-    () => ({ mode, vendor, model, effort }),
-    [mode, vendor, model, effort]
-  );
-
-  const handleVendorChange = useCallback((next: TerminalAgentVendor) => {
-    vendorTouched.current = true;
-    setVendor(next);
-    setModel(VENDOR_DEFAULT_MODEL[next]);
-    setEffort(VENDOR_DEFAULT_EFFORT[next]);
-  }, []);
+  const launchArgs = axis.launchArgs(mode);
 
   // Берём стабильные функции хука напрямую: иначе колбэки зависели бы от
   // объекта `session`, который пересоздаётся каждый рендер, и onClosed менял
@@ -121,14 +82,6 @@ export function AgentTerminalPanel({
     restart: restartSession,
     markSessionEnded
   } = session;
-
-  const handleRun = useCallback(() => {
-    setPreflight("run");
-  }, []);
-
-  const handleRestart = useCallback(() => {
-    setPreflight("restart");
-  }, []);
 
   const handleLaunch = useCallback(
     (payload: TerminalRunPayload) => {
@@ -177,23 +130,52 @@ export function AgentTerminalPanel({
       <RunControls
         mode={mode}
         onModeChange={setMode}
-        vendor={vendor}
-        onVendorChange={handleVendorChange}
-        model={model}
-        onModelChange={setModel}
-        effort={effort}
-        onEffortChange={setEffort}
-        supportsEffort={VENDOR_SUPPORTS_EFFORT[vendor]}
-        onRun={handleRun}
-        onRestart={handleRestart}
+        vendors={axis.vendors}
+        vendor={axis.vendor ?? ""}
+        onVendorChange={axis.onVendorChange}
+        models={axis.selectedMeta?.models ?? []}
+        model={axis.model ?? ""}
+        onModelChange={axis.setModel}
+        efforts={axis.selectedMeta?.efforts ?? []}
+        effort={axis.effort ?? ""}
+        onEffortChange={axis.setEffort}
+        supportsEffort={axis.selectedMeta?.supports_effort ?? false}
+        metadataLoading={axis.metadataLoading}
+        metadataError={axis.metadataError}
+        onRun={() => {
+          setPreflight("run");
+        }}
+        onRestart={() => {
+          setPreflight("restart");
+        }}
         onKill={handleKill}
-        runDisabled={!terminalEnabled || hasBlockingBinding}
+        runDisabled={
+          !terminalEnabled || !axis.launchReady || hasBlockingBinding
+        }
         runDisabledReason={runDisabledReason}
         sessionLive={sessionLive}
         isStarting={session.isStarting}
         isStopping={session.isStopping}
         terminalEnabled={terminalEnabled}
       />
+
+      {axis.metadataError ? (
+        <p
+          role="alert"
+          className="m-0 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+        >
+          <AlertCircle
+            aria-hidden
+            size={14}
+            strokeWidth={2}
+            className="mt-0.5"
+          />
+          <span>
+            Не удалось загрузить список агентов. Обновите страницу, чтобы
+            запустить сессию.
+          </span>
+        </p>
+      ) : null}
 
       {hasBlockingBinding ? (
         <div className="flex flex-col gap-1">
@@ -237,17 +219,19 @@ export function AgentTerminalPanel({
         </p>
       ) : null}
 
-      <PreflightModal
-        open={preflight !== null}
-        intentId={intentId}
-        launch={launchArgs}
-        actionLabel={preflight === "restart" ? "Перезапустить" : "Запустить"}
-        isSubmitting={session.isStarting}
-        onClose={() => {
-          setPreflight(null);
-        }}
-        onLaunch={handleLaunch}
-      />
+      {launchArgs !== null ? (
+        <PreflightModal
+          open={preflight !== null}
+          intentId={intentId}
+          launch={launchArgs}
+          actionLabel={preflight === "restart" ? "Перезапустить" : "Запустить"}
+          isSubmitting={session.isStarting}
+          onClose={() => {
+            setPreflight(null);
+          }}
+          onLaunch={handleLaunch}
+        />
+      ) : null}
     </section>
   );
 }

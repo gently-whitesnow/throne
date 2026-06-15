@@ -1,16 +1,12 @@
 export {
-  DEFAULT_TERMINAL_VENDOR,
   EFFORT_LABEL,
-  TERMINAL_EFFORTS,
-  TERMINAL_VENDORS,
-  VENDOR_DEFAULT_EFFORT,
-  VENDOR_DEFAULT_MODEL,
-  VENDOR_LABEL,
-  VENDOR_MODELS,
-  VENDOR_SUPPORTS_EFFORT,
+  findVendorMetadata,
+  resolveDefaultVendor,
   type TerminalAgentVendor,
   type TerminalReasoningEffort,
-  type TerminalSettings
+  type TerminalSettings,
+  type TerminalVendorCatalog,
+  type TerminalVendorMetadata
 } from "./model/types";
 export {
   fetchTerminalSettings,
@@ -21,3 +17,8 @@ export {
   useSetDefaultTerminalVendor,
   useTerminalSettingsQuery
 } from "./api/terminal-settings-queries";
+export { fetchTerminalVendorCatalog } from "./api/terminal-vendor-catalog-api";
+export {
+  terminalVendorCatalogQueryKeys,
+  useTerminalVendorCatalogQuery
+} from "./api/terminal-vendor-catalog-queries";

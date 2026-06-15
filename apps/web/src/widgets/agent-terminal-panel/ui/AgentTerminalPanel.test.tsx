@@ -70,6 +70,43 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   unbindIntentRepository: vi.fn()
 }));
 
+vi.mock("@/entities/terminal-setting/api/terminal-vendor-catalog-api", () => ({
+  fetchTerminalVendorCatalog: () => Promise.resolve(vendorCatalog())
+}));
+
+vi.mock("@/entities/terminal-setting/api/terminal-settings-api", () => ({
+  fetchTerminalSettings: () => Promise.resolve({ default_vendor: "claude" }),
+  setDefaultTerminalVendor: vi.fn()
+}));
+
+function vendorCatalog() {
+  return {
+    default_vendor: "claude",
+    vendors: [
+      {
+        vendor: "claude",
+        label: "Claude",
+        supports_effort: true,
+        models: ["opus", "sonnet", "haiku"],
+        default_model: "opus",
+        efforts: ["low", "medium", "high", "xhigh"],
+        default_effort: "high",
+        model_source: "static"
+      },
+      {
+        vendor: "codex",
+        label: "Codex",
+        supports_effort: true,
+        models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
+        default_model: "gpt-5.5",
+        efforts: ["low", "medium", "high", "xhigh"],
+        default_effort: "medium",
+        model_source: "static"
+      }
+    ]
+  };
+}
+
 function terminalCapability(): Capability[] {
   return [
     {
