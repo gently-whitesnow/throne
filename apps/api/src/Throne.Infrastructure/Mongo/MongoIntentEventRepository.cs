@@ -7,12 +7,16 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentEventRepository(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IIntentEventRepository
+internal sealed class MongoIntentEventRepository
+    : MongoRepositoryBase<IntentEventDocument, string>, IIntentEventRepository
 {
-    private readonly IMongoCollection<IntentEventDocument> _events =
-        database.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents);
+    public MongoIntentEventRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.IntentEvents, sessions)
+    {
+    }
+
+    protected override FilterDefinition<IntentEventDocument> ById(string id) =>
+        Builders<IntentEventDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<IReadOnlyList<IntentEvent>> ListByIntentAsync(IntentId intentId, CancellationToken ct)
     {
@@ -21,10 +25,7 @@ internal sealed class MongoIntentEventRepository(
             fb.Eq(d => d.IntentId, intentId.Value),
             fb.Eq(d => d.PeerIntentId, intentId.Value));
 
-        var session = sessions.Current;
-        var find = session is null ? _events.Find(filter) : _events.Find(session, filter);
-        var docs = await find.SortBy(d => d.CreatedAt).ToListAsync(ct);
-
+        var docs = await Find(filter).SortBy(d => d.CreatedAt).ToListAsync(ct);
         return docs.Select(MapToDomain).ToList();
     }
 
@@ -35,20 +36,21 @@ internal sealed class MongoIntentEventRepository(
             fb.Eq(d => d.IntentId, intentId.Value),
             fb.Eq(d => d.Kind, IntentEventKind.TextChanged.ToWire()));
 
-        var session = sessions.Current;
-        var find = session is null ? _events.Find(filter) : _events.Find(session, filter);
-        var docs = await find.SortBy(d => d.Version).ToListAsync(ct);
-
+        var docs = await Find(filter).SortBy(d => d.Version).ToListAsync(ct);
         return docs.Select(MapToDomain).ToList();
     }
 
     public async Task AppendAsync(IntentEvent evt, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(evt);
-        var session = sessions.Current
-            ?? throw new InvalidOperationException(
+        // Writes need an ambient session — the base helper would silently drop to
+        // sessionless, which would break event ↔ aggregate atomicity.
+        if (Sessions.Current is null)
+        {
+            throw new InvalidOperationException(
                 "MongoIntentEventRepository.AppendAsync must run inside IUnitOfWork.ExecuteAsync.");
-        await _events.InsertOneAsync(session, MapToDocument(evt), options: null, ct);
+        }
+        await InsertOneAsync(MapToDocument(evt), ct);
     }
 
     private static IntentEventDocument MapToDocument(IntentEvent e) => new()

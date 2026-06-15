@@ -11,12 +11,16 @@ namespace Throne.Infrastructure.Mongo;
 /// <summary>
 /// Mongo persistence for <see cref="PromptPartPatch"/>.
 /// </summary>
-internal sealed class MongoPromptPartPatchRepository(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IPromptPartPatchRepository
+internal sealed class MongoPromptPartPatchRepository
+    : MongoRepositoryBase<PromptPartPatchDocument, string>, IPromptPartPatchRepository
 {
-    private readonly IMongoCollection<PromptPartPatchDocument> _collection =
-        database.GetCollection<PromptPartPatchDocument>(MongoCollectionNames.PromptPartPatches);
+    public MongoPromptPartPatchRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.PromptPartPatches, sessions)
+    {
+    }
+
+    protected override FilterDefinition<PromptPartPatchDocument> ById(string id) =>
+        Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Id, id);
 
     public async Task<CreatePromptPartPatchOutcome> CreateAsync(
         PromptPartPatch patch,
@@ -24,26 +28,19 @@ internal sealed class MongoPromptPartPatchRepository(
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var session = sessions.Current;
         var doc = ToDocument(patch);
         doc.IdempotencyKey = idempotencyKey;
         try
         {
-            if (session is null)
-            {
-                await _collection.InsertOneAsync(doc, options: null, ct);
-            }
-            else
-            {
-                await _collection.InsertOneAsync(session, doc, options: null, ct);
-            }
+            await InsertOneAsync(doc, ct);
             return new CreatePromptPartPatchOutcome(patch);
         }
         catch (MongoWriteException ex)
-            when (idempotencyKey is not null
-                  && ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            when (idempotencyKey is not null && MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
-            var existing = await FindByIdempotencyKeyAsync(idempotencyKey, useSession: false, ct);
+            // Idempotent re-submit lost the race: re-read the winner without a session
+            // because we may already be outside any transaction (CreateAsync supports both).
+            var existing = await FindByIdempotencyKeySessionlessAsync(idempotencyKey, ct);
             if (existing is null)
             {
                 throw;
@@ -52,33 +49,27 @@ internal sealed class MongoPromptPartPatchRepository(
         }
     }
 
-    public Task<PromptPartPatch?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken ct)
+    public async Task<PromptPartPatch?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(idempotencyKey);
-        return FindByIdempotencyKeyAsync(idempotencyKey, useSession: true, ct);
+        var filter = Builders<PromptPartPatchDocument>.Filter.Eq(x => x.IdempotencyKey, idempotencyKey);
+        var doc = await FindOneAsync(filter, ct);
+        return doc is null ? null : ToDomain(doc);
     }
 
-    private async Task<PromptPartPatch?> FindByIdempotencyKeyAsync(
+    private async Task<PromptPartPatch?> FindByIdempotencyKeySessionlessAsync(
         string idempotencyKey,
-        bool useSession,
         CancellationToken ct)
     {
         var filter = Builders<PromptPartPatchDocument>.Filter.Eq(x => x.IdempotencyKey, idempotencyKey);
-        var session = useSession ? sessions.Current : null;
-        var doc = session is null
-            ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
-            : await _collection.Find(session, filter).FirstOrDefaultAsync(ct);
+        var doc = await Collection.Find(filter).FirstOrDefaultAsync(ct);
         return doc is null ? null : ToDomain(doc);
     }
 
     public async Task<PromptPartPatch?> GetAsync(string id, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        var filter = Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Id, id);
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _collection.Find(filter).FirstOrDefaultAsync(ct)
-            : await _collection.Find(session, filter).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(id, ct);
         return doc is null ? null : ToDomain(doc);
     }
 
@@ -119,8 +110,7 @@ internal sealed class MongoPromptPartPatchRepository(
         var combined = clauses.Count == 0
             ? Builders<PromptPartPatchDocument>.Filter.Empty
             : Builders<PromptPartPatchDocument>.Filter.And(clauses);
-        var docs = await _collection
-            .Find(combined)
+        var docs = await Find(combined)
             .Sort(Builders<PromptPartPatchDocument>.Sort
                 .Descending(x => x.CreatedAt)
                 .Descending(x => x.Id))
@@ -144,10 +134,10 @@ internal sealed class MongoPromptPartPatchRepository(
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var session = RequireSession(nameof(ApplyAsync));
+        _ = RequireSession(nameof(ApplyAsync));
 
         var filter = Builders<PromptPartPatchDocument>.Filter.And(
-            Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
+            ById(patch.Identity.Id),
             Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Status, PromptPartPatchStatusNames.Proposed));
 
         var update = Builders<PromptPartPatchDocument>.Update
@@ -157,18 +147,15 @@ internal sealed class MongoPromptPartPatchRepository(
             .Set(x => x.UpdatedAt, patch.State.UpdatedAt.UtcDateTime)
             .Set(x => x.DecidedAt, patch.State.DecidedAt?.UtcDateTime);
 
-        var result = await _collection.UpdateOneAsync(session, filter, update, options: null, ct);
-        if (result.ModifiedCount == 0)
+        if (await TryUpdateAsync(filter, update, ct))
         {
-            var fresh = await _collection.Find(session,
-                Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id))
-                .FirstOrDefaultAsync(ct);
-            return fresh is null
-                ? new ApplyPromptPartPatchPersistenceOutcome.NotFound()
-                : new ApplyPromptPartPatchPersistenceOutcome.AlreadyDecided(ToDomain(fresh));
+            return new ApplyPromptPartPatchPersistenceOutcome.Applied(patch);
         }
 
-        return new ApplyPromptPartPatchPersistenceOutcome.Applied(patch);
+        var fresh = await FindByIdAsync(patch.Identity.Id, ct);
+        return fresh is null
+            ? new ApplyPromptPartPatchPersistenceOutcome.NotFound()
+            : new ApplyPromptPartPatchPersistenceOutcome.AlreadyDecided(ToDomain(fresh));
     }
 
     public async Task<RejectPromptPartPatchPersistenceOutcome> RejectAsync(
@@ -176,10 +163,10 @@ internal sealed class MongoPromptPartPatchRepository(
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(patch);
-        var session = RequireSession(nameof(RejectAsync));
+        _ = RequireSession(nameof(RejectAsync));
 
         var filter = Builders<PromptPartPatchDocument>.Filter.And(
-            Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id),
+            ById(patch.Identity.Id),
             Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Status, PromptPartPatchStatusNames.Proposed));
 
         var update = Builders<PromptPartPatchDocument>.Update
@@ -188,22 +175,19 @@ internal sealed class MongoPromptPartPatchRepository(
             .Set(x => x.UpdatedAt, patch.State.UpdatedAt.UtcDateTime)
             .Set(x => x.DecidedAt, patch.State.DecidedAt?.UtcDateTime);
 
-        var result = await _collection.UpdateOneAsync(session, filter, update, options: null, ct);
-        if (result.ModifiedCount == 0)
+        if (await TryUpdateAsync(filter, update, ct))
         {
-            var fresh = await _collection.Find(session,
-                Builders<PromptPartPatchDocument>.Filter.Eq(x => x.Id, patch.Identity.Id))
-                .FirstOrDefaultAsync(ct);
-            return fresh is null
-                ? new RejectPromptPartPatchPersistenceOutcome.NotFound()
-                : new RejectPromptPartPatchPersistenceOutcome.AlreadyDecided(ToDomain(fresh));
+            return new RejectPromptPartPatchPersistenceOutcome.Rejected(patch);
         }
 
-        return new RejectPromptPartPatchPersistenceOutcome.Rejected(patch);
+        var fresh = await FindByIdAsync(patch.Identity.Id, ct);
+        return fresh is null
+            ? new RejectPromptPartPatchPersistenceOutcome.NotFound()
+            : new RejectPromptPartPatchPersistenceOutcome.AlreadyDecided(ToDomain(fresh));
     }
 
     private IClientSessionHandle RequireSession(string method) =>
-        sessions.Current
+        Sessions.Current
             ?? throw new InvalidOperationException(
                 $"MongoPromptPartPatchRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 

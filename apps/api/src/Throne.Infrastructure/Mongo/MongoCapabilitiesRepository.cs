@@ -5,25 +5,27 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoCapabilitiesRepository(IMongoDatabase database, MongoSessionAccessor sessions)
-    : ICapabilitiesRepository
+internal sealed class MongoCapabilitiesRepository
+    : MongoRepositoryBase<CapabilitiesDocument, string>, ICapabilitiesRepository
 {
-    private readonly IMongoCollection<CapabilitiesDocument> _collection =
-        database.GetCollection<CapabilitiesDocument>(MongoCollectionNames.Settings);
+    public MongoCapabilitiesRepository(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.Settings, sessions)
+    {
+    }
+
+    protected override FilterDefinition<CapabilitiesDocument> ById(string id) =>
+        Builders<CapabilitiesDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<Capabilities?> GetAsync(CancellationToken ct)
     {
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _collection.Find(d => d.Id == Capabilities.SingletonId).FirstOrDefaultAsync(ct)
-            : await _collection.Find(session, d => d.Id == Capabilities.SingletonId).FirstOrDefaultAsync(ct);
+        var doc = await FindByIdAsync(Capabilities.SingletonId, ct);
         return doc is null ? null : MapToDomain(doc);
     }
 
     public async Task SaveAsync(Capabilities capabilities, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(capabilities);
-        var session = sessions.Current
+        var session = Sessions.Current
             ?? throw new InvalidOperationException(
                 "MongoCapabilitiesRepository.SaveAsync must run inside IUnitOfWork.ExecuteAsync.");
 
@@ -33,9 +35,10 @@ internal sealed class MongoCapabilitiesRepository(IMongoDatabase database, Mongo
             .Set(d => d.Toggles, new Dictionary<string, bool>(capabilities.Toggles, StringComparer.Ordinal))
             .SetOnInsert(d => d.Id, Capabilities.SingletonId);
 
-        await _collection.UpdateOneAsync(
+        // Upsert is intentionally not on the base — it's a one-off here.
+        await Collection.UpdateOneAsync(
             session,
-            d => d.Id == Capabilities.SingletonId,
+            ById(Capabilities.SingletonId),
             update,
             new UpdateOptions { IsUpsert = true },
             ct);

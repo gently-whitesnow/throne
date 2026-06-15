@@ -8,17 +8,30 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoIntentLinkRepository(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions,
-    IIntentEventRepository intentEvents,
-    TimeProvider clock) : IIntentLinkRepository
+internal sealed class MongoIntentLinkRepository
+    : MongoRepositoryBase<IntentLinkDocument, string>, IIntentLinkRepository
 {
-    private readonly IMongoCollection<IntentLinkDocument> _links =
-        database.GetCollection<IntentLinkDocument>(MongoCollectionNames.IntentLinks);
+    // Secondary `intents` collection is used purely to validate endpoints / project
+    // peer aggregates — it's not part of the link aggregate identity, so it stays
+    // off the base helper.
+    private readonly IMongoCollection<IntentDocument> _intents;
+    private readonly IIntentEventRepository _intentEvents;
+    private readonly TimeProvider _clock;
 
-    private readonly IMongoCollection<IntentDocument> _intents =
-        database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+    public MongoIntentLinkRepository(
+        IMongoDatabase database,
+        MongoSessionAccessor sessions,
+        IIntentEventRepository intentEvents,
+        TimeProvider clock)
+        : base(database, MongoCollectionNames.IntentLinks, sessions)
+    {
+        _intents = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+        _intentEvents = intentEvents;
+        _clock = clock;
+    }
+
+    protected override FilterDefinition<IntentLinkDocument> ById(string id) =>
+        Builders<IntentLinkDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<CreateIntentLinkOutcome> CreateAsync(IntentLink link, CancellationToken ct)
     {
@@ -38,8 +51,8 @@ internal sealed class MongoIntentLinkRepository(
             return new CreateIntentLinkOutcome.Duplicate(MapToDomain(existing));
         }
 
-        await _links.InsertOneAsync(session, MapToDocument(link), options: null, ct);
-        await intentEvents.AppendAsync(
+        await InsertOneAsync(MapToDocument(link), ct);
+        await _intentEvents.AppendAsync(
             IntentEvent.ForLinkAdded(Guid.NewGuid().ToString("N"), link),
             ct);
         return new CreateIntentLinkOutcome.Created(link);
@@ -61,27 +74,21 @@ internal sealed class MongoIntentLinkRepository(
             return new DeleteIntentLinkOutcome.NotFound();
         }
 
-        await _links.DeleteOneAsync(
-            session,
-            Builders<IntentLinkDocument>.Filter.Eq(d => d.Id, existing.Id),
-            options: null,
-            ct);
+        await DeleteOneAsync(ById(existing.Id), ct);
 
         var domain = MapToDomain(existing);
-        await intentEvents.AppendAsync(
-            IntentEvent.ForLinkRemoved(Guid.NewGuid().ToString("N"), domain, clock.GetUtcNow()),
+        await _intentEvents.AppendAsync(
+            IntentEvent.ForLinkRemoved(Guid.NewGuid().ToString("N"), domain, _clock.GetUtcNow()),
             ct);
         return new DeleteIntentLinkOutcome.Deleted(domain);
     }
 
     public async Task<IReadOnlyList<IntentLinkView>> ListByIntentAsync(IntentId intentId, CancellationToken ct)
     {
-        var session = sessions.Current;
         var fb = Builders<IntentLinkDocument>.Filter;
         var filter = fb.Or(fb.Eq(d => d.FromId, intentId.Value), fb.Eq(d => d.ToId, intentId.Value));
-        var find = session is null ? _links.Find(filter) : _links.Find(session, filter);
-        var docs = await find.SortBy(d => d.CreatedAt).ToListAsync(ct);
-        return await ProjectAsync(session, intentId, docs, ct);
+        var docs = await Find(filter).SortBy(d => d.CreatedAt).ToListAsync(ct);
+        return await ProjectAsync(Sessions.Current, intentId, docs, ct);
     }
 
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<IntentLinkView>>> ListByIntentsAsync(
@@ -97,11 +104,10 @@ internal sealed class MongoIntentLinkRepository(
             return result;
         }
 
-        var session = sessions.Current;
         var fb = Builders<IntentLinkDocument>.Filter;
         var filter = fb.Or(fb.In(d => d.FromId, ids), fb.In(d => d.ToId, ids));
-        var find = session is null ? _links.Find(filter) : _links.Find(session, filter);
-        var docs = await find.SortBy(d => d.CreatedAt).ToListAsync(ct);
+        var docs = await Find(filter).SortBy(d => d.CreatedAt).ToListAsync(ct);
+        var session = Sessions.Current;
 
         var peerIds = new HashSet<string>(StringComparer.Ordinal);
         var queriedSet = ids.ToHashSet(StringComparer.Ordinal);
@@ -177,7 +183,6 @@ internal sealed class MongoIntentLinkRepository(
         string? cursor,
         CancellationToken ct)
     {
-        var session = sessions.Current;
         var filter = BuildPageFilter(intentId, direction, type, cursor);
         var sort = Builders<IntentLinkDocument>.Sort
             .Combine(
@@ -185,14 +190,11 @@ internal sealed class MongoIntentLinkRepository(
                 Builders<IntentLinkDocument>.Sort.Ascending(d => d.Id));
 
         var pageSize = limit + 1;
-        var find = session is null
-            ? _links.Find(filter).Sort(sort).Limit(pageSize)
-            : _links.Find(session, filter).Sort(sort).Limit(pageSize);
-        var docs = await find.ToListAsync(ct);
+        var docs = await Find(filter).Sort(sort).Limit(pageSize).ToListAsync(ct);
 
         var hasMore = docs.Count > limit;
         var pageDocs = hasMore ? docs.Take(limit).ToList() : docs;
-        var items = await ProjectAsync(session, intentId, pageDocs, ct);
+        var items = await ProjectAsync(Sessions.Current, intentId, pageDocs, ct);
 
         string? next = null;
         if (hasMore && pageDocs.Count > 0)
@@ -220,13 +222,11 @@ internal sealed class MongoIntentLinkRepository(
 
         var ids = intentIds.Select(i => i.Value).Distinct(StringComparer.Ordinal).ToList();
 
-        var session = sessions.Current;
         var fb = Builders<IntentLinkDocument>.Filter;
         var filter = fb.And(
             fb.Eq(d => d.Type, type),
             fb.In(d => d.ToId, ids));
-        var find = session is null ? _links.Find(filter) : _links.Find(session, filter);
-        var docs = await find.Project(d => new { d.FromId, d.ToId }).ToListAsync(ct);
+        var docs = await Find(filter).Project(d => new { d.FromId, d.ToId }).ToListAsync(ct);
 
         foreach (var doc in docs)
         {
@@ -349,11 +349,11 @@ internal sealed class MongoIntentLinkRepository(
             Builders<IntentLinkDocument>.Filter.Eq(d => d.FromId, fromId.Value),
             Builders<IntentLinkDocument>.Filter.Eq(d => d.ToId, toId.Value),
             Builders<IntentLinkDocument>.Filter.Eq(d => d.Type, type));
-        return await _links.Find(session, filter).FirstOrDefaultAsync(ct);
+        return await Find(filter).FirstOrDefaultAsync(ct);
     }
 
     private IClientSessionHandle RequireSession(string method) =>
-        sessions.Current
+        Sessions.Current
             ?? throw new InvalidOperationException(
                 $"MongoIntentLinkRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 

@@ -63,7 +63,7 @@
       "scope": "backend",
       "enabled": true,
       "config": ".quality/maintainability-budget.json",
-      "description": "Cross-file duplication по нормализованным окнам. Advisory-only: печатает отчёт, не валит билд (детектор лексический, шумит на идиомах)."
+      "description": "Cross-file duplication по нормализованным окнам. Advisory: groups reported, exit code 0."
     },
     {
       "id": "backend-audit",

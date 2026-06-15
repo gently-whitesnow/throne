@@ -13,15 +13,22 @@ namespace Throne.Infrastructure.Mongo.Repositories;
 /// <see cref="MongoSessionAccessor"/> session, so the caller's transaction keeps the page
 /// and its history consistent.
 /// </summary>
-internal sealed class MongoRepositoryArtifactStore(
-    IMongoDatabase database,
-    MongoSessionAccessor sessions) : IRepositoryArtifactRepository
+internal sealed class MongoRepositoryArtifactStore
+    : MongoRepositoryBase<RepositoryArtifactDocument, string>, IRepositoryArtifactRepository
 {
-    private readonly IMongoCollection<RepositoryArtifactDocument> _artifacts =
-        database.GetCollection<RepositoryArtifactDocument>(MongoCollectionNames.RepositoryArtifacts);
+    // Versions live in a sibling collection; only the primary `repository_artifacts`
+    // collection flows through the base, the history feed stays on its own field.
+    private readonly IMongoCollection<RepositoryArtifactVersionDocument> _versions;
 
-    private readonly IMongoCollection<RepositoryArtifactVersionDocument> _versions =
-        database.GetCollection<RepositoryArtifactVersionDocument>(MongoCollectionNames.RepositoryArtifactVersions);
+    public MongoRepositoryArtifactStore(IMongoDatabase database, MongoSessionAccessor sessions)
+        : base(database, MongoCollectionNames.RepositoryArtifacts, sessions)
+    {
+        _versions = database.GetCollection<RepositoryArtifactVersionDocument>(
+            MongoCollectionNames.RepositoryArtifactVersions);
+    }
+
+    protected override FilterDefinition<RepositoryArtifactDocument> ById(string id) =>
+        Builders<RepositoryArtifactDocument>.Filter.Eq(d => d.Id, id);
 
     public async Task<WriteRepositoryArtifactOutcome> WriteAsync(
         RepoCoordinate coordinate,
@@ -54,20 +61,11 @@ internal sealed class MongoRepositoryArtifactStore(
 
         var artifact = RepositoryArtifact.Create(
             RepositoryArtifactId.New(), coordinate, slug, title, document, renderHint, now);
-        var session = sessions.Current;
         try
         {
-            var doc = RepositoryArtifactDocumentMapper.ToDocument(artifact);
-            if (session is null)
-            {
-                await _artifacts.InsertOneAsync(doc, options: null, ct);
-            }
-            else
-            {
-                await _artifacts.InsertOneAsync(session, doc, options: null, ct);
-            }
+            await InsertOneAsync(RepositoryArtifactDocumentMapper.ToDocument(artifact), ct);
         }
-        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+        catch (MongoWriteException ex) when (MongoWriteExceptionHelper.IsDuplicateKey(ex))
         {
             // Concurrent first write of the same (coordinate, slug) won the race.
             var raced = await FindDocumentBySlugAsync(coordinate, slug, ct);
@@ -96,19 +94,14 @@ internal sealed class MongoRepositoryArtifactStore(
             .Set(d => d.RenderHint, artifact.RenderHint)
             .Set(d => d.Version, artifact.Version)
             .Set(d => d.UpdatedAt, artifact.UpdatedAt.UtcDateTime);
-        var filter = Builders<RepositoryArtifactDocument>.Filter.And(
-            Builders<RepositoryArtifactDocument>.Filter.Eq(d => d.Id, existing.Id),
+        var casFilter = Builders<RepositoryArtifactDocument>.Filter.And(
+            ById(existing.Id),
             Builders<RepositoryArtifactDocument>.Filter.Eq(d => d.Version, existing.Version));
 
-        var session = sessions.Current;
-        var result = session is null
-            ? await _artifacts.UpdateOneAsync(filter, update, options: null, ct)
-            : await _artifacts.UpdateOneAsync(session, filter, update, options: null, ct);
-
-        if (result.MatchedCount == 0)
+        if (!await TryUpdateAsync(casFilter, update, ct))
         {
             // The version moved under us between read and CAS write.
-            var fresh = await FindDocumentByIdAsync(existing.Id, ct);
+            var fresh = await FindByIdAsync(existing.Id, ct);
             return new WriteRepositoryArtifactOutcome.VersionConflict(fresh?.Version ?? existing.Version);
         }
 
@@ -133,9 +126,7 @@ internal sealed class MongoRepositoryArtifactStore(
             fb.Eq(d => d.Owner, coordinate.Owner),
             fb.Eq(d => d.Repo, coordinate.Repo));
 
-        var session = sessions.Current;
-        var find = session is null ? _artifacts.Find(filter) : _artifacts.Find(session, filter);
-        var docs = await find.SortBy(d => d.Slug).ToListAsync(ct);
+        var docs = await Find(filter).SortBy(d => d.Slug).ToListAsync(ct);
         return docs.Select(RepositoryArtifactDocumentMapper.ToDomain).ToList();
     }
 
@@ -143,7 +134,7 @@ internal sealed class MongoRepositoryArtifactStore(
         RepositoryArtifactId artifactId, CancellationToken ct)
     {
         var filter = Builders<RepositoryArtifactVersionDocument>.Filter.Eq(d => d.ArtifactId, artifactId.Value);
-        var session = sessions.Current;
+        var session = Sessions.Current;
         var find = session is null ? _versions.Find(filter) : _versions.Find(session, filter);
         var docs = await find.SortBy(d => d.Version).ToListAsync(ct);
         return docs.Select(RepositoryArtifactDocumentMapper.ToVersionDomain).ToList();
@@ -152,7 +143,7 @@ internal sealed class MongoRepositoryArtifactStore(
     private async Task AppendVersionAsync(RepositoryArtifactVersion version, CancellationToken ct)
     {
         var doc = RepositoryArtifactDocumentMapper.ToVersionDocument(version);
-        var session = sessions.Current;
+        var session = Sessions.Current;
         if (session is null)
         {
             await _versions.InsertOneAsync(doc, options: null, ct);
@@ -163,7 +154,7 @@ internal sealed class MongoRepositoryArtifactStore(
         }
     }
 
-    private async Task<RepositoryArtifactDocument?> FindDocumentBySlugAsync(
+    private Task<RepositoryArtifactDocument?> FindDocumentBySlugAsync(
         RepoCoordinate coordinate, string slug, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(slug);
@@ -173,19 +164,6 @@ internal sealed class MongoRepositoryArtifactStore(
             fb.Eq(d => d.Owner, coordinate.Owner),
             fb.Eq(d => d.Repo, coordinate.Repo),
             fb.Eq(d => d.Slug, slug));
-
-        var session = sessions.Current;
-        return session is null
-            ? await _artifacts.Find(filter).FirstOrDefaultAsync(ct)
-            : await _artifacts.Find(session, filter).FirstOrDefaultAsync(ct);
-    }
-
-    private async Task<RepositoryArtifactDocument?> FindDocumentByIdAsync(string id, CancellationToken ct)
-    {
-        var filter = Builders<RepositoryArtifactDocument>.Filter.Eq(d => d.Id, id);
-        var session = sessions.Current;
-        return session is null
-            ? await _artifacts.Find(filter).FirstOrDefaultAsync(ct)
-            : await _artifacts.Find(session, filter).FirstOrDefaultAsync(ct);
+        return FindOneAsync(filter, ct);
     }
 }
