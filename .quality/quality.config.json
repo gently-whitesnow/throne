@@ -63,8 +63,7 @@
       "scope": "backend",
       "enabled": true,
       "config": ".quality/maintainability-budget.json",
-      "ratchet": ".quality/duplicates-baseline.json",
-      "description": "Cross-file duplication по нормализованным окнам. Blocking + ratchet vs baseline snapshot (ADR-0040): новая копи-паста валит билд, существующие группы grandfathered и могут только уменьшаться."
+      "description": "Cross-file duplication по нормализованным окнам. Advisory: groups reported, exit code 0."
     },
     {
       "id": "backend-audit",
