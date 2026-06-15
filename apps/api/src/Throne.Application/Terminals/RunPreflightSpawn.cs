@@ -15,18 +15,13 @@ public sealed class RunPreflightSpawn(
     IWorkspaceRootProvider workspaceRoot,
     IWorkspaceTrust workspaceTrust,
     IEnumerable<ISessionHookAdapter> hookAdapters,
+    TmuxTuiReadinessWaiter readinessWaiter,
+    RunPreflightOptions options,
     SetIntentStatusHandler setStatus,
     IDomainEventDispatcher events)
 {
     private const string SourcePrefix = "terminal:spawn:";
     private const string UserPromptFileName = "throne-session.user-prompt.txt";
-
-    // Bracketed-paste markers (-p on paste-buffer) only wrap the payload if the vendor TUI has
-    // already negotiated bracketed-paste mode (DECSET ?2004h). Between `new-session` returning
-    // and the TUI's terminfo init there is a small window where a paste-buffer would deliver \n
-    // as Enter mid-prompt. claude/codex mount fast — empirically a quarter second is enough
-    // headroom; if a particular box turns out to be slower, lift to TmuxOptions.
-    private static readonly TimeSpan BracketedPasteWarmup = TimeSpan.FromMilliseconds(300);
 
     private readonly Dictionary<string, ISessionHookAdapter> _hookAdapters =
         hookAdapters.ToDictionary(a => a.Vendor, StringComparer.Ordinal);
@@ -52,7 +47,8 @@ public sealed class RunPreflightSpawn(
         // vendor adapter's file-backed reference (Claude --append-system-prompt-file, Codex -p
         // profile), the user task is pasted into the live pane after spawn from a file. An empty
         // task skips the paste so the agent boots bare and the operator types it themselves.
-        var preparedArgs = _hookAdapters.TryGetValue(launch.Vendor, out var adapter)
+        _hookAdapters.TryGetValue(launch.Vendor, out var adapter);
+        var preparedArgs = adapter is not null
             ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, prompt.SystemPrompt, ct)
             : [];
         var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
@@ -69,7 +65,7 @@ public sealed class RunPreflightSpawn(
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
         }
 
-        await DeliverUserPromptAsync(intentId.Value, workspacePath, prompt.UserPrompt, ct);
+        await DeliverUserPromptAsync(intentId.Value, launch.Vendor, adapter, workspacePath, prompt.UserPrompt, ct);
 
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
 
@@ -77,7 +73,12 @@ public sealed class RunPreflightSpawn(
     }
 
     private async Task DeliverUserPromptAsync(
-        string intentId, string workspacePath, string? userPrompt, CancellationToken ct)
+        string intentId,
+        string vendor,
+        ISessionHookAdapter? adapter,
+        string workspacePath,
+        string? userPrompt,
+        CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(userPrompt))
         {
@@ -88,7 +89,24 @@ public sealed class RunPreflightSpawn(
         var promptPath = Path.Combine(workspacePath, UserPromptFileName);
         await File.WriteAllTextAsync(promptPath, userPrompt, ct);
 
-        await Task.Delay(BracketedPasteWarmup, ct);
+        // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste
+        // and silently dropped the user prompt whenever the TUI took longer to init than the
+        // sleep. Only vendors we have an adapter for get the gate — unknown vendors fall through
+        // and skip the wait rather than block forever on a probe that has no marker.
+        if (adapter is not null)
+        {
+            var readiness = await readinessWaiter.WaitAsync(intentId, adapter, ct);
+            if (!readiness.IsReady)
+            {
+                throw TerminalFailures.TuiReadinessTimeout(
+                    intentId,
+                    vendor,
+                    options.TuiReadinessTimeoutMilliseconds,
+                    readiness.Attempts,
+                    readiness.LastSnapshot);
+            }
+        }
+
         await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
     }
 

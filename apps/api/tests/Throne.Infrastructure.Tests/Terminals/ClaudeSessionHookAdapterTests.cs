@@ -90,6 +90,17 @@ public class ClaudeSessionHookAdapterTests
         HookCommand(document, "UserPromptSubmit").Should().Contain("/hooks/UserPromptSubmit?mode=interview'");
     }
 
+    [Theory(DisplayName = "IsTuiReady распознаёт композёр Claude по input-row маркеру и игнорирует пустой/только-сплеш экран")]
+    [InlineData("", false)]
+    [InlineData("╭─────╮\n│ loading…           │\n╰─────╯", false)]
+    [InlineData("╭─────╮\n│ > Try \"edit\"        │\n╰─────╯", true)]
+    public void Is_tui_ready_matches_composer_input_row(string snapshot, bool expected)
+    {
+        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+
+        sut.IsTuiReady(snapshot).Should().Be(expected);
+    }
+
     private static string? HookCommand(JsonDocument document, string hookEvent) =>
         document.RootElement
             .GetProperty("hooks")

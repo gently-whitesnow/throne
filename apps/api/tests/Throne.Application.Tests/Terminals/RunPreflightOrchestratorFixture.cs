@@ -52,62 +52,84 @@ public partial class RunPreflightOrchestratorTests
             Tags = Substitute.For<ITagRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
             var workspace = new StubWorkspaceRoot(WorkspaceRoot);
-            // BindingService is only invoked from the autobind path; in these tests
-            // we never seed tag defaults so the call site is unreachable. The real
-            // service stays sealed (no NSubstitute proxy), so wire it up with stub
-            // collaborators that throw if exercised.
-            var providers = Substitute.For<IGitProviderRegistry>();
-            var clockShared = new FixedClock(Now);
+            var clock = new FixedClock(Now);
             var uow = new PassthroughUnitOfWork();
-            var resolver = new RepositoryBindingResolver(Intents, Bindings, providers);
+            var (bindingService, cloneQueue) = BuildBindingService(workspace, clock, uow);
+            var transitions = new RepositoryCloneTransitionWriter(Bindings, uow, clock);
+            var autoBind = new RunPreflightAutoBind(new TagDefaultsUnion(Tags), Bindings, bindingService);
+            var queue = new RunPreflightCloneScheduler(Bindings, cloneQueue, transitions);
+            var runPreflightOptions = new RunPreflightOptions
+            {
+                TuiReadinessTimeoutMilliseconds = 200,
+                TuiReadinessPollIntervalMilliseconds = 20,
+            };
+            var cloneWait = new RunPreflightCloneWait(Bindings, runPreflightOptions, clock);
+            var spawn = BuildSpawn(workspace, clock, uow, runPreflightOptions);
+            var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
+            var launchResolver = BuildLaunchResolver();
+            var promptGate = BuildPromptGate(clock, uow);
+            Orchestrator = new RunPreflightOrchestrator(
+                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver);
+        }
+
+        private (RepositoryBindingService Service, IRepositoryCloneRequests CloneQueue) BuildBindingService(
+            IWorkspaceRootProvider workspace, TimeProvider clock, IUnitOfWork uow)
+        {
+            // BindingService is only invoked from the autobind path; in these tests we never seed
+            // tag defaults so the call site is unreachable, but the sealed service still needs
+            // wiring — feed it stub collaborators that throw if exercised.
+            var resolver = new RepositoryBindingResolver(Intents, Bindings, Substitute.For<IGitProviderRegistry>());
             var persistence = new RepositoryBindingPersistence(
-                Bindings, Substitute.For<IRepositoryRegistry>(), uow, clockShared, workspace,
+                Bindings, Substitute.For<IRepositoryRegistry>(), uow, clock, workspace,
                 Substitute.For<IWorkspaceDirectoryRemover>(),
                 Substitute.For<IWorkspaceDirectoryProbe>());
-            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clockShared);
+            var syncPersistence = new RepositoryPullRequestSyncPersistence(Bindings, uow, clock);
             var autoCloser = new IntentMergeAutoCloser(
-                Bindings,
-                Substitute.For<ISystemIntentStatusWriter>(),
-                uow,
-                clockShared,
+                Bindings, Substitute.For<ISystemIntentStatusWriter>(), uow, clock,
                 NullLogger<IntentMergeAutoCloser>.Instance);
             var stateRefresher = new PullRequestStateRefresher(
-                Bindings, uow, autoCloser, clockShared, NullLogger<PullRequestStateRefresher>.Instance);
+                Bindings, uow, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
             var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
             var cloneQueue = Substitute.For<IRepositoryCloneRequests>();
-            var bindingService = new RepositoryBindingService(
-                resolver,
-                persistence,
-                syncWorkflow,
-                new RepositoryCloneTransitionWriter(Bindings, uow, clockShared),
-                cloneQueue);
+            var service = new RepositoryBindingService(
+                resolver, persistence, syncWorkflow,
+                new RepositoryCloneTransitionWriter(Bindings, uow, clock), cloneQueue);
+            return (service, cloneQueue);
+        }
 
-            var union = new TagDefaultsUnion(Tags);
-            var transitions = new RepositoryCloneTransitionWriter(Bindings, uow, clockShared);
-            var autoBind = new RunPreflightAutoBind(union, Bindings, bindingService);
-            var queue = new RunPreflightCloneScheduler(Bindings, cloneQueue, transitions);
-            var cloneWait = new RunPreflightCloneWait(Bindings, new RunPreflightOptions(), clockShared);
-            var spawn = new RunPreflightSpawn(
-                Tmux,
-                workspace,
-                Substitute.For<IWorkspaceTrust>(),
+        private RunPreflightSpawn BuildSpawn(
+            IWorkspaceRootProvider workspace, TimeProvider clock, IUnitOfWork uow, RunPreflightOptions options)
+        {
+            // FixedClock would hang the readiness poll loop, so feed the waiter a System TimeProvider.
+            // Happy-path tests stub CapturePaneAsync to a composer marker so the waiter resolves on first capture.
+            Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("│ > ready");
+            var readinessWaiter = new TmuxTuiReadinessWaiter(
+                Tmux, options, TimeProvider.System, NullLogger<TmuxTuiReadinessWaiter>.Instance);
+            return new RunPreflightSpawn(
+                Tmux, workspace, Substitute.For<IWorkspaceTrust>(),
                 [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
-                new SetIntentStatusHandler(Intents, uow, clockShared),
+                readinessWaiter, options,
+                new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());
-            var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
+        }
+
+        private static TerminalLaunchResolver BuildLaunchResolver()
+        {
             var settingsStore = Substitute.For<ITerminalSettingsStore>();
             settingsStore.GetDefaultVendorAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(TerminalAgentCatalog.VendorClaude));
-            var launchResolver = new TerminalLaunchResolver(settingsStore);
+            return new TerminalLaunchResolver(settingsStore);
+        }
+
+        private RunPreflightPromptGate BuildPromptGate(TimeProvider clock, IUnitOfWork uow)
+        {
             var promptPartsRepo = Substitute.For<IPromptPartRepository>();
             var promptResolver = new PromptCompositionResolver(
                 SkillManifestFixtures.Provider(),
                 new PromptBundleResolver(promptPartsRepo),
                 promptPartsRepo);
-            var promptGate = new RunPreflightPromptGate(
-                promptResolver, new ReplaceIntentTextHandler(Intents, uow, clockShared));
-            Orchestrator = new RunPreflightOrchestrator(
-                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver);
+            return new RunPreflightPromptGate(
+                promptResolver, new ReplaceIntentTextHandler(Intents, uow, clock));
         }
 
         public IIntentRepository Intents { get; }
@@ -193,6 +215,10 @@ public partial class RunPreflightOrchestratorTests
             Task.FromResult(args);
 
         public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
+
+        public bool IsTuiReady(string paneSnapshot) =>
+            !string.IsNullOrEmpty(paneSnapshot)
+            && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
     }
 
     private sealed class PassthroughUnitOfWork : IUnitOfWork

@@ -58,6 +58,36 @@ internal static class TerminalFailures
                 ["session_name"] = sessionName,
             });
 
+    public static ApiException TuiReadinessTimeout(
+        string intentId,
+        string vendor,
+        int waitedMilliseconds,
+        int captures,
+        string? lastSnapshot) =>
+        new(
+            ErrorCodes.TerminalTuiReadinessTimeout,
+            $"Vendor '{vendor}' TUI for intent '{intentId}' did not render a ready composer within {waitedMilliseconds} ms ({captures} captures). User prompt not delivered — restart the run.",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["vendor"] = vendor,
+                ["waited_milliseconds"] = waitedMilliseconds,
+                ["captures"] = captures,
+                ["last_snapshot_excerpt"] = Excerpt(lastSnapshot),
+            });
+
+    // Surface only the tail of the captured pane — full snapshots can be multi-KB and the tail
+    // is where the input row would be. Keeps the Problem Details payload bounded.
+    private static string Excerpt(string? snapshot)
+    {
+        if (string.IsNullOrEmpty(snapshot))
+        {
+            return string.Empty;
+        }
+        const int max = 512;
+        return snapshot.Length <= max ? snapshot : snapshot[^max..];
+    }
+
     public static ApiException CloneWaitTimeout(
         string intentId,
         int waitedSeconds,

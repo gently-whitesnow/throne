@@ -61,6 +61,16 @@ public interface ITmuxSessionManager
     /// the agent so spawn → think latency stays the same as the old argv-positional path.
     /// </summary>
     Task PasteFileAsSubmittedPromptAsync(string intentId, string filePath, CancellationToken ct);
+
+    /// <summary>
+    /// <c>tmux capture-pane -p -t throne-{intent_id}</c>: returns a plain-text snapshot of
+    /// the currently visible pane (no ANSI escapes — matching is done on user-visible glyphs).
+    /// Used by <see cref="TmuxTuiReadinessWaiter"/> to detect a vendor's composer/prompt before
+    /// pasting a user prompt: between <c>new-session</c> returning and the TUI's terminfo init
+    /// there is a window where bracketed-paste markers are echoed verbatim and the prompt is
+    /// silently dropped. Returns empty string when the session is gone or tmux is unavailable.
+    /// </summary>
+    Task<string> CapturePaneAsync(string intentId, CancellationToken ct);
 }
 
 /// <summary>
