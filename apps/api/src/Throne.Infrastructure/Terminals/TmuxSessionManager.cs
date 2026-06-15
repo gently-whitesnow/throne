@@ -105,4 +105,16 @@ internal sealed class TmuxSessionManager(
         await tmux.RunAsync(["paste-buffer", "-d", "-p", "-b", bufferName, "-t", sessionName], ct);
         await tmux.RunAsync(["send-keys", "-t", sessionName, "Enter"], ct);
     }
+
+    public async Task<string> CapturePaneAsync(string intentId, CancellationToken ct)
+    {
+        var sessionName = TmuxSessionName.For(intentId);
+        // Plain text snapshot (no -e): the readiness predicate matches user-visible glyphs.
+        var outcome = await tmux.RunAsync(["capture-pane", "-p", "-t", sessionName], ct);
+        if (!outcome.IsSuccess)
+        {
+            return string.Empty;
+        }
+        return outcome.Result?.StandardOutput ?? string.Empty;
+    }
 }

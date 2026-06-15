@@ -89,11 +89,17 @@ public class TerminalSessionKillServiceTests
             Capabilities = Substitute.For<ICapabilitiesRepository>();
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
+            var options = new RunPreflightOptions();
+            var waiter = new TmuxTuiReadinessWaiter(
+                Tmux, options, TimeProvider.System,
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<TmuxTuiReadinessWaiter>.Instance);
             var spawn = new RunPreflightSpawn(
                 Tmux,
                 new StubWorkspaceRoot(WorkspaceRoot),
                 Substitute.For<IWorkspaceTrust>(),
                 Array.Empty<ISessionHookAdapter>(),
+                waiter,
+                options,
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
