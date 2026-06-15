@@ -19,6 +19,14 @@ public sealed class RunPreflightSpawn(
     IDomainEventDispatcher events)
 {
     private const string SourcePrefix = "terminal:spawn:";
+    private const string UserPromptFileName = "throne-session.user-prompt.txt";
+
+    // Bracketed-paste markers (-p on paste-buffer) only wrap the payload if the vendor TUI has
+    // already negotiated bracketed-paste mode (DECSET ?2004h). Between `new-session` returning
+    // and the TUI's terminfo init there is a small window where a paste-buffer would deliver \n
+    // as Enter mid-prompt. claude/codex mount fast — empirically a quarter second is enough
+    // headroom; if a particular box turns out to be slower, lift to TmuxOptions.
+    private static readonly TimeSpan BracketedPasteWarmup = TimeSpan.FromMilliseconds(300);
 
     private readonly Dictionary<string, ISessionHookAdapter> _hookAdapters =
         hookAdapters.ToDictionary(a => a.Vendor, StringComparer.Ordinal);
@@ -40,13 +48,14 @@ public sealed class RunPreflightSpawn(
         await workspaceTrust.EnsureTrustedAsync(launch.Vendor, workspacePath, ct);
 
         // Embedded contour injects the operator-curated rules/task upfront (ADR-0034) instead of a
-        // hardcoded bundle prompt: rules to the vendor's system-context channel (file-backed, off
-        // the argv), task as the positional initial user message. An empty task boots the agent bare
-        // so the operator types it themselves.
+        // hardcoded bundle prompt. Neither rides on the spawn argv — the rules block goes via the
+        // vendor adapter's file-backed reference (Claude --append-system-prompt-file, Codex -p
+        // profile), the user task is pasted into the live pane after spawn from a file. An empty
+        // task skips the paste so the agent boots bare and the operator types it themselves.
         var preparedArgs = _hookAdapters.TryGetValue(launch.Vendor, out var adapter)
             ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, prompt.SystemPrompt, ct)
             : [];
-        var invocation = AgentSpawnCommand.Build(launch, prompt.UserPrompt, preparedArgs);
+        var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
@@ -60,9 +69,27 @@ public sealed class RunPreflightSpawn(
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
         }
 
+        await DeliverUserPromptAsync(intentId.Value, workspacePath, prompt.UserPrompt, ct);
+
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
 
         await events.DispatchAsync(new TerminalSessionStarted(intentId.Value), ct);
+    }
+
+    private async Task DeliverUserPromptAsync(
+        string intentId, string workspacePath, string? userPrompt, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(userPrompt))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(workspacePath);
+        var promptPath = Path.Combine(workspacePath, UserPromptFileName);
+        await File.WriteAllTextAsync(promptPath, userPrompt, ct);
+
+        await Task.Delay(BracketedPasteWarmup, ct);
+        await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
     }
 
     public Task<bool> HasSessionAsync(string intentId, CancellationToken ct) =>

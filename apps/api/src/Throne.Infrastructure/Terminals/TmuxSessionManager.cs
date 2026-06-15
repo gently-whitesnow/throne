@@ -91,4 +91,18 @@ internal sealed class TmuxSessionManager(
         // -l: treat the argument as literal UTF-8 text, not a key name; no trailing Enter.
         await tmux.RunAsync(["send-keys", "-t", sessionName, "-l", text], ct);
     }
+
+    public async Task PasteFileAsSubmittedPromptAsync(string intentId, string filePath, CancellationToken ct)
+    {
+        var sessionName = TmuxSessionName.For(intentId);
+        var bufferName = sessionName + "-task";
+
+        // load-buffer: tmux server reads the file directly — the argv stays tiny no matter the
+        // payload size. paste-buffer: -d deletes the buffer afterwards (no leak between runs),
+        // -p wraps the bytes in bracketed-paste markers so claude/codex TUIs treat embedded
+        // \n as paste content, not as Enter. The final send-keys Enter is the single submit.
+        await tmux.RunAsync(["load-buffer", "-b", bufferName, filePath], ct);
+        await tmux.RunAsync(["paste-buffer", "-d", "-p", "-b", bufferName, "-t", sessionName], ct);
+        await tmux.RunAsync(["send-keys", "-t", sessionName, "Enter"], ct);
+    }
 }
