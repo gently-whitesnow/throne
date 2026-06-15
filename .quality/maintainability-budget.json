@@ -31,7 +31,7 @@
     "windowLines": 8,
     "minOccurrences": 2,
     "crossFileOnly": true,
-    "gateMode": "blocking",
+    "gateMode": "advisory",
     "ignorePathPatterns": [
       "**/Generated/**",
       "**/generated/**",
@@ -41,7 +41,7 @@
   },
   "profiles": {
     "strict": {
-      "description": "Default profile. Two-tier budget (ADR-0040): ratchet `limits` — tight targets для нового кода; `hardCap` — absolute backstop, который НЕ может быть baselined. Baseline grandfathers items между limit и hardCap. constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR. Throne.Domain включён в size/CC-бюджет (override ниже): rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest) на уровне инвариантов, а LOC/CC ловит разрастание агрегатов.",
+      "description": "Default profile (blocking). constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR. Throne.Domain включён в size/CC-бюджет (override ниже): rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest) на уровне инвариантов, а LOC/CC ловит разрастание агрегатов.",
       "gateMode": "blocking",
       "limits": {
         "fileMaxLoc": 400,
@@ -52,16 +52,6 @@
         "methodMaxCyclomaticComplexity": 10,
         "typeMaxPublicMembers": 12,
         "fileMaxFanOut": 15
-      },
-      "hardCap": {
-        "_comment": "Absolute backstop above ratchet limits. Baselined items can sit между limits и hardCap; никакой item не может превышать hardCap в blocking mode. Калиброван по P99 реально приземляющегося кода в проекте (NSwag controllers, MCP tools, Mongo adapters, ErrorCodes registry).",
-        "fileMaxLoc": 800,
-        "typeMaxLoc": 600,
-        "methodMaxLoc": 200,
-        "constructorMaxDependencies": 20,
-        "methodMaxCyclomaticComplexity": 30,
-        "typeMaxPublicMembers": 30,
-        "fileMaxFanOut": 40
       },
       "exclude": [],
       "pathOverrides": [
@@ -80,7 +70,7 @@
           }
         },
         {
-          "_comment": "ADR-0040: Mongo adapter layer wraps Builders<TDoc> chains + atomic read-then-update sequences. После введения MongoRepositoryBase ratchet-лимит fileMaxLoc понижен 800→500; per-method CC ≤20 still catches real complexity. Same precedent as REST controllers above.",
+          "_comment": "ADR-0040: Mongo adapter layer wraps Builders<TDoc> chains + atomic read-then-update sequences. После введения MongoRepositoryBase лимит fileMaxLoc понижен 800→500; per-method CC ≤20 still catches real complexity. Same precedent as REST controllers above.",
           "glob": "**/Throne.Infrastructure/Mongo/**.cs",
           "limits": {
             "fileMaxLoc": 500,

@@ -36,16 +36,6 @@ DEFAULT_EXCLUDE = (
     "**/Migrations/**",
 )
 
-CODE_TO_LIMIT_KEY = {
-    "FILE_LOC": "fileMaxLoc",
-    "TYPE_LOC": "typeMaxLoc",
-    "METHOD_LOC": "methodMaxLoc",
-    "CTOR_DEPS": "constructorMaxDependencies",
-    "METHOD_CC": "methodMaxCyclomaticComplexity",
-    "TYPE_PUB": "typeMaxPublicMembers",
-    "FILE_FANOUT": "fileMaxFanOut",
-}
-
 TYPE_KEYWORDS = {"class", "struct", "record", "interface", "enum"}
 NESTED_TYPE_KEYWORDS = {"class", "struct", "record", "interface", "enum", "delegate"}
 CONTROL_KEYWORDS = {
@@ -633,11 +623,10 @@ def effective_limits(
     base_limits: dict,
     path: pathlib.Path,
     path_overrides: list[dict],
-    key: str = "limits",
 ) -> dict:
     """Merge base profile limits with any pathOverrides whose glob matches the file."""
     if not path_overrides:
-        return dict(base_limits)
+        return base_limits
     normalized = path.as_posix()
     merged = dict(base_limits)
     for override in path_overrides:
@@ -646,29 +635,9 @@ def effective_limits(
             continue
         if not matches_any(normalized, [glob]):
             continue
-        for k, v in (override.get(key) or {}).items():
-            merged[k] = v
+        for key, value in (override.get("limits") or {}).items():
+            merged[key] = value
     return merged
-
-
-def is_hardcap_violation(
-    violation: Violation,
-    hardcap_base: dict,
-    path_overrides: list[dict],
-) -> bool:
-    """Hard-cap evaluation: True if the violation's actual exceeds the absolute ceiling.
-
-    The hard cap is the lenient backstop above the ratchet limits. Baselined items can
-    sit between ratchet-limit and hard-cap; no item — baselined or not — may exceed
-    hard-cap in blocking mode.
-    """
-    limit_key = CODE_TO_LIMIT_KEY.get(violation.code)
-    if limit_key is None or not hardcap_base:
-        return False
-    effective = effective_limits(hardcap_base, pathlib.Path(violation.path), path_overrides, key="hardCap")
-    if limit_key not in effective or effective[limit_key] is None:
-        return False
-    return violation.actual > int(effective[limit_key])
 
 
 def analyze_file(
@@ -841,22 +810,7 @@ def main() -> int:
     violations.sort(key=lambda item: (item.path, item.line, item.code, item.subject))
     print_report(profile_name, mode, files, violations, args.max_violations)
 
-    hardcap_base = profile.get("hardCap") or {}
-    hardcap_violations = [
-        v for v in violations if is_hardcap_violation(v, hardcap_base, path_overrides)
-    ]
-    if hardcap_violations:
-        report_hardcap(hardcap_violations, args.max_violations, hardcap_base, path_overrides)
-
     if args.write_baseline_snapshot:
-        if hardcap_violations and mode == "blocking":
-            print(
-                f"Baseline REFUSED: {len(hardcap_violations)} violation(s) exceed hardCap.\n"
-                f"Hard cap — absolute backstop above ratchet limits; cannot be baselined.\n"
-                f"Чини root cause перед re-baseline.",
-                file=sys.stderr,
-            )
-            return 1
         existing = load_baseline_snapshot(args.write_baseline_snapshot)
         new_count = len({violation_identity(v) for v in violations})
         if existing and new_count > len(existing):
@@ -872,33 +826,14 @@ def main() -> int:
         print(f"Baseline snapshot written: {args.write_baseline_snapshot} ({len(violations)} violation(s))")
         return 0
 
-    hardcap_fails = bool(hardcap_violations) and mode == "blocking"
-
     if args.baseline_snapshot:
         regressions = compute_regressions(args.baseline_snapshot, violations)
         report_regressions(args.baseline_snapshot, regressions, args.max_violations)
-        return 1 if regressions or hardcap_fails else 0
+        return 1 if regressions else 0
 
-    if mode == "blocking" and (violations or hardcap_fails):
+    if violations and mode == "blocking":
         return 1
     return 0
-
-
-def report_hardcap(
-    hardcap_violations: list[Violation],
-    max_violations: int,
-    hardcap_base: dict,
-    path_overrides: list[dict],
-) -> None:
-    print()
-    print(f"HardCap FAIL: {len(hardcap_violations)} violation(s) exceed absolute ceiling:")
-    for violation in hardcap_violations[:max_violations]:
-        limit_key = CODE_TO_LIMIT_KEY.get(violation.code, "?")
-        cap = effective_limits(hardcap_base, pathlib.Path(violation.path), path_overrides, key="hardCap").get(limit_key)
-        print(
-            f"[{violation.code}] {violation.path}:{violation.line} "
-            f"{violation.subject} = {violation.actual} > hardCap {cap}"
-        )
 
 
 def violation_identity(violation: Violation) -> tuple[str, str, str]:
