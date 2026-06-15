@@ -48,7 +48,10 @@ public sealed partial class TmuxTuiReadinessWaiter(
                 LogReadyByMarker(log, intentId, adapter.Vendor, attempts);
                 return TmuxTuiReadinessResult.Ready(attempts);
             }
-            if (!string.IsNullOrEmpty(snapshot)
+            // Whitespace-only captures (an unpainted pane comes back as ~h newlines) must NOT count as
+            // stable: at t≈100 ms tmux returns blanks, at t≈200 ms it returns the same blanks, and
+            // the fallback would fire before the TUI has rendered anything to receive the paste.
+            if (!string.IsNullOrWhiteSpace(snapshot)
                 && string.Equals(snapshot, previous, StringComparison.Ordinal))
             {
                 LogReadyByStability(log, intentId, adapter.Vendor, attempts);
