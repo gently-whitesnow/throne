@@ -45,7 +45,7 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
             var systemPromptPath = Path.Combine(workspacePath, SystemPromptFileName);
-            await File.WriteAllTextAsync(systemPromptPath, systemPrompt, ct);
+            await File.WriteAllTextAsync(systemPromptPath, systemPrompt!, ct);
             args.Add("--append-system-prompt-file");
             args.Add(systemPromptPath);
         }

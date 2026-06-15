@@ -2,6 +2,7 @@ using Throne.Domain.PromptParts;
 
 namespace Throne.Application.Manifest;
 
+
 internal static class SkillManifestValidator
 {
     public static void Validate(SkillManifest m)

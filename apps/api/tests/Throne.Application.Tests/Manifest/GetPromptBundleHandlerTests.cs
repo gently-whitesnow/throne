@@ -114,6 +114,7 @@ public class GetPromptBundleHandlerTests
             default!, default!, default, default, default, default!, default, default);
     }
 
+
     [Fact(DisplayName = "PromptBundle сериализует intent_id даже когда null (MCP output schema)")]
     public void Bundle_json_includes_null_intent_id_when_omitting_nulls()
     {
