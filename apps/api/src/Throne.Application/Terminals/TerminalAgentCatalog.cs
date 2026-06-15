@@ -17,18 +17,27 @@ public static class TerminalAgentCatalog
     public const string EffortHigh = "high";
     public const string EffortXhigh = "xhigh";
 
+    /// <summary>Curated model list is hardcoded in the descriptor (no dynamic discovery).</summary>
+    public const string ModelSourceStatic = "static";
+
     /// <summary>Vendor used when neither the request nor settings pin one.</summary>
     public const string DefaultVendor = VendorClaude;
 
-    private static readonly HashSet<string> Efforts =
-        new(StringComparer.Ordinal) { EffortLow, EffortMedium, EffortHigh, EffortXhigh };
+    // Closed effort set, ordered low → xhigh; shared across effort-capable vendors.
+    private static readonly IReadOnlyList<string> SharedEfforts =
+        [EffortLow, EffortMedium, EffortHigh, EffortXhigh];
+
+    private static readonly HashSet<string> KnownEfforts =
+        new(SharedEfforts, StringComparer.Ordinal);
 
     private static readonly TerminalVendorDescriptor Claude = new(
         Vendor: VendorClaude,
         Label: "Claude",
         Models: ["opus", "sonnet", "haiku"],
         SupportsEffort: true,
+        Efforts: SharedEfforts,
         DefaultEffort: EffortHigh,
+        ModelSource: ModelSourceStatic,
         BuildBaseArgs: static options => ["--model", options.Model, "--effort", options.Effort!]);
 
     private static readonly TerminalVendorDescriptor Codex = new(
@@ -36,7 +45,9 @@ public static class TerminalAgentCatalog
         Label: "Codex",
         Models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
         SupportsEffort: true,
+        Efforts: SharedEfforts,
         DefaultEffort: EffortMedium,
+        ModelSource: ModelSourceStatic,
         // codex launches with --dangerously-bypass-approvals-and-sandbox (alias --yolo): the
         // operator presses run and walks away, so mid-task approval prompts on routine work
         // (git fetch / branch from a remote ref, dependency install — all blocked by the
@@ -48,6 +59,9 @@ public static class TerminalAgentCatalog
             "-c", $"model_reasoning_effort={options.Effort}",
             "--dangerously-bypass-approvals-and-sandbox",
         ]);
+
+    /// <summary>Descriptors in catalog (display) order; drives the launch-surface dropdown.</summary>
+    public static readonly IReadOnlyList<TerminalVendorDescriptor> Descriptors = [Claude, Codex];
 
     private static readonly Dictionary<string, TerminalVendorDescriptor> ByVendor =
         new(StringComparer.Ordinal)
@@ -65,10 +79,5 @@ public static class TerminalAgentCatalog
         !string.IsNullOrEmpty(vendor) && ByVendor.ContainsKey(vendor);
 
     public static bool IsKnownEffort(string effort) =>
-        !string.IsNullOrEmpty(effort) && Efforts.Contains(effort);
-
-    public static IReadOnlyList<string> ModelsFor(string vendor) => DescriptorFor(vendor).Models;
-
-    public static bool IsKnownModel(string vendor, string model) =>
-        !string.IsNullOrEmpty(model) && ModelsFor(vendor).Contains(model, StringComparer.Ordinal);
+        !string.IsNullOrEmpty(effort) && KnownEfforts.Contains(effort);
 }

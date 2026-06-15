@@ -1,10 +1,9 @@
 import { AlertCircle, TerminalSquare } from "lucide-react";
 
 import {
-  TERMINAL_VENDORS,
   useSetDefaultTerminalVendor,
   useTerminalSettingsQuery,
-  VENDOR_LABEL,
+  useTerminalVendorCatalogQuery,
   type TerminalAgentVendor
 } from "@/entities/terminal-setting";
 
@@ -15,6 +14,7 @@ import {
  */
 export function TerminalDefaultsCard() {
   const query = useTerminalSettingsQuery();
+  const catalogQuery = useTerminalVendorCatalogQuery();
   const mutation = useSetDefaultTerminalVendor();
 
   if (query.error !== null) {
@@ -32,6 +32,12 @@ export function TerminalDefaultsCard() {
   }
 
   const current = query.data?.default_vendor;
+  const vendors = catalogQuery.data?.vendors ?? [];
+  const selectDisabled =
+    query.isLoading ||
+    catalogQuery.isLoading ||
+    catalogQuery.isError ||
+    mutation.isPending;
 
   return (
     <section
@@ -63,15 +69,15 @@ export function TerminalDefaultsCard() {
           data-testid="terminal-default-vendor"
           className="select select-sm select-bordered"
           value={current ?? ""}
-          disabled={query.isLoading || mutation.isPending}
+          disabled={selectDisabled}
           onChange={(event) => {
             mutation.mutate(event.target.value as TerminalAgentVendor);
           }}
         >
           {current === undefined ? <option value="" disabled hidden /> : null}
-          {TERMINAL_VENDORS.map((v) => (
-            <option key={v} value={v}>
-              {VENDOR_LABEL[v]}
+          {vendors.map((v) => (
+            <option key={v.vendor} value={v.vendor}>
+              {v.label}
             </option>
           ))}
         </select>
@@ -79,6 +85,12 @@ export function TerminalDefaultsCard() {
           <span className="text-xs text-base-content/50">Сохраняем…</span>
         ) : null}
       </label>
+
+      {catalogQuery.isError ? (
+        <p role="alert" className="m-0 text-xs text-error">
+          Не удалось загрузить список агентов.
+        </p>
+      ) : null}
 
       {mutation.error !== null ? (
         <p role="alert" className="m-0 text-xs text-error">
