@@ -38,6 +38,22 @@ public sealed class PullRequestAutoBindWorkflow(
         return report;
     }
 
+    /// <summary>
+    /// On-demand single-binding pass for the «Обновить» button (ADR-0024): same per-binding
+    /// logic as <see cref="RunAsync"/>, but for an already-loaded binding instead of the
+    /// scheduled scan. Outcome is folded into the returned report; exceptions are swallowed
+    /// into <see cref="PullRequestAutoBindReport.Failed"/> so a transient provider/network
+    /// hiccup never breaks the refresh response.
+    /// </summary>
+    public async Task<PullRequestAutoBindReport> RunForAsync(
+        IntentRepositoryBinding binding, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        var report = new PullRequestAutoBindReport();
+        await TryBindAsync(binding, report, ct);
+        return report;
+    }
+
     private async Task TryBindAsync(
         IntentRepositoryBinding binding, PullRequestAutoBindReport report, CancellationToken ct)
     {
