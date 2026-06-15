@@ -6,9 +6,11 @@ namespace Throne.Infrastructure.Terminals;
 /// Guards the spawn argv against tmux's command-size ceiling. The tmux client packs the whole
 /// <c>new-session</c> command (argc + every argument) into a single imsg whose payload is bounded by
 /// <c>MAX_IMSGSIZE</c> (16384 bytes); past that the client aborts with a bare <c>command too long</c>
-/// and exit 1. With the rules block now file-backed the only argv token that can still grow is the
-/// positional task, so this turns that residual overflow into an actionable error instead of tmux's
-/// opaque one. The budget stays conservatively below 16384 to leave room for imsg + per-arg framing.
+/// and exit 1. Both the rules block and the user task are file-backed now (rules via the vendor's
+/// system-prompt-file flag / profile, task via post-spawn <c>load-buffer</c> + <c>paste-buffer</c>),
+/// so the spawn argv only carries small reference tokens. This guard stays as a backstop for future
+/// argv additions — if it ever fires, the new token also needs to move off the argv. The budget
+/// stays conservatively below 16384 to leave room for imsg + per-arg framing.
 /// </summary>
 internal static class TmuxCommandLimit
 {
@@ -26,7 +28,7 @@ internal static class TmuxCommandLimit
         {
             detail =
                 $"spawn command is {bytes} bytes — over tmux's ~{MaxArgvBytes}-byte limit; "
-                + "trim the task text (the rules block is already file-backed).";
+                + "rules and task are already file-backed, so a new argv token must have grown — move it off the argv.";
             return true;
         }
 

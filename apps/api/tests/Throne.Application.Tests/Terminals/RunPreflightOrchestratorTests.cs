@@ -42,7 +42,7 @@ public partial class RunPreflightOrchestratorTests
         ex.Which.Code.Should().Be(ErrorCodes.TerminalModeInvalid);
     }
 
-    [Fact(DisplayName = "Run без живой сессии и готовых клонов спавнит tmux и возвращает running")]
+    [Fact(DisplayName = "Run без живой сессии и готовых клонов спавнит tmux и paste-ит задачу в pane")]
     public async Task Run_spawns_when_all_bindings_ready()
     {
         var fixture = new Fixture().Setup(
@@ -65,13 +65,17 @@ public partial class RunPreflightOrchestratorTests
                 && r.Arguments.Contains("opus")
                 && r.Arguments.Contains("--effort")
                 && r.Arguments.Contains("high")
-                // The rules block is no longer an argv token — it is file-backed behind the spawn
-                // adapter (see Claude/CodexSessionHookAdapterTests). The orchestrator only threads
-                // the adapter's prepared args (here the stub's --settings) and the positional task.
+                // Neither the rules block nor the user task ride the spawn argv anymore — rules
+                // come in via the adapter's file-backed reference (here the stub's --settings),
+                // the task is pasted after spawn via PasteFileAsSubmittedPromptAsync.
                 && r.Arguments.Contains("--settings")
                 && r.Arguments.Contains(SettingsPath)
-                && r.Arguments[r.Arguments.Count - 1] == "TASK"
+                && !r.Arguments.Contains("TASK")
                 && r.WorkingDirectory.EndsWith($"intents/{IntentIdValue}")),
+            Arg.Any<CancellationToken>());
+        await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
+            IntentIdValue,
+            Arg.Is<string>(p => p.EndsWith($"intents/{IntentIdValue}/throne-session.user-prompt.txt")),
             Arg.Any<CancellationToken>());
         await fixture.Intents.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
@@ -84,7 +88,7 @@ public partial class RunPreflightOrchestratorTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Free-режим с пустой задачей спавнит claude без позиционного промпта и не печатает текст в сессию")]
+    [Fact(DisplayName = "Free-режим с пустой задачей спавнит claude и не paste-ит ничего в pane")]
     public async Task Run_free_mode_empty_task_boots_bare()
     {
         var fixture = new Fixture().Setup(
@@ -103,6 +107,8 @@ public partial class RunPreflightOrchestratorTests
                 r.Command == "claude"
                 && r.Arguments.SequenceEqual(ClaudeBareArgs)),
             Arg.Any<CancellationToken>());
+        await fixture.Tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
         await fixture.Tmux.DidNotReceive().SendLiteralTextAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
         await fixture.Intents.Received(1).SetStatusAsync(
@@ -113,6 +119,31 @@ public partial class RunPreflightOrchestratorTests
             IntentTrainingAuthor.System,
             "terminal:spawn:free",
             Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Большой UserPrompt не валит спавн — задача доставляется paste-ом из файла")]
+    public async Task Run_large_user_prompt_delivered_via_paste()
+    {
+        var hugePrompt = new string('Я', 25_000);
+        var bigPrompt = new TerminalSpawnPrompt(SystemPrompt: "RULES", UserPrompt: hugePrompt, null, null);
+        var fixture = new Fixture().Setup(
+            capabilityEnabled: true,
+            intentExists: true,
+            hasSession: false,
+            bindings: [NewBinding(cloneStatus: CloneStatusNames.Ready)],
+            spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
+
+        var result = await fixture.Orchestrator.RunAsync(
+            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, bigPrompt, restart: false, CancellationToken.None);
+
+        result.SessionState.Should().Be(TerminalSessionStates.Running);
+        await fixture.Tmux.Received(1).SpawnAsync(
+            Arg.Is<TmuxSpawnRequest>(r => r.Arguments.All(a => a.Length < 1000)),
+            Arg.Any<CancellationToken>());
+        await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
+            IntentIdValue,
+            Arg.Is<string>(p => p.EndsWith("throne-session.user-prompt.txt")),
             Arg.Any<CancellationToken>());
     }
 
