@@ -7,6 +7,7 @@ export {
   VENDOR_DEFAULT_MODEL,
   VENDOR_LABEL,
   VENDOR_MODELS,
+  VENDOR_SUPPORTS_EFFORT,
   type TerminalAgentVendor,
   type TerminalReasoningEffort,
   type TerminalSettings
