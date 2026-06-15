@@ -135,9 +135,11 @@ export function ReviewDiffViewer({
         hunks.map((hunk, hi) => (
           <div key={hi} className="border-b border-base-300 last:border-b-0">
             {renderGap(gaps.find((gap) => gap.id === gapIdBefore(hi)))}
-            <div className="bg-base-200 px-3 py-1 text-[11px] text-base-content/60">
-              {hunk.header}
-            </div>
+            {shouldShowHunkHeader(hunk.newStart) ? (
+              <div className="bg-base-200 px-3 py-1 text-[11px] text-base-content/60">
+                {hunk.header}
+              </div>
+            ) : null}
             {hunk.rows.map((row, ri) =>
               renderRow(row, `hunk-${String(hi)}-${String(ri)}`)
             )}
@@ -225,6 +227,10 @@ export function ReviewDiffViewer({
       lines.unshift({ line, content });
     }
     return lines;
+  }
+
+  function shouldShowHunkHeader(newStart: number) {
+    return newStart <= 1 || !fileLines.lines.has(newStart - 1);
   }
 }
 
