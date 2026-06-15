@@ -10,6 +10,7 @@ public sealed class SettingsController(
     GetWorkspaceSettingsEndpoint workspaceEndpoint,
     CleanWorkspaceEndpoint cleanEndpoint,
     GetGitProvidersStatusEndpoint providersEndpoint,
+    GetLocalModelCatalogEndpoint localModelEndpoint,
     TerminalSettingsService terminalSettings) : SettingsControllerBase
 {
     public override Task<ActionResult<WorkspaceSettingsDto>> GetWorkspaceSettings() =>
@@ -20,6 +21,9 @@ public sealed class SettingsController(
 
     public override Task<ActionResult<GitProvidersStatusDto>> GetGitProvidersStatus() =>
         providersEndpoint.RunAsync(HttpContext.RequestAborted);
+
+    public override Task<ActionResult<LocalModelCatalogDto>> GetLocalModelCatalog() =>
+        localModelEndpoint.RunAsync(HttpContext.RequestAborted);
 
     public override async Task<ActionResult<TerminalSettingsDto>> GetTerminalSettings()
     {

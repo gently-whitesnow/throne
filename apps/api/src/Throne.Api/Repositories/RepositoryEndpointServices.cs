@@ -55,6 +55,7 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<GetWorkspaceSettingsEndpoint>();
         services.AddSingleton<CleanWorkspaceEndpoint>();
         services.AddSingleton<GetGitProvidersStatusEndpoint>();
+        services.AddSingleton<GetLocalModelCatalogEndpoint>();
 
         return services;
     }
