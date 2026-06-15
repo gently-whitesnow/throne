@@ -10,7 +10,7 @@ internal static class BundlesTreeDtoMapper
         var dto = new BundlesTreeDto();
         foreach (var bundle in tree.Bundles)
         {
-            var bundleDto = new BundleNodeDto { Mode = bundle.Mode, Contour = bundle.Contour };
+            var bundleDto = new BundleNodeDto { Mode = bundle.Mode };
             foreach (var entry in bundle.Includes)
             {
                 bundleDto.Includes.Add(new BundleEntryNodeDto

@@ -107,45 +107,27 @@ public class PromptCompositionResolverTests
         mandatory.Should().Equal(bundle.Parts.Select(i => (i.Scope, i.Key, i.PromptPartId, i.Text)));
     }
 
-    [Fact(DisplayName = "Embedded-композиция work берёт finale_embedded, а не finale_standalone")]
-    public async Task Embedded_composition_uses_embedded_finale()
+    [Fact(DisplayName = "Embedded-резолвер не отдаёт finale_work в mandatory (standalone-only system-часть)")]
+    public async Task Embedded_resolver_filters_finale_work()
     {
-        var repository = BuildContourRepository();
+        var repository = BuildFinaleRepository();
         var resolver = new PromptCompositionResolver(
-            SkillManifestFixtures.ContourProvider(), new PromptBundleResolver(repository), repository);
+            SkillManifestFixtures.FinaleProvider(), new PromptBundleResolver(repository), repository);
 
-        // The resolver defaults Contour=embedded — that is the built-in terminal path.
         var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, ""), CancellationToken.None);
 
-        composition.Parts.Select(p => p.Key).Should().Contain("finale_embedded");
-        composition.Parts.Select(p => p.Key).Should().NotContain("finale_standalone");
+        composition.Parts.Select(p => p.Key).Should().NotContain("finale_work");
+        composition.SystemPrompt.Should().NotContain("standalone finale text");
     }
 
-    [Fact(DisplayName = "Standalone get_prompt_bundle(work) берёт finale_standalone, а не finale_embedded")]
-    public async Task Standalone_bundle_uses_standalone_finale()
-    {
-        var repository = BuildContourRepository();
-        var auto = new IntentStatusAutoTransition(
-            Substitute.For<IIntentRepository>(), new PassThroughUnitOfWork(), new FixedTimeProvider(Now));
-        var handler = new GetPromptBundleHandler(
-            SkillManifestFixtures.ContourProvider(), auto, new PromptBundleResolver(repository));
-
-        var bundle = await handler.HandleAsync(
-            new GetPromptBundleQuery(PromptBundleModeNames.Work, IntentId: null), CancellationToken.None);
-
-        bundle.Parts.Select(p => p.Key).Should().Contain("finale_standalone");
-        bundle.Parts.Select(p => p.Key).Should().NotContain("finale_embedded");
-    }
-
-    private static IPromptPartRepository BuildContourRepository()
+    private static IPromptPartRepository BuildFinaleRepository()
     {
         var seeded = new List<PromptPart>
         {
             SeedPart(PromptPartScopeNames.System, "common", "system text for common"),
             SeedPart(PromptPartScopeNames.System, "work", "system text for work"),
-            SeedPart(PromptPartScopeNames.System, "finale_standalone", "standalone finale"),
-            SeedPart(PromptPartScopeNames.System, "finale_embedded", "embedded finale"),
+            SeedPart(PromptPartScopeNames.System, "finale_work", "standalone finale text"),
             SeedPart(PromptPartScopeNames.User, "common", "user common text"),
             SeedPart(PromptPartScopeNames.User, "work", "user work text"),
         };

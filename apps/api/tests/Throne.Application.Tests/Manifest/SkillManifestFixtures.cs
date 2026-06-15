@@ -2,6 +2,7 @@ using Throne.Application.Manifest;
 using Throne.Application.PromptParts;
 using Throne.Domain.PromptParts;
 
+
 namespace Throne.Application.Tests.Manifest;
 
 internal static class SkillManifestFixtures
@@ -16,7 +17,6 @@ internal static class SkillManifestFixtures
 
         BundleDefinition Bundle(string mode, string key) => new(
             Mode: mode,
-            Contour: null,
             Includes:
             [
                 new BundleInclude(PromptPartScopeNames.System, "common"),
@@ -29,7 +29,6 @@ internal static class SkillManifestFixtures
         // system common + system schema_map + user common only (mirrors the real manifest).
         var schemaMapBundle = new BundleDefinition(
             PromptBundleModeNames.SchemaMap,
-            Contour: null,
             [
                 new BundleInclude(PromptPartScopeNames.System, "common"),
                 new BundleInclude(PromptPartScopeNames.System, "schema_map"),
@@ -50,37 +49,28 @@ internal static class SkillManifestFixtures
     public static InMemorySkillManifestProvider Provider() => new(Sample());
 
     /// <summary>
-    /// Manifest where <c>work</c> is split by execution contour (ADR-0034): the standalone bundle
-    /// carries <c>finale_standalone</c>, the embedded one <c>finale_embedded</c>. Used to assert
-    /// that each contour resolves its own finale instruction.
+    /// Manifest where the <c>work</c> bundle includes the standalone-only <c>finale_work</c>
+    /// system part. The embedded resolver filters it out; the standalone MCP path keeps it.
     /// </summary>
-    public static SkillManifest ContourSample()
+    public static SkillManifest FinaleSample()
     {
-        string[] keys = ["common", "work", "finale_standalone", "finale_embedded"];
+        string[] keys = ["common", "work", "finale_work"];
         var systemInstructions = keys
             .Select(key => new SystemInstructionEntry(key, $"system text for {key}"))
             .ToArray();
 
-        BundleDefinition WorkBundle(string contour, string finaleKey) => new(
-            Mode: PromptBundleModeNames.Work,
-            Contour: contour,
-            Includes:
+        var work = new BundleDefinition(
+            PromptBundleModeNames.Work,
             [
                 new BundleInclude(PromptPartScopeNames.System, "common"),
                 new BundleInclude(PromptPartScopeNames.System, "work"),
-                new BundleInclude(PromptPartScopeNames.System, finaleKey),
+                new BundleInclude(PromptPartScopeNames.System, "finale_work"),
                 new BundleInclude(PromptPartScopeNames.User, "common"),
                 new BundleInclude(PromptPartScopeNames.User, "work"),
             ]);
 
-        var bundles = new[]
-        {
-            WorkBundle(PromptContourNames.Standalone, "finale_standalone"),
-            WorkBundle(PromptContourNames.Embedded, "finale_embedded"),
-        };
-
-        return new SkillManifest(1, systemInstructions, bundles, Array.Empty<DreamSourceManifestEntry>());
+        return new SkillManifest(1, systemInstructions, new[] { work }, Array.Empty<DreamSourceManifestEntry>());
     }
 
-    public static InMemorySkillManifestProvider ContourProvider() => new(ContourSample());
+    public static InMemorySkillManifestProvider FinaleProvider() => new(FinaleSample());
 }

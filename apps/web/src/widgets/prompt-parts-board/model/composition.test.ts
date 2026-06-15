@@ -77,25 +77,6 @@ describe("buildModeComposition", () => {
     expect(parts.map((p) => p.order)).toEqual([0, 1, 2]);
   });
 
-  it("для work, разведённого по контуру, берёт embedded-бандл (превью embedded-контура)", () => {
-    const split: BundlesTree = {
-      bundles: [
-        {
-          mode: "work",
-          contour: "standalone",
-          includes: [entry("system", "finale_standalone", "STANDALONE")]
-        },
-        {
-          mode: "work",
-          contour: "embedded",
-          includes: [entry("system", "finale_embedded", "EMBEDDED")]
-        }
-      ]
-    };
-    const parts = buildModeComposition("work", split, []);
-    expect(parts.map((p) => p.key)).toEqual(["finale_embedded"]);
-  });
-
   it("не дублирует user-часть, которая уже входит в бандл как mandatory", () => {
     // bundle work includes user:work with prompt_part_id "pid-work"; the same part
     // also surfaces in the optional listing with role=mandatory. It must appear once.

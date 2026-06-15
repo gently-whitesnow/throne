@@ -114,6 +114,40 @@ public class GetPromptBundleHandlerTests
             default!, default!, default, default, default, default!, default, default);
     }
 
+    [Fact(DisplayName = "GetPromptBundle(work) отдаёт finale_work — standalone-only system-часть финала прохода")]
+    public async Task Bundle_work_includes_finale_work_for_standalone()
+    {
+        var repository = BuildFinaleRepository();
+        var auto = new IntentStatusAutoTransition(
+            Substitute.For<IIntentRepository>(), new PassThroughUnitOfWork(), new FixedTimeProvider(Now));
+        var handler = new GetPromptBundleHandler(
+            SkillManifestFixtures.FinaleProvider(), auto, new PromptBundleResolver(repository));
+
+        var bundle = await handler.HandleAsync(
+            new GetPromptBundleQuery(PromptBundleModeNames.Work, IntentId: null), CancellationToken.None);
+
+        bundle.Parts.Select(p => p.Key).Should().Contain("finale_work");
+        bundle.MissingKeys.Should().BeEmpty();
+    }
+
+    private static IPromptPartRepository BuildFinaleRepository()
+    {
+        var seeded = new List<PromptPart>
+        {
+            PromptPart.Create(PromptPartId.New(), PromptPartScopeNames.System, "common", "sc", null, [], Now),
+            PromptPart.Create(PromptPartId.New(), PromptPartScopeNames.System, "work", "sw", null, [], Now),
+            PromptPart.Create(PromptPartId.New(), PromptPartScopeNames.System, "finale_work", "fw", null, [], Now),
+            PromptPart.Create(PromptPartId.New(), PromptPartScopeNames.User, "common", "uc", null, [], Now),
+            PromptPart.Create(PromptPartId.New(), PromptPartScopeNames.User, "work", "uw", null, [], Now),
+        };
+        var repo = Substitute.For<IPromptPartRepository>();
+        repo.GetByScopeKeyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => seeded.FirstOrDefault(p =>
+                string.Equals(p.Scope, call.ArgAt<string>(0), StringComparison.Ordinal)
+                && string.Equals(p.Key, call.ArgAt<string>(1), StringComparison.Ordinal)));
+        return repo;
+    }
+
     [Fact(DisplayName = "PromptBundle сериализует intent_id даже когда null (MCP output schema)")]
     public void Bundle_json_includes_null_intent_id_when_omitting_nulls()
     {

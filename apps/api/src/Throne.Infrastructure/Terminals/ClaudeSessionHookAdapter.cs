@@ -17,6 +17,17 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     private const string SettingsFileName = "throne-session.settings.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
 
+    // Embedded-finale instruction appended verbatim to the operator-composed system prompt: in
+    // the embedded contour (ADR-0034 §5/§61) the Stop-hook parks the pass into awaiting_operator,
+    // so the agent must NOT call set_intent_status(ready_for_review) itself. The standalone
+    // counterpart is the manifest's `finale_work` system part (filtered out of the embedded
+    // composition by PromptCompositionResolver) — this constant is the embedded equivalent.
+    private const string EmbeddedFinaleInstruction =
+        "По завершении прохода доложи результат — статус выставит Stop-хук, сам " +
+        "`set_intent_status(intent_id, status=\"ready_for_review\")` не вызывай. " +
+        "`awaiting_operator` ставь только если реально застрял и нужен инпут оператора; " +
+        "перед вызовом припиши в Intent.text, что именно нужно.";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -45,7 +56,7 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
             var systemPromptPath = Path.Combine(workspacePath, SystemPromptFileName);
-            await File.WriteAllTextAsync(systemPromptPath, systemPrompt, ct);
+            await File.WriteAllTextAsync(systemPromptPath, ComposeAppendSystemPrompt(systemPrompt!), ct);
             args.Add("--append-system-prompt-file");
             args.Add(systemPromptPath);
         }
@@ -56,6 +67,13 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     // Claude's per-session files (settings + system prompt) live inside the intent workspace, so the
     // workspace-folder removal on intent-done reaps them — no out-of-workspace state to clean here.
     public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
+
+    // Append the embedded-finale instruction (a runtime constant, ADR-0034 §5/§61) on top of the
+    // operator-composed system prompt. The standalone counterpart sits in the manifest as the
+    // `finale_work` system part; the embedded resolver filters it out, and this constant takes
+    // its place in the embedded contour.
+    private static string ComposeAppendSystemPrompt(string systemPrompt) =>
+        systemPrompt + "\n\n" + EmbeddedFinaleInstruction;
 
     private object BuildSettings(string intentId, string mode) =>
         new

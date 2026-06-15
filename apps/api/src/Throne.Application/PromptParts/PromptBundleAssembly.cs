@@ -9,33 +9,16 @@ namespace Throne.Application.PromptParts;
 
 internal static class BundleResolver
 {
-    /// <summary>
-    /// Resolves the bundle for a mode and execution contour (ADR-0034). A contour-specific bundle
-    /// wins over a contour-neutral one for the same mode; a neutral bundle serves any contour. The
-    /// caller fixes the contour (standalone for MCP <c>get_prompt_bundle</c>, embedded for the
-    /// terminal preview) — it is not an operator-facing parameter.
-    /// </summary>
-    public static BundleDefinition ResolveOrThrow(SkillManifest manifest, string mode, string contour)
-    {
-        var candidates = manifest.Bundles
-            .Where(b => string.Equals(b.Mode, mode, StringComparison.Ordinal))
-            .ToArray();
-
-        var resolved =
-            candidates.FirstOrDefault(b => string.Equals(b.Contour, contour, StringComparison.Ordinal))
-            ?? candidates.FirstOrDefault(b => b.Contour is null);
-
-        return resolved
+    public static BundleDefinition ResolveOrThrow(SkillManifest manifest, string mode) =>
+        manifest.Bundles.FirstOrDefault(b => string.Equals(b.Mode, mode, StringComparison.Ordinal))
             ?? throw new ApiException(
                 ErrorCodes.ValidationFailed,
                 "Unknown prompt bundle mode.",
                 new Dictionary<string, object?>
                 {
                     ["mode"] = mode,
-                    ["contour"] = contour,
-                    ["allowed_modes"] = manifest.Bundles.Select(b => b.Mode).Distinct().ToArray(),
+                    ["allowed_modes"] = manifest.Bundles.Select(b => b.Mode).ToArray(),
                 });
-    }
 }
 
 internal static class BundleModeIntentStatus
