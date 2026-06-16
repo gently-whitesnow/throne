@@ -142,6 +142,13 @@
           }
         },
         {
+          "_comment": "TerminalAgentCatalog is a typed registry of vendor / effort / model-source discriminators + descriptor lookups; public surface == (vendors + efforts + model-sources + helpers). Same precedent as ErrorCodes/MongoCollectionNames — registry-like type, growth tracks supported vendor count.",
+          "glob": "**/Throne.Application/Terminals/TerminalAgentCatalog.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
           "_comment": "Mongo POCO documents fan out [BsonElement] properties; public surface = persisted field count.",
           "glob": "**/Throne.Infrastructure/Mongo/Documents/*.cs",
           "limits": {
