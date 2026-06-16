@@ -116,7 +116,7 @@ export interface components {
          * @description Default agent CLI for new embedded-terminal sessions. Mirror of `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
          * @enum {string}
          */
-        TerminalAgentVendor: "claude" | "codex";
+        TerminalAgentVendor: "claude" | "codex" | "opencode";
         TerminalSettingsDto: {
             default_vendor: components["schemas"]["TerminalAgentVendor"];
         };

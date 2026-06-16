@@ -112,6 +112,9 @@ public static class DependencyInjection
         services.AddSingleton<TerminalLaunchResolver>();
         services.AddSingleton<TerminalSettingsService>();
         services.AddSingleton<LocalModelDiscoveryService>();
+        // OpenCode is the only `local`-sourced vendor today; its model list flows from the
+        // shared LocalModelDiscoveryService (Throne:LocalModel:BaseUrl → /v1/models).
+        services.AddSingleton<IVendorModelCatalog, OpencodeLocalModelCatalog>();
         services.AddSingleton<TerminalSessionStatusService>();
         services.AddSingleton<TerminalSessionKillService>();
         services.AddSingleton<TerminalHookStatusHandler>();

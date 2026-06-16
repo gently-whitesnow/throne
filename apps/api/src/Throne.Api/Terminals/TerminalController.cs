@@ -12,11 +12,15 @@ public sealed class TerminalController(
     TerminalSessionKillService killService,
     TerminalHookStatusAck hookStatusAck,
     IntentTerminalPreviewHandler previewHandler,
+    TerminalVendorCatalogMapper vendorCatalogMapper,
     ILogger<TerminalController> logger
 ) : TerminalControllerBase
 {
-    public override Task<ActionResult<TerminalVendorCatalogResponse>> ListTerminalVendors() =>
-        Task.FromResult<ActionResult<TerminalVendorCatalogResponse>>(Ok(TerminalVendorCatalogMapper.ToDto()));
+    public override async Task<ActionResult<TerminalVendorCatalogResponse>> ListTerminalVendors()
+    {
+        var dto = await vendorCatalogMapper.ToDtoAsync(HttpContext.RequestAborted);
+        return Ok(dto);
+    }
 
     public override async Task<ActionResult<IntentTerminalPreviewResponse>> PreviewIntentTerminal(
         string intent_id,

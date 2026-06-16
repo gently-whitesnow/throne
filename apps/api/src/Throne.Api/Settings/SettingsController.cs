@@ -43,6 +43,7 @@ public sealed class SettingsController(
     {
         TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,
         TerminalAgentVendor.Codex => TerminalAgentCatalog.VendorCodex,
+        TerminalAgentVendor.Opencode => TerminalAgentCatalog.VendorOpencode,
         _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
     };
 
@@ -50,6 +51,7 @@ public sealed class SettingsController(
     {
         TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
         TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
+        TerminalAgentCatalog.VendorOpencode => TerminalAgentVendor.Opencode,
         _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
     };
 }

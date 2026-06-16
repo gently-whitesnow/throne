@@ -48,6 +48,7 @@ public static class TerminalsModule
         services.AddSingleton<ISessionHookAdapter>(sp =>
             new CodexSessionHookAdapter(
                 sp.GetRequiredService<SessionHookOptions>(), CodexSessionProfile.ResolveHome()));
+        services.AddSingleton<ISessionHookAdapter, OpencodeSessionHookAdapter>();
         // Application orchestrators consume the bare options instance (see
         // PullRequestSyncBackoff for the same pattern) so Throne.Application
         // does not need a reference to Microsoft.Extensions.Options.

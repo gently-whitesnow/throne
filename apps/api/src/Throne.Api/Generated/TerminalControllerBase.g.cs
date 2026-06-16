@@ -33,7 +33,7 @@ namespace Throne.Api.Generated
         /// Vendor metadata catalog for the embedded-terminal launch surface.
         /// </summary>
         /// <remarks>
-        /// Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. Static read with no side effects and no capability gate — the dropdowns are populated even before the `terminal` capability is on. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); dynamic `/v1/models` discovery is out of scope.
+        /// Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. Static read with no side effects and no capability gate — the dropdowns are populated even before the `terminal` capability is on. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); `opencode` reports `model_source=local` and its `models` list is materialised on the fly from the operator's local OpenAI-compatible endpoint (`Throne:LocalModel:BaseUrl`, probed via `GET {BaseUrl}/v1/models`) — empty until the endpoint is configured and reachable, in which case the launch surface still shows the vendor but disables the model dropdown.
         /// </remarks>
         /// <returns>Vendor catalog snapshot.</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/terminal/vendors", Name = "listTerminalVendors")]
