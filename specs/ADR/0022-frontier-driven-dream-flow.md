@@ -71,8 +71,8 @@ Accepted. Заменяет ранний серверный insight-pipeline (cha
 - **Доменная модель Throne сжалась в разы.** Один новый append-only агрегат вместо четырёх первоклассных + цепочки worker-ов.
 - **Сигнал полнее.** Фронтир видит raw JSONL с `tool_use` / `tool_result` / `system-reminder` / attachments — то, что Flattener выбрасывал.
 - **Никакого ChatUpload pipeline**: ни CLI, ни serverside vendor parser, ни blob storage, ни FIFO worker, ни llama.cpp / MLX runtime, ни OpenAPI-compat порта.
-- **Multi-tenancy для диалогов снимается «само»** — они не покидают машину агента.
-- **Источники конфигурируемы**: `dream_sources` в манифесте + (в будущем) per-user override.
+- **Изоляция диалогов снимается «само»** — они не покидают машину агента.
+- **Источники конфигурируемы**: `dream_sources` в манифесте.
 - **Recall не упирается в модель**. Используется тот же фронтир, который потом и применяет инструкции; качество сигнала растёт вместе с моделью без работы на стороне Throne.
 
 ### Negative / Risks
@@ -80,7 +80,7 @@ Accepted. Заменяет ранний серверный insight-pipeline (cha
 - **Cross-device usage**: `DreamSession.processed_conversation_ids` ссылается на локальные пути / vendor-id, которые на другой машине пользователя могут отсутствовать. Это допустимо: `summary` + `reflection` + `proposed_patch_ids` всё равно дают агенту понимание «что разбирали и какие правила приняли», даже если конкретный диалог не открыть. Сложный кросс-устройственный merge — отдельный интент, если понадобится.
 - **Лимит контекста фронтира** становится практическим потолком объёма прохода. На сегодняшних моделях (Claude 4.6/4.7) хватает с запасом; на меньших — пользователь явно ограничивает периметр.
 - **Нет автоматической периодической ловли инсайтов**. `dream` строго on-demand через кнопку «Скопировать промпт» на `/improvements`. Это сознательный шаг: автотриггер прошлого pipeline (cron 1h) на практике почти не давал сигнала и создавал шум в realtime-стриме.
-- **Один свежий тип данных в Mongo** — `dream_sessions`. Индексы `(owner_user_id, created_at desc)` и `(owner_user_id, vendor, created_at desc)`; sharding-impact нулевой на ожидаемых объёмах.
+- **Один свежий тип данных в Mongo** — `dream_sessions`. Индексы `(created_at desc)` и `(vendor, created_at desc)` (owner-оси нет — [ADR-0029](0029-local-first-invariant-and-legacy-auth.md)); объёмы малые.
 
 ## Migration
 
