@@ -23,14 +23,14 @@ MCP-протокол уже даёт штатный канал для серве
    - секция `skills:` в [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) (манифест продолжает быть source of truth для `system_instructions` и `bundles`);
    - архитектурный тест парности `SkillLauncherParityTests`;
    - HTTP-операция `getSkillsTree` и поддерживавшие её `GetSkillsTreeHandler`/`SkillsTreeDto`/`SkillNodeDto` (заменены на `getBundlesTree` + `BundlesTreeDto`, потому что UI-странице `/instructions` больше нечего рендерить на уровне «скилов»).
-2. **Доставка mini-router'а через `InitializeResult.instructions`.** На каждом MCP-handshake Throne сервер отдаёт короткий условный глоссарий: если пользователь явно просит прочитать бандл, агент зовёт `get_prompt_bundle`; если пользователь описывает задачу без имени бандла, агент выбирает режим по смыслу и затем читает бандл. Текст вида:
+2. **Доставка mini-router'а через `InitializeResult.instructions`.** На каждом MCP-handshake Throne сервер отдаёт короткий условный глоссарий с единственным триггером: если пользователь явно просит прочитать бандл — агент зовёт `get_prompt_bundle`. Если пользователь просто описывает задачу, mini-router не классифицирует её по смыслу и не дёргает бандл — это устраняет ложные раундтрипы во встроенном контуре, где контекст уже инъектится upfront (см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2). Текст вида:
 
    ```
    This is Throne, an MCP server for intents. The working playbook for an intent is not in local files — it comes from get_prompt_bundle.
 
    When the user asks to read/«прочитай» a bundle for a mode (work, interview, dream, schema_map), call get_prompt_bundle({mode, intent_id}) and follow the text it returns — it is the source of truth. Surface any missing_keys to the user instead of improvising. intent_id comes from the message or active context; for work/interview create one via create_intent if none is given (dream/schema_map run without an intent).
 
-   If the user describes a task without naming a bundle, pick the mode by meaning — execute/continue an intent → work; clarify/shape it → interview; improve instructions from feedback → dream — then read that bundle as above.
+   Do not call get_prompt_bundle on your own initiative when the user merely describes a task without asking to read a bundle — wait for an explicit request.
    ```
 
    Канонический текст — константа [`ThroneServerInstructions.MiniRouter`](../../apps/api/src/Throne.Application/Mcp/ThroneServerInstructions.cs). Сервер выставляет её через `AddMcpServer(o => o.ServerInstructions = ThroneServerInstructions.MiniRouter)` в [apps/api/src/Throne.Api/Program.cs](../../apps/api/src/Throne.Api/Program.cs).
@@ -39,7 +39,7 @@ MCP-протокол уже даёт штатный канал для серве
 
 3. **Прямой HTTP MCP.** После [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md) standalone-клиенты подключаются к `Throne.Api /mcp` напрямую и получают mini-router из `InitializeResult.instructions` без дополнительного forwarding-процесса. Claude Desktop, которому локально нужен stdio, использует внешний bridge `mcp-remote`.
 
-4. **Slash-команд `/tinterview | /twork | /tdream` нет.** Единственный путь начать standalone-поток — текст пользователя. Агент читает mini-router из `InitializeResult.instructions`, классифицирует намерение (`interview` / `work` / `dream` / `schema_map`) и зовёт `get_prompt_bundle(mode, intent_id?)`. Вход в поток теперь осуществляется естественной просьбой или copy-кнопкой, которая явно просит прочитать нужный бандл.
+4. **Slash-команд `/tinterview | /twork | /tdream` нет.** Единственный путь начать standalone-поток — явная просьба пользователя прочитать конкретный бандл. Mini-router не классифицирует свободное описание задачи; пользователь либо пишет «прочитай бандл work/interview/dream/schema_map …», либо нажимает copy-кнопку на странице интента / `/improvements` / `repository-schema-document`, которая кладёт ровно такую формулировку в буфер. Это сознательно жертвует «mode by meaning»-вход ради устранения лишнего MCP-раундтрипа во встроенном контуре ([ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2).
 
 5. **Манифест и bundle resolver не меняются.** `system_instructions` и `bundles` в [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) остаются source of truth для текстов system-инструкций и `mode → kinds` маппинга. Имя файла оставлено `throne-skills.yaml` для совместимости с уже задеплоенными серверами; новых читателей секции `skills:` нет.
 
@@ -48,7 +48,7 @@ MCP-протокол уже даёт штатный канал для серве
 ## Consequences
 
 - **Установка упрощается до нуля.** Подключил Throne MCP в клиент (Claude Code/Codex/Cursor) — handshake уже принёс mini-router. Больше нет файлов, которые нужно класть в каждый чужой репозиторий.
-- **UX сдвигается с команд на естественный язык.** Пользователь пишет «посмотри постановку и уточни», «возьми этот intent и сделай», «учти мой ревью» — агент сам выбирает mode. Цена — точность классификации зависит от текста пользователя; если возникнут заметные промахи, mini-router можно расширить более жёсткими правилами или добавить в `system:common` явный rubric.
+- **UX сдвигается с команд на явную просьбу или copy-кнопку.** Чтобы войти в standalone-поток, пользователь либо явно просит «прочитай бандл …», либо использует copy-кнопку, которая кладёт такую формулировку в буфер. Mini-router сознательно не классифицирует свободное «посмотри постановку и уточни» по смыслу — это плата за устранение ложных MCP-раундтрипов во встроенном контуре ([ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2), где контекст уже инъектится upfront и любая «describe a task» эвристика превращалась в лишнее чтение бандла. Если в будущем понадобится natural-language вход, он вернётся через явный rubric в `system:common` или per-connection вариацию, а не через эвристику в mini-router.
 - **Историческая телеметрия по `prompts/get:<name>` теряет смысл.** ADR-0004 фиксировал prompts/get в `mcp_call_log`; этот канал больше не используется ни одним клиентом, события естественно перестают появляться. Чистка кода аудит-лога не требуется — он не падает на отсутствие записей.
 - **vendor parity больше не задача проекта.** Архитектурный тест `SkillLauncherParityTests` снят. Если в будущем понадобится дополнительный канал доставки (например, публичные prompts для меню Cursor), вводить его как отдельный supplemental-канал поверх mini-router, не вместо него.
 - **Текст mini-router'а — продуктовый интерфейс.** Меняется ревью + релизом `Throne.Api`. Если хочется править его данными, как user-инструкции, — это отдельный future ADR; пока mini-router короткий и стабильный, держим его в коде.
