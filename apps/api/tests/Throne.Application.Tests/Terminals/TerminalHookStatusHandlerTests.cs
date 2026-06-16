@@ -100,6 +100,27 @@ public class TerminalHookStatusHandlerTests
             Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "OpenCode lifecycle smoke: idle/permission паркуют, prompt/tool resume возвращают в work")]
+    public async Task Opencode_lifecycle_sequence_parks_and_resumes()
+    {
+        var state = IntentStatusNames.Work;
+        var handler = NewStatefulHandler(() => state, next => state = next);
+
+        await handler.HandleAsync("intent-1", TerminalHookEvents.Stop, TerminalRunModes.Work, CancellationToken.None);
+        state.Should().Be(IntentStatusNames.AwaitingOperator);
+
+        await handler.HandleAsync(
+            "intent-1", TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Work, CancellationToken.None);
+        state.Should().Be(IntentStatusNames.Work);
+
+        await handler.HandleAsync(
+            "intent-1", TerminalHookEvents.Notification, TerminalRunModes.Work, CancellationToken.None);
+        state.Should().Be(IntentStatusNames.AwaitingOperator);
+
+        await handler.HandleAsync("intent-1", TerminalHookEvents.PostToolUse, TerminalRunModes.Work, CancellationToken.None);
+        state.Should().Be(IntentStatusNames.Work);
+    }
+
     private static Task ReceivedStatusSet(IIntentRepository repo, string status) =>
         repo.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(), status, Arg.Any<string?>(), Arg.Any<string?>(),
@@ -123,6 +144,25 @@ public class TerminalHookStatusHandlerTests
 
         var setStatus = new SetIntentStatusHandler(repo, new PassthroughUnitOfWork(), new FixedClock(Now));
         return (repo, new TerminalHookStatusHandler(repo, setStatus));
+    }
+
+    private static TerminalHookStatusHandler NewStatefulHandler(Func<string> getStatus, Action<string> setStatus)
+    {
+        var repo = Substitute.For<IIntentRepository>();
+        repo.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Intent.Restore(ci.ArgAt<IntentId>(0), "x", getStatus(), 1, [], Now, Now));
+        repo.SetStatusAsync(
+                Arg.Any<IntentId>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<IntentTrainingAuthor>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                setStatus(ci.ArgAt<string>(1));
+                return new SetIntentStatusOutcome.Updated(
+                    Intent.Restore(ci.ArgAt<IntentId>(0), "x", ci.ArgAt<string>(1), 1, [], Now, Now));
+            });
+
+        var status = new SetIntentStatusHandler(repo, new PassthroughUnitOfWork(), new FixedClock(Now));
+        return new TerminalHookStatusHandler(repo, status);
     }
 
     private sealed class PassthroughUnitOfWork : IUnitOfWork

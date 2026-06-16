@@ -6,8 +6,8 @@ using Throne.Application.Terminals;
 namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
-/// OpenCode flavour of <see cref="ISessionHookAdapter"/>. Three concerns, all expressed through
-/// the workspace-local <c>opencode.json</c> the OpenCode CLI auto-discovers at startup
+/// OpenCode flavour of <see cref="ISessionHookAdapter"/>. Four concerns, expressed through
+/// workspace-local files the OpenCode CLI auto-discovers at startup
 /// (it searches the working directory upward to the nearest git root):
 /// <list type="bullet">
 ///   <item>Provider wiring: a single <c>@ai-sdk/openai-compatible</c> provider keyed by
@@ -22,12 +22,14 @@ namespace Throne.Infrastructure.Terminals;
 ///   referenced from there — no inlining on the spawn argv. (Mirrors why the Claude/Codex
 ///   adapters route their multi-KB rules through a file: tmux's spawn imsg has a ~16 KB
 ///   cap.)</item>
-///   <item>Lifecycle hooks: out of scope for this slice (slice's own Out-of-scope item).
-///   This adapter writes none, exposes no callback URL, and returns no hook-related argv
-///   tokens — only the provider config + the optional <c>instructions</c> reference.</item>
+///   <item>Lifecycle hooks: OpenCode 1.17.7+ auto-loads project plugins from
+///   <c>.opencode/plugins</c>, so the adapter writes a per-session shim that maps OpenCode
+///   lifecycle events onto the existing Throne hook endpoint.</item>
 /// </list>
 /// </summary>
-public sealed class OpencodeSessionHookAdapter(LocalModelDiscoveryService localModels) : ISessionHookAdapter
+public sealed class OpencodeSessionHookAdapter(
+    LocalModelDiscoveryService localModels,
+    SessionHookOptions hookOptions) : ISessionHookAdapter
 {
     private const string ConfigFileName = "opencode.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
@@ -59,6 +61,8 @@ public sealed class OpencodeSessionHookAdapter(LocalModelDiscoveryService localM
         // valid JSON instead of half-empty.
         var baseUrl = discovery.BaseUrl ?? string.Empty;
 
+        await OpencodePluginShim.WriteAsync(
+            workspacePath, intentId, mode, NormalizeBaseUrl(hookOptions.ApiBaseUrl), ct);
         var systemPromptPath = await WriteSystemPromptAsync(workspacePath, systemPrompt, ct);
         var configPath = Path.Combine(workspacePath, ConfigFileName);
         await using (var stream = File.Create(configPath))
@@ -134,4 +138,9 @@ public sealed class OpencodeSessionHookAdapter(LocalModelDiscoveryService localM
                 ? null
                 : [Path.GetFileName(systemPromptPath)]);
     }
+
+    private static string NormalizeBaseUrl(string? apiBaseUrl) =>
+        string.IsNullOrWhiteSpace(apiBaseUrl)
+            ? SessionHookOptions.DefaultApiBaseUrl
+            : apiBaseUrl.TrimEnd('/');
 }
