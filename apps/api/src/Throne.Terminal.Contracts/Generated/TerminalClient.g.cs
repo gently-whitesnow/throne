@@ -79,13 +79,12 @@ namespace Throne.Terminal.Contracts.Generated
         public string Default_model { get; set; }
 
         /// <summary>
-        /// Reasoning-effort tiers selectable for this vendor. Empty when `supports_effort=false`.
+        /// Reasoning-effort tiers selectable for this vendor. Wire values come from the `TerminalReasoningEffort` dictionary (`low`/`medium`/`high`/`xhigh`). Typed as `string[]` rather than `TerminalReasoningEffort[]` so the API mapper writes wire strings directly: NSwag cannot attach an `ItemConverterType` for System.Text.Json, so an enum array would leak integer codes onto the wire. Empty when `supports_effort=false`.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("efforts")]
-        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<TerminalReasoningEffort> Efforts { get; set; } = new System.Collections.ObjectModel.Collection<TerminalReasoningEffort>();
+        public System.Collections.Generic.ICollection<string> Efforts { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// Native default effort. Present iff `supports_effort=true`; null for an effort-less vendor.

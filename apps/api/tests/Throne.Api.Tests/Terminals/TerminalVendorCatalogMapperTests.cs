@@ -28,11 +28,7 @@ public class TerminalVendorCatalogMapperTests
         claude.Default_model.Should().Be("opus");
         claude.Supports_effort.Should().BeTrue();
         claude.Default_effort.Should().Be(TerminalReasoningEffort.High);
-        claude.Efforts.Should().Equal(
-            TerminalReasoningEffort.Low,
-            TerminalReasoningEffort.Medium,
-            TerminalReasoningEffort.High,
-            TerminalReasoningEffort.Xhigh);
+        claude.Efforts.Should().Equal("low", "medium", "high", "xhigh");
         claude.Model_source.Should().Be(TerminalModelSource.Static);
     }
 
