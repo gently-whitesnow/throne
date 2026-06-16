@@ -6,6 +6,7 @@ import {
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { BindRepositoryButton } from "@/features/bind-repository";
+import { OpenIntentInVscodeButton } from "@/features/open-in-vscode";
 import { SectionHeading } from "@/shared/ui";
 
 import { RepositoryBindingRow } from "./RepositoryBindingRow";
@@ -62,7 +63,12 @@ export function RepositoryBindingsList({
         icon={<FolderGit2 size={14} strokeWidth={2} />}
         title="Репозитории"
         count={visible.length > 0 ? visible.length : undefined}
-        actions={<BindRepositoryButton intentId={intentId} />}
+        actions={
+          <>
+            <OpenIntentInVscodeButton intentId={intentId} />
+            <BindRepositoryButton intentId={intentId} />
+          </>
+        }
       />
 
       <Body

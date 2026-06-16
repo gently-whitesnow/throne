@@ -3,7 +3,6 @@ import { useState } from "react";
 
 import type { IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
-import { OpenIntentInVscodeButton } from "@/features/open-in-vscode";
 import { CleanupOnDoneToggle } from "@/features/set-intent-cleanup-on-done";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { formatRelativeTime } from "@/shared/lib";
@@ -49,93 +48,92 @@ export function IntentDetailHeader({
 
   return (
     <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-base-300 px-6 py-3.5">
-      <div className="flex min-w-0 flex-col gap-2">
-        <div className="flex min-w-0 items-start gap-2">
-          <h1 className="m-0 min-w-0 break-words text-lg font-semibold leading-snug text-base-content">
-            {title}
-          </h1>
-          <CopyButton
-            active={copiedAction === "id"}
-            ariaLabel={
-              copiedAction === "id"
-                ? "Идентификатор скопирован"
-                : "Скопировать id интента"
-            }
-            title={
-              copiedAction === "id"
-                ? "Скопировано"
-                : `Скопировать id: ${intent.id}`
-            }
-            onClick={() => {
-              copyToClipboard(intent.id, "id");
-            }}
-            icon={<Copy aria-hidden size={14} strokeWidth={2} />}
-          />
-          <CopyButton
-            active={copiedAction === "execute"}
-            ariaLabel={
-              copiedAction === "execute"
-                ? "Команда «выполни intent» скопирована"
-                : "Скопировать команду «выполни intent»"
-            }
-            title={
-              copiedAction === "execute"
-                ? "Скопировано"
-                : `Скопировать: Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`
-            }
-            onClick={() => {
-              copyToClipboard(
-                `Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`,
-                "execute"
-              );
-            }}
-            icon={<Play aria-hidden size={14} strokeWidth={2} />}
-          />
-          <CopyButton
-            active={copiedAction === "interview"}
-            ariaLabel={
-              copiedAction === "interview"
-                ? "Команда «проведи интервью» скопирована"
-                : "Скопировать команду «проведи интервью»"
-            }
-            title={
-              copiedAction === "interview"
-                ? "Скопировано"
-                : `Скопировать: Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`
-            }
-            onClick={() => {
-              copyToClipboard(
-                `Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`,
-                "interview"
-              );
-            }}
-            icon={<MessagesSquare aria-hidden size={14} strokeWidth={2} />}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-base-content/60">
-          <SetIntentStatusForm intent={intent} onSaved={onStatusSaved} />
-          <CleanupOnDoneToggle intent={intent} onSaved={onStatusSaved} />
-          <span className="tabular-nums font-semibold text-base-content/70">
-            v{intent.current_version}
-          </span>
-          <span className="text-base-content/30">·</span>
-          <time
-            dateTime={intent.updated_at}
-            title={updatedDate.toLocaleString()}
-            className="tabular-nums"
-          >
-            изменён {formatRelativeTime(updatedDate)}
-          </time>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <h1 className="m-0 min-w-0 break-words text-lg font-semibold leading-snug text-base-content">
+          {title}
+        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[11px] text-base-content/60">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <SetIntentStatusForm intent={intent} onSaved={onStatusSaved} />
+            <CleanupOnDoneToggle intent={intent} onSaved={onStatusSaved} />
+            <span className="tabular-nums font-semibold text-base-content/70">
+              v{intent.current_version}
+            </span>
+            <span className="text-base-content/30">·</span>
+            <time
+              dateTime={intent.updated_at}
+              title={updatedDate.toLocaleString()}
+              className="tabular-nums"
+            >
+              изменён {formatRelativeTime(updatedDate)}
+            </time>
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-1">
+            <CopyButton
+              active={copiedAction === "id"}
+              ariaLabel={
+                copiedAction === "id"
+                  ? "Идентификатор скопирован"
+                  : "Скопировать id интента"
+              }
+              title={
+                copiedAction === "id"
+                  ? "Скопировано"
+                  : `Скопировать id: ${intent.id}`
+              }
+              onClick={() => {
+                copyToClipboard(intent.id, "id");
+              }}
+              icon={<Copy aria-hidden size={14} strokeWidth={2} />}
+            />
+            <CopyButton
+              active={copiedAction === "execute"}
+              ariaLabel={
+                copiedAction === "execute"
+                  ? "Команда «выполни intent» скопирована"
+                  : "Скопировать команду «выполни intent»"
+              }
+              title={
+                copiedAction === "execute"
+                  ? "Скопировано"
+                  : `Скопировать: Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`
+              }
+              onClick={() => {
+                copyToClipboard(
+                  `Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`,
+                  "execute"
+                );
+              }}
+              icon={<Play aria-hidden size={14} strokeWidth={2} />}
+            />
+            <CopyButton
+              active={copiedAction === "interview"}
+              ariaLabel={
+                copiedAction === "interview"
+                  ? "Команда «проведи интервью» скопирована"
+                  : "Скопировать команду «проведи интервью»"
+              }
+              title={
+                copiedAction === "interview"
+                  ? "Скопировано"
+                  : `Скопировать: Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`
+              }
+              onClick={() => {
+                copyToClipboard(
+                  `Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`,
+                  "interview"
+                );
+              }}
+              icon={<MessagesSquare aria-hidden size={14} strokeWidth={2} />}
+            />
+          </div>
         </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-2">
         {!editing && (
-          <>
-            <OpenIntentInVscodeButton intentId={intent.id} />
-            <Button variant="primary" onClick={onEdit}>
-              Редактировать
-            </Button>
-          </>
+          <Button variant="primary" onClick={onEdit}>
+            Редактировать
+          </Button>
         )}
         <DeleteIntentButton intentId={intent.id} onDeleted={onDeleted} />
         <button
@@ -173,7 +171,7 @@ function CopyButton({
       aria-label={ariaLabel}
       title={title}
       onClick={onClick}
-      className="mt-1 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       {active ? <Check aria-hidden size={14} strokeWidth={2} /> : icon}
     </button>
