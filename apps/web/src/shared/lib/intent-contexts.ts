@@ -7,6 +7,7 @@ export const TERMINAL_RUNNING_CONTEXT = "__terminal_running";
 export const PINNED_CONTEXT = "__pinned";
 
 const ARCHIVE_PREFIX = `${ARCHIVE_CONTEXT}:`;
+const FRIDGE_PREFIX = `${FRIDGE_CONTEXT}:`;
 
 export function isPinnedContext(context: string | null): boolean {
   return context === PINNED_CONTEXT;
@@ -39,7 +40,17 @@ export function archiveContextTag(context: string | null): string | null {
 }
 
 export function isFridgeContext(context: string | null): boolean {
-  return context === FRIDGE_CONTEXT;
+  if (!context) return false;
+  return context === FRIDGE_CONTEXT || context.startsWith(FRIDGE_PREFIX);
+}
+
+export function fridgeSubContext(tagOrUntagged: string): string {
+  return `${FRIDGE_PREFIX}${tagOrUntagged}`;
+}
+
+export function fridgeContextTag(context: string | null): string | null {
+  if (!context?.startsWith(FRIDGE_PREFIX)) return null;
+  return context.slice(FRIDGE_PREFIX.length);
 }
 
 export function isInboxContext(context: string | null): boolean {

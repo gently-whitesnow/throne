@@ -12,7 +12,10 @@ public sealed class GetIntentContextsEndpoint(GetIntentContextsHandler handler, 
     {
         var counts = await handler.HandleAsync(cancellationToken);
 
-        var tagIds = counts.Tags.Concat(counts.ArchiveTags).Select(t => new TagId(t.TagId));
+        var tagIds = counts.Tags
+            .Concat(counts.ArchiveTags)
+            .Concat(counts.FridgeTags)
+            .Select(t => new TagId(t.TagId));
         var tagMap = await helpers.BuildTagMapAsync(tagIds, cancellationToken);
 
         return new OkObjectResult(new IntentContextCountsDto
@@ -24,9 +27,11 @@ public sealed class GetIntentContextsEndpoint(GetIntentContextsHandler handler, 
             Pinned = counts.Pinned,
             Untagged = counts.Untagged,
             Archive_untagged = counts.ArchiveUntagged,
+            Fridge_untagged = counts.FridgeUntagged,
             Terminal_running = counts.TerminalRunning,
             Tags = ToTagRows(counts.Tags, tagMap),
             Archive_tags = ToTagRows(counts.ArchiveTags, tagMap),
+            Fridge_tags = ToTagRows(counts.FridgeTags, tagMap),
         });
     }
 

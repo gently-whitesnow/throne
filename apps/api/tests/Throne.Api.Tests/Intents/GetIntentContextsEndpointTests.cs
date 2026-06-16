@@ -66,8 +66,10 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
         counts.Pinned.Should().Be(0);
         counts.Untagged.Should().Be(0);
         counts.ArchiveUntagged.Should().Be(0);
+        counts.FridgeUntagged.Should().Be(0);
         counts.Tags.Should().BeEmpty();
         counts.ArchiveTags.Should().BeEmpty();
+        counts.FridgeTags.Should().BeEmpty();
     }
 
     [Fact(DisplayName = "GET /api/v1/intents/contexts считает бакеты и совпадает с LIST по фильтрам контекста")]
@@ -83,6 +85,8 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
         await SetStatusAsync(help.Id, "awaiting_operator");
         var fridge = await CreateAsync("f1", []);
         await SetStatusAsync(fridge.Id, "fridge");
+        var fridgeTagged = await CreateAsync("f2", ["delta"]);
+        await SetStatusAsync(fridgeTagged.Id, "fridge");
 
         var done = await CreateAsync("d1", ["gamma"]);
         await SetStatusAsync(done.Id, "done");
@@ -96,16 +100,19 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 
         counts.InboxReview.Should().Be(1);
         counts.InboxHelp.Should().Be(1);
-        counts.Fridge.Should().Be(1);
+        counts.Fridge.Should().Be(2); // f1 + f2
         counts.Archive.Should().Be(2);
         counts.Pinned.Should().Be(1);
         counts.Untagged.Should().Be(3); // a3 + r1 + h1 (active, no tags)
         counts.ArchiveUntagged.Should().Be(1); // x1
+        counts.FridgeUntagged.Should().Be(1); // f1
         counts.Tags.Should().BeEquivalentTo(
             new[] { new TagCountView { Tag = "alpha", Count = 2 }, new TagCountView { Tag = "beta", Count = 1 } },
             o => o.WithStrictOrdering());
         counts.ArchiveTags.Should().BeEquivalentTo(
             new[] { new TagCountView { Tag = "gamma", Count = 1 } });
+        counts.FridgeTags.Should().BeEquivalentTo(
+            new[] { new TagCountView { Tag = "delta", Count = 1 } });
 
         // Definition of done: every bucket equals what LIST returns with the matching context filter.
         (await ListCountAsync("status=ready_for_review")).Should().Be(counts.InboxReview);
@@ -118,6 +125,8 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
         (await ListCountAsync($"{ActiveStatusQuery}&tag=beta")).Should().Be(1);
         (await ListCountAsync("status=done&status=reject&untagged=true")).Should().Be(counts.ArchiveUntagged);
         (await ListCountAsync("status=done&status=reject&tag=gamma")).Should().Be(1);
+        (await ListCountAsync("status=fridge&untagged=true")).Should().Be(counts.FridgeUntagged);
+        (await ListCountAsync("status=fridge&tag=delta")).Should().Be(1);
     }
 
     private async Task<IntentDetailView> CreateAsync(string text, string[] tagNames)
@@ -204,11 +213,17 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
         [JsonPropertyName("archive_untagged")]
         public int ArchiveUntagged { get; init; }
 
+        [JsonPropertyName("fridge_untagged")]
+        public int FridgeUntagged { get; init; }
+
         [JsonPropertyName("tags")]
         public IReadOnlyList<TagCountView> Tags { get; init; } = [];
 
         [JsonPropertyName("archive_tags")]
         public IReadOnlyList<TagCountView> ArchiveTags { get; init; } = [];
+
+        [JsonPropertyName("fridge_tags")]
+        public IReadOnlyList<TagCountView> FridgeTags { get; init; } = [];
     }
 
     private sealed class TagCountView
