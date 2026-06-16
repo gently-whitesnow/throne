@@ -66,5 +66,6 @@ public sealed class McpHandshakeEndpointTests(MongoFixture mongo) : IAsyncLifeti
         mcp.ServerInstructions.Should().Contain("When the user asks to read/");
         mcp.ServerInstructions.Should().NotContain("Before any other action");
         mcp.ServerInstructions.Should().NotContain("MUST first call get_prompt_bundle");
+        mcp.ServerInstructions.Should().NotContain("pick the mode by meaning");
     }
 }
