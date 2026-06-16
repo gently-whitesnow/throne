@@ -91,7 +91,7 @@ internal sealed class ServiceFixture
             Bindings, unitOfWork, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
         var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
         var autoBind = new PullRequestAutoBindWorkflow(
-            Bindings, Providers, BranchReader, persistence,
+            Bindings, Providers, BranchReader, persistence, workspace,
             NullLogger<PullRequestAutoBindWorkflow>.Instance);
         Service = new RepositoryBindingService(
             resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind,
