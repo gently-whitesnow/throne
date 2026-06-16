@@ -49,6 +49,24 @@ public static class TerminalHookEvents
         new(Stop),
         new(UserPromptSubmit),
     ];
+
+    /// <summary>
+    /// OpenCode plugin-event mapping verified against opencode-ai 1.17.7 docs/source: local
+    /// project plugins are auto-loaded from <c>.opencode/plugins</c>, <c>session.idle</c> is the
+    /// turn-yield signal, <c>tui.prompt.append</c> fires when the operator submits new TUI input,
+    /// and the permission/tool events cover approval park/resume without Claude/Codex matchers.
+    /// </summary>
+    public const string OpenCodeBindingEvent = "event";
+    public const string OpenCodeBindingTypedHook = "typed_hook";
+
+    public static readonly IReadOnlyList<OpenCodeHookBinding> OpenCodeBindings =
+    [
+        new("session.idle", Stop, OpenCodeBindingEvent),
+        new("tui.prompt.append", UserPromptSubmit, OpenCodeBindingEvent),
+        new("permission.asked", Notification, OpenCodeBindingEvent),
+        new("permission.replied", PostToolUse, OpenCodeBindingEvent),
+        new("tool.execute.after", PostToolUse, OpenCodeBindingTypedHook),
+    ];
 }
 
 /// <summary>
@@ -56,3 +74,8 @@ public static class TerminalHookEvents
 /// instances of the event fire the callback (e.g. Claude's <c>notification_type</c> matcher).
 /// </summary>
 public sealed record TerminalHookBinding(string Event, string? Matcher = null);
+
+/// <summary>
+/// Maps one OpenCode plugin event name to the existing Throne terminal-hook event wire name.
+/// </summary>
+public sealed record OpenCodeHookBinding(string OpenCodeHook, string ThroneEvent, string BindingType);

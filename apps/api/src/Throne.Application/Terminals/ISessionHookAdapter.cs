@@ -10,8 +10,8 @@ namespace Throne.Application.Terminals;
 /// <list type="bullet">
 ///   <item>The shared hook <em>vector</em> — agent runtime events (<c>Stop</c> +
 ///   <c>UserPromptSubmit</c>) bound to the local
-///   <c>POST /api/v1/intents/{id}/terminal/hooks/{event}</c> callback. Claude takes a settings file
-///   via <c>--settings</c>, Codex takes inline <c>-c</c> overrides.</item>
+///   <c>POST /api/v1/intents/{id}/terminal/hooks/{event}</c> callback. Claude takes a settings file,
+///   Codex takes inline <c>-c</c> overrides, and OpenCode loads a project-local plugin.</item>
 ///   <item>The assembled rules block (ADR-0034 upfront context). It is multi-KB, so it is written
 ///   to a per-session file and referenced by a small flag — Claude
 ///   <c>--append-system-prompt-file</c>, Codex a generated <c>-p</c> profile carrying
