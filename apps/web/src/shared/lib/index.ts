@@ -15,6 +15,8 @@ export {
   PINNED_CONTEXT,
   archiveContextTag,
   archiveSubContext,
+  fridgeContextTag,
+  fridgeSubContext,
   isArchiveContext,
   isFridgeContext,
   isInboxContext,

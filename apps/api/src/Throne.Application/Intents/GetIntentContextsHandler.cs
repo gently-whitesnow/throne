@@ -20,8 +20,10 @@ public sealed record IntentContextCounts(
     int Pinned,
     int Untagged,
     int ArchiveUntagged,
+    int FridgeUntagged,
     IReadOnlyList<IntentTagCount> Tags,
     IReadOnlyList<IntentTagCount> ArchiveTags,
+    IReadOnlyList<IntentTagCount> FridgeTags,
     int TerminalRunning = 0);
 
 public sealed class GetIntentContextsHandler(IIntentRepository repository, ITmuxSessionManager tmux)

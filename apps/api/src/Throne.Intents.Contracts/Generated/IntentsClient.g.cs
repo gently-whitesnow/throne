@@ -570,6 +570,13 @@ namespace Throne.Intents.Contracts.Generated
         public int Archive_untagged { get; set; }
 
         /// <summary>
+        /// Fridge intents carrying no tags.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fridge_untagged")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Fridge_untagged { get; set; }
+
+        /// <summary>
         /// Intents with a live embedded-terminal tmux session right now (cross-context, independent of tag/status). Read live from tmux on every request — there is no DB mirror, so the counter self-heals if a realtime hint is lost.
         /// <br/>
         /// </summary>
@@ -591,6 +598,13 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("archive_tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IntentContextTagCountDto> Archive_tags { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextTagCountDto>();
+
+        /// <summary>
+        /// Per-tag counts across fridge intents, sorted by count desc then tag name asc.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fridge_tags")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentContextTagCountDto> Fridge_tags { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextTagCountDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
