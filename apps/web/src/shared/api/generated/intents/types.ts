@@ -37,7 +37,7 @@ export interface paths {
         };
         /**
          * Aggregate intent counts per context bucket (rail sidebar).
-         * @description Single-shot aggregate for the context rail: counts per inbox status, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active and archive scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+         * @description Single-shot aggregate for the context rail: counts per inbox status, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
          */
         get: operations["getIntentContexts"];
         put?: never;
@@ -519,6 +519,11 @@ export interface components {
             archive_untagged: number;
             /**
              * Format: int32
+             * @description Fridge intents carrying no tags.
+             */
+            fridge_untagged: number;
+            /**
+             * Format: int32
              * @description Intents with a live embedded-terminal tmux session right now (cross-context, independent of tag/status). Read live from tmux on every request — there is no DB mirror, so the counter self-heals if a realtime hint is lost.
              */
             terminal_running: number;
@@ -526,6 +531,8 @@ export interface components {
             tags: components["schemas"]["IntentContextTagCountDto"][];
             /** @description Per-tag counts across archive intents, sorted by count desc then tag name asc. */
             archive_tags: components["schemas"]["IntentContextTagCountDto"][];
+            /** @description Per-tag counts across fridge intents, sorted by count desc then tag name asc. */
+            fridge_tags: components["schemas"]["IntentContextTagCountDto"][];
         };
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
