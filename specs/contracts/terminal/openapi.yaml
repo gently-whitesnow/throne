@@ -263,7 +263,16 @@ paths:
             $ref: '#/components/schemas/TerminalRunMode'
       responses:
         '200':
-          description: Hook callback accepted.
+          description: >
+            Hook callback accepted. Body is empty for non-context-injecting events; for
+            `UserPromptSubmit` it may carry a `hookSpecificOutput` block conforming to
+            Claude Code's hook output protocol so the embedded agent learns about the
+            intent's current attachment inventory in the same turn (ADR-0034 parity with
+            the standalone `get_intent` path).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalHookCallbackResponse'
   /api/v1/intents/{intent_id}/terminal/preview:
     post:
       operationId: previewIntentTerminal
@@ -387,6 +396,42 @@ components:
           items:
             $ref: '#/components/schemas/TerminalVendorMetadataDto'
           description: Every registered vendor, in catalog order.
+    TerminalHookCallbackResponse:
+      type: object
+      description: >
+        Body Throne returns from the embedded-terminal hook callback. Field names match
+        Claude Code's hook output protocol verbatim (camelCase, no snake_case mapping) so
+        the JSON can be piped to the hook's stdout untouched by curl.
+      properties:
+        hookSpecificOutput:
+          nullable: true
+          description: >
+            Present only for `UserPromptSubmit` when Throne has additional context to inject
+            for the agent. Other events return an empty body.
+          allOf:
+            - $ref: '#/components/schemas/TerminalUserPromptSubmitHookOutput'
+    TerminalUserPromptSubmitHookOutput:
+      type: object
+      required:
+        - hookEventName
+        - additionalContext
+      description: >
+        Claude Code's `hookSpecificOutput` payload for `UserPromptSubmit`: the
+        `additionalContext` string is appended to the operator's prompt as a system
+        reminder.
+      properties:
+        hookEventName:
+          type: string
+          enum:
+            - UserPromptSubmit
+          description: Fixed `UserPromptSubmit` discriminator demanded by the hook protocol.
+        additionalContext:
+          type: string
+          description: >
+            Free-form text Claude injects into the prompt context. Throne uses it to
+            mirror the standalone `[intent attachments]` block (one line per attachment,
+            `id`/`kind`/`filename`) so the embedded agent can call
+            `read_intent_attachment_image` in the same turn.
     TerminalRunMode:
       type: string
       enum:

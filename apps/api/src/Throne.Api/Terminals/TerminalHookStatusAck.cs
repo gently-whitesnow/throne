@@ -6,10 +6,11 @@ namespace Throne.Api.Terminals;
 
 public sealed class TerminalHookStatusAck(
     TerminalHookStatusHandler hookStatus,
+    UserPromptSubmitHookContextHandler userPromptContext,
     ILogger<TerminalHookStatusAck> logger
 )
 {
-    public async Task HandleAsync(
+    public async Task<TerminalHookCallbackResponse> HandleAsync(
         string intentId,
         Event @event,
         TerminalRunMode? mode,
@@ -25,6 +26,35 @@ public sealed class TerminalHookStatusAck(
         {
             TerminalEndpointLog.HookStatusFailed(logger, intentId, @event, ex);
         }
+
+        return new TerminalHookCallbackResponse
+        {
+            HookSpecificOutput = await BuildHookSpecificOutputAsync(intentId, @event, ct),
+        };
+    }
+
+    private async Task<TerminalUserPromptSubmitHookOutput?> BuildHookSpecificOutputAsync(
+        string intentId,
+        Event @event,
+        CancellationToken ct
+    )
+    {
+        if (@event is not Event.UserPromptSubmit)
+        {
+            return null;
+        }
+
+        var context = await userPromptContext.BuildAsync(intentId, ct);
+        if (string.IsNullOrEmpty(context))
+        {
+            return null;
+        }
+
+        return new TerminalUserPromptSubmitHookOutput
+        {
+            HookEventName = TerminalUserPromptSubmitHookOutputHookEventName.UserPromptSubmit,
+            AdditionalContext = context,
+        };
     }
 
     private static string ToHookEvent(Event @event) =>

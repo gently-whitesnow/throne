@@ -58,15 +58,16 @@ public sealed class TerminalController(
         return Ok(TerminalRunResponseMapper.ToDto(result));
     }
 
-    public override async Task<IActionResult> ReceiveIntentTerminalHook(
+    public override async Task<ActionResult<TerminalHookCallbackResponse>> ReceiveIntentTerminalHook(
         string intent_id,
         Event @event,
         TerminalRunMode? mode
     )
     {
         TerminalEndpointLog.HookReceived(logger, intent_id, @event);
-        await hookStatusAck.HandleAsync(intent_id, @event, mode, HttpContext.RequestAborted);
-        return Ok();
+        var response = await hookStatusAck.HandleAsync(
+            intent_id, @event, mode, HttpContext.RequestAborted);
+        return Ok(response);
     }
 
     private async Task<ActionResult<RunIntentTerminalResponse>> ExecuteAsync(

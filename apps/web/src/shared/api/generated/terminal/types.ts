@@ -191,6 +191,21 @@ export interface components {
             /** @description Every registered vendor, in catalog order. */
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
         };
+        /** @description Body Throne returns from the embedded-terminal hook callback. Field names match Claude Code's hook output protocol verbatim (camelCase, no snake_case mapping) so the JSON can be piped to the hook's stdout untouched by curl. */
+        TerminalHookCallbackResponse: {
+            /** @description Present only for `UserPromptSubmit` when Throne has additional context to inject for the agent. Other events return an empty body. */
+            hookSpecificOutput?: components["schemas"]["TerminalUserPromptSubmitHookOutput"] | null;
+        };
+        /** @description Claude Code's `hookSpecificOutput` payload for `UserPromptSubmit`: the `additionalContext` string is appended to the operator's prompt as a system reminder. */
+        TerminalUserPromptSubmitHookOutput: {
+            /**
+             * @description Fixed `UserPromptSubmit` discriminator demanded by the hook protocol.
+             * @enum {string}
+             */
+            hookEventName: "UserPromptSubmit";
+            /** @description Free-form text Claude injects into the prompt context. Throne uses it to mirror the standalone `[intent attachments]` block (one line per attachment, `id`/`kind`/`filename`) so the embedded agent can call `read_intent_attachment_image` in the same turn. */
+            additionalContext: string;
+        };
         /**
          * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
          * @enum {string}
@@ -542,12 +557,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Hook callback accepted. */
+            /** @description Hook callback accepted. Body is empty for non-context-injecting events; for `UserPromptSubmit` it may carry a `hookSpecificOutput` block conforming to Claude Code's hook output protocol so the embedded agent learns about the intent's current attachment inventory in the same turn (ADR-0034 parity with the standalone `get_intent` path). */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TerminalHookCallbackResponse"];
+                };
             };
         };
     };

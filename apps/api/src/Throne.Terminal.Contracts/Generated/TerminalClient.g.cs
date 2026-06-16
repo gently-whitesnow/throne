@@ -144,6 +144,67 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
+    /// Body Throne returns from the embedded-terminal hook callback. Field names match Claude Code's hook output protocol verbatim (camelCase, no snake_case mapping) so the JSON can be piped to the hook's stdout untouched by curl.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalHookCallbackResponse
+    {
+
+        /// <summary>
+        /// Present only for `UserPromptSubmit` when Throne has additional context to inject for the agent. Other events return an empty body.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hookSpecificOutput")]
+        public TerminalUserPromptSubmitHookOutput HookSpecificOutput { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Claude Code's `hookSpecificOutput` payload for `UserPromptSubmit`: the `additionalContext` string is appended to the operator's prompt as a system reminder.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalUserPromptSubmitHookOutput
+    {
+
+        /// <summary>
+        /// Fixed `UserPromptSubmit` discriminator demanded by the hook protocol.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hookEventName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalUserPromptSubmitHookOutputHookEventName>))]
+        public TerminalUserPromptSubmitHookOutputHookEventName HookEventName { get; set; }
+
+        /// <summary>
+        /// Free-form text Claude injects into the prompt context. Throne uses it to mirror the standalone `[intent attachments]` block (one line per attachment, `id`/`kind`/`filename`) so the embedded agent can call `read_intent_attachment_image` in the same turn.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("additionalContext")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string AdditionalContext { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
     /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
     /// <br/>
     /// </summary>
@@ -659,6 +720,16 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"PostToolUse")]
         [System.Runtime.Serialization.EnumMember(Value = @"PostToolUse")]
         PostToolUse = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TerminalUserPromptSubmitHookOutputHookEventName
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"UserPromptSubmit")]
+        [System.Runtime.Serialization.EnumMember(Value = @"UserPromptSubmit")]
+        UserPromptSubmit = 0,
 
     }
 
