@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Vendor metadata catalog for the embedded-terminal launch surface.
-         * @description Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. Static read with no side effects and no capability gate — the dropdowns are populated even before the `terminal` capability is on. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); dynamic `/v1/models` discovery is out of scope.
+         * @description Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. Static read with no side effects and no capability gate — the dropdowns are populated even before the `terminal` capability is on. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); `opencode` reports `model_source=local` and its `models` list is materialised on the fly from the operator's local OpenAI-compatible endpoint (`Throne:LocalModel:BaseUrl`, probed via `GET {BaseUrl}/v1/models`) — empty until the endpoint is configured and reachable, in which case the launch surface still shows the vendor but disables the model dropdown.
          */
         get: operations["listTerminalVendors"];
         put?: never;
@@ -165,20 +165,20 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Provenance of a vendor's curated model list. `static` — the list is hardcoded in the backend descriptor and changes only by editing the catalog (current state for both `claude` and `codex`). A future dynamic-discovery source would add another value here; that discovery is out of scope for this slice.
+         * @description Provenance of a vendor's curated model list. `static` — the list is hardcoded in the backend descriptor and changes only by editing the catalog (`claude`, `codex`). `local` — the list comes from the operator's local OpenAI-compatible endpoint (`Throne:LocalModel:BaseUrl`, probed via `GET {BaseUrl}/v1/models`); used by `opencode`. `models` may be empty when the endpoint is unconfigured/unreachable.
          * @enum {string}
          */
-        TerminalModelSource: "static";
+        TerminalModelSource: "static" | "local";
         TerminalVendorMetadataDto: {
             vendor: components["schemas"]["TerminalAgentVendor"];
             /** @description Human-facing vendor label for the launch/settings dropdown. */
             label: string;
             /** @description Whether the vendor exposes a reasoning-effort axis. False → the launch surface hides the effort control and no effort reaches the spawn argv. */
             supports_effort: boolean;
-            /** @description Curated model whitelist, native-default-first. */
+            /** @description Model whitelist, native-default-first. Always at least one entry for `model_source=static`; may be empty for `model_source=local` when the local endpoint is unconfigured or unreachable — the launch surface then disables the model picker for that vendor. */
             models: string[];
-            /** @description Native default model = first entry of `models`. */
-            default_model: string;
+            /** @description Native default model = first entry of `models`. Null when `models` is empty (only possible for `model_source=local`). */
+            default_model?: string | null;
             /** @description Reasoning-effort tiers selectable for this vendor. Wire values come from the `TerminalReasoningEffort` dictionary (`low`/`medium`/`high`/`xhigh`). Typed as `string[]` rather than `TerminalReasoningEffort[]` so the API mapper writes wire strings directly: NSwag cannot attach an `ItemConverterType` for System.Text.Json, so an enum array would leak integer codes onto the wire. Empty when `supports_effort=false`. */
             efforts: string[];
             /** @description Native default effort. Present iff `supports_effort=true`; null for an effort-less vendor. */
@@ -203,10 +203,10 @@ export interface components {
          */
         TerminalSessionState: "spawning" | "running" | "blocked" | "exited";
         /**
-         * @description Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…`). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
+         * @description Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…` vs `opencode --model throne-local/…`, no effort axis). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
          * @enum {string}
          */
-        TerminalAgentVendor: "claude" | "codex";
+        TerminalAgentVendor: "claude" | "codex" | "opencode";
         /**
          * @description Single reasoning-effort axis shared across vendors (the vendor effort dictionaries overlap on low/medium/high/xhigh). The claude-only `max` tier is intentionally excluded.
          * @enum {string}
@@ -216,7 +216,7 @@ export interface components {
             mode: components["schemas"]["TerminalRunMode"];
             /** @description Omitted → server falls back to `default_terminal_vendor` from settings. */
             vendor?: components["schemas"]["TerminalAgentVendor"] | null;
-            /** @description Model id from the vendor's curated whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400. */
+            /** @description Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400. */
             model?: string | null;
             /** @description Omitted → the chosen vendor's native default effort. */
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;

@@ -139,6 +139,7 @@ components:
       enum:
         - claude
         - codex
+        - opencode
       description: >
         Default agent CLI for new embedded-terminal sessions. Mirror of
         `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag

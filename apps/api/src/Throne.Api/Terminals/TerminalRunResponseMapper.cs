@@ -48,6 +48,7 @@ internal static class TerminalRunResponseMapper
     {
         TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,
         TerminalAgentVendor.Codex => TerminalAgentCatalog.VendorCodex,
+        TerminalAgentVendor.Opencode => TerminalAgentCatalog.VendorOpencode,
         _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
     };
 
