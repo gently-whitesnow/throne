@@ -23,7 +23,7 @@ internal static class TerminalVendorCatalogMapper
         Supports_effort = descriptor.SupportsEffort,
         Models = descriptor.Models.ToArray(),
         Default_model = descriptor.DefaultModel,
-        Efforts = descriptor.Efforts.Select(ParseEffort).ToArray(),
+        Efforts = descriptor.Efforts.ToArray(),
         Default_effort = descriptor.DefaultEffort is { } effort ? ParseEffort(effort) : null,
         Model_source = ParseModelSource(descriptor.ModelSource),
     };

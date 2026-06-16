@@ -8,6 +8,8 @@ import {
   useIntentRepositories
 } from "@/entities/repository-binding";
 
+import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
+
 import { useLaunchAxis } from "../model/use-launch-axis";
 import { useTerminalSession } from "../model/use-terminal-session";
 import { defaultRunModeForStatus } from "../model/types";
@@ -136,7 +138,10 @@ export function AgentTerminalPanel({
         models={axis.selectedMeta?.models ?? []}
         model={axis.model ?? ""}
         onModelChange={axis.setModel}
-        efforts={axis.selectedMeta?.efforts ?? []}
+        efforts={
+          (axis.selectedMeta?.efforts ??
+            []) as readonly TerminalReasoningEffort[]
+        }
         effort={axis.effort ?? ""}
         onEffortChange={axis.setEffort}
         supportsEffort={axis.selectedMeta?.supports_effort ?? false}
