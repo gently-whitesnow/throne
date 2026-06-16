@@ -7,7 +7,9 @@ import {
   FRIDGE_CONTEXT,
   UNTAGGED_CONTEXT,
   archiveSubContext,
-  isArchiveContext
+  fridgeSubContext,
+  isArchiveContext,
+  isFridgeContext
 } from "@/shared/lib";
 
 import { RailRow } from "./RailRow";
@@ -17,6 +19,8 @@ interface ContextListProps {
   tagRows: ContextRow[];
   untaggedCount: number;
   fridgeCount: number;
+  fridgeTagRows: ContextRow[];
+  fridgeUntaggedCount: number;
   archiveCount: number;
   archiveTagRows: ContextRow[];
   archiveUntaggedCount: number;
@@ -33,6 +37,8 @@ export function ContextList({
   tagRows,
   untaggedCount,
   fridgeCount,
+  fridgeTagRows,
+  fridgeUntaggedCount,
   archiveCount,
   archiveTagRows,
   archiveUntaggedCount,
@@ -95,6 +101,45 @@ export function ContextList({
           )}
         />
       </li>
+      {isFridgeContext(currentContext) && fridgeCount > 0
+        ? [
+            ...fridgeTagRows.map((row) => (
+              <li key={`fridge-${row.key}`}>
+                <RailRow
+                  label={`#${row.label}`}
+                  icon={<Hash aria-hidden size={14} strokeWidth={2} />}
+                  count={row.count}
+                  active={currentContext === fridgeSubContext(row.key)}
+                  onSelect={() => {
+                    onSelect(fridgeSubContext(row.key));
+                  }}
+                  muted
+                  nested
+                  action={renderCreate(
+                    [row.key],
+                    FRIDGE_STATUS,
+                    `Создать intent в холодильнике с тегом #${row.label}`
+                  )}
+                />
+              </li>
+            )),
+            fridgeUntaggedCount > 0 ? (
+              <li key="fridge-untagged">
+                <RailRow
+                  label="Без тегов"
+                  icon={<Inbox aria-hidden size={14} strokeWidth={2} />}
+                  count={fridgeUntaggedCount}
+                  active={currentContext === fridgeSubContext(UNTAGGED_CONTEXT)}
+                  onSelect={() => {
+                    onSelect(fridgeSubContext(UNTAGGED_CONTEXT));
+                  }}
+                  muted
+                  nested
+                />
+              </li>
+            ) : null
+          ]
+        : null}
       <li>
         <RailRow
           label="Архив"

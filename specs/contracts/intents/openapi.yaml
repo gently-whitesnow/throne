@@ -117,8 +117,8 @@ paths:
       summary: Aggregate intent counts per context bucket (rail sidebar).
       description: >
         Single-shot aggregate for the context rail: counts per inbox status, fridge,
-        archive, pinned and untagged buckets plus per-tag breakdowns for the active and
-        archive scopes. Computed server-side (Mongo aggregation) so the rail never pulls
+        archive, pinned and untagged buckets plus per-tag breakdowns for the active,
+        archive and fridge scopes. Computed server-side (Mongo aggregation) so the rail never pulls
         the full intent list just to render counters. Bucket semantics mirror the
         `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
       responses:
@@ -1098,9 +1098,11 @@ components:
         - pinned
         - untagged
         - archive_untagged
+        - fridge_untagged
         - terminal_running
         - tags
         - archive_tags
+        - fridge_tags
       properties:
         inbox_review:
           type: integer
@@ -1137,6 +1139,11 @@ components:
           format: int32
           minimum: 0
           description: Archive intents carrying no tags.
+        fridge_untagged:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Fridge intents carrying no tags.
         terminal_running:
           type: integer
           format: int32
@@ -1157,6 +1164,11 @@ components:
           items:
             $ref: '#/components/schemas/IntentContextTagCountDto'
           description: Per-tag counts across archive intents, sorted by count desc then tag name asc.
+        fridge_tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentContextTagCountDto'
+          description: Per-tag counts across fridge intents, sorted by count desc then tag name asc.
     IntentDetailDto:
       type: object
       required:

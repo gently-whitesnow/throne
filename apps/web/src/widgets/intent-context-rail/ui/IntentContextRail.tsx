@@ -75,6 +75,8 @@ export function IntentContextRail() {
     archiveTagRows,
     archiveUntaggedCount,
     fridgeCount,
+    fridgeTagRows,
+    fridgeUntaggedCount,
     inboxReviewCount,
     inboxHelpCount,
     terminalRunningCount
@@ -166,6 +168,8 @@ export function IntentContextRail() {
             tagRows={tagRows}
             untaggedCount={untaggedCount}
             fridgeCount={fridgeCount}
+            fridgeTagRows={fridgeTagRows}
+            fridgeUntaggedCount={fridgeUntaggedCount}
             archiveCount={archiveCount}
             archiveTagRows={archiveTagRows}
             archiveUntaggedCount={archiveUntaggedCount}

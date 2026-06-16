@@ -32,6 +32,11 @@ internal sealed class MongoIntentContextReader(
         IntentStatusNames.Done, IntentStatusNames.Reject,
     ];
 
+    private static readonly string[] FridgeStatuses =
+    [
+        IntentStatusNames.Fridge,
+    ];
+
     public async Task<IntentContextCounts> GetContextCountsAsync(
         IReadOnlyList<string> runningTerminalIds, CancellationToken ct)
     {
@@ -51,8 +56,10 @@ internal sealed class MongoIntentContextReader(
                 },
                 ["activeUntagged"] = UntaggedFacet(ActiveStatuses),
                 ["archiveUntagged"] = UntaggedFacet(ArchiveStatuses),
+                ["fridgeUntagged"] = UntaggedFacet(FridgeStatuses),
                 ["activeTags"] = TagFacet(ActiveStatuses),
                 ["archiveTags"] = TagFacet(ArchiveStatuses),
+                ["fridgeTags"] = TagFacet(FridgeStatuses),
             }),
         };
 
@@ -66,7 +73,7 @@ internal sealed class MongoIntentContextReader(
 
         if (facet is null)
         {
-            return new IntentContextCounts(0, 0, 0, 0, pinned, 0, 0, [], [], terminalRunning);
+            return new IntentContextCounts(0, 0, 0, 0, pinned, 0, 0, 0, [], [], [], terminalRunning);
         }
 
         var byStatus = ReadStatusCounts(facet["byStatus"].AsBsonArray);
@@ -79,8 +86,10 @@ internal sealed class MongoIntentContextReader(
             Pinned: pinned,
             Untagged: ReadCount(facet["activeUntagged"].AsBsonArray),
             ArchiveUntagged: ReadCount(facet["archiveUntagged"].AsBsonArray),
+            FridgeUntagged: ReadCount(facet["fridgeUntagged"].AsBsonArray),
             Tags: ReadTagCounts(facet["activeTags"].AsBsonArray),
             ArchiveTags: ReadTagCounts(facet["archiveTags"].AsBsonArray),
+            FridgeTags: ReadTagCounts(facet["fridgeTags"].AsBsonArray),
             TerminalRunning: terminalRunning);
     }
 

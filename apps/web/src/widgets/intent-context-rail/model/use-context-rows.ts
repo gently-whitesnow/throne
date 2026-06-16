@@ -31,6 +31,8 @@ export function useContextRows(data: ContextsData) {
       archiveTagRows: counts ? toRows(counts.archive_tags) : [],
       archiveUntaggedCount: counts?.archive_untagged ?? 0,
       fridgeCount: counts?.fridge ?? 0,
+      fridgeTagRows: counts ? toRows(counts.fridge_tags) : [],
+      fridgeUntaggedCount: counts?.fridge_untagged ?? 0,
       inboxReviewCount: counts?.inbox_review ?? 0,
       inboxHelpCount: counts?.inbox_help ?? 0,
       terminalRunningCount: counts?.terminal_running ?? 0
