@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
@@ -15,11 +16,12 @@ namespace Throne.Application.Repositories;
 /// (<see cref="PullRequestSyncTickWorkflow"/>) but as a separate pass over a separate query
 /// (<see cref="IIntentRepositoryBindingRepository.FindReadyWithoutPullRequestAsync"/>).
 /// </summary>
-public sealed class PullRequestAutoBindWorkflow(
+public sealed partial class PullRequestAutoBindWorkflow(
     IIntentRepositoryBindingRepository bindings,
     IGitProviderRegistry providers,
     ILocalGitBranchReader branchReader,
-    RepositoryBindingPersistence persistence)
+    RepositoryBindingPersistence persistence,
+    ILogger<PullRequestAutoBindWorkflow> logger)
 {
     // Open-PR page size for the head match. gh's default is 30; a generous cap keeps the
     // agent's just-opened PR in view even on a repo with many open PRs.
@@ -65,8 +67,9 @@ public sealed class PullRequestAutoBindWorkflow(
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            LogBindFailed(logger, binding.Id.Value, ex);
             report.Failed++;
         }
     }
@@ -77,6 +80,7 @@ public sealed class PullRequestAutoBindWorkflow(
         var provider = providers.GetByName(binding.Coordinate.Provider);
         if (provider is null)
         {
+            LogProviderMissing(logger, binding.Id.Value, binding.Coordinate.Provider);
             report.Failed++;
             return;
         }
@@ -84,6 +88,7 @@ public sealed class PullRequestAutoBindWorkflow(
         var branch = await branchReader.ReadCurrentBranchAsync(binding.WorkspacePath, ct);
         if (branch is null)
         {
+            LogNoBranch(logger, binding.Id.Value, binding.WorkspacePath);
             report.Skipped++;
             return;
         }
@@ -91,15 +96,47 @@ public sealed class PullRequestAutoBindWorkflow(
         var prs = await provider.ListPullRequestsAsync(
             binding.Coordinate.Owner, binding.Coordinate.Repo, query: branch, OpenPrScanLimit, ct);
         var matches = prs.Where(p => string.Equals(p.HeadRef, branch, StringComparison.Ordinal)).ToList();
-        if (matches.Count != 1)
+        if (matches.Count == 0)
         {
+            LogNoMatch(logger, binding.Id.Value, branch, prs.Count);
+            report.Skipped++;
+            return;
+        }
+        if (matches.Count > 1)
+        {
+            LogMultipleMatches(logger, binding.Id.Value, branch, matches.Count);
             report.Skipped++;
             return;
         }
 
         await persistence.AttachPullRequestAsync(binding, matches[0].Number, ct);
+        LogAttached(logger, binding.Id.Value, matches[0].Number, branch);
         report.Bound++;
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
+        Message = "PullRequestAutoBindWorkflow: binding {BindingId} skipped — git provider {Provider} not registered.")]
+    private static partial void LogProviderMissing(ILogger logger, string bindingId, string provider);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "PullRequestAutoBindWorkflow: binding {BindingId} skipped — could not read current branch of local clone at {WorkspacePath}.")]
+    private static partial void LogNoBranch(ILogger logger, string bindingId, string workspacePath);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information,
+        Message = "PullRequestAutoBindWorkflow: binding {BindingId} skipped — no open PR with head=={Branch} (scanned={Scanned}).")]
+    private static partial void LogNoMatch(ILogger logger, string bindingId, string branch, int scanned);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information,
+        Message = "PullRequestAutoBindWorkflow: binding {BindingId} skipped — {MatchCount} open PRs share head=={Branch}, manual bind required.")]
+    private static partial void LogMultipleMatches(ILogger logger, string bindingId, string branch, int matchCount);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Information,
+        Message = "PullRequestAutoBindWorkflow: binding {BindingId} attached PR #{Pr} via head=={Branch}.")]
+    private static partial void LogAttached(ILogger logger, string bindingId, int pr, string branch);
+
+    [LoggerMessage(EventId = 6, Level = LogLevel.Error,
+        Message = "PullRequestAutoBindWorkflow: binding {BindingId} bind attempt threw.")]
+    private static partial void LogBindFailed(ILogger logger, string bindingId, Exception exception);
 }
 
 /// <summary>Per-tick counters for the auto-bind pass. Consumed by the host's structured log.</summary>
