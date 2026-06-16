@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Git;
 using Throne.Application.Ports;
@@ -96,7 +97,9 @@ public class PullRequestAutoBindWorkflowTests
                 Substitute.For<IWorkspaceRootProvider>(),
                 Substitute.For<IWorkspaceDirectoryRemover>(),
                 Substitute.For<IWorkspaceDirectoryProbe>());
-            Workflow = new PullRequestAutoBindWorkflow(Bindings, providers, BranchReader, persistence);
+            Workflow = new PullRequestAutoBindWorkflow(
+                Bindings, providers, BranchReader, persistence,
+                NullLogger<PullRequestAutoBindWorkflow>.Instance);
 
             Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
                 .Returns(ci => Task.FromResult<SaveBindingOutcome>(

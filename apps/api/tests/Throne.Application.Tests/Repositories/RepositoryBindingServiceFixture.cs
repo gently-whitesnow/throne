@@ -90,9 +90,12 @@ internal sealed class ServiceFixture
         var stateRefresher = new PullRequestStateRefresher(
             Bindings, unitOfWork, autoCloser, clock, NullLogger<PullRequestStateRefresher>.Instance);
         var syncWorkflow = new RepositoryPullRequestSyncWorkflow(syncPersistence, stateRefresher);
-        var autoBind = new PullRequestAutoBindWorkflow(Bindings, Providers, BranchReader, persistence);
+        var autoBind = new PullRequestAutoBindWorkflow(
+            Bindings, Providers, BranchReader, persistence,
+            NullLogger<PullRequestAutoBindWorkflow>.Instance);
         Service = new RepositoryBindingService(
-            resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind);
+            resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind,
+            NullLogger<RepositoryBindingService>.Instance);
     }
 
     public IIntentRepository Intents { get; }

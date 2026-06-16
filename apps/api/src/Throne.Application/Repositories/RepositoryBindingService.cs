@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Throne.Application.Errors;
 using Throne.Application.Events;
 using Throne.Application.Ports;
@@ -14,13 +15,14 @@ namespace Throne.Application.Repositories;
 /// <see cref="IntentRepositoryBound"/> / <see cref="IntentRepositoryUnbound"/> /
 /// <see cref="RepositoryPullRequestSynced"/>.
 /// </summary>
-public sealed class RepositoryBindingService(
+public sealed partial class RepositoryBindingService(
     RepositoryBindingResolver resolver,
     RepositoryBindingPersistence persistence,
     RepositoryPullRequestSyncWorkflow syncWorkflow,
     RepositoryCloneTransitionWriter cloneWriter,
     IRepositoryCloneRequests cloneQueue,
-    PullRequestAutoBindWorkflow autoBind
+    PullRequestAutoBindWorkflow autoBind,
+    ILogger<RepositoryBindingService> logger
 )
 {
     /// <param name="enqueueClone">
@@ -98,7 +100,17 @@ public sealed class RepositoryBindingService(
             if (binding.State.PullRequestNumber is null
                 && binding.State.CloneStatus == CloneStatusNames.Ready)
             {
-                await autoBind.RunForAsync(binding, ct);
+                var report = await autoBind.RunForAsync(binding, ct);
+                LogRefreshAutoBind(
+                    logger, binding.Id.Value, report.Bound, report.Skipped, report.Failed);
+            }
+            else
+            {
+                LogRefreshNoop(
+                    logger,
+                    binding.Id.Value,
+                    binding.State.CloneStatus,
+                    binding.State.PullRequestNumber);
             }
             return binding;
         }
@@ -115,6 +127,7 @@ public sealed class RepositoryBindingService(
             }
         }
         await cloneQueue.EnqueueAsync(binding.Id, ct);
+        LogRefreshReclone(logger, binding.Id.Value, binding.State.CloneStatus);
         return binding;
     }
 
@@ -163,4 +176,19 @@ public sealed class RepositoryBindingService(
         var provider = resolver.ResolveProvider(binding.Coordinate.Provider);
         return await syncWorkflow.RefreshAndSyncAsync(binding, provider, ct);
     }
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
+        Message = "RepositoryBindingService.Refresh: binding {BindingId} auto-bind pass bound={Bound}, skipped={Skipped}, failed={Failed}.")]
+    private static partial void LogRefreshAutoBind(
+        ILogger logger, string bindingId, int bound, int skipped, int failed);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Debug,
+        Message = "RepositoryBindingService.Refresh: binding {BindingId} no-op (clone_status={CloneStatus}, pull_request_number={Pr}).")]
+    private static partial void LogRefreshNoop(
+        ILogger logger, string bindingId, string cloneStatus, int? pr);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information,
+        Message = "RepositoryBindingService.Refresh: binding {BindingId} local clone missing (was {PrevCloneStatus}) — re-enqueued.")]
+    private static partial void LogRefreshReclone(
+        ILogger logger, string bindingId, string prevCloneStatus);
 }
