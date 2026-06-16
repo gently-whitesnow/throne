@@ -96,6 +96,7 @@ public partial class RunPreflightOrchestratorTests
                 Substitute.For<IGitProviderRegistry>(),
                 Substitute.For<ILocalGitBranchReader>(),
                 persistence,
+                Substitute.For<IWorkspaceRootProvider>(),
                 NullLogger<PullRequestAutoBindWorkflow>.Instance);
             var service = new RepositoryBindingService(
                 resolver, persistence, syncWorkflow,
