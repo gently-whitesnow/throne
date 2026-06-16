@@ -24,27 +24,22 @@ public class TerminalVendorDescriptorTests
         descriptor.DefaultEffort.Should().Be(TerminalAgentCatalog.EffortMedium);
     }
 
-    [Fact(DisplayName = "no-effort descriptor: DefaultEffort=null и base-args без флага усилия")]
-    public void No_effort_descriptor_emits_no_effort_flag()
+    [Fact(DisplayName = "opencode descriptor: модель префиксуется throne-local/, эффорта нет, ModelSource=local")]
+    public void Opencode_descriptor_prefixes_model_and_has_no_effort()
     {
-        // Узкий синтетический descriptor: вендор без оси reasoning effort. Реальный
-        // opencode-вендор в этот слайс не вводится — проверяем сам контракт descriptor'а.
-        var descriptor = new TerminalVendorDescriptor(
-            Vendor: "synthetic",
-            Label: "Synthetic",
-            Models: ["local-model"],
-            SupportsEffort: false,
-            Efforts: [],
-            DefaultEffort: null,
-            ModelSource: TerminalAgentCatalog.ModelSourceStatic,
-            BuildBaseArgs: static options => ["--model", options.Model]);
+        var descriptor = TerminalAgentCatalog.DescriptorFor(TerminalAgentCatalog.VendorOpencode);
 
+        descriptor.SupportsEffort.Should().BeFalse();
         descriptor.DefaultEffort.Should().BeNull();
+        descriptor.ModelSource.Should().Be(TerminalAgentCatalog.ModelSourceLocal);
+        descriptor.Models.Should().BeEmpty();
+        descriptor.DefaultModel.Should().BeNull();
 
-        var options = new TerminalLaunchOptions(descriptor.Vendor, descriptor.DefaultModel, Effort: null);
+        var options = new TerminalLaunchOptions(
+            TerminalAgentCatalog.VendorOpencode, Model: "llama-4", Effort: null);
         var args = descriptor.BuildBaseArgs(options);
 
-        args.Should().Equal("--model", "local-model");
+        args.Should().Equal("--model", $"{TerminalAgentCatalog.OpencodeProviderId}/llama-4");
         args.Should().NotContain(a => a.Contains("effort", StringComparison.Ordinal));
     }
 }

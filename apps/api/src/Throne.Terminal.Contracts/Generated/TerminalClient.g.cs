@@ -27,7 +27,7 @@ namespace Throne.Terminal.Contracts.Generated
     
 
     /// <summary>
-    /// Provenance of a vendor's curated model list. `static` — the list is hardcoded in the backend descriptor and changes only by editing the catalog (current state for both `claude` and `codex`). A future dynamic-discovery source would add another value here; that discovery is out of scope for this slice.
+    /// Provenance of a vendor's curated model list. `static` — the list is hardcoded in the backend descriptor and changes only by editing the catalog (`claude`, `codex`). `local` — the list comes from the operator's local OpenAI-compatible endpoint (`Throne:LocalModel:BaseUrl`, probed via `GET {BaseUrl}/v1/models`); used by `opencode`. `models` may be empty when the endpoint is unconfigured/unreachable.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -37,6 +37,10 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"static")]
         [System.Runtime.Serialization.EnumMember(Value = @"static")]
         Static = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"local")]
+        [System.Runtime.Serialization.EnumMember(Value = @"local")]
+        Local = 1,
 
     }
 
@@ -64,18 +68,19 @@ namespace Throne.Terminal.Contracts.Generated
         public bool Supports_effort { get; set; }
 
         /// <summary>
-        /// Curated model whitelist, native-default-first.
+        /// Model whitelist, native-default-first. Always at least one entry for `model_source=static`; may be empty for `model_source=local` when the local endpoint is unconfigured or unreachable — the launch surface then disables the model picker for that vendor.
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("models")]
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.MinLength(1)]
         public System.Collections.Generic.ICollection<string> Models { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Native default model = first entry of `models`.
+        /// Native default model = first entry of `models`. Null when `models` is empty (only possible for `model_source=local`).
+        /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("default_model")]
-        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
         public string Default_model { get; set; }
 
         /// <summary>
@@ -196,7 +201,7 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
-    /// Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…`). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
+    /// Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…` vs `opencode --model throne-local/…`, no effort axis). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -210,6 +215,10 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"codex")]
         [System.Runtime.Serialization.EnumMember(Value = @"codex")]
         Codex = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"opencode")]
+        [System.Runtime.Serialization.EnumMember(Value = @"opencode")]
+        Opencode = 2,
 
     }
 
@@ -256,7 +265,7 @@ namespace Throne.Terminal.Contracts.Generated
         public TerminalAgentVendor? Vendor { get; set; }
 
         /// <summary>
-        /// Model id from the vendor's curated whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400.
+        /// Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("model")]

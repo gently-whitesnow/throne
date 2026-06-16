@@ -14,6 +14,7 @@ public static class TerminalEndpointsRegistration
     {
         services.AddSingleton<TerminalWebSocketEndpoint>();
         services.AddSingleton<TerminalHookStatusAck>();
+        services.AddSingleton<TerminalVendorCatalogMapper>();
         return services;
     }
 

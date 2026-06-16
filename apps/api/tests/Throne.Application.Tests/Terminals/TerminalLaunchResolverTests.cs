@@ -8,11 +8,13 @@ namespace Throne.Application.Tests.Terminals;
 
 public class TerminalLaunchResolverTests
 {
-    private static TerminalLaunchResolver Build(string defaultVendor = TerminalAgentCatalog.VendorClaude)
+    private static TerminalLaunchResolver Build(
+        string defaultVendor = TerminalAgentCatalog.VendorClaude,
+        IEnumerable<IVendorModelCatalog>? dynamicCatalogs = null)
     {
         var store = Substitute.For<ITerminalSettingsStore>();
         store.GetDefaultVendorAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(defaultVendor));
-        return new TerminalLaunchResolver(store);
+        return new TerminalLaunchResolver(store, dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>());
     }
 
     [Fact(DisplayName = "Пропущенный vendor берётся из настроек, model/effort — нативные дефолты вендора")]
@@ -62,5 +64,51 @@ public class TerminalLaunchResolverTests
 
         options.Should().Be(new TerminalLaunchOptions(
             TerminalAgentCatalog.VendorCodex, "gpt-5.3-codex", TerminalAgentCatalog.EffortXhigh));
+    }
+
+    [Fact(DisplayName = "Opencode: модель из live /v1/models, effort null")]
+    public async Task Opencode_resolves_model_from_dynamic_catalog_without_effort()
+    {
+        var catalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4", "qwen-3"]);
+        var resolver = Build(dynamicCatalogs: [catalog]);
+
+        var options = await resolver.ResolveAsync(
+            TerminalAgentCatalog.VendorOpencode, model: "qwen-3", effort: null, CancellationToken.None);
+
+        options.Vendor.Should().Be(TerminalAgentCatalog.VendorOpencode);
+        options.Model.Should().Be("qwen-3");
+        options.Effort.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Opencode: модель вне live /v1/models → terminal.args_invalid")]
+    public async Task Opencode_rejects_model_outside_dynamic_catalog()
+    {
+        var catalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
+        var resolver = Build(dynamicCatalogs: [catalog]);
+
+        var act = () => resolver.ResolveAsync(
+            TerminalAgentCatalog.VendorOpencode, model: "unknown", effort: null, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.TerminalArgsInvalid);
+    }
+
+    [Fact(DisplayName = "Opencode: явный effort молча игнорируется, когда descriptor его не поддерживает")]
+    public async Task Opencode_drops_caller_effort()
+    {
+        var catalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
+        var resolver = Build(dynamicCatalogs: [catalog]);
+
+        var options = await resolver.ResolveAsync(
+            TerminalAgentCatalog.VendorOpencode, model: "llama-4",
+            effort: TerminalAgentCatalog.EffortHigh, CancellationToken.None);
+
+        options.Effort.Should().BeNull();
+    }
+
+    private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog
+    {
+        public string Vendor { get; } = vendor;
+        public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult(models);
     }
 }

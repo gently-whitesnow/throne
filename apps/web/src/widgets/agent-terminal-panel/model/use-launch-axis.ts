@@ -67,7 +67,7 @@ export function useLaunchAxis(): LaunchAxis {
     if (meta === undefined) return;
     initialized.current = true;
     setVendor(resolved);
-    setModelState(meta.default_model);
+    setModelState(meta.default_model ?? null);
     setEffortState(meta.default_effort ?? null);
   }, [catalog, settingsQuery.isFetched, settingsQuery.data?.default_vendor]);
 
@@ -76,7 +76,7 @@ export function useLaunchAxis(): LaunchAxis {
       const meta = findVendorMetadata(catalog, next);
       setVendor(next);
       if (meta !== undefined) {
-        setModelState(meta.default_model);
+        setModelState(meta.default_model ?? null);
         setEffortState(meta.default_effort ?? null);
       }
     },

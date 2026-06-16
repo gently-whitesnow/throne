@@ -7,21 +7,24 @@ namespace Throne.Api.Tests.Terminals;
 
 public class TerminalVendorCatalogMapperTests
 {
-    [Fact(DisplayName = "Каталог: default_vendor=claude и оба вендора отданы в порядке каталога")]
-    public void Maps_default_vendor_and_vendor_order()
+    private static TerminalVendorCatalogMapper Build(params IVendorModelCatalog[] dynamicCatalogs) =>
+        new(dynamicCatalogs);
+
+    [Fact(DisplayName = "Каталог: default_vendor=claude и все три вендора отданы в порядке каталога")]
+    public async Task Maps_default_vendor_and_vendor_order()
     {
-        var dto = TerminalVendorCatalogMapper.ToDto();
+        var dto = await Build().ToDtoAsync(CancellationToken.None);
 
         dto.Default_vendor.Should().Be(TerminalAgentVendor.Claude);
         dto.Vendors.Select(v => v.Vendor)
-            .Should().Equal(TerminalAgentVendor.Claude, TerminalAgentVendor.Codex);
+            .Should().Equal(TerminalAgentVendor.Claude, TerminalAgentVendor.Codex, TerminalAgentVendor.Opencode);
     }
 
     [Fact(DisplayName = "claude metadata: модели opus-first, дефолт opus, эффорт high, источник static")]
-    public void Maps_claude_metadata()
+    public async Task Maps_claude_metadata()
     {
-        var claude = TerminalVendorCatalogMapper.ToDto().Vendors
-            .Single(v => v.Vendor == TerminalAgentVendor.Claude);
+        var dto = await Build().ToDtoAsync(CancellationToken.None);
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Claude);
 
         claude.Label.Should().Be("Claude");
         claude.Models.Should().Equal("opus", "sonnet", "haiku");
@@ -33,10 +36,10 @@ public class TerminalVendorCatalogMapperTests
     }
 
     [Fact(DisplayName = "codex metadata: дефолт-модель первая из списка, эффорт medium")]
-    public void Maps_codex_metadata()
+    public async Task Maps_codex_metadata()
     {
-        var codex = TerminalVendorCatalogMapper.ToDto().Vendors
-            .Single(v => v.Vendor == TerminalAgentVendor.Codex);
+        var dto = await Build().ToDtoAsync(CancellationToken.None);
+        var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Codex);
 
         codex.Default_model.Should().Be(codex.Models.First());
         codex.Models.Should().Equal("gpt-5.5", "gpt-5.4", "gpt-5.3-codex");
@@ -45,22 +48,36 @@ public class TerminalVendorCatalogMapperTests
         codex.Model_source.Should().Be(TerminalModelSource.Static);
     }
 
-    [Fact(DisplayName = "Каждый отданный вендор повторяет данные своего descriptor'а в каталоге")]
-    public void Vendor_dtos_mirror_descriptors()
+    [Fact(DisplayName = "opencode metadata: модели подставляются из live discovery, эффорт отключён")]
+    public async Task Maps_opencode_metadata_from_dynamic_catalog()
     {
-        var dto = TerminalVendorCatalogMapper.ToDto();
+        var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4", "qwen-3"]);
+        var dto = await Build(dynamicCatalog).ToDtoAsync(CancellationToken.None);
+        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
 
-        dto.Vendors.Should().HaveCount(TerminalAgentCatalog.Descriptors.Count);
-        foreach (var vendorDto in dto.Vendors)
-        {
-            var descriptor = TerminalAgentCatalog.DescriptorFor(
-                vendorDto.Vendor == TerminalAgentVendor.Claude
-                    ? TerminalAgentCatalog.VendorClaude
-                    : TerminalAgentCatalog.VendorCodex);
+        opencode.Label.Should().Be("OpenCode");
+        opencode.Models.Should().Equal("llama-4", "qwen-3");
+        opencode.Default_model.Should().Be("llama-4");
+        opencode.Supports_effort.Should().BeFalse();
+        opencode.Efforts.Should().BeEmpty();
+        opencode.Default_effort.Should().BeNull();
+        opencode.Model_source.Should().Be(TerminalModelSource.Local);
+    }
 
-            vendorDto.Models.Should().Equal(descriptor.Models);
-            vendorDto.Default_model.Should().Be(descriptor.DefaultModel);
-            vendorDto.Supports_effort.Should().Be(descriptor.SupportsEffort);
-        }
+    [Fact(DisplayName = "opencode metadata: пустой live-список → default_model=null, models=[]")]
+    public async Task Maps_opencode_metadata_when_local_endpoint_empty()
+    {
+        var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, []);
+        var dto = await Build(dynamicCatalog).ToDtoAsync(CancellationToken.None);
+        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
+
+        opencode.Models.Should().BeEmpty();
+        opencode.Default_model.Should().BeNull();
+    }
+
+    private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog
+    {
+        public string Vendor { get; } = vendor;
+        public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult(models);
     }
 }

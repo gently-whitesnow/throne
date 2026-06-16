@@ -4,34 +4,72 @@ using Throne.Terminal.Contracts.Generated;
 namespace Throne.Api.Terminals;
 
 /// <summary>
-/// Projects the static <see cref="TerminalAgentCatalog"/> into the wire DTO for
+/// Projects <see cref="TerminalAgentCatalog"/> into the wire DTO for
 /// <c>GET /api/v1/terminal/vendors</c>. Backend stays the single source of truth for vendor
-/// metadata and curated model lists; the frontend reads this instead of mirroring the catalog.
+/// metadata; the frontend reads this instead of mirroring the catalog. For descriptors with
+/// <see cref="TerminalAgentCatalog.ModelSourceLocal"/> the static
+/// <see cref="TerminalVendorDescriptor.Models"/> is empty and the live list is fetched via the
+/// matching <see cref="IVendorModelCatalog"/>; an empty live list (endpoint unconfigured or
+/// unreachable) projects to an empty <c>models</c> + null <c>default_model</c> so the UI can
+/// still show the vendor and surface the missing-endpoint hint.
 /// </summary>
-internal static class TerminalVendorCatalogMapper
+public sealed class TerminalVendorCatalogMapper(IEnumerable<IVendorModelCatalog> dynamicCatalogs)
 {
-    public static TerminalVendorCatalogResponse ToDto() => new()
-    {
-        Default_vendor = ParseVendor(TerminalAgentCatalog.DefaultVendor),
-        Vendors = TerminalAgentCatalog.Descriptors.Select(ToVendorDto).ToArray(),
-    };
+    private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
+        dynamicCatalogs.ToDictionary(c => c.Vendor, StringComparer.Ordinal);
 
-    private static TerminalVendorMetadataDto ToVendorDto(TerminalVendorDescriptor descriptor) => new()
+    public async Task<TerminalVendorCatalogResponse> ToDtoAsync(CancellationToken ct)
     {
-        Vendor = ParseVendor(descriptor.Vendor),
-        Label = descriptor.Label,
-        Supports_effort = descriptor.SupportsEffort,
-        Models = descriptor.Models.ToArray(),
-        Default_model = descriptor.DefaultModel,
-        Efforts = descriptor.Efforts.ToArray(),
-        Default_effort = descriptor.DefaultEffort is { } effort ? ParseEffort(effort) : null,
-        Model_source = ParseModelSource(descriptor.ModelSource),
-    };
+        var vendors = new List<TerminalVendorMetadataDto>(TerminalAgentCatalog.Descriptors.Count);
+        foreach (var descriptor in TerminalAgentCatalog.Descriptors)
+        {
+            vendors.Add(await ToVendorDtoAsync(descriptor, ct));
+        }
+        return new TerminalVendorCatalogResponse
+        {
+            Default_vendor = ParseVendor(TerminalAgentCatalog.DefaultVendor),
+            Vendors = vendors,
+        };
+    }
+
+    private async Task<TerminalVendorMetadataDto> ToVendorDtoAsync(
+        TerminalVendorDescriptor descriptor, CancellationToken ct)
+    {
+        var models = await ResolveModelsAsync(descriptor, ct);
+        return new TerminalVendorMetadataDto
+        {
+            Vendor = ParseVendor(descriptor.Vendor),
+            Label = descriptor.Label,
+            Supports_effort = descriptor.SupportsEffort,
+            Models = models,
+            Default_model = models.Count == 0 ? null : models[0],
+            // Efforts wire-format is string[] (см. PR #97 / ADR-обоснование):
+            // NSwag не цепляет JsonStringEnumConverter к коллекции enum'ов, поэтому
+            // массив проходит сырыми строками из descriptor.Efforts. Default_effort
+            // остаётся скалярным enum'ом — на нём конвертер работает.
+            Efforts = descriptor.Efforts.ToArray(),
+            Default_effort = descriptor.DefaultEffort is { } effort ? ParseEffort(effort) : null,
+            Model_source = ParseModelSource(descriptor.ModelSource),
+        };
+    }
+
+    private async Task<IList<string>> ResolveModelsAsync(
+        TerminalVendorDescriptor descriptor, CancellationToken ct)
+    {
+        if (descriptor.ModelSource == TerminalAgentCatalog.ModelSourceLocal
+            && _dynamicCatalogs.TryGetValue(descriptor.Vendor, out var dynamicCatalog))
+        {
+            var live = await dynamicCatalog.ListModelsAsync(ct);
+            return live.ToArray();
+        }
+        return descriptor.Models.ToArray();
+    }
 
     private static TerminalAgentVendor ParseVendor(string vendor) => vendor switch
     {
         TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
         TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
+        TerminalAgentCatalog.VendorOpencode => TerminalAgentVendor.Opencode,
         _ => throw new InvalidOperationException($"Unknown terminal vendor '{vendor}'."),
     };
 
@@ -47,6 +85,7 @@ internal static class TerminalVendorCatalogMapper
     private static TerminalModelSource ParseModelSource(string source) => source switch
     {
         TerminalAgentCatalog.ModelSourceStatic => TerminalModelSource.Static,
+        TerminalAgentCatalog.ModelSourceLocal => TerminalModelSource.Local,
         _ => throw new InvalidOperationException($"Unknown model source '{source}'."),
     };
 }
