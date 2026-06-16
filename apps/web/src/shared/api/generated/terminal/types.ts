@@ -179,8 +179,8 @@ export interface components {
             models: string[];
             /** @description Native default model = first entry of `models`. */
             default_model: string;
-            /** @description Reasoning-effort tiers selectable for this vendor. Empty when `supports_effort=false`. */
-            efforts: components["schemas"]["TerminalReasoningEffort"][];
+            /** @description Reasoning-effort tiers selectable for this vendor. Wire values come from the `TerminalReasoningEffort` dictionary (`low`/`medium`/`high`/`xhigh`). Typed as `string[]` rather than `TerminalReasoningEffort[]` so the API mapper writes wire strings directly: NSwag cannot attach an `ItemConverterType` for System.Text.Json, so an enum array would leak integer codes onto the wire. Empty when `supports_effort=false`. */
+            efforts: string[];
             /** @description Native default effort. Present iff `supports_effort=true`; null for an effort-less vendor. */
             default_effort?: components["schemas"]["TerminalReasoningEffort"] | null;
             model_source: components["schemas"]["TerminalModelSource"];

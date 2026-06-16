@@ -356,10 +356,15 @@ components:
         efforts:
           type: array
           items:
-            $ref: '#/components/schemas/TerminalReasoningEffort'
+            type: string
+            minLength: 1
           description: >
-            Reasoning-effort tiers selectable for this vendor. Empty when
-            `supports_effort=false`.
+            Reasoning-effort tiers selectable for this vendor. Wire values come
+            from the `TerminalReasoningEffort` dictionary (`low`/`medium`/`high`/`xhigh`).
+            Typed as `string[]` rather than `TerminalReasoningEffort[]` so the API
+            mapper writes wire strings directly: NSwag cannot attach an
+            `ItemConverterType` for System.Text.Json, so an enum array would leak
+            integer codes onto the wire. Empty when `supports_effort=false`.
         default_effort:
           nullable: true
           description: >
