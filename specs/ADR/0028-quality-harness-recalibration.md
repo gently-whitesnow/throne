@@ -6,6 +6,8 @@ Accepted
 Date: 2026-06-05
 Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md) (amends its budget-override mechanism), [ADR-0023](0023-mcp-tools-snake-case-naming.md)
 
+> **Amended by [ADR-0040](0040-quality-harness-ratchet-first-and-hardcap.md):** §Decision 5 (Domain выведен из бюджета через `exclude`) отменён — Domain возвращён в size/CC-бюджет через bounded `pathOverride`, rich-DDD охраняется парой NetArchTest + budget. Читай §5 ниже как исторический контекст, актуальный механизм — в 0040.
+
 ## Context
 
 Аудит `.quality` harness по месяцу сессий (228 транскриптов) показал, что strict-профиль
