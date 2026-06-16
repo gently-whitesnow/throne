@@ -17,6 +17,8 @@ public class PullRequestAutoBindWorkflowTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 5, 12, 0, 0, TimeSpan.Zero);
     private const string Branch = "feat/x";
+    private const string LiveRoot = "/tmp/throne-live-root";
+    private const string StaleWorkspacePath = "/Users/someone-else/.throne/workspaces/intents/intent-1/octo__hello";
 
     [Fact(DisplayName = "Ровно один open-PR с head == текущая ветка → PR прикреплён, Bound++")]
     public async Task Attaches_pull_request_on_single_head_match()
@@ -66,6 +68,23 @@ public class PullRequestAutoBindWorkflowTests
         binding.State.PullRequestNumber.Should().BeNull();
     }
 
+    [Fact(DisplayName = "Сохранённый WorkspacePath чужой машины → читаем ветку по живому пути")]
+    public async Task Reads_branch_from_recomputed_live_workspace_path()
+    {
+        var fixture = new Fixture();
+        var binding = fixture.SeedReadyBinding();
+        fixture.SeedBranch(Branch);
+        fixture.SeedOpenPrs(new GitPullRequestRef(42, "x", Branch, PullRequestStateNames.Open));
+
+        var report = await fixture.Workflow.RunAsync(CancellationToken.None);
+
+        report.Bound.Should().Be(1);
+        binding.State.PullRequestNumber.Should().Be(42);
+        var livePath = Path.Combine(LiveRoot, "intents", "intent-1", "octo__hello");
+        await fixture.BranchReader.Received(1).ReadCurrentBranchAsync(livePath, Arg.Any<CancellationToken>());
+        await fixture.BranchReader.DidNotReceive().ReadCurrentBranchAsync(StaleWorkspacePath, Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "Не удалось определить ветку клона → пропуск")]
     public async Task Skips_when_branch_unknown()
     {
@@ -92,13 +111,15 @@ public class PullRequestAutoBindWorkflowTests
             BranchReader = Substitute.For<ILocalGitBranchReader>();
 
             var clock = new FixedClock(Now);
+            WorkspaceRoot = Substitute.For<IWorkspaceRootProvider>();
+            WorkspaceRoot.ResolvedRoot.Returns(LiveRoot);
             var persistence = new RepositoryBindingPersistence(
                 Bindings, Substitute.For<IRepositoryRegistry>(), _uow, clock,
-                Substitute.For<IWorkspaceRootProvider>(),
+                WorkspaceRoot,
                 Substitute.For<IWorkspaceDirectoryRemover>(),
                 Substitute.For<IWorkspaceDirectoryProbe>());
             Workflow = new PullRequestAutoBindWorkflow(
-                Bindings, providers, BranchReader, persistence,
+                Bindings, providers, BranchReader, persistence, WorkspaceRoot,
                 NullLogger<PullRequestAutoBindWorkflow>.Instance);
 
             Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
@@ -109,6 +130,7 @@ public class PullRequestAutoBindWorkflowTests
         public IIntentRepositoryBindingRepository Bindings { get; }
         public IGitProvider Provider { get; }
         public ILocalGitBranchReader BranchReader { get; }
+        public IWorkspaceRootProvider WorkspaceRoot { get; }
         public PullRequestAutoBindWorkflow Workflow { get; }
 
         public IntentRepositoryBinding SeedReadyBinding()
@@ -117,7 +139,7 @@ public class PullRequestAutoBindWorkflowTests
                 Id: BindingId.New(),
                 IntentId: new IntentId("intent-1"),
                 Coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "hello"),
-                WorkspacePath: "/tmp/throne-test/intent-1/octo__hello",
+                WorkspacePath: StaleWorkspacePath,
                 DefaultBranch: "main",
                 CloneStatus: CloneStatusNames.Ready,
                 CloneError: null,
