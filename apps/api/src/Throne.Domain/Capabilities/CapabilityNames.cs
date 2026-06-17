@@ -14,6 +14,7 @@ public static class CapabilityNames
     public const string Vscode = "vscode";
     public const string Jira = "jira";
     public const string Gitlab = "gitlab";
+    public const string Opencode = "opencode";
 
     private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
     {
@@ -22,6 +23,7 @@ public static class CapabilityNames
         Vscode,
         Jira,
         Gitlab,
+        Opencode,
     };
 
     public static bool IsKnown(string name) =>

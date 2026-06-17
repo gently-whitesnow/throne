@@ -100,6 +100,7 @@ public static class DependencyInjection
         // Throne.Infrastructure.Terminals — registration there is required.
         services.AddSingleton<CapabilitiesPersistence>();
         services.AddSingleton<CapabilitiesService>();
+        services.AddSingleton<ICapabilityAvailability>(sp => sp.GetRequiredService<CapabilitiesService>());
         services.AddSingleton<TagDefaultsUnion>();
         services.AddSingleton<RunPreflightAutoBind>();
         services.AddSingleton<RunPreflightCloneScheduler>();

@@ -3,6 +3,8 @@ using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
+using Throne.Domain.Capabilities;
 
 namespace Throne.Application.Tests.Terminals;
 
@@ -10,11 +12,18 @@ public class TerminalLaunchResolverTests
 {
     private static TerminalLaunchResolver Build(
         string defaultVendor = TerminalAgentCatalog.VendorClaude,
-        IEnumerable<IVendorModelCatalog>? dynamicCatalogs = null)
+        IEnumerable<IVendorModelCatalog>? dynamicCatalogs = null,
+        bool opencodeAvailable = true)
     {
         var store = Substitute.For<ITerminalSettingsStore>();
         store.GetDefaultVendorAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(defaultVendor));
-        return new TerminalLaunchResolver(store, dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>());
+        var capabilities = Substitute.For<ICapabilityAvailability>();
+        capabilities.IsAvailableAsync(CapabilityNames.Opencode, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(opencodeAvailable));
+        return new TerminalLaunchResolver(
+            store,
+            dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
+            capabilities);
     }
 
     [Fact(DisplayName = "Пропущенный vendor берётся из настроек, model/effort — нативные дефолты вендора")]
@@ -104,6 +113,20 @@ public class TerminalLaunchResolverTests
             effort: TerminalAgentCatalog.EffortHigh, CancellationToken.None);
 
         options.Effort.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Opencode: capability отключена/не задетекчена → capability.disabled")]
+    public async Task Opencode_rejected_when_capability_unavailable()
+    {
+        var catalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
+        var resolver = Build(dynamicCatalogs: [catalog], opencodeAvailable: false);
+
+        var act = () => resolver.ResolveAsync(
+            TerminalAgentCatalog.VendorOpencode, model: "llama-4", effort: null, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.CapabilityDisabled);
+        ex.Which.Extensions.Should().Contain("capability", CapabilityNames.Opencode);
     }
 
     private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog

@@ -1,4 +1,5 @@
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Terminals;
@@ -9,11 +10,17 @@ namespace Throne.Api.Terminals;
 /// metadata; the frontend reads this instead of mirroring the catalog. For descriptors with
 /// <see cref="TerminalAgentCatalog.ModelSourceLocal"/> the static
 /// <see cref="TerminalVendorDescriptor.Models"/> is empty and the live list is fetched via the
-/// matching <see cref="IVendorModelCatalog"/>; an empty live list (endpoint unconfigured or
-/// unreachable) projects to an empty <c>models</c> + null <c>default_model</c> so the UI can
-/// still show the vendor and surface the missing-endpoint hint.
+/// matching <see cref="IVendorModelCatalog"/>.
+///
+/// Descriptors whose <see cref="TerminalVendorDescriptor.RequiredCapability"/> is not currently
+/// available (capability toggle off or its prerequisite probe undetected) are dropped from the
+/// response — the frontend cannot select what the catalog does not advertise, mirroring the
+/// pattern used for the GitLab provider (ADR-0032 § 8). The default vendor falls back to the
+/// catalog default when the persisted one was filtered out.
 /// </summary>
-public sealed class TerminalVendorCatalogMapper(IEnumerable<IVendorModelCatalog> dynamicCatalogs)
+public sealed class TerminalVendorCatalogMapper(
+    IEnumerable<IVendorModelCatalog> dynamicCatalogs,
+    ICapabilityAvailability capabilities)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
         dynamicCatalogs.ToDictionary(c => c.Vendor, StringComparer.Ordinal);
@@ -23,6 +30,10 @@ public sealed class TerminalVendorCatalogMapper(IEnumerable<IVendorModelCatalog>
         var vendors = new List<TerminalVendorMetadataDto>(TerminalAgentCatalog.Descriptors.Count);
         foreach (var descriptor in TerminalAgentCatalog.Descriptors)
         {
+            if (!await IsAvailableAsync(descriptor, ct))
+            {
+                continue;
+            }
             vendors.Add(await ToVendorDtoAsync(descriptor, ct));
         }
         return new TerminalVendorCatalogResponse
@@ -31,6 +42,10 @@ public sealed class TerminalVendorCatalogMapper(IEnumerable<IVendorModelCatalog>
             Vendors = vendors,
         };
     }
+
+    private async Task<bool> IsAvailableAsync(TerminalVendorDescriptor descriptor, CancellationToken ct) =>
+        descriptor.RequiredCapability is null
+        || await capabilities.IsAvailableAsync(descriptor.RequiredCapability, ct);
 
     private async Task<TerminalVendorMetadataDto> ToVendorDtoAsync(
         TerminalVendorDescriptor descriptor, CancellationToken ct)
