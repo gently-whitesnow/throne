@@ -144,6 +144,7 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
       <ApplyEditModal
         open={showEdit}
         initialText={detail.patch.patch_text}
+        currentText={detail.base_part_text}
         busy={busy === "apply-edit"}
         onCancel={() => {
           setShowEdit(false);
