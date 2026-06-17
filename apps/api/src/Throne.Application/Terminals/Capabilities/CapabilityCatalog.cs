@@ -39,6 +39,12 @@ public static class CapabilityCatalog
             Title: "Open in VS Code",
             Description: "Кнопки «Open in VS Code» на странице интента и на каждом репо-биндинге. Открывает workspace интента или конкретный clone.",
             PrerequisiteHint: "VS Code → Command Palette → Shell Command: Install 'code' command in PATH"),
+
+        new CapabilityDescriptor(
+            Name: CapabilityNames.Opencode,
+            Title: "OpenCode vendor",
+            Description: "Запуск OpenCode CLI в терминале интента с моделями из локального OpenAI-совместимого эндпоинта. Требует также capability `terminal`.",
+            PrerequisiteHint: "npm i -g opencode-ai && настроить Throne:LocalModel:BaseUrl"),
     ];
 
     public static CapabilityDescriptor? FindByName(string name) =>

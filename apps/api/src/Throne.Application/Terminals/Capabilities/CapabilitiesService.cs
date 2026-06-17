@@ -18,7 +18,7 @@ namespace Throne.Application.Terminals.Capabilities;
 /// </summary>
 public sealed class CapabilitiesService(
     CapabilitiesPersistence persistence,
-    ICapabilityDetectionCache detection)
+    ICapabilityDetectionCache detection) : ICapabilityAvailability
 {
     public async Task<IReadOnlyList<CapabilityView>> ListAsync(CancellationToken ct)
     {
@@ -29,6 +29,25 @@ public sealed class CapabilitiesService(
             views.Add(await BuildViewAsync(descriptor, stored, ct));
         }
         return views;
+    }
+
+    /// <summary>
+    /// True only when the capability is both persisted as enabled AND its live probe reports
+    /// detected. Used by launch-time gates (vendor catalog filter, run pre-flight) — a
+    /// capability that the operator switched on but whose prerequisite is currently missing
+    /// is treated the same as disabled, so the dependent UI/vendor disappears instead of
+    /// failing the launch downstream with a confusing 500.
+    /// </summary>
+    public async Task<bool> IsAvailableAsync(string name, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        var stored = await persistence.GetAsync(ct);
+        if (stored is null || !stored.IsEnabled(name))
+        {
+            return false;
+        }
+        var probe = await detection.GetAsync(name, ct);
+        return probe?.Detected ?? false;
     }
 
     public async Task<CapabilityView> ToggleAsync(string name, bool enabled, CancellationToken ct)

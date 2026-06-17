@@ -90,7 +90,8 @@ public static class TerminalAgentCatalog
         Efforts: [],
         DefaultEffort: null,
         ModelSource: ModelSourceLocal,
-        BuildBaseArgs: static options => ["--model", $"{OpencodeProviderId}/{options.Model}"]);
+        BuildBaseArgs: static options => ["--model", $"{OpencodeProviderId}/{options.Model}"],
+        RequiredCapability: Throne.Domain.Capabilities.CapabilityNames.Opencode);
 
     /// <summary>Descriptors in catalog (display) order; drives the launch-surface dropdown.</summary>
     public static readonly IReadOnlyList<TerminalVendorDescriptor> Descriptors = [Claude, Codex, Opencode];
