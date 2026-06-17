@@ -2,8 +2,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
 using Throne.Application.Git;
 using Throne.Application.Repositories;
+using Throne.Infrastructure.Mongo;
 
 namespace Throne.Infrastructure.Git;
 
@@ -21,6 +23,8 @@ namespace Throne.Infrastructure.Git;
 internal sealed partial class PullRequestSyncService(
     IServiceScopeFactory scopeFactory,
     IOptions<PullRequestSyncOptions> options,
+    ResiliencePipeline mongoResilience,
+    TimeProvider clock,
     ILogger<PullRequestSyncService> logger) : BackgroundService
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
@@ -38,10 +42,6 @@ internal sealed partial class PullRequestSyncService(
         int failed,
         int markedBroken,
         int lifecycleClosed);
-
-    [LoggerMessage(EventId = 3, Level = LogLevel.Error,
-        Message = "PullRequestSyncService tick failed; worker continues.")]
-    private static partial void LogTickFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
         Message = "PullRequestSyncService auto-bind pass: bound={Bound}, skipped={Skipped}, failed={Failed}")]
@@ -71,12 +71,13 @@ internal sealed partial class PullRequestSyncService(
             return;
         }
 
+        var faultLog = new MongoFaultLog(logger, clock, "PullRequestSyncService");
         using var timer = new PeriodicTimer(interval);
         try
         {
             do
             {
-                await RunTickAsync(stoppingToken);
+                await RunTickAsync(faultLog, stoppingToken);
             }
             while (await timer.WaitForNextTickAsync(stoppingToken));
         }
@@ -86,51 +87,14 @@ internal sealed partial class PullRequestSyncService(
         }
     }
 
-    private async Task RunTickAsync(CancellationToken stoppingToken)
+    private async Task RunTickAsync(MongoFaultLog faultLog, CancellationToken stoppingToken)
     {
         try
         {
-            await using var scope = scopeFactory.CreateAsyncScope();
-
-            var autoBind = scope.ServiceProvider.GetRequiredService<PullRequestAutoBindWorkflow>();
-            var autoBindReport = await autoBind.RunAsync(stoppingToken);
-            LogAutoBind(logger, autoBindReport.Bound, autoBindReport.Skipped, autoBindReport.Failed);
-
-            var workflow = scope.ServiceProvider.GetRequiredService<PullRequestSyncTickWorkflow>();
-            var report = await workflow.RunAsync(stoppingToken);
-            var snapshot = report.Snapshot;
-            LogTick(
-                logger,
-                snapshot.Polled,
-                snapshot.NotModified,
-                snapshot.NewComments,
-                snapshot.Skipped,
-                snapshot.Failed,
-                snapshot.MarkedBroken,
-                snapshot.LifecycleClosed);
-            var networkDownNow = new HashSet<string>();
-            foreach (var failure in report.Failures)
-            {
-                if (failure.Kind == GitProviderErrorKind.NetworkError)
-                {
-                    // Expected transient state (host off-VPN). Debug + de-dup:
-                    // log only on transition into offline, not every tick.
-                    networkDownNow.Add(failure.BindingId);
-                    if (!_networkDownBindingIds.Contains(failure.BindingId))
-                    {
-                        LogBindingOffline(logger, failure.BindingId, failure.Message);
-                    }
-                }
-                else
-                {
-                    // Genuine failures (auth / CLI) stay Warning every tick.
-                    LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
-                }
-            }
-
-            // Drop bindings that recovered or were skipped by backoff this tick,
-            // so a later relapse re-logs once instead of staying silent forever.
-            _networkDownBindingIds = networkDownNow;
+            await mongoResilience.ExecuteAsync(
+                async ct => await TickBodyAsync(ct),
+                stoppingToken);
+            faultLog.RecordSuccess();
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -138,7 +102,52 @@ internal sealed partial class PullRequestSyncService(
         }
         catch (Exception ex)
         {
-            LogTickFailed(logger, ex);
+            faultLog.RecordFailure(ex);
         }
+    }
+
+    private async Task TickBodyAsync(CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+
+        var autoBind = scope.ServiceProvider.GetRequiredService<PullRequestAutoBindWorkflow>();
+        var autoBindReport = await autoBind.RunAsync(ct);
+        LogAutoBind(logger, autoBindReport.Bound, autoBindReport.Skipped, autoBindReport.Failed);
+
+        var workflow = scope.ServiceProvider.GetRequiredService<PullRequestSyncTickWorkflow>();
+        var report = await workflow.RunAsync(ct);
+        var snapshot = report.Snapshot;
+        LogTick(
+            logger,
+            snapshot.Polled,
+            snapshot.NotModified,
+            snapshot.NewComments,
+            snapshot.Skipped,
+            snapshot.Failed,
+            snapshot.MarkedBroken,
+            snapshot.LifecycleClosed);
+        var networkDownNow = new HashSet<string>();
+        foreach (var failure in report.Failures)
+        {
+            if (failure.Kind == GitProviderErrorKind.NetworkError)
+            {
+                // Expected transient state (host off-VPN). Debug + de-dup:
+                // log only on transition into offline, not every tick.
+                networkDownNow.Add(failure.BindingId);
+                if (!_networkDownBindingIds.Contains(failure.BindingId))
+                {
+                    LogBindingOffline(logger, failure.BindingId, failure.Message);
+                }
+            }
+            else
+            {
+                // Genuine failures (auth / CLI) stay Warning every tick.
+                LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
+            }
+        }
+
+        // Drop bindings that recovered or were skipped by backoff this tick,
+        // so a later relapse re-logs once instead of staying silent forever.
+        _networkDownBindingIds = networkDownNow;
     }
 }
