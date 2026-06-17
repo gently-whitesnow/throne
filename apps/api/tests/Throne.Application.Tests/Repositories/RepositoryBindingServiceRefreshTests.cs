@@ -4,6 +4,7 @@ using Throne.Application.Errors;
 using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
+using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 using static Throne.Application.Tests.Repositories.RepositoryBindingTestData;
 
@@ -97,23 +98,55 @@ public class RepositoryBindingServiceRefreshTests
         fixture.Queue.Enqueued.Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "Refresh: папка есть, PR уже привязан → auto-bind не дёргается, binding без изменений")]
-    public async Task Refresh_existing_folder_with_pr_skips_auto_bind()
+    [Fact(DisplayName = "Refresh: папка есть, PR привязан и всё ещё open → запущен квант поллера, auto-bind не дёргается")]
+    public async Task Refresh_existing_folder_with_open_pr_runs_poller_tick()
     {
         var fixture = new ServiceFixture();
         fixture.Probe.DirectoryExists = true;
         var binding = NewBinding(
             intentId: IntentIdValue, cloneStatus: CloneStatusNames.Ready, pullRequestNumber: 11);
         fixture.Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(binding);
+        fixture.Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(ci.Arg<IntentRepositoryBinding>())));
+        fixture.Provider.GetPullRequestAsync("octo", "hello", 11, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<PullRequestSnapshot?>(
+                new PullRequestSnapshot(11, PullRequestStateNames.Open)));
+        fixture.Provider.ListPullRequestCommentsAsync(
+                "octo", "hello", 11, Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<PullRequestCommentsPage?>(new PullRequestCommentsPage.NotModified()));
 
         var result = await fixture.Service.RefreshAsync(
             new RefreshRepositoryBindingCommand(IntentIdValue, binding.Id.Value), CancellationToken.None);
 
         result.State.PullRequestNumber.Should().Be(11);
+        await fixture.Provider.Received(1).GetPullRequestAsync(
+            "octo", "hello", 11, Arg.Any<CancellationToken>());
         await fixture.BranchReader.DidNotReceive().ReadCurrentBranchAsync(
             Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await fixture.Bindings.DidNotReceive().SaveAsync(
-            Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Refresh: папка есть, PR помержен апстримом → state→merged без ожидания тика поллера")]
+    public async Task Refresh_existing_folder_with_merged_pr_promotes_state()
+    {
+        var fixture = new ServiceFixture();
+        fixture.Probe.DirectoryExists = true;
+        var binding = NewBinding(
+            intentId: IntentIdValue, cloneStatus: CloneStatusNames.Ready, pullRequestNumber: 11);
+        fixture.Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(binding);
+        fixture.Bindings.SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>())
+            .Returns(ci => Task.FromResult<SaveBindingOutcome>(new SaveBindingOutcome.Saved(ci.Arg<IntentRepositoryBinding>())));
+        fixture.Bindings.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IReadOnlyList<IntentRepositoryBinding>>([binding]));
+        fixture.Provider.GetPullRequestAsync("octo", "hello", 11, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<PullRequestSnapshot?>(
+                new PullRequestSnapshot(11, PullRequestStateNames.Merged)));
+
+        await fixture.Service.RefreshAsync(
+            new RefreshRepositoryBindingCommand(IntentIdValue, binding.Id.Value), CancellationToken.None);
+
+        await fixture.Bindings.Received().SaveAsync(
+            Arg.Is<IntentRepositoryBinding>(b => b.State.PullRequestState == PullRequestStateNames.Merged),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Refresh на чужой intent_id не находит binding (cross-tenant guard)")]
