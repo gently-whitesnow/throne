@@ -98,9 +98,13 @@ public partial class RunPreflightOrchestratorTests
                 persistence,
                 Substitute.For<IWorkspaceRootProvider>(),
                 NullLogger<PullRequestAutoBindWorkflow>.Instance);
+            var backoff = new PullRequestSyncBackoff(new PullRequestSyncOptions());
+            var visitor = new PullRequestSyncBindingVisitor(
+                Substitute.For<IGitProviderRegistry>(), syncWorkflow, stateRefresher, backoff, clock);
             var service = new RepositoryBindingService(
                 resolver, persistence, syncWorkflow,
                 new RepositoryCloneTransitionWriter(Bindings, uow, clock), cloneQueue, autoBindWorkflow,
+                visitor, backoff,
                 NullLogger<RepositoryBindingService>.Instance);
             return (service, cloneQueue);
         }
