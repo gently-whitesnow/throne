@@ -1,14 +1,26 @@
 using FluentAssertions;
+using NSubstitute;
 using Throne.Api.Terminals;
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
+using Throne.Domain.Capabilities;
 using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Tests.Terminals;
 
 public class TerminalVendorCatalogMapperTests
 {
-    private static TerminalVendorCatalogMapper Build(params IVendorModelCatalog[] dynamicCatalogs) =>
-        new(dynamicCatalogs);
+    private static TerminalVendorCatalogMapper Build(
+        IVendorModelCatalog[]? dynamicCatalogs = null,
+        bool opencodeAvailable = true)
+    {
+        var capabilities = Substitute.For<ICapabilityAvailability>();
+        capabilities.IsAvailableAsync(CapabilityNames.Opencode, Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(opencodeAvailable));
+        return new TerminalVendorCatalogMapper(
+            dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
+            capabilities);
+    }
 
     [Fact(DisplayName = "Каталог: default_vendor=claude и все три вендора отданы в порядке каталога")]
     public async Task Maps_default_vendor_and_vendor_order()
@@ -52,7 +64,7 @@ public class TerminalVendorCatalogMapperTests
     public async Task Maps_opencode_metadata_from_dynamic_catalog()
     {
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4", "qwen-3"]);
-        var dto = await Build(dynamicCatalog).ToDtoAsync(CancellationToken.None);
+        var dto = await Build([dynamicCatalog]).ToDtoAsync(CancellationToken.None);
         var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
 
         opencode.Label.Should().Be("OpenCode");
@@ -68,11 +80,23 @@ public class TerminalVendorCatalogMapperTests
     public async Task Maps_opencode_metadata_when_local_endpoint_empty()
     {
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, []);
-        var dto = await Build(dynamicCatalog).ToDtoAsync(CancellationToken.None);
+        var dto = await Build([dynamicCatalog]).ToDtoAsync(CancellationToken.None);
         var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
 
         opencode.Models.Should().BeEmpty();
         opencode.Default_model.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Capability opencode выключена/undetected → вендор пропадает из списка")]
+    public async Task Hides_opencode_when_capability_unavailable()
+    {
+        var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
+        var mapper = Build([dynamicCatalog], opencodeAvailable: false);
+
+        var dto = await mapper.ToDtoAsync(CancellationToken.None);
+
+        dto.Vendors.Select(v => v.Vendor)
+            .Should().Equal(TerminalAgentVendor.Claude, TerminalAgentVendor.Codex);
     }
 
     private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog

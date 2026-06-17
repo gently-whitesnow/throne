@@ -126,7 +126,8 @@ public partial class RunPreflightOrchestratorTests
             var settingsStore = Substitute.For<ITerminalSettingsStore>();
             settingsStore.GetDefaultVendorAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(TerminalAgentCatalog.VendorClaude));
-            return new TerminalLaunchResolver(settingsStore, Array.Empty<IVendorModelCatalog>());
+            return new TerminalLaunchResolver(
+                settingsStore, Array.Empty<IVendorModelCatalog>(), Substitute.For<Throne.Application.Terminals.Capabilities.ICapabilityAvailability>());
         }
 
         private RunPreflightPromptGate BuildPromptGate(TimeProvider clock, IUnitOfWork uow)

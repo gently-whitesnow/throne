@@ -28,7 +28,8 @@ public class CapabilitiesServiceTests
             CapabilityNames.Repositories,
             CapabilityNames.Gitlab,
             CapabilityNames.Terminal,
-            CapabilityNames.Vscode);
+            CapabilityNames.Vscode,
+            CapabilityNames.Opencode);
         views.Should().OnlyContain(v => v.Enabled == false);
         views.Single(v => v.Name == CapabilityNames.Terminal).Detected.Should().BeTrue();
         views.Single(v => v.Name == CapabilityNames.Terminal).DetectionDetail.Should().Be("tmux 3.5a");
