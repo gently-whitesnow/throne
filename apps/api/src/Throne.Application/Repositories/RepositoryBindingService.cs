@@ -23,7 +23,6 @@ public sealed partial class RepositoryBindingService(
     IRepositoryCloneRequests cloneQueue,
     PullRequestAutoBindWorkflow autoBind,
     PullRequestSyncBindingVisitor pollerVisitor,
-    PullRequestSyncBackoff pollerBackoff,
     ILogger<RepositoryBindingService> logger
 )
 {
@@ -114,9 +113,8 @@ public sealed partial class RepositoryBindingService(
             else if (binding.State.PullRequestNumber is not null
                 && binding.State.CloneStatus == CloneStatusNames.Ready)
             {
-                pollerBackoff.Forget(binding.Id);
                 var report = new PullRequestSyncTickReport();
-                await pollerVisitor.VisitAsync(binding, report, ct);
+                await pollerVisitor.ForceVisitAsync(binding, report, ct);
                 var snapshot = report.Snapshot;
                 LogRefreshPollerTick(
                     logger,
