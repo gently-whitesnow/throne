@@ -93,17 +93,13 @@ internal sealed class ServiceFixture
         var autoBind = new PullRequestAutoBindWorkflow(
             Bindings, Providers, BranchReader, persistence, workspace,
             NullLogger<PullRequestAutoBindWorkflow>.Instance);
-        Backoff = new PullRequestSyncBackoff(new PullRequestSyncOptions());
-        Visitor = new PullRequestSyncBindingVisitor(
-            Providers, syncWorkflow, stateRefresher, Backoff, clock);
+        var visitor = new PullRequestSyncBindingVisitor(
+            Providers, syncWorkflow, stateRefresher,
+            new PullRequestSyncBackoff(new PullRequestSyncOptions()), clock);
         Service = new RepositoryBindingService(
-            resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind,
-            Visitor, Backoff,
+            resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind, visitor,
             NullLogger<RepositoryBindingService>.Instance);
     }
-
-    public PullRequestSyncBackoff Backoff { get; }
-    public PullRequestSyncBindingVisitor Visitor { get; }
 
     public IIntentRepository Intents { get; }
     public IIntentRepositoryBindingRepository Bindings { get; }
