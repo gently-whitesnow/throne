@@ -69,6 +69,7 @@ components:
         - gitlab
         - terminal
         - vscode
+        - opencode
       description: >
         Closed set of capability keys exposed in settings.
     CapabilityDto:

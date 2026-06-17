@@ -1,6 +1,7 @@
 import {
   AlertCircle,
   AlertTriangle,
+  Bot,
   CheckCircle2,
   ExternalLink,
   FolderGit2,
@@ -42,6 +43,11 @@ const CAPABILITY_VISUALS: Record<
     setupHref:
       "https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line",
     setupLabel: "Установить команду code в PATH"
+  },
+  opencode: {
+    icon: Bot,
+    setupHref: "https://opencode.ai/docs/",
+    setupLabel: "Установить opencode CLI и настроить локальный эндпоинт"
   }
 };
 

@@ -50,6 +50,10 @@ namespace Throne.Capabilities.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"vscode")]
         Vscode = 3,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"opencode")]
+        [System.Runtime.Serialization.EnumMember(Value = @"opencode")]
+        Opencode = 4,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
