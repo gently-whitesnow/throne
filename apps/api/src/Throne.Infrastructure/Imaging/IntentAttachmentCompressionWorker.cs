@@ -2,8 +2,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Polly;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
+using Throne.Infrastructure.Mongo;
 
 namespace Throne.Infrastructure.Imaging;
 
@@ -11,15 +13,13 @@ internal sealed partial class IntentAttachmentCompressionWorker(
     IIntentAttachmentRepository attachments,
     IImageDownscaler downscaler,
     IOptions<IntentAttachmentCompressionOptions> options,
+    ResiliencePipeline mongoResilience,
+    TimeProvider clock,
     ILogger<IntentAttachmentCompressionWorker> log) : BackgroundService
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
         Message = "IntentAttachmentCompressionWorker disabled: poll_interval <= 0.")]
     private static partial void LogDisabled(ILogger logger);
-
-    [LoggerMessage(EventId = 2, Level = LogLevel.Error,
-        Message = "IntentAttachmentCompressionWorker tick failed.")]
-    private static partial void LogTickFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
         Message = "IntentAttachmentCompressionWorker: pending attachment {AttachmentId} has no GridFS blob, skipping.")]
@@ -38,6 +38,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             return;
         }
 
+        var faultLog = new MongoFaultLog(log, clock, "IntentAttachmentCompressionWorker");
         using var timer = new PeriodicTimer(settings.PollInterval);
         try
         {
@@ -45,7 +46,10 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             {
                 try
                 {
-                    await CompressBatchAsync(attachments, downscaler, settings, log, stoppingToken);
+                    await mongoResilience.ExecuteAsync(
+                        async ct => await CompressBatchAsync(attachments, downscaler, settings, log, ct),
+                        stoppingToken);
+                    faultLog.RecordSuccess();
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -53,7 +57,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
                 }
                 catch (Exception ex)
                 {
-                    LogTickFailed(log, ex);
+                    faultLog.RecordFailure(ex);
                 }
             }
             while (await timer.WaitForNextTickAsync(stoppingToken));
