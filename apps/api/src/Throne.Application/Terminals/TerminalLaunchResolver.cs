@@ -1,4 +1,5 @@
 using Throne.Application.Ports;
+using Throne.Application.Terminals.Capabilities;
 
 namespace Throne.Application.Terminals;
 
@@ -26,7 +27,8 @@ public sealed record TerminalLaunchInput(string? Vendor, string? Model, string? 
 /// </summary>
 public sealed class TerminalLaunchResolver(
     ITerminalSettingsStore settings,
-    IEnumerable<IVendorModelCatalog> dynamicCatalogs)
+    IEnumerable<IVendorModelCatalog> dynamicCatalogs,
+    ICapabilityAvailability capabilities)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
         dynamicCatalogs.ToDictionary(c => c.Vendor, StringComparer.Ordinal);
@@ -44,6 +46,12 @@ public sealed class TerminalLaunchResolver(
         }
 
         var descriptor = TerminalAgentCatalog.DescriptorFor(resolvedVendor);
+
+        if (descriptor.RequiredCapability is { } required
+            && !await capabilities.IsAvailableAsync(required, ct))
+        {
+            throw TerminalFailures.CapabilityDisabled(required);
+        }
 
         var resolvedModel = await ResolveModelAsync(descriptor, model, ct);
 

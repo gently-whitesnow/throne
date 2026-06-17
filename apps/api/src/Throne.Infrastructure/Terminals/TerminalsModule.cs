@@ -58,6 +58,7 @@ public static class TerminalsModule
         services.AddSingleton<ICapabilityProbe, VsCodeCapabilityProbe>();
         services.AddSingleton<ICapabilityProbe, RepositoriesCapabilityProbe>();
         services.AddSingleton<ICapabilityProbe, GitLabCapabilityProbe>();
+        services.AddSingleton<ICapabilityProbe, OpencodeCapabilityProbe>();
         services.AddSingleton<ICapabilityDetectionCache, CapabilityDetectionCache>();
 
         return services;

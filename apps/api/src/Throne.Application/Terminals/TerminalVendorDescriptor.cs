@@ -25,7 +25,8 @@ public sealed record TerminalVendorDescriptor(
     IReadOnlyList<string> Efforts,
     string? DefaultEffort,
     string ModelSource,
-    Func<TerminalLaunchOptions, IReadOnlyList<string>> BuildBaseArgs)
+    Func<TerminalLaunchOptions, IReadOnlyList<string>> BuildBaseArgs,
+    string? RequiredCapability = null)
 {
     /// <summary>
     /// Static native default model = first entry of <see cref="Models"/>. Null when the
