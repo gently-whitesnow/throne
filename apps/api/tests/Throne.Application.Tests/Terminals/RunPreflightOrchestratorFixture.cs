@@ -75,9 +75,6 @@ public partial class RunPreflightOrchestratorTests
         private (RepositoryBindingService Service, IRepositoryCloneRequests CloneQueue) BuildBindingService(
             IWorkspaceRootProvider workspace, TimeProvider clock, IUnitOfWork uow)
         {
-            // BindingService is only invoked from the autobind path; in these tests we never seed
-            // tag defaults so the call site is unreachable, but the sealed service still needs
-            // wiring — feed it stub collaborators that throw if exercised.
             var resolver = new RepositoryBindingResolver(Intents, Bindings, Substitute.For<IGitProviderRegistry>());
             var persistence = new RepositoryBindingPersistence(
                 Bindings, Substitute.For<IRepositoryRegistry>(), uow, clock, workspace,
@@ -98,10 +95,13 @@ public partial class RunPreflightOrchestratorTests
                 persistence,
                 Substitute.For<IWorkspaceRootProvider>(),
                 NullLogger<PullRequestAutoBindWorkflow>.Instance);
+            var visitor = new PullRequestSyncBindingVisitor(
+                Substitute.For<IGitProviderRegistry>(), syncWorkflow, stateRefresher,
+                new PullRequestSyncBackoff(new PullRequestSyncOptions()), clock);
             var service = new RepositoryBindingService(
                 resolver, persistence, syncWorkflow,
                 new RepositoryCloneTransitionWriter(Bindings, uow, clock), cloneQueue, autoBindWorkflow,
-                NullLogger<RepositoryBindingService>.Instance);
+                visitor, NullLogger<RepositoryBindingService>.Instance);
             return (service, cloneQueue);
         }
 
@@ -173,14 +173,8 @@ public partial class RunPreflightOrchestratorTests
                 Intents.GetByIdAsync(Arg.Is<IntentId>(i => i.Value == IntentIdValue), Arg.Any<CancellationToken>())
                     .Returns(intent);
                 Intents.SetStatusAsync(
-                        Arg.Any<IntentId>(),
-                        Arg.Any<string>(),
-                        Arg.Any<string?>(),
-                        Arg.Any<string?>(),
-                        Arg.Any<IntentTrainingAuthor>(),
-                        Arg.Any<string>(),
-                        Arg.Any<DateTimeOffset>(),
-                        Arg.Any<CancellationToken>())
+                        Arg.Any<IntentId>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(),
+                        Arg.Any<IntentTrainingAuthor>(), Arg.Any<string>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
                     .Returns(ci => new SetIntentStatusOutcome.Updated(
                         Intent.Restore(ci.ArgAt<IntentId>(0), "x", ci.ArgAt<string>(1), 1, [], Now, Now)));
             }

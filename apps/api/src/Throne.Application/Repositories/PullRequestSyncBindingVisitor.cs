@@ -16,6 +16,19 @@ public sealed class PullRequestSyncBindingVisitor(
     PullRequestSyncBackoff backoff,
     TimeProvider clock)
 {
+    /// <summary>
+    /// Manual entry point: clear any pending backoff window first so a user-initiated
+    /// refresh is not silently dropped, then run the regular per-binding step.
+    /// </summary>
+    public Task ForceVisitAsync(
+        IntentRepositoryBinding binding,
+        PullRequestSyncTickReport report,
+        CancellationToken ct)
+    {
+        backoff.Forget(binding.Id);
+        return VisitAsync(binding, report, ct);
+    }
+
     public async Task VisitAsync(
         IntentRepositoryBinding binding,
         PullRequestSyncTickReport report,

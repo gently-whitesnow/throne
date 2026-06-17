@@ -22,6 +22,7 @@ public sealed partial class RepositoryBindingService(
     RepositoryCloneTransitionWriter cloneWriter,
     IRepositoryCloneRequests cloneQueue,
     PullRequestAutoBindWorkflow autoBind,
+    PullRequestSyncBindingVisitor pollerVisitor,
     ILogger<RepositoryBindingService> logger
 )
 {
@@ -77,15 +78,20 @@ public sealed partial class RepositoryBindingService(
     }
 
     /// <summary>
-    /// «Обновить» disk-recovery (ADR-0024) + on-demand PR auto-bind. Disk path: trigger is purely
-    /// the on-disk folder — the Mongo <c>clone_status</c> is ignored. Folder missing → flip the
-    /// binding back to <c>pending</c> (unless already queued) and re-enqueue the clone; the
-    /// worker's <c>pending → cloning</c> CAS de-dupes a double enqueue. Realtime
-    /// <c>IntentRepositoryCloneProgress</c> (raised by the transition writer) drives the UI to
-    /// <c>ready</c>. Folder present → no clone work, but when the binding has no PR attached we
-    /// run a single <see cref="PullRequestAutoBindWorkflow"/> pass for it so the user does not
-    /// have to wait for the next <see cref="PullRequestSyncTickWorkflow"/> tick to see a
-    /// freshly-opened PR.
+    /// «Обновить» disk-recovery (ADR-0024) + on-demand PR auto-bind + on-demand PR poller
+    /// quantum. Disk path: trigger is purely the on-disk folder — the Mongo <c>clone_status</c>
+    /// is ignored. Folder missing → flip the binding back to <c>pending</c> (unless already
+    /// queued) and re-enqueue the clone; the worker's <c>pending → cloning</c> CAS de-dupes a
+    /// double enqueue. Realtime <c>IntentRepositoryCloneProgress</c> (raised by the transition
+    /// writer) drives the UI to <c>ready</c>. Folder present:
+    /// <list type="bullet">
+    ///   <item>no PR attached → one <see cref="PullRequestAutoBindWorkflow"/> pass so the user
+    ///         does not have to wait for the next tick to see a freshly-opened PR;</item>
+    ///   <item>PR attached → one <see cref="PullRequestSyncBindingVisitor"/> visit so the
+    ///         intent flips to <c>done</c> on merge without waiting for the next
+    ///         <see cref="PullRequestSyncTickWorkflow"/> tick. The visitor is provider-neutral;
+    ///         backoff is cleared first because the operator explicitly asked for a poll.</item>
+    /// </list>
     /// </summary>
     public async Task<IntentRepositoryBinding> RefreshAsync(
         RefreshRepositoryBindingCommand command,
@@ -103,6 +109,20 @@ public sealed partial class RepositoryBindingService(
                 var report = await autoBind.RunForAsync(binding, ct);
                 LogRefreshAutoBind(
                     logger, binding.Id.Value, report.Bound, report.Skipped, report.Failed);
+            }
+            else if (binding.State.PullRequestNumber is not null
+                && binding.State.CloneStatus == CloneStatusNames.Ready)
+            {
+                var report = new PullRequestSyncTickReport();
+                await pollerVisitor.ForceVisitAsync(binding, report, ct);
+                var snapshot = report.Snapshot;
+                LogRefreshPollerTick(
+                    logger,
+                    binding.Id.Value,
+                    binding.State.PullRequestNumber!.Value,
+                    snapshot.Polled,
+                    snapshot.LifecycleClosed,
+                    snapshot.Failed);
             }
             else
             {
@@ -191,4 +211,9 @@ public sealed partial class RepositoryBindingService(
         Message = "RepositoryBindingService.Refresh: binding {BindingId} local clone missing (was {PrevCloneStatus}) — re-enqueued.")]
     private static partial void LogRefreshReclone(
         ILogger logger, string bindingId, string prevCloneStatus);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information,
+        Message = "RepositoryBindingService.Refresh: binding {BindingId} PR #{Pr} poller-tick polled={Polled}, lifecycleClosed={LifecycleClosed}, failed={Failed}.")]
+    private static partial void LogRefreshPollerTick(
+        ILogger logger, string bindingId, int pr, int polled, int lifecycleClosed, int failed);
 }
