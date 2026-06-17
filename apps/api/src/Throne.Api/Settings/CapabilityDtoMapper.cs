@@ -27,6 +27,7 @@ internal static class CapabilityDtoMapper
         CapabilityName.Gitlab => CapabilityNames.Gitlab,
         CapabilityName.Terminal => CapabilityNames.Terminal,
         CapabilityName.Vscode => CapabilityNames.Vscode,
+        CapabilityName.Opencode => CapabilityNames.Opencode,
         _ => throw new ArgumentOutOfRangeException(nameof(name), $"Unknown capability name '{name}'."),
     };
 
@@ -36,6 +37,7 @@ internal static class CapabilityDtoMapper
         CapabilityNames.Gitlab => CapabilityName.Gitlab,
         CapabilityNames.Terminal => CapabilityName.Terminal,
         CapabilityNames.Vscode => CapabilityName.Vscode,
+        CapabilityNames.Opencode => CapabilityName.Opencode,
         _ => throw new InvalidOperationException(
             $"Capability '{domain}' is not exposed in the OpenAPI contract (extend `CapabilityName` first)."),
     };

@@ -52,7 +52,7 @@ export interface components {
          * @description Closed set of capability keys exposed in settings.
          * @enum {string}
          */
-        CapabilityName: "repositories" | "gitlab" | "terminal" | "vscode";
+        CapabilityName: "repositories" | "gitlab" | "terminal" | "vscode" | "opencode";
         CapabilityDto: {
             name: components["schemas"]["CapabilityName"];
             /** @description Short human-readable label rendered as the card title in `/settings`. */
