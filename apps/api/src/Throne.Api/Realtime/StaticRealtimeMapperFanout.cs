@@ -11,6 +11,7 @@ internal static class StaticRealtimeMapperFanout
             ?? IntentAttachmentRealtimeMapper.TryMap(evt)
             ?? IntentRepositoryRealtimeMapper.TryMap(evt)
             ?? RepositoryRegistryRealtimeMapper.TryMap(evt)
+            ?? PullRequestArtifactRealtimeMapper.TryMap(evt)
             ?? TagRealtimeMapper.TryMap(evt)
             ?? PromptPartPatchRealtimeMapper.TryMap(evt)
             ?? DreamRealtimeMapper.TryMap(evt)

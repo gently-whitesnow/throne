@@ -50,6 +50,9 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<GetRepositoryDocumentEndpoint>();
         services.AddSingleton<PutRepositoryDocumentEndpoint>();
         services.AddSingleton<ListRepositoryDocumentVersionsEndpoint>();
+        services.AddSingleton<ListPullRequestArtifactsEndpoint>();
+        services.AddSingleton<GetPullRequestArtifactEndpoint>();
+        services.AddSingleton<PutPullRequestArtifactEndpoint>();
 
         services.AddSingleton<WorkspaceSizeProbe>();
         services.AddSingleton<GetWorkspaceSettingsEndpoint>();

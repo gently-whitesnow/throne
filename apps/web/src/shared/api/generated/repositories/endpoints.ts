@@ -31,4 +31,7 @@ export const repositoriesEndpoints = {
   getRepositoryDocument: (provider: string, owner: string, repo: string, slug: string) => `/repositories/${provider}/${owner}/${repo}/documents/${slug}`,
   putRepositoryDocument: (provider: string, owner: string, repo: string, slug: string) => `/repositories/${provider}/${owner}/${repo}/documents/${slug}`,
   listRepositoryDocumentVersions: (provider: string, owner: string, repo: string, slug: string) => `/repositories/${provider}/${owner}/${repo}/documents/${slug}/versions`,
+  listPullRequestArtifacts: (binding_id: string) => `/repositories/${binding_id}/artifacts`,
+  getPullRequestArtifact: (binding_id: string, type: string) => `/repositories/${binding_id}/artifacts/${type}`,
+  putPullRequestArtifact: (binding_id: string, type: string) => `/repositories/${binding_id}/artifacts/${type}`,
 } as const;

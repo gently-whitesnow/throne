@@ -14,6 +14,7 @@ internal sealed record RepositoryStoreTestScope(
     IMongoDatabase Database,
     IRepositoryRegistry Registry,
     IRepositoryArtifactRepository Artifacts,
+    IPullRequestArtifactRepository PullRequestArtifacts,
     IUnitOfWork UnitOfWork)
 {
     public static async Task<RepositoryStoreTestScope> CreateAsync(MongoFixture fixture)
@@ -24,11 +25,13 @@ internal sealed record RepositoryStoreTestScope(
 
         await MongoRepositoryIndexes.CreateAsync(db, CancellationToken.None);
         await MongoRepositoryArtifactIndexes.CreateAsync(db, CancellationToken.None);
+        await MongoPullRequestArtifactIndexes.CreateAsync(db, CancellationToken.None);
 
         var sessions = new MongoSessionAccessor();
         var registry = new MongoRepositoryRegistry(db, sessions);
         var artifacts = new MongoRepositoryArtifactStore(db, sessions);
+        var pullRequestArtifacts = new MongoPullRequestArtifactStore(db, sessions);
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return new RepositoryStoreTestScope(db, registry, artifacts, uow);
+        return new RepositoryStoreTestScope(db, registry, artifacts, pullRequestArtifacts, uow);
     }
 }

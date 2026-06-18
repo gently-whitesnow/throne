@@ -283,6 +283,9 @@ export function RealtimeQueryBridge() {
       queryKey: repositoriesQueryKeys.documentVersions(coordinate, payload.slug)
     });
   });
+  useRealtimeEvent("pull_request.artifact_updated", () => {
+    void qc.invalidateQueries({ queryKey: repositoriesQueryKeys.all });
+  });
 
   useRealtimeEvent("intent.link_added", (payload) => {
     void qc.invalidateQueries({

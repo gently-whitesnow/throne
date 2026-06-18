@@ -180,6 +180,25 @@ events:
           type: integer
           format: int32
           minimum: 1
+  pull_request.artifact_updated:
+    description: >
+      A PullRequestArtifact was written for a repository binding (ADR-0031). Latest-wins:
+      clients refetch the artifact list or the single `(binding_id, type)` row.
+    payload:
+      type: object
+      required: [binding_id, pull_request_number, type, produced_at]
+      properties:
+        binding_id:
+          type: string
+        pull_request_number:
+          type: integer
+          format: int32
+          minimum: 1
+        type:
+          type: string
+        produced_at:
+          type: string
+          format: date-time
   tag.created:
     description: A new tag was created (by user or auto-upsert during create_intent / set_intent_tags).
     payload_ref: tags#/components/schemas/TagDto

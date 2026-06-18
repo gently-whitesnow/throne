@@ -1255,6 +1255,109 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/repositories/{binding_id}/artifacts:
+    get:
+      operationId: listPullRequestArtifacts
+      tags: [Repositories]
+      summary: List latest pull request artifacts for a repository binding.
+      description: >
+        One-shot PR verification artifacts (ADR-0031), ordered by `type`. The binding must
+        exist only for writes; reads return the durable rows currently present for the
+        binding id and an unknown binding yields an empty array.
+      parameters:
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PullRequestArtifactDto'
+  /api/v1/repositories/{binding_id}/artifacts/{type}:
+    get:
+      operationId: getPullRequestArtifact
+      tags: [Repositories]
+      summary: Get a single latest pull request artifact by type.
+      parameters:
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequestArtifactDto'
+        '404':
+          description: No artifact of this type for the binding.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    put:
+      operationId: putPullRequestArtifact
+      tags: [Repositories]
+      summary: Idempotently ingest a latest pull request artifact.
+      description: >
+        Durable latest-wins ingest for ADR-0031 PR artifacts. The server derives
+        `pull_request_number` from the durable binding; the request replaces the current
+        artifact for `(binding_id, type)` wholesale and emits `pull_request.artifact_updated`.
+      parameters:
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutPullRequestArtifactRequest'
+      responses:
+        '200':
+          description: OK — the artifact after this write.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PullRequestArtifactDto'
+        '404':
+          description: Repository binding not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: The binding has no pull request attached.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Type or body failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     GitProvider:
@@ -2175,5 +2278,95 @@ components:
         render_hint:
           $ref: '#/components/schemas/RepositoryArtifactRenderHint'
         created_at:
+          type: string
+          format: date-time
+    PullRequestArtifactRender:
+      type: string
+      enum:
+        - markdown
+        - mermaid
+        - svg
+        - json
+      description: How a PR artifact body should be rendered (ADR-0031).
+    PullRequestArtifactSource:
+      type: string
+      enum:
+        - static
+        - agent
+      description: Producer family for a PR artifact.
+    PullRequestArtifactDto:
+      type: object
+      required:
+        - id
+        - binding_id
+        - pull_request_number
+        - type
+        - render
+        - content
+        - summary
+        - source
+        - source_refs
+        - produced_at
+      properties:
+        id:
+          type: string
+        binding_id:
+          type: string
+        pull_request_number:
+          type: integer
+          format: int32
+          minimum: 1
+        type:
+          type: string
+          minLength: 1
+          maxLength: 80
+        render:
+          $ref: '#/components/schemas/PullRequestArtifactRender'
+        content:
+          type: string
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 300
+        source:
+          $ref: '#/components/schemas/PullRequestArtifactSource'
+        source_refs:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            minLength: 1
+            maxLength: 500
+        produced_at:
+          type: string
+          format: date-time
+    PutPullRequestArtifactRequest:
+      type: object
+      required:
+        - render
+        - content
+        - summary
+        - source
+        - source_refs
+        - produced_at
+      properties:
+        render:
+          $ref: '#/components/schemas/PullRequestArtifactRender'
+        content:
+          type: string
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 300
+        source:
+          $ref: '#/components/schemas/PullRequestArtifactSource'
+        source_refs:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            minLength: 1
+            maxLength: 500
+        produced_at:
           type: string
           format: date-time

@@ -48,6 +48,8 @@ public sealed record RepositoryRegistered(Repository Repository) : IDomainEvent;
 
 public sealed record RepositoryDocumentUpdated(RepositoryArtifact Artifact) : IDomainEvent;
 
+public sealed record PullRequestArtifactUpdated(PullRequestArtifact Artifact) : IDomainEvent;
+
 public sealed record TagCreated(Tag Tag) : IDomainEvent;
 
 public sealed record TagUpdated(Tag Tag) : IDomainEvent;
