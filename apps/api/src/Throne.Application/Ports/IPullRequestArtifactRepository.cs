@@ -19,6 +19,8 @@ public interface IPullRequestArtifactRepository
         string source,
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
+        string? headSha,
+        string? reviewRecommendation,
         CancellationToken ct);
 
     Task<PullRequestArtifact?> GetAsync(BindingId bindingId, string type, CancellationToken ct);

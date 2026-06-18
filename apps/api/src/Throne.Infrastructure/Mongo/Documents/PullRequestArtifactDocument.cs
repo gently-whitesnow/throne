@@ -35,4 +35,12 @@ internal sealed class PullRequestArtifactDocument
 
     [BsonElement("produced_at")]
     public DateTime ProducedAt { get; set; }
+
+    [BsonElement("head_sha")]
+    [BsonIgnoreIfNull]
+    public string? HeadSha { get; set; }
+
+    [BsonElement("review_recommendation")]
+    [BsonIgnoreIfNull]
+    public string? ReviewRecommendation { get; set; }
 }

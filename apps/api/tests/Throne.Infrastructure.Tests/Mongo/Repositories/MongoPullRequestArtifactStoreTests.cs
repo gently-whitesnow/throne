@@ -45,6 +45,29 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
         list.Select(x => x.Type).Should().Equal("coverage", "static_analysis");
     }
 
+    [Fact(DisplayName = "UpsertAsync сохраняет и перезаписывает head_sha и review_recommendation")]
+    public async Task Upsert_round_trips_review_fields()
+    {
+        var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
+        await scope.PullRequestArtifacts.UpsertAsync(
+            BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
+            "# review", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now,
+            "sha-1", "{\"file_order\":[{\"path\":\"a.cs\"}]}", CancellationToken.None);
+
+        var first = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
+        first!.HeadSha.Should().Be("sha-1");
+        first.ReviewRecommendation.Should().Be("{\"file_order\":[{\"path\":\"a.cs\"}]}");
+
+        await scope.PullRequestArtifacts.UpsertAsync(
+            BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
+            "# review v2", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now.AddMinutes(1),
+            "sha-2", "{\"file_order\":[{\"path\":\"b.cs\"}]}", CancellationToken.None);
+
+        var second = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
+        second!.HeadSha.Should().Be("sha-2");
+        second.ReviewRecommendation.Should().Be("{\"file_order\":[{\"path\":\"b.cs\"}]}");
+    }
+
     [Fact(DisplayName = "Уникальный индекс (binding_id,type) запрещает второй документ того же типа")]
     public async Task Binding_type_index_is_unique()
     {
@@ -85,5 +108,7 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
             PullRequestArtifactSourceNames.Static,
             ["sha:abc"],
             producedAt,
+            null,
+            null,
             CancellationToken.None);
 }

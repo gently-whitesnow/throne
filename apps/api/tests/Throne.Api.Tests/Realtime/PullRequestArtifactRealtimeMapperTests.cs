@@ -30,7 +30,8 @@ public class PullRequestArtifactRealtimeMapperTests
             "Static analysis",
             PullRequestArtifactSourceNames.Static,
             ["sha:abc"],
-            Now);
+            Now,
+            headSha: "abc123");
 
         var envelope = PullRequestArtifactRealtimeMapper.TryMap(new PullRequestArtifactUpdated(artifact));
 
@@ -40,10 +41,11 @@ public class PullRequestArtifactRealtimeMapperTests
         using var json = SerializePayload(envelope.Payload);
         var root = json.RootElement;
         root.EnumerateObject().Select(p => p.Name).Should()
-            .BeEquivalentTo("binding_id", "pull_request_number", "type", "produced_at");
+            .BeEquivalentTo("binding_id", "pull_request_number", "type", "head_sha", "produced_at");
         root.GetProperty("binding_id").GetString().Should().Be("binding-1");
         root.GetProperty("pull_request_number").GetInt32().Should().Be(42);
         root.GetProperty("type").GetString().Should().Be("static_analysis");
+        root.GetProperty("head_sha").GetString().Should().Be("abc123");
         root.GetProperty("produced_at").GetDateTimeOffset().Should().Be(Now);
     }
 

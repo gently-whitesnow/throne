@@ -12,7 +12,9 @@ public sealed record WritePullRequestArtifactCommand(
     string Summary,
     string Source,
     IReadOnlyList<string> SourceRefs,
-    DateTimeOffset ProducedAt);
+    DateTimeOffset ProducedAt,
+    string? HeadSha = null,
+    string? ReviewRecommendation = null);
 
 public sealed class PullRequestArtifactWriter(
     IPullRequestArtifactRepository artifacts,
@@ -48,6 +50,8 @@ public sealed class PullRequestArtifactWriter(
                     command.Source,
                     command.SourceRefs,
                     command.ProducedAt,
+                    command.HeadSha,
+                    command.ReviewRecommendation,
                     inner);
             },
             ct);

@@ -44,6 +44,70 @@ public class PullRequestArtifactTests
         artifact.ProducedAt.Should().Be(later);
     }
 
+    [Fact(DisplayName = "Create принимает head_sha и review_recommendation, тримит head_sha")]
+    public void Create_sets_head_sha_and_review_recommendation()
+    {
+        var artifact = PullRequestArtifact.Create(
+            PullRequestArtifactId.New(),
+            BindingId,
+            42,
+            "review_recommendation",
+            PullRequestArtifactRenderNames.Markdown,
+            "# body",
+            "Review",
+            PullRequestArtifactSourceNames.Agent,
+            [],
+            Now,
+            headSha: "  abc123  ",
+            reviewRecommendation: "{\"file_order\":[]}");
+
+        artifact.HeadSha.Should().Be("abc123");
+        artifact.ReviewRecommendation.Should().Be("{\"file_order\":[]}");
+    }
+
+    [Fact(DisplayName = "Create нормализует пустой head_sha в null")]
+    public void Create_blank_head_sha_is_null()
+    {
+        var artifact = PullRequestArtifact.Create(
+            PullRequestArtifactId.New(), BindingId, 42, "review_recommendation",
+            PullRequestArtifactRenderNames.Markdown, "# body", "Review",
+            PullRequestArtifactSourceNames.Agent, [], Now, headSha: "   ");
+
+        artifact.HeadSha.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Create отвергает слишком длинный head_sha")]
+    public void Create_rejects_long_head_sha()
+    {
+        var act = () => PullRequestArtifact.Create(
+            PullRequestArtifactId.New(), BindingId, 42, "review_recommendation",
+            PullRequestArtifactRenderNames.Markdown, "# body", "Review",
+            PullRequestArtifactSourceNames.Agent, [], Now,
+            headSha: new string('a', PullRequestArtifact.MaxHeadShaLength + 1));
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact(DisplayName = "Replace перезаписывает head_sha и review_recommendation")]
+    public void Replace_overwrites_head_sha_and_review()
+    {
+        var artifact = NewArtifact();
+
+        artifact.Replace(
+            42,
+            PullRequestArtifactRenderNames.Markdown,
+            "# body",
+            "Review",
+            PullRequestArtifactSourceNames.Agent,
+            [],
+            Now,
+            headSha: "deadbeef",
+            reviewRecommendation: "{\"produced_by\":{\"vendor\":\"anthropic\"}}");
+
+        artifact.HeadSha.Should().Be("deadbeef");
+        artifact.ReviewRecommendation.Should().Be("{\"produced_by\":{\"vendor\":\"anthropic\"}}");
+    }
+
     [Theory(DisplayName = "Create отвергает невалидный type")]
     [InlineData("")]
     [InlineData("StaticAnalysis")]

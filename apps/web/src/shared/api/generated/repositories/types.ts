@@ -974,6 +974,38 @@ export interface components {
          * @enum {string}
          */
         PullRequestArtifactSource: "static" | "agent";
+        /**
+         * @description Relative risk/centrality of a file, driving review reading order.
+         * @enum {string}
+         */
+        ReviewFileRisk: "high" | "medium" | "low";
+        ReviewFileOrderEntry: {
+            path: string;
+            reason?: string;
+            risk?: components["schemas"]["ReviewFileRisk"] | null;
+        };
+        ReviewModuleGraphEdge: {
+            from: string;
+            to: string;
+        };
+        /** @description Simple adjacency-style module graph (nodes + edges, no graph-viz layout). */
+        ReviewModuleGraph: {
+            nodes?: string[];
+            edges?: components["schemas"]["ReviewModuleGraphEdge"][];
+        };
+        /** @description Vendor/model that produced the recommendation (best-effort, from the agent session). */
+        ReviewProducedBy: {
+            vendor?: string;
+            model?: string;
+        };
+        /** @description Typed content for artifacts of `type=review_recommendation` (ADR-0031). Every field is optional: a partial payload is valid and the UI degrades gracefully. The artifact's `content` string remains the human-readable markdown recommendation; this object carries the machine-readable signals the UI consumes (AI file ordering, impact, provenance). */
+        ReviewRecommendationContent: {
+            file_order?: components["schemas"]["ReviewFileOrderEntry"][];
+            affected_endpoints?: string[];
+            affected_db_tables?: string[];
+            module_graph?: components["schemas"]["ReviewModuleGraph"];
+            produced_by?: components["schemas"]["ReviewProducedBy"];
+        };
         PullRequestArtifactDto: {
             id: string;
             binding_id: string;
@@ -985,6 +1017,9 @@ export interface components {
             summary: string;
             source: components["schemas"]["PullRequestArtifactSource"];
             source_refs: string[];
+            /** @description Head commit sha of the PR when this artifact was produced. The UI marks the artifact stale if the PR head has moved past it. Optional, set by the producer. */
+            head_sha?: string;
+            review_recommendation?: components["schemas"]["ReviewRecommendationContent"];
             /** Format: date-time */
             produced_at: string;
         };
@@ -994,6 +1029,9 @@ export interface components {
             summary: string;
             source: components["schemas"]["PullRequestArtifactSource"];
             source_refs: string[];
+            /** @description Head commit sha of the PR when this artifact was produced. The UI marks the artifact stale if the PR head has moved past it. Optional, set by the producer. */
+            head_sha?: string;
+            review_recommendation?: components["schemas"]["ReviewRecommendationContent"];
             /** Format: date-time */
             produced_at: string;
         };

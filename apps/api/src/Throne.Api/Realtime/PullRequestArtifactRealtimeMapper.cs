@@ -15,6 +15,7 @@ internal static class PullRequestArtifactRealtimeMapper
                 binding_id = updated.Artifact.BindingId.Value,
                 pull_request_number = updated.Artifact.PullRequestNumber,
                 type = updated.Artifact.Type,
+                head_sha = updated.Artifact.HeadSha,
                 produced_at = updated.Artifact.ProducedAt,
             }),
         _ => null,

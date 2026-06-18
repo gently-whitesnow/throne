@@ -89,7 +89,11 @@ internal static class ReviewArtifactWorkspaceFiles
         `binding_id={{target.BindingId}}`, PR `#{{target.PullRequestNumber}}`, artifact
         `type={{ReviewArtifactWriteTarget.ArtifactType}}`, and the local Throne API.
 
-        Pass one JSON payload on stdin:
+        Pass one JSON payload on stdin. `content` is the human-readable markdown body;
+        `review_recommendation` carries the typed signals the UI consumes (AI file order,
+        impact, provenance). `head_sha` is the PR head sha you reviewed — the UI flags the
+        artifact stale once the PR moves past it. Every `review_recommendation` field is
+        optional; send what you computed.
 
         ```json
         {
@@ -98,9 +102,27 @@ internal static class ReviewArtifactWorkspaceFiles
           "summary": "Short recommendation for the operator",
           "source": "agent",
           "source_refs": ["gh pr diff", "gh pr view --comments"],
+          "head_sha": "<PR head commit sha>",
+          "review_recommendation": {
+            "file_order": [
+              { "path": "src/Core.cs", "reason": "core/highest-risk; read first", "risk": "high" },
+              { "path": "src/Leaf.cs", "reason": "trivial leaf", "risk": "low" }
+            ],
+            "affected_endpoints": ["PUT /api/v1/..."],
+            "affected_db_tables": ["orders"],
+            "module_graph": {
+              "nodes": ["core", "leaf"],
+              "edges": [{ "from": "core", "to": "leaf" }]
+            },
+            "produced_by": { "vendor": "<your vendor>", "model": "<your model>" }
+          },
           "produced_at": "2026-06-18T12:00:00Z"
         }
         ```
+
+        Order `file_order` from the most risky/root files to leaves (the reading order for
+        review). `risk` is one of `high` | `medium` | `low`. Fill `produced_by` from your own
+        session (which vendor/model you are).
 
         If gate `send-comments` is enabled, post actionable per-file/per-line review
         comments to the provider with `gh` or `glab`. If it is disabled, keep those

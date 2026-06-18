@@ -17,6 +17,8 @@ internal static class PullRequestArtifactDocumentMapper
         Source = artifact.Source,
         SourceRefs = artifact.SourceRefs.ToArray(),
         ProducedAt = artifact.ProducedAt.UtcDateTime,
+        HeadSha = artifact.HeadSha,
+        ReviewRecommendation = artifact.ReviewRecommendation,
     };
 
     public static PullRequestArtifact ToDomain(PullRequestArtifactDocument doc) =>
@@ -30,7 +32,9 @@ internal static class PullRequestArtifactDocumentMapper
             Summary: doc.Summary,
             Source: doc.Source,
             SourceRefs: doc.SourceRefs,
-            ProducedAt: ToUtc(doc.ProducedAt)));
+            ProducedAt: ToUtc(doc.ProducedAt),
+            HeadSha: doc.HeadSha,
+            ReviewRecommendation: doc.ReviewRecommendation));
 
     private static DateTimeOffset ToUtc(DateTime value) =>
         new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
