@@ -53,7 +53,10 @@ One-shot результат проверки конкретного PR. Реал
 - `content`, `summary` (короткий заголовок для быстрого ревью)
 - `source` — `static` | `agent`
 - `source_refs` — провенанс (commit sha, инструмент)
+- `head_sha` — head-sha PR на момент генерации (UI считает по нему stale-баннер); опционально
 - `produced_at`
+
+> **Амендмент (Slice 4C, PR-производитель `review_recommendation`).** Контракт обзавёлся типизированным per-`type` payload'ом без полиморфизма всей сущности. `content` остаётся непрозрачным render-телом (markdown/mermaid/svg/json), а машиночитаемые сигналы конкретного типа лежат в отдельном **опциональном типизированном поле контракта** (`review_recommendation: ReviewRecommendationContent` — `file_order[{path,reason,risk}]`, `affected_endpoints`, `affected_db_tables`, `module_graph`, `produced_by`). Так фронт получает типы из codegen, а не парсит блоб по соглашению; открытость `type` сохранена (другие типы поле не заполняют). Домен по-прежнему render-agnostic: payload хранится как opaque JSON-строка, типизация живёт в контракте и на границе API. `head_sha` — отдельное верхнеуровневое поле (не `source_refs`), общее для всех типов. Версионирования по-прежнему нет (latest-wins).
 
 **Retention — latest per `(binding_id, type)`**: перегенерация заменяет предыдущий результат этого типа. Истории версий нет (чистый one-shot). Хранится в Mongo, а не в клоне — переживает cleanup workspace ([Slice 6 эпика](88148505)) и привязано к durable binding'у, не к эфемерной рабочей копии.
 

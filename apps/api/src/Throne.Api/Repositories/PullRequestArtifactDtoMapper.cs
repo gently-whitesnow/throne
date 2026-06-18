@@ -19,6 +19,8 @@ internal static class PullRequestArtifactDtoMapper
             Summary = artifact.Summary,
             Source = RepositoryEnumDtoMapper.ToWireArtifactSource(artifact.Source),
             Source_refs = artifact.SourceRefs.ToList(),
+            Head_sha = artifact.HeadSha,
+            Review_recommendation = ReviewRecommendationContentJson.Deserialize(artifact.ReviewRecommendation),
             Produced_at = artifact.ProducedAt,
         };
     }

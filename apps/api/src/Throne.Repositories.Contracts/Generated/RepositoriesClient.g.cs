@@ -1616,6 +1616,169 @@ namespace Throne.Repositories.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Relative risk/centrality of a file, driving review reading order.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ReviewFileRisk
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"high")]
+        [System.Runtime.Serialization.EnumMember(Value = @"high")]
+        High = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"medium")]
+        [System.Runtime.Serialization.EnumMember(Value = @"medium")]
+        Medium = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"low")]
+        [System.Runtime.Serialization.EnumMember(Value = @"low")]
+        Low = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReviewFileOrderEntry
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("path")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 1)]
+        public string Path { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.ComponentModel.DataAnnotations.StringLength(500)]
+        public string Reason { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("risk")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ReviewFileRisk>))]
+        public ReviewFileRisk? Risk { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReviewModuleGraphEdge
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("from")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 1)]
+        public string From { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(500, MinimumLength = 1)]
+        public string To { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Simple adjacency-style module graph (nodes + edges, no graph-viz layout).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReviewModuleGraph
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("nodes")]
+        [System.ComponentModel.DataAnnotations.MaxLength(2000)]
+        public System.Collections.Generic.ICollection<string> Nodes { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("edges")]
+        [System.ComponentModel.DataAnnotations.MaxLength(4000)]
+        public System.Collections.Generic.ICollection<ReviewModuleGraphEdge> Edges { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Vendor/model that produced the recommendation (best-effort, from the agent session).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReviewProducedBy
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("vendor")]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string Vendor { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        [System.ComponentModel.DataAnnotations.StringLength(200)]
+        public string Model { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Typed content for artifacts of `type=review_recommendation` (ADR-0031). Every field is optional: a partial payload is valid and the UI degrades gracefully. The artifact's `content` string remains the human-readable markdown recommendation; this object carries the machine-readable signals the UI consumes (AI file ordering, impact, provenance).
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ReviewRecommendationContent
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("file_order")]
+        [System.ComponentModel.DataAnnotations.MaxLength(2000)]
+        public System.Collections.Generic.ICollection<ReviewFileOrderEntry> File_order { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("affected_endpoints")]
+        [System.ComponentModel.DataAnnotations.MaxLength(1000)]
+        public System.Collections.Generic.ICollection<string> Affected_endpoints { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("affected_db_tables")]
+        [System.ComponentModel.DataAnnotations.MaxLength(1000)]
+        public System.Collections.Generic.ICollection<string> Affected_db_tables { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("module_graph")]
+        public ReviewModuleGraph Module_graph { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("produced_by")]
+        public ReviewProducedBy Produced_by { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PullRequestArtifactDto
     {
@@ -1661,6 +1824,17 @@ namespace Throne.Repositories.Contracts.Generated
         [System.ComponentModel.DataAnnotations.MaxLength(50)]
         public System.Collections.Generic.ICollection<string> Source_refs { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// Head commit sha of the PR when this artifact was produced. The UI marks the artifact stale if the PR head has moved past it. Optional, set by the producer.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("head_sha")]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string Head_sha { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("review_recommendation")]
+        public ReviewRecommendationContent Review_recommendation { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("produced_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Produced_at { get; set; }
@@ -1703,6 +1877,17 @@ namespace Throne.Repositories.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.MaxLength(50)]
         public System.Collections.Generic.ICollection<string> Source_refs { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Head commit sha of the PR when this artifact was produced. The UI marks the artifact stale if the PR head has moved past it. Optional, set by the producer.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("head_sha")]
+        [System.ComponentModel.DataAnnotations.StringLength(100)]
+        public string Head_sha { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("review_recommendation")]
+        public ReviewRecommendationContent Review_recommendation { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("produced_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
