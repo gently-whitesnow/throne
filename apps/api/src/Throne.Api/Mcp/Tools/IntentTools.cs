@@ -95,7 +95,7 @@ public sealed class IntentTools(
     [McpServerTool(Name = "get_prompt_bundle")]
     [Description("Read the complete prompt bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work bundles drive transitions on read).")]
     public async Task<McpToolPayload> GetPromptBundle(
-        [Description("Runtime mode: interview, work, dream, or schema_map. Pick interview/work/dream by user intent (see the mini-router instructions returned at MCP initialize); schema_map is a niche, button-launched mode for building a repository's DB schema-map page and runs without an intent_id.")] string mode,
+        [Description("Runtime mode: interview, work, review, dream, or schema_map. Pick interview/work/review/dream by user intent (see the mini-router instructions returned at MCP initialize); schema_map is a niche, button-launched mode for building a repository's DB schema-map page and runs without an intent_id.")] string mode,
         [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
         CancellationToken cancellationToken = default)
     {

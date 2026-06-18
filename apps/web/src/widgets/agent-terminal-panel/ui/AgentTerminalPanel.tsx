@@ -1,9 +1,10 @@
 import { AlertCircle } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
 import {
+  hasPullRequest,
   isCloneReady,
   useIntentRepositories
 } from "@/entities/repository-binding";
@@ -12,7 +13,7 @@ import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
 
 import { useLaunchAxis } from "../model/use-launch-axis";
 import { useTerminalSession } from "../model/use-terminal-session";
-import { defaultRunModeForStatus } from "../model/types";
+import { TERMINAL_RUN_MODES, defaultRunModeForStatus } from "../model/types";
 import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
 
 import { PreflightModal } from "./PreflightModal";
@@ -59,6 +60,23 @@ export function AgentTerminalPanel({
     () => bindings.filter((b) => !isCloneReady(b.clone_status)),
     [bindings]
   );
+  const hasReviewTarget = useMemo(
+    () => bindings.some(hasPullRequest),
+    [bindings]
+  );
+  const availableModes = useMemo(
+    () =>
+      hasReviewTarget
+        ? TERMINAL_RUN_MODES
+        : TERMINAL_RUN_MODES.filter((m) => m !== "review"),
+    [hasReviewTarget]
+  );
+  useEffect(() => {
+    if (!availableModes.includes(mode)) {
+      setMode(defaultRunModeForStatus(intentStatus));
+    }
+  }, [availableModes, intentStatus, mode]);
+
   const hasBlockingBinding = notReady.length > 0;
 
   const runDisabledReason = !terminalEnabled
@@ -131,6 +149,7 @@ export function AgentTerminalPanel({
 
       <RunControls
         mode={mode}
+        modes={availableModes}
         onModeChange={setMode}
         vendors={axis.vendors}
         vendor={axis.vendor ?? ""}

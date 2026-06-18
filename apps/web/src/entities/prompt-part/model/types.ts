@@ -13,12 +13,18 @@ export type DeletePromptPartResponse =
   PromptPartsComponents["schemas"]["DeletePromptPartResponse"];
 
 /** Embedded composition modes managed via prompt-parts roles. */
-export const PROMPT_PART_MODES = ["work", "interview", "free"] as const;
+export const PROMPT_PART_MODES = [
+  "work",
+  "interview",
+  "review",
+  "free"
+] as const;
 export type PromptPartMode = (typeof PROMPT_PART_MODES)[number];
 
 export const PROMPT_PART_MODE_LABELS: Record<PromptPartMode, string> = {
   work: "Работа",
   interview: "Интервью",
+  review: "Review",
   free: "Свободный"
 };
 

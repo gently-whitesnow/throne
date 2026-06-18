@@ -131,7 +131,7 @@ export interface paths {
         put?: never;
         /**
          * Receive a local agent hook callback.
-         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
+         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
          */
         post: operations["receiveIntentTerminalHook"];
         delete?: never;
@@ -151,7 +151,7 @@ export interface paths {
         put?: never;
         /**
          * Resolve the embedded prompt composition before spawn (ADR-0036).
-         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`free` are supported — `dream` returns 422.
+         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires exactly one attached PR/MR on the intent.
          */
         post: operations["previewIntentTerminal"];
         delete?: never;
@@ -192,10 +192,10 @@ export interface components {
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
         };
         /**
-         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
+         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the `review_recommendation` artifact writer into the session workspace.
          * @enum {string}
          */
-        TerminalRunMode: "work" | "interview" | "dream" | "free";
+        TerminalRunMode: "work" | "interview" | "review" | "dream" | "free";
         /**
          * @description Lifecycle of the per-intent tmux session, derived from `tmux has-session` at observation time.
          *     `spawning` — pre-flight finished, `tmux new -ADs` not yet observed alive. `running` — session is alive. `blocked` — at least one binding is `failed` / `broken`; spawn was skipped. `exited` — session was alive previously but has since been torn down.

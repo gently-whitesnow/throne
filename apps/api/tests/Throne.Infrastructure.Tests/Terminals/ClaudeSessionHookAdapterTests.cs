@@ -17,7 +17,7 @@ public class ClaudeSessionHookAdapterTests
         });
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         var settingsPath = Path.Combine(root, "throne-session.settings.json");
         args.Should().Equal("--settings", settingsPath);
@@ -38,7 +38,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(root, "throne-session.settings.json")));
@@ -54,7 +54,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", reviewArtifact: null, CancellationToken.None);
 
         var settingsPath = Path.Combine(root, "throne-session.settings.json");
         var systemPromptPath = Path.Combine(root, "throne-session.append-system-prompt.txt");
@@ -70,7 +70,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", reviewArtifact: null, CancellationToken.None);
 
         args.Should().NotContain("--append-system-prompt-file");
         File.Exists(Path.Combine(root, "throne-session.append-system-prompt.txt")).Should().BeFalse();
@@ -83,11 +83,32 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(root, "throne-session.settings.json")));
         HookCommand(document, "UserPromptSubmit").Should().Contain("/hooks/UserPromptSubmit?mode=interview'");
+    }
+
+    [Fact(DisplayName = "Review-сессия запекает общий artifact writer и Claude skill-hint")]
+    public async Task Review_writes_artifact_script_and_skill()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
+        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+
+        await sut.PrepareSpawnArgsAsync(
+            "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
+            reviewArtifact: new ReviewArtifactWriteTarget("binding-1", 42), CancellationToken.None);
+
+        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
+        script.Should().Contain("BINDING_ID='binding-1'");
+        script.Should().Contain("ARTIFACT_TYPE='review_recommendation'");
+        script.Should().Contain("/api/v1/repositories/${BINDING_ID}/artifacts/${ARTIFACT_TYPE}");
+
+        var skill = await File.ReadAllTextAsync(
+            Path.Combine(root, ".claude", "skills", "throne-review-artifact", "SKILL.md"));
+        skill.Should().Contain("bin/throne-pr-artifact-write");
+        skill.Should().Contain("send-comments");
     }
 
     [Theory(DisplayName = "IsTuiReady распознаёт композёр Claude по `❯` промпту и игнорирует пустой/только-сплеш экран")]

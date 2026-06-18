@@ -54,12 +54,14 @@ export interface TerminalRunPayload {
 export const TERMINAL_RUN_MODES: readonly TerminalRunMode[] = [
   "interview",
   "work",
+  "review",
   "free"
 ] as const;
 
 export const RUN_MODE_LABEL: Record<TerminalRunMode, string> = {
   work: "Работа",
   interview: "Интервью",
+  review: "Review",
   dream: "Dream",
   free: "Свободный"
 };

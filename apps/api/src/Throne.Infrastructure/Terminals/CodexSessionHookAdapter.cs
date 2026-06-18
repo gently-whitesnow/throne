@@ -24,7 +24,12 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
     public string Vendor => TerminalAgentCatalog.VendorCodex;
 
     public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct)
+        string intentId,
+        string workspacePath,
+        string mode,
+        string? systemPrompt,
+        ReviewArtifactWriteTarget? reviewArtifact,
+        CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
@@ -42,9 +47,17 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
 
         args.Add(BypassHookTrustFlag);
 
-        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        if (reviewArtifact is not null)
         {
-            await WriteProfileAsync(intentId, systemPrompt, ct);
+            await ReviewArtifactWorkspaceFiles.WriteScriptAsync(
+                workspacePath, reviewArtifact, options.ApiBaseUrl, ct);
+        }
+
+        var effectiveSystemPrompt = ReviewArtifactWorkspaceFiles.WithCodexHint(
+            systemPrompt, workspacePath, reviewArtifact);
+        if (!string.IsNullOrWhiteSpace(effectiveSystemPrompt))
+        {
+            await WriteProfileAsync(intentId, effectiveSystemPrompt, ct);
             args.Add("-p");
             args.Add(CodexSessionProfile.Name(intentId));
         }

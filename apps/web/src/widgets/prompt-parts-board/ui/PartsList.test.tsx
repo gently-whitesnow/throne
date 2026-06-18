@@ -78,9 +78,9 @@ describe("PartsList", () => {
 
     const optRow = screen.getByText("opt-one").closest("li");
     expect(optRow).not.toBeNull();
-    // one select per embedded mode (work / interview / free)
+    // one select per embedded mode (work / interview / review / free)
     expect(within(optRow as HTMLElement).getAllByRole("combobox")).toHaveLength(
-      3
+      4
     );
   });
 });
