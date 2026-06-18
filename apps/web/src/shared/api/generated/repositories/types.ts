@@ -490,6 +490,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/repositories/{binding_id}/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List latest pull request artifacts for a repository binding.
+         * @description One-shot PR verification artifacts (ADR-0031), ordered by `type`. The binding must exist only for writes; reads return the durable rows currently present for the binding id and an unknown binding yields an empty array.
+         */
+        get: operations["listPullRequestArtifacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{binding_id}/artifacts/{type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single latest pull request artifact by type. */
+        get: operations["getPullRequestArtifact"];
+        /**
+         * Idempotently ingest a latest pull request artifact.
+         * @description Durable latest-wins ingest for ADR-0031 PR artifacts. The server derives `pull_request_number` from the durable binding; the request replaces the current artifact for `(binding_id, type)` wholesale and emits `pull_request.artifact_updated`.
+         */
+        put: operations["putPullRequestArtifact"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -922,6 +963,39 @@ export interface components {
             render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
             /** Format: date-time */
             created_at: string;
+        };
+        /**
+         * @description How a PR artifact body should be rendered (ADR-0031).
+         * @enum {string}
+         */
+        PullRequestArtifactRender: "markdown" | "mermaid" | "svg" | "json";
+        /**
+         * @description Producer family for a PR artifact.
+         * @enum {string}
+         */
+        PullRequestArtifactSource: "static" | "agent";
+        PullRequestArtifactDto: {
+            id: string;
+            binding_id: string;
+            /** Format: int32 */
+            pull_request_number: number;
+            type: string;
+            render: components["schemas"]["PullRequestArtifactRender"];
+            content: string;
+            summary: string;
+            source: components["schemas"]["PullRequestArtifactSource"];
+            source_refs: string[];
+            /** Format: date-time */
+            produced_at: string;
+        };
+        PutPullRequestArtifactRequest: {
+            render: components["schemas"]["PullRequestArtifactRender"];
+            content: string;
+            summary: string;
+            source: components["schemas"]["PullRequestArtifactSource"];
+            source_refs: string[];
+            /** Format: date-time */
+            produced_at: string;
         };
         ProblemDetails: {
             type: string;
@@ -2096,6 +2170,114 @@ export interface operations {
                 };
             };
             /** @description Coordinate failed validation. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listPullRequestArtifacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestArtifactDto"][];
+                };
+            };
+        };
+    };
+    getPullRequestArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                binding_id: string;
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestArtifactDto"];
+                };
+            };
+            /** @description No artifact of this type for the binding. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    putPullRequestArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                binding_id: string;
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutPullRequestArtifactRequest"];
+            };
+        };
+        responses: {
+            /** @description OK — the artifact after this write. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PullRequestArtifactDto"];
+                };
+            };
+            /** @description Repository binding not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The binding has no pull request attached. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Type or body failed validation. */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -33,6 +33,7 @@ public static class RealtimeEventNames
     public const string PromptPartPatchProposed = "prompt_part_patch.proposed";
     public const string PromptPartPatchRejected = "prompt_part_patch.rejected";
     public const string PromptPartPatchSuperseded = "prompt_part_patch.superseded";
+    public const string PullRequestArtifactUpdated = "pull_request.artifact_updated";
     public const string RepositoryDocumentUpdated = "repository.document_updated";
     public const string RepositoryRegistered = "repository.registered";
     public const string TagCreated = "tag.created";
@@ -65,6 +66,7 @@ public static class RealtimeEventNames
         PromptPartPatchProposed,
         PromptPartPatchRejected,
         PromptPartPatchSuperseded,
+        PullRequestArtifactUpdated,
         RepositoryDocumentUpdated,
         RepositoryRegistered,
         TagCreated,
