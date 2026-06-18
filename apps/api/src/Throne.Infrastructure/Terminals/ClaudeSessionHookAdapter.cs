@@ -26,13 +26,25 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
     public string Vendor => TerminalAgentCatalog.VendorClaude;
 
     public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct)
+        string intentId,
+        string workspacePath,
+        string mode,
+        string? systemPrompt,
+        ReviewArtifactWriteTarget? reviewArtifact,
+        CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
         Directory.CreateDirectory(workspacePath);
+        if (reviewArtifact is not null)
+        {
+            await ReviewArtifactWorkspaceFiles.WriteScriptAsync(
+                workspacePath, reviewArtifact, options.ApiBaseUrl, ct);
+            await ReviewArtifactWorkspaceFiles.WriteClaudeSkillAsync(workspacePath, reviewArtifact, ct);
+        }
+
         var settingsPath = Path.Combine(workspacePath, SettingsFileName);
         await using (var stream = File.Create(settingsPath))
         {

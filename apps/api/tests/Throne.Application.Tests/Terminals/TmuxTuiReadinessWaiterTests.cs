@@ -111,7 +111,12 @@ public class TmuxTuiReadinessWaiterTests
         public string Vendor => "stub";
 
         public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-            string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct) =>
+            string intentId,
+            string workspacePath,
+            string mode,
+            string? systemPrompt,
+            ReviewArtifactWriteTarget? reviewArtifact,
+            CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<string>>([]);
 
         public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;

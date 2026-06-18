@@ -29,7 +29,7 @@ public class OpencodeSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:1234", ["llama-4", "qwen-3"]);
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().BeEmpty();
         var configPath = Path.Combine(root, "opencode.json");
@@ -54,7 +54,7 @@ public class OpencodeSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:1234", ["llama-4"]);
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", reviewArtifact: null, CancellationToken.None);
 
         var promptPath = Path.Combine(root, "throne-session.append-system-prompt.txt");
         (await File.ReadAllTextAsync(promptPath)).Should().Be("RULES\nblock");
@@ -72,7 +72,7 @@ public class OpencodeSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:1234", ["llama-4"]);
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", reviewArtifact: null, CancellationToken.None);
 
         File.Exists(Path.Combine(root, "throne-session.append-system-prompt.txt")).Should().BeFalse();
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
@@ -86,7 +86,7 @@ public class OpencodeSessionHookAdapterTests
         var sut = NewAdapter(baseUrl: null, models: []);
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().BeEmpty();
         using var doc = JsonDocument.Parse(
@@ -116,7 +116,7 @@ public class OpencodeSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:1234", ["llama-4"]);
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         var calls = await RunPluginSmokeAsync(root);
         calls.Should().Equal(
@@ -125,6 +125,29 @@ public class OpencodeSessionHookAdapterTests
             "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/Notification?mode=interview",
             "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/PostToolUse?mode=interview",
             "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/PostToolUse?mode=interview");
+    }
+
+    [Fact(DisplayName = "OpenCode review: запекает artifact writer и hint в instructions")]
+    public async Task Review_writes_artifact_script_and_instruction_hint()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
+        var sut = NewAdapter("http://localhost:1234", ["llama-4"]);
+
+        await sut.PrepareSpawnArgsAsync(
+            "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
+            reviewArtifact: new ReviewArtifactWriteTarget("binding-1", 42), CancellationToken.None);
+
+        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
+        script.Should().Contain("BINDING_ID='binding-1'");
+
+        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
+        var instructions = doc.RootElement.GetProperty("instructions");
+        instructions.EnumerateArray().Select(i => i.GetString())
+            .Should().Contain("throne-session.review-artifact.md");
+
+        var hint = await File.ReadAllTextAsync(Path.Combine(root, "throne-session.review-artifact.md"));
+        hint.Should().Contain("review_recommendation");
+        hint.Should().Contain("send-comments");
     }
 
     [Fact(DisplayName = "OpenCodeBindings фиксируют подтвержденный минимум CLI и не переиспользуют Claude/Codex bindings")]

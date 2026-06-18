@@ -34,7 +34,12 @@ public interface ISessionHookAdapter
     /// <paramref name="workspacePath"/> or the vendor's config home as a side effect.
     /// </summary>
     Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct);
+        string intentId,
+        string workspacePath,
+        string mode,
+        string? systemPrompt,
+        ReviewArtifactWriteTarget? reviewArtifact,
+        CancellationToken ct);
 
     /// <summary>
     /// Removes any per-session files this adapter wrote OUTSIDE the intent workspace, called on
