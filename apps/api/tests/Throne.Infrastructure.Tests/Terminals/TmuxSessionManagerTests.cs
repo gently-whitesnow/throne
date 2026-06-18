@@ -51,6 +51,56 @@ public class TmuxSessionManagerTests
         allArgs[1].Arguments.Should().Equal("has-session", "-t", "throne-intent-abc");
     }
 
+    [Fact(DisplayName = "Spawn с EnableMouse=true дёргает set-option … mouse on после has-session")]
+    public async Task Spawn_enables_mouse_when_requested()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(launcher);
+        var sut = NewManager(launcher);
+
+        await sut.SpawnAsync(
+            new TmuxSpawnRequest(
+                IntentId,
+                "/Users/me/workspace/intent-abc",
+                "opencode",
+                [],
+                EnableMouse: true),
+            CancellationToken.None);
+
+        var argvs = launcher
+            .ReceivedCalls()
+            .Select(c => ((ProcessRunRequest)c.GetArguments()[0]!).Arguments)
+            .ToArray();
+
+        argvs.Should().HaveCount(3);
+        argvs[1].Should().Equal("has-session", "-t", "throne-intent-abc");
+        argvs[2].Should().Equal("set-option", "-t", "throne-intent-abc", "mouse", "on");
+    }
+
+    [Fact(DisplayName = "Spawn без EnableMouse не трогает set-option (default)")]
+    public async Task Spawn_does_not_touch_mouse_by_default()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(launcher);
+        var sut = NewManager(launcher);
+
+        await sut.SpawnAsync(
+            new TmuxSpawnRequest(
+                IntentId,
+                "/Users/me/workspace/intent-abc",
+                "claude",
+                []),
+            CancellationToken.None);
+
+        var argvs = launcher
+            .ReceivedCalls()
+            .Select(c => ((ProcessRunRequest)c.GetArguments()[0]!).Arguments)
+            .ToArray();
+
+        argvs.Should().HaveCount(2);
+        argvs.Should().NotContain(a => a.Contains("set-option"));
+    }
+
     [Fact(DisplayName = "HasSession возвращает false если tmux not on PATH")]
     public async Task HasSession_folds_binary_missing_to_false()
     {

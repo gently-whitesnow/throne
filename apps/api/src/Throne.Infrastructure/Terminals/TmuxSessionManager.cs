@@ -34,6 +34,14 @@ internal sealed class TmuxSessionManager(
         SpawnOutcomeReporter.Report(log, sessionName, outcome, detail);
 
         var alive = outcome.IsAvailable && await HasSessionAsync(request!.IntentId, ct);
+        if (alive && request!.EnableMouse)
+        {
+            // Wheel-in-alt-screen TUIs (opencode) do not handle mouse themselves — without
+            // `mouse on` xterm.js converts wheel into cursor keys that land in the input row.
+            // Failure here is non-fatal: log and let the session live without scroll rather
+            // than tear it down for a UX nicety.
+            await tmux.RunAsync(["set-option", "-t", sessionName, "mouse", "on"], ct);
+        }
         return new TmuxSpawnResult(sessionName, alive, detail);
     }
 

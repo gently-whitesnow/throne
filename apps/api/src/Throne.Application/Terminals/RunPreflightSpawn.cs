@@ -57,7 +57,8 @@ public sealed class RunPreflightSpawn(
                 IntentId: intentId.Value,
                 WorkingDirectory: workspacePath,
                 Command: invocation.Command,
-                Arguments: invocation.Arguments),
+                Arguments: invocation.Arguments,
+                EnableMouse: string.Equals(launch.Vendor, TerminalAgentCatalog.VendorOpencode, StringComparison.Ordinal)),
             ct);
 
         if (!spawn.IsAlive)
