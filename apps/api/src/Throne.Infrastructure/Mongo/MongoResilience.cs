@@ -6,11 +6,9 @@ using Polly.Timeout;
 namespace Throne.Infrastructure.Mongo;
 
 /// <summary>
-/// Полли-pipeline для фоновых тиков, ходящих в Mongo. Делает per-attempt timeout +
-/// экспоненциальный backoff на ретраях: heartbeat-провал → один тик ждёт,
-/// а не валит весь воркер на 30 с (см. инцидент 2026-06-17).
-/// Вызывающий код считает «consecutive tick failures» сам и эскалирует уровень
-/// лога — Polly здесь только за low-level retry/backoff.
+/// Polly-pipeline для Mongo-вызовов из фоновых воркеров. Делает per-attempt timeout
+/// + экспоненциальный backoff на ретраях: heartbeat-провал ждёт на границе Mongo-call,
+/// не смешиваясь с файловыми, CLI или CPU-bound шагами тика.
 /// </summary>
 internal static class MongoResilience
 {
@@ -40,10 +38,35 @@ internal static class MongoResilience
             .Build();
     }
 
+    public static async Task<T> ExecuteAsync<T>(
+        ResiliencePipeline pipeline,
+        Func<CancellationToken, Task<T>> operation,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(pipeline);
+        ArgumentNullException.ThrowIfNull(operation);
+
+        return await pipeline.ExecuteAsync(
+            async inner => await operation(inner),
+            ct);
+    }
+
+    public static async Task ExecuteAsync(
+        ResiliencePipeline pipeline,
+        Func<CancellationToken, Task> operation,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(pipeline);
+        ArgumentNullException.ThrowIfNull(operation);
+
+        await pipeline.ExecuteAsync(
+            async inner => await operation(inner),
+            ct);
+    }
+
     // Server selection timeout приходит как System.TimeoutException из Cluster.ThrowTimeoutException
-    // (см. инцидент 2026-06-17). MongoConnectionException — heartbeat/socket-провалы. Pool-paused
-    // и execution-timeout относим к транзиентным: первое — последствие хвостового handshake, второе —
-    // op timeout, retry-safe для read-only тиков воркеров.
+    // (см. инцидент 2026-06-17). Поэтому TimeoutException допустим здесь только при
+    // использовании pipeline вокруг конкретного Mongo driver call.
     public static bool IsMongoTransient(Exception? ex) => ex is
         MongoConnectionException
         or MongoConnectionPoolPausedException

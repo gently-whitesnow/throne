@@ -54,7 +54,7 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:5008
       # compressors=zstd: на 127.0.0.1 no-op, на не-локальной Mongo экономит
       # wire-protocol body в ~3-5× раз (см. MongoOptions.ConnectionString).
-      Mongo__ConnectionString: mongodb://mongo:27017/?replicaSet=rs0&directConnection=true&compressors=zstd
+      Mongo__ConnectionString: mongodb://mongo:27017/?replicaSet=rs0&compressors=zstd
       Mongo__Database: throne
     depends_on:
       mongo-init:

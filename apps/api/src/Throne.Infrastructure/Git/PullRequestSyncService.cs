@@ -2,10 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Polly;
 using Throne.Application.Git;
 using Throne.Application.Repositories;
-using Throne.Infrastructure.Mongo;
 
 namespace Throne.Infrastructure.Git;
 
@@ -23,8 +21,6 @@ namespace Throne.Infrastructure.Git;
 internal sealed partial class PullRequestSyncService(
     IServiceScopeFactory scopeFactory,
     IOptions<PullRequestSyncOptions> options,
-    ResiliencePipeline mongoResilience,
-    TimeProvider clock,
     ILogger<PullRequestSyncService> logger) : BackgroundService
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
@@ -42,6 +38,10 @@ internal sealed partial class PullRequestSyncService(
         int failed,
         int markedBroken,
         int lifecycleClosed);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error,
+        Message = "PullRequestSyncService tick failed; worker continues.")]
+    private static partial void LogTickFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
         Message = "PullRequestSyncService auto-bind pass: bound={Bound}, skipped={Skipped}, failed={Failed}")]
@@ -71,13 +71,12 @@ internal sealed partial class PullRequestSyncService(
             return;
         }
 
-        var faultLog = new MongoFaultLog(logger, clock, "PullRequestSyncService");
         using var timer = new PeriodicTimer(interval);
         try
         {
             do
             {
-                await RunTickAsync(faultLog, stoppingToken);
+                await RunTickAsync(stoppingToken);
             }
             while (await timer.WaitForNextTickAsync(stoppingToken));
         }
@@ -87,14 +86,11 @@ internal sealed partial class PullRequestSyncService(
         }
     }
 
-    private async Task RunTickAsync(MongoFaultLog faultLog, CancellationToken stoppingToken)
+    private async Task RunTickAsync(CancellationToken stoppingToken)
     {
         try
         {
-            await mongoResilience.ExecuteAsync(
-                async ct => await TickBodyAsync(ct),
-                stoppingToken);
-            faultLog.RecordSuccess();
+            await TickBodyAsync(stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -102,7 +98,7 @@ internal sealed partial class PullRequestSyncService(
         }
         catch (Exception ex)
         {
-            faultLog.RecordFailure(ex);
+            LogTickFailed(logger, ex);
         }
     }
 

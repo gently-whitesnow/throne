@@ -14,12 +14,15 @@ internal sealed partial class IntentAttachmentCompressionWorker(
     IImageDownscaler downscaler,
     IOptions<IntentAttachmentCompressionOptions> options,
     ResiliencePipeline mongoResilience,
-    TimeProvider clock,
     ILogger<IntentAttachmentCompressionWorker> log) : BackgroundService
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
         Message = "IntentAttachmentCompressionWorker disabled: poll_interval <= 0.")]
     private static partial void LogDisabled(ILogger logger);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Error,
+        Message = "IntentAttachmentCompressionWorker tick failed.")]
+    private static partial void LogTickFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
         Message = "IntentAttachmentCompressionWorker: pending attachment {AttachmentId} has no GridFS blob, skipping.")]
@@ -38,7 +41,6 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             return;
         }
 
-        var faultLog = new MongoFaultLog(log, clock, "IntentAttachmentCompressionWorker");
         using var timer = new PeriodicTimer(settings.PollInterval);
         try
         {
@@ -46,10 +48,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             {
                 try
                 {
-                    await mongoResilience.ExecuteAsync(
-                        async ct => await CompressBatchAsync(attachments, downscaler, settings, log, ct),
-                        stoppingToken);
-                    faultLog.RecordSuccess();
+                    await CompressBatchAsync(attachments, downscaler, settings, log, mongoResilience, stoppingToken);
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -57,7 +56,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
                 }
                 catch (Exception ex)
                 {
-                    faultLog.RecordFailure(ex);
+                    LogTickFailed(log, ex);
                 }
             }
             while (await timer.WaitForNextTickAsync(stoppingToken));
@@ -73,6 +72,15 @@ internal sealed partial class IntentAttachmentCompressionWorker(
         IImageDownscaler downscaler,
         IntentAttachmentCompressionOptions settings,
         ILogger? log,
+        CancellationToken ct) =>
+        await CompressBatchAsync(repo, downscaler, settings, log, mongoResilience: null, ct);
+
+    private static async Task CompressBatchAsync(
+        IIntentAttachmentRepository repo,
+        IImageDownscaler downscaler,
+        IntentAttachmentCompressionOptions settings,
+        ILogger? log,
+        ResiliencePipeline? mongoResilience,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(repo);
@@ -81,7 +89,10 @@ internal sealed partial class IntentAttachmentCompressionWorker(
 
         var logger = log ?? NullLogger.Instance;
 
-        var batch = await repo.ListPendingCompressionAsync(settings.BatchSize, ct);
+        var batch = await ExecuteMongoAsync(
+            mongoResilience,
+            inner => repo.ListPendingCompressionAsync(settings.BatchSize, inner),
+            ct);
         if (batch.Count == 0)
         {
             return;
@@ -90,7 +101,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
         foreach (var item in batch)
         {
             ct.ThrowIfCancellationRequested();
-            await CompressOneAsync(repo, downscaler, settings, item, logger, ct);
+            await CompressOneAsync(repo, downscaler, settings, item, logger, mongoResilience, ct);
         }
     }
 
@@ -100,11 +111,15 @@ internal sealed partial class IntentAttachmentCompressionWorker(
         IntentAttachmentCompressionOptions settings,
         PendingCompressionItem item,
         ILogger logger,
+        ResiliencePipeline? mongoResilience,
         CancellationToken ct)
     {
         try
         {
-            await using var raw = await repo.OpenRawContentAsync(item.GridFsId, ct);
+            await using var raw = await ExecuteMongoAsync(
+                mongoResilience,
+                inner => repo.OpenRawContentAsync(item.GridFsId, inner),
+                ct);
             if (raw is null)
             {
                 LogMissingBlob(logger, item.AttachmentId);
@@ -112,7 +127,10 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             }
 
             var compressed = await downscaler.DownscaleAsync(raw, item.ContentType, settings.MaxDimension, settings.JpegQuality, ct);
-            await repo.ApplyCompressionAsync(item.AttachmentId, item.GridFsId, compressed, ct);
+            await ExecuteMongoAsync(
+                mongoResilience,
+                inner => repo.ApplyCompressionAsync(item.AttachmentId, item.GridFsId, compressed, inner),
+                ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -123,4 +141,20 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             LogCompressFailed(logger, item.AttachmentId, ex);
         }
     }
+
+    private static Task<T> ExecuteMongoAsync<T>(
+        ResiliencePipeline? mongoResilience,
+        Func<CancellationToken, Task<T>> operation,
+        CancellationToken ct) =>
+        mongoResilience is null
+            ? operation(ct)
+            : MongoResilience.ExecuteAsync(mongoResilience, operation, ct);
+
+    private static Task ExecuteMongoAsync(
+        ResiliencePipeline? mongoResilience,
+        Func<CancellationToken, Task> operation,
+        CancellationToken ct) =>
+        mongoResilience is null
+            ? operation(ct)
+            : MongoResilience.ExecuteAsync(mongoResilience, operation, ct);
 }
