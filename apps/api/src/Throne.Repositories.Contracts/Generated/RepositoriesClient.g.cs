@@ -1574,6 +1574,151 @@ namespace Throne.Repositories.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// How a PR artifact body should be rendered (ADR-0031).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PullRequestArtifactRender
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"markdown")]
+        [System.Runtime.Serialization.EnumMember(Value = @"markdown")]
+        Markdown = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"mermaid")]
+        [System.Runtime.Serialization.EnumMember(Value = @"mermaid")]
+        Mermaid = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"svg")]
+        [System.Runtime.Serialization.EnumMember(Value = @"svg")]
+        Svg = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"json")]
+        [System.Runtime.Serialization.EnumMember(Value = @"json")]
+        Json = 3,
+
+    }
+
+    /// <summary>
+    /// Producer family for a PR artifact.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PullRequestArtifactSource
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"static")]
+        [System.Runtime.Serialization.EnumMember(Value = @"static")]
+        Static = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"agent")]
+        [System.Runtime.Serialization.EnumMember(Value = @"agent")]
+        Agent = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PullRequestArtifactDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("binding_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Binding_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("pull_request_number")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Pull_request_number { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(80, MinimumLength = 1)]
+        public string Type { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("render")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestArtifactRender>))]
+        public PullRequestArtifactRender Render { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("content")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Content { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(300, MinimumLength = 1)]
+        public string Summary { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestArtifactSource>))]
+        public PullRequestArtifactSource Source { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source_refs")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MaxLength(50)]
+        public System.Collections.Generic.ICollection<string> Source_refs { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("produced_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Produced_at { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PutPullRequestArtifactRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("render")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestArtifactRender>))]
+        public PullRequestArtifactRender Render { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("content")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Content { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(300, MinimumLength = 1)]
+        public string Summary { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PullRequestArtifactSource>))]
+        public PullRequestArtifactSource Source { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source_refs")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MaxLength(50)]
+        public System.Collections.Generic.ICollection<string> Source_refs { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("produced_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Produced_at { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProblemDetails
     {

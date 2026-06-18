@@ -34,6 +34,7 @@ public static class ErrorCodes
     public const string RepositoryWorkspaceRemovalFailed = "repository_binding.workspace_removal_failed";
     public const string RepositoryArtifactVersionConflict = "repository_artifact.version_conflict";
     public const string RepositoryArtifactNotFound = "repository_artifact.not_found";
+    public const string PullRequestArtifactNotFound = "pull_request_artifact.not_found";
     public const string RepositoryNotFound = "repository.not_found";
     public const string RepositoryCoordinateInvalid = "repository.coordinate_invalid";
     public const string CapabilityNotFound = "capability.not_found";

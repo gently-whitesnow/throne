@@ -73,4 +73,36 @@ internal static class RepositoryEnumDtoMapper
         RepositoryArtifactRenderHints.SchemaMap => RepositoryArtifactRenderHint.Schema_map,
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown render hint."),
     };
+
+    public static PullRequestArtifactRender ToWireArtifactRender(string value) => value switch
+    {
+        PullRequestArtifactRenderNames.Markdown => PullRequestArtifactRender.Markdown,
+        PullRequestArtifactRenderNames.Mermaid => PullRequestArtifactRender.Mermaid,
+        PullRequestArtifactRenderNames.Svg => PullRequestArtifactRender.Svg,
+        PullRequestArtifactRenderNames.Json => PullRequestArtifactRender.Json,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown artifact render."),
+    };
+
+    public static string ToDomainArtifactRender(PullRequestArtifactRender value) => value switch
+    {
+        PullRequestArtifactRender.Markdown => PullRequestArtifactRenderNames.Markdown,
+        PullRequestArtifactRender.Mermaid => PullRequestArtifactRenderNames.Mermaid,
+        PullRequestArtifactRender.Svg => PullRequestArtifactRenderNames.Svg,
+        PullRequestArtifactRender.Json => PullRequestArtifactRenderNames.Json,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown artifact render."),
+    };
+
+    public static PullRequestArtifactSource ToWireArtifactSource(string value) => value switch
+    {
+        PullRequestArtifactSourceNames.Static => PullRequestArtifactSource.Static,
+        PullRequestArtifactSourceNames.Agent => PullRequestArtifactSource.Agent,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown artifact source."),
+    };
+
+    public static string ToDomainArtifactSource(PullRequestArtifactSource value) => value switch
+    {
+        PullRequestArtifactSource.Static => PullRequestArtifactSourceNames.Static,
+        PullRequestArtifactSource.Agent => PullRequestArtifactSourceNames.Agent,
+        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown artifact source."),
+    };
 }

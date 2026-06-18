@@ -17,6 +17,7 @@ public static class MongoCollectionNames
     public const string Repositories = "repositories";
     public const string RepositoryArtifacts = "repository_artifacts";
     public const string RepositoryArtifactVersions = "repository_artifact_versions";
+    public const string PullRequestArtifacts = "pull_request_artifacts";
     public const string Settings = "settings";
     public const string PromptParts = "prompt_parts";
 }
