@@ -90,47 +90,7 @@ internal sealed partial class PullRequestSyncService(
     {
         try
         {
-            await using var scope = scopeFactory.CreateAsyncScope();
-
-            var autoBind = scope.ServiceProvider.GetRequiredService<PullRequestAutoBindWorkflow>();
-            var autoBindReport = await autoBind.RunAsync(stoppingToken);
-            LogAutoBind(logger, autoBindReport.Bound, autoBindReport.Skipped, autoBindReport.Failed);
-
-            var workflow = scope.ServiceProvider.GetRequiredService<PullRequestSyncTickWorkflow>();
-            var report = await workflow.RunAsync(stoppingToken);
-            var snapshot = report.Snapshot;
-            LogTick(
-                logger,
-                snapshot.Polled,
-                snapshot.NotModified,
-                snapshot.NewComments,
-                snapshot.Skipped,
-                snapshot.Failed,
-                snapshot.MarkedBroken,
-                snapshot.LifecycleClosed);
-            var networkDownNow = new HashSet<string>();
-            foreach (var failure in report.Failures)
-            {
-                if (failure.Kind == GitProviderErrorKind.NetworkError)
-                {
-                    // Expected transient state (host off-VPN). Debug + de-dup:
-                    // log only on transition into offline, not every tick.
-                    networkDownNow.Add(failure.BindingId);
-                    if (!_networkDownBindingIds.Contains(failure.BindingId))
-                    {
-                        LogBindingOffline(logger, failure.BindingId, failure.Message);
-                    }
-                }
-                else
-                {
-                    // Genuine failures (auth / CLI) stay Warning every tick.
-                    LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
-                }
-            }
-
-            // Drop bindings that recovered or were skipped by backoff this tick,
-            // so a later relapse re-logs once instead of staying silent forever.
-            _networkDownBindingIds = networkDownNow;
+            await TickBodyAsync(stoppingToken);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -140,5 +100,50 @@ internal sealed partial class PullRequestSyncService(
         {
             LogTickFailed(logger, ex);
         }
+    }
+
+    private async Task TickBodyAsync(CancellationToken ct)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+
+        var autoBind = scope.ServiceProvider.GetRequiredService<PullRequestAutoBindWorkflow>();
+        var autoBindReport = await autoBind.RunAsync(ct);
+        LogAutoBind(logger, autoBindReport.Bound, autoBindReport.Skipped, autoBindReport.Failed);
+
+        var workflow = scope.ServiceProvider.GetRequiredService<PullRequestSyncTickWorkflow>();
+        var report = await workflow.RunAsync(ct);
+        var snapshot = report.Snapshot;
+        LogTick(
+            logger,
+            snapshot.Polled,
+            snapshot.NotModified,
+            snapshot.NewComments,
+            snapshot.Skipped,
+            snapshot.Failed,
+            snapshot.MarkedBroken,
+            snapshot.LifecycleClosed);
+        var networkDownNow = new HashSet<string>();
+        foreach (var failure in report.Failures)
+        {
+            if (failure.Kind == GitProviderErrorKind.NetworkError)
+            {
+                // Expected transient state (host off-VPN). Debug + de-dup:
+                // log only on transition into offline, not every tick.
+                networkDownNow.Add(failure.BindingId);
+                if (!_networkDownBindingIds.Contains(failure.BindingId))
+                {
+                    LogBindingOffline(logger, failure.BindingId, failure.Message);
+                }
+            }
+            else
+            {
+                // Genuine failures (auth / CLI) stay Warning every tick.
+                LogBindingFailure(logger, failure.BindingId, failure.Kind, failure.Message);
+            }
+        }
+
+        // Drop bindings that recovered or were skipped by backoff this tick,
+        // so a later relapse re-logs once instead of staying silent forever.
+        _networkDownBindingIds = networkDownNow;
     }
 }

@@ -212,7 +212,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 ## Технологии
 
 - .NET 10
-- MongoDB (replica set обязателен — write-tools используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0&directConnection=true`)
+- MongoDB (replica set обязателен — write-tools используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0`)
 - GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; нативный хостовый `gh auth`, см. host-backend режим)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
