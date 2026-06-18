@@ -32,6 +32,7 @@ public sealed class RunPreflightSpawn(
         string mode,
         TerminalLaunchOptions launch,
         TerminalSpawnPrompt prompt,
+        ReviewArtifactWriteTarget? reviewArtifact,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(prompt);
@@ -49,7 +50,8 @@ public sealed class RunPreflightSpawn(
         // task skips the paste so the agent boots bare and the operator types it themselves.
         _hookAdapters.TryGetValue(launch.Vendor, out var adapter);
         var preparedArgs = adapter is not null
-            ? await adapter.PrepareSpawnArgsAsync(intentId.Value, workspacePath, mode, prompt.SystemPrompt, ct)
+            ? await adapter.PrepareSpawnArgsAsync(
+                intentId.Value, workspacePath, mode, prompt.SystemPrompt, reviewArtifact, ct)
             : [];
         var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
         var spawn = await tmux.SpawnAsync(
@@ -139,6 +141,7 @@ public sealed class RunPreflightSpawn(
     {
         TerminalRunModes.Work => IntentStatusNames.Work,
         TerminalRunModes.Free => IntentStatusNames.Work,
+        TerminalRunModes.Review => IntentStatusNames.Work,
         TerminalRunModes.Interview => IntentStatusNames.Interview,
         _ => null,
     };

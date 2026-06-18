@@ -46,7 +46,12 @@ public sealed class OpencodeSessionHookAdapter(
     public string Vendor => TerminalAgentCatalog.VendorOpencode;
 
     public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-        string intentId, string workspacePath, string mode, string? systemPrompt, CancellationToken ct)
+        string intentId,
+        string workspacePath,
+        string mode,
+        string? systemPrompt,
+        ReviewArtifactWriteTarget? reviewArtifact,
+        CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
@@ -63,11 +68,19 @@ public sealed class OpencodeSessionHookAdapter(
 
         await OpencodePluginShim.WriteAsync(
             workspacePath, intentId, mode, NormalizeBaseUrl(hookOptions.ApiBaseUrl), ct);
+        if (reviewArtifact is not null)
+        {
+            await ReviewArtifactWorkspaceFiles.WriteScriptAsync(
+                workspacePath, reviewArtifact, hookOptions.ApiBaseUrl, ct);
+        }
+
         var systemPromptPath = await WriteSystemPromptAsync(workspacePath, systemPrompt, ct);
+        var reviewHint = await ReviewArtifactWorkspaceFiles.WriteOpencodeHintAsync(
+            workspacePath, reviewArtifact, ct);
         var configPath = Path.Combine(workspacePath, ConfigFileName);
         await using (var stream = File.Create(configPath))
         {
-            var document = BuildConfig(baseUrl, discovery.Models, systemPromptPath);
+            var document = BuildConfig(baseUrl, discovery.Models, systemPromptPath, reviewHint);
             await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
@@ -114,7 +127,10 @@ public sealed class OpencodeSessionHookAdapter(
     }
 
     private static OpencodeConfigDocument BuildConfig(
-        string baseUrl, IReadOnlyList<string> modelIds, string? systemPromptPath)
+        string baseUrl,
+        IReadOnlyList<string> modelIds,
+        string? systemPromptPath,
+        string? reviewHint)
     {
         var models = new Dictionary<string, OpencodeConfigModel>(StringComparer.Ordinal);
         foreach (var id in modelIds)
@@ -134,9 +150,21 @@ public sealed class OpencodeSessionHookAdapter(
             {
                 [TerminalAgentCatalog.OpencodeProviderId] = provider,
             },
-            Instructions: systemPromptPath is null
-                ? null
-                : [Path.GetFileName(systemPromptPath)]);
+            Instructions: InstructionFiles(systemPromptPath, reviewHint));
+    }
+
+    private static string[]? InstructionFiles(string? systemPromptPath, string? reviewHint)
+    {
+        var files = new List<string>();
+        if (systemPromptPath is not null)
+        {
+            files.Add(Path.GetFileName(systemPromptPath));
+        }
+        if (reviewHint is not null)
+        {
+            files.Add(reviewHint);
+        }
+        return files.Count == 0 ? null : files.ToArray();
     }
 
     private static string NormalizeBaseUrl(string? apiBaseUrl) =>

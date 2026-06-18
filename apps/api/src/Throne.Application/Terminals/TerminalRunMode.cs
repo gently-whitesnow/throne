@@ -10,9 +10,10 @@ public static class TerminalRunModes
 {
     public const string Work = "work";
     public const string Interview = "interview";
+    public const string Review = "review";
     public const string Dream = "dream";
     public const string Free = "free";
 
     public static bool IsKnown(string value) =>
-        value is Work or Interview or Dream or Free;
+        value is Work or Interview or Review or Dream or Free;
 }

@@ -251,7 +251,7 @@ components:
       properties:
         mode:
           type: string
-          description: Bundle mode (interview | work | dream | schema_map).
+          description: Bundle mode (interview | work | review | dream | schema_map).
         includes:
           type: array
           items:
@@ -299,7 +299,7 @@ components:
       properties:
         mode:
           type: string
-          description: Embedded run mode (work | interview | free).
+          description: Embedded run mode (work | interview | review | free).
         role:
           type: string
           description: Role in the mode (mandatory | default_on | default_off).

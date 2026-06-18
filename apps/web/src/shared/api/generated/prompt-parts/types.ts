@@ -122,7 +122,7 @@ export interface components {
             bundles: components["schemas"]["BundleNodeDto"][];
         };
         BundleNodeDto: {
-            /** @description Bundle mode (interview | work | dream | schema_map). */
+            /** @description Bundle mode (interview | work | review | dream | schema_map). */
             mode: string;
             includes: components["schemas"]["BundleEntryNodeDto"][];
         };
@@ -146,7 +146,7 @@ export interface components {
             present: boolean;
         };
         PromptPartModeRoleDto: {
-            /** @description Embedded run mode (work | interview | free). */
+            /** @description Embedded run mode (work | interview | review | free). */
             mode: string;
             /** @description Role in the mode (mandatory | default_on | default_off). */
             role: string;

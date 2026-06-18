@@ -145,6 +145,6 @@ public sealed record McpPromptPartPatchReadModel(
     [property: Description("Apply / reject timestamp (UTC); null while still proposed.")] DateTimeOffset? DecidedAt);
 
 public sealed record McpPromptPartModeRole(
-    [property: Description("Prompt mode: interview | work | dream | schema_map | free.")] string mode,
+    [property: Description("Prompt mode: interview | work | review | dream | schema_map | free.")] string mode,
     [property: Description("Role: mandatory | default_on | default_off.")] string role,
     [property: Description("Sort order inside the role/mode block.")] int order);

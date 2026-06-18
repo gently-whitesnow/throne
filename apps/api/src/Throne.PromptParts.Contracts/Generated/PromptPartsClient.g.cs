@@ -50,7 +50,7 @@ namespace Throne.PromptParts.Contracts.Generated
     {
 
         /// <summary>
-        /// Bundle mode (interview | work | dream | schema_map).
+        /// Bundle mode (interview | work | review | dream | schema_map).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mode")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -137,7 +137,7 @@ namespace Throne.PromptParts.Contracts.Generated
     {
 
         /// <summary>
-        /// Embedded run mode (work | interview | free).
+        /// Embedded run mode (work | interview | review | free).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mode")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
