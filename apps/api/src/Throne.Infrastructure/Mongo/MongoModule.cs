@@ -3,15 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using Polly;
 
 namespace Throne.Infrastructure.Mongo;
 
 /// <summary>
 /// Mongo-секция корневого DI-композита: options + клиент с тайм-аутами/pool из
 /// <see cref="MongoClientOptions"/>, SDAM-подпиской через <c>ClusterConfigurator</c>
-/// и <see cref="ResiliencePipeline"/> для воркеров. Вынесено из
-/// <see cref="DependencyInjection"/>, чтобы не наращивать fan-out/LOC корневого метода.
+/// Вынесено из <see cref="DependencyInjection"/>, чтобы не наращивать fan-out/LOC
+/// корневого метода.
 /// </summary>
 internal static class MongoModule
 {
@@ -30,9 +29,6 @@ internal static class MongoModule
             var settings = MongoClientFactory.BuildSettings(mongo, client, logger);
             return new MongoClient(settings);
         });
-
-        services.AddSingleton<ResiliencePipeline>(sp =>
-            MongoResilience.Build(sp.GetRequiredService<IOptions<MongoClientOptions>>().Value));
 
         services.AddSingleton<IMongoDatabase>(sp =>
         {
