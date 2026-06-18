@@ -235,7 +235,7 @@ paths:
         `Notification` (a permission prompt blocks the agent without ending the turn, so no
         `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps
         `permission.asked`) — and two return it to the spawn phase
-        (`work`/`free` → `work`, `interview` → `interview`):
+        (`work`/`review`/`free` → `work`, `interview` → `interview`):
         `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an
         approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`,
         `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne
@@ -284,7 +284,8 @@ paths:
         block (mandatory + selected optional) destined for `--append-system-prompt`;
         `user_prompt` is the intent body draft for the task zone. The frontend renders the
         pre-flight modal from this response and never assembles the runtime prompt itself.
-        Only embedded modes `work`/`interview`/`free` are supported — `dream` returns 422.
+        Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI.
+        `review` additionally requires exactly one attached PR/MR on the intent.
       parameters:
         - in: path
           name: intent_id
@@ -411,14 +412,16 @@ components:
       enum:
         - work
         - interview
+        - review
         - dream
         - free
       description: >
         Embedded run mode. Drives which mandatory parts the pre-flight preview projects
-        (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand)
+        (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand)
         and the spawn phase the status hooks return to. The embedded contour injects the
         operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the
-        agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
+        agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the
+        `review_recommendation` artifact writer into the session workspace.
     TerminalSessionState:
       type: string
       enum:

@@ -9,6 +9,7 @@ public static class PromptBundleModeNames
 {
     public const string Interview = "interview";
     public const string Work = "work";
+    public const string Review = "review";
     public const string Dream = "dream";
     public const string SchemaMap = "schema_map";
 }

@@ -12,7 +12,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008/");
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", workspacePath: "/unused", TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", workspacePath: "/unused", TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().Equal(
             "-c",
@@ -33,7 +33,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008", home);
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: "say \"hi\"\nline2", CancellationToken.None);
+            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: "say \"hi\"\nline2", reviewArtifact: null, CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
         var profilePath = Path.Combine(home, "throne-intent-1.config.toml");
@@ -48,7 +48,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008", home);
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().NotContain("-p");
         File.Exists(Path.Combine(home, "throne-intent-1.config.toml")).Should().BeFalse();
@@ -60,7 +60,7 @@ public class CodexSessionHookAdapterTests
         var home = NewHome();
         var sut = NewAdapter("http://localhost:5008", home);
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: "RULES", CancellationToken.None);
+            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: "RULES", reviewArtifact: null, CancellationToken.None);
         var profilePath = Path.Combine(home, "throne-intent-1.config.toml");
         File.Exists(profilePath).Should().BeTrue();
 
@@ -75,7 +75,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008");
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", workspacePath: "/unused", TerminalRunModes.Interview, systemPrompt: null, CancellationToken.None);
+            "intent-1", workspacePath: "/unused", TerminalRunModes.Interview, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().Contain(t => t.Contains("/hooks/UserPromptSubmit?mode=interview'"));
         args.Should().Contain(t => t.Contains("/hooks/Stop?mode=interview'"));
@@ -89,9 +89,29 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008");
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         Directory.GetFileSystemEntries(root).Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "Codex review: запекает artifact writer и hint в developer profile")]
+    public async Task Review_writes_artifact_script_and_profile_hint()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
+        var home = NewHome();
+        var sut = NewAdapter("http://localhost:5008", home);
+
+        var args = await sut.PrepareSpawnArgsAsync(
+            "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
+            reviewArtifact: new ReviewArtifactWriteTarget("binding-1", 42), CancellationToken.None);
+
+        args.Should().ContainInOrder("-p", "throne-intent-1");
+        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
+        script.Should().Contain("BINDING_ID='binding-1'");
+
+        var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
+        profile.Should().Contain("review_recommendation");
+        profile.Should().Contain("send-comments");
     }
 
     [Theory(DisplayName = "Codex IsTuiReady распознаёт композёр по input-row маркеру и игнорирует splash")]

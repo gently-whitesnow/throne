@@ -8,14 +8,11 @@ import {
 } from "@/entities/terminal-setting";
 import { Button } from "@/shared/ui";
 
-import {
-  RUN_MODE_LABEL,
-  TERMINAL_RUN_MODES,
-  type TerminalRunMode
-} from "../model/types";
+import { RUN_MODE_LABEL, type TerminalRunMode } from "../model/types";
 
 interface RunControlsProps {
   mode: TerminalRunMode;
+  modes: readonly TerminalRunMode[];
   onModeChange: (mode: TerminalRunMode) => void;
   /** Список вендоров из backend-каталога; пуст, пока metadata грузится. */
   vendors: readonly TerminalVendorMetadata[];
@@ -55,6 +52,7 @@ interface RunControlsProps {
 
 export function RunControls({
   mode,
+  modes,
   onModeChange,
   vendors,
   vendor,
@@ -94,7 +92,7 @@ export function RunControls({
             onModeChange(event.target.value as TerminalRunMode);
           }}
         >
-          {TERMINAL_RUN_MODES.map((m) => (
+          {modes.map((m) => (
             <option key={m} value={m}>
               {RUN_MODE_LABEL[m]}
             </option>

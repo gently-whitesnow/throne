@@ -17,8 +17,20 @@ internal static class TerminalFailures
     public static ApiException ModeInvalid(string mode) =>
         new(
             ErrorCodes.TerminalModeInvalid,
-            $"Unknown terminal run mode '{mode}'. Allowed: work | interview | dream.",
+            $"Unknown terminal run mode '{mode}'. Allowed: work | interview | review | dream | free.",
             new Dictionary<string, object?> { ["mode"] = mode });
+
+    public static ApiException ReviewRequiresPullRequest(string mode, int count) =>
+        new(
+            ErrorCodes.ValidationFailed,
+            count == 0
+                ? "Review mode requires exactly one attached pull request on the intent."
+                : "Review mode cannot choose between multiple attached pull requests on the same intent.",
+            new Dictionary<string, object?>
+            {
+                ["mode"] = mode,
+                ["attached_pull_requests"] = count,
+            });
 
     public static ApiException VendorInvalid(string vendor) =>
         new(

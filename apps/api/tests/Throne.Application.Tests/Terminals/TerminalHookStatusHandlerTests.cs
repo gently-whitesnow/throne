@@ -12,11 +12,13 @@ public class TerminalHookStatusHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 12, 12, 0, 0, TimeSpan.Zero);
 
-    [Theory(DisplayName = "Stop и Notification в work/free/interview паркуют интент в awaiting_operator")]
+    [Theory(DisplayName = "Stop и Notification в work/review/free/interview паркуют интент в awaiting_operator")]
     [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Work)]
+    [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Review)]
     [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Free)]
     [InlineData(TerminalHookEvents.Stop, TerminalRunModes.Interview)]
     [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Work)]
+    [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Review)]
     [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Free)]
     [InlineData(TerminalHookEvents.Notification, TerminalRunModes.Interview)]
     public async Task Park_events_set_awaiting_operator(string hookEvent, string mode)
@@ -30,9 +32,11 @@ public class TerminalHookStatusHandlerTests
 
     [Theory(DisplayName = "UserPromptSubmit и PostToolUse возвращают интент в исходную фазу спавна")]
     [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Work, IntentStatusNames.Work)]
+    [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Review, IntentStatusNames.Work)]
     [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Free, IntentStatusNames.Work)]
     [InlineData(TerminalHookEvents.UserPromptSubmit, TerminalRunModes.Interview, IntentStatusNames.Interview)]
     [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Work, IntentStatusNames.Work)]
+    [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Review, IntentStatusNames.Work)]
     [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Free, IntentStatusNames.Work)]
     [InlineData(TerminalHookEvents.PostToolUse, TerminalRunModes.Interview, IntentStatusNames.Interview)]
     public async Task Resume_events_return_to_spawn_phase(string hookEvent, string mode, string expected)

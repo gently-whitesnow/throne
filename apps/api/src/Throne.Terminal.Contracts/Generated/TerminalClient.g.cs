@@ -148,7 +148,7 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
-    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `dream` is MCP-only and is rejected by the embedded preview.
+    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the `review_recommendation` artifact writer into the session workspace.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -163,13 +163,17 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"interview")]
         Interview = 1,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"review")]
+        [System.Runtime.Serialization.EnumMember(Value = @"review")]
+        Review = 2,
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"dream")]
         [System.Runtime.Serialization.EnumMember(Value = @"dream")]
-        Dream = 2,
+        Dream = 3,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"free")]
         [System.Runtime.Serialization.EnumMember(Value = @"free")]
-        Free = 3,
+        Free = 4,
 
     }
 

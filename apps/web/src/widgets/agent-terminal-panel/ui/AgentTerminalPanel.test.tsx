@@ -31,6 +31,7 @@ const previewIntentTerminal =
       selectedPartIds: string[] | null
     ) => Promise<IntentTerminalPreviewResponse>
   >();
+const listIntentRepositories = vi.fn<() => Promise<unknown[]>>();
 
 vi.mock("../api/agent-terminal-api", () => ({
   getIntentTerminalSession: (intentId: string) =>
@@ -65,7 +66,7 @@ vi.mock("@/entities/capability/api/capabilities-api", () => ({
 }));
 
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
-  listIntentRepositories: () => Promise.resolve([]),
+  listIntentRepositories: () => listIntentRepositories(),
   bindIntentRepository: vi.fn(),
   unbindIntentRepository: vi.fn()
 }));
@@ -155,6 +156,8 @@ describe("AgentTerminalPanel", () => {
     runIntentTerminal.mockReset();
     restartIntentTerminal.mockReset();
     previewIntentTerminal.mockReset();
+    listIntentRepositories.mockReset();
+    listIntentRepositories.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -222,5 +225,38 @@ describe("AgentTerminalPanel", () => {
       userPrompt: "BODY",
       intentTextUpdate: null
     });
+  });
+
+  it("Review-режим появляется только когда у интента есть attached PR", async () => {
+    getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
+
+    render();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+    });
+    const noPrOptions = Array.from(
+      screen.getByTestId("agent-terminal-mode").querySelectorAll("option")
+    ).map((option) => option.value);
+    expect(noPrOptions).not.toContain("review");
+
+    cleanup();
+    listIntentRepositories.mockResolvedValue([
+      {
+        id: "binding-1",
+        clone_status: "ready",
+        pull_request_number: 42
+      }
+    ]);
+
+    render();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+    });
+    const withPrOptions = Array.from(
+      screen.getByTestId("agent-terminal-mode").querySelectorAll("option")
+    ).map((option) => option.value);
+    expect(withPrOptions).toContain("review");
   });
 });
