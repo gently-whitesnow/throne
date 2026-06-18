@@ -77,7 +77,11 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryBindingService>();
         services.AddSingleton<WorkspaceCleanupService>();
         services.AddSingleton<RepositoryArtifactWriter>();
+        services.AddSingleton<PullRequestArtifactWriter>();
+        services.AddSingleton<IPullRequestArtifactSink>(sp => sp.GetRequiredService<PullRequestArtifactWriter>());
         services.AddSingleton<GetRepositoryDocumentHandler>();
+        services.AddSingleton<GetPullRequestArtifactHandler>();
+        services.AddSingleton<ListPullRequestArtifactsHandler>();
         services.AddSingleton<ListRepositoriesHandler>();
         services.AddSingleton<CreateRepositoryHandler>();
         services.AddSingleton<GetRepositoryHandler>();

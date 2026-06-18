@@ -309,6 +309,33 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}/versions", Name = "listRepositoryDocumentVersions")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
 
+        /// <summary>
+        /// List latest pull request artifacts for a repository binding.
+        /// </summary>
+        /// <remarks>
+        /// One-shot PR verification artifacts (ADR-0031), ordered by `type`. The binding must exist only for writes; reads return the durable rows currently present for the binding id and an unknown binding yields an empty array.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{binding_id}/artifacts", Name = "listPullRequestArtifacts")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<PullRequestArtifactDto>>> ListPullRequestArtifacts([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
+
+        /// <summary>
+        /// Get a single latest pull request artifact by type.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{binding_id}/artifacts/{type}", Name = "getPullRequestArtifact")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestArtifactDto>> GetPullRequestArtifact([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string type);
+
+        /// <summary>
+        /// Idempotently ingest a latest pull request artifact.
+        /// </summary>
+        /// <remarks>
+        /// Durable latest-wins ingest for ADR-0031 PR artifacts. The server derives `pull_request_number` from the durable binding; the request replaces the current artifact for `(binding_id, type)` wholesale and emits `pull_request.artifact_updated`.
+        /// </remarks>
+        /// <returns>OK — the artifact after this write.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{binding_id}/artifacts/{type}", Name = "putPullRequestArtifact")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PullRequestArtifactDto>> PutPullRequestArtifact([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string type, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PutPullRequestArtifactRequest body);
+
     }
 
     
