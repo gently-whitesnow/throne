@@ -2,7 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using MongoDB.Driver;
 using Throne.Application.Events;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.LocalModels;
@@ -25,8 +24,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddOptions<MongoOptions>()
-            .Bind(configuration.GetSection(MongoOptions.SectionName));
+        services.AddThroneMongo(configuration);
 
         services.AddOptions<SkillManifestOptions>()
             .Bind(configuration.GetSection(SkillManifestOptions.SectionName));
@@ -40,15 +38,6 @@ public static class DependencyInjection
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<LocalModelSettings>>().Value);
         services.AddHttpClient(LocalModelCatalogHttpClient.HttpClientName);
         services.AddSingleton<ILocalModelCatalogPort, LocalModelCatalogHttpClient>();
-
-        services.AddSingleton<IMongoClient>(sp =>
-            new MongoClient(sp.GetRequiredService<IOptions<MongoOptions>>().Value.ConnectionString));
-
-        services.AddSingleton<IMongoDatabase>(sp =>
-        {
-            var opts = sp.GetRequiredService<IOptions<MongoOptions>>().Value;
-            return sp.GetRequiredService<IMongoClient>().GetDatabase(opts.Database);
-        });
 
         services.AddSingleton<MongoSessionAccessor>();
         services.AddSingleton<MongoUnitOfWork>();
