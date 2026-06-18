@@ -80,11 +80,19 @@ public interface ITmuxSessionManager
 /// <param name="WorkingDirectory">Absolute path tmux uses as the session cwd (intent workspace root).</param>
 /// <param name="Command">Executable to run inside the tmux session (e.g. <c>claude</c>).</param>
 /// <param name="Arguments">Pre-split argument vector for <paramref name="Command"/>.</param>
+/// <param name="EnableMouse">
+/// When <c>true</c>, the manager turns on tmux's <c>mouse</c> option for the freshly spawned
+/// session so wheel events are intercepted by tmux (entering copy-mode) instead of being
+/// forwarded into the TUI as cursor keys. Used for vendors whose TUIs live in the alt-screen
+/// and do not handle wheel themselves (e.g. opencode chat log). Off by default — leaves the
+/// mouse with the TUI for vendors that need it for clicks/selection.
+/// </param>
 public sealed record TmuxSpawnRequest(
     string IntentId,
     string WorkingDirectory,
     string Command,
-    IReadOnlyList<string> Arguments);
+    IReadOnlyList<string> Arguments,
+    bool EnableMouse = false);
 
 /// <summary>
 /// Outcome of a spawn observation.
