@@ -4,6 +4,8 @@ import { useState } from "react";
 import { DreamsTab } from "@/widgets/improvements-dreams-tab";
 import { PatchesTab } from "@/widgets/improvements-patches-tab";
 
+import { DREAM_PROMPT } from "../model/dream-prompt";
+
 type TabKey = "patches" | "dreams";
 
 const TABS: { id: TabKey; label: string }[] = [
@@ -11,18 +13,15 @@ const TABS: { id: TabKey; label: string }[] = [
   { id: "dreams", label: "Dreams" }
 ];
 
-const DREAM_PROMPT =
-  "Запусти dream — улучшим мои user-инструкции по моим последним диалогам. " +
-  'Зачитай бандл dream через MCP get_prompt_bundle({mode: "dream"}) и следуй инструкции.';
-
 /**
  * `/improvements` — две вкладки:
  *   * Patches — PromptPartPatch list + diff preview + apply / apply-with-edit / reject;
  *   * Dreams — история проходов фронтир-агента (DreamSession) + dream_sources.
  *
- * Кнопка «Скопировать промпт» отдаёт подсказку для запуска dream-прохода в
- * подключённом агенте. Сам разбор делает фронтир локально через Read/Glob, см.
- * ADR-0022.
+ * Кнопка «Скопировать промпт dream» кладёт в буфер полный dream-плейбук
+ * ({@link DREAM_PROMPT}) — оператор вставляет его во внешнего агента, и
+ * dream-поток отрабатывает без `get_prompt_bundle`. Сам разбор делает фронтир
+ * локально через Read/Glob, см. ADR-0022.
  */
 export function ImprovementsSectionPage() {
   const [tab, setTab] = useState<TabKey>("patches");
@@ -87,8 +86,8 @@ function CopyPromptButton() {
           }, 1500);
         });
       }}
-      aria-label="Скопировать промпт для запуска dream"
-      title="Скопировать промпт для запуска dream"
+      aria-label="Скопировать промпт dream"
+      title="Скопировать промпт dream"
     >
       {copied ? (
         <>
@@ -96,7 +95,8 @@ function CopyPromptButton() {
         </>
       ) : (
         <>
-          <Copy aria-hidden size={14} strokeWidth={2} /> Промпт для dream
+          <Copy aria-hidden size={14} strokeWidth={2} /> Скопировать промпт
+          dream
         </>
       )}
     </button>

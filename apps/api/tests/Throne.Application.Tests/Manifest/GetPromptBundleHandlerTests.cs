@@ -68,23 +68,6 @@ public class GetPromptBundleHandlerTests
         bundle.MissingKeys.Should().Equal("common", "interview");
     }
 
-    [Fact(DisplayName = "GetPromptBundle для dream возвращает common и dream без смены статуса intent")]
-    public async Task Bundle_returns_dream_keys()
-    {
-        var repo = SeededRepository();
-        var intents = StubIntentRepository();
-        var handler = NewHandler(repo, intents);
-
-        var bundle = await handler.HandleAsync(
-            new GetPromptBundleQuery(PromptBundleModeNames.Dream, IntentId: null),
-            CancellationToken.None);
-
-        bundle.Mode.Should().Be(PromptBundleModeNames.Dream);
-        bundle.Parts.Select(x => x.Key).Should().Equal("common", "dream", "common", "dream");
-        await intents.DidNotReceiveWithAnyArgs().SetStatusAsync(
-            default!, default!, default, default, default, default!, default, default);
-    }
-
     [Fact(DisplayName = "GetPromptBundle отклоняет неизвестный mode")]
     public async Task Bundle_rejects_unknown_mode()
     {
