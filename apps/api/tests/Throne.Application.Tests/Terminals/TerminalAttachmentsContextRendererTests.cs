@@ -11,34 +11,37 @@ public class TerminalAttachmentsContextRendererTests
     [Fact(DisplayName = "Render возвращает null когда у интента нет аттачей")]
     public void Render_returns_null_when_no_attachments()
     {
-        TerminalAttachmentsContextRenderer.Render([]).Should().BeNull();
+        TerminalAttachmentsContextRenderer.Render("intent-1", []).Should().BeNull();
     }
 
-    [Fact(DisplayName = "Render для image-аттача формирует блок и подсказку про read_intent_attachment_image")]
+    [Fact(DisplayName = "Render для image-аттача печатает intent_id и нейтральную подсказку без голого имени тула")]
     public void Render_image_attachment_emits_image_hint()
     {
         var att = new IntentAttachment("att-1", "intent-1", "shot.png", "image/png", 12345, Now);
 
-        var text = TerminalAttachmentsContextRenderer.Render([att]);
+        var text = TerminalAttachmentsContextRenderer.Render("intent-1", [att]);
 
         text.Should().NotBeNull();
         text!.Split('\n').Should().Equal(
             "[intent attachments]",
+            "intent_id=intent-1",
             "- id=att-1 kind=image filename=\"shot.png\" content_type=image/png size_bytes=12345",
             "",
-            "Use `read_intent_attachment_image` (MCP) with the attachment id above to load image bytes as a vision block.");
+            "To view an image attachment, call your MCP client's attachment-read tool for images "
+                + "(the one that loads image bytes as a vision block), passing intent_id and the attachment id above.");
+        text.Should().NotContain("read_intent_attachment_image");
     }
 
-    [Fact(DisplayName = "Render для text-аттача формирует блок и подсказку про read_intent_attachment_text")]
+    [Fact(DisplayName = "Render для text-аттача печатает intent_id и нейтральную подсказку без голого имени тула")]
     public void Render_text_attachment_emits_text_hint()
     {
         var att = new IntentAttachment("att-1", "intent-1", "trace.log", "text/plain", 1024, Now);
 
-        var text = TerminalAttachmentsContextRenderer.Render([att]);
+        var text = TerminalAttachmentsContextRenderer.Render("intent-1", [att]);
 
         text.Should().NotBeNull();
-        text!.Should().Contain("kind=text").And.Contain("read_intent_attachment_text");
-        text.Should().NotContain("read_intent_attachment_image");
+        text!.Should().Contain("intent_id=intent-1").And.Contain("kind=text").And.Contain("text/log files");
+        text.Should().NotContain("read_intent_attachment_text").And.NotContain("read_intent_attachment_image");
     }
 
     [Fact(DisplayName = "Render по смешанным типам печатает обе подсказки в стабильном порядке image -> text")]
@@ -47,11 +50,11 @@ public class TerminalAttachmentsContextRendererTests
         var image = new IntentAttachment("img", "intent-1", "shot.png", "image/png", 100, Now);
         var log = new IntentAttachment("log", "intent-1", "trace.log", "text/plain", 200, Now);
 
-        var text = TerminalAttachmentsContextRenderer.Render([image, log]);
+        var text = TerminalAttachmentsContextRenderer.Render("intent-1", [image, log]);
 
         text.Should().NotBeNull();
-        var imageHintIdx = text!.IndexOf("read_intent_attachment_image", StringComparison.Ordinal);
-        var textHintIdx = text.IndexOf("read_intent_attachment_text", StringComparison.Ordinal);
+        var imageHintIdx = text!.IndexOf("image attachment, call", StringComparison.Ordinal);
+        var textHintIdx = text.IndexOf("text attachment, call", StringComparison.Ordinal);
         imageHintIdx.Should().BeGreaterThan(0);
         textHintIdx.Should().BeGreaterThan(imageHintIdx);
     }
@@ -61,11 +64,11 @@ public class TerminalAttachmentsContextRendererTests
     {
         var att = new IntentAttachment("att-1", "intent-1", "bin.dat", "application/octet-stream", 9, Now);
 
-        var text = TerminalAttachmentsContextRenderer.Render([att]);
+        var text = TerminalAttachmentsContextRenderer.Render("intent-1", [att]);
 
         text.Should().NotBeNull();
         text!.Should().Contain("kind=unsupported");
-        text.Should().NotContain("read_intent_attachment_image").And.NotContain("read_intent_attachment_text");
+        text.Should().NotContain("attachment-read tool");
     }
 
     [Fact(DisplayName = "Render экранирует кавычки и обратные слэши в имени файла")]
@@ -73,7 +76,7 @@ public class TerminalAttachmentsContextRendererTests
     {
         var att = new IntentAttachment("att-1", "intent-1", "weird \"name\" \\ path.png", "image/png", 1, Now);
 
-        var text = TerminalAttachmentsContextRenderer.Render([att]);
+        var text = TerminalAttachmentsContextRenderer.Render("intent-1", [att]);
 
         text.Should().NotBeNull();
         text!.Should().Contain("filename=\"weird \\\"name\\\" \\\\ path.png\"");
