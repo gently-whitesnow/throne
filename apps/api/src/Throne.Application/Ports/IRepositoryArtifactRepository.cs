@@ -17,7 +17,6 @@ public interface IRepositoryArtifactRepository
         string slug,
         string title,
         string document,
-        string renderHint,
         int? expectedVersion,
         DateTimeOffset now,
         CancellationToken ct);

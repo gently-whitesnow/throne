@@ -10,7 +10,6 @@ public sealed record WriteRepositoryArtifactCommand(
     string Slug,
     string Title,
     string Document,
-    string RenderHint,
     int? ExpectedVersion);
 
 /// <summary>
@@ -42,7 +41,6 @@ public sealed class RepositoryArtifactWriter(
                     command.Slug,
                     command.Title,
                     command.Document,
-                    command.RenderHint,
                     command.ExpectedVersion,
                     now,
                     inner);

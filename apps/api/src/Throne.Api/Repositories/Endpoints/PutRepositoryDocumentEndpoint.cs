@@ -2,15 +2,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Shared;
 using Throne.Application.Repositories;
-using Throne.Domain.Repositories;
 using Throne.Repositories.Contracts.Generated;
 
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Manual upsert of a knowledge page. <c>render_hint</c> is derived from the slug (ADR-0031),
-/// never taken from the wire. A domain guard rejection on the slug (a path segment the contract
-/// cannot fully constrain) surfaces as 422 rather than an unhandled 500.
+/// Manual upsert of a knowledge page (ADR-0031). A domain guard rejection on the slug (a path
+/// segment the contract cannot fully constrain) surfaces as 422 rather than an unhandled 500.
 /// </summary>
 public sealed class PutRepositoryDocumentEndpoint(RepositoryArtifactWriter writer)
 {
@@ -36,7 +34,6 @@ public sealed class PutRepositoryDocumentEndpoint(RepositoryArtifactWriter write
                 slug,
                 body.Title,
                 body.Document,
-                RepositoryArtifactRenderHints.ForSlug(slug),
                 body.Expected_version
             );
             var artifact = await writer.WriteAsync(command, ct);

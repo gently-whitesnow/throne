@@ -20,7 +20,6 @@ public sealed class RepositoryArtifact
         string slug,
         string title,
         string document,
-        string renderHint,
         int version,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt)
@@ -30,7 +29,6 @@ public sealed class RepositoryArtifact
         Slug = slug;
         Title = title;
         Document = document;
-        RenderHint = renderHint;
         Version = version;
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
@@ -41,7 +39,6 @@ public sealed class RepositoryArtifact
     public string Slug { get; }
     public string Title { get; private set; }
     public string Document { get; private set; }
-    public string RenderHint { get; private set; }
     public int Version { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -52,16 +49,14 @@ public sealed class RepositoryArtifact
         string slug,
         string title,
         string document,
-        string renderHint,
         DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(coordinate);
         RepositoryArtifactSlugGuard.EnsureValid(slug);
         EnsureValidTitle(title);
         ArgumentNullException.ThrowIfNull(document);
-        EnsureKnownRenderHint(renderHint);
 
-        return new RepositoryArtifact(id, coordinate, slug, title, document, renderHint, version: 1, now, now);
+        return new RepositoryArtifact(id, coordinate, slug, title, document, version: 1, now, now);
     }
 
     public static RepositoryArtifact Restore(RepositoryArtifactSnapshot snapshot)
@@ -71,7 +66,6 @@ public sealed class RepositoryArtifact
         RepositoryArtifactSlugGuard.EnsureValid(snapshot.Slug);
         EnsureValidTitle(snapshot.Title);
         ArgumentNullException.ThrowIfNull(snapshot.Document);
-        EnsureKnownRenderHint(snapshot.RenderHint);
         if (snapshot.Version < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(snapshot), "version must be >= 1.");
@@ -79,7 +73,7 @@ public sealed class RepositoryArtifact
 
         return new RepositoryArtifact(
             snapshot.Id, snapshot.Coordinate, snapshot.Slug, snapshot.Title, snapshot.Document,
-            snapshot.RenderHint, snapshot.Version, snapshot.CreatedAt, snapshot.UpdatedAt);
+            snapshot.Version, snapshot.CreatedAt, snapshot.UpdatedAt);
     }
 
     /// <summary>
@@ -87,15 +81,13 @@ public sealed class RepositoryArtifact
     /// The <c>expected_version == current</c> precondition is checked at the persistence
     /// boundary (mirrors Intent/Instruction/Tag); this method only advances the aggregate.
     /// </summary>
-    public void Update(string title, string document, string renderHint, DateTimeOffset now)
+    public void Update(string title, string document, DateTimeOffset now)
     {
         EnsureValidTitle(title);
         ArgumentNullException.ThrowIfNull(document);
-        EnsureKnownRenderHint(renderHint);
 
         Title = title;
         Document = document;
-        RenderHint = renderHint;
         Version += 1;
         UpdatedAt = now;
     }
@@ -106,15 +98,6 @@ public sealed class RepositoryArtifact
         if (title.Length > MaxTitleLength)
         {
             throw new ArgumentException($"title exceeds {MaxTitleLength} characters.", nameof(title));
-        }
-    }
-
-    private static void EnsureKnownRenderHint(string renderHint)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(renderHint);
-        if (!RepositoryArtifactRenderHints.IsKnown(renderHint))
-        {
-            throw new ArgumentOutOfRangeException(nameof(renderHint), $"Unknown render_hint: {renderHint}.");
         }
     }
 }

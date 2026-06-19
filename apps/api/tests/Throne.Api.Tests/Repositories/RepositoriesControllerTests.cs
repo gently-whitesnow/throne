@@ -80,7 +80,6 @@ public sealed class RepositoriesControllerTests(MongoFixture mongo) : IAsyncLife
         created.StatusCode.Should().Be(HttpStatusCode.OK);
         var createdDto = await created.Content.ReadFromJsonAsync<JsonElement>();
         createdDto.GetProperty("version").GetInt32().Should().Be(1);
-        createdDto.GetProperty("render_hint").GetString().Should().Be("schema_map");
         createdDto.GetProperty("document").GetString().Should().Be("# v1");
 
         var updated = await _fixture.Client.PutAsJsonAsync(url, new { title = "Schema", document = "# v2", expected_version = 1 });

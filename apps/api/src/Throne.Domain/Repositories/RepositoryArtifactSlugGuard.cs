@@ -4,9 +4,8 @@ namespace Throne.Domain.Repositories;
 
 /// <summary>
 /// Allow-list validation for <see cref="RepositoryArtifact.Slug"/>: a stable, URL-safe
-/// kebab-case identifier for a knowledge page within one repository (e.g.
-/// <c>db-schema-map</c>). Lower-case so <c>(coordinate, slug)</c> uniqueness is not
-/// defeated by case variants.
+/// kebab-case identifier for a knowledge page within one repository. Lower-case so
+/// <c>(coordinate, slug)</c> uniqueness is not defeated by case variants.
 /// </summary>
 public static partial class RepositoryArtifactSlugGuard
 {
