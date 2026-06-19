@@ -3,6 +3,8 @@ import { useId, useState } from "react";
 
 import type { PromptPartPreview } from "../model/types";
 
+import { AutoTextarea } from "./AutoTextarea";
+
 const ROLE_LABEL: Record<string, string> = {
   mandatory: "обязательная",
   default_on: "включена",
@@ -70,9 +72,9 @@ export function PartFrame({ part, onToggle, onTextChange }: PartFrameProps) {
       </div>
       {open ? (
         <div id={bodyId} className="px-2 pb-2">
-          <textarea
+          <AutoTextarea
             aria-label={`Текст части ${part.key}`}
-            className="textarea textarea-bordered min-h-24 w-full resize-y font-mono text-xs leading-snug"
+            className="textarea textarea-bordered min-h-24 w-full resize-none overflow-hidden font-mono text-xs leading-snug"
             value={part.text}
             onChange={(e) => {
               onTextChange(part.part_id, e.target.value);
