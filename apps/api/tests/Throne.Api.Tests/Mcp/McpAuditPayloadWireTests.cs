@@ -70,18 +70,8 @@ public class McpAuditPayloadWireTests
     public async Task Renderers_produce_null_structured_content_through_audit_wrapper()
     {
         var sink = Substitute.For<IMcpCallLogSink>();
-        var bundle = new PromptBundle(
-            Mode: "work",
-            IntentId: "intent-1",
-            Parts:
-            [
-                new PromptBundlePart("system", "common", "part-sys", 1, "Системный common."),
-                new PromptBundlePart("user", "work", "part-user", 7, "User work тело."),
-            ],
-            MissingKeys: []);
         var renderers = new Func<object?>[]
         {
-            () => PromptBundleRenderer.Render(bundle),
             () => IntentReadResultRenderer.Render(new McpIntentReadResult(
                 "intent-1", "Body.", "work", 1, [], "K", Now, Now, [], [], [])),
             () => TextSliceRenderer.Render(new TextSlice(1, 1, 1, 1, "x", false, null)),
@@ -104,50 +94,6 @@ public class McpAuditPayloadWireTests
                 "каждый prompt-like renderer обязан возвращать McpToolPayload c null wire StructuredContent");
             result.Content.Should().NotBeNullOrEmpty("Content[] — единственный канал текста до модели");
         }
-    }
-
-    [Fact(DisplayName = "Wire-size budget: get_prompt_bundle (system+user × common+work) < 30 KB end-to-end")]
-    public async Task PromptBundle_wire_size_below_budget()
-    {
-        // Acceptance из intent ef25f66c: bundle штатного набора укладывается в 30 KB на wire.
-        // До амендмента §8.1 цифра уплывала за 70 KB из-за дубля payload в Content +
-        // StructuredContent с \uXXXX-эскейпом кириллицы.
-        var sink = Substitute.For<IMcpCallLogSink>();
-        var bundle = new PromptBundle(
-            Mode: "work",
-            IntentId: "intent-9",
-            Parts:
-            [
-                new PromptBundlePart("system", "common", "part-sys-common", 1, MakeRussianInstruction("system common", 1000)),
-                new PromptBundlePart("system", "work", "part-sys-work", 1, MakeRussianInstruction("system work", 1000)),
-                new PromptBundlePart("user", "common", "part-user-common", 1, MakeRussianInstruction("user common", 1000)),
-                new PromptBundlePart("user", "work", "part-user-work", 1, MakeRussianInstruction("user work", 1000)),
-            ],
-            MissingKeys: []);
-
-        var tool = NewWrapper("get_prompt_bundle", _ => PromptBundleRenderer.Render(bundle), sink);
-        var result = await tool.InvokeAsync(
-            NewCallContext("get_prompt_bundle", new Dictionary<string, JsonElement>
-            {
-                ["mode"] = JsonDocument.Parse("\"work\"").RootElement,
-            }),
-            CancellationToken.None);
-
-        var wireBytes = JsonSerializer.SerializeToUtf8Bytes(result);
-        wireBytes.Length.Should().BeLessThan(30 * 1024,
-            $"ADR-0003 §8.1: bundle wire size must stay under 30 KB (actual: {wireBytes.Length} bytes)");
-    }
-
-    private static string MakeRussianInstruction(string label, int chars)
-    {
-        var sb = new StringBuilder(chars + 64);
-        sb.Append("# ").Append(label).Append('\n');
-        const string body = "Краткое описание инструкции с русским текстом и переносами строк. ";
-        while (sb.Length < chars)
-        {
-            sb.Append(body);
-        }
-        return sb.ToString();
     }
 
     private static McpPromptPartPatchReadModel NewPatch() => new(

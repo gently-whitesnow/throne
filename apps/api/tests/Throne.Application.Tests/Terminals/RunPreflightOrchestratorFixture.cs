@@ -137,7 +137,6 @@ public partial class RunPreflightOrchestratorTests
             var promptPartsRepo = Substitute.For<IPromptPartRepository>();
             var promptResolver = new PromptCompositionResolver(
                 SkillManifestFixtures.Provider(),
-                new PromptBundleResolver(promptPartsRepo),
                 promptPartsRepo);
             return new RunPreflightPromptGate(
                 promptResolver, new ReplaceIntentTextHandler(Intents, uow, clock));

@@ -86,8 +86,8 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         doc.ExceptionType.Should().Be("System.ArgumentException");
     }
 
-    [Fact(DisplayName = "WriteAsync сохраняет nested PromptBundleUse summary")]
-    public async Task WriteAsync_persists_prompt_bundle_summary()
+    [Fact(DisplayName = "WriteAsync сохраняет ModeHint и nested result_summary")]
+    public async Task WriteAsync_persists_nested_result_summary()
     {
         var dbName = $"throne_audit_{Guid.NewGuid():N}";
         await fixture.Client.DropDatabaseAsync(dbName);
@@ -97,7 +97,7 @@ public class MongoMcpCallLogSinkTests(MongoFixture fixture)
         var entry = new McpCallLogEntry(
             CreatedAt: new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero),
             SessionId: "session-1",
-            ToolName: "get_prompt_bundle",
+            ToolName: "get_intent",
             Arguments: new Dictionary<string, object?> { ["intent_id"] = "intent_123", ["mode"] = "work" },
             IntentId: "intent_123",
             ModeHint: "work",

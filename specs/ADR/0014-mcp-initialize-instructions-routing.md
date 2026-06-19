@@ -2,7 +2,17 @@
 
 ## Status
 
-Accepted. Заменяет ранний UX-вход через vendor-локальные skill-лаунчеры (`.claude/skills/`, `.agents/skills/`) — см. Context.
+Accepted. Заменяет ранний UX-вход через vendor-локальные skill-лаунчеры (`.claude/skills/`, `.agents/skills/`) — см. Context. **Amended 2026-06-19** — см. ниже.
+
+## Amendment (2026-06-19): standalone = knowledge base, bundle removed
+
+Bundle-обвязка доставки плейбука демонтирована целиком (см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md), [ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md)). Конкретно для этого ADR:
+
+- MCP-тул `get_prompt_bundle` и HTTP `getBundlesTree` (`/api/v1/prompt-parts/bundles-tree`) **удалены**. UI-страница больше не рендерит дерево бандлов.
+- `ThroneServerInstructions.MiniRouter` **переписан**: Throne для standalone-агента — это база знаний интентов. Агент читает/пишет `Intent.text` и по явной просьбе меняет статус через `set_intent_status` / создаёт интент через `create_intent`. Mini-router больше не упоминает `get_prompt_bundle` и режимы `work/interview/review/dream` — это режимы embedded-контура, не standalone. Авто-переходов статуса по чтению бандла нет (их триггерил bundle-read, которого больше не существует).
+- Решения 2, 4, 6 и упоминания `bundles-tree` ниже описывают историческое состояние и читаются как контекст; актуальный текст mini-router и поверхность standalone заданы этим amendment.
+
+Манифест продолжает быть source of truth для `system_instructions` и `bundles[]`, но `bundles[]` теперь питает только embedded-композицию (seed `mode_roles`), а не доставку по MCP.
 
 ## Context
 

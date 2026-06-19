@@ -5,6 +5,17 @@
 Accepted
 Date: 2026-06-11
 Related: [ADR-0008](0008-realtime-contract-first-events.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0020](0020-intent-status-needs-help-and-fridge.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0027](0027-runtime-model-native-host-process.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md)
+**Amended 2026-06-19** — см. ниже.
+
+## Amendment (2026-06-19): standalone = knowledge base, bundle removed
+
+Решение признавало два контура: embedded на хуках и standalone «на бандлах» (§ 2). Standalone-контур **перестал быть контуром исполнения интента**: bundle-обвязка доставки плейбука выпилена целиком (MCP-тул `get_prompt_bundle`, его авто-переходы статуса, `bundles-tree`). Действующая граница:
+
+- **Standalone** (внешний агент по HTTP `/mcp`) сводится к базе знаний интентов: read/write `Intent.text`, `set_intent_status` и `create_intent` — **только по явной просьбе пользователя**, весь intent-management MCP-сюрфейс. Плейбук исполнения (work/interview/review/dream) через MCP **не доставляется**. Авто-переходов статуса нет — их триггерил bundle-read, которого больше не существует.
+- **Embedded** — единственный полноценный контур исполнения: upfront-инъекция контекста + хуки (§ 1, § 4). Не изменён.
+- Финал standalone-прохода (§ 6): `set_intent_status(ready_for_review|awaiting_operator)` остаётся — это intent-management, а не bundle. Семантика по-прежнему живёт в `[Description]` тула `set_intent_status`.
+
+Где ниже по тексту сказано «standalone на бандлах» / «`get_prompt_bundle`» / «чтение бандла двигает статус» — читать как историю до 2026-06-19. Композиция `work/interview/review` в манифесте (`bundles[]`) сохранена, но теперь это только seed `mode_roles` для embedded ([ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md)).
 
 ## Контекст
 

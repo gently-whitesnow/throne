@@ -1,17 +1,18 @@
 # Throne instruction manifest — single source of truth for system instructions
-# and bundle composition.
+# and the embedded prompt composition.
 #
 # Backend runtime (`ISkillManifestProvider`) reads this file and uses it to:
-#   * resolve `mode → mandatory (scope, key)` for `mcp__throne__get_prompt_bundle`,
 #   * seed mandatory system prompt parts (texts below) and their per-mode roles
 #     into the `prompt_parts` collection (ADR-0036),
-#   * compute the precomputed `/api/v1/prompt-parts/bundles-tree`.
+#   * resolve `mode → mandatory (scope, key)` for the embedded composition
+#     (`PromptCompositionResolver`).
 #
-# A bundle is the standalone payload (MCP `get_prompt_bundle`). The embedded
-# composition is assembled in the operator UI from the same parts plus optionals.
+# `bundles[]` declares the ordered mandatory composition per mode. It is consumed
+# only by the embedded contour (operator UI + run pre-flight); standalone agents
+# no longer receive a playbook over MCP (ADR-0034, ADR-0036).
 #
 # User-scope prompt parts are runtime data in Mongo. Their texts are not stored
-# here — only the fact that the corresponding key participates in a bundle (via
+# here — only the fact that the corresponding key participates in a mode (via
 # `bundles[].includes` with `scope: user`).
 #
 # There is no `skills:` section: vendor skill launchers were superseded by
