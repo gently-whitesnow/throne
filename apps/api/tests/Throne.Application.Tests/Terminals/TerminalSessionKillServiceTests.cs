@@ -99,6 +99,7 @@ public class TerminalSessionKillServiceTests
                 Substitute.For<IWorkspaceTrust>(),
                 Array.Empty<ISessionHookAdapter>(),
                 waiter,
+                new TerminalReadinessSignals(),
                 options,
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());

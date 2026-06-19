@@ -23,6 +23,8 @@ public interface ISessionHookAdapter
 {
     string Vendor { get; }
 
+    string? ReadinessHookEvent => null;
+
     /// <summary>
     /// Prepares the per-session spawn args for <paramref name="intentId"/> launched in
     /// <paramref name="workspacePath"/> with spawn <paramref name="mode"/> and returns the extra CLI
@@ -50,12 +52,8 @@ public interface ISessionHookAdapter
     Task CleanupAsync(string intentId, CancellationToken ct);
 
     /// <summary>
-    /// Vendor-specific readiness predicate over a <c>tmux capture-pane</c> snapshot. Returns
-    /// <c>true</c> once the vendor TUI has finished its terminfo init and rendered a composer/
-    /// prompt ready to receive bracketed-paste input. The waiter polls this until it returns
-    /// <c>true</c> (or hits the configured timeout) before any
-    /// <see cref="ITmuxSessionManager.PasteFileAsSubmittedPromptAsync"/> — see ADR-0026 / the
-    /// embedded-terminal flow notes. Pure function over the snapshot; no I/O.
+    /// Legacy vendor-specific readiness predicate over a <c>tmux capture-pane</c> snapshot.
+    /// Kept until every vendor has a provider-native <see cref="ReadinessHookEvent"/>.
     /// </summary>
     bool IsTuiReady(string paneSnapshot);
 }
