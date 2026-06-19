@@ -91,7 +91,7 @@ public class TerminalSessionKillServiceTests
             Tmux = Substitute.For<ITmuxSessionManager>();
             var options = new RunPreflightOptions();
             var waiter = new TmuxTuiReadinessWaiter(
-                Tmux, options, TimeProvider.System,
+                Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<TmuxTuiReadinessWaiter>.Instance);
             var spawn = new RunPreflightSpawn(
                 Tmux,
@@ -99,7 +99,6 @@ public class TerminalSessionKillServiceTests
                 Substitute.For<IWorkspaceTrust>(),
                 Array.Empty<ISessionHookAdapter>(),
                 waiter,
-                new TerminalReadinessSignals(),
                 options,
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());

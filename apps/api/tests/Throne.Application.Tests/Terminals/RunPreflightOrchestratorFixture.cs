@@ -112,11 +112,12 @@ public partial class RunPreflightOrchestratorTests
             // Happy-path tests stub CapturePaneAsync to a composer marker so the waiter resolves on first capture.
             Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("│ > ready");
             var readinessWaiter = new TmuxTuiReadinessWaiter(
-                Tmux, options, TimeProvider.System, NullLogger<TmuxTuiReadinessWaiter>.Instance);
+                Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
+                NullLogger<TmuxTuiReadinessWaiter>.Instance);
             return new RunPreflightSpawn(
                 Tmux, workspace, Substitute.For<IWorkspaceTrust>(),
                 [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
-                readinessWaiter, new TerminalReadinessSignals(), options,
+                readinessWaiter, options,
                 new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());
         }

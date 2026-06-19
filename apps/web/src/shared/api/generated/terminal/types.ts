@@ -131,7 +131,7 @@ export interface paths {
         put?: never;
         /**
          * Receive a local agent hook callback.
-         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
+         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). `SessionReady` is a provider-neutral readiness signal for the initial prompt paste and is intentionally ignored by status derivation. Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
          */
         post: operations["receiveIntentTerminalHook"];
         delete?: never;
@@ -536,7 +536,7 @@ export interface operations {
             header?: never;
             path: {
                 intent_id: string;
-                event: "Stop" | "UserPromptSubmit" | "Notification" | "PostToolUse";
+                event: "Stop" | "UserPromptSubmit" | "SessionReady" | "Notification" | "PostToolUse";
             };
             cookie?: never;
         };
