@@ -154,7 +154,7 @@ export interface paths {
         put?: never;
         /**
          * Resolve the embedded prompt composition before spawn (ADR-0036).
-         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires exactly one attached PR/MR on the intent.
+         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
          */
         post: operations["previewIntentTerminal"];
         delete?: never;
@@ -195,7 +195,7 @@ export interface components {
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
         };
         /**
-         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the `review_recommendation` artifact writer into the session workspace.
+         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires an attached PR/MR and bakes the selected `review_recommendation` artifact writer into the session workspace.
          * @enum {string}
          */
         TerminalRunMode: "work" | "interview" | "review" | "dream" | "free";
@@ -225,6 +225,8 @@ export interface components {
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
             /** @description Optional part ids the operator left enabled in the pre-flight modal. The server validates each id against the parts available in `mode` (unknown ids → 422) but does NOT recompose `system_prompt` from them — the assembled text travels in `system_prompt`. Omitted → no optional parts were curated for this run. */
             selected_part_ids?: string[] | null;
+            /** @description Binding id of the attached PR/MR to review when `mode=review` and the intent has more than one attached pull request. Omitted with a single attached PR/MR → the server selects it implicitly. A value outside the intent's attached PR/MR bindings aborts pre-flight with 422. */
+            review_binding_id?: string | null;
             /** @description Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected. */
             system_prompt?: string | null;
             /** @description Final task text (intent body draft plus the operator's per-run input) delivered verbatim as the agent's initial user message. Empty/omitted → the agent boots without a pre-filled prompt. */

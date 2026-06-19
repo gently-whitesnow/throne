@@ -74,12 +74,16 @@ function preview(): IntentTerminalPreviewResponse {
   };
 }
 
-function renderModal(onLaunch: (p: TerminalRunPayload) => void) {
+function renderModal(
+  onLaunch: (p: TerminalRunPayload) => void,
+  reviewBindingId: string | null = null
+) {
   return render(
     <PreflightModal
       open
       intentId="intent-1"
       launch={LAUNCH}
+      reviewBindingId={reviewBindingId}
       actionLabel="Запустить"
       isSubmitting={false}
       onClose={() => undefined}
@@ -119,6 +123,7 @@ describe("PreflightModal", () => {
     expect(previewIntentTerminal).toHaveBeenCalledTimes(1);
     const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
     expect(payload.selectedPartIds).toEqual(["p1"]);
+    expect(payload.reviewBindingId).toBeNull();
     expect(payload.systemPrompt).toBe("mandatory text\n\npostgres rule");
   });
 
@@ -167,5 +172,16 @@ describe("PreflightModal", () => {
 
     const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
     expect(payload.intentTextUpdate).toBeNull();
+  });
+
+  it("прокидывает выбранный review binding в payload", async () => {
+    const onLaunch = vi.fn();
+    renderModal(onLaunch, "binding-2");
+
+    await screen.findByTestId("agent-terminal-task-body");
+    fireEvent.click(screen.getByTestId("agent-terminal-preflight-launch"));
+
+    const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
+    expect(payload.reviewBindingId).toBe("binding-2");
   });
 });

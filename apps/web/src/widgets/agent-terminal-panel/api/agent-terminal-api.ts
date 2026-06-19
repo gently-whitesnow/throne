@@ -13,6 +13,7 @@ function toRequestBody(payload: TerminalRunPayload) {
     vendor: payload.launch.vendor,
     model: payload.launch.model,
     effort: payload.launch.effort,
+    review_binding_id: payload.reviewBindingId,
     selected_part_ids: payload.selectedPartIds,
     system_prompt: payload.systemPrompt,
     user_prompt: payload.userPrompt,

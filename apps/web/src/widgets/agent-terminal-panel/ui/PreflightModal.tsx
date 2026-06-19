@@ -15,6 +15,7 @@ interface PreflightModalProps {
   open: boolean;
   intentId: string;
   launch: TerminalLaunchArgs;
+  reviewBindingId: string | null;
   actionLabel: string;
   isSubmitting: boolean;
   onClose: () => void;
@@ -25,6 +26,7 @@ export function PreflightModal({
   open,
   intentId,
   launch,
+  reviewBindingId,
   actionLabel,
   isSubmitting,
   onClose,
@@ -111,7 +113,7 @@ export function PreflightModal({
           icon={<Play aria-hidden size={14} strokeWidth={2} />}
           disabled={launchDisabled}
           onClick={() => {
-            onLaunch(preview.buildPayload(launch));
+            onLaunch(preview.buildPayload(launch, reviewBindingId));
           }}
         >
           {isSubmitting ? "Запускаем…" : actionLabel}

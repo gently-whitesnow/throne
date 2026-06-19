@@ -56,6 +56,14 @@ internal static class TerminalRunResponseMapper
                 : null);
     }
 
+    public static string? ToReviewBindingId(RunIntentTerminalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return string.IsNullOrWhiteSpace(request.Review_binding_id)
+            ? null
+            : request.Review_binding_id;
+    }
+
     private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
     {
         TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,

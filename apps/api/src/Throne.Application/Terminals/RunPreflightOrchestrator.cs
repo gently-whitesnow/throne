@@ -25,7 +25,8 @@ public sealed class RunPreflightOrchestrator(
         TerminalLaunchInput launch,
         TerminalSpawnPrompt prompt,
         bool restart,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? reviewBindingId = null)
     {
         ArgumentNullException.ThrowIfNull(launch);
         ArgumentNullException.ThrowIfNull(prompt);
@@ -53,7 +54,7 @@ public sealed class RunPreflightOrchestrator(
                 intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking,
                 launchRecord);
         }
-        var reviewArtifact = ReviewArtifactWriteTarget.Resolve(mode, waitResult.Bindings);
+        var reviewArtifact = ReviewArtifactWriteTarget.Resolve(mode, reviewBindingId, waitResult.Bindings);
 
         // Validate the curated selection and persist the task-zone edit (optimistic concurrency)
         // before spawn — a version conflict throws here so the agent never starts on a stale edit.
