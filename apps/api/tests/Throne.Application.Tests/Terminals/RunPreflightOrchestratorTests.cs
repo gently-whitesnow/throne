@@ -58,6 +58,17 @@ public partial class RunPreflightOrchestratorTests
         result.SessionState.Should().Be(TerminalSessionStates.Running);
         result.SessionName.Should().Be($"throne-{IntentIdValue}");
         result.BlockingBindings.Should().BeEmpty();
+        // Resolved launch axis (ADR-0041) is echoed and persisted as the intent's last-used.
+        result.Launch.Should().Be(
+            new TerminalLaunchRecord(TerminalRunModes.Work, TerminalAgentCatalog.VendorClaude, "opus", "high"));
+        await fixture.LaunchStore.Received(1).SaveAsync(
+            IntentIdValue,
+            Arg.Is<TerminalLaunchRecord>(r =>
+                r.Mode == TerminalRunModes.Work
+                && r.Vendor == TerminalAgentCatalog.VendorClaude
+                && r.Model == "opus"
+                && r.Effort == "high"),
+            Arg.Any<CancellationToken>());
         await fixture.Tmux.Received(1).SpawnAsync(
             Arg.Is<TmuxSpawnRequest>(r =>
                 r.Command == "claude"
@@ -169,6 +180,11 @@ public partial class RunPreflightOrchestratorTests
 
         result.SessionState.Should().Be(TerminalSessionStates.Blocked);
         result.BlockingBindings.Should().ContainSingle().Which.Should().Be(broken.Id.Value);
+        // Blocked echoes the attempted axis but persists nothing — no session started (ADR-0041).
+        result.Launch.Should().Be(
+            new TerminalLaunchRecord(TerminalRunModes.Work, TerminalAgentCatalog.VendorClaude, "opus", "high"));
+        await fixture.LaunchStore.DidNotReceive().SaveAsync(
+            Arg.Any<string>(), Arg.Any<TerminalLaunchRecord>(), Arg.Any<CancellationToken>());
         await fixture.Tmux.DidNotReceive().SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
     }
 

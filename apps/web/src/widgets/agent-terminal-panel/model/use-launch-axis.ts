@@ -10,7 +10,24 @@ import {
   type TerminalVendorMetadata
 } from "@/entities/terminal-setting";
 
-import type { TerminalLaunchArgs, TerminalRunMode } from "./types";
+import type {
+  PersistedLaunchArgs,
+  TerminalLaunchArgs,
+  TerminalRunMode
+} from "./types";
+
+export interface LaunchAxisParams {
+  /**
+   * Persisted launch axis of the intent (ADR-0041): the live session's real parameters when
+   * `sessionLive`, otherwise the last-used choice to pre-fill from. Null until the probe settles
+   * or when the intent was never launched.
+   */
+  sessionLaunch: PersistedLaunchArgs | null;
+  /** Live session → the axis is read-only and mirrors `sessionLaunch`, not the local draft. */
+  sessionLive: boolean;
+  /** Prefill waits for this so it seeds from `sessionLaunch` instead of racing the probe. */
+  ready: boolean;
+}
 
 export interface LaunchAxis {
   vendors: readonly TerminalVendorMetadata[];
@@ -34,11 +51,21 @@ export interface LaunchAxis {
 /**
  * Держит ось запуска (вендор/модель/усилие) и тянет её дефолты/списки из
  * backend-каталога (`GET /terminal/vendors`) — фронт catalog не хардкодит.
- * Предзаполнение происходит один раз, когда каталог загружен, а настройки
- * успели settle: persisted default_vendor главнее дефолта каталога; дальше
- * выбор оператора главнее серверных дефолтов.
+ *
+ * Предзаполнение происходит один раз, когда каталог загружен, настройки успели
+ * settle, а проба сессии отстрелялась (`ready`): persisted launch интента (ADR-0041)
+ * главнее, затем default_vendor, затем дефолт каталога; дальше выбор оператора
+ * главнее серверных дефолтов.
+ *
+ * Пока сессия живая (`sessionLive`) ось — read-only зеркало `sessionLaunch`
+ * (фактических параметров сессии), а не локального черновика: дропдауны всё равно
+ * залочены, смена параметров — только через новый запуск/перезапуск.
  */
-export function useLaunchAxis(): LaunchAxis {
+export function useLaunchAxis({
+  sessionLaunch,
+  sessionLive,
+  ready
+}: LaunchAxisParams): LaunchAxis {
   const [vendor, setVendor] = useState<TerminalAgentVendor | null>(null);
   const [model, setModelState] = useState<string | null>(null);
   const [effort, setEffortState] = useState<TerminalReasoningEffort | null>(
@@ -49,27 +76,56 @@ export function useLaunchAxis(): LaunchAxis {
   const settingsQuery = useTerminalSettingsQuery();
   const catalog = catalogQuery.data;
 
-  const selectedMeta = useMemo(
-    () => (vendor === null ? undefined : findVendorMetadata(catalog, vendor)),
-    [catalog, vendor]
-  );
-
   const initialized = useRef(false);
   useEffect(() => {
     if (initialized.current || catalog === undefined) return;
-    if (!settingsQuery.isFetched) return;
-    const resolved = resolveDefaultVendor(
-      catalog,
-      settingsQuery.data?.default_vendor
-    );
+    if (!settingsQuery.isFetched || !ready) return;
+
+    // Persisted intent launch wins over the global default_vendor; the vendor must still exist
+    // in the catalog (it may have been disabled since), otherwise fall back to the default.
+    const persistedVendor =
+      sessionLaunch !== null &&
+      findVendorMetadata(catalog, sessionLaunch.vendor) !== undefined
+        ? sessionLaunch.vendor
+        : undefined;
+    const resolved =
+      persistedVendor ??
+      resolveDefaultVendor(catalog, settingsQuery.data?.default_vendor);
     if (resolved === undefined) return;
     const meta = findVendorMetadata(catalog, resolved);
     if (meta === undefined) return;
+
     initialized.current = true;
     setVendor(resolved);
-    setModelState(meta.default_model ?? null);
-    setEffortState(meta.default_effort ?? null);
-  }, [catalog, settingsQuery.isFetched, settingsQuery.data?.default_vendor]);
+    if (persistedVendor !== undefined && sessionLaunch !== null) {
+      setModelState(sessionLaunch.model);
+      setEffortState(sessionLaunch.effort ?? meta.default_effort ?? null);
+    } else {
+      setModelState(meta.default_model ?? null);
+      setEffortState(meta.default_effort ?? null);
+    }
+  }, [
+    catalog,
+    ready,
+    sessionLaunch,
+    settingsQuery.isFetched,
+    settingsQuery.data?.default_vendor
+  ]);
+
+  // While the session is live the controls show its real axis, not the local draft — they are
+  // frozen anyway, but a restart with new parameters must be reflected here immediately.
+  const overriding = sessionLive && sessionLaunch !== null;
+  const effectiveVendor = overriding ? sessionLaunch.vendor : vendor;
+  const effectiveModel = overriding ? sessionLaunch.model : model;
+  const effectiveEffort = overriding ? (sessionLaunch.effort ?? null) : effort;
+
+  const selectedMeta = useMemo(
+    () =>
+      effectiveVendor === null
+        ? undefined
+        : findVendorMetadata(catalog, effectiveVendor),
+    [catalog, effectiveVendor]
+  );
 
   const onVendorChange = useCallback(
     (next: TerminalAgentVendor) => {
@@ -84,26 +140,33 @@ export function useLaunchAxis(): LaunchAxis {
   );
 
   const launchReady =
-    vendor !== null && model !== null && selectedMeta !== undefined;
+    effectiveVendor !== null &&
+    effectiveModel !== null &&
+    selectedMeta !== undefined;
 
   const launchArgs = useCallback(
     (mode: TerminalRunMode): TerminalLaunchArgs | null =>
-      vendor === null || model === null
+      effectiveVendor === null || effectiveModel === null
         ? null
-        : { mode, vendor, model, effort },
-    [vendor, model, effort]
+        : {
+            mode,
+            vendor: effectiveVendor,
+            model: effectiveModel,
+            effort: effectiveEffort
+          },
+    [effectiveVendor, effectiveModel, effectiveEffort]
   );
 
   return {
     vendors: catalog?.vendors ?? [],
-    vendor,
+    vendor: effectiveVendor,
     selectedMeta,
-    model,
-    effort,
+    model: effectiveModel,
+    effort: effectiveEffort,
     setModel: setModelState,
     setEffort: setEffortState,
     onVendorChange,
-    metadataLoading: catalogQuery.isLoading || vendor === null,
+    metadataLoading: catalogQuery.isLoading || effectiveVendor === null,
     metadataError: catalogQuery.isError,
     launchReady,
     launchArgs
