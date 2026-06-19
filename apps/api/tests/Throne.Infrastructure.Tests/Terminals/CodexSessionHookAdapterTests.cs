@@ -12,7 +12,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008/");
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", workspacePath: "/unused", TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+            "intent-1", NewWorkspace(), TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().Equal(
             "-c",
@@ -33,7 +33,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008", home);
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: "say \"hi\"\nline2", reviewArtifact: null, CancellationToken.None);
+            "intent-1", NewWorkspace(), TerminalRunModes.Work, systemPrompt: "say \"hi\"\nline2", reviewArtifact: null, CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
         var profilePath = Path.Combine(home, "throne-intent-1.config.toml");
@@ -48,7 +48,7 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008", home);
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+            "intent-1", NewWorkspace(), TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().NotContain("-p");
         File.Exists(Path.Combine(home, "throne-intent-1.config.toml")).Should().BeFalse();
@@ -60,7 +60,7 @@ public class CodexSessionHookAdapterTests
         var home = NewHome();
         var sut = NewAdapter("http://localhost:5008", home);
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", "/unused", TerminalRunModes.Work, systemPrompt: "RULES", reviewArtifact: null, CancellationToken.None);
+            "intent-1", NewWorkspace(), TerminalRunModes.Work, systemPrompt: "RULES", reviewArtifact: null, CancellationToken.None);
         var profilePath = Path.Combine(home, "throne-intent-1.config.toml");
         File.Exists(profilePath).Should().BeTrue();
 
@@ -75,14 +75,14 @@ public class CodexSessionHookAdapterTests
         var sut = NewAdapter("http://localhost:5008");
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", workspacePath: "/unused", TerminalRunModes.Interview, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+            "intent-1", NewWorkspace(), TerminalRunModes.Interview, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
         args.Should().Contain(t => t.Contains("/hooks/UserPromptSubmit?mode=interview'"));
         args.Should().Contain(t => t.Contains("/hooks/Stop?mode=interview'"));
     }
 
-    [Fact(DisplayName = "Codex: без systemPrompt — никаких файлов в workspace")]
-    public async Task Writes_no_file_into_workspace()
+    [Fact(DisplayName = "Codex: без systemPrompt пишет только workspace MCP config")]
+    public async Task Writes_workspace_mcp_config_without_profile()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
         Directory.CreateDirectory(root);
@@ -91,7 +91,10 @@ public class CodexSessionHookAdapterTests
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
-        Directory.GetFileSystemEntries(root).Should().BeEmpty();
+        var configPath = Path.Combine(root, ".codex", "config.toml");
+        (await File.ReadAllTextAsync(configPath)).Should().Contain("url = \"http://localhost:5008/mcp\"");
+        Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+            .Should().Equal(configPath);
     }
 
     [Fact(DisplayName = "Codex review: запекает artifact writer и hint в developer profile")]
@@ -130,6 +133,13 @@ public class CodexSessionHookAdapterTests
         var home = Path.Combine(Path.GetTempPath(), $"throne-codexhome-{Guid.NewGuid():N}");
         Directory.CreateDirectory(home);
         return home;
+    }
+
+    private static string NewWorkspace()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        return root;
     }
 
     private static CodexSessionHookAdapter NewAdapter(string apiBaseUrl, string? codexHome = null) =>
