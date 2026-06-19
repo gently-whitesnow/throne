@@ -52,8 +52,11 @@ public interface ISessionHookAdapter
     Task CleanupAsync(string intentId, CancellationToken ct);
 
     /// <summary>
-    /// Legacy vendor-specific readiness predicate over a <c>tmux capture-pane</c> snapshot.
-    /// Kept until every vendor has a provider-native <see cref="ReadinessHookEvent"/>.
+    /// Vendor-specific readiness predicate over a <c>tmux capture-pane</c> snapshot — the glyph
+    /// fast-path for vendors without a provider-native <see cref="ReadinessHookEvent"/> (Claude,
+    /// Codex). Returns <c>true</c> once the vendor TUI has rendered a composer ready to receive
+    /// bracketed-paste input. Adapters that own a readiness hook return <c>false</c> and let the
+    /// signal/stability paths gate the paste instead. Pure function over the snapshot; no I/O.
     /// </summary>
     bool IsTuiReady(string paneSnapshot);
 }

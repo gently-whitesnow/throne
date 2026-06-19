@@ -9,6 +9,23 @@ public class TmuxTuiReadinessWaiterTests
 {
     private const string IntentId = "intent-readiness";
 
+    [Fact(DisplayName = "Вендор без readiness-события: Ready на первом capture по glyph marker")]
+    public async Task Returns_ready_when_vendor_marker_matches_first()
+    {
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        tmux.CapturePaneAsync(IntentId, Arg.Any<CancellationToken>())
+            .Returns("│ > composer ready");
+        var adapter = new MarkerAdapter("│ >");
+        var waiter = NewWaiter(tmux, timeoutMs: 1000, pollMs: 20);
+
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness: null, CancellationToken.None);
+
+        result.IsReady.Should().BeTrue();
+        result.Attempts.Should().Be(1);
+        result.LastSnapshot.Should().BeNull();
+        await tmux.Received(1).CapturePaneAsync(IntentId, Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "Возвращает Ready, когда provider-native readiness signal приходит во время ожидания")]
     public async Task Returns_ready_when_readiness_signal_fires()
     {
