@@ -54,6 +54,9 @@ public sealed class RunPreflightSpawn(
                 intentId.Value, workspacePath, mode, prompt.SystemPrompt, reviewArtifact, ct)
             : [];
         var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
+        using var readiness = adapter is not null
+            ? readinessWaiter.Arm(intentId.Value, adapter)
+            : null;
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
@@ -68,7 +71,8 @@ public sealed class RunPreflightSpawn(
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
         }
 
-        await DeliverUserPromptAsync(intentId.Value, launch.Vendor, adapter, workspacePath, prompt.UserPrompt, ct);
+        await DeliverUserPromptAsync(
+            intentId.Value, launch.Vendor, adapter, readiness, workspacePath, prompt.UserPrompt, ct);
 
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
 
@@ -79,6 +83,7 @@ public sealed class RunPreflightSpawn(
         string intentId,
         string vendor,
         ISessionHookAdapter? adapter,
+        TerminalReadinessSignals.TerminalReadinessRegistration? readiness,
         string workspacePath,
         string? userPrompt,
         CancellationToken ct)
@@ -98,15 +103,15 @@ public sealed class RunPreflightSpawn(
         // and skip the wait rather than block forever on a probe that has no marker.
         if (adapter is not null)
         {
-            var readiness = await readinessWaiter.WaitAsync(intentId, adapter, ct);
-            if (!readiness.IsReady)
+            var result = await readinessWaiter.WaitAsync(intentId, adapter, readiness, ct);
+            if (!result.IsReady)
             {
                 throw TerminalFailures.TuiReadinessTimeout(
                     intentId,
                     vendor,
                     options.TuiReadinessTimeoutMilliseconds,
-                    readiness.Attempts,
-                    readiness.LastSnapshot);
+                    result.Attempts,
+                    result.LastSnapshot);
             }
         }
 
