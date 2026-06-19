@@ -98,7 +98,7 @@ public class RunPreflightPromptGateTests
                 $"{call.ArgAt<string>(0)} {call.ArgAt<string>(1)}", null, [], Now));
         promptParts.ListAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(optionalParts);
         var resolver = new PromptCompositionResolver(
-            SkillManifestFixtures.Provider(), new PromptBundleResolver(promptParts), promptParts);
+            SkillManifestFixtures.Provider(), promptParts);
 
         var intents = Substitute.For<IIntentRepository>();
         var replaceText = new ReplaceIntentTextHandler(intents, new PassthroughUnitOfWork(), new FixedClock(Now));

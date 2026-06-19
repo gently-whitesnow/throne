@@ -27,9 +27,9 @@ internal static class SkillManifestFixtures
 
         var bundles = new[]
         {
-            Bundle(PromptBundleModeNames.Interview, "interview"),
-            Bundle(PromptBundleModeNames.Work, "work"),
-            Bundle(PromptBundleModeNames.Review, "review"),
+            Bundle(PromptPartModeNames.Interview, "interview"),
+            Bundle(PromptPartModeNames.Work, "work"),
+            Bundle(PromptPartModeNames.Review, "review"),
         };
 
         return new SkillManifest(1, systemInstructions, bundles, Array.Empty<DreamSourceManifestEntry>());

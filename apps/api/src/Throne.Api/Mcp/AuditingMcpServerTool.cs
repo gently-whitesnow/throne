@@ -85,7 +85,8 @@ internal sealed partial class AuditingMcpServerTool : DelegatingMcpServerTool
             toolName,
             McpCallArgumentSnapshot.Normalize(request.Params?.Arguments),
             McpCallArgumentSnapshot.ExtractIntentId(request.Params?.Arguments),
-            McpCallArgumentSnapshot.ExtractModeHint(toolName, request.Params?.Arguments),
+            // No tool carries a mode hint since get_prompt_bundle was removed; column kept for audit history.
+            ModeHint: null,
             request.Server.SessionId,
             _clock.GetUtcNow());
     }

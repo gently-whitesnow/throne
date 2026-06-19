@@ -113,7 +113,6 @@ public class IntentTerminalPreviewHandlerTests
             .Returns(Array.Empty<PromptPart>());
         return new PromptCompositionResolver(
             SkillManifestFixtures.Provider(),
-            new PromptBundleResolver(repo),
             repo);
     }
 }

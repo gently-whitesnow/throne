@@ -1,15 +1,11 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import {
-  PROMPT_PART_MODES,
   useListPromptParts,
   type PromptPartListItem
 } from "@/entities/prompt-part";
 import { errorMessage } from "@/shared/lib";
 
-import { useBundlesTreeQuery } from "../model/use-bundles-tree";
-import { McpBundleCompatibility } from "./McpBundleCompatibility";
-import { ModeCompositionPanel } from "./ModeCompositionPanel";
 import { PartsList } from "./PartsList";
 import {
   PromptPartDetailDialog,
@@ -18,17 +14,12 @@ import {
 
 export function PromptPartsBoard() {
   const partsQuery = useListPromptParts();
-  const bundlesQuery = useBundlesTreeQuery();
 
   const [partDialog, setPartDialog] = useState<PromptPartDialogTarget | null>(
     null
   );
 
   const parts: PromptPartListItem[] = partsQuery.data ?? [];
-  const userParts = useMemo(
-    () => parts.filter((p) => p.scope === "user"),
-    [parts]
-  );
 
   const error = partsQuery.error
     ? errorMessage(partsQuery.error, { base: "Не удалось загрузить данные" })
@@ -44,8 +35,8 @@ export function PromptPartsBoard() {
         <h1 className="m-0 text-2xl font-bold tracking-tight">Части промпта</h1>
         <p className="m-0 text-sm leading-relaxed text-base-content/70">
           Один список prompt_parts, поделённый по scope. System засеяны из
-          манифеста; user курируете вы. Бандл расширяется и ужимается через роли
-          частей по режимам.
+          манифеста; user курируете вы. Состав embedded-композиции по режимам
+          задаётся ролями частей.
         </p>
       </header>
 
@@ -73,29 +64,6 @@ export function PromptPartsBoard() {
                 setPartDialog({ mode: "create" });
               }}
             />
-          </Section>
-
-          <Section
-            title="Embedded-композиция по режимам"
-            description="Что собирает встроенный терминал для каждого режима: эффективный состав, роли и итоговый system_prompt."
-          >
-            <div className="flex flex-col gap-4">
-              {PROMPT_PART_MODES.map((mode) => (
-                <ModeCompositionPanel
-                  key={mode}
-                  mode={mode}
-                  bundlesTree={bundlesQuery.data}
-                  optionalParts={userParts}
-                />
-              ))}
-            </div>
-          </Section>
-
-          <Section
-            title="Совместимость MCP get_prompt_bundle"
-            description="Что получает внешний агент через MCP get_prompt_bundle(mode) — read-only обзор по всем режимам манифеста (dream сюда не входит: его плейбук захардкожен в кнопке на /improvements). Источник правды — манифест."
-          >
-            <McpBundleCompatibility bundlesTree={bundlesQuery.data} />
           </Section>
         </>
       ) : null}

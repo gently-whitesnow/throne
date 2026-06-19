@@ -15,7 +15,7 @@ interface PartsListProps {
 /**
  * Single prompt-parts list grouped by scope. System parts are manifest-managed
  * (read-only text and roles); user parts get full CRUD plus inline per-mode role
- * controls. "Expanding/shrinking the bundle" = changing a part's role in a mode.
+ * controls. A part's per-mode role drives the embedded composition for that mode.
  */
 export function PartsList({ parts, onOpenPart, onCreatePart }: PartsListProps) {
   const [roleError, setRoleError] = useState<string | null>(null);
