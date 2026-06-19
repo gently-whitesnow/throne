@@ -11,9 +11,8 @@ public class RepositoryArtifactTests
     private static RepositoryArtifact NewArtifact(
         string slug = "db-schema-map",
         string title = "DB schema map",
-        string document = "# erd",
-        string renderHint = RepositoryArtifactRenderHints.SchemaMap) =>
-        RepositoryArtifact.Create(RepositoryArtifactId.New(), Coordinate, slug, title, document, renderHint, Now);
+        string document = "# erd") =>
+        RepositoryArtifact.Create(RepositoryArtifactId.New(), Coordinate, slug, title, document, Now);
 
     [Fact(DisplayName = "Create стартует с version=1 и одинаковыми временными метками")]
     public void Create_starts_at_version_one()
@@ -22,7 +21,6 @@ public class RepositoryArtifactTests
 
         artifact.Version.Should().Be(1);
         artifact.Slug.Should().Be("db-schema-map");
-        artifact.RenderHint.Should().Be(RepositoryArtifactRenderHints.SchemaMap);
         artifact.CreatedAt.Should().Be(Now);
         artifact.UpdatedAt.Should().Be(Now);
     }
@@ -40,14 +38,6 @@ public class RepositoryArtifactTests
         act.Should().Throw<ArgumentException>();
     }
 
-    [Fact(DisplayName = "Create отвергает неизвестный render_hint")]
-    public void Create_rejects_unknown_render_hint()
-    {
-        var act = () => NewArtifact(renderHint: "pdf");
-
-        act.Should().Throw<ArgumentOutOfRangeException>();
-    }
-
     [Fact(DisplayName = "Create отвергает пустой title")]
     public void Create_rejects_blank_title()
     {
@@ -62,12 +52,11 @@ public class RepositoryArtifactTests
         var artifact = NewArtifact();
         var later = Now.AddMinutes(10);
 
-        artifact.Update("New title", "## changed", RepositoryArtifactRenderHints.Markdown, later);
+        artifact.Update("New title", "## changed", later);
 
         artifact.Version.Should().Be(2);
         artifact.Title.Should().Be("New title");
         artifact.Document.Should().Be("## changed");
-        artifact.RenderHint.Should().Be(RepositoryArtifactRenderHints.Markdown);
         artifact.UpdatedAt.Should().Be(later);
         artifact.CreatedAt.Should().Be(Now);
     }
@@ -77,7 +66,7 @@ public class RepositoryArtifactTests
     {
         var snapshot = new RepositoryArtifactSnapshot(
             RepositoryArtifactId.New(), Coordinate, "db-schema-map", "Title", "body",
-            RepositoryArtifactRenderHints.Markdown, Version: 0, Now, Now);
+            Version: 0, Now, Now);
 
         var act = () => RepositoryArtifact.Restore(snapshot);
 
@@ -88,7 +77,7 @@ public class RepositoryArtifactTests
     public void Capture_snapshots_current_state()
     {
         var artifact = NewArtifact();
-        artifact.Update("v2 title", "v2 body", RepositoryArtifactRenderHints.Markdown, Now.AddMinutes(1));
+        artifact.Update("v2 title", "v2 body", Now.AddMinutes(1));
 
         var version = RepositoryArtifactVersion.Capture(artifact);
 
@@ -96,6 +85,5 @@ public class RepositoryArtifactTests
         version.Version.Should().Be(2);
         version.Title.Should().Be("v2 title");
         version.Document.Should().Be("v2 body");
-        version.RenderHint.Should().Be(RepositoryArtifactRenderHints.Markdown);
     }
 }

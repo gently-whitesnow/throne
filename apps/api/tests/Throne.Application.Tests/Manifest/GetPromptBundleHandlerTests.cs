@@ -120,7 +120,6 @@ public class GetPromptBundleHandlerTests
             Part(PromptPartScopeNames.System, "interview"),
             Part(PromptPartScopeNames.System, "work"),
             Part(PromptPartScopeNames.System, "dream"),
-            Part(PromptPartScopeNames.System, "schema_map"),
         };
         if (includeUser)
         {

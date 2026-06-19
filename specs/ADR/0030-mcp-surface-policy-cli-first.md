@@ -17,7 +17,7 @@ Related: [ADR-0003](0003-mcp-text-editing-semantics.md), [ADR-0014](0014-mcp-ini
 MCP-surface Throne сознательно узкий. Tool попадает в MCP только если проходит обе проверки:
 
 1. **Context-read** — отдаёт агенту компактный контекст интента, которого у него нет другим путём: текст и версии интента, граф связей, attachments, instruction-bundle, dream-sources, binding-метаданные (`get_intent.repositories[]`). Чтения проектируются компактными; отдельный list-handle вводится только при реальной проблеме context-window / пагинации, а не «на всякий случай» (например, отдельный `list_intent_repositories` не нужен, пока `get_intent.repositories[]` влезает в ответ).
-2. **Rare agent-authored write** — запись, которая является именно «работой агента над интентом» и порождается агентом, а не пользователем: правки текста интента (ADR-0003), статус-переходы, link-граф, dream-proposals (`propose_instruction_patch`), захват runtime-артефактов (`write_repository_schema` — узкое исключение для schema_map). Такие writes редки и не дублируют shell.
+2. **Rare agent-authored write** — запись, которая является именно «работой агента над интентом» и порождается агентом, а не пользователем: правки текста интента (ADR-0003), статус-переходы, link-граф, dream-proposals (`propose_instruction_patch`), захват runtime-артефактов (`write_repository_document` — узкое исключение для страниц знаний репозитория). Такие writes редки и не дублируют shell.
 
 Всё остальное — **CLI-first**. Shell / git / git-provider / OS / repo-операции агент делает локальным CLI в workspace (`git`, `gh`, `glab`, файловые операции, terminal), а не через MCP-tool:
 

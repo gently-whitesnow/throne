@@ -122,7 +122,7 @@ export interface components {
             bundles: components["schemas"]["BundleNodeDto"][];
         };
         BundleNodeDto: {
-            /** @description Bundle mode (interview | work | review | dream | schema_map). */
+            /** @description Bundle mode (interview | work | review | dream). */
             mode: string;
             includes: components["schemas"]["BundleEntryNodeDto"][];
         };

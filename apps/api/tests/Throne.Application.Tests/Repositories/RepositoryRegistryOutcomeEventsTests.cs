@@ -41,8 +41,7 @@ public class RepositoryRegistryOutcomeEventsTests
     public void Written_carries_single_document_updated_event()
     {
         var artifact = RepositoryArtifact.Create(
-            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd",
-            RepositoryArtifactRenderHints.SchemaMap, Now);
+            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd", Now);
 
         var outcome = new WriteRepositoryArtifactOutcome.Written(artifact, Created: true);
 
