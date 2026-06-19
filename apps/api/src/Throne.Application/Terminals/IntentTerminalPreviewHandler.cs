@@ -40,7 +40,7 @@ public sealed class IntentTerminalPreviewHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, ct);
-        var userPrompt = ComposeUserPrompt(intent.State.Text, attachmentList);
+        var userPrompt = ComposeUserPrompt(intent.Id.Value, intent.State.Text, attachmentList);
 
         var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, userPrompt),
@@ -48,9 +48,9 @@ public sealed class IntentTerminalPreviewHandler(
         return new IntentTerminalPreview(composition, intent.State.CurrentVersion);
     }
 
-    private static string ComposeUserPrompt(string intentText, IReadOnlyList<IntentAttachment> attachments)
+    private static string ComposeUserPrompt(string intentId, string intentText, IReadOnlyList<IntentAttachment> attachments)
     {
-        var block = TerminalAttachmentsContextRenderer.Render(attachments);
+        var block = TerminalAttachmentsContextRenderer.Render(intentId, attachments);
         if (block is null)
         {
             return intentText;

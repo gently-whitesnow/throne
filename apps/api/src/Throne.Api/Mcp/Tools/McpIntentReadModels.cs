@@ -12,7 +12,7 @@ public sealed record McpIntentReadResult(
     [property: Description("Fractional sort key (base62). Use to reason about the intent's position in the user-defined order.")] string SortKey,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
     [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt,
-    [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry, call the tool named in 'recommended_tool' (read_intent_attachment_image for images, read_intent_attachment_text for text/log).")]
+    [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry pick the attachment-read MCP tool that matches its 'kind' (image vs text/log) from your own registered tool list, passing this intent's id and the attachment id.")]
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments,
     [property: Description("Outgoing + incoming graph edges incident to this intent. Mirror roles ('blocked_by' for incoming 'blocks', 'source_of' for incoming 'derived_from') are computed projections — the same edge appears once with a 'direction' field.")]
     IReadOnlyList<McpIntentLinkRead> Links,
@@ -92,7 +92,7 @@ public sealed record McpIntentAttachmentReadResult(
     [property: Description("Stored size in bytes (post-compression for images).")] long SizeBytes,
     [property: Description("Upload timestamp.")] DateTimeOffset CreatedAt,
     [property: Description("Content family: 'image', 'text' or 'unsupported'. Drives the choice of read tool.")] string Kind,
-    [property: Description("Name of the MCP tool that returns the bytes for this attachment, or null if unsupported.")] string? RecommendedTool,
+    [property: Description("Logical (unprefixed) name of the MCP tool that returns the bytes for this attachment, or null if unsupported. Your client registers it under its own server prefix (e.g. mcp__throne__… or throne_…); select the matching tool from your tool list rather than calling this bare name.")] string? RecommendedTool,
     [property: Description("True for image attachments that have been server-side downscaled to ≤1024 px JPEG q75.")] bool IsCompressedImage,
     [property: Description("Width in pixels of the stored image (post-compression). Null for non-image attachments.")] int? CompressedWidth,
     [property: Description("Height in pixels of the stored image (post-compression). Null for non-image attachments.")] int? CompressedHeight);
