@@ -11,6 +11,9 @@ import type {
   TerminalRunPayload
 } from "../model/types";
 
+import { PreflightColumn } from "./PreflightColumn";
+import { PreflightSummary } from "./PreflightSummary";
+
 interface PreflightModalProps {
   open: boolean;
   intentId: string;
@@ -21,11 +24,9 @@ interface PreflightModalProps {
   onLaunch: (payload: TerminalRunPayload) => void;
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  mandatory: "обязательная",
-  default_on: "включена",
-  default_off: "доступна"
-};
+function byScope(parts: PromptPartPreview[], scope: string): PromptPartPreview[] {
+  return parts.filter((p) => p.scope === scope);
+}
 
 export function PreflightModal({
   open,
@@ -45,13 +46,9 @@ export function PreflightModal({
   const launchDisabled = busy || isSubmitting || preview.status === "error";
 
   return (
-    <Modal
-      onClose={onClose}
-      labelledBy={titleId}
-      boxClassName="flex max-h-[min(820px,calc(100vh-32px))] w-full max-w-3xl flex-col gap-4"
-    >
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+    <Modal variant="fullscreen" labelledBy={titleId} onClose={onClose}>
+      <header className="flex items-start justify-between gap-4 border-b border-base-300 px-4 py-3">
+        <div className="flex flex-col gap-0.5">
           <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
             Перед запуском · {RUN_MODE_LABEL[launch.mode]}
           </p>
@@ -72,18 +69,55 @@ export function PreflightModal({
       {preview.status === "error" ? (
         <p
           role="alert"
-          className="m-0 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
+          className="m-0 border-b border-error/30 bg-error/10 px-4 py-2 text-xs text-error"
         >
           {preview.error}
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-4 overflow-y-auto">
-        <SystemZone preview={preview} busy={busy} />
-        <TaskZone preview={preview} />
+      <div className="grid min-h-0 flex-1 grid-cols-1 divide-base-300 lg:grid-cols-3 lg:divide-x">
+        <PreflightColumn
+          title="SYSTEM"
+          parts={byScope(preview.parts, "system")}
+          onToggle={preview.togglePart}
+          onTextChange={preview.setPartText}
+        />
+        <PreflightColumn
+          title="USER"
+          parts={byScope(preview.parts, "user")}
+          onToggle={preview.togglePart}
+          onTextChange={preview.setPartText}
+        >
+          <TaskBodyFrame preview={preview} />
+        </PreflightColumn>
+        <section
+          aria-label="FREE и итог"
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3"
+        >
+          <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
+            FREE
+          </h4>
+          <label className="flex flex-col gap-1 text-xs text-base-content/70">
+            <span>Свободная вставка на эту сессию</span>
+            <textarea
+              aria-label="Дополнительный ввод оператора"
+              data-testid="agent-terminal-free-input"
+              className="textarea textarea-bordered min-h-28 text-xs"
+              value={preview.freeInput}
+              onChange={(e) => {
+                preview.setFreeInput(e.target.value);
+              }}
+            />
+          </label>
+          <PreflightSummary
+            systemPrompt={preview.systemPrompt}
+            userPrompt={preview.body}
+            freeInput={preview.freeInput}
+          />
+        </section>
       </div>
 
-      <footer className="flex items-center justify-end gap-2">
+      <footer className="flex items-center justify-end gap-2 border-t border-base-300 px-4 py-3">
         <Button onClick={onClose}>Отмена</Button>
         <Button
           data-testid="agent-terminal-preflight-launch"
@@ -101,97 +135,25 @@ export function PreflightModal({
   );
 }
 
-function SystemZone({
-  preview,
-  busy
-}: {
-  preview: ReturnType<typeof usePreflightPreview>;
-  busy: boolean;
-}) {
-  return (
-    <section className="flex flex-col gap-2" aria-label="Правила (system)">
-      <h4 className="m-0 text-sm font-semibold text-base-content">
-        Правила · system
-      </h4>
-      <ul className="m-0 flex flex-col gap-1 p-0">
-        {preview.parts.map((part) => (
-          <PartRow
-            key={part.part_id}
-            part={part}
-            busy={busy}
-            onToggle={preview.togglePart}
-          />
-        ))}
-      </ul>
-      <label className="flex flex-col gap-1 text-xs text-base-content/70">
-        <span>Итоговый system-блок (правка только на эту сессию)</span>
-        <textarea
-          aria-label="Итоговый system-промпт"
-          data-testid="agent-terminal-system-prompt"
-          className="textarea textarea-bordered min-h-28 font-mono text-xs"
-          value={preview.systemPrompt}
-          onChange={(e) => {
-            preview.setSystemPrompt(e.target.value);
-          }}
-        />
-      </label>
-    </section>
-  );
-}
-
-function PartRow({
-  part,
-  busy,
-  onToggle
-}: {
-  part: PromptPartPreview;
-  busy: boolean;
-  onToggle: (partId: string) => void;
-}) {
-  const mandatory = part.role === "mandatory";
-  return (
-    <li className="flex items-center gap-2 text-xs">
-      <input
-        type="checkbox"
-        className="checkbox checkbox-xs"
-        checked={part.selected}
-        disabled={mandatory || busy}
-        aria-label={`Часть ${part.key}`}
-        onChange={() => {
-          onToggle(part.part_id);
-        }}
-      />
-      <span className="font-medium text-base-content">{part.key}</span>
-      <span className="text-base-content/50">{part.scope}</span>
-      <span className="badge badge-ghost badge-sm">
-        {ROLE_LABEL[part.role] ?? part.role}
-      </span>
-    </li>
-  );
-}
-
-function TaskZone({
+function TaskBodyFrame({
   preview
 }: {
   preview: ReturnType<typeof usePreflightPreview>;
 }) {
   return (
-    <section className="flex flex-col gap-2" aria-label="Задача (user)">
-      <h4 className="m-0 text-sm font-semibold text-base-content">
-        Задача · user
-      </h4>
-      <label className="flex flex-col gap-1 text-xs text-base-content/70">
-        <span>Тело интента</span>
-        <textarea
-          aria-label="Тело интента"
-          data-testid="agent-terminal-task-body"
-          className="textarea textarea-bordered min-h-32 text-xs"
-          value={preview.body}
-          onChange={(e) => {
-            preview.setBody(e.target.value);
-          }}
-        />
-      </label>
+    <section className="flex flex-col gap-2 rounded-md border border-primary/30 bg-base-100 px-2 py-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">
+        Тело интента · задача
+      </span>
+      <textarea
+        aria-label="Тело интента"
+        data-testid="agent-terminal-task-body"
+        className="textarea textarea-bordered min-h-32 w-full resize-y text-xs"
+        value={preview.body}
+        onChange={(e) => {
+          preview.setBody(e.target.value);
+        }}
+      />
       <label className="flex items-center gap-2 text-xs text-base-content/70">
         <input
           type="checkbox"
@@ -206,18 +168,6 @@ function TaskZone({
           Обновить Intent.text{" "}
           {preview.bodyDirty ? "" : "(тело не менялось — сохранять нечего)"}
         </span>
-      </label>
-      <label className="flex flex-col gap-1 text-xs text-base-content/70">
-        <span>Доп. ввод оператора на этот запуск</span>
-        <textarea
-          aria-label="Дополнительный ввод оператора"
-          data-testid="agent-terminal-free-input"
-          className="textarea textarea-bordered min-h-20 text-xs"
-          value={preview.freeInput}
-          onChange={(e) => {
-            preview.setFreeInput(e.target.value);
-          }}
-        />
       </label>
     </section>
   );

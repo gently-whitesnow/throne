@@ -137,8 +137,20 @@ function previewResponse(): IntentTerminalPreviewResponse {
     intent_id: "intent-1",
     intent_version: 2,
     mode: "free",
-    parts: [],
-    selected_part_ids: [],
+    parts: [
+      {
+        part_id: "m1",
+        key: "common",
+        scope: "system",
+        role: "mandatory",
+        order: 0,
+        editable: false,
+        present: true,
+        selected: true,
+        text: "RULES"
+      }
+    ],
+    selected_part_ids: ["m1"],
     system_prompt: "RULES",
     user_prompt: "BODY"
   };
