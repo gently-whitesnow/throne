@@ -31,6 +31,8 @@ interface ReviewDiffViewerProps {
   comments: PullRequestComment[];
   commentActions: CommentActions;
   scrollTarget: ScrollTarget | null;
+  /** AI hint text for this file; shown inline in the diff header. */
+  reason: string | null;
   onSubmitted: () => void;
 }
 
@@ -44,6 +46,7 @@ export function ReviewDiffViewer({
   comments,
   commentActions,
   scrollTarget,
+  reason,
   onSubmitted
 }: ReviewDiffViewerProps) {
   const hunks = useMemo(() => parseUnifiedDiff(file.patch), [file.patch]);
@@ -108,10 +111,17 @@ export function ReviewDiffViewer({
 
   return (
     <div className="diff-hl font-mono text-[12px] leading-[1.5]">
-      <div className="flex items-center justify-end border-b border-base-300 bg-base-100 px-2 py-1">
+      <div className="flex items-start justify-between gap-3 border-b border-base-300 bg-base-100 px-2 py-1">
+        {reason !== null && reason.length > 0 ? (
+          <p className="m-0 min-w-0 flex-1 whitespace-pre-wrap py-0.5 text-[11px] leading-snug text-base-content/70">
+            {reason}
+          </p>
+        ) : (
+          <span className="flex-1" />
+        )}
         <button
           type="button"
-          className="inline-flex h-7 items-center gap-1 rounded border border-base-300 px-2 text-[11px] text-base-content/70 hover:border-primary hover:text-primary disabled:cursor-wait disabled:opacity-50"
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded border border-base-300 px-2 text-[11px] text-base-content/70 hover:border-primary hover:text-primary disabled:cursor-wait disabled:opacity-50"
           disabled={fileLines.loadingKey === "full-file"}
           onClick={() => {
             const next = !fullFile;
