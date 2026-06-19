@@ -12,7 +12,6 @@ public sealed record RepositoryArtifactVersion(
     int Version,
     string Title,
     string Document,
-    string RenderHint,
     DateTimeOffset CreatedAt)
 {
     /// <summary>Capture the current state of <paramref name="artifact"/> as a version row.</summary>
@@ -25,7 +24,6 @@ public sealed record RepositoryArtifactVersion(
             Version: artifact.Version,
             Title: artifact.Title,
             Document: artifact.Document,
-            RenderHint: artifact.RenderHint,
             CreatedAt: artifact.UpdatedAt);
     }
 }

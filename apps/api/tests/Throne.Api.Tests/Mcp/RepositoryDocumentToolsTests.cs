@@ -21,6 +21,7 @@ public sealed class RepositoryDocumentToolsTests(MongoFixture mongo) : IAsyncLif
     private const string Provider = GitProviderNames.GitHub;
     private const string Owner = "octo";
     private const string Repo = "throne";
+    private const string Slug = "db-schema-map";
 
     private RepositoriesApiFixture _fixture = null!;
 
@@ -36,44 +37,32 @@ public sealed class RepositoryDocumentToolsTests(MongoFixture mongo) : IAsyncLif
 
     private RepositoryDocumentTools Tools => _fixture.Services.GetRequiredService<RepositoryDocumentTools>();
 
-    [Fact(DisplayName = "write→get round-trip: страница db-schema-map возвращается с render_hint=schema_map и version=1")]
-    public async Task Write_then_get_round_trips_schema_map()
+    [Fact(DisplayName = "write→get round-trip: страница db-schema-map возвращается с version=1")]
+    public async Task Write_then_get_round_trips()
     {
         var written = await Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug,
+            Provider, Owner, Repo, Slug,
             "DB schema", "# erDiagram", expected_version: null, CancellationToken.None);
 
         written.Version.Should().Be(1);
-        written.RenderHint.Should().Be(RepositoryArtifactRenderHints.SchemaMap);
 
         var fetched = await Tools.GetRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug, CancellationToken.None);
+            Provider, Owner, Repo, Slug, CancellationToken.None);
 
         fetched.Title.Should().Be("DB schema");
         fetched.Document.Should().Be("# erDiagram");
-        fetched.RenderHint.Should().Be(RepositoryArtifactRenderHints.SchemaMap);
         fetched.Version.Should().Be(1);
-    }
-
-    [Fact(DisplayName = "render_hint выводится из slug: произвольный slug → markdown")]
-    public async Task Non_schema_slug_renders_as_markdown()
-    {
-        var written = await Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, "architecture-overview",
-            "Arch", "body", expected_version: null, CancellationToken.None);
-
-        written.RenderHint.Should().Be(RepositoryArtifactRenderHints.Markdown);
     }
 
     [Fact(DisplayName = "update с current expected_version бампит версию")]
     public async Task Update_with_matching_version_bumps()
     {
         await Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug,
+            Provider, Owner, Repo, Slug,
             "v1", "b1", expected_version: null, CancellationToken.None);
 
         var updated = await Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug,
+            Provider, Owner, Repo, Slug,
             "v2", "b2", expected_version: 1, CancellationToken.None);
 
         updated.Version.Should().Be(2);
@@ -83,11 +72,11 @@ public sealed class RepositoryDocumentToolsTests(MongoFixture mongo) : IAsyncLif
     public async Task Stale_expected_version_throws_typed_conflict()
     {
         await Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug,
+            Provider, Owner, Repo, Slug,
             "v1", "b1", expected_version: null, CancellationToken.None);
 
         var act = () => Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug,
+            Provider, Owner, Repo, Slug,
             "v2", "b2", expected_version: 5, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
@@ -99,7 +88,7 @@ public sealed class RepositoryDocumentToolsTests(MongoFixture mongo) : IAsyncLif
     public async Task Get_missing_page_throws_typed_not_found()
     {
         var act = () => Tools.GetRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug, CancellationToken.None);
+            Provider, Owner, Repo, Slug, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.RepositoryArtifactNotFound);
@@ -109,14 +98,14 @@ public sealed class RepositoryDocumentToolsTests(MongoFixture mongo) : IAsyncLif
     public async Task List_repositories_returns_registered_with_slugs()
     {
         await Tools.WriteRepositoryDocument(
-            Provider, Owner, Repo, RepositoryArtifactRenderHints.SchemaMapSlug,
+            Provider, Owner, Repo, Slug,
             "map", "body", expected_version: null, CancellationToken.None);
 
         var result = await Tools.ListRepositories(CancellationToken.None);
 
         var entry = result.Items.Should().ContainSingle(
             r => r.Provider == Provider && r.Owner == Owner && r.Repo == Repo).Subject;
-        entry.DocumentSlugs.Should().Contain(RepositoryArtifactRenderHints.SchemaMapSlug);
+        entry.DocumentSlugs.Should().Contain(Slug);
     }
 
     [Fact(DisplayName = "list_repositories пуст, пока ничего не зарегистрировано")]

@@ -67,13 +67,6 @@ internal static class RepositoryEnumDtoMapper
         _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown merge strategy."),
     };
 
-    public static RepositoryArtifactRenderHint ToWireRenderHint(string value) => value switch
-    {
-        RepositoryArtifactRenderHints.Markdown => RepositoryArtifactRenderHint.Markdown,
-        RepositoryArtifactRenderHints.SchemaMap => RepositoryArtifactRenderHint.Schema_map,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown render hint."),
-    };
-
     public static PullRequestArtifactRender ToWireArtifactRender(string value) => value switch
     {
         PullRequestArtifactRenderNames.Markdown => PullRequestArtifactRender.Markdown,

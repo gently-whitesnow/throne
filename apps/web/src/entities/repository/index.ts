@@ -5,10 +5,8 @@ export type {
   RepositoryDocument,
   RepositoryDocumentSummary,
   RepositoryDocumentVersion,
-  PutRepositoryDocumentRequest,
-  RepositoryArtifactRenderHint
+  PutRepositoryDocumentRequest
 } from "./model/types";
-export { SCHEMA_MAP_SLUG } from "./model/types";
 export {
   listRepositories,
   createRepository,

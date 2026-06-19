@@ -28,19 +28,19 @@ Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0
 
 ### `RepositoryArtifact` — знание о репозитории
 
-Свободная **titled markdown-страница знаний**, прицепленная к `Repository`. `db_schema_map` — не жёсткий тип, а одна из страниц по соглашению (стабильный `slug=db-schema-map` со spec-рендером mermaid erDiagram). Будущее знание (например, «архитектурный обзор», «инварианты домена») — просто новая страница, без правки enum.
+Свободная **titled markdown-страница знаний**, прицепленная к `Repository`. Встроенного спец-типа страницы нет — любая страница задаётся произвольным `slug` по соглашению. Будущее знание (например, «архитектурный обзор», «инварианты домена») — просто новая страница, без правки enum.
 
 Поля:
 - `id`, `repository_coordinate` `(provider, owner, repo)`
 - `slug` — стабильный идентификатор страницы в пределах репо (уникальность `(coordinate, slug)`)
 - `title`, `document` (markdown)
-- `render_hint` — `markdown` по умолчанию; `schema_map` включает affordances erDiagram
+- страницы рендерятся как обычный markdown (mermaid-code-fences поддержаны общим markdown-рендером); отдельного `render_hint`-поля на проводе нет
 - `source` — `agent` | `user`
 - `version`, `created_at`, `updated_at`
 
 **История развития** — обязательна: append-only снапшот на каждую версию (`repository_artifact_versions`, full-snapshot + author + timestamp; страницы правятся редко, delta-формат [ADR-0002](0002-domain-model-and-text-versioning.md) избыточен). Optimistic concurrency через `expected_version` + typed `ApiException`. UI показывает таймлайн версий.
 
-**В контекст агента не подаётся.** Единственная MCP-точка — узкий authoring-tool, которым агент в сессии-генерации (режим `schema_map`, [ADR-0014](0014-mcp-initialize-instructions-routing.md)) пишет страницу. Обобщаем именованный `write_repository_schema` ([ADR-0030](0030-mcp-surface-policy-cli-first.md)) в страница-ориентированные `write_repository_document(provider, owner, repo, slug, title, document, expected_version?)` + `get_repository_document(...)`, чтобы будущие страницы переиспользовали один narrow write, а не плодили tool-на-страницу. В `get_intent` страницы **не попадают**.
+**В контекст агента не подаётся.** Единственная MCP-точка — узкий authoring-tool, которым агент в сессии-генерации пишет страницу. Обобщаем именованный `write_repository_schema` ([ADR-0030](0030-mcp-surface-policy-cli-first.md)) в страница-ориентированные `write_repository_document(provider, owner, repo, slug, title, document, expected_version?)` + `get_repository_document(...)`, чтобы будущие страницы переиспользовали один narrow write, а не плодили tool-на-страницу. В `get_intent` страницы **не попадают**.
 
 ### `PullRequestArtifact` — верификация PR
 
@@ -67,7 +67,7 @@ One-shot результат проверки конкретного PR. Реал
 ### MCP-поверхность ([ADR-0030](0030-mcp-surface-policy-cli-first.md))
 
 Чистый итог — **сужение**, а не расширение:
-- `RepositoryArtifact`: только authoring `write_repository_document` / `get_repository_document` (сессия `schema_map`). Не в `get_intent`.
+- `RepositoryArtifact`: только authoring `write_repository_document` / `get_repository_document`. Не в `get_intent`.
 - `PullRequestArtifact`: **MCP не трогает вовсе** (human-only). Никаких `get_intent.artifacts[]`.
 
 ### HTTP / контракты ([ADR-0006](0006-openapi-contract-first-codegen.md))
@@ -77,7 +77,7 @@ One-shot результат проверки конкретного PR. Реал
 
 ### UI (реестр панелей детали интента, [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md) / commit `cb37e59`)
 
-- `RepositoryArtifact`: страница репозитория — список страниц знаний, inline-mermaid для `db_schema_map`, markdown-редактор, **таймлайн версий**. На странице интента — рендер страниц каждого привязанного репо.
+- `RepositoryArtifact`: страница репозитория — список markdown-страниц знаний, markdown-редактор, **таймлайн версий** (mermaid рендерится дженерик-markdown-вью). На странице интента — рендер страниц каждого привязанного репо.
 - `PullRequestArtifact`: новая панель в placement `review`, gate `capability: "repositories"`, рядом с секцией PR-комментариев — латест-артефакты PR (диаграммы/покрытие/AI-рекомендации). Добавляется одним дескриптором в реестр без правки shell.
 
 ### Realtime ([ADR-0008](0008-realtime-contract-first-events.md))
@@ -87,6 +87,8 @@ One-shot результат проверки конкретного PR. Реал
 ### Что меняется в эпике / Slice 3
 
 Slice 3 (`e93593d0`) реализует `db_schema_map` как **первую titled-страницу `RepositoryArtifact`** с историей версий, а не как одиночное schema-поле `Repository`; `write_repository_schema` становится `write_repository_document(slug=db-schema-map, …)`. PR-верификация — **отдельная** сущность `PullRequestArtifact`, не на `Repository`; её producer-контракт открыт.
+
+> **Амендмент.** Позже bundle-режим `schema_map`, спец-обработка `db-schema-map`-slug и поле `render_hint` были удалены целиком — страницы знаний остаются общей markdown-фичей (mermaid рендерится дженерик-markdown-вью), без встроенного спец-типа.
 
 ## Consequences
 

@@ -40,7 +40,9 @@ function renderViewer(reason: string | null) {
 
 describe("ReviewDiffViewer header", () => {
   it("показывает AI-подсказку инлайн рядом с кнопкой", () => {
-    renderViewer("Core terminal config; review the stdio key handling closely.");
+    renderViewer(
+      "Core terminal config; review the stdio key handling closely."
+    );
     // getByText/getByRole throw when the node is missing, so finding both proves
     // the reason and the button coexist in the header.
     expect(

@@ -1156,9 +1156,8 @@ paths:
       description: >
         User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the
         first write (`expected_version` absent or 0) creates version 1; an update requires
-        `expected_version == current` or fails with `409`. `render_hint` is NOT sent on the
-        wire — it is derived from the slug convention (`db-schema-map` → schema map, every
-        other slug → plain markdown). Optimistic concurrency via `expected_version`.
+        `expected_version == current` or fails with `409`. Optimistic concurrency via
+        `expected_version`.
       parameters:
         - in: path
           name: provider
@@ -2093,15 +2092,6 @@ components:
           type: string
           nullable: true
           description: Provider's one-line summary of the merge outcome, when available.
-    RepositoryArtifactRenderHint:
-      type: string
-      enum:
-        - markdown
-        - schema_map
-      description: >
-        Read-only render hint of a knowledge page, derived from its slug (ADR-0031):
-        the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain
-        markdown. Never sent on a write — derived server-side.
     RepositoryDto:
       type: object
       required:
@@ -2166,7 +2156,6 @@ components:
       required:
         - slug
         - title
-        - render_hint
         - version
         - created_at
         - updated_at
@@ -2175,8 +2164,6 @@ components:
           type: string
         title:
           type: string
-        render_hint:
-          $ref: '#/components/schemas/RepositoryArtifactRenderHint'
         version:
           type: integer
           format: int32
@@ -2200,7 +2187,6 @@ components:
         - slug
         - title
         - document
-        - render_hint
         - version
         - created_at
         - updated_at
@@ -2225,8 +2211,6 @@ components:
         document:
           type: string
           description: Full markdown body of the page.
-        render_hint:
-          $ref: '#/components/schemas/RepositoryArtifactRenderHint'
         version:
           type: integer
           format: int32
@@ -2264,7 +2248,6 @@ components:
         - version
         - title
         - document
-        - render_hint
         - created_at
       properties:
         version:
@@ -2275,8 +2258,6 @@ components:
           type: string
         document:
           type: string
-        render_hint:
-          $ref: '#/components/schemas/RepositoryArtifactRenderHint'
         created_at:
           type: string
           format: date-time

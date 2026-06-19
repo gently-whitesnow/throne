@@ -460,7 +460,7 @@ export interface paths {
         get: operations["getRepositoryDocument"];
         /**
          * Create or update a knowledge page (manual edit).
-         * @description User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. `render_hint` is NOT sent on the wire — it is derived from the slug convention (`db-schema-map` → schema map, every other slug → plain markdown). Optimistic concurrency via `expected_version`.
+         * @description User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
          */
         put: operations["putRepositoryDocument"];
         post?: never;
@@ -887,11 +887,6 @@ export interface components {
             /** @description Provider's one-line summary of the merge outcome, when available. */
             message?: string | null;
         };
-        /**
-         * @description Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
-         * @enum {string}
-         */
-        RepositoryArtifactRenderHint: "markdown" | "schema_map";
         RepositoryDto: {
             provider: components["schemas"]["GitProvider"];
             host: string;
@@ -918,7 +913,6 @@ export interface components {
         RepositoryDocumentSummaryDto: {
             slug: string;
             title: string;
-            render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
             /** Format: int32 */
             version: number;
             /** Format: date-time */
@@ -937,7 +931,6 @@ export interface components {
             title: string;
             /** @description Full markdown body of the page. */
             document: string;
-            render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
             /** Format: int32 */
             version: number;
             /** Format: date-time */
@@ -960,7 +953,6 @@ export interface components {
             version: number;
             title: string;
             document: string;
-            render_hint: components["schemas"]["RepositoryArtifactRenderHint"];
             /** Format: date-time */
             created_at: string;
         };
