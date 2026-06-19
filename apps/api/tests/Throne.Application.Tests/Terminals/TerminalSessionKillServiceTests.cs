@@ -103,12 +103,14 @@ public class TerminalSessionKillServiceTests
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
-            Service = new TerminalSessionKillService(guards, Bindings, spawn);
+            LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
+            Service = new TerminalSessionKillService(guards, Bindings, LaunchStore, spawn);
         }
 
         public IIntentRepository Intents { get; }
         public ICapabilitiesRepository Capabilities { get; }
         public IIntentRepositoryBindingRepository Bindings { get; }
+        public IIntentTerminalLaunchStore LaunchStore { get; }
         public ITmuxSessionManager Tmux { get; }
         public TerminalSessionKillService Service { get; }
 

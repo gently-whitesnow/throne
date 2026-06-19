@@ -20,4 +20,5 @@ public static class MongoCollectionNames
     public const string PullRequestArtifacts = "pull_request_artifacts";
     public const string Settings = "settings";
     public const string PromptParts = "prompt_parts";
+    public const string TerminalLaunches = "terminal_launches";
 }
