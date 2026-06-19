@@ -73,6 +73,22 @@ vi.mock("@/entities/pull-request-comment/api/pr-comments-api", () => ({
   ) => updateReviewThread(intentId, bindingId, threadId, resolved)
 }));
 
+vi.mock(
+  "@/entities/pull-request-artifact/api/pull-request-artifacts-queries",
+  () => ({
+    pullRequestArtifactsQueryKeys: {
+      all: ["pull-request-artifacts"],
+      detail: (bindingId: string, type: string) => [
+        "pull-request-artifacts",
+        "detail",
+        bindingId,
+        type
+      ]
+    },
+    usePullRequestArtifactQuery: () => ({ data: null })
+  })
+);
+
 vi.mock("@/shared/realtime", () => ({
   useRealtimeEvent: () => undefined
 }));
