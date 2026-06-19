@@ -233,6 +233,7 @@ export function ReviewWorkspaceOverlay({
             bindingId={binding.id}
             comments={comments}
             commentActions={commentActions}
+            aiOrderHints={aiOrderHints}
             onSubmitted={handleSync}
           />
         </main>
