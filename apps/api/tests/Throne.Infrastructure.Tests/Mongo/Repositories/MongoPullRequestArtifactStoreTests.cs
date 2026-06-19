@@ -45,6 +45,37 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
         list.Select(x => x.Type).Should().Equal("coverage", "static_analysis");
     }
 
+    [Fact(DisplayName = "UpsertAsync сохраняет и перезаписывает head_sha и review_recommendation")]
+    public async Task Upsert_round_trips_review_fields()
+    {
+        var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
+        var first = ReviewRecommendation.Create([
+            new ReviewFileOrderEntry("a.cs", "core", ReviewFileRisk.High),
+        ]);
+        await scope.PullRequestArtifacts.UpsertAsync(
+            BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
+            "# review", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now,
+            "sha-1", first, CancellationToken.None);
+
+        var stored = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
+        stored!.HeadSha.Should().Be("sha-1");
+        stored.ReviewRecommendation!.FileOrder.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { Path = "a.cs", Reason = "core", Risk = ReviewFileRisk.High });
+
+        var second = ReviewRecommendation.Create([
+            new ReviewFileOrderEntry("b.cs", null, null),
+        ]);
+        await scope.PullRequestArtifacts.UpsertAsync(
+            BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
+            "# review v2", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now.AddMinutes(1),
+            "sha-2", second, CancellationToken.None);
+
+        var stored2 = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
+        stored2!.HeadSha.Should().Be("sha-2");
+        stored2.ReviewRecommendation!.FileOrder.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { Path = "b.cs", Reason = (string?)null, Risk = (ReviewFileRisk?)null });
+    }
+
     [Fact(DisplayName = "Уникальный индекс (binding_id,type) запрещает второй документ того же типа")]
     public async Task Binding_type_index_is_unique()
     {
@@ -85,5 +116,7 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
             PullRequestArtifactSourceNames.Static,
             ["sha:abc"],
             producedAt,
+            null,
+            null,
             CancellationToken.None);
 }

@@ -71,6 +71,67 @@ public sealed class PullRequestArtifactsControllerTests(MongoFixture mongo) : IA
         items![0].GetProperty("type").GetString().Should().Be("static_analysis");
     }
 
+    [Fact(DisplayName = "PUT review_recommendation сохраняет типизированный content и head_sha, GET отдаёт объект")]
+    public async Task Put_round_trips_typed_review_recommendation()
+    {
+        var intent = await RepositoriesApiSeed.IntentAsync(_fixture, Now);
+        var binding = await RepositoriesApiSeed.ReadyBindingAsync(_fixture, intent.Id, 42, Now);
+        var url = Artifact(binding.Id.Value, "review_recommendation");
+
+        var put = await _fixture.Client.PutAsJsonAsync(url, new
+        {
+            render = "markdown",
+            content = "## Review recommendation\nStart with the core.",
+            summary = "Read core first",
+            source = "agent",
+            source_refs = FirstSourceRefs,
+            head_sha = "abc1234",
+            review_recommendation = new
+            {
+                file_order = new[]
+                {
+                    new { path = "src/Core.cs", reason = "entry point", risk = "high" },
+                    new { path = "src/Leaf.cs", reason = "trivial", risk = "low" },
+                },
+            },
+            produced_at = Now,
+        });
+        put.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var found = await _fixture.Client.GetAsync(url);
+        found.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dto = await found.Content.ReadFromJsonAsync<JsonElement>();
+        dto.GetProperty("head_sha").GetString().Should().Be("abc1234");
+        var review = dto.GetProperty("review_recommendation");
+        review.GetProperty("file_order")[0].GetProperty("path").GetString().Should().Be("src/Core.cs");
+        review.GetProperty("file_order")[0].GetProperty("risk").GetString().Should().Be("high");
+        review.GetProperty("file_order")[1].GetProperty("risk").GetString().Should().Be("low");
+    }
+
+    [Fact(DisplayName = "PUT review_recommendation отвергает невалидный risk-enum")]
+    public async Task Put_rejects_invalid_risk_enum()
+    {
+        var intent = await RepositoriesApiSeed.IntentAsync(_fixture, Now);
+        var binding = await RepositoriesApiSeed.ReadyBindingAsync(_fixture, intent.Id, 42, Now);
+        var url = Artifact(binding.Id.Value, "review_recommendation");
+
+        var put = await _fixture.Client.PutAsJsonAsync(url, new
+        {
+            render = "markdown",
+            content = "# body",
+            summary = "Review",
+            source = "agent",
+            source_refs = Array.Empty<string>(),
+            review_recommendation = new
+            {
+                file_order = new[] { new { path = "a.cs", risk = "sky-high" } },
+            },
+            produced_at = Now,
+        });
+
+        put.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
+
     [Fact(DisplayName = "PUT .../artifacts/{type} валидирует binding, PR attachment и type")]
     public async Task Put_validates_binding_pr_and_type()
     {

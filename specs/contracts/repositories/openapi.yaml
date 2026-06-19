@@ -2294,6 +2294,43 @@ components:
         - static
         - agent
       description: Producer family for a PR artifact.
+    ReviewFileRisk:
+      type: string
+      enum:
+        - high
+        - medium
+        - low
+      description: Relative risk/centrality of a file, driving review reading order.
+    ReviewFileOrderEntry:
+      type: object
+      required:
+        - path
+      properties:
+        path:
+          type: string
+          minLength: 1
+          maxLength: 500
+        reason:
+          type: string
+          maxLength: 500
+        risk:
+          oneOf:
+            - $ref: '#/components/schemas/ReviewFileRisk'
+          nullable: true
+    ReviewRecommendationContent:
+      type: object
+      description: >
+        Typed content for artifacts of `type=review_recommendation` (ADR-0031). Every field is
+        optional: a partial payload is valid and the UI degrades gracefully. The artifact's
+        `content` string remains the human-readable markdown recommendation; this object carries
+        the machine-readable signals the UI consumes (currently AI file ordering — impact and
+        provenance fields will be added when a UI consumer materialises).
+      properties:
+        file_order:
+          type: array
+          maxItems: 2000
+          items:
+            $ref: '#/components/schemas/ReviewFileOrderEntry'
     PullRequestArtifactDto:
       type: object
       required:
@@ -2337,6 +2374,14 @@ components:
             type: string
             minLength: 1
             maxLength: 500
+        head_sha:
+          type: string
+          maxLength: 100
+          description: >
+            Head commit sha of the PR when this artifact was produced. The UI marks the
+            artifact stale if the PR head has moved past it. Optional, set by the producer.
+        review_recommendation:
+          $ref: '#/components/schemas/ReviewRecommendationContent'
         produced_at:
           type: string
           format: date-time
@@ -2367,6 +2412,14 @@ components:
             type: string
             minLength: 1
             maxLength: 500
+        head_sha:
+          type: string
+          maxLength: 100
+          description: >
+            Head commit sha of the PR when this artifact was produced. The UI marks the
+            artifact stale if the PR head has moved past it. Optional, set by the producer.
+        review_recommendation:
+          $ref: '#/components/schemas/ReviewRecommendationContent'
         produced_at:
           type: string
           format: date-time

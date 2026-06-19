@@ -35,4 +35,34 @@ internal sealed class PullRequestArtifactDocument
 
     [BsonElement("produced_at")]
     public DateTime ProducedAt { get; set; }
+
+    [BsonElement("head_sha")]
+    [BsonIgnoreIfNull]
+    public string? HeadSha { get; set; }
+
+    [BsonElement("review_recommendation")]
+    [BsonIgnoreIfNull]
+    public ReviewRecommendationDocument? ReviewRecommendation { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+internal sealed class ReviewRecommendationDocument
+{
+    [BsonElement("file_order")]
+    public IReadOnlyList<ReviewFileOrderEntryDocument> FileOrder { get; set; } = [];
+}
+
+[BsonIgnoreExtraElements]
+internal sealed class ReviewFileOrderEntryDocument
+{
+    [BsonElement("path")]
+    public string Path { get; set; } = string.Empty;
+
+    [BsonElement("reason")]
+    [BsonIgnoreIfNull]
+    public string? Reason { get; set; }
+
+    [BsonElement("risk")]
+    [BsonIgnoreIfNull]
+    public string? Risk { get; set; }
 }

@@ -16,7 +16,16 @@ public sealed class PutPullRequestArtifactEndpoint(IPullRequestArtifactSink sink
         PutPullRequestArtifactRequest body,
         CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(body);
+        // A null body means the JSON failed to bind to the schema (e.g. an unknown enum value);
+        // surface it as a 422 rather than letting a NRE become a 500.
+        if (body is null)
+        {
+            return new UnprocessableEntityObjectResult(
+                ApiProblems.Build(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Validation failed",
+                    "Request body is missing or does not match the artifact schema."));
+        }
         try
         {
             var command = new WritePullRequestArtifactCommand(
@@ -27,7 +36,9 @@ public sealed class PutPullRequestArtifactEndpoint(IPullRequestArtifactSink sink
                 body.Summary,
                 RepositoryEnumDtoMapper.ToDomainArtifactSource(body.Source),
                 body.Source_refs.ToList(),
-                body.Produced_at);
+                body.Produced_at,
+                body.Head_sha,
+                ReviewRecommendationDtoMapper.ToDomain(body.Review_recommendation));
             var artifact = await sink.IngestAsync(command, ct);
             return new OkObjectResult(PullRequestArtifactDtoMapper.ToDto(artifact));
         }
