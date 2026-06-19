@@ -231,6 +231,8 @@ paths:
         Agent-only local runtime callback injected into the per-session agent config
         (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin).
         Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4).
+        `SessionReady` is a provider-neutral readiness signal for the initial prompt paste and is
+        intentionally ignored by status derivation.
         Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and
         `Notification` (a permission prompt blocks the agent without ending the turn, so no
         `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps
@@ -256,6 +258,7 @@ paths:
             enum:
               - Stop
               - UserPromptSubmit
+              - SessionReady
               - Notification
               - PostToolUse
         - in: query

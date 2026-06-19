@@ -45,6 +45,8 @@ public sealed class OpencodeSessionHookAdapter(
 
     public string Vendor => TerminalAgentCatalog.VendorOpencode;
 
+    public string? ReadinessHookEvent => TerminalHookEvents.SessionReady;
+
     public async Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
         string intentId,
         string workspacePath,
@@ -91,24 +93,7 @@ public sealed class OpencodeSessionHookAdapter(
         return [];
     }
 
-    // OpenCode draws its TUI composer at the bottom of the pane with `>` as the leading prompt
-    // glyph once the input row is ready for paste; the boot/init splash does not render that
-    // glyph at the start of any line. Restricting the match to a line-start `>` (after a newline
-    // OR as the very first byte the pane painted) keeps the matcher tight against splash text
-    // that may legitimately contain `>` mid-line.
-    //
-    // Caveat for future-me: this readiness marker was picked from OpenCode UX docs/screenshots
-    // and not validated against a live tmux capture in this slice — see commit notes. Adjust
-    // once a real capture is available.
-    public bool IsTuiReady(string paneSnapshot)
-    {
-        if (string.IsNullOrEmpty(paneSnapshot))
-        {
-            return false;
-        }
-        return paneSnapshot.StartsWith('>')
-            || paneSnapshot.Contains("\n>", StringComparison.Ordinal);
-    }
+    public bool IsTuiReady(string paneSnapshot) => false;
 
     // Per-session files live inside the workspace (`opencode.json` + the system-prompt file),
     // so the intent-done workspace teardown reaps them — nothing to do here.
