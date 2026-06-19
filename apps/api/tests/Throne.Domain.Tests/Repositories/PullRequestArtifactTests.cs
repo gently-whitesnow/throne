@@ -47,6 +47,10 @@ public class PullRequestArtifactTests
     [Fact(DisplayName = "Create принимает head_sha и review_recommendation, тримит head_sha")]
     public void Create_sets_head_sha_and_review_recommendation()
     {
+        var recommendation = ReviewRecommendation.Create([
+            new ReviewFileOrderEntry("src/Core.cs", "core", ReviewFileRisk.High),
+        ]);
+
         var artifact = PullRequestArtifact.Create(
             PullRequestArtifactId.New(),
             BindingId,
@@ -59,10 +63,12 @@ public class PullRequestArtifactTests
             [],
             Now,
             headSha: "  abc123  ",
-            reviewRecommendation: "{\"file_order\":[]}");
+            reviewRecommendation: recommendation);
 
         artifact.HeadSha.Should().Be("abc123");
-        artifact.ReviewRecommendation.Should().Be("{\"file_order\":[]}");
+        artifact.ReviewRecommendation.Should().BeSameAs(recommendation);
+        artifact.ReviewRecommendation!.FileOrder.Should().ContainSingle()
+            .Which.Path.Should().Be("src/Core.cs");
     }
 
     [Fact(DisplayName = "Create нормализует пустой head_sha в null")]
@@ -92,6 +98,9 @@ public class PullRequestArtifactTests
     public void Replace_overwrites_head_sha_and_review()
     {
         var artifact = NewArtifact();
+        var recommendation = ReviewRecommendation.Create([
+            new ReviewFileOrderEntry("src/Leaf.cs", "trivial", ReviewFileRisk.Low),
+        ]);
 
         artifact.Replace(
             42,
@@ -102,10 +111,10 @@ public class PullRequestArtifactTests
             [],
             Now,
             headSha: "deadbeef",
-            reviewRecommendation: "{\"produced_by\":{\"vendor\":\"anthropic\"}}");
+            reviewRecommendation: recommendation);
 
         artifact.HeadSha.Should().Be("deadbeef");
-        artifact.ReviewRecommendation.Should().Be("{\"produced_by\":{\"vendor\":\"anthropic\"}}");
+        artifact.ReviewRecommendation.Should().BeSameAs(recommendation);
     }
 
     [Theory(DisplayName = "Create отвергает невалидный type")]

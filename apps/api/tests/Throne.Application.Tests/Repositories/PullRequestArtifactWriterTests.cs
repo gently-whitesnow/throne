@@ -24,7 +24,7 @@ public class PullRequestArtifactWriterTests
         fixture.Artifacts.UpsertAsync(
                 BindingId, 42, "static_analysis", PullRequestArtifactRenderNames.Markdown,
                 "# body", "Static analysis", PullRequestArtifactSourceNames.Static,
-                Arg.Any<IReadOnlyList<string>>(), Now, Arg.Any<string?>(), Arg.Any<string?>(),
+                Arg.Any<IReadOnlyList<string>>(), Now, Arg.Any<string?>(), Arg.Any<ReviewRecommendation?>(),
                 Arg.Any<CancellationToken>())
             .Returns(new WritePullRequestArtifactOutcome(artifact, Created: true));
 
@@ -45,7 +45,8 @@ public class PullRequestArtifactWriterTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.RepositoryBindingNotFound);
         await fixture.Artifacts.DidNotReceiveWithAnyArgs()
-            .UpsertAsync(default, default, null!, null!, null!, null!, null!, null!, default, null, null, default);
+            .UpsertAsync(default, default, null!, null!, null!, null!, null!, null!, default,
+                null, (ReviewRecommendation?)null, default);
     }
 
     [Fact(DisplayName = "IngestAsync для binding без PR даёт repository_binding.pull_request_not_attached")]
@@ -60,7 +61,8 @@ public class PullRequestArtifactWriterTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.RepositoryPullRequestNotAttached);
         await fixture.Artifacts.DidNotReceiveWithAnyArgs()
-            .UpsertAsync(default, default, null!, null!, null!, null!, null!, null!, default, null, null, default);
+            .UpsertAsync(default, default, null!, null!, null!, null!, null!, null!, default,
+                null, (ReviewRecommendation?)null, default);
     }
 
     private static WritePullRequestArtifactCommand Command() => new(

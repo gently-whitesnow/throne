@@ -38,7 +38,7 @@ public sealed class PutPullRequestArtifactEndpoint(IPullRequestArtifactSink sink
                 body.Source_refs.ToList(),
                 body.Produced_at,
                 body.Head_sha,
-                ReviewRecommendationContentJson.Serialize(body.Review_recommendation));
+                ReviewRecommendationDtoMapper.ToDomain(body.Review_recommendation));
             var artifact = await sink.IngestAsync(command, ct);
             return new OkObjectResult(PullRequestArtifactDtoMapper.ToDto(artifact));
         }

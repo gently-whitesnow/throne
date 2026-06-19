@@ -27,7 +27,7 @@ internal sealed class MongoPullRequestArtifactStore
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
         string? headSha,
-        string? reviewRecommendation,
+        ReviewRecommendation? reviewRecommendation,
         CancellationToken ct)
     {
         var existing = await FindDocumentAsync(bindingId, type, ct);
@@ -60,7 +60,7 @@ internal sealed class MongoPullRequestArtifactStore
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
         string? headSha,
-        string? reviewRecommendation,
+        ReviewRecommendation? reviewRecommendation,
         CancellationToken ct)
     {
         var artifact = PullRequestArtifact.Create(
@@ -92,7 +92,7 @@ internal sealed class MongoPullRequestArtifactStore
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
         string? headSha,
-        string? reviewRecommendation,
+        ReviewRecommendation? reviewRecommendation,
         CancellationToken ct)
     {
         var artifact = PullRequestArtifactDocumentMapper.ToDomain(existing);
@@ -107,7 +107,7 @@ internal sealed class MongoPullRequestArtifactStore
             .Set(d => d.SourceRefs, artifact.SourceRefs.ToArray())
             .Set(d => d.ProducedAt, artifact.ProducedAt.UtcDateTime)
             .Set(d => d.HeadSha, artifact.HeadSha)
-            .Set(d => d.ReviewRecommendation, artifact.ReviewRecommendation);
+            .Set(d => d.ReviewRecommendation, PullRequestArtifactDocumentMapper.ToDocument(artifact.ReviewRecommendation));
 
         if (!await TryUpdateAsync(ById(existing.Id), update, ct))
         {

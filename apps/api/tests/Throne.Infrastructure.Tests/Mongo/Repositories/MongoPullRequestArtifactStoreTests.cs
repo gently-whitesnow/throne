@@ -49,23 +49,31 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
     public async Task Upsert_round_trips_review_fields()
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
+        var first = ReviewRecommendation.Create([
+            new ReviewFileOrderEntry("a.cs", "core", ReviewFileRisk.High),
+        ]);
         await scope.PullRequestArtifacts.UpsertAsync(
             BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
             "# review", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now,
-            "sha-1", "{\"file_order\":[{\"path\":\"a.cs\"}]}", CancellationToken.None);
+            "sha-1", first, CancellationToken.None);
 
-        var first = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
-        first!.HeadSha.Should().Be("sha-1");
-        first.ReviewRecommendation.Should().Be("{\"file_order\":[{\"path\":\"a.cs\"}]}");
+        var stored = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
+        stored!.HeadSha.Should().Be("sha-1");
+        stored.ReviewRecommendation!.FileOrder.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { Path = "a.cs", Reason = "core", Risk = ReviewFileRisk.High });
 
+        var second = ReviewRecommendation.Create([
+            new ReviewFileOrderEntry("b.cs", null, null),
+        ]);
         await scope.PullRequestArtifacts.UpsertAsync(
             BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
             "# review v2", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now.AddMinutes(1),
-            "sha-2", "{\"file_order\":[{\"path\":\"b.cs\"}]}", CancellationToken.None);
+            "sha-2", second, CancellationToken.None);
 
-        var second = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
-        second!.HeadSha.Should().Be("sha-2");
-        second.ReviewRecommendation.Should().Be("{\"file_order\":[{\"path\":\"b.cs\"}]}");
+        var stored2 = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
+        stored2!.HeadSha.Should().Be("sha-2");
+        stored2.ReviewRecommendation!.FileOrder.Should().ContainSingle()
+            .Which.Should().BeEquivalentTo(new { Path = "b.cs", Reason = (string?)null, Risk = (ReviewFileRisk?)null });
     }
 
     [Fact(DisplayName = "Уникальный индекс (binding_id,type) запрещает второй документ того же типа")]

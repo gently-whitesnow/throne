@@ -13,9 +13,6 @@ public sealed class PullRequestArtifactsControllerTests(MongoFixture mongo) : IA
     private static readonly DateTimeOffset Now = new(2026, 6, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly string[] FirstSourceRefs = ["sha:abc"];
     private static readonly string[] SecondSourceRefs = ["sha:def"];
-    private static readonly string[] AffectedEndpoints = ["PUT /api/v1/x"];
-    private static readonly string[] AffectedTables = ["orders"];
-    private static readonly string[] ModuleNodes = ["core", "leaf"];
 
     private RepositoriesApiFixture _fixture = null!;
 
@@ -96,14 +93,6 @@ public sealed class PullRequestArtifactsControllerTests(MongoFixture mongo) : IA
                     new { path = "src/Core.cs", reason = "entry point", risk = "high" },
                     new { path = "src/Leaf.cs", reason = "trivial", risk = "low" },
                 },
-                affected_endpoints = AffectedEndpoints,
-                affected_db_tables = AffectedTables,
-                module_graph = new
-                {
-                    nodes = ModuleNodes,
-                    edges = new[] { new { from = "core", to = "leaf" } },
-                },
-                produced_by = new { vendor = "anthropic", model = "claude-opus-4-8" },
             },
             produced_at = Now,
         });
@@ -116,9 +105,7 @@ public sealed class PullRequestArtifactsControllerTests(MongoFixture mongo) : IA
         var review = dto.GetProperty("review_recommendation");
         review.GetProperty("file_order")[0].GetProperty("path").GetString().Should().Be("src/Core.cs");
         review.GetProperty("file_order")[0].GetProperty("risk").GetString().Should().Be("high");
-        review.GetProperty("affected_endpoints")[0].GetString().Should().Be("PUT /api/v1/x");
-        review.GetProperty("module_graph").GetProperty("edges")[0].GetProperty("to").GetString().Should().Be("leaf");
-        review.GetProperty("produced_by").GetProperty("model").GetString().Should().Be("claude-opus-4-8");
+        review.GetProperty("file_order")[1].GetProperty("risk").GetString().Should().Be("low");
     }
 
     [Fact(DisplayName = "PUT review_recommendation отвергает невалидный risk-enum")]

@@ -13,7 +13,6 @@ public sealed partial class PullRequestArtifact
     public const int MaxSourceRefLength = 500;
     public const int MaxSourceRefCount = 50;
     public const int MaxHeadShaLength = 100;
-    public const int MaxReviewRecommendationLength = 200_000;
 
     private PullRequestArtifact(
         PullRequestArtifactId id,
@@ -27,7 +26,7 @@ public sealed partial class PullRequestArtifact
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
         string? headSha,
-        string? reviewRecommendation)
+        ReviewRecommendation? reviewRecommendation)
     {
         Id = id;
         BindingId = bindingId;
@@ -58,10 +57,10 @@ public sealed partial class PullRequestArtifact
     public string? HeadSha { get; private set; }
 
     /// <summary>
-    /// Typed <c>review_recommendation</c> payload stored as opaque JSON (per-type schema lives in
-    /// the contract, not the domain). Null for other artifact types. Optional.
+    /// Typed <c>review_recommendation</c> payload. Null for other artifact types (the domain owns
+    /// the per-type schema so storage stays nested-typed, not an opaque JSON blob).
     /// </summary>
-    public string? ReviewRecommendation { get; private set; }
+    public ReviewRecommendation? ReviewRecommendation { get; private set; }
 
     public static PullRequestArtifact Create(
         PullRequestArtifactId id,
@@ -75,7 +74,7 @@ public sealed partial class PullRequestArtifact
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
         string? headSha = null,
-        string? reviewRecommendation = null)
+        ReviewRecommendation? reviewRecommendation = null)
     {
         EnsureValidBindingId(bindingId);
         EnsurePositivePullRequestNumber(pullRequestNumber);
@@ -86,11 +85,10 @@ public sealed partial class PullRequestArtifact
         EnsureKnownSource(source);
         var refs = NormalizeSourceRefs(sourceRefs);
         var head = NormalizeHeadSha(headSha);
-        var review = NormalizeReviewRecommendation(reviewRecommendation);
 
         return new PullRequestArtifact(
             id, bindingId, pullRequestNumber, type, render, content, summary, source, refs, producedAt,
-            head, review);
+            head, reviewRecommendation);
     }
 
     public static PullRequestArtifact Restore(PullRequestArtifactSnapshot snapshot)
@@ -120,7 +118,7 @@ public sealed partial class PullRequestArtifact
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
         string? headSha = null,
-        string? reviewRecommendation = null)
+        ReviewRecommendation? reviewRecommendation = null)
     {
         EnsurePositivePullRequestNumber(pullRequestNumber);
         if (pullRequestNumber != PullRequestNumber)
@@ -139,7 +137,7 @@ public sealed partial class PullRequestArtifact
         SourceRefs = NormalizeSourceRefs(sourceRefs);
         ProducedAt = producedAt;
         HeadSha = NormalizeHeadSha(headSha);
-        ReviewRecommendation = NormalizeReviewRecommendation(reviewRecommendation);
+        ReviewRecommendation = reviewRecommendation;
     }
 
     private static void EnsureValidBindingId(BindingId bindingId)
@@ -228,21 +226,6 @@ public sealed partial class PullRequestArtifact
             throw new ArgumentException($"head_sha exceeds {MaxHeadShaLength} characters.", nameof(headSha));
         }
         return trimmed;
-    }
-
-    private static string? NormalizeReviewRecommendation(string? reviewRecommendation)
-    {
-        if (reviewRecommendation is null)
-        {
-            return null;
-        }
-        if (reviewRecommendation.Length > MaxReviewRecommendationLength)
-        {
-            throw new ArgumentException(
-                $"review_recommendation exceeds {MaxReviewRecommendationLength} characters.",
-                nameof(reviewRecommendation));
-        }
-        return reviewRecommendation;
     }
 
     [GeneratedRegex("^[a-z][a-z0-9_-]*$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
