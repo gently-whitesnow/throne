@@ -14,7 +14,7 @@ public sealed record WritePullRequestArtifactCommand(
     IReadOnlyList<string> SourceRefs,
     DateTimeOffset ProducedAt,
     string? HeadSha = null,
-    string? ReviewRecommendation = null);
+    ReviewRecommendation? ReviewRecommendation = null);
 
 public sealed class PullRequestArtifactWriter(
     IPullRequestArtifactRepository artifacts,

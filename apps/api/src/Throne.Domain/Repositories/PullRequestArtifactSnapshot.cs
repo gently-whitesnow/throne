@@ -13,4 +13,4 @@ public sealed record PullRequestArtifactSnapshot(
     IReadOnlyList<string> SourceRefs,
     DateTimeOffset ProducedAt,
     string? HeadSha = null,
-    string? ReviewRecommendation = null);
+    ReviewRecommendation? ReviewRecommendation = null);

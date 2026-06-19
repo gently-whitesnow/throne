@@ -984,27 +984,9 @@ export interface components {
             reason?: string;
             risk?: components["schemas"]["ReviewFileRisk"] | null;
         };
-        ReviewModuleGraphEdge: {
-            from: string;
-            to: string;
-        };
-        /** @description Simple adjacency-style module graph (nodes + edges, no graph-viz layout). */
-        ReviewModuleGraph: {
-            nodes?: string[];
-            edges?: components["schemas"]["ReviewModuleGraphEdge"][];
-        };
-        /** @description Vendor/model that produced the recommendation (best-effort, from the agent session). */
-        ReviewProducedBy: {
-            vendor?: string;
-            model?: string;
-        };
-        /** @description Typed content for artifacts of `type=review_recommendation` (ADR-0031). Every field is optional: a partial payload is valid and the UI degrades gracefully. The artifact's `content` string remains the human-readable markdown recommendation; this object carries the machine-readable signals the UI consumes (AI file ordering, impact, provenance). */
+        /** @description Typed content for artifacts of `type=review_recommendation` (ADR-0031). Every field is optional: a partial payload is valid and the UI degrades gracefully. The artifact's `content` string remains the human-readable markdown recommendation; this object carries the machine-readable signals the UI consumes (currently AI file ordering — impact and provenance fields will be added when a UI consumer materialises). */
         ReviewRecommendationContent: {
             file_order?: components["schemas"]["ReviewFileOrderEntry"][];
-            affected_endpoints?: string[];
-            affected_db_tables?: string[];
-            module_graph?: components["schemas"]["ReviewModuleGraph"];
-            produced_by?: components["schemas"]["ReviewProducedBy"];
         };
         PullRequestArtifactDto: {
             id: string;
