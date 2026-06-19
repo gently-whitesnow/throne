@@ -7,7 +7,7 @@ namespace Throne.Application.Tests.Manifest;
 
 internal static class SkillManifestFixtures
 {
-    public static readonly IReadOnlyList<string> Keys = ["common", "interview", "work", "review", "dream", "schema_map"];
+    public static readonly IReadOnlyList<string> Keys = ["common", "interview", "work", "review", "schema_map"];
 
     public static SkillManifest Sample()
     {
@@ -40,7 +40,6 @@ internal static class SkillManifestFixtures
             Bundle(PromptBundleModeNames.Interview, "interview"),
             Bundle(PromptBundleModeNames.Work, "work"),
             Bundle(PromptBundleModeNames.Review, "review"),
-            Bundle(PromptBundleModeNames.Dream, "dream"),
             schemaMapBundle,
         };
 

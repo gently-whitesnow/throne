@@ -10,9 +10,10 @@ interface McpBundleCompatibilityProps {
 }
 
 /**
- * Read-only overview of the MCP `get_prompt_bundle(mode)` payload for all
- * modes (including dream/fix). Source of truth is the skill manifest; this is
- * exactly what an external agent receives over MCP.
+ * Read-only overview of the MCP `get_prompt_bundle(mode)` payload for every
+ * mode declared in the skill manifest (the source of truth) — exactly what an
+ * external agent receives over MCP. dream is intentionally absent: its playbook
+ * is hardcoded in the `/improvements` copy button, not delivered via a bundle.
  */
 export function McpBundleCompatibility({
   bundlesTree
