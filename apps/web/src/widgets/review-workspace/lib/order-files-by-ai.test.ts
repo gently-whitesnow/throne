@@ -17,12 +17,7 @@ describe("orderFilesByAi", () => {
   });
 
   it("places ranked files first in artifact order; rest follows natural order", () => {
-    const natural = [
-      file("a.ts"),
-      file("b.ts"),
-      file("c.ts"),
-      file("d.ts")
-    ];
+    const natural = [file("a.ts"), file("b.ts"), file("c.ts"), file("d.ts")];
     const { files } = orderFilesByAi(natural, [
       { path: "c.ts", reason: "core", risk: "high" },
       { path: "a.ts", reason: "entry point" }

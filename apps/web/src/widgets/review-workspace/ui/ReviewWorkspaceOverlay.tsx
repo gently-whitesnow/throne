@@ -31,10 +31,7 @@ import {
 import type { CommentActions } from "./ReviewCommentCard";
 import { ReviewArtifactStaleBanner } from "./ReviewArtifactStaleBanner";
 import { ReviewDiffRegion } from "./ReviewDiffRegion";
-import {
-  ReviewFilesRail,
-  type ReviewFilesSortMode
-} from "./ReviewFilesRail";
+import { ReviewFilesRail, type ReviewFilesSortMode } from "./ReviewFilesRail";
 import { ReviewMergeControl } from "./ReviewMergeControl";
 import { ReviewRightRail } from "./ReviewRightRail";
 import { ReviewScopeBar } from "./ReviewScopeBar";
@@ -76,9 +73,8 @@ export function ReviewWorkspaceOverlay({
   const aiFileOrder = artifact?.review_recommendation?.file_order ?? null;
   const hasAiOrder = aiFileOrder !== null && aiFileOrder.length > 0;
 
-  const [sortMode, setSortMode] = useState<ReviewFilesSortMode>(
-    "ai-recommended"
-  );
+  const [sortMode, setSortMode] =
+    useState<ReviewFilesSortMode>("ai-recommended");
   const effectiveAiOrder =
     sortMode === "ai-recommended" && hasAiOrder ? aiFileOrder : null;
   const ws = useReviewWorkspace(
@@ -267,4 +263,3 @@ export function ReviewWorkspaceOverlay({
     </Modal>
   );
 }
-
