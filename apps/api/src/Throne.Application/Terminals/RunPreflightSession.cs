@@ -34,11 +34,13 @@ internal static class RunPreflightSession
         string sessionName,
         string sessionState,
         IReadOnlyList<IntentRepositoryBinding> bindings,
-        IReadOnlyList<string> blockingBindings) =>
+        IReadOnlyList<string> blockingBindings,
+        TerminalLaunchRecord? launch = null) =>
         new(
             IntentId: intentId,
             SessionName: sessionName,
             SessionState: sessionState,
             Bindings: bindings.Select(RunPreflightBindingMapper.ToStatus).ToArray(),
-            BlockingBindings: blockingBindings);
+            BlockingBindings: blockingBindings,
+            Launch: launch);
 }

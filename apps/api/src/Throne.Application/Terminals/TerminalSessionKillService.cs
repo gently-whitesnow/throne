@@ -11,6 +11,7 @@ namespace Throne.Application.Terminals;
 public sealed class TerminalSessionKillService(
     RunPreflightGuards guards,
     IIntentRepositoryBindingRepository bindings,
+    IIntentTerminalLaunchStore launchStore,
     RunPreflightSpawn spawner)
 {
     public async Task<RunPreflightResult> KillAsync(string intentId, CancellationToken ct)
@@ -22,11 +23,13 @@ public sealed class TerminalSessionKillService(
         await spawner.KillSessionAsync(intent.Id.Value, ct);
 
         var snapshot = await bindings.FindByIntentAsync(intent.Id, ct);
+        var launch = await launchStore.GetAsync(intent.Id.Value, ct);
         return RunPreflightSession.BuildResult(
             intent.Id.Value,
             sessionName,
             TerminalSessionStates.Exited,
             snapshot,
-            RunPreflightSession.CollectBlocking(snapshot));
+            RunPreflightSession.CollectBlocking(snapshot),
+            launch);
     }
 }

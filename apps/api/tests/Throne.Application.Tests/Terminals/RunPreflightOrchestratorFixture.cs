@@ -68,8 +68,9 @@ public partial class RunPreflightOrchestratorTests
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             var launchResolver = BuildLaunchResolver();
             var promptGate = BuildPromptGate(clock, uow);
+            LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
             Orchestrator = new RunPreflightOrchestrator(
-                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver);
+                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver, LaunchStore);
         }
 
         private (RepositoryBindingService Service, IRepositoryCloneRequests CloneQueue) BuildBindingService(
@@ -147,6 +148,7 @@ public partial class RunPreflightOrchestratorTests
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
+        public IIntentTerminalLaunchStore LaunchStore { get; }
         public RunPreflightOrchestrator Orchestrator { get; }
 
         public Fixture Setup(

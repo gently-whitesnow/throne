@@ -122,13 +122,15 @@ function terminalCapability(): Capability[] {
 }
 
 function sessionResponse(
-  state: RunIntentTerminalResponse["session_state"]
+  state: RunIntentTerminalResponse["session_state"],
+  launch?: RunIntentTerminalResponse["launch"]
 ): RunIntentTerminalResponse {
   return {
     intent_id: "intent-1",
     session_name: "throne-intent-1",
     session_state: state,
-    bindings: []
+    bindings: [],
+    ...(launch ? { launch } : {})
   };
 }
 
@@ -198,12 +200,13 @@ describe("AgentTerminalPanel", () => {
 
     render();
 
-    await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
-    });
-
     const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
       name: "Агент терминала"
+    });
+    // Wait for the axis prefill to settle (controls stay disabled until seeded) before changing
+    // the vendor — otherwise the change would race the async seed and be clobbered.
+    await waitFor(() => {
+      expect(vendor.disabled).toBe(false);
     });
     fireEvent.change(vendor, { target: { value: "codex" } });
 
@@ -237,6 +240,67 @@ describe("AgentTerminalPanel", () => {
       userPrompt: "BODY",
       intentTextUpdate: null
     });
+  });
+
+  it("живая сессия показывает фактическую ось запуска из ответа сессии, а не дефолт каталога", async () => {
+    getIntentTerminalSession.mockResolvedValue(
+      sessionResponse("running", {
+        mode: "interview",
+        vendor: "codex",
+        model: "gpt-5.4",
+        effort: "low"
+      })
+    );
+
+    render();
+
+    await screen.findByTestId("terminal-view");
+    const vendor = screen.getByTestId<HTMLSelectElement>(
+      "agent-terminal-vendor"
+    );
+    const model = screen.getByTestId<HTMLSelectElement>("agent-terminal-model");
+    const effort = screen.getByTestId<HTMLSelectElement>(
+      "agent-terminal-effort"
+    );
+    const mode = screen.getByTestId<HTMLSelectElement>("agent-terminal-mode");
+
+    await waitFor(() => {
+      expect(vendor.value).toBe("codex");
+    });
+    expect(model.value).toBe("gpt-5.4");
+    expect(effort.value).toBe("low");
+    expect(mode.value).toBe("interview");
+    // Live → controls frozen.
+    expect(vendor.disabled).toBe(true);
+    expect(mode.disabled).toBe(true);
+  });
+
+  it("без живой сессии префиллит ось из last-used интента, а не из дефолта каталога", async () => {
+    getIntentTerminalSession.mockResolvedValue(
+      sessionResponse("exited", {
+        mode: "work",
+        vendor: "codex",
+        model: "gpt-5.3-codex",
+        effort: "high"
+      })
+    );
+
+    render();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+    });
+    const vendor = screen.getByTestId<HTMLSelectElement>(
+      "agent-terminal-vendor"
+    );
+    const model = screen.getByTestId<HTMLSelectElement>("agent-terminal-model");
+
+    await waitFor(() => {
+      expect(vendor.value).toBe("codex");
+    });
+    expect(model.value).toBe("gpt-5.3-codex");
+    // No live session → controls editable.
+    expect(vendor.disabled).toBe(false);
   });
 
   it("Review-режим появляется только когда у интента есть attached PR", async () => {
