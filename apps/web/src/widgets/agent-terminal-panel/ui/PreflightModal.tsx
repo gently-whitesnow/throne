@@ -24,7 +24,10 @@ interface PreflightModalProps {
   onLaunch: (payload: TerminalRunPayload) => void;
 }
 
-function byScope(parts: PromptPartPreview[], scope: string): PromptPartPreview[] {
+function byScope(
+  parts: PromptPartPreview[],
+  scope: string
+): PromptPartPreview[] {
   return parts.filter((p) => p.scope === scope);
 }
 

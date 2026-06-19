@@ -14,12 +14,18 @@ namespace Throne.Application.Terminals;
 ///   IDs of bindings whose <c>clone_status</c> ended up in <c>failed</c> or <c>broken</c>.
 ///   Populated when <paramref name="SessionState"/> = <see cref="TerminalSessionStates.Blocked"/>.
 /// </param>
+/// <param name="Launch">
+///   Resolved launch axis surfaced to the UI (ADR-0041): the axis a run/restart actually
+///   spawned with, or the persisted last-used axis on the status probe. Null when the intent
+///   was never launched.
+/// </param>
 public sealed record RunPreflightResult(
     string IntentId,
     string SessionName,
     string SessionState,
     IReadOnlyList<RunPreflightBindingStatus> Bindings,
-    IReadOnlyList<string> BlockingBindings);
+    IReadOnlyList<string> BlockingBindings,
+    TerminalLaunchRecord? Launch);
 
 /// <summary>
 /// Per-binding snapshot inside <see cref="RunPreflightResult"/>. Mirrors the wire
