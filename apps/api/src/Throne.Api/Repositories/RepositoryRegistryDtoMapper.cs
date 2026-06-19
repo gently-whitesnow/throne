@@ -6,8 +6,7 @@ namespace Throne.Api.Repositories;
 /// <summary>
 /// Maps the <see cref="Repository"/> registry aggregate and the <see cref="RepositoryArtifact"/>
 /// knowledge-page aggregate (+ its version history) to their wire DTOs. The markdown body is
-/// dropped in the list projection (<see cref="ToDocumentSummaryDto"/>); <c>render_hint</c> is a
-/// read-only output derived from the slug (ADR-0031).
+/// dropped in the list projection (<see cref="ToDocumentSummaryDto"/>).
 /// </summary>
 internal static class RepositoryRegistryDtoMapper
 {
@@ -34,7 +33,6 @@ internal static class RepositoryRegistryDtoMapper
         {
             Slug = artifact.Slug,
             Title = artifact.Title,
-            Render_hint = RepositoryEnumDtoMapper.ToWireRenderHint(artifact.RenderHint),
             Version = artifact.Version,
             Created_at = artifact.CreatedAt,
             Updated_at = artifact.UpdatedAt,
@@ -54,7 +52,6 @@ internal static class RepositoryRegistryDtoMapper
             Slug = artifact.Slug,
             Title = artifact.Title,
             Document = artifact.Document,
-            Render_hint = RepositoryEnumDtoMapper.ToWireRenderHint(artifact.RenderHint),
             Version = artifact.Version,
             Created_at = artifact.CreatedAt,
             Updated_at = artifact.UpdatedAt,
@@ -69,7 +66,6 @@ internal static class RepositoryRegistryDtoMapper
             Version = version.Version,
             Title = version.Title,
             Document = version.Document,
-            Render_hint = RepositoryEnumDtoMapper.ToWireRenderHint(version.RenderHint),
             Created_at = version.CreatedAt,
         };
     }

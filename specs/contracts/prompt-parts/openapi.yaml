@@ -251,7 +251,7 @@ components:
       properties:
         mode:
           type: string
-          description: Bundle mode (interview | work | review | dream | schema_map).
+          description: Bundle mode (interview | work | review | dream).
         includes:
           type: array
           items:

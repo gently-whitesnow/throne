@@ -13,19 +13,17 @@ public class RepositoryArtifactWriterTests
     private static readonly RepoCoordinate Coordinate = new(GitProviderNames.GitHub, "octo", "throne");
 
     private static WriteRepositoryArtifactCommand Command(int? expectedVersion = null) =>
-        new(Coordinate, "db-schema-map", "DB schema", "# erd",
-            RepositoryArtifactRenderHints.SchemaMap, expectedVersion);
+        new(Coordinate, "db-schema-map", "DB schema", "# erd", expectedVersion);
 
     [Fact(DisplayName = "WriteAsync материализует Repository через реестр и возвращает записанный артефакт")]
     public async Task Write_ensures_registry_and_returns_artifact()
     {
         var fixture = new Fixture();
         var artifact = RepositoryArtifact.Create(
-            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd",
-            RepositoryArtifactRenderHints.SchemaMap, Now);
+            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd", Now);
         fixture.Artifacts
             .WriteAsync(Coordinate, "db-schema-map", "DB schema", "# erd",
-                RepositoryArtifactRenderHints.SchemaMap, null, Now, Arg.Any<CancellationToken>())
+                null, Now, Arg.Any<CancellationToken>())
             .Returns(new WriteRepositoryArtifactOutcome.Written(artifact, Created: true));
 
         var result = await fixture.Writer.WriteAsync(Command(), CancellationToken.None);
@@ -40,7 +38,7 @@ public class RepositoryArtifactWriterTests
         var fixture = new Fixture();
         fixture.Artifacts
             .WriteAsync(Coordinate, "db-schema-map", "DB schema", "# erd",
-                RepositoryArtifactRenderHints.SchemaMap, 1, Now, Arg.Any<CancellationToken>())
+                1, Now, Arg.Any<CancellationToken>())
             .Returns(new WriteRepositoryArtifactOutcome.VersionConflict(3));
 
         var act = () => fixture.Writer.WriteAsync(Command(expectedVersion: 1), CancellationToken.None);

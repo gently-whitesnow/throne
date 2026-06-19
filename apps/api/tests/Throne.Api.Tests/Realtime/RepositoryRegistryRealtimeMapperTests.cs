@@ -47,8 +47,7 @@ public class RepositoryRegistryRealtimeMapperTests
     public void Maps_document_updated_to_pointer_payload()
     {
         var artifact = RepositoryArtifact.Create(
-            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd",
-            RepositoryArtifactRenderHints.SchemaMap, Now);
+            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd", Now);
 
         var envelope = RepositoryRegistryRealtimeMapper.TryMap(new RepositoryDocumentUpdated(artifact));
 

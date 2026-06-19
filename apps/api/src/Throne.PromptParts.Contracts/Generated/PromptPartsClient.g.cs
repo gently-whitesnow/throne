@@ -50,7 +50,7 @@ namespace Throne.PromptParts.Contracts.Generated
     {
 
         /// <summary>
-        /// Bundle mode (interview | work | review | dream | schema_map).
+        /// Bundle mode (interview | work | review | dream).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mode")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

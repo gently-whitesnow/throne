@@ -14,7 +14,6 @@ internal static class RepositoryArtifactDocumentMapper
         Slug = artifact.Slug,
         Title = artifact.Title,
         Document = artifact.Document,
-        RenderHint = artifact.RenderHint,
         Version = artifact.Version,
         CreatedAt = artifact.CreatedAt.UtcDateTime,
         UpdatedAt = artifact.UpdatedAt.UtcDateTime,
@@ -27,7 +26,6 @@ internal static class RepositoryArtifactDocumentMapper
             Slug: doc.Slug,
             Title: doc.Title,
             Document: doc.Document,
-            RenderHint: doc.RenderHint,
             Version: doc.Version,
             CreatedAt: ToUtc(doc.CreatedAt),
             UpdatedAt: ToUtc(doc.UpdatedAt)));
@@ -39,7 +37,6 @@ internal static class RepositoryArtifactDocumentMapper
         Version = version.Version,
         Title = version.Title,
         Document = version.Document,
-        RenderHint = version.RenderHint,
         CreatedAt = version.CreatedAt.UtcDateTime,
     };
 
@@ -49,7 +46,6 @@ internal static class RepositoryArtifactDocumentMapper
         Version: doc.Version,
         Title: doc.Title,
         Document: doc.Document,
-        RenderHint: doc.RenderHint,
         CreatedAt: ToUtc(doc.CreatedAt));
 
     private static DateTimeOffset ToUtc(DateTime value) =>
