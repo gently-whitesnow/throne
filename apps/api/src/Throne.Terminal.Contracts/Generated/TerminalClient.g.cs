@@ -450,6 +450,52 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("blocking_bindings")]
         public System.Collections.Generic.ICollection<string> Blocking_bindings { get; set; }
 
+        /// <summary>
+        /// Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("launch")]
+        public TerminalLaunchArgs Launch { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalLaunchArgs
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalRunMode>))]
+        public TerminalRunMode Mode { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor Vendor { get; set; }
+
+        /// <summary>
+        /// Resolved model id from the vendor's whitelist.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Model { get; set; }
+
+        /// <summary>
+        /// Resolved reasoning effort; null for a vendor with no effort axis.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
+        public TerminalReasoningEffort? Effort { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
