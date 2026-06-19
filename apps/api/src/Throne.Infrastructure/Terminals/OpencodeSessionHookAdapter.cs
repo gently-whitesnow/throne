@@ -93,6 +93,10 @@ public sealed class OpencodeSessionHookAdapter(
         return [];
     }
 
+    // OpenCode owns a provider-native readiness hook (session.created -> SessionReady), so it opts
+    // out of the glyph fast-path entirely: the previous `>` marker was picked from docs/screenshots
+    // and never validated against a live capture. Readiness is gated by the hook signal (with a
+    // settle) plus the screen-stability fallback in TmuxTuiReadinessWaiter.
     public bool IsTuiReady(string paneSnapshot) => false;
 
     // Per-session files live inside the workspace (`opencode.json` + the system-prompt file),

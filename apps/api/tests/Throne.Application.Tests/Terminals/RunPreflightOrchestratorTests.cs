@@ -81,7 +81,6 @@ public partial class RunPreflightOrchestratorTests
         {
             fixture.Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
             fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
-            fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
             fixture.Tmux.PasteFileAsSubmittedPromptAsync(
                 IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>());
         });
