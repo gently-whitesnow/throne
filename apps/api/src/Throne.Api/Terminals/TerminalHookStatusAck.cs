@@ -6,6 +6,7 @@ namespace Throne.Api.Terminals;
 
 public sealed class TerminalHookStatusAck(
     TerminalHookStatusHandler hookStatus,
+    TerminalReadinessSignals readinessSignals,
     ILogger<TerminalHookStatusAck> logger
 )
 {
@@ -20,6 +21,10 @@ public sealed class TerminalHookStatusAck(
         try
         {
             await hookStatus.HandleAsync(intentId, ToHookEvent(@event), domainMode, ct);
+            if (@event == Event.SessionReady)
+            {
+                readinessSignals.TrySignal(intentId);
+            }
         }
         catch (ApiException ex)
         {
@@ -32,6 +37,7 @@ public sealed class TerminalHookStatusAck(
         {
             Event.Stop => TerminalHookEvents.Stop,
             Event.UserPromptSubmit => TerminalHookEvents.UserPromptSubmit,
+            Event.SessionReady => TerminalHookEvents.SessionReady,
             Event.Notification => TerminalHookEvents.Notification,
             Event.PostToolUse => TerminalHookEvents.PostToolUse,
             _ => throw new ArgumentOutOfRangeException(

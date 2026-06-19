@@ -9,7 +9,7 @@ public class TmuxTuiReadinessWaiterTests
 {
     private const string IntentId = "intent-readiness";
 
-    [Fact(DisplayName = "Возвращает Ready на первом capture, если адаптер видит свой marker")]
+    [Fact(DisplayName = "Вендор без readiness-события: Ready на первом capture по glyph marker")]
     public async Task Returns_ready_when_vendor_marker_matches_first()
     {
         var tmux = Substitute.For<ITmuxSessionManager>();
@@ -18,12 +18,54 @@ public class TmuxTuiReadinessWaiterTests
         var adapter = new MarkerAdapter("│ >");
         var waiter = NewWaiter(tmux, timeoutMs: 1000, pollMs: 20);
 
-        var result = await waiter.WaitAsync(IntentId, adapter, CancellationToken.None);
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness: null, CancellationToken.None);
 
         result.IsReady.Should().BeTrue();
         result.Attempts.Should().Be(1);
         result.LastSnapshot.Should().BeNull();
         await tmux.Received(1).CapturePaneAsync(IntentId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Возвращает Ready, когда provider-native readiness signal приходит во время ожидания")]
+    public async Task Returns_ready_when_readiness_signal_fires()
+    {
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        var signals = new TerminalReadinessSignals();
+        using var readiness = signals.Arm(IntentId);
+        var counter = 0;
+        tmux.CapturePaneAsync(IntentId, Arg.Any<CancellationToken>())
+            .Returns(_ => $"frame-{Interlocked.Increment(ref counter)}");
+        var adapter = new MarkerAdapter("never-matches");
+        var waiter = NewWaiter(tmux, timeoutMs: 1000, pollMs: 20);
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(30);
+            signals.TrySignal(IntentId);
+        });
+
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness, CancellationToken.None);
+
+        result.IsReady.Should().BeTrue();
+        result.Attempts.Should().BeGreaterThan(0);
+        result.LastSnapshot.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Если readiness signal пришёл до WaitAsync — возвращается сразу без capture-pane")]
+    public async Task Already_latched_signal_returns_without_capture()
+    {
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        var signals = new TerminalReadinessSignals();
+        using var readiness = signals.Arm(IntentId);
+        signals.TrySignal(IntentId).Should().BeTrue();
+        var adapter = new MarkerAdapter("never-matches");
+        var waiter = NewWaiter(tmux, timeoutMs: 1000, pollMs: 20);
+
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness, CancellationToken.None);
+
+        result.IsReady.Should().BeTrue();
+        result.Attempts.Should().Be(0);
+        await tmux.DidNotReceive().CapturePaneAsync(IntentId, Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Без vendor-marker'а готовность ловится по стабильности экрана между двумя capture")]
@@ -37,7 +79,7 @@ public class TmuxTuiReadinessWaiterTests
         var adapter = new MarkerAdapter("never-matches");
         var waiter = NewWaiter(tmux, timeoutMs: 1000, pollMs: 20);
 
-        var result = await waiter.WaitAsync(IntentId, adapter, CancellationToken.None);
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness: null, CancellationToken.None);
 
         result.IsReady.Should().BeTrue();
         result.Attempts.Should().Be(2);
@@ -52,7 +94,7 @@ public class TmuxTuiReadinessWaiterTests
         var adapter = new MarkerAdapter("never-matches");
         var waiter = NewWaiter(tmux, timeoutMs: 150, pollMs: 20);
 
-        var result = await waiter.WaitAsync(IntentId, adapter, CancellationToken.None);
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness: null, CancellationToken.None);
 
         result.IsReady.Should().BeFalse();
         result.LastSnapshot.Should().BeEmpty();
@@ -72,7 +114,7 @@ public class TmuxTuiReadinessWaiterTests
         var adapter = new MarkerAdapter("never-matches");
         var waiter = NewWaiter(tmux, timeoutMs: 150, pollMs: 20);
 
-        var result = await waiter.WaitAsync(IntentId, adapter, CancellationToken.None);
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness: null, CancellationToken.None);
 
         result.IsReady.Should().BeFalse();
         result.Attempts.Should().BeGreaterThan(1);
@@ -88,7 +130,7 @@ public class TmuxTuiReadinessWaiterTests
         var adapter = new MarkerAdapter("never-matches");
         var waiter = NewWaiter(tmux, timeoutMs: 150, pollMs: 20);
 
-        var result = await waiter.WaitAsync(IntentId, adapter, CancellationToken.None);
+        var result = await waiter.WaitAsync(IntentId, adapter, readiness: null, CancellationToken.None);
 
         result.IsReady.Should().BeFalse();
         result.LastSnapshot.Should().StartWith("frame-");
@@ -103,7 +145,8 @@ public class TmuxTuiReadinessWaiterTests
             TuiReadinessPollIntervalMilliseconds = pollMs,
         };
         return new TmuxTuiReadinessWaiter(
-            tmux, options, TimeProvider.System, NullLogger<TmuxTuiReadinessWaiter>.Instance);
+            tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
+            NullLogger<TmuxTuiReadinessWaiter>.Instance);
     }
 
     private sealed class MarkerAdapter(string marker) : ISessionHookAdapter
