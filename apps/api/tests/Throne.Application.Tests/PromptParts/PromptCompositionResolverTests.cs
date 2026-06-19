@@ -124,13 +124,11 @@ public class PromptCompositionResolverTests
             SeedPart(PromptPartScopeNames.System, "interview", "system text for interview"),
             SeedPart(PromptPartScopeNames.System, "work", "system text for work"),
             SeedPart(PromptPartScopeNames.System, "review", "system text for review"),
-            SeedPart(PromptPartScopeNames.System, "dream", "system text for dream"),
             SeedPart(PromptPartScopeNames.System, "schema_map", "system text for schema_map"),
             SeedPart(PromptPartScopeNames.User, "common", "user common text"),
             SeedPart(PromptPartScopeNames.User, "interview", "user interview text"),
             SeedPart(PromptPartScopeNames.User, "work", "user work text"),
             SeedPart(PromptPartScopeNames.User, "review", "user review text"),
-            SeedPart(PromptPartScopeNames.User, "dream", "user dream text"),
         };
 
         var repo = Substitute.For<IPromptPartRepository>();

@@ -93,7 +93,7 @@ export function PromptPartsBoard() {
 
           <Section
             title="Совместимость MCP get_prompt_bundle"
-            description="Что получает внешний агент через MCP get_prompt_bundle(mode) — read-only обзор по всем режимам (включая dream/schema_map). Источник правды — манифест."
+            description="Что получает внешний агент через MCP get_prompt_bundle(mode) — read-only обзор по всем режимам манифеста (dream сюда не входит: его плейбук захардкожен в кнопке на /improvements). Источник правды — манифест."
           >
             <McpBundleCompatibility bundlesTree={bundlesQuery.data} />
           </Section>
