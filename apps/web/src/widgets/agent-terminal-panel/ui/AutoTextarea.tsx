@@ -10,7 +10,11 @@ type AutoTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
  * растягивать рамку руками, длинная часть видна целиком при открытии. Высота
  * пересчитывается на каждое изменение value (правка, перезагрузка preview).
  */
-export function AutoTextarea({ value, className, ...props }: AutoTextareaProps) {
+export function AutoTextarea({
+  value,
+  className,
+  ...props
+}: AutoTextareaProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useLayoutEffect(() => {
