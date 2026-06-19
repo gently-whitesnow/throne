@@ -131,7 +131,6 @@ function FileRow({
   const count = stats.get(file.path);
   const hint = hints.get(file.path);
   const riskMeta = hint?.risk != null ? RISK_META[hint.risk] : null;
-  const titleText = buildFileTitle(file.path, hint);
   return (
     <li>
       <button
@@ -141,7 +140,7 @@ function FileRow({
         }}
         aria-current={active}
         style={indent}
-        title={titleText}
+        title={file.path}
         className={`flex w-full items-center gap-2 py-1.5 pr-3 text-left text-[12px] ${
           active
             ? "bg-primary/10 text-primary"
@@ -173,12 +172,4 @@ function FileRow({
       </button>
     </li>
   );
-}
-
-function buildFileTitle(path: string, hint: FileOrderHint | undefined): string {
-  if (hint === undefined) return path;
-  const parts = [path];
-  if (hint.risk !== null) parts.push(RISK_META[hint.risk].label);
-  if (hint.reason !== null && hint.reason.length > 0) parts.push(hint.reason);
-  return parts.join(" · ");
 }
