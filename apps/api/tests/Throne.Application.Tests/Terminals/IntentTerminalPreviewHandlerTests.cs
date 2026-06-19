@@ -46,8 +46,9 @@ public class IntentTerminalPreviewHandlerTests
 
         preview.Composition.UserPrompt.Should().StartWith("посмотри картинку\n\n");
         preview.Composition.UserPrompt.Should().Contain(TerminalAttachmentsContextRenderer.BlockHeader);
+        preview.Composition.UserPrompt.Should().Contain($"intent_id={intentId.Value}");
         preview.Composition.UserPrompt.Should().Contain("id=att-1 kind=image filename=\"shot.png\"");
-        preview.Composition.UserPrompt.Should().Contain("read_intent_attachment_image");
+        preview.Composition.UserPrompt.Should().NotContain("read_intent_attachment_image");
     }
 
     [Fact(DisplayName = "Хвостовые переносы Intent.text не дублируют пустую строку перед блоком attachments")]
