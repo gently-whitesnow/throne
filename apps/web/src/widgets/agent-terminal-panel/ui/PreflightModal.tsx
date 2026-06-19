@@ -5,12 +5,9 @@ import { Button, Modal } from "@/shared/ui";
 
 import { usePreflightPreview } from "../model/use-preflight-preview";
 import { RUN_MODE_LABEL } from "../model/types";
-import type {
-  PromptPartPreview,
-  TerminalLaunchArgs,
-  TerminalRunPayload
-} from "../model/types";
+import type { TerminalLaunchArgs, TerminalRunPayload } from "../model/types";
 
+import { AutoTextarea } from "./AutoTextarea";
 import { PreflightColumn } from "./PreflightColumn";
 import { PreflightSummary } from "./PreflightSummary";
 
@@ -22,10 +19,6 @@ interface PreflightModalProps {
   isSubmitting: boolean;
   onClose: () => void;
   onLaunch: (payload: TerminalRunPayload) => void;
-}
-
-function byScope(parts: PromptPartPreview[], scope: string): PromptPartPreview[] {
-  return parts.filter((p) => p.scope === scope);
 }
 
 export function PreflightModal({
@@ -75,34 +68,27 @@ export function PreflightModal({
         </p>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 divide-base-300 lg:grid-cols-3 lg:divide-x">
+      <div className="grid min-h-0 flex-1 grid-cols-1 divide-base-300 lg:grid-cols-2 lg:divide-x">
         <PreflightColumn
-          title="SYSTEM"
-          parts={byScope(preview.parts, "system")}
+          title="SYSTEM · system-промпт"
+          parts={preview.parts}
           onToggle={preview.togglePart}
           onTextChange={preview.setPartText}
         />
-        <PreflightColumn
-          title="USER"
-          parts={byScope(preview.parts, "user")}
-          onToggle={preview.togglePart}
-          onTextChange={preview.setPartText}
-        >
-          <TaskBodyFrame preview={preview} />
-        </PreflightColumn>
         <section
-          aria-label="FREE и итог"
+          aria-label="USER · user-промпт запуска"
           className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3"
         >
           <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
-            FREE
+            USER · user-промпт запуска
           </h4>
+          <TaskBodyFrame preview={preview} />
           <label className="flex flex-col gap-1 text-xs text-base-content/70">
             <span>Свободная вставка на эту сессию</span>
-            <textarea
+            <AutoTextarea
               aria-label="Дополнительный ввод оператора"
               data-testid="agent-terminal-free-input"
-              className="textarea textarea-bordered min-h-28 text-xs"
+              className="textarea textarea-bordered min-h-20 resize-none overflow-hidden text-xs"
               value={preview.freeInput}
               onChange={(e) => {
                 preview.setFreeInput(e.target.value);
@@ -145,10 +131,10 @@ function TaskBodyFrame({
       <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">
         Тело интента · задача
       </span>
-      <textarea
+      <AutoTextarea
         aria-label="Тело интента"
         data-testid="agent-terminal-task-body"
-        className="textarea textarea-bordered min-h-32 w-full resize-y text-xs"
+        className="textarea textarea-bordered min-h-32 w-full resize-none overflow-hidden text-xs"
         value={preview.body}
         onChange={(e) => {
           preview.setBody(e.target.value);

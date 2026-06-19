@@ -56,8 +56,11 @@ namespace Throne.Api.Generated
         /// <br/>   (optimistic concurrency — a conflict aborts here), then spawn the chosen
         /// <br/>   agent with `system_prompt` as upfront system context and `user_prompt` as the
         /// <br/>   initial message, only after all bindings are ready.
-        /// <br/>   `tmux has-session -t throne-{intent_id}` is the single source of truth —
-        /// <br/>   Throne persists nothing about the session.
+        /// <br/>   `tmux has-session -t throne-{intent_id}` is the single source of truth for
+        /// <br/>   liveness — Throne persists no session *state*. The resolved launch axis
+        /// <br/>   (`launch`: mode/vendor/model/effort) IS persisted per intent on each
+        /// <br/>   successful spawn so the next page load can both restore the operator's
+        /// <br/>   per-intent choice and show the live session's actual parameters (ADR-0041).
         /// <br/>
         /// <br/>Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
         /// </remarks>
@@ -69,7 +72,7 @@ namespace Throne.Api.Generated
         /// Observe the current tmux session state for an intent.
         /// </summary>
         /// <remarks>
-        /// Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted session state. `tmux has-session -t throne-{intent_id}` remains the source of truth; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback.
+        /// Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate any persisted state. `tmux has-session -t throne-{intent_id}` remains the source of truth for liveness; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback. The response echoes the persisted `launch` axis (ADR-0041) when the intent was ever launched: with a live session it is that session's actual mode/vendor/model/effort, otherwise the intent's last-used choice the launch controls pre-fill from.
         /// </remarks>
         /// <returns>Current terminal session snapshot.</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/session", Name = "getIntentTerminalSession")]

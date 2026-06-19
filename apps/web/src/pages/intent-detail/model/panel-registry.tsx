@@ -65,7 +65,13 @@ export const intentDetailPanels: readonly IntentPanelDescriptor[] = [
     placement: "terminal",
     order: 10,
     Component: ({ intent }) => (
-      <AgentTerminalPanel intentId={intent.id} intentStatus={intent.status} />
+      // Remount per intent so the launch axis / mode draft never leaks across intents —
+      // each intent restores its own persisted choice (ADR-0041).
+      <AgentTerminalPanel
+        key={intent.id}
+        intentId={intent.id}
+        intentStatus={intent.status}
+      />
     )
   }
 ];

@@ -48,8 +48,11 @@ export interface paths {
          *        (optimistic concurrency — a conflict aborts here), then spawn the chosen
          *        agent with `system_prompt` as upfront system context and `user_prompt` as the
          *        initial message, only after all bindings are ready.
-         *        `tmux has-session -t throne-{intent_id}` is the single source of truth —
-         *        Throne persists nothing about the session.
+         *        `tmux has-session -t throne-{intent_id}` is the single source of truth for
+         *        liveness — Throne persists no session *state*. The resolved launch axis
+         *        (`launch`: mode/vendor/model/effort) IS persisted per intent on each
+         *        successful spawn so the next page load can both restore the operator's
+         *        per-intent choice and show the live session's actual parameters (ADR-0041).
          *
          *     Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
          */
@@ -69,7 +72,7 @@ export interface paths {
         };
         /**
          * Observe the current tmux session state for an intent.
-         * @description Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted session state. `tmux has-session -t throne-{intent_id}` remains the source of truth; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback.
+         * @description Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate any persisted state. `tmux has-session -t throne-{intent_id}` remains the source of truth for liveness; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback. The response echoes the persisted `launch` axis (ADR-0041) when the intent was ever launched: with a live session it is that session's actual mode/vendor/model/effort, otherwise the intent's last-used choice the launch controls pre-fill from.
          */
         get: operations["getIntentTerminalSession"];
         put?: never;
@@ -259,6 +262,16 @@ export interface components {
             bindings: components["schemas"]["RunIntentBindingStatusDto"][];
             /** @description IDs of bindings whose `clone_status` is `failed` or `broken`. Present when `session_state=blocked`; the UI uses them to render an actionable error per row. */
             blocking_bindings?: string[];
+            /** @description Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record). */
+            launch?: components["schemas"]["TerminalLaunchArgs"] | null;
+        };
+        TerminalLaunchArgs: {
+            mode: components["schemas"]["TerminalRunMode"];
+            vendor: components["schemas"]["TerminalAgentVendor"];
+            /** @description Resolved model id from the vendor's whitelist. */
+            model: string;
+            /** @description Resolved reasoning effort; null for a vendor with no effort axis. */
+            effort?: components["schemas"]["TerminalReasoningEffort"] | null;
         };
         PreviewIntentTerminalRequest: {
             mode: components["schemas"]["TerminalRunMode"];
