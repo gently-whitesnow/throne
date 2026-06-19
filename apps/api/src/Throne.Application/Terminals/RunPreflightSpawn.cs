@@ -16,7 +16,6 @@ public sealed class RunPreflightSpawn(
     IWorkspaceTrust workspaceTrust,
     IEnumerable<ISessionHookAdapter> hookAdapters,
     TmuxTuiReadinessWaiter readinessWaiter,
-    TerminalReadinessSignals readinessSignals,
     RunPreflightOptions options,
     SetIntentStatusHandler setStatus,
     IDomainEventDispatcher events)
@@ -55,8 +54,8 @@ public sealed class RunPreflightSpawn(
                 intentId.Value, workspacePath, mode, prompt.SystemPrompt, reviewArtifact, ct)
             : [];
         var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
-        using var readiness = adapter?.ReadinessHookEvent is not null
-            ? readinessSignals.Arm(intentId.Value)
+        using var readiness = adapter is not null
+            ? readinessWaiter.Arm(intentId.Value, adapter)
             : null;
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(

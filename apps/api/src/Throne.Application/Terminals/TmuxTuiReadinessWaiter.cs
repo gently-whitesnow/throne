@@ -20,8 +20,25 @@ public sealed partial class TmuxTuiReadinessWaiter(
     ITmuxSessionManager tmux,
     RunPreflightOptions options,
     TimeProvider clock,
+    TerminalReadinessSignals readinessSignals,
     ILogger<TmuxTuiReadinessWaiter> log)
 {
+    /// <summary>
+    /// Latches a readiness signal for <paramref name="intentId"/> before spawn so a fast
+    /// <see cref="ISessionHookAdapter.ReadinessHookEvent"/> callback is not lost in the gap between
+    /// spawn and <see cref="WaitAsync"/>. Returns <c>null</c> for vendors with no readiness event —
+    /// those resolve via the glyph marker / screen-stability paths. Dispose the registration once
+    /// the wait is done. Must be called before <c>tmux</c> spawn for the latch to win the race.
+    /// </summary>
+    public TerminalReadinessSignals.TerminalReadinessRegistration? Arm(
+        string intentId, ISessionHookAdapter adapter)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        ArgumentNullException.ThrowIfNull(adapter);
+
+        return adapter.ReadinessHookEvent is not null ? readinessSignals.Arm(intentId) : null;
+    }
+
     public async Task<TmuxTuiReadinessResult> WaitAsync(
         string intentId,
         ISessionHookAdapter adapter,

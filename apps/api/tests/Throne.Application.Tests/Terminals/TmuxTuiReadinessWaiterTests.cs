@@ -145,7 +145,8 @@ public class TmuxTuiReadinessWaiterTests
             TuiReadinessPollIntervalMilliseconds = pollMs,
         };
         return new TmuxTuiReadinessWaiter(
-            tmux, options, TimeProvider.System, NullLogger<TmuxTuiReadinessWaiter>.Instance);
+            tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
+            NullLogger<TmuxTuiReadinessWaiter>.Instance);
     }
 
     private sealed class MarkerAdapter(string marker) : ISessionHookAdapter
