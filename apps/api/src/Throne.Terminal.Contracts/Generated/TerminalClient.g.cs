@@ -148,7 +148,7 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
-    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the `review_recommendation` artifact writer into the session workspace.
+    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires an attached PR/MR and bakes the selected `review_recommendation` artifact writer into the session workspace.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -289,6 +289,14 @@ namespace Throne.Terminal.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("selected_part_ids")]
         public System.Collections.Generic.ICollection<string> Selected_part_ids { get; set; }
+
+        /// <summary>
+        /// Binding id of the attached PR/MR to review when `mode=review` and the intent has more than one attached pull request. Omitted with a single attached PR/MR → the server selects it implicitly. A value outside the intent's attached PR/MR bindings aborts pre-flight with 422.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("review_binding_id")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Review_binding_id { get; set; }
 
         /// <summary>
         /// Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected.

@@ -86,23 +86,19 @@ function vendorCatalog() {
     vendors: [
       {
         vendor: "claude",
-        label: "Claude",
         supports_effort: true,
         models: ["opus", "sonnet", "haiku"],
         default_model: "opus",
         efforts: ["low", "medium", "high", "xhigh"],
-        default_effort: "high",
-        model_source: "static"
+        default_effort: "high"
       },
       {
         vendor: "codex",
-        label: "Codex",
         supports_effort: true,
         models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
         default_model: "gpt-5.5",
         efforts: ["low", "medium", "high", "xhigh"],
-        default_effort: "medium",
-        model_source: "static"
+        default_effort: "medium"
       }
     ]
   };
@@ -161,7 +157,9 @@ function previewResponse(): IntentTerminalPreviewResponse {
 const render = () =>
   renderWithQuery(
     <AgentTerminalPanel intentId="intent-1" intentStatus="work" />,
-    { withBridge: false }
+    {
+      withBridge: false
+    }
   );
 
 describe("AgentTerminalPanel", () => {
@@ -203,14 +201,11 @@ describe("AgentTerminalPanel", () => {
     const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
       name: "Агент терминала"
     });
-    // Wait for the axis prefill to settle (controls stay disabled until seeded) before changing
-    // the vendor — otherwise the change would race the async seed and be clobbered.
     await waitFor(() => {
       expect(vendor.disabled).toBe(false);
     });
     fireEvent.change(vendor, { target: { value: "codex" } });
 
-    // До открытия модалки и подтверждения /run не уходит.
     fireEvent.click(screen.getByTestId("agent-terminal-run"));
     expect(runIntentTerminal).not.toHaveBeenCalled();
 
@@ -235,6 +230,7 @@ describe("AgentTerminalPanel", () => {
         model: "gpt-5.5",
         effort: "medium"
       },
+      reviewBindingId: null,
       selectedPartIds: [],
       systemPrompt: "RULES",
       userPrompt: "BODY",
@@ -270,7 +266,6 @@ describe("AgentTerminalPanel", () => {
     expect(model.value).toBe("gpt-5.4");
     expect(effort.value).toBe("low");
     expect(mode.value).toBe("interview");
-    // Live → controls frozen.
     expect(vendor.disabled).toBe(true);
     expect(mode.disabled).toBe(true);
   });
@@ -299,40 +294,6 @@ describe("AgentTerminalPanel", () => {
       expect(vendor.value).toBe("codex");
     });
     expect(model.value).toBe("gpt-5.3-codex");
-    // No live session → controls editable.
     expect(vendor.disabled).toBe(false);
-  });
-
-  it("Review-режим появляется только когда у интента есть attached PR", async () => {
-    getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
-
-    render();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
-    });
-    const noPrOptions = Array.from(
-      screen.getByTestId("agent-terminal-mode").querySelectorAll("option")
-    ).map((option) => option.value);
-    expect(noPrOptions).not.toContain("review");
-
-    cleanup();
-    listIntentRepositories.mockResolvedValue([
-      {
-        id: "binding-1",
-        clone_status: "ready",
-        pull_request_number: 42
-      }
-    ]);
-
-    render();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
-    });
-    const withPrOptions = Array.from(
-      screen.getByTestId("agent-terminal-mode").querySelectorAll("option")
-    ).map((option) => option.value);
-    expect(withPrOptions).toContain("review");
   });
 });

@@ -294,7 +294,8 @@ paths:
         `user_prompt` is the intent body draft for the task zone. The frontend renders the
         pre-flight modal from this response and never assembles the runtime prompt itself.
         Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI.
-        `review` additionally requires exactly one attached PR/MR on the intent.
+        `review` additionally requires at least one attached PR/MR on the intent; when more
+        than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
       parameters:
         - in: path
           name: intent_id
@@ -429,8 +430,8 @@ components:
         (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand)
         and the spawn phase the status hooks return to. The embedded contour injects the
         operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the
-        agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the
-        `review_recommendation` artifact writer into the session workspace.
+        agent to read a bundle. `review` requires an attached PR/MR and bakes the
+        selected `review_recommendation` artifact writer into the session workspace.
     TerminalSessionState:
       type: string
       enum:
@@ -505,6 +506,15 @@ components:
             validates each id against the parts available in `mode` (unknown ids → 422) but
             does NOT recompose `system_prompt` from them — the assembled text travels in
             `system_prompt`. Omitted → no optional parts were curated for this run.
+        review_binding_id:
+          type: string
+          minLength: 1
+          nullable: true
+          description: >
+            Binding id of the attached PR/MR to review when `mode=review` and the intent has
+            more than one attached pull request. Omitted with a single attached PR/MR → the
+            server selects it implicitly. A value outside the intent's attached PR/MR bindings
+            aborts pre-flight with 422.
         system_prompt:
           type: string
           nullable: true
