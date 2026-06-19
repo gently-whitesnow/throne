@@ -51,6 +51,7 @@ export type IntentTextUpdate =
  */
 export interface TerminalRunPayload {
   launch: TerminalLaunchArgs;
+  reviewBindingId: string | null;
   selectedPartIds: string[];
   systemPrompt: string;
   userPrompt: string;

@@ -26,7 +26,10 @@ export interface PreflightPreview {
   setFreeInput: (value: string) => void;
   setSaveIntentText: (value: boolean) => void;
   togglePart: (partId: string) => void;
-  buildPayload: (launch: TerminalLaunchArgs) => TerminalRunPayload;
+  buildPayload: (
+    launch: TerminalLaunchArgs,
+    reviewBindingId: string | null
+  ) => TerminalRunPayload;
 }
 
 const MANDATORY = "mandatory";
@@ -147,10 +150,14 @@ export function usePreflightPreview(
   const systemPrompt = useMemo(() => assembleSystemPrompt(parts), [parts]);
 
   const buildPayload = useCallback(
-    (launch: TerminalLaunchArgs): TerminalRunPayload => {
+    (
+      launch: TerminalLaunchArgs,
+      reviewBindingId: string | null
+    ): TerminalRunPayload => {
       const bodyDirty = body !== originalBodyRef.current;
       return {
         launch,
+        reviewBindingId,
         selectedPartIds: selectedOptionalIds(parts),
         systemPrompt,
         userPrompt: composeUserPrompt(body, freeInput),

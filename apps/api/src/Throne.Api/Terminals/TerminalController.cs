@@ -83,13 +83,15 @@ public sealed class TerminalController(
         var domainMode = TerminalRunResponseMapper.ToDomainMode(body.Mode);
         var launch = TerminalRunResponseMapper.ToLaunchInput(body);
         var prompt = TerminalRunResponseMapper.ToSpawnPrompt(body);
+        var reviewBindingId = TerminalRunResponseMapper.ToReviewBindingId(body);
         var result = await orchestrator.RunAsync(
             intentId,
             domainMode,
             launch,
             prompt,
             restart,
-            HttpContext.RequestAborted
+            HttpContext.RequestAborted,
+            reviewBindingId
         );
         var dto = TerminalRunResponseMapper.ToDto(result);
         return Accepted(dto);
