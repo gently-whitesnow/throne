@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
 import {
-  hasPullRequest,
   isCloneReady,
   useIntentRepositories
 } from "@/entities/repository-binding";
@@ -12,12 +11,14 @@ import {
 import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
 
 import { useLaunchAxis } from "../model/use-launch-axis";
+import { useReviewTargetSelection } from "../model/use-review-target-selection";
 import { useTerminalSession } from "../model/use-terminal-session";
 import { TERMINAL_RUN_MODES, defaultRunModeForStatus } from "../model/types";
 import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
 
 import { PreflightModal } from "./PreflightModal";
 import { PreflightProgress } from "./PreflightProgress";
+import { ReviewTargetSelect } from "./ReviewTargetSelect";
 import { RunControls } from "./RunControls";
 import { TerminalView } from "./TerminalView";
 
@@ -26,19 +27,6 @@ interface AgentTerminalPanelProps {
   intentStatus: IntentStatus;
 }
 
-/**
- * Виджет «Запустить агента» внизу страницы интента.
- *
- * - Dropdown режимов/вендора/модели/усилия задают ось запуска. Списки вендоров,
- *   моделей, усилий и дефолты приходят из backend-каталога (`useLaunchAxis` →
- *   `GET /terminal/vendors`) — фронт их не хардкодит. Сам стартовый контекст
- *   (правила + задача) оператор смотрит и правит в preflight-модалке (ADR-0034/0035).
- * - Run-кнопка и xterm-блок рендерятся только при `terminal`-capability == enabled.
- * - Pre-flight: Run disabled пока есть not-ready binding'и или ещё не пришли
- *   metadata; per-binding прогресс на основе `useIntentRepositories`.
- * - Live-сессия (`tmux has-session` → true): dropdown замораживаются,
- *   появляется Restart-кнопка.
- */
 export function AgentTerminalPanel({
   intentId,
   intentStatus
@@ -72,16 +60,13 @@ export function AgentTerminalPanel({
     () => bindings.filter((b) => !isCloneReady(b.clone_status)),
     [bindings]
   );
-  const hasReviewTarget = useMemo(
-    () => bindings.some(hasPullRequest),
-    [bindings]
-  );
+  const reviewSelection = useReviewTargetSelection(bindings);
   const availableModes = useMemo(
     () =>
-      hasReviewTarget
+      reviewSelection.hasReviewTarget
         ? TERMINAL_RUN_MODES
         : TERMINAL_RUN_MODES.filter((m) => m !== "review"),
-    [hasReviewTarget]
+    [reviewSelection.hasReviewTarget]
   );
 
   // Pre-fill mode from the intent's persisted launch once the probe settles (mirrors the axis
@@ -107,6 +92,14 @@ export function AgentTerminalPanel({
     sessionLive && sessionLaunch !== null ? sessionLaunch.mode : mode;
 
   const hasBlockingBinding = notReady.length > 0;
+  const reviewBindingId =
+    effectiveMode === "review" && reviewSelection.reviewTargets.length > 1
+      ? reviewSelection.selectedReviewTargetId
+      : null;
+  const hasMissingReviewTarget =
+    effectiveMode === "review" &&
+    reviewSelection.reviewTargets.length > 1 &&
+    reviewSelection.selectedReviewTargetId === "";
 
   const runDisabledReason = !terminalEnabled
     ? "Включите «Терминал агента» в настройках, чтобы запускать сессии."
@@ -116,7 +109,9 @@ export function AgentTerminalPanel({
         ? "Загружаем список агентов…"
         : hasBlockingBinding
           ? "Дождитесь готовности клонов всех репозиториев."
-          : null;
+          : hasMissingReviewTarget
+            ? "Выберите PR/MR для review."
+            : null;
 
   const [preflight, setPreflight] = useState<"run" | "restart" | null>(null);
 
@@ -203,7 +198,10 @@ export function AgentTerminalPanel({
         }}
         onKill={handleKill}
         runDisabled={
-          !terminalEnabled || !axis.launchReady || hasBlockingBinding
+          !terminalEnabled ||
+          !axis.launchReady ||
+          hasBlockingBinding ||
+          hasMissingReviewTarget
         }
         runDisabledReason={runDisabledReason}
         sessionLive={sessionLive}
@@ -211,6 +209,15 @@ export function AgentTerminalPanel({
         isStopping={session.isStopping}
         terminalEnabled={terminalEnabled}
       />
+
+      {effectiveMode === "review" ? (
+        <ReviewTargetSelect
+          targets={reviewSelection.reviewTargets}
+          value={reviewSelection.selectedReviewTargetId}
+          disabled={session.isStarting || session.isStopping}
+          onChange={reviewSelection.setSelectedReviewBindingId}
+        />
+      ) : null}
 
       {axis.metadataError ? (
         <p
@@ -277,6 +284,7 @@ export function AgentTerminalPanel({
           open={preflight !== null}
           intentId={intentId}
           launch={launchArgs}
+          reviewBindingId={reviewBindingId}
           actionLabel={preflight === "restart" ? "Перезапустить" : "Запустить"}
           isSubmitting={session.isStarting}
           onClose={() => {
