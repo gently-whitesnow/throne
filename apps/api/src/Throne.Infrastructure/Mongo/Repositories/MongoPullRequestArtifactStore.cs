@@ -26,12 +26,14 @@ internal sealed class MongoPullRequestArtifactStore
         string source,
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
+        string? headSha,
+        ReviewRecommendation? reviewRecommendation,
         CancellationToken ct)
     {
         var existing = await FindDocumentAsync(bindingId, type, ct);
         return existing is null
-            ? await CreateAsync(bindingId, pullRequestNumber, type, render, content, summary, source, sourceRefs, producedAt, ct)
-            : await UpdateAsync(existing, pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, ct);
+            ? await CreateAsync(bindingId, pullRequestNumber, type, render, content, summary, source, sourceRefs, producedAt, headSha, reviewRecommendation, ct)
+            : await UpdateAsync(existing, pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, headSha, reviewRecommendation, ct);
     }
 
     public async Task<PullRequestArtifact?> GetAsync(BindingId bindingId, string type, CancellationToken ct)
@@ -57,11 +59,13 @@ internal sealed class MongoPullRequestArtifactStore
         string source,
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
+        string? headSha,
+        ReviewRecommendation? reviewRecommendation,
         CancellationToken ct)
     {
         var artifact = PullRequestArtifact.Create(
             PullRequestArtifactId.New(), bindingId, pullRequestNumber, type, render, content,
-            summary, source, sourceRefs, producedAt);
+            summary, source, sourceRefs, producedAt, headSha, reviewRecommendation);
         try
         {
             await InsertOneAsync(PullRequestArtifactDocumentMapper.ToDocument(artifact), ct);
@@ -74,7 +78,7 @@ internal sealed class MongoPullRequestArtifactStore
             {
                 throw;
             }
-            return await UpdateAsync(raced, pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, ct);
+            return await UpdateAsync(raced, pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, headSha, reviewRecommendation, ct);
         }
     }
 
@@ -87,10 +91,12 @@ internal sealed class MongoPullRequestArtifactStore
         string source,
         IReadOnlyList<string> sourceRefs,
         DateTimeOffset producedAt,
+        string? headSha,
+        ReviewRecommendation? reviewRecommendation,
         CancellationToken ct)
     {
         var artifact = PullRequestArtifactDocumentMapper.ToDomain(existing);
-        artifact.Replace(pullRequestNumber, render, content, summary, source, sourceRefs, producedAt);
+        artifact.Replace(pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, headSha, reviewRecommendation);
 
         var update = Builders<PullRequestArtifactDocument>.Update
             .Set(d => d.PullRequestNumber, artifact.PullRequestNumber)
@@ -99,7 +105,9 @@ internal sealed class MongoPullRequestArtifactStore
             .Set(d => d.Summary, artifact.Summary)
             .Set(d => d.Source, artifact.Source)
             .Set(d => d.SourceRefs, artifact.SourceRefs.ToArray())
-            .Set(d => d.ProducedAt, artifact.ProducedAt.UtcDateTime);
+            .Set(d => d.ProducedAt, artifact.ProducedAt.UtcDateTime)
+            .Set(d => d.HeadSha, artifact.HeadSha)
+            .Set(d => d.ReviewRecommendation, PullRequestArtifactDocumentMapper.ToDocument(artifact.ReviewRecommendation));
 
         if (!await TryUpdateAsync(ById(existing.Id), update, ct))
         {
@@ -108,9 +116,9 @@ internal sealed class MongoPullRequestArtifactStore
             {
                 return await CreateAsync(
                     artifact.BindingId, pullRequestNumber, artifact.Type, render, content,
-                    summary, source, sourceRefs, producedAt, ct);
+                    summary, source, sourceRefs, producedAt, headSha, reviewRecommendation, ct);
             }
-            return await UpdateAsync(fresh, pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, ct);
+            return await UpdateAsync(fresh, pullRequestNumber, render, content, summary, source, sourceRefs, producedAt, headSha, reviewRecommendation, ct);
         }
 
         return new WritePullRequestArtifactOutcome(artifact, Created: false);

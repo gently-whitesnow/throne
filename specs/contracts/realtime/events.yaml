@@ -196,6 +196,9 @@ events:
           minimum: 1
         type:
           type: string
+        head_sha:
+          type: string
+          description: Head commit sha when the artifact was produced; lets clients flag staleness without a refetch.
         produced_at:
           type: string
           format: date-time

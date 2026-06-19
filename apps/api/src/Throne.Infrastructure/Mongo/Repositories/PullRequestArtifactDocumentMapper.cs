@@ -17,6 +17,8 @@ internal static class PullRequestArtifactDocumentMapper
         Source = artifact.Source,
         SourceRefs = artifact.SourceRefs.ToArray(),
         ProducedAt = artifact.ProducedAt.UtcDateTime,
+        HeadSha = artifact.HeadSha,
+        ReviewRecommendation = ToDocument(artifact.ReviewRecommendation),
     };
 
     public static PullRequestArtifact ToDomain(PullRequestArtifactDocument doc) =>
@@ -30,7 +32,34 @@ internal static class PullRequestArtifactDocumentMapper
             Summary: doc.Summary,
             Source: doc.Source,
             SourceRefs: doc.SourceRefs,
-            ProducedAt: ToUtc(doc.ProducedAt)));
+            ProducedAt: ToUtc(doc.ProducedAt),
+            HeadSha: doc.HeadSha,
+            ReviewRecommendation: ToDomain(doc.ReviewRecommendation)));
+
+    public static ReviewRecommendationDocument? ToDocument(ReviewRecommendation? recommendation) =>
+        recommendation is null
+            ? null
+            : new ReviewRecommendationDocument
+            {
+                FileOrder = recommendation.FileOrder
+                    .Select(entry => new ReviewFileOrderEntryDocument
+                    {
+                        Path = entry.Path,
+                        Reason = entry.Reason,
+                        Risk = entry.Risk.HasValue ? ReviewFileRiskNames.ToWire(entry.Risk.Value) : null,
+                    })
+                    .ToArray(),
+            };
+
+    private static ReviewRecommendation? ToDomain(ReviewRecommendationDocument? doc) =>
+        doc is null
+            ? null
+            : ReviewRecommendation.Create(doc.FileOrder
+                .Select(entry => new ReviewFileOrderEntry(
+                    entry.Path,
+                    entry.Reason,
+                    ReviewFileRiskNames.TryParse(entry.Risk)))
+                .ToArray());
 
     private static DateTimeOffset ToUtc(DateTime value) =>
         new(DateTime.SpecifyKind(value, DateTimeKind.Utc));

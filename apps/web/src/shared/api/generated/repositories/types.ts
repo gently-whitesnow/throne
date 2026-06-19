@@ -974,6 +974,20 @@ export interface components {
          * @enum {string}
          */
         PullRequestArtifactSource: "static" | "agent";
+        /**
+         * @description Relative risk/centrality of a file, driving review reading order.
+         * @enum {string}
+         */
+        ReviewFileRisk: "high" | "medium" | "low";
+        ReviewFileOrderEntry: {
+            path: string;
+            reason?: string;
+            risk?: components["schemas"]["ReviewFileRisk"] | null;
+        };
+        /** @description Typed content for artifacts of `type=review_recommendation` (ADR-0031). Every field is optional: a partial payload is valid and the UI degrades gracefully. The artifact's `content` string remains the human-readable markdown recommendation; this object carries the machine-readable signals the UI consumes (currently AI file ordering — impact and provenance fields will be added when a UI consumer materialises). */
+        ReviewRecommendationContent: {
+            file_order?: components["schemas"]["ReviewFileOrderEntry"][];
+        };
         PullRequestArtifactDto: {
             id: string;
             binding_id: string;
@@ -985,6 +999,9 @@ export interface components {
             summary: string;
             source: components["schemas"]["PullRequestArtifactSource"];
             source_refs: string[];
+            /** @description Head commit sha of the PR when this artifact was produced. The UI marks the artifact stale if the PR head has moved past it. Optional, set by the producer. */
+            head_sha?: string;
+            review_recommendation?: components["schemas"]["ReviewRecommendationContent"];
             /** Format: date-time */
             produced_at: string;
         };
@@ -994,6 +1011,9 @@ export interface components {
             summary: string;
             source: components["schemas"]["PullRequestArtifactSource"];
             source_refs: string[];
+            /** @description Head commit sha of the PR when this artifact was produced. The UI marks the artifact stale if the PR head has moved past it. Optional, set by the producer. */
+            head_sha?: string;
+            review_recommendation?: components["schemas"]["ReviewRecommendationContent"];
             /** Format: date-time */
             produced_at: string;
         };
