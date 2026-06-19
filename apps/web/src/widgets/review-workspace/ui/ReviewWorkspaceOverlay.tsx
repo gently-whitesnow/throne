@@ -1,40 +1,37 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useIntent } from "@/entities/intent";
 import {
+  REVIEW_RECOMMENDATION_ARTIFACT_TYPE,
+  usePullRequestArtifactQuery
+} from "@/entities/pull-request-artifact";
+import {
   deletePullRequestComment,
-  syncPullRequest,
   updateReviewThread,
   usePullRequestComments,
   type PullRequestComment
 } from "@/entities/pull-request-comment";
-import { setIntentCleanupOnDone } from "@/features/set-intent-cleanup-on-done";
 import {
   changeRequestKindLabel,
   hasPullRequest,
-  intentRepositoriesQueryKeys,
   repositoryFullName,
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
-import {
-  mergePullRequest,
-  type MergeStrategy
-} from "@/entities/review-workspace";
 import { useResizablePane } from "@/shared/lib";
 import { Modal, ResizeHandle } from "@/shared/ui";
 
+import { orderFilesByAi } from "../lib/order-files-by-ai";
+import { useMergeOrchestration } from "../model/use-merge-orchestration";
 import { useMergeStatus } from "../model/use-merge-status";
 import {
   useReviewWorkspace,
-  type ReviewWorkspaceInitial,
-  type ReviewWorkspaceState
+  type ReviewWorkspaceInitial
 } from "../model/use-review-workspace";
 import type { CommentActions } from "./ReviewCommentCard";
-import { ReviewDiffViewer } from "./ReviewDiffViewer";
-import { ReviewFilesRail } from "./ReviewFilesRail";
+import { ReviewArtifactStaleBanner } from "./ReviewArtifactStaleBanner";
+import { ReviewDiffRegion } from "./ReviewDiffRegion";
+import { ReviewFilesRail, type ReviewFilesSortMode } from "./ReviewFilesRail";
 import { ReviewMergeControl } from "./ReviewMergeControl";
 import { ReviewRightRail } from "./ReviewRightRail";
 import { ReviewScopeBar } from "./ReviewScopeBar";
@@ -67,8 +64,35 @@ export function ReviewWorkspaceOverlay({
   onStateChange,
   onClose
 }: ReviewWorkspaceOverlayProps) {
-  const queryClient = useQueryClient();
-  const ws = useReviewWorkspace(intentId, binding.id, initial);
+  const artifactQuery = usePullRequestArtifactQuery(
+    binding.id,
+    REVIEW_RECOMMENDATION_ARTIFACT_TYPE,
+    hasPullRequest(binding)
+  );
+  const artifact = artifactQuery.data ?? null;
+  const aiFileOrder = artifact?.review_recommendation?.file_order ?? null;
+  const hasAiOrder = aiFileOrder !== null && aiFileOrder.length > 0;
+
+  const [sortMode, setSortMode] =
+    useState<ReviewFilesSortMode>("ai-recommended");
+  const effectiveAiOrder =
+    sortMode === "ai-recommended" && hasAiOrder ? aiFileOrder : null;
+  const ws = useReviewWorkspace(
+    intentId,
+    binding.id,
+    initial,
+    effectiveAiOrder
+  );
+
+  const aiOrderHints = useMemo(
+    () => orderFilesByAi(ws.files, aiFileOrder).hints,
+    [ws.files, aiFileOrder]
+  );
+
+  const stale =
+    artifact?.head_sha != null &&
+    ws.diff?.head_sha != null &&
+    artifact.head_sha !== ws.diff.head_sha;
 
   const filesPane = useResizablePane({
     storageKey: FILES_PANE.key,
@@ -88,16 +112,6 @@ export function ReviewWorkspaceOverlay({
     intentId,
     binding.id
   );
-  const [syncing, setSyncing] = useState(false);
-  const [mergeNonce, setMergeNonce] = useState(0);
-  const [merging, setMerging] = useState(false);
-  const [mergeError, setMergeError] = useState<string | null>(null);
-  const mergeStatus = useMergeStatus(
-    intentId,
-    binding.id,
-    hasPullRequest(binding),
-    mergeNonce
-  );
 
   // Same «Очистить состояние» flag (D1) as the intent page, seeded from the intent so the
   // checkbox reflects its current value; merge writes it via the intent endpoint and, when
@@ -107,43 +121,18 @@ export function ReviewWorkspaceOverlay({
   const cleanup =
     cleanupOverride ?? intentQuery.data?.cleanup_local_state_on_done ?? true;
 
-  const handleSync = useCallback(() => {
-    setSyncing(true);
-    void (async () => {
-      try {
-        await syncPullRequest(intentId, binding.id);
-        void queryClient.invalidateQueries({
-          queryKey: intentRepositoriesQueryKeys.list(intentId)
-        });
-        refresh();
-        setMergeNonce((n) => n + 1);
-      } finally {
-        setSyncing(false);
-      }
-    })();
-  }, [intentId, binding.id, queryClient, refresh]);
-
-  const handleMerge = useCallback(
-    (strategy: MergeStrategy, deleteBranch: boolean) => {
-      setMerging(true);
-      setMergeError(null);
-      void (async () => {
-        try {
-          await setIntentCleanupOnDone(intentId, cleanup);
-          await mergePullRequest(intentId, binding.id, {
-            strategy,
-            delete_branch: deleteBranch,
-            suppress_auto_close: !cleanup
-          });
-          handleSync();
-        } catch (err) {
-          setMergeError(err instanceof Error ? err.message : String(err));
-        } finally {
-          setMerging(false);
-        }
-      })();
-    },
-    [intentId, binding.id, cleanup, handleSync]
+  const { syncing, merging, mergeError, mergeNonce, handleSync, handleMerge } =
+    useMergeOrchestration({
+      intentId,
+      bindingId: binding.id,
+      cleanup,
+      refreshComments: refresh
+    });
+  const mergeStatus = useMergeStatus(
+    intentId,
+    binding.id,
+    hasPullRequest(binding),
+    mergeNonce
   );
 
   // Delete + resolve/reopen act at the provider; on success we refresh the feed
@@ -217,6 +206,7 @@ export function ReviewWorkspaceOverlay({
         onSelectCommit={ws.selectCommit}
         onClose={onClose}
       />
+      {stale ? <ReviewArtifactStaleBanner /> : null}
       <div className="flex min-h-0 flex-1">
         <div
           className="min-h-0 shrink-0 border-r border-base-300 max-md:!w-auto"
@@ -227,6 +217,9 @@ export function ReviewWorkspaceOverlay({
             activePath={ws.activePath}
             onSelect={ws.selectFile}
             onAdjacent={ws.goToAdjacentFile}
+            sortMode={sortMode}
+            onChangeSortMode={hasAiOrder ? setSortMode : undefined}
+            aiOrderHints={aiOrderHints}
           />
         </div>
         <ResizeHandle
@@ -234,7 +227,7 @@ export function ReviewWorkspaceOverlay({
           onPointerDown={filesPane.onPointerDown}
         />
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <DiffRegion
+          <ReviewDiffRegion
             ws={ws}
             intentId={intentId}
             bindingId={binding.id}
@@ -268,80 +261,5 @@ export function ReviewWorkspaceOverlay({
         </div>
       </div>
     </Modal>
-  );
-}
-
-function DiffRegion({
-  ws,
-  intentId,
-  bindingId,
-  comments,
-  commentActions,
-  onSubmitted
-}: {
-  ws: ReviewWorkspaceState;
-  intentId: string;
-  bindingId: string;
-  comments: PullRequestComment[];
-  commentActions: CommentActions;
-  onSubmitted: () => void;
-}) {
-  if (ws.diffLoading) {
-    return (
-      <p className="flex items-center gap-2 px-4 py-6 text-xs text-base-content/60">
-        <Loader2
-          aria-hidden
-          size={14}
-          strokeWidth={2}
-          className="animate-spin"
-        />
-        Загружаем diff…
-      </p>
-    );
-  }
-  if (ws.diffError !== null) {
-    return (
-      <p
-        role="alert"
-        className="m-4 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
-      >
-        <AlertCircle aria-hidden size={14} strokeWidth={2} className="mt-0.5" />
-        <span>Не удалось загрузить diff: {ws.diffError.message}</span>
-      </p>
-    );
-  }
-  if (ws.activeFile === null || ws.anchorShas === null) {
-    return (
-      <p className="px-4 py-6 text-xs text-base-content/60">
-        В этом diff нет файлов.
-      </p>
-    );
-  }
-  return (
-    <>
-      <div className="border-b border-base-300 bg-base-100 px-4 py-2">
-        <span className="font-mono text-[13px] font-semibold text-base-content">
-          {ws.activeFile.path}
-        </span>
-        {ws.activeFile.previous_path != null ? (
-          <span className="ml-2 font-mono text-[11px] text-base-content/50">
-            ← {ws.activeFile.previous_path}
-          </span>
-        ) : null}
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto">
-        <ReviewDiffViewer
-          key={`${ws.activeFile.path}:${ws.anchorShas.commit_sha}`}
-          file={ws.activeFile}
-          shas={ws.anchorShas}
-          intentId={intentId}
-          bindingId={bindingId}
-          comments={comments}
-          commentActions={commentActions}
-          scrollTarget={ws.scrollTarget}
-          onSubmitted={onSubmitted}
-        />
-      </div>
-    </>
   );
 }

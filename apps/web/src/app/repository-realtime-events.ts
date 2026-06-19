@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { pullRequestArtifactsQueryKeys } from "@/entities/pull-request-artifact";
 import { repositoriesQueryKeys } from "@/entities/repository";
 import { useRealtimeEvent } from "@/shared/realtime";
 
@@ -20,7 +21,12 @@ export function useRepositoryRealtimeEvents(qc: QueryClient): void {
       queryKey: repositoriesQueryKeys.documentVersions(coordinate, payload.slug)
     });
   });
-  useRealtimeEvent("pull_request.artifact_updated", () => {
-    void qc.invalidateQueries({ queryKey: repositoriesQueryKeys.all });
+  useRealtimeEvent("pull_request.artifact_updated", (payload) => {
+    void qc.invalidateQueries({
+      queryKey: pullRequestArtifactsQueryKeys.detail(
+        payload.binding_id,
+        payload.type
+      )
+    });
   });
 }

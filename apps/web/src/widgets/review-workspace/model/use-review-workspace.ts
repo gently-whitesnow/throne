@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import type { ReviewFileOrderEntry } from "@/entities/pull-request-artifact";
 import {
   useReviewCommitsQuery,
   useReviewDiffQuery,
@@ -10,6 +11,8 @@ import {
   type ReviewCommentSide,
   type ReviewDiffScope
 } from "@/entities/review-workspace";
+
+import { orderFilesByAi } from "../lib/order-files-by-ai";
 
 /** Transient request to scroll a specific diff row into view and flash it. */
 export interface ScrollTarget {
@@ -61,7 +64,8 @@ export interface ReviewWorkspaceInitial {
 export function useReviewWorkspace(
   intentId: string,
   bindingId: string,
-  initial?: ReviewWorkspaceInitial
+  initial?: ReviewWorkspaceInitial,
+  aiFileOrder?: ReviewFileOrderEntry[] | null
 ): ReviewWorkspaceState {
   const [scope, setScope] = useState<ReviewDiffScope>(
     initial?.scope ?? "request"
@@ -83,10 +87,18 @@ export function useReviewWorkspace(
     true
   );
 
-  const files = useMemo(
-    () => (diffQuery.data ? sortFilesNatural(diffQuery.data.files) : []),
-    [diffQuery.data]
-  );
+  const files = useMemo(() => {
+    if (!diffQuery.data) return [];
+    const natural = sortFilesNatural(diffQuery.data.files);
+    if (
+      aiFileOrder === undefined ||
+      aiFileOrder === null ||
+      aiFileOrder.length === 0
+    ) {
+      return natural;
+    }
+    return orderFilesByAi(natural, aiFileOrder).files;
+  }, [diffQuery.data, aiFileOrder]);
 
   // Держим выбранный файл валидным: на новом diff'е без выбора берём первый.
   useEffect(() => {
