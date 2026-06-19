@@ -39,8 +39,7 @@ const LAUNCH: TerminalLaunchArgs = {
   effort: "high"
 };
 
-function preview(selected: string[] | null): IntentTerminalPreviewResponse {
-  const p1Selected = selected?.includes("p1") ?? false;
+function preview(): IntentTerminalPreviewResponse {
   return {
     intent_id: "intent-1",
     intent_version: 2,
@@ -65,14 +64,12 @@ function preview(selected: string[] | null): IntentTerminalPreviewResponse {
         order: 1,
         editable: true,
         present: true,
-        selected: p1Selected,
+        selected: false,
         text: "postgres rule"
       }
     ],
-    selected_part_ids: p1Selected ? ["m1", "p1"] : ["m1"],
-    system_prompt: p1Selected
-      ? "mandatory text\n\npostgres rule"
-      : "mandatory text",
+    selected_part_ids: ["m1"],
+    system_prompt: "mandatory text",
     user_prompt: "BODY"
   };
 }
@@ -94,16 +91,14 @@ function renderModal(onLaunch: (p: TerminalRunPayload) => void) {
 describe("PreflightModal", () => {
   beforeEach(() => {
     previewIntentTerminal.mockReset();
-    previewIntentTerminal.mockImplementation((_id, _mode, selected) =>
-      Promise.resolve(preview(selected))
-    );
+    previewIntentTerminal.mockImplementation(() => Promise.resolve(preview()));
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("переключение опциональной части перезапрашивает preview и payload несёт выбранные id", async () => {
+  it("preview тянется один раз; включение части пересобирает system-блок локально без перезапроса", async () => {
     const onLaunch = vi.fn();
     renderModal(onLaunch);
 
@@ -115,20 +110,28 @@ describe("PreflightModal", () => {
       );
     });
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Часть postgres" }));
-
-    await waitFor(() => {
-      expect(previewIntentTerminal).toHaveBeenCalledWith("intent-1", "work", [
-        "p1"
-      ]);
-    });
+    // выключенная часть — чипом; клик включает её в своей рамке
+    fireEvent.click(screen.getByText("+ postgres"));
+    expect(screen.getByLabelText("Текст части postgres")).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("agent-terminal-preflight-launch"));
 
-    expect(onLaunch).toHaveBeenCalledTimes(1);
+    expect(previewIntentTerminal).toHaveBeenCalledTimes(1);
     const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
     expect(payload.selectedPartIds).toEqual(["p1"]);
     expect(payload.systemPrompt).toBe("mandatory text\n\npostgres rule");
+  });
+
+  it("правка тела части — session override, попадает в собранный system-блок", async () => {
+    const onLaunch = vi.fn();
+    renderModal(onLaunch);
+
+    const mandatory = await screen.findByLabelText("Текст части common");
+    fireEvent.change(mandatory, { target: { value: "mandatory edited" } });
+
+    fireEvent.click(screen.getByTestId("agent-terminal-preflight-launch"));
+    const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
+    expect(payload.systemPrompt).toBe("mandatory edited");
   });
 
   it("правка тела включает чекбокс сохранения и кладёт intent_text_update с expected_version", async () => {
