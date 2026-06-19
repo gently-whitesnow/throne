@@ -175,10 +175,7 @@ function FileRow({
   );
 }
 
-function buildFileTitle(
-  path: string,
-  hint: FileOrderHint | undefined
-): string {
+function buildFileTitle(path: string, hint: FileOrderHint | undefined): string {
   if (hint === undefined) return path;
   const parts = [path];
   if (hint.risk !== null) parts.push(RISK_META[hint.risk].label);

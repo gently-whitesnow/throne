@@ -10,7 +10,12 @@ export function ReviewArtifactStaleBanner() {
         color: "var(--color-status-attention-ink)"
       }}
     >
-      <AlertTriangle aria-hidden size={14} strokeWidth={2} className="shrink-0" />
+      <AlertTriangle
+        aria-hidden
+        size={14}
+        strokeWidth={2}
+        className="shrink-0"
+      />
       <span>
         AI-рекомендация устарела: head PR ушёл вперёд. Перепрогни{" "}
         <code className="font-mono">review</code>, чтобы обновить артефакт.
