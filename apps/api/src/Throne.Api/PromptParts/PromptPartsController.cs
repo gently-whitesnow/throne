@@ -14,19 +14,9 @@ public sealed class PromptPartsController(
     ReplacePromptPartTextHandler replaceHandler,
     SetPromptPartRolesHandler setRolesHandler,
     DeletePromptPartHandler deleteHandler,
-    GetBundlesTreeHandler bundlesTreeHandler,
     ListPromptPartVersionsHandler listVersionsHandler
 ) : PromptPartsControllerBase
 {
-    public override async Task<ActionResult<BundlesTreeDto>> GetBundlesTree()
-    {
-        var tree = await bundlesTreeHandler.HandleAsync(
-            new GetBundlesTreeQuery(),
-            HttpContext.RequestAborted
-        );
-        return Ok(BundlesTreeDtoMapper.ToDto(tree));
-    }
-
     public override async Task<ActionResult<ICollection<TextVersionDto>>> ListPromptPartVersions(
         string id
     )

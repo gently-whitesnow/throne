@@ -45,8 +45,7 @@ internal static class ThroneMcpToolSchemaOptions
         // McpJsonUtilities.JsonContext с дефолтным JavaScriptEncoder — это сознательно, см. csharp-sdk#626.
         // Менять wire-encoder через рефлексию нельзя: csharp-sdk#64 показывает, что relaxed-режим
         // ломает отдельных MCP-клиентов на не-ASCII символах. Best-practice (PederHP в csharp-sdk#962):
-        // для tool-ов с большим текстовым выходом не дублировать данные в Content + StructuredContent —
-        // см. PromptBundleRenderer для get_prompt_bundle.
+        // для tool-ов с большим текстовым выходом не дублировать данные в Content + StructuredContent.
         //
         // UnsafeRelaxedJsonEscaping здесь оставляем для мелких объектов вроде get_intent: кириллица
         // в Intent.text без него экранируется как \uXXXX уже на первом проходе (×6 байт), плюс SDK

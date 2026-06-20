@@ -7,6 +7,15 @@ Date: 2026-06-12
 Заменяет раннюю модель prompt parts с двумя сущностями (`Instruction` + отдельный `PromptPart`) на одну — см. Context.
 Amends [ADR-0014](0014-mcp-initialize-instructions-routing.md) (backing бандла), [ADR-0022](0022-frontier-driven-dream-flow.md) (target патчей), [ADR-0023](0023-mcp-tools-snake-case-naming.md) (одноразовое сквозное переименование контракта), [ADR-0002](0002-domain-model-and-text-versioning.md) (новый owner-kind истории).
 Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md), [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md).
+**Amended 2026-06-19** — bundle как доставка плейбука выпилен, см. ниже.
+
+## Amendment (2026-06-19): bundle removed, standalone = knowledge base
+
+Схлопывание сущностей и переименование (ниже) остаются в силе — `PromptPart` единственная модель, `prompt_parts` единственное хранилище. Что изменилось:
+
+- MCP-тул `get_prompt_bundle` (строка в таблице переименования) **удалён целиком** вместе с `bundles-tree` HTTP-эндпоинтом, `PromptBundleResolver`/`PromptBundleRenderer`, UI визуализацией бандлов и тест-инвариантом «bundle ≡ projection» (§ «Бандл: контент тот же»). Standalone-агент больше не получает плейбук по MCP — Throne для него база знаний интентов (read/write `Intent.text` + `set_intent_status`/`create_intent` по явной просьбе; см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md)).
+- `bundles[].includes` в манифесте **сохранены** и продолжают питать `PromptPartManifestRoles` + `PromptPartSeeder` (seed `mode_roles` для embedded) и `PromptCompositionResolver`. Композиция читается напрямую резолвером, без промежуточного bundle-резолвера.
+- Где ниже сказано «бандл читает `prompt_parts`» / «`get_instruction_bundle → get_prompt_bundle`» — читать как историю до 2026-06-19. Embedded-композиция (`PromptCompositionResolver`) и dream-патчи не затронуты.
 
 ## Context
 
