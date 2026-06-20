@@ -5,15 +5,13 @@ namespace Throne.Application.Tests.Terminals;
 
 public class SessionSkillPackageRegistryTests
 {
-    private readonly SessionSkillPackageRegistry _sut = new();
-
     [Theory(DisplayName = "Interview default resolves intent operations package for every vendor")]
     [InlineData(TerminalAgentCatalog.VendorClaude)]
     [InlineData(TerminalAgentCatalog.VendorCodex)]
     [InlineData(TerminalAgentCatalog.VendorOpencode)]
     public void Interview_resolves_intent_operations(string vendor)
     {
-        var packages = _sut.Resolve(new SessionSkillPackageResolution(
+        var packages = SessionSkillPackageRegistry.Resolve(new SessionSkillPackageResolution(
             "intent-1", TerminalRunModes.Interview, vendor, ReviewArtifact: null));
 
         packages.Should().Equal(new IntentOperationsSessionSkillPackage("intent-1"));
@@ -23,7 +21,7 @@ public class SessionSkillPackageRegistryTests
     public void Review_resolves_review_artifact_when_target_exists()
     {
         var target = new ReviewArtifactWriteTarget("binding-1", 42);
-        var packages = _sut.Resolve(new SessionSkillPackageResolution(
+        var packages = SessionSkillPackageRegistry.Resolve(new SessionSkillPackageResolution(
             "intent-1", TerminalRunModes.Review, TerminalAgentCatalog.VendorClaude, target));
 
         packages.Should().Equal(new ReviewArtifactSessionSkillPackage(target));
@@ -32,7 +30,7 @@ public class SessionSkillPackageRegistryTests
     [Fact(DisplayName = "Non-interview/non-review modes resolve no default skill packages")]
     public void Work_resolves_no_default_packages()
     {
-        var packages = _sut.Resolve(new SessionSkillPackageResolution(
+        var packages = SessionSkillPackageRegistry.Resolve(new SessionSkillPackageResolution(
             "intent-1", TerminalRunModes.Work, TerminalAgentCatalog.VendorClaude, ReviewArtifact: null));
 
         packages.Should().BeEmpty();

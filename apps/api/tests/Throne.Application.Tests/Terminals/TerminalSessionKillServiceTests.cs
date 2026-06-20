@@ -98,7 +98,6 @@ public class TerminalSessionKillServiceTests
                 new StubWorkspaceRoot(WorkspaceRoot),
                 Substitute.For<IWorkspaceTrust>(),
                 Array.Empty<ISessionHookAdapter>(),
-                new SessionSkillPackageRegistry(),
                 waiter,
                 options,
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
