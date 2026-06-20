@@ -10,7 +10,6 @@ public sealed record RepositoryArtifactSnapshot(
     string Slug,
     string Title,
     string Document,
-    string RenderHint,
     int Version,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

@@ -55,8 +55,11 @@ paths:
            (optimistic concurrency — a conflict aborts here), then spawn the chosen
            agent with `system_prompt` as upfront system context and `user_prompt` as the
            initial message, only after all bindings are ready.
-           `tmux has-session -t throne-{intent_id}` is the single source of truth —
-           Throne persists nothing about the session.
+           `tmux has-session -t throne-{intent_id}` is the single source of truth for
+           liveness — Throne persists no session *state*. The resolved launch axis
+           (`launch`: mode/vendor/model/effort) IS persisted per intent on each
+           successful spawn so the next page load can both restore the operator's
+           per-intent choice and show the live session's actual parameters (ADR-0041).
 
         Status is 202 because clones may still be running when the response is
         written; the UI subscribes to `intent.repository_clone_progress` (SSE) for
@@ -110,10 +113,13 @@ paths:
       summary: Observe the current tmux session state for an intent.
       description: >
         Read-only status probe used by the intent page on mount/reload. It does not
-        auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted
-        session state. `tmux has-session -t throne-{intent_id}` remains the source
-        of truth; when it returns true the UI can immediately attach the WebSocket
-        to the existing session and show tmux scrollback.
+        auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate any persisted
+        state. `tmux has-session -t throne-{intent_id}` remains the source of truth for
+        liveness; when it returns true the UI can immediately attach the WebSocket to the
+        existing session and show tmux scrollback. The response echoes the persisted
+        `launch` axis (ADR-0041) when the intent was ever launched: with a live session it
+        is that session's actual mode/vendor/model/effort, otherwise the intent's last-used
+        choice the launch controls pre-fill from.
       parameters:
         - in: path
           name: intent_id
@@ -231,6 +237,8 @@ paths:
         Agent-only local runtime callback injected into the per-session agent config
         (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin).
         Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4).
+        `SessionReady` is a provider-neutral readiness signal for the initial prompt paste and is
+        intentionally ignored by status derivation.
         Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and
         `Notification` (a permission prompt blocks the agent without ending the turn, so no
         `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps
@@ -256,6 +264,7 @@ paths:
             enum:
               - Stop
               - UserPromptSubmit
+              - SessionReady
               - Notification
               - PostToolUse
         - in: query
@@ -285,7 +294,8 @@ paths:
         `user_prompt` is the intent body draft for the task zone. The frontend renders the
         pre-flight modal from this response and never assembles the runtime prompt itself.
         Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI.
-        `review` additionally requires exactly one attached PR/MR on the intent.
+        `review` additionally requires at least one attached PR/MR on the intent; when more
+        than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
       parameters:
         - in: path
           name: intent_id
@@ -420,8 +430,8 @@ components:
         (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand)
         and the spawn phase the status hooks return to. The embedded contour injects the
         operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the
-        agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the
-        `review_recommendation` artifact writer into the session workspace.
+        agent to read a bundle. `review` requires an attached PR/MR and bakes the
+        selected `review_recommendation` artifact writer into the session workspace.
     TerminalSessionState:
       type: string
       enum:
@@ -496,6 +506,15 @@ components:
             validates each id against the parts available in `mode` (unknown ids → 422) but
             does NOT recompose `system_prompt` from them — the assembled text travels in
             `system_prompt`. Omitted → no optional parts were curated for this run.
+        review_binding_id:
+          type: string
+          minLength: 1
+          nullable: true
+          description: >
+            Binding id of the attached PR/MR to review when `mode=review` and the intent has
+            more than one attached pull request. Omitted with a single attached PR/MR → the
+            server selects it implicitly. A value outside the intent's attached PR/MR bindings
+            aborts pre-flight with 422.
         system_prompt:
           type: string
           nullable: true
@@ -594,6 +613,36 @@ components:
           description: >
             IDs of bindings whose `clone_status` is `failed` or `broken`. Present when
             `session_state=blocked`; the UI uses them to render an actionable error per row.
+        launch:
+          nullable: true
+          description: >
+            Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart`
+            it echoes the axis the spawn actually used (defaults applied). On the status probe
+            it is the persisted last-used axis: with a live session those are the running
+            session's real parameters; otherwise the choice the controls pre-fill from. Null
+            only when the intent was never launched (no persisted record).
+          allOf:
+            - $ref: '#/components/schemas/TerminalLaunchArgs'
+    TerminalLaunchArgs:
+      type: object
+      required:
+        - mode
+        - vendor
+        - model
+      properties:
+        mode:
+          $ref: '#/components/schemas/TerminalRunMode'
+        vendor:
+          $ref: '#/components/schemas/TerminalAgentVendor'
+        model:
+          type: string
+          minLength: 1
+          description: Resolved model id from the vendor's whitelist.
+        effort:
+          nullable: true
+          description: Resolved reasoning effort; null for a vendor with no effort axis.
+          allOf:
+            - $ref: '#/components/schemas/TerminalReasoningEffort'
     PreviewIntentTerminalRequest:
       type: object
       required:

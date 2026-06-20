@@ -1284,24 +1284,6 @@ namespace Throne.Repositories.Contracts.Generated
 
     }
 
-    /// <summary>
-    /// Read-only render hint of a knowledge page, derived from its slug (ADR-0031): the `db-schema-map` slug renders as a mermaid schema map, every other slug as plain markdown. Never sent on a write — derived server-side.
-    /// <br/>
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum RepositoryArtifactRenderHint
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"markdown")]
-        [System.Runtime.Serialization.EnumMember(Value = @"markdown")]
-        Markdown = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"schema_map")]
-        [System.Runtime.Serialization.EnumMember(Value = @"schema_map")]
-        Schema_map = 1,
-
-    }
-
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RepositoryDto
     {
@@ -1407,11 +1389,6 @@ namespace Throne.Repositories.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Title { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("render_hint")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<RepositoryArtifactRenderHint>))]
-        public RepositoryArtifactRenderHint Render_hint { get; set; }
-
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
         public int Version { get; set; }
@@ -1474,11 +1451,6 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("document")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Document { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("render_hint")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<RepositoryArtifactRenderHint>))]
-        public RepositoryArtifactRenderHint Render_hint { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
@@ -1553,11 +1525,6 @@ namespace Throne.Repositories.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("document")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Document { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("render_hint")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<RepositoryArtifactRenderHint>))]
-        public RepositoryArtifactRenderHint Render_hint { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("created_at")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

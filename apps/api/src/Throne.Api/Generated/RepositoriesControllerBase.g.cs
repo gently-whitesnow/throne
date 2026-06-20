@@ -293,7 +293,7 @@ namespace Throne.Api.Generated
         /// Create or update a knowledge page (manual edit).
         /// </summary>
         /// <remarks>
-        /// User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. `render_hint` is NOT sent on the wire — it is derived from the slug convention (`db-schema-map` → schema map, every other slug → plain markdown). Optimistic concurrency via `expected_version`.
+        /// User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
         /// </remarks>
         /// <returns>OK — the page after this write.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "putRepositoryDocument")]

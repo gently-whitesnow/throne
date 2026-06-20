@@ -6,7 +6,6 @@ import {
   type RepositoryCoordinate
 } from "@/entities/repository";
 import { httpErrorStatus } from "@/shared/lib";
-import { RepositorySchemaDocument } from "@/widgets/repository-schema-document";
 
 export function RepositoryDetailPage() {
   const params = useParams<{ provider: string; owner: string; repo: string }>();
@@ -51,10 +50,18 @@ export function RepositoryDetailPage() {
             Не удалось загрузить репозиторий.
           </p>
         ) : (
-          <RepositorySchemaDocument
-            coordinate={coordinate}
-            fullName={fullName}
-          />
+          <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+            <dt className="text-base-content/60">Провайдер</dt>
+            <dd className="m-0 font-mono">{data.provider}</dd>
+            <dt className="text-base-content/60">Хост</dt>
+            <dd className="m-0 font-mono">{data.host}</dd>
+            <dt className="text-base-content/60">Зарегистрирован</dt>
+            <dd className="m-0">
+              <time dateTime={data.created_at}>
+                {new Date(data.created_at).toLocaleString()}
+              </time>
+            </dd>
+          </dl>
         )}
       </section>
     </div>

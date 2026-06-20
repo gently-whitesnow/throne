@@ -25,6 +25,15 @@ export type TerminalSessionState =
 export type RunIntentTerminalResponse =
   TerminalComponents["schemas"]["RunIntentTerminalResponse"];
 
+/**
+ * Persisted launch axis of an intent returned by the run/restart response and the status probe
+ * (ADR-0041). With a live session these are the running session's real parameters; otherwise the
+ * intent's last-used choice the controls pre-fill from. Distinct from {@link TerminalLaunchArgs},
+ * which is the front-assembled axis for an outgoing launch.
+ */
+export type PersistedLaunchArgs =
+  TerminalComponents["schemas"]["TerminalLaunchArgs"];
+
 export type IntentTerminalPreviewResponse =
   TerminalComponents["schemas"]["IntentTerminalPreviewResponse"];
 
@@ -42,6 +51,7 @@ export type IntentTextUpdate =
  */
 export interface TerminalRunPayload {
   launch: TerminalLaunchArgs;
+  reviewBindingId: string | null;
   selectedPartIds: string[];
   systemPrompt: string;
   userPrompt: string;

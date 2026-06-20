@@ -100,7 +100,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
                 appendText: null,
                 reason: null,
                 IntentTrainingAuthor.System,
-                "get_prompt_bundle:work",
+                "set_intent_status:work",
                 Now.AddMinutes(5),
                 ct),
             CancellationToken.None);
@@ -121,7 +121,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         changes.Should().HaveCount(2);
         changes[1].FromStatus.Should().Be(IntentStatusNames.Draft);
         changes[1].ToStatus.Should().Be(IntentStatusNames.Work);
-        changes[1].Source.Should().Be("get_prompt_bundle:work");
+        changes[1].Source.Should().Be("set_intent_status:work");
         changes[1].CreatedBy.Should().Be("system");
         changes[1].Reason.Should().BeNull();
     }

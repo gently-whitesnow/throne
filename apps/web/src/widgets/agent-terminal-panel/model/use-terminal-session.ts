@@ -26,6 +26,8 @@ export interface TerminalSessionView {
   state: TerminalSessionState | "idle";
   /** Response payload from the most recent /run or /restart call. */
   lastResponse: RunIntentTerminalResponse | null;
+  /** True once the initial status probe has resolved (success or error) — gates axis prefill. */
+  probeSettled: boolean;
   /** User-facing error from the most recent action. */
   error: string | null;
   isStarting: boolean;
@@ -60,6 +62,12 @@ export function useTerminalSession(
   const [internal, setInternal] = useState<InternalState>(INITIAL);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  // The axis prefill must wait for the probe so it seeds from the intent's persisted launch
+  // rather than racing it with the catalog default. Tracks only the enabled-path probe: it
+  // flips to true when the probe resolves. The capability-off case is handled by the caller
+  // (no probe runs), so this stays false there — flipping it true on the disabled→enabled
+  // transition would briefly read «settled» with no launch yet and seed the wrong default.
+  const [probeSettled, setProbeSettled] = useState(false);
 
   const apply = useCallback(
     (response: RunIntentTerminalResponse, fromProbe = false) => {
@@ -91,6 +99,7 @@ export function useTerminalSession(
 
   useEffect(() => {
     if (!terminalEnabled) return;
+    setProbeSettled(false);
     const abort = new AbortController();
     void (async () => {
       try {
@@ -99,6 +108,8 @@ export function useTerminalSession(
       } catch (err) {
         if (abort.signal.aborted) return;
         setInternal((prev) => ({ ...prev, error: deriveErrorMessage(err) }));
+      } finally {
+        if (!abort.signal.aborted) setProbeSettled(true);
       }
     })();
     return () => {
@@ -158,6 +169,7 @@ export function useTerminalSession(
   return {
     state: internal.state,
     lastResponse: internal.lastResponse,
+    probeSettled,
     error: internal.error,
     startedAt: internal.startedAt,
     isStarting,

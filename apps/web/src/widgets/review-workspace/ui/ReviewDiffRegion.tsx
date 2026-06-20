@@ -2,6 +2,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 
 import type { PullRequestComment } from "@/entities/pull-request-comment";
 
+import type { FileOrderHint } from "../lib/order-files-by-ai";
 import type { ReviewWorkspaceState } from "../model/use-review-workspace";
 import type { CommentActions } from "./ReviewCommentCard";
 import { ReviewDiffViewer } from "./ReviewDiffViewer";
@@ -12,6 +13,7 @@ interface ReviewDiffRegionProps {
   bindingId: string;
   comments: PullRequestComment[];
   commentActions: CommentActions;
+  aiOrderHints: ReadonlyMap<string, FileOrderHint>;
   onSubmitted: () => void;
 }
 
@@ -21,6 +23,7 @@ export function ReviewDiffRegion({
   bindingId,
   comments,
   commentActions,
+  aiOrderHints,
   onSubmitted
 }: ReviewDiffRegionProps) {
   if (ws.diffLoading) {
@@ -76,6 +79,7 @@ export function ReviewDiffRegion({
           comments={comments}
           commentActions={commentActions}
           scrollTarget={ws.scrollTarget}
+          reason={aiOrderHints.get(ws.activeFile.path)?.reason ?? null}
           onSubmitted={onSubmitted}
         />
       </div>

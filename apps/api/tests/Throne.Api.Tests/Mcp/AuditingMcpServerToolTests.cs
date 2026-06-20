@@ -221,30 +221,6 @@ public class AuditingMcpServerToolTests
         result.IsError.Should().BeFalse();
     }
 
-    [Fact(DisplayName = "InvokeAsync пишет PromptBundleUse projection для get_prompt_bundle")]
-    public async Task Invoke_summarizes_prompt_bundle_use()
-    {
-        var sink = Substitute.For<IMcpCallLogSink>();
-        var tool = NewWrapper("get_prompt_bundle", _ => PromptBundleResult(), sink);
-
-        var ctx = NewCallContext("get_prompt_bundle", new Dictionary<string, JsonElement>
-        {
-            ["intent_id"] = JsonDocument.Parse("\"intent_123\"").RootElement,
-            ["mode"] = JsonDocument.Parse("\"work\"").RootElement,
-        });
-
-        var result = await tool.InvokeAsync(ctx, CancellationToken.None);
-
-        result.IsError.Should().BeFalse();
-        await sink.Received(1).WriteAsync(
-            Arg.Is<McpCallLogEntry>(e =>
-                e.ToolName == "get_prompt_bundle" &&
-                e.IntentId == "intent_123" &&
-                e.ModeHint == "work" &&
-                HasPromptPartRefs(e.ResultSummary)),
-            Arg.Any<CancellationToken>());
-    }
-
     private static AuditingMcpServerTool NewWrapper(
         string toolName,
         Func<AIFunctionArguments, object?> handler,
@@ -278,58 +254,6 @@ public class AuditingMcpServerToolTests
         StructuredContent = JsonSerializer.SerializeToElement(new JsonObject { ["ok"] = true }),
         IsError = false,
     };
-
-    // StructuredContent уже compact на источнике (см. PromptBundleRenderer и ADR-0003 §8) —
-    // никаких `text` в частях, McpResultSummarizer не выкидывает поля, а просто десериализует.
-    private static CallToolResult PromptBundleResult() => new()
-    {
-        Content = [new TextContentBlock { Text = "mode=work intent_id=intent_123\n\n===== system:common (v1, id=part_common_1) =====\n\nfull common text\n" }],
-        StructuredContent = JsonSerializer.SerializeToElement(new JsonObject
-        {
-            ["intent_id"] = "intent_123",
-            ["mode"] = "work",
-            ["parts"] = new JsonArray
-            {
-                new JsonObject
-                {
-                    ["scope"] = "system",
-                    ["key"] = "common",
-                    ["prompt_part_id"] = "part_common_1",
-                    ["current_version"] = 2,
-                },
-                new JsonObject
-                {
-                    ["scope"] = "user",
-                    ["key"] = "work",
-                    ["prompt_part_id"] = "part_light_1",
-                    ["current_version"] = 4,
-                },
-            },
-            ["missing_keys"] = new JsonArray(),
-        }),
-        IsError = false,
-    };
-
-    private static bool HasPromptPartRefs(IReadOnlyDictionary<string, object?>? summary)
-    {
-        if (summary is null ||
-            !summary.TryGetValue("parts", out var parts) ||
-            parts is not JsonElement element ||
-            element.ValueKind != JsonValueKind.Array)
-        {
-            return false;
-        }
-
-        var refs = element.EnumerateArray().ToList();
-        refs.Should().HaveCount(2);
-        refs[0].GetProperty("key").GetString().Should().Be("common");
-        refs[0].GetProperty("prompt_part_id").GetString().Should().Be("part_common_1");
-        refs[0].GetProperty("current_version").GetInt32().Should().Be(2);
-        refs[0].TryGetProperty("text", out _).Should().BeFalse("StructuredContent для bundle не должен нести prompt part text");
-        refs[1].GetProperty("key").GetString().Should().Be("work");
-        refs[1].GetProperty("current_version").GetInt32().Should().Be(4);
-        return true;
-    }
 
     private sealed class StubMcpServerTool(string name, bool hasOutputSchema) : McpServerTool
     {

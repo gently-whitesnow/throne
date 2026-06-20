@@ -9,6 +9,7 @@ public static class TerminalHookEvents
 {
     public const string Stop = "Stop";
     public const string UserPromptSubmit = "UserPromptSubmit";
+    public const string SessionReady = "SessionReady";
 
     // A permission/approval prompt does NOT end the turn, so Claude Code fires no Stop while the
     // agent is blocked on it — only a Notification. Without this the intent never parks in
@@ -24,7 +25,8 @@ public static class TerminalHookEvents
     /// Every event the status handler recognises. Injection is vendor-specific (see
     /// <see cref="ClaudeBindings"/> / <see cref="CodexBindings"/>); this is the recognise-side set.
     /// </summary>
-    public static readonly IReadOnlyList<string> All = [Stop, UserPromptSubmit, Notification, PostToolUse];
+    public static readonly IReadOnlyList<string> All =
+        [Stop, UserPromptSubmit, SessionReady, Notification, PostToolUse];
 
     /// <summary>
     /// Claude Code binding set. Adds the permission-park pair on top of the turn-boundary pair: a
@@ -61,6 +63,7 @@ public static class TerminalHookEvents
 
     public static readonly IReadOnlyList<OpenCodeHookBinding> OpenCodeBindings =
     [
+        new("session.created", SessionReady, OpenCodeBindingEvent),
         new("session.idle", Stop, OpenCodeBindingEvent),
         new("tui.prompt.append", UserPromptSubmit, OpenCodeBindingEvent),
         new("permission.asked", Notification, OpenCodeBindingEvent),

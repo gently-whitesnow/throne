@@ -22,11 +22,6 @@ internal static class McpCallArgumentSnapshot
     public static string? ExtractIntentId(IDictionary<string, JsonElement>? arguments) =>
         ReadStringProperty(arguments, "intent_id");
 
-    public static string? ExtractModeHint(string toolName, IDictionary<string, JsonElement>? arguments) =>
-        toolName == "get_prompt_bundle"
-            ? ReadStringProperty(arguments, "mode")
-            : null;
-
     private static string? ReadStringProperty(IDictionary<string, JsonElement>? arguments, string name) =>
         arguments is not null && arguments.TryGetValue(name, out var element) && element.ValueKind == JsonValueKind.String
             ? element.GetString()

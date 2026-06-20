@@ -24,12 +24,26 @@ internal static class TerminalFailures
         new(
             ErrorCodes.ValidationFailed,
             count == 0
-                ? "Review mode requires exactly one attached pull request on the intent."
+                ? "Review mode requires an attached pull request on the intent."
                 : "Review mode cannot choose between multiple attached pull requests on the same intent.",
             new Dictionary<string, object?>
             {
                 ["mode"] = mode,
                 ["attached_pull_requests"] = count,
+            });
+
+    public static ApiException ReviewPullRequestNotAttached(
+        string mode,
+        string bindingId,
+        IReadOnlyList<string> attachedBindingIds) =>
+        new(
+            ErrorCodes.ValidationFailed,
+            "Review mode selected pull request is not attached to the intent.",
+            new Dictionary<string, object?>
+            {
+                ["mode"] = mode,
+                ["binding_id"] = bindingId,
+                ["attached_binding_ids"] = attachedBindingIds,
             });
 
     public static ApiException VendorInvalid(string vendor) =>
@@ -97,6 +111,20 @@ internal static class TerminalFailures
                 ["waited_milliseconds"] = waitedMilliseconds,
                 ["captures"] = captures,
                 ["last_snapshot_excerpt"] = Excerpt(lastSnapshot),
+            });
+
+    public static ApiException InitialPromptSubmitFailed(
+        string intentId,
+        string vendor,
+        string detail) =>
+        new(
+            ErrorCodes.TerminalInitialPromptSubmitFailed,
+            $"Vendor '{vendor}' failed to submit the initial prompt for intent '{intentId}': {detail}",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["vendor"] = vendor,
+                ["detail"] = detail,
             });
 
     // Surface only the tail of the captured pane — full snapshots can be multi-KB and the tail

@@ -2,7 +2,17 @@
 
 ## Status
 
-Accepted. Заменяет ранний UX-вход через vendor-локальные skill-лаунчеры (`.claude/skills/`, `.agents/skills/`) — см. Context.
+Accepted. Заменяет ранний UX-вход через vendor-локальные skill-лаунчеры (`.claude/skills/`, `.agents/skills/`) — см. Context. **Amended 2026-06-19** — см. ниже.
+
+## Amendment (2026-06-19): standalone = knowledge base, bundle removed
+
+Bundle-обвязка доставки плейбука демонтирована целиком (см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md), [ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md)). Конкретно для этого ADR:
+
+- MCP-тул `get_prompt_bundle` и HTTP `getBundlesTree` (`/api/v1/prompt-parts/bundles-tree`) **удалены**. UI-страница больше не рендерит дерево бандлов.
+- `ThroneServerInstructions.MiniRouter` **переписан**: Throne для standalone-агента — это база знаний интентов. Агент читает/пишет `Intent.text` и по явной просьбе меняет статус через `set_intent_status` / создаёт интент через `create_intent`. Mini-router больше не упоминает `get_prompt_bundle` и режимы `work/interview/review/dream` — это режимы embedded-контура, не standalone. Авто-переходов статуса по чтению бандла нет (их триггерил bundle-read, которого больше не существует).
+- Решения 2, 4, 6 и упоминания `bundles-tree` ниже описывают историческое состояние и читаются как контекст; актуальный текст mini-router и поверхность standalone заданы этим amendment.
+
+Манифест продолжает быть source of truth для `system_instructions` и `bundles[]`, но `bundles[]` теперь питает только embedded-композицию (seed `mode_roles`), а не доставку по MCP.
 
 ## Context
 
@@ -28,7 +38,7 @@ MCP-протокол уже даёт штатный канал для серве
    ```
    This is Throne, an MCP server for intents. The working playbook for an intent is not in local files — it comes from get_prompt_bundle.
 
-   When the user asks to read/«прочитай» a bundle for a mode (work, interview, dream, schema_map), call get_prompt_bundle({mode, intent_id}) and follow the text it returns — it is the source of truth. Surface any missing_keys to the user instead of improvising. intent_id comes from the message or active context; for work/interview create one via create_intent if none is given (dream/schema_map run without an intent).
+   When the user asks to read/«прочитай» a bundle for a mode (work, interview, review, dream), call get_prompt_bundle({mode, intent_id}) and follow the text it returns — it is the source of truth. Surface any missing_keys to the user instead of improvising. intent_id comes from the message or active context; for work/interview create one via create_intent if none is given (dream runs without an intent).
 
    Do not call get_prompt_bundle on your own initiative when the user merely describes a task without asking to read a bundle — wait for an explicit request.
    ```
@@ -39,7 +49,7 @@ MCP-протокол уже даёт штатный канал для серве
 
 3. **Прямой HTTP MCP.** После [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md) standalone-клиенты подключаются к `Throne.Api /mcp` напрямую и получают mini-router из `InitializeResult.instructions` без дополнительного forwarding-процесса. Claude Desktop, которому локально нужен stdio, использует внешний bridge `mcp-remote`.
 
-4. **Slash-команд `/tinterview | /twork | /tdream` нет.** Единственный путь начать standalone-поток — явная просьба пользователя прочитать конкретный бандл. Mini-router не классифицирует свободное описание задачи; пользователь либо пишет «прочитай бандл work/interview/dream/schema_map …», либо нажимает copy-кнопку на странице интента / `/improvements` / `repository-schema-document`, которая кладёт ровно такую формулировку в буфер. Это сознательно жертвует «mode by meaning»-вход ради устранения лишнего MCP-раундтрипа во встроенном контуре ([ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2).
+4. **Slash-команд `/tinterview | /twork | /tdream` нет.** Единственный путь начать standalone-поток — явная просьба пользователя прочитать конкретный бандл. Mini-router не классифицирует свободное описание задачи; пользователь либо пишет «прочитай бандл work/interview/dream …», либо нажимает copy-кнопку на странице интента / `/improvements`, которая кладёт ровно такую формулировку в буфер. Это сознательно жертвует «mode by meaning»-вход ради устранения лишнего MCP-раундтрипа во встроенном контуре ([ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2).
 
 5. **Манифест и bundle resolver не меняются.** `system_instructions` и `bundles` в [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) остаются source of truth для текстов system-инструкций и `mode → kinds` маппинга. Имя файла оставлено `throne-skills.yaml` для совместимости с уже задеплоенными серверами; новых читателей секции `skills:` нет.
 

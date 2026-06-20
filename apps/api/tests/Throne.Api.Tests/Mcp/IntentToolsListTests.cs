@@ -106,7 +106,6 @@ public class IntentToolsListTests
         new(
             create: null!,
             get: new GetIntentHandler(intentRepo),
-            getPromptBundle: null!,
             listIntents: listHandler,
             moveIntentHandler: null!,
             linkRepository: Substitute.For<IIntentLinkRepository>(),

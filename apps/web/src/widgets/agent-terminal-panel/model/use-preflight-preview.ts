@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { previewIntentTerminal } from "../api/agent-terminal-api";
 
@@ -21,12 +21,15 @@ export interface PreflightPreview {
   freeInput: string;
   saveIntentText: boolean;
   bodyDirty: boolean;
-  setSystemPrompt: (value: string) => void;
+  setPartText: (partId: string, text: string) => void;
   setBody: (value: string) => void;
   setFreeInput: (value: string) => void;
   setSaveIntentText: (value: boolean) => void;
   togglePart: (partId: string) => void;
-  buildPayload: (launch: TerminalLaunchArgs) => TerminalRunPayload;
+  buildPayload: (
+    launch: TerminalLaunchArgs,
+    reviewBindingId: string | null
+  ) => TerminalRunPayload;
 }
 
 const MANDATORY = "mandatory";
@@ -37,16 +40,31 @@ function selectedOptionalIds(parts: PromptPartPreview[]): string[] {
     .map((p) => p.part_id);
 }
 
+/**
+ * Собирает system-блок ровно как backend (PromptCompositionResolver): включённые
+ * части в порядке бандла, обрезанные и склеенные через пустую строку. Делаем это
+ * на клиенте, чтобы итог пересобирался живьём на правку рамки или тумблер части,
+ * не затирая сессионные правки соседних частей перезапросом preview.
+ */
+function assembleSystemPrompt(parts: PromptPartPreview[]): string {
+  return parts
+    .filter((p) => p.selected)
+    .map((p) => p.text.trim())
+    .filter((t) => t.length > 0)
+    .join("\n\n");
+}
+
 function composeUserPrompt(body: string, freeInput: string): string {
   const extra = freeInput.trim();
   return extra.length > 0 ? `${body}\n\n${extra}` : body;
 }
 
 /**
- * Управляет состоянием preflight-модалки: тянет backend-preview, держит выбор
- * частей, редактируемый system-блок (session-only override) и зону задачи. На
- * переключение части перезапрашивает preview — пересборку system_prompt делает
- * backend (ADR-0030/0035), фронт лишь показывает и точечно правит итог.
+ * Управляет состоянием preflight-модалки: один раз тянет backend-preview, затем
+ * держит выбор и редактируемый текст частей локально (session-only override) и
+ * зону задачи. Тумблер и правка рамки меняют только клиентское состояние —
+ * system-блок пересобирается из текущих частей (ADR-0036), backend получает
+ * собранный system_prompt verbatim при запуске (ADR-0030/0035).
  */
 export function usePreflightPreview(
   intentId: string,
@@ -56,7 +74,6 @@ export function usePreflightPreview(
   const [status, setStatus] = useState<PreviewStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [parts, setParts] = useState<PromptPartPreview[]>([]);
-  const [systemPrompt, setSystemPrompt] = useState("");
   const [body, setBodyState] = useState("");
   const [freeInput, setFreeInput] = useState("");
   const [intentVersion, setIntentVersion] = useState(0);
@@ -66,46 +83,16 @@ export function usePreflightPreview(
   const saveTouchedRef = useRef(false);
 
   const applyResponse = useCallback(
-    (response: IntentTerminalPreviewResponse, resetTask: boolean) => {
+    (response: IntentTerminalPreviewResponse) => {
       setParts(response.parts);
-      setSystemPrompt(response.system_prompt);
-      if (resetTask) {
-        originalBodyRef.current = response.user_prompt;
-        saveTouchedRef.current = false;
-        setBodyState(response.user_prompt);
-        setFreeInput("");
-        setIntentVersion(response.intent_version);
-        setSaveIntentTextState(false);
-      }
+      originalBodyRef.current = response.user_prompt;
+      saveTouchedRef.current = false;
+      setBodyState(response.user_prompt);
+      setFreeInput("");
+      setIntentVersion(response.intent_version);
+      setSaveIntentTextState(false);
     },
     []
-  );
-
-  const fetchPreview = useCallback(
-    async (
-      selectedIds: string[] | null,
-      resetTask: boolean,
-      signal?: AbortSignal
-    ) => {
-      setStatus("loading");
-      setError(null);
-      try {
-        const response = await previewIntentTerminal(
-          intentId,
-          mode,
-          selectedIds,
-          signal
-        );
-        if (signal?.aborted) return;
-        applyResponse(response, resetTask);
-        setStatus("ready");
-      } catch {
-        if (signal?.aborted) return;
-        setStatus("error");
-        setError("Не удалось собрать предпросмотр запуска.");
-      }
-    },
-    [intentId, mode, applyResponse]
   );
 
   useEffect(() => {
@@ -114,21 +101,39 @@ export function usePreflightPreview(
       return;
     }
     const abort = new AbortController();
-    void fetchPreview(null, true, abort.signal);
+    setStatus("loading");
+    setError(null);
+    previewIntentTerminal(intentId, mode, null, abort.signal)
+      .then((response) => {
+        if (abort.signal.aborted) return;
+        applyResponse(response);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (abort.signal.aborted) return;
+        setStatus("error");
+        setError("Не удалось собрать предпросмотр запуска.");
+      });
     return () => {
       abort.abort();
     };
-  }, [open, fetchPreview]);
+  }, [open, intentId, mode, applyResponse]);
 
-  const togglePart = useCallback(
-    (partId: string) => {
-      const current = new Set(selectedOptionalIds(parts));
-      if (current.has(partId)) current.delete(partId);
-      else current.add(partId);
-      void fetchPreview([...current], false);
-    },
-    [parts, fetchPreview]
-  );
+  const togglePart = useCallback((partId: string) => {
+    setParts((prev) =>
+      prev.map((p) =>
+        p.part_id === partId && p.role !== MANDATORY
+          ? { ...p, selected: !p.selected }
+          : p
+      )
+    );
+  }, []);
+
+  const setPartText = useCallback((partId: string, text: string) => {
+    setParts((prev) =>
+      prev.map((p) => (p.part_id === partId ? { ...p, text } : p))
+    );
+  }, []);
 
   const setBody = useCallback((value: string) => {
     setBodyState(value);
@@ -142,11 +147,17 @@ export function usePreflightPreview(
     setSaveIntentTextState(value);
   }, []);
 
+  const systemPrompt = useMemo(() => assembleSystemPrompt(parts), [parts]);
+
   const buildPayload = useCallback(
-    (launch: TerminalLaunchArgs): TerminalRunPayload => {
+    (
+      launch: TerminalLaunchArgs,
+      reviewBindingId: string | null
+    ): TerminalRunPayload => {
       const bodyDirty = body !== originalBodyRef.current;
       return {
         launch,
+        reviewBindingId,
         selectedPartIds: selectedOptionalIds(parts),
         systemPrompt,
         userPrompt: composeUserPrompt(body, freeInput),
@@ -172,7 +183,7 @@ export function usePreflightPreview(
     freeInput,
     saveIntentText,
     bodyDirty: body !== originalBodyRef.current,
-    setSystemPrompt,
+    setPartText,
     setBody,
     setFreeInput,
     setSaveIntentText,

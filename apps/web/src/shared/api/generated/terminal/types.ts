@@ -48,8 +48,11 @@ export interface paths {
          *        (optimistic concurrency — a conflict aborts here), then spawn the chosen
          *        agent with `system_prompt` as upfront system context and `user_prompt` as the
          *        initial message, only after all bindings are ready.
-         *        `tmux has-session -t throne-{intent_id}` is the single source of truth —
-         *        Throne persists nothing about the session.
+         *        `tmux has-session -t throne-{intent_id}` is the single source of truth for
+         *        liveness — Throne persists no session *state*. The resolved launch axis
+         *        (`launch`: mode/vendor/model/effort) IS persisted per intent on each
+         *        successful spawn so the next page load can both restore the operator's
+         *        per-intent choice and show the live session's actual parameters (ADR-0041).
          *
          *     Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
          */
@@ -69,7 +72,7 @@ export interface paths {
         };
         /**
          * Observe the current tmux session state for an intent.
-         * @description Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted session state. `tmux has-session -t throne-{intent_id}` remains the source of truth; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback.
+         * @description Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate any persisted state. `tmux has-session -t throne-{intent_id}` remains the source of truth for liveness; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback. The response echoes the persisted `launch` axis (ADR-0041) when the intent was ever launched: with a live session it is that session's actual mode/vendor/model/effort, otherwise the intent's last-used choice the launch controls pre-fill from.
          */
         get: operations["getIntentTerminalSession"];
         put?: never;
@@ -131,7 +134,7 @@ export interface paths {
         put?: never;
         /**
          * Receive a local agent hook callback.
-         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
+         * @description Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). `SessionReady` is a provider-neutral readiness signal for the initial prompt paste and is intentionally ignored by status derivation. Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
          */
         post: operations["receiveIntentTerminalHook"];
         delete?: never;
@@ -151,7 +154,7 @@ export interface paths {
         put?: never;
         /**
          * Resolve the embedded prompt composition before spawn (ADR-0036).
-         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires exactly one attached PR/MR on the intent.
+         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
          */
         post: operations["previewIntentTerminal"];
         delete?: never;
@@ -192,7 +195,7 @@ export interface components {
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
         };
         /**
-         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the `review_recommendation` artifact writer into the session workspace.
+         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires an attached PR/MR and bakes the selected `review_recommendation` artifact writer into the session workspace.
          * @enum {string}
          */
         TerminalRunMode: "work" | "interview" | "review" | "dream" | "free";
@@ -222,6 +225,8 @@ export interface components {
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
             /** @description Optional part ids the operator left enabled in the pre-flight modal. The server validates each id against the parts available in `mode` (unknown ids → 422) but does NOT recompose `system_prompt` from them — the assembled text travels in `system_prompt`. Omitted → no optional parts were curated for this run. */
             selected_part_ids?: string[] | null;
+            /** @description Binding id of the attached PR/MR to review when `mode=review` and the intent has more than one attached pull request. Omitted with a single attached PR/MR → the server selects it implicitly. A value outside the intent's attached PR/MR bindings aborts pre-flight with 422. */
+            review_binding_id?: string | null;
             /** @description Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected. */
             system_prompt?: string | null;
             /** @description Final task text (intent body draft plus the operator's per-run input) delivered verbatim as the agent's initial user message. Empty/omitted → the agent boots without a pre-filled prompt. */
@@ -259,6 +264,16 @@ export interface components {
             bindings: components["schemas"]["RunIntentBindingStatusDto"][];
             /** @description IDs of bindings whose `clone_status` is `failed` or `broken`. Present when `session_state=blocked`; the UI uses them to render an actionable error per row. */
             blocking_bindings?: string[];
+            /** @description Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record). */
+            launch?: components["schemas"]["TerminalLaunchArgs"] | null;
+        };
+        TerminalLaunchArgs: {
+            mode: components["schemas"]["TerminalRunMode"];
+            vendor: components["schemas"]["TerminalAgentVendor"];
+            /** @description Resolved model id from the vendor's whitelist. */
+            model: string;
+            /** @description Resolved reasoning effort; null for a vendor with no effort axis. */
+            effort?: components["schemas"]["TerminalReasoningEffort"] | null;
         };
         PreviewIntentTerminalRequest: {
             mode: components["schemas"]["TerminalRunMode"];
@@ -536,7 +551,7 @@ export interface operations {
             header?: never;
             path: {
                 intent_id: string;
-                event: "Stop" | "UserPromptSubmit" | "Notification" | "PostToolUse";
+                event: "Stop" | "UserPromptSubmit" | "SessionReady" | "Notification" | "PostToolUse";
             };
             cookie?: never;
         };

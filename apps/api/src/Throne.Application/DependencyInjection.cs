@@ -32,11 +32,8 @@ public static class DependencyInjection
         services.AddSingleton<RenameTagHandler>();
         services.AddSingleton<DeleteTagHandler>();
         services.AddSingleton<GetTagUsageHandler>();
-        // Prompt parts + bundle (ADR-0036): single unified entity. The bundle resolver and the
-        // embedded composition both read prompt_parts so they share one source of truth.
-        services.AddSingleton<PromptBundleResolver>();
-        services.AddSingleton<GetPromptBundleHandler>();
-        services.AddSingleton<GetBundlesTreeHandler>();
+        // Prompt parts (ADR-0036): single unified entity. The embedded composition reads
+        // prompt_parts in manifest-include order.
         services.AddSingleton<ListPromptPartVersionsHandler>();
         services.AddSingleton<CreatePromptPartHandler>();
         services.AddSingleton<ListPromptPartsHandler>();
@@ -109,6 +106,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightAutoBind>();
         services.AddSingleton<RunPreflightCloneScheduler>();
         services.AddSingleton<RunPreflightCloneWait>();
+        services.AddSingleton<TerminalReadinessSignals>();
         services.AddSingleton<TmuxTuiReadinessWaiter>();
         services.AddSingleton<RunPreflightSpawn>();
         services.AddSingleton<RunPreflightPromptGate>();
@@ -169,7 +167,6 @@ public static class DependencyInjection
         services.AddSingleton<GetIntentLinksSummaryHandler>();
         services.AddSingleton<ListIntentEventsHandler>();
         services.AddSingleton<ListIntentVersionsHandler>();
-        services.AddSingleton<IntentStatusAutoTransition>();
         return services;
     }
 }

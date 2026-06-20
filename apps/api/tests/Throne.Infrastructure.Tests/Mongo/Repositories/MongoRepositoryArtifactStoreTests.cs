@@ -20,10 +20,9 @@ public class MongoRepositoryArtifactStoreTests(MongoFixture fixture)
         string document,
         int? expectedVersion,
         string slug = "db-schema-map",
-        string renderHint = RepositoryArtifactRenderHints.SchemaMap,
         DateTimeOffset? at = null) =>
         scope.Artifacts.WriteAsync(
-            Coordinate, slug, title, document, renderHint, expectedVersion, at ?? Now, CancellationToken.None);
+            Coordinate, slug, title, document, expectedVersion, at ?? Now, CancellationToken.None);
 
     [Fact(DisplayName = "Первая запись создаёт артефакт version=1 и снапшот в истории")]
     public async Task First_write_creates_version_one()
@@ -49,8 +48,7 @@ public class MongoRepositoryArtifactStoreTests(MongoFixture fixture)
         var created = (WriteRepositoryArtifactOutcome.Written)await Write(scope, "v1", "body1", expectedVersion: null);
 
         var outcome = await Write(
-            scope, "v2", "body2", expectedVersion: 1,
-            renderHint: RepositoryArtifactRenderHints.Markdown, at: Now.AddMinutes(1));
+            scope, "v2", "body2", expectedVersion: 1, at: Now.AddMinutes(1));
 
         var written = outcome.Should().BeOfType<WriteRepositoryArtifactOutcome.Written>().Subject;
         written.Created.Should().BeFalse();
@@ -100,8 +98,7 @@ public class MongoRepositoryArtifactStoreTests(MongoFixture fixture)
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
         await Write(scope, "Map", "m", expectedVersion: null, slug: "db-schema-map");
-        await Write(scope, "Arch", "a", expectedVersion: null, slug: "architecture-overview",
-            renderHint: RepositoryArtifactRenderHints.Markdown);
+        await Write(scope, "Arch", "a", expectedVersion: null, slug: "architecture-overview");
 
         var pages = await scope.Artifacts.ListByCoordinateAsync(Coordinate, CancellationToken.None);
 
@@ -125,7 +122,6 @@ public class MongoRepositoryArtifactStoreTests(MongoFixture fixture)
             Slug = "db-schema-map",
             Title = "dup",
             Document = "dup",
-            RenderHint = RepositoryArtifactRenderHints.Markdown,
             Version = 1,
             CreatedAt = Now.UtcDateTime,
             UpdatedAt = Now.UtcDateTime,
@@ -149,7 +145,6 @@ public class MongoRepositoryArtifactStoreTests(MongoFixture fixture)
             Version = 1,
             Title = "dup",
             Document = "dup",
-            RenderHint = RepositoryArtifactRenderHints.Markdown,
             CreatedAt = Now.UtcDateTime,
         });
 
