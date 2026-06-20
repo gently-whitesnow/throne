@@ -21,24 +21,20 @@ interface ConnectorEdge {
   stroke: string;
   dash?: string;
   baseOpacity: number;
-  arrow?: "blocks" | "derived";
+  arrow?: "blocking" | "normal";
+  width: number;
 }
 
 const LANE_SPACING = 6;
 
 const STYLES = {
-  blocks: {
+  blocking: {
     stroke: "var(--color-warning)",
     baseOpacity: 0.85
   },
-  derived: {
+  normal: {
     stroke: "var(--color-base-content)",
     baseOpacity: 0.55
-  },
-  relates: {
-    stroke: "var(--color-base-content)",
-    dash: "3 3",
-    baseOpacity: 0.35
   }
 } as const;
 
@@ -79,7 +75,7 @@ export function IntentLinksOverlay({
     >
       <defs>
         <marker
-          id="arrow-blocks"
+          id="arrow-blocking"
           viewBox="0 0 10 10"
           refX="8"
           refY="5"
@@ -88,10 +84,10 @@ export function IntentLinksOverlay({
           markerUnits="userSpaceOnUse"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={STYLES.blocks.stroke} />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={STYLES.blocking.stroke} />
         </marker>
         <marker
-          id="arrow-derived"
+          id="arrow-normal"
           viewBox="0 0 10 10"
           refX="8"
           refY="5"
@@ -100,7 +96,7 @@ export function IntentLinksOverlay({
           markerUnits="userSpaceOnUse"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill={STYLES.derived.stroke} />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill={STYLES.normal.stroke} />
         </marker>
       </defs>
       {edges.map((edge) => {
@@ -116,7 +112,7 @@ export function IntentLinksOverlay({
             d={edge.d}
             fill="none"
             stroke={edge.stroke}
-            strokeWidth={incident ? 2 : 1.25}
+            strokeWidth={incident ? edge.width + 0.75 : edge.width}
             strokeDasharray={edge.dash}
             strokeLinecap="round"
             opacity={opacity}
@@ -170,7 +166,8 @@ interface EdgeSeed {
   stroke: string;
   dash?: string;
   baseOpacity: number;
-  arrow?: "blocks" | "derived";
+  arrow?: "blocking" | "normal";
+  width: number;
 }
 
 function buildEdges(
@@ -222,7 +219,8 @@ function buildEdges(
       stroke: seed.stroke,
       dash: seed.dash,
       baseOpacity: seed.baseOpacity,
-      arrow: seed.arrow
+      arrow: seed.arrow,
+      width: seed.width
     });
   }
   return result;
@@ -230,51 +228,29 @@ function buildEdges(
 
 function collectSeeds(summary: LinksSummaryMap): EdgeSeed[] {
   const seeds: EdgeSeed[] = [];
-  // Directional edges (blocks / derived) appear on exactly one side of the
-  // summary map, so they don't need pair de-dup. `relates` is symmetric and
-  // surfaces from both endpoints — de-dup by canonical ordered pair.
-  const seenRelates = new Set<string>();
-
   for (const [ownerId, entry] of summary) {
-    // derived_from: ownerId is the child, peer is the parent — arrow flows from parent to child.
-    for (const peer of entry.derived_from) {
+    for (const peer of entry.linked_from) {
       seeds.push({
         fromId: peer.id,
         toId: ownerId,
-        kindKey: "derived",
+        kindKey: "normal",
         lane: 0,
-        stroke: STYLES.derived.stroke,
-        baseOpacity: STYLES.derived.baseOpacity,
-        arrow: "derived"
+        stroke: STYLES.normal.stroke,
+        baseOpacity: STYLES.normal.baseOpacity,
+        arrow: "normal",
+        width: 1.15
       });
     }
-    // blocked_by: peer blocks ownerId — arrow points at ownerId (the blocked one).
     for (const peer of entry.blocked_by) {
       seeds.push({
         fromId: peer.id,
         toId: ownerId,
-        kindKey: "blocks",
+        kindKey: "blocking",
         lane: 1,
-        stroke: STYLES.blocks.stroke,
-        baseOpacity: STYLES.blocks.baseOpacity,
-        arrow: "blocks"
-      });
-    }
-    // relates: symmetric, no arrow.
-    for (const peer of entry.relates) {
-      const a = ownerId < peer.id ? ownerId : peer.id;
-      const b = ownerId < peer.id ? peer.id : ownerId;
-      const key = `${a}|${b}`;
-      if (seenRelates.has(key)) continue;
-      seenRelates.add(key);
-      seeds.push({
-        fromId: ownerId,
-        toId: peer.id,
-        kindKey: "relates",
-        lane: 2,
-        stroke: STYLES.relates.stroke,
-        dash: STYLES.relates.dash,
-        baseOpacity: STYLES.relates.baseOpacity
+        stroke: STYLES.blocking.stroke,
+        baseOpacity: STYLES.blocking.baseOpacity,
+        arrow: "blocking",
+        width: 1.8
       });
     }
   }

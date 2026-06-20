@@ -22,9 +22,9 @@ function entry(
   return {
     intent_id: intentId,
     blocked_by: [],
-    derived_from: parents.map((id) => peer(id)),
-    source_of: [],
-    relates: []
+    blocks: [],
+    linked_from: parents.map((id) => peer(id)),
+    linked_to: []
   };
 }
 
@@ -82,7 +82,7 @@ describe("computeFamilyTints", () => {
     expect(tints.get("a1")).not.toBe(tints.get("b1"));
   });
 
-  it("tolerates derived_from cycles", () => {
+  it("tolerates soft-link cycles", () => {
     const summary = new Map([
       ["x", entry("x", ["y"])],
       ["y", entry("y", ["x"])]

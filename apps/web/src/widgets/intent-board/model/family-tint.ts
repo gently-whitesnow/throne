@@ -1,13 +1,13 @@
 import type { LinksSummaryMap } from "@/entities/intent";
 
 /**
- * Family-marker colours for intents that share the same `derived_from`
+ * Family-marker colours for intents that share the same incoming soft-link
  * ancestor. The host (EntityList) renders this as a thin left-edge stripe,
  * not as a row background — full-row tints clashed with the active-state
  * highlight (`bg-primary/10`) and with the status palette. The stripe lives
  * in a visual channel that the row otherwise doesn't use.
  *
- * The "family root" is the topmost ancestor reachable via `derived_from`
+ * The "family root" is the topmost ancestor reachable via incoming soft links
  * within the visible set. If a card's parent is off-screen, that off-screen
  * id becomes the root — siblings still resolve to the same id and group up.
  *
@@ -45,7 +45,7 @@ export function computeFamilyTints(
       }
       seen.push(current);
       const entry = visible.has(current) ? summary.get(current) : undefined;
-      const parent = entry?.derived_from[0]?.id;
+      const parent = entry?.linked_from[0]?.id;
       if (!parent) break;
       current = parent;
     }

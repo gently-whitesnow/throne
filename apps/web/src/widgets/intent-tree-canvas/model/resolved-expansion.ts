@@ -31,14 +31,16 @@ type FetchSummaries = (
 
 /**
  * Structural neighbours of an entry, in every direction the summary exposes.
- * Excludes `relates` (thematic links) per the canvas contract. Note: `blocks`
- * is only reachable through the blocked end's `blocked_by`, so blocker chains
- * expand upstream while a done node's downstream-blocked peers aren't
- * auto-discovered — acceptable, since done items are normally upstream
- * prerequisites of the active roadmap.
+ * The graph has one directed edge type now, so both blocking and soft edges are
+ * structural for resolved expansion.
  */
 function structuralPeers(entry: IntentLinksSummaryEntry): IntentLinkPeer[] {
-  return [...entry.derived_from, ...entry.source_of, ...entry.blocked_by];
+  return [
+    ...entry.linked_from,
+    ...entry.linked_to,
+    ...entry.blocked_by,
+    ...entry.blocks
+  ];
 }
 
 function peerToCard(peer: IntentLinkPeer): CanvasCardIntent {

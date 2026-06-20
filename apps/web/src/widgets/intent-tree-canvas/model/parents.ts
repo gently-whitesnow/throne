@@ -2,8 +2,8 @@ import type { IntentLinksSummaryEntry } from "@/entities/intent";
 
 /**
  * Derive structural parents of an intent from its link summary:
- *   • outgoing `derived_from` — peers this intent was structurally derived from
- *   • incoming `blocks` (a.k.a. `blocked_by`) — peers that block this intent
+ *   • incoming `blocking=false` — soft parents / context sources
+ *   • incoming `blocking=true` — peers that block this intent
  *
  * Returned ids are de-duplicated and filtered to the supplied `visible` set,
  * so cross-context edges drop out of the canvas DAG (mirrors the board, which
@@ -24,7 +24,7 @@ export function parentsFromSummary(
     seen.add(id);
     out.push(id);
   };
-  for (const p of summary.derived_from) push(p.id);
+  for (const p of summary.linked_from) push(p.id);
   for (const p of summary.blocked_by) push(p.id);
   return out;
 }

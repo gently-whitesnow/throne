@@ -19,14 +19,14 @@ public sealed class CreateIntentLinkEndpoint(LinkIntentHandler handler)
             new LinkIntentCommand(
                 id,
                 body.To_id,
-                IntentLinkDtoMapper.FromContractLinkType(body.Type),
+                body.Blocking,
                 DomainIntentLinkAuthor.User,
                 body.Rationale
             ),
             cancellationToken
         );
         var location =
-            $"/api/v1/intents/{Uri.EscapeDataString(id)}/links/{Uri.EscapeDataString(link.ToId.Value)}/{Uri.EscapeDataString(link.Type)}";
+            $"/api/v1/intents/{Uri.EscapeDataString(id)}/links/{Uri.EscapeDataString(link.ToId.Value)}";
         return new CreatedResult(location, IntentLinkDtoMapper.ToLinkDto(link));
     }
 }

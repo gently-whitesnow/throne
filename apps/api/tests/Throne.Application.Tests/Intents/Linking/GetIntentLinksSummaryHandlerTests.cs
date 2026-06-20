@@ -40,37 +40,33 @@ public class GetIntentLinksSummaryHandlerTests
         ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    [Fact(DisplayName = "проекция раскладывает edges по 4 ролям и дедупит relates по peer.id")]
-    public async Task Projects_edges_into_four_roles()
+    [Fact(DisplayName = "проекция раскладывает edges по blocking + direction")]
+    public async Task Projects_edges_by_blocking_and_direction()
     {
         var subject = MakeIntent("subject");
         var blocker = MakeIntent("blocker");
-        var parent = MakeIntent("parent");
-        var child = MakeIntent("child");
-        var topic = MakeIntent("topic");
+        var blocked = MakeIntent("blocked");
+        var source = MakeIntent("source");
+        var target = MakeIntent("target");
 
         var blocksEdge = new IntentLinkView(
-            new IntentLink("e1", blocker.Id, subject.Id, IntentLinkType.Blocks, IntentLinkAuthor.User, null, Now),
+            new IntentLink("e1", blocker.Id, subject.Id, true, IntentLinkAuthor.User, null, Now),
             IntentLinkDirection.Incoming, blocker);
-        var parentEdge = new IntentLinkView(
-            new IntentLink("e2", subject.Id, parent.Id, IntentLinkType.DerivedFrom, IntentLinkAuthor.User, null, Now),
-            IntentLinkDirection.Outgoing, parent);
-        var childEdge = new IntentLinkView(
-            new IntentLink("e3", child.Id, subject.Id, IntentLinkType.DerivedFrom, IntentLinkAuthor.User, null, Now),
-            IntentLinkDirection.Incoming, child);
-        // Same `topic` related once outgoing and once incoming → dedupe by peer id.
-        var relatesOut = new IntentLinkView(
-            new IntentLink("e4", subject.Id, topic.Id, IntentLinkType.Relates, IntentLinkAuthor.Agent, null, Now),
-            IntentLinkDirection.Outgoing, topic);
-        var relatesIn = new IntentLinkView(
-            new IntentLink("e5", topic.Id, subject.Id, IntentLinkType.Relates, IntentLinkAuthor.User, null, Now),
-            IntentLinkDirection.Incoming, topic);
+        var blocksOutgoing = new IntentLinkView(
+            new IntentLink("e2", subject.Id, blocked.Id, true, IntentLinkAuthor.User, null, Now),
+            IntentLinkDirection.Outgoing, blocked);
+        var linkedFrom = new IntentLinkView(
+            new IntentLink("e3", source.Id, subject.Id, false, IntentLinkAuthor.User, null, Now),
+            IntentLinkDirection.Incoming, source);
+        var linkedTo = new IntentLinkView(
+            new IntentLink("e4", subject.Id, target.Id, false, IntentLinkAuthor.Agent, null, Now),
+            IntentLinkDirection.Outgoing, target);
 
         var repo = Substitute.For<IIntentLinkRepository>();
         repo.ListByIntentsAsync(Arg.Any<IReadOnlyList<IntentId>>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, IReadOnlyList<IntentLinkView>>(StringComparer.Ordinal)
             {
-                [subject.Id.Value] = [blocksEdge, parentEdge, childEdge, relatesOut, relatesIn],
+                [subject.Id.Value] = [blocksEdge, blocksOutgoing, linkedFrom, linkedTo],
             });
 
         var handler = new GetIntentLinksSummaryHandler(repo);
@@ -81,9 +77,9 @@ public class GetIntentLinksSummaryHandlerTests
         var summary = summaries.Single();
         summary.IntentId.Should().Be(subject.Id.Value);
         summary.BlockedBy.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(blocker.Id.Value);
-        summary.DerivedFrom.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(parent.Id.Value);
-        summary.SourceOf.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(child.Id.Value);
-        summary.Relates.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(topic.Id.Value);
+        summary.Blocks.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(blocked.Id.Value);
+        summary.LinkedFrom.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(source.Id.Value);
+        summary.LinkedTo.Select(p => p.Id.Value).Should().ContainSingle().Which.Should().Be(target.Id.Value);
     }
 
     [Fact(DisplayName = "блокирующая edge с direction=outgoing не попадает в blocked_by")]
@@ -92,7 +88,7 @@ public class GetIntentLinksSummaryHandlerTests
         var subject = MakeIntent("subject");
         var target = MakeIntent("target");
         var outgoing = new IntentLinkView(
-            new IntentLink("e1", subject.Id, target.Id, IntentLinkType.Blocks, IntentLinkAuthor.User, null, Now),
+            new IntentLink("e1", subject.Id, target.Id, true, IntentLinkAuthor.User, null, Now),
             IntentLinkDirection.Outgoing, target);
 
         var repo = Substitute.For<IIntentLinkRepository>();

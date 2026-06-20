@@ -194,7 +194,7 @@ namespace Throne.Api.Generated
         /// Batch-fetch link aggregates for a set of intents (board badges + hover overlay).
         /// </summary>
         /// <remarks>
-        /// Companion to `listIntents`: instead of bloating the list DTO with graph-join fields, the board fetches per-intent link aggregates here. For each requested id the server returns counts and peer previews for the four roles surfaced on the card (`blocked_by`, `derived_from`, `source_of`, `relates`). Edges whose peer the caller does not own are dropped from the projection. Missing ids in the response map to «no incident edges».
+        /// Companion to `listIntents`: instead of bloating the list DTO with graph-join fields, the board fetches per-intent link aggregates here. For each requested id the server returns peer previews for the graph roles surfaced on the card (`blocked_by`, `blocks`, `linked_from`, `linked_to`). Edges whose peer the caller does not own are dropped from the projection. Missing ids in the response map to «no incident edges».
         /// </remarks>
         /// <param name="ids">One or more intent ids to aggregate links for. Repeat the parameter for each id.</param>
         /// <returns>OK</returns>
@@ -209,13 +209,13 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/links", Name = "listIntentLinks")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentLinksPageDto>> ListIntentLinks([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromQuery] IntentLinkDirection? direction = null, [Microsoft.AspNetCore.Mvc.FromQuery] IntentLinkType? type = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null, [Microsoft.AspNetCore.Mvc.FromQuery] string cursor = null);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentLinksPageDto>> ListIntentLinks([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromQuery] IntentLinkDirection? direction = null, [Microsoft.AspNetCore.Mvc.FromQuery] bool? blocking = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null, [Microsoft.AspNetCore.Mvc.FromQuery] string cursor = null);
 
         /// <summary>
         /// Create one directed edge between two intents (M:N graph).
         /// </summary>
         /// <remarks>
-        /// Creates one directed edge `(from_id=path id, to_id, type)`. Stage 1 supports `relates`, `blocks`, `derived_from`. Mirror roles (`blocked_by`, `source_of`) are computed projections, never separate edges. Self-links are rejected with `link.self_link`. Duplicates `(from_id, to_id, type)` are rejected with `link.duplicate`. The reserved type `duplicate_of` is rejected with `link.type_unsupported` until stage 3.
+        /// Creates one directed edge `(from_id=path id, to_id)` in the unified forward graph. `blocking=true` marks hard dependency edges; `blocking=false` is soft context/provenance. Self-links are rejected with `link.self_link`. Duplicates `(from_id, to_id)` are rejected with `link.duplicate`.
         /// </remarks>
         /// <returns>Created</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/links", Name = "createIntentLink")]
@@ -225,11 +225,11 @@ namespace Throne.Api.Generated
         /// Delete one directed edge by its natural key.
         /// </summary>
         /// <remarks>
-        /// Idempotent delete by natural key `(from_id=path id, to_id, type)`. Returns 204 whether the edge existed or not — repeated calls with stale state must be safe.
+        /// Idempotent delete by natural key `(from_id=path id, to_id)`. Returns 204 whether the edge existed or not — repeated calls with stale state must be safe.
         /// </remarks>
         /// <returns>Deleted (or already absent)</returns>
-        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/links/{to_id}/{type}", Name = "deleteIntentLink")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntentLink([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string to_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] IntentLinkType type);
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/links/{to_id}", Name = "deleteIntentLink")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteIntentLink([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string to_id);
 
     }
 

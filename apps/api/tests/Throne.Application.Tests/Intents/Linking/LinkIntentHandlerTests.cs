@@ -20,31 +20,11 @@ public class LinkIntentHandlerTests
 
         var same = IntentId.New().Value;
         var act = () => handler.HandleAsync(
-            new LinkIntentCommand(same, same, IntentLinkType.Relates, IntentLinkAuthor.Agent, null),
+            new LinkIntentCommand(same, same, false, IntentLinkAuthor.Agent, null),
             CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(LinkErrorCodes.SelfLink);
-        await repo.DidNotReceiveWithAnyArgs().CreateAsync(default!, default);
-    }
-
-    [Fact(DisplayName = "link_intent с duplicate_of отдаёт link.type_unsupported (stage 3 reserved)")]
-    public async Task Duplicate_of_is_rejected_in_stage_one()
-    {
-        var repo = Substitute.For<IIntentLinkRepository>();
-        var handler = new LinkIntentHandler(repo, new PassthroughUnitOfWork(), new FakeClock(Now));
-
-        var act = () => handler.HandleAsync(
-            new LinkIntentCommand(
-                IntentId.New().Value,
-                IntentId.New().Value,
-                IntentLinkType.DuplicateOf,
-                IntentLinkAuthor.Agent,
-                null),
-            CancellationToken.None);
-
-        var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(LinkErrorCodes.TypeUnsupported);
         await repo.DidNotReceiveWithAnyArgs().CreateAsync(default!, default);
     }
 
@@ -56,7 +36,7 @@ public class LinkIntentHandlerTests
             id: "existing",
             fromId: new IntentId("a"),
             toId: new IntentId("b"),
-            type: IntentLinkType.Relates,
+            blocking: false,
             author: IntentLinkAuthor.User,
             rationale: null,
             createdAt: Now);
@@ -66,7 +46,7 @@ public class LinkIntentHandlerTests
         var handler = new LinkIntentHandler(repo, new PassthroughUnitOfWork(), new FakeClock(Now));
 
         var act = () => handler.HandleAsync(
-            new LinkIntentCommand("a", "b", IntentLinkType.Relates, IntentLinkAuthor.Agent, null),
+            new LinkIntentCommand("a", "b", false, IntentLinkAuthor.Agent, null),
             CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
@@ -83,7 +63,7 @@ public class LinkIntentHandlerTests
         var handler = new LinkIntentHandler(repo, new PassthroughUnitOfWork(), new FakeClock(Now));
 
         var act = () => handler.HandleAsync(
-            new LinkIntentCommand("a", "ghost", IntentLinkType.Blocks, IntentLinkAuthor.Agent, null),
+            new LinkIntentCommand("a", "ghost", true, IntentLinkAuthor.Agent, null),
             CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
@@ -105,12 +85,12 @@ public class LinkIntentHandlerTests
 
         var handler = new LinkIntentHandler(repo, new PassthroughUnitOfWork(), new FakeClock(Now));
         var link = await handler.HandleAsync(
-            new LinkIntentCommand("a", "b", IntentLinkType.DerivedFrom, IntentLinkAuthor.Agent, "  cause  "),
+            new LinkIntentCommand("a", "b", false, IntentLinkAuthor.Agent, "  cause  "),
             CancellationToken.None);
 
         link.Should().NotBeNull();
         link.Rationale.Should().Be("cause");
-        link.Type.Should().Be(IntentLinkType.DerivedFrom);
+        link.Blocking.Should().BeFalse();
         link.Author.Should().Be(IntentLinkAuthor.Agent);
     }
 
