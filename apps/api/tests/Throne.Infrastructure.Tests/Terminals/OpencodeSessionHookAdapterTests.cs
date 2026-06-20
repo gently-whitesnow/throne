@@ -22,8 +22,8 @@ public class OpencodeSessionHookAdapterTests
         return new LocalModelDiscoveryService(new LocalModelSettings { BaseUrl = baseUrl }, catalog);
     }
 
-    [Fact(DisplayName = "Пишет opencode.json и возвращает фиксированный TUI server endpoint в argv")]
-    public async Task Writes_opencode_config_and_returns_tui_server_argv()
+    [Fact(DisplayName = "Пишет opencode.json и возвращает пустой spawn argv (loop живёт в shared serve)")]
+    public async Task Writes_opencode_config_and_returns_empty_argv()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
         var sut = NewAdapter("http://localhost:1234", ["llama-4", "qwen-3"]);
@@ -31,7 +31,7 @@ public class OpencodeSessionHookAdapterTests
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
-        args.Should().Equal("--hostname", "127.0.0.1", "--port", "49152");
+        args.Should().BeEmpty();
         var configPath = Path.Combine(root, "opencode.json");
         File.Exists(configPath).Should().BeTrue();
         File.Exists(Path.Combine(root, ".opencode", "plugins", "throne.js")).Should().BeTrue();
@@ -117,7 +117,7 @@ public class OpencodeSessionHookAdapterTests
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
-        args.Should().Equal("--hostname", "127.0.0.1", "--port", "49152");
+        args.Should().BeEmpty();
         using var doc = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
         var provider = doc.RootElement.GetProperty("provider").GetProperty("throne-local");
@@ -134,19 +134,31 @@ public class OpencodeSessionHookAdapterTests
         sut.IsTuiReady("───\n> Tell OpenCode what to do…\n───").Should().BeFalse();
     }
 
-    [Fact(DisplayName = "Первый prompt отправляется в подготовленный TUI HTTP endpoint")]
-    public async Task Initial_prompt_uses_prepared_tui_endpoint()
+    [Fact(DisplayName = "Непустой prompt: создаёт сессию на shared serve и строит attach --session argv")]
+    public async Task Non_empty_prompt_creates_session_and_builds_attach_args()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
         var client = new RecordingTuiClient();
         var sut = NewAdapter("http://localhost:1234", ["llama-4"], client);
 
-        await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
-        await sut.SubmitInitialPromptAsync("intent-1", root, "TASK", CancellationToken.None);
+        var args = await sut.InitializeSessionAsync("intent-1", root, "qwen-3", "TASK", CancellationToken.None);
 
+        args.Should().Equal("attach", "http://127.0.0.1:4096", "--dir", root, "--session", "ses_made");
         client.Calls.Should().Equal(
-            new TuiCall(new Uri("http://127.0.0.1:49152/"), root, "TASK"));
+            new TuiCall(new Uri("http://127.0.0.1:4096/"), root, "throne-local", "qwen-3", "TASK"));
+    }
+
+    [Fact(DisplayName = "Пустой prompt: attach без --session, сессия не создаётся (boot bare)")]
+    public async Task Blank_prompt_attaches_without_session()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
+        var client = new RecordingTuiClient();
+        var sut = NewAdapter("http://localhost:1234", ["llama-4"], client);
+
+        var args = await sut.InitializeSessionAsync("intent-1", root, "qwen-3", "   ", CancellationToken.None);
+
+        args.Should().Equal("attach", "http://127.0.0.1:4096", "--dir", root);
+        client.Calls.Should().BeEmpty();
     }
 
     [Fact(DisplayName = "Plugin shim маппит OpenCode lifecycle events в существующий hook endpoint")]
@@ -213,28 +225,31 @@ public class OpencodeSessionHookAdapterTests
         new(
             BuildDiscovery(baseUrl, models),
             HookOptions,
-            new FixedPortAllocator(),
+            new FixedServeGateway(),
             client ?? new RecordingTuiClient());
 
-    private sealed class FixedPortAllocator : IOpencodeTuiPortAllocator
+    private sealed class FixedServeGateway : IOpencodeServeGateway
     {
-        public int Allocate() => 49152;
+        public Task<Uri> EnsureRunningAsync(CancellationToken ct) =>
+            Task.FromResult(new Uri("http://127.0.0.1:4096/"));
     }
 
-    private sealed record TuiCall(Uri Endpoint, string WorkspacePath, string Prompt);
+    private sealed record TuiCall(Uri Endpoint, string WorkspacePath, string ProviderId, string ModelId, string Prompt);
 
     private sealed class RecordingTuiClient : IOpencodeTuiClient
     {
         public List<TuiCall> Calls { get; } = [];
 
-        public Task SubmitInitialPromptAsync(
+        public Task<string> CreateSessionAndSubmitAsync(
             Uri endpoint,
             string workspacePath,
+            string providerId,
+            string modelId,
             string prompt,
             CancellationToken ct)
         {
-            Calls.Add(new TuiCall(endpoint, workspacePath, prompt));
-            return Task.CompletedTask;
+            Calls.Add(new TuiCall(endpoint, workspacePath, providerId, modelId, prompt));
+            return Task.FromResult("ses_made");
         }
     }
 

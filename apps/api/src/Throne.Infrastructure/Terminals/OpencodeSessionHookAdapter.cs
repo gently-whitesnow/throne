@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Throne.Application.LocalModels;
@@ -28,26 +26,28 @@ namespace Throne.Infrastructure.Terminals;
 ///   <c>.opencode/plugins</c>, so the adapter writes a per-session shim that maps OpenCode
 ///   lifecycle events onto the existing Throne hook endpoint.</item>
 /// </list>
+///
+/// Session delivery is native (<see cref="INativeSessionInitializer"/>): the loop runs in the
+/// shared <c>opencode serve</c> (owned by <see cref="IOpencodeServeGateway"/>), the prompt is
+/// submitted server-side, and the operator pane only attaches to the returned session id.
 /// </summary>
 internal sealed class OpencodeSessionHookAdapter(
     LocalModelDiscoveryService localModels,
     SessionHookOptions hookOptions,
-    IOpencodeTuiPortAllocator portAllocator,
-    IOpencodeTuiClient tuiClient) : ISessionHookAdapter, INativeInitialPromptSubmitter
+    IOpencodeServeGateway serveGateway,
+    IOpencodeTuiClient tuiClient) : ISessionHookAdapter, INativeSessionInitializer
 {
     private const string ConfigFileName = "opencode.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
     private const string SchemaUrl = "https://opencode.ai/config.json";
     private const string OpenAiCompatibleNpm = "@ai-sdk/openai-compatible";
     private const string ProviderDisplayName = "Throne Local";
-    private const string TuiHostname = "127.0.0.1";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = true,
     };
-    private readonly ConcurrentDictionary<string, Uri> _tuiEndpoints = new(StringComparer.Ordinal);
 
     public string Vendor => TerminalAgentCatalog.VendorOpencode;
 
@@ -97,31 +97,43 @@ internal sealed class OpencodeSessionHookAdapter(
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
 
-        var port = portAllocator.Allocate();
-        var endpoint = new Uri($"http://{TuiHostname}:{port.ToString(CultureInfo.InvariantCulture)}/");
-        _tuiEndpoints[intentId] = endpoint;
-        return ["--hostname", TuiHostname, "--port", port.ToString(CultureInfo.InvariantCulture)];
+        // The agent runs in the shared `opencode serve`, not in this pane — the spawn argv carries
+        // no server/model flags. The attach argv is produced later by InitializeSessionAsync, once
+        // the session exists and its id is known.
+        return [];
     }
 
-    public async Task SubmitInitialPromptAsync(
+    public async Task<IReadOnlyList<string>> InitializeSessionAsync(
         string intentId,
         string workspacePath,
-        string userPrompt,
+        string model,
+        string? userPrompt,
         CancellationToken ct)
     {
-        if (!_tuiEndpoints.TryGetValue(intentId, out var endpoint))
+        var endpoint = await serveGateway.EnsureRunningAsync(ct);
+
+        // `opencode attach <url> [--session <id>]`: the front pulls the session by id (no race).
+        // Drop the trailing slash so the url matches the CLI's `http://host:port` shape; --dir keeps
+        // the front's own config discovery aligned with the session's workspace.
+        var attach = new List<string>
         {
-            throw new InvalidOperationException($"OpenCode TUI endpoint was not prepared for intent '{intentId}'.");
+            "attach",
+            endpoint.AbsoluteUri.TrimEnd('/'),
+            "--dir",
+            workspacePath,
+        };
+
+        // Empty task → boot the front bare against the workspace; the operator types the first
+        // prompt. A non-empty task is created + submitted server-side now, then pinned via --session.
+        if (!string.IsNullOrWhiteSpace(userPrompt))
+        {
+            var sessionId = await tuiClient.CreateSessionAndSubmitAsync(
+                endpoint, workspacePath, TerminalAgentCatalog.OpencodeProviderId, model, userPrompt!, ct);
+            attach.Add("--session");
+            attach.Add(sessionId);
         }
 
-        try
-        {
-            await tuiClient.SubmitInitialPromptAsync(endpoint, workspacePath, userPrompt, ct);
-        }
-        finally
-        {
-            _tuiEndpoints.TryRemove(intentId, out _);
-        }
+        return attach;
     }
 
     // OpenCode initial prompt delivery uses the provider-native TUI HTTP API. The glyph predicate is
@@ -129,12 +141,9 @@ internal sealed class OpencodeSessionHookAdapter(
     public bool IsTuiReady(string paneSnapshot) => false;
 
     // Per-session files live inside the workspace (`opencode.json` + the system-prompt file),
-    // so the intent-done workspace teardown reaps them — nothing to do here.
-    public Task CleanupAsync(string intentId, CancellationToken ct)
-    {
-        _tuiEndpoints.TryRemove(intentId, out _);
-        return Task.CompletedTask;
-    }
+    // so the intent-done workspace teardown reaps them. The shared serve is host-scoped and is
+    // intentionally left running for other intents — nothing per-intent to tear down here.
+    public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
 
     private static async Task<string?> WriteSystemPromptAsync(
         string workspacePath, string? systemPrompt, CancellationToken ct)

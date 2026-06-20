@@ -78,10 +78,12 @@ public static class TerminalAgentCatalog
 
     // OpenCode reads its top-level provider/model from the workspace-local `opencode.json` that
     // the session-hook adapter writes (npm = "@ai-sdk/openai-compatible", baseURL = local /v1
-    // endpoint, models map = live discovery). The `--model` flag here merely pins the active
-    // model for this launch in the form `<providerId>/<modelId>` — the form OpenCode's CLI
-    // requires for selection. No effort axis: OpenCode does not surface reasoning-effort tiers,
-    // so SupportsEffort=false and BuildBaseArgs emits no effort flag.
+    // endpoint, models map = live discovery). The spawn argv carries no model/effort flag: the
+    // agent loop runs in a shared `opencode serve`, not in this pane, and the model is pinned
+    // server-side on the prompt (`prompt_async` model={providerID,modelID}) by the session-hook
+    // adapter. The pane only runs `opencode attach <url> --session <id>` — the adapter supplies
+    // that whole argv as prepared args, so BuildBaseArgs is empty. No effort axis either:
+    // OpenCode does not surface reasoning-effort tiers (SupportsEffort=false).
     private static readonly TerminalVendorDescriptor Opencode = new(
         Vendor: VendorOpencode,
         Label: "OpenCode",
@@ -90,7 +92,7 @@ public static class TerminalAgentCatalog
         Efforts: [],
         DefaultEffort: null,
         ModelSource: ModelSourceLocal,
-        BuildBaseArgs: static options => ["--model", $"{OpencodeProviderId}/{options.Model}"],
+        BuildBaseArgs: static _ => [],
         RequiredCapability: Throne.Domain.Capabilities.CapabilityNames.Opencode);
 
     /// <summary>Descriptors in catalog (display) order; drives the launch-surface dropdown.</summary>

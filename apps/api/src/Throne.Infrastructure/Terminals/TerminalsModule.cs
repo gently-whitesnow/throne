@@ -41,7 +41,7 @@ public static class TerminalsModule
         services.AddSingleton<ITerminalStreamBridge, TmuxStreamBridge>();
         services.AddHttpClient(OpencodeTuiClient.HttpClientName);
         services.AddSingleton<IOpencodeTuiClient, OpencodeTuiClient>();
-        services.AddSingleton<IOpencodeTuiPortAllocator, OpencodeTuiPortAllocator>();
+        services.AddSingleton<IOpencodeServeGateway, OpencodeServeGateway>();
         services.AddSingleton(new SessionHookOptions
         {
             ApiBaseUrl = configuration?[SessionHookOptions.ApiBaseUrlKey]

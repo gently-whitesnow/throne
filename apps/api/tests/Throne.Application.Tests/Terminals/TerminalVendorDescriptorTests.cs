@@ -24,8 +24,8 @@ public class TerminalVendorDescriptorTests
         descriptor.DefaultEffort.Should().Be(TerminalAgentCatalog.EffortMedium);
     }
 
-    [Fact(DisplayName = "opencode descriptor: модель префиксуется throne-local/, эффорта нет, ModelSource=local")]
-    public void Opencode_descriptor_prefixes_model_and_has_no_effort()
+    [Fact(DisplayName = "opencode descriptor: пустой spawn argv (loop в shared serve), эффорта нет, ModelSource=local")]
+    public void Opencode_descriptor_emits_no_base_args_and_has_no_effort()
     {
         var descriptor = TerminalAgentCatalog.DescriptorFor(TerminalAgentCatalog.VendorOpencode);
 
@@ -37,9 +37,9 @@ public class TerminalVendorDescriptorTests
 
         var options = new TerminalLaunchOptions(
             TerminalAgentCatalog.VendorOpencode, Model: "llama-4", Effort: null);
-        var args = descriptor.BuildBaseArgs(options);
 
-        args.Should().Equal("--model", $"{TerminalAgentCatalog.OpencodeProviderId}/llama-4");
-        args.Should().NotContain(a => a.Contains("effort", StringComparison.Ordinal));
+        // The pane runs `opencode attach …` (argv supplied by the session-hook adapter), not a
+        // model-flagged TUI: the model is pinned server-side on the prompt, so no base flags here.
+        descriptor.BuildBaseArgs(options).Should().BeEmpty();
     }
 }
