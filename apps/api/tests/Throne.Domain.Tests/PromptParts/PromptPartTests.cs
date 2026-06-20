@@ -112,4 +112,30 @@ public class PromptPartTests
             .Which.Mode.Should().Be(PromptPartModeNames.Interview);
         part.UpdatedAt.Should().Be(Now.AddMinutes(5));
     }
+
+    [Fact(DisplayName = "Restore отбрасывает роль с выпиленным режимом, не падая")]
+    public void Restore_drops_retired_mode_role()
+    {
+        var part = PromptPart.Restore(
+            PromptPartId.New(), PromptPartScopeNames.System, "common", "body", "desc", 3,
+            [
+                new PromptPartModeRole(PromptPartModeNames.Work, PromptPartRoleNames.DefaultOn, 0),
+                new PromptPartModeRole("schema_map", PromptPartRoleNames.Mandatory, 1),
+            ],
+            Now, Now);
+
+        part.ModeRoles.Should().ContainSingle()
+            .Which.Mode.Should().Be(PromptPartModeNames.Work);
+    }
+
+    [Fact(DisplayName = "Restore допускает пустые роли после отбрасывания всех выпиленных")]
+    public void Restore_allows_empty_after_dropping_all_retired()
+    {
+        var part = PromptPart.Restore(
+            PromptPartId.New(), PromptPartScopeNames.System, "schema_map", "body", "desc", 1,
+            [new PromptPartModeRole("schema_map", PromptPartRoleNames.Mandatory, 0)],
+            Now, Now);
+
+        part.ModeRoles.Should().BeEmpty();
+    }
 }
