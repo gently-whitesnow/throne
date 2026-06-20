@@ -118,7 +118,6 @@ public partial class RunPreflightOrchestratorTests
             return new RunPreflightSpawn(
                 Tmux, workspace, Substitute.For<IWorkspaceTrust>(),
                 [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
-                new SessionSkillPackageRegistry(),
                 readinessWaiter, options,
                 new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());

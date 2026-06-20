@@ -39,7 +39,6 @@ public class RunPreflightSpawnInitialPromptTests
             new WorkspaceRoot(workspaceRoot),
             Substitute.For<IWorkspaceTrust>(),
             [adapter],
-            new SessionSkillPackageRegistry(),
             new TmuxTuiReadinessWaiter(
                 tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 NullLogger<TmuxTuiReadinessWaiter>.Instance),

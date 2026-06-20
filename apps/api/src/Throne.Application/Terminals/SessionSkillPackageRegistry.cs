@@ -1,6 +1,6 @@
 namespace Throne.Application.Terminals;
 
-public sealed class SessionSkillPackageRegistry
+public static class SessionSkillPackageRegistry
 {
     private static readonly IReadOnlyList<string> AllVendors =
     [
@@ -9,7 +9,7 @@ public sealed class SessionSkillPackageRegistry
         TerminalAgentCatalog.VendorOpencode,
     ];
 
-    private readonly IReadOnlyList<SessionSkillPackageDescriptor> _descriptors =
+    private static readonly IReadOnlyList<SessionSkillPackageDescriptor> Descriptors =
     [
         new(
             SessionSkillPackageIds.ReviewArtifact,
@@ -23,11 +23,11 @@ public sealed class SessionSkillPackageRegistry
             AllVendors),
     ];
 
-    public IReadOnlyList<SessionSkillPackage> Resolve(SessionSkillPackageResolution resolution)
+    public static IReadOnlyList<SessionSkillPackage> Resolve(SessionSkillPackageResolution resolution)
     {
         ArgumentNullException.ThrowIfNull(resolution);
         var result = new List<SessionSkillPackage>();
-        foreach (var descriptor in _descriptors)
+        foreach (var descriptor in Descriptors)
         {
             if (!descriptor.Matches(resolution.Mode, resolution.Vendor))
             {
