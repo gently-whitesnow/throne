@@ -96,7 +96,7 @@ public class TerminalSessionKillServiceTests
             var spawn = new RunPreflightSpawn(
                 Tmux,
                 new StubWorkspaceRoot(WorkspaceRoot),
-                Substitute.For<IWorkspaceTrust>(),
+                TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
                 Array.Empty<ISessionHookAdapter>(),
                 waiter,
                 options,
