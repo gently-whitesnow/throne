@@ -23,6 +23,8 @@ public sealed class TerminalRunningContextTests
     [InlineData("throne-", null)]
     [InlineData("other-abc", null)]
     [InlineData("", null)]
+    // The shared opencode-serve session is infrastructure, not an intent — must not be surfaced.
+    [InlineData("throne-opencode-serve", null)]
     public void TryIntentId_strips_prefix(string sessionName, string? expected)
     {
         TmuxSessionName.TryIntentId(sessionName).Should().Be(expected);

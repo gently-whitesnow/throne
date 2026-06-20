@@ -9,6 +9,15 @@ public static class TmuxSessionName
 {
     public const string Prefix = "throne-";
 
+    /// <summary>
+    /// Reserved pseudo-intent id for the shared <c>opencode serve</c> tmux session
+    /// (<c>throne-opencode-serve</c>). It is infrastructure — one persistent serve per host that
+    /// every OpenCode intent attaches to — not an intent, so liveness scans
+    /// (<see cref="TryIntentId"/>) must not surface it as a running intent. Real intent ids are
+    /// opaque hashes and never collide with this literal.
+    /// </summary>
+    public const string OpencodeServeReservedId = "opencode-serve";
+
     public static string For(string intentId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
@@ -27,6 +36,10 @@ public static class TmuxSessionName
             return null;
         }
         var id = sessionName[Prefix.Length..];
-        return id.Length == 0 ? null : id;
+        if (id.Length == 0 || string.Equals(id, OpencodeServeReservedId, StringComparison.Ordinal))
+        {
+            return null;
+        }
+        return id;
     }
 }

@@ -13,12 +13,13 @@ namespace Throne.Application.Tests.Terminals;
 
 public class RunPreflightSpawnInitialPromptTests
 {
-    [Fact(DisplayName = "OpenCode доставляет первый prompt через native submit без capture-pane и tmux paste")]
-    public async Task Opencode_initial_prompt_uses_native_submitter()
+    [Fact(DisplayName = "OpenCode инициализирует сессию до spawn и спавнит attach-argv без capture-pane/paste")]
+    public async Task Opencode_initial_prompt_uses_native_session_initializer()
     {
         var workspaceRoot = Path.Combine(Path.GetTempPath(), $"throne-spawn-{Guid.NewGuid():N}");
         var tmux = Substitute.For<ITmuxSessionManager>();
-        tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>())
+        TmuxSpawnRequest? spawned = null;
+        tmux.SpawnAsync(Arg.Do<TmuxSpawnRequest>(r => spawned = r), Arg.Any<CancellationToken>())
             .Returns(new TmuxSpawnResult("throne-intent-1", IsAlive: true, Detail: null));
         var adapter = new NativeAdapter();
         var intents = Substitute.For<IIntentRepository>();
@@ -56,7 +57,10 @@ public class RunPreflightSpawnInitialPromptTests
                 reviewArtifact: null,
                 CancellationToken.None);
 
-            adapter.Submitted.Should().Equal([("intent-1", Path.Combine(workspaceRoot, "intents", "intent-1"), "TASK")]);
+            var workspacePath = Path.Combine(workspaceRoot, "intents", "intent-1");
+            adapter.Initialized.Should().Equal([("intent-1", workspacePath, "qwen", "TASK")]);
+            // The attach argv produced by the initializer is folded into the spawn command.
+            spawned!.Arguments.Should().Equal("attach", "http://127.0.0.1:4096", "--session", "ses-1");
             await tmux.DidNotReceive().CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
             await tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -70,10 +74,10 @@ public class RunPreflightSpawnInitialPromptTests
         }
     }
 
-    private sealed class NativeAdapter : ISessionHookAdapter, INativeInitialPromptSubmitter
+    private sealed class NativeAdapter : ISessionHookAdapter, INativeSessionInitializer
     {
         public string Vendor => TerminalAgentCatalog.VendorOpencode;
-        public List<(string IntentId, string WorkspacePath, string Prompt)> Submitted { get; } = [];
+        public List<(string IntentId, string WorkspacePath, string Model, string? Prompt)> Initialized { get; } = [];
 
         public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
             string intentId,
@@ -82,16 +86,18 @@ public class RunPreflightSpawnInitialPromptTests
             string? systemPrompt,
             ReviewArtifactWriteTarget? reviewArtifact,
             CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<string>>(["--hostname", "127.0.0.1", "--port", "49152"]);
+            Task.FromResult<IReadOnlyList<string>>([]);
 
-        public Task SubmitInitialPromptAsync(
+        public Task<IReadOnlyList<string>> InitializeSessionAsync(
             string intentId,
             string workspacePath,
-            string userPrompt,
+            string model,
+            string? userPrompt,
             CancellationToken ct)
         {
-            Submitted.Add((intentId, workspacePath, userPrompt));
-            return Task.CompletedTask;
+            Initialized.Add((intentId, workspacePath, model, userPrompt));
+            return Task.FromResult<IReadOnlyList<string>>(
+                ["attach", "http://127.0.0.1:4096", "--session", "ses-1"]);
         }
 
         public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
