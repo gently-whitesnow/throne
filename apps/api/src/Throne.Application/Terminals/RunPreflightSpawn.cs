@@ -15,6 +15,7 @@ public sealed class RunPreflightSpawn(
     IWorkspaceRootProvider workspaceRoot,
     IWorkspaceTrust workspaceTrust,
     IEnumerable<ISessionHookAdapter> hookAdapters,
+    SessionSkillPackageRegistry skillPackageRegistry,
     TmuxTuiReadinessWaiter readinessWaiter,
     RunPreflightOptions options,
     SetIntentStatusHandler setStatus,
@@ -49,9 +50,11 @@ public sealed class RunPreflightSpawn(
         // profile), the user task is pasted into the live pane after spawn from a file. An empty
         // task skips the paste so the agent boots bare and the operator types it themselves.
         _hookAdapters.TryGetValue(launch.Vendor, out var adapter);
+        var skillPackages = skillPackageRegistry.Resolve(
+            new SessionSkillPackageResolution(intentId.Value, mode, launch.Vendor, reviewArtifact));
         IReadOnlyList<string> preparedArgs = adapter is not null
             ? await adapter.PrepareSpawnArgsAsync(
-                intentId.Value, workspacePath, mode, prompt.SystemPrompt, reviewArtifact, ct)
+                intentId.Value, workspacePath, mode, prompt.SystemPrompt, skillPackages, ct)
             : [];
 
         // Native-session vendors (OpenCode) own their prompt delivery *before* the visible pane

@@ -39,6 +39,7 @@ public class RunPreflightSpawnInitialPromptTests
             new WorkspaceRoot(workspaceRoot),
             Substitute.For<IWorkspaceTrust>(),
             [adapter],
+            new SessionSkillPackageRegistry(),
             new TmuxTuiReadinessWaiter(
                 tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 NullLogger<TmuxTuiReadinessWaiter>.Instance),
@@ -84,7 +85,7 @@ public class RunPreflightSpawnInitialPromptTests
             string workspacePath,
             string mode,
             string? systemPrompt,
-            ReviewArtifactWriteTarget? reviewArtifact,
+            IReadOnlyList<SessionSkillPackage> skillPackages,
             CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<string>>([]);
 
