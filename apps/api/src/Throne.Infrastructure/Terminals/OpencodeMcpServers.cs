@@ -25,6 +25,12 @@ internal static class OpencodeMcpServers
         return servers;
     }
 
+    public static IReadOnlyDictionary<string, JsonNode>? WithoutThroneServer(string? existingJson)
+    {
+        var servers = ExistingServers(existingJson);
+        return servers.Count == 0 ? null : servers;
+    }
+
     private static Dictionary<string, JsonNode> ExistingServers(string? existingJson)
     {
         var result = new Dictionary<string, JsonNode>(StringComparer.Ordinal);
