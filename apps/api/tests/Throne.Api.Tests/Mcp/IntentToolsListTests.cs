@@ -107,7 +107,6 @@ public class IntentToolsListTests
             create: null!,
             get: new GetIntentHandler(intentRepo),
             listIntents: listHandler,
-            moveIntentHandler: null!,
             linkRepository: Substitute.For<IIntentLinkRepository>(),
             attachments: Substitute.For<IIntentAttachmentRepository>(),
             tagRefs: new IntentToolTagRefs(tagRepo),
