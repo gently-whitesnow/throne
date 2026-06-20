@@ -29,6 +29,15 @@ public class ClaudeSessionHookAdapterTests
                 $"curl -s -X POST 'http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/{hookEvent}?mode=work' " +
                 "-H 'Content-Type: application/json' -d @-");
         }
+
+        using var mcp = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, ".mcp.json")));
+        var server = mcp.RootElement.GetProperty("mcpServers").GetProperty("throne");
+        server.GetProperty("type").GetString().Should().Be("http");
+        server.GetProperty("url").GetString().Should().Be("http://localhost:5008/mcp");
+
+        using var projectSettings = JsonDocument.Parse(
+            await File.ReadAllTextAsync(Path.Combine(root, ".claude", "settings.local.json")));
+        projectSettings.RootElement.GetProperty("enabledMcpjsonServers")[0].GetString().Should().Be("throne");
     }
 
     [Fact(DisplayName = "Notification скоупится matcher'ом permission_prompt; остальные хуки без matcher")]
