@@ -60,7 +60,6 @@ public class IntentToolsAttachmentTests
             create: null!,
             get: new GetIntentHandler(intentRepo),
             listIntents: null!,
-            moveIntentHandler: null!,
             linkRepository: linkRepo,
             attachments: attachments,
             tagRefs: new IntentToolTagRefs(tagRepo),
