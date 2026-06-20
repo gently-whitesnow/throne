@@ -21,7 +21,7 @@ internal static class ReviewArtifactSkillFiles
         await File.WriteAllTextAsync(
             path,
             BuildScript(NormalizeApiBaseUrl(apiBaseUrl), package.Target),
-            Encoding.UTF8,
+            FileModeHelpers.ScriptEncoding,
             ct);
         FileModeHelpers.MakeExecutable(path);
     }

@@ -148,7 +148,6 @@ internal static class IntentOperationsScriptTemplate
           payload="$(replace_payload "${version}" "${old_file}" "${new_file}")"
           http_request POST "/api/v1/intents/${INTENT_ID}/replace-text" "${payload}"
           if [[ "${HTTP_STATUS}" == "409" ]]; then
-            http_request GET "/api/v1/intents/${INTENT_ID}" || true
             echo "throne-intent: replace-text lost an optimistic-concurrency race." >&2
             echo "throne-intent: run 'throne-intent get', refresh the old/new fragments, and retry." >&2
             exit 75
@@ -171,7 +170,7 @@ internal static class IntentOperationsScriptTemplate
           [[ -n "${text_file}" ]] || die "create requires --text-file"
           require_file "${text_file}"
 
-          http_request POST "/api/v1/intents" "$(create_payload "${text_file}" "${tags[@]}")"
+          http_request POST "/api/v1/intents" "$(create_payload "${text_file}" ${tags[@]+"${tags[@]}"})"
           if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
             if [[ "${id_only}" == true ]]; then
               printf '%s' "${HTTP_BODY}" | json_field id

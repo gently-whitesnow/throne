@@ -135,7 +135,13 @@ public class ClaudeSessionHookAdapterTests
             skillPackages: [new IntentOperationsSessionSkillPackage("intent-1")],
             CancellationToken.None);
 
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-intent"));
+        var scriptPath = Path.Combine(root, "bin", "throne-intent");
+        // No UTF-8 BOM: a BOM before `#!` breaks the shebang (ENOEXEC → /bin/sh fallback).
+        var scriptBytes = await File.ReadAllBytesAsync(scriptPath);
+        scriptBytes.Take(3).Should().NotEqual([(byte)0xEF, (byte)0xBB, (byte)0xBF]);
+        scriptBytes.Take(2).Should().Equal([(byte)'#', (byte)'!']);
+
+        var script = await File.ReadAllTextAsync(scriptPath);
         script.Should().Contain("INTENT_ID='intent-1'");
         script.Should().Contain("API_BASE=\"${THRONE_API_BASE:-http://localhost:5008}\"");
         script.Should().Contain("/api/v1/intents/${INTENT_ID}/replace-text");

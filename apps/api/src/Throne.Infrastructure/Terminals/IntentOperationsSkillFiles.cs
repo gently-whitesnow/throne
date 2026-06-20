@@ -21,7 +21,7 @@ internal static class IntentOperationsSkillFiles
         await File.WriteAllTextAsync(
             path,
             IntentOperationsScriptTemplate.Build(package.IntentId, NormalizeApiBaseUrl(apiBaseUrl)),
-            Encoding.UTF8,
+            FileModeHelpers.ScriptEncoding,
             ct);
         FileModeHelpers.MakeExecutable(path);
     }
