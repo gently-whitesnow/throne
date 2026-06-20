@@ -4,7 +4,7 @@ using Throne.Application.Terminals;
 
 namespace Throne.Infrastructure.Terminals;
 
-internal static class ReviewArtifactWorkspaceFiles
+internal static class ReviewArtifactSkillFiles
 {
     private const string ScriptRelativePath = "bin/throne-pr-artifact-write";
     private const string ClaudeSkillPath = ".claude/skills/throne-review-artifact/SKILL.md";
@@ -12,7 +12,7 @@ internal static class ReviewArtifactWorkspaceFiles
 
     public static async Task WriteScriptAsync(
         string workspacePath,
-        ReviewArtifactWriteTarget target,
+        ReviewArtifactSessionSkillPackage package,
         string? apiBaseUrl,
         CancellationToken ct)
     {
@@ -20,57 +20,34 @@ internal static class ReviewArtifactWorkspaceFiles
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllTextAsync(
             path,
-            BuildScript(NormalizeApiBaseUrl(apiBaseUrl), target),
-            Encoding.UTF8,
+            BuildScript(NormalizeApiBaseUrl(apiBaseUrl), package.Target),
+            FileModeHelpers.ScriptEncoding,
             ct);
-        MakeExecutable(path);
+        FileModeHelpers.MakeExecutable(path);
     }
 
     public static async Task WriteClaudeSkillAsync(
         string workspacePath,
-        ReviewArtifactWriteTarget target,
+        ReviewArtifactSessionSkillPackage package,
         CancellationToken ct)
     {
         var path = Path.Combine(workspacePath, ClaudeSkillPath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        await File.WriteAllTextAsync(
-            path,
-            BuildHint(ScriptPath(workspacePath), target),
-            Encoding.UTF8,
-            ct);
+        await File.WriteAllTextAsync(path, Hint(workspacePath, package), Encoding.UTF8, ct);
     }
 
-    public static string WithCodexHint(
-        string? systemPrompt,
+    public static async Task<string> WriteOpencodeHintAsync(
         string workspacePath,
-        ReviewArtifactWriteTarget? target)
-    {
-        var prompt = systemPrompt ?? string.Empty;
-        if (target is null)
-        {
-            return prompt;
-        }
-
-        var hint = BuildHint(ScriptPath(workspacePath), target);
-        return string.IsNullOrWhiteSpace(prompt)
-            ? hint
-            : $"{prompt.TrimEnd()}\n\n{hint}";
-    }
-
-    public static async Task<string?> WriteOpencodeHintAsync(
-        string workspacePath,
-        ReviewArtifactWriteTarget? target,
+        ReviewArtifactSessionSkillPackage package,
         CancellationToken ct)
     {
-        if (target is null)
-        {
-            return null;
-        }
-
         var path = Path.Combine(workspacePath, HintFileName);
-        await File.WriteAllTextAsync(path, BuildHint(ScriptPath(workspacePath), target), Encoding.UTF8, ct);
+        await File.WriteAllTextAsync(path, Hint(workspacePath, package), Encoding.UTF8, ct);
         return HintFileName;
     }
+
+    public static string Hint(string workspacePath, ReviewArtifactSessionSkillPackage package) =>
+        BuildHint(ScriptPath(workspacePath), package.Target);
 
     private static string ScriptPath(string workspacePath) =>
         Path.Combine(workspacePath, ScriptRelativePath);
@@ -169,18 +146,4 @@ internal static class ReviewArtifactWorkspaceFiles
             : apiBaseUrl.TrimEnd('/');
 
     private static string Sh(string value) => $"'{value.Replace("'", "'\"'\"'", StringComparison.Ordinal)}'";
-
-    private static void MakeExecutable(string path)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        File.SetUnixFileMode(
-            path,
-            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
-            | UnixFileMode.GroupRead | UnixFileMode.GroupExecute
-            | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
-    }
 }

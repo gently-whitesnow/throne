@@ -84,7 +84,7 @@ public class RunPreflightSpawnInitialPromptTests
             string workspacePath,
             string mode,
             string? systemPrompt,
-            ReviewArtifactWriteTarget? reviewArtifact,
+            IReadOnlyList<SessionSkillPackage> skillPackages,
             CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<string>>([]);
 

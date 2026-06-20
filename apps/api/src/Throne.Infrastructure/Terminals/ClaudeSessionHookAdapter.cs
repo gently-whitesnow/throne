@@ -32,7 +32,7 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         string workspacePath,
         string mode,
         string? systemPrompt,
-        ReviewArtifactWriteTarget? reviewArtifact,
+        IReadOnlyList<SessionSkillPackage> skillPackages,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
@@ -40,21 +40,20 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
         Directory.CreateDirectory(workspacePath);
-        await WorkspaceConfigFile.MergeAsync(
-            Path.Combine(workspacePath, McpFileName),
-            existing => ClaudeMcpDocument.WithThroneServer(existing, options.ApiBaseUrl),
-            ct);
-        await WorkspaceConfigFile.MergeAsync(
-            Path.Combine(workspacePath, ProjectSettingsPath),
-            ClaudeProjectSettingsDocument.WithThroneMcpEnabled,
-            ct);
-
-        if (reviewArtifact is not null)
+        if (SessionMcpPolicy.ShouldEnableThroneMcp(mode))
         {
-            await ReviewArtifactWorkspaceFiles.WriteScriptAsync(
-                workspacePath, reviewArtifact, options.ApiBaseUrl, ct);
-            await ReviewArtifactWorkspaceFiles.WriteClaudeSkillAsync(workspacePath, reviewArtifact, ct);
+            await WorkspaceConfigFile.MergeAsync(
+                Path.Combine(workspacePath, McpFileName),
+                existing => ClaudeMcpDocument.WithThroneServer(existing, options.ApiBaseUrl),
+                ct);
+            await WorkspaceConfigFile.MergeAsync(
+                Path.Combine(workspacePath, ProjectSettingsPath),
+                ClaudeProjectSettingsDocument.WithThroneMcpEnabled,
+                ct);
         }
+
+        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, options.ApiBaseUrl, ct);
+        await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, skillPackages, ct);
 
         var settingsPath = Path.Combine(workspacePath, SettingsFileName);
         await using (var stream = File.Create(settingsPath))

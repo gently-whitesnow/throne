@@ -17,7 +17,7 @@ public class ClaudeSessionHookAdapterTests
         });
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, skillPackages: [], CancellationToken.None);
 
         var settingsPath = Path.Combine(root, "throne-session.settings.json");
         args.Should().Equal("--settings", settingsPath);
@@ -47,7 +47,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, skillPackages: [], CancellationToken.None);
 
         using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(root, "throne-session.settings.json")));
@@ -63,7 +63,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", reviewArtifact: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", skillPackages: [], CancellationToken.None);
 
         var settingsPath = Path.Combine(root, "throne-session.settings.json");
         var systemPromptPath = Path.Combine(root, "throne-session.append-system-prompt.txt");
@@ -79,7 +79,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         var args = await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", reviewArtifact: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", skillPackages: [], CancellationToken.None);
 
         args.Should().NotContain("--append-system-prompt-file");
         File.Exists(Path.Combine(root, "throne-session.append-system-prompt.txt")).Should().BeFalse();
@@ -92,7 +92,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
 
         await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+            "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, skillPackages: [], CancellationToken.None);
 
         using var document = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(root, "throne-session.settings.json")));
@@ -107,7 +107,8 @@ public class ClaudeSessionHookAdapterTests
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            reviewArtifact: new ReviewArtifactWriteTarget("binding-1", 42), CancellationToken.None);
+            skillPackages: [new ReviewArtifactSessionSkillPackage(new ReviewArtifactWriteTarget("binding-1", 42))],
+            CancellationToken.None);
 
         var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
         script.Should().Contain("BINDING_ID='binding-1'");
@@ -118,6 +119,45 @@ public class ClaudeSessionHookAdapterTests
             Path.Combine(root, ".claude", "skills", "throne-review-artifact", "SKILL.md"));
         skill.Should().Contain("bin/throne-pr-artifact-write");
         skill.Should().Contain("send-comments");
+    }
+
+    [Fact(DisplayName = "Interview-сессия пишет intent-ops script + 2 Claude skills без Throne MCP config")]
+    public async Task Interview_writes_intent_operations_script_and_skills()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
+        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+
+        await sut.PrepareSpawnArgsAsync(
+            "intent-1",
+            root,
+            TerminalRunModes.Interview,
+            systemPrompt: null,
+            skillPackages: [new IntentOperationsSessionSkillPackage("intent-1")],
+            CancellationToken.None);
+
+        var scriptPath = Path.Combine(root, "bin", "throne-intent");
+        // No UTF-8 BOM: a BOM before `#!` breaks the shebang (ENOEXEC → /bin/sh fallback).
+        var scriptBytes = await File.ReadAllBytesAsync(scriptPath);
+        scriptBytes.Take(3).Should().NotEqual([(byte)0xEF, (byte)0xBB, (byte)0xBF]);
+        scriptBytes.Take(2).Should().Equal([(byte)'#', (byte)'!']);
+
+        var script = await File.ReadAllTextAsync(scriptPath);
+        script.Should().Contain("INTENT_ID='intent-1'");
+        script.Should().Contain("API_BASE=\"${THRONE_API_BASE:-http://localhost:5008}\"");
+        script.Should().Contain("/api/v1/intents/${INTENT_ID}/replace-text");
+        script.Should().Contain("\"expected_version\": int(sys.argv[1])");
+
+        var textSkill = await File.ReadAllTextAsync(
+            Path.Combine(root, ".claude", "skills", "throne-intent-text", "SKILL.md"));
+        textSkill.Should().Contain("replace-text --old-file");
+
+        var childSkill = await File.ReadAllTextAsync(
+            Path.Combine(root, ".claude", "skills", "throne-intent-decompose", "SKILL.md"));
+        childSkill.Should().Contain("create --text-file");
+        childSkill.Should().Contain("link \"$child_id\"");
+
+        File.Exists(Path.Combine(root, ".mcp.json")).Should().BeFalse();
+        File.Exists(Path.Combine(root, ".claude", "settings.local.json")).Should().BeFalse();
     }
 
     [Theory(DisplayName = "IsTuiReady распознаёт композёр Claude по `❯` промпту и игнорирует пустой/только-сплеш экран")]

@@ -58,7 +58,7 @@ internal sealed class OpencodeSessionHookAdapter(
         string workspacePath,
         string mode,
         string? systemPrompt,
-        ReviewArtifactWriteTarget? reviewArtifact,
+        IReadOnlyList<SessionSkillPackage> skillPackages,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
@@ -76,15 +76,11 @@ internal sealed class OpencodeSessionHookAdapter(
 
         await OpencodePluginShim.WriteAsync(
             workspacePath, intentId, mode, NormalizeBaseUrl(hookOptions.ApiBaseUrl), ct);
-        if (reviewArtifact is not null)
-        {
-            await ReviewArtifactWorkspaceFiles.WriteScriptAsync(
-                workspacePath, reviewArtifact, hookOptions.ApiBaseUrl, ct);
-        }
+        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, hookOptions.ApiBaseUrl, ct);
 
         var systemPromptPath = await WriteSystemPromptAsync(workspacePath, systemPrompt, ct);
-        var reviewHint = await ReviewArtifactWorkspaceFiles.WriteOpencodeHintAsync(
-            workspacePath, reviewArtifact, ct);
+        var skillHints = await SessionSkillWorkspaceFiles.WriteOpencodeHintsAsync(
+            workspacePath, skillPackages, ct);
         var configPath = Path.Combine(workspacePath, ConfigFileName);
         var existingConfig = File.Exists(configPath)
             ? await File.ReadAllTextAsync(configPath, ct)
@@ -92,7 +88,13 @@ internal sealed class OpencodeSessionHookAdapter(
         await using (var stream = File.Create(configPath))
         {
             var document = BuildConfig(
-                baseUrl, discovery.Models, systemPromptPath, reviewHint, existingConfig, hookOptions.ApiBaseUrl);
+                baseUrl,
+                discovery.Models,
+                systemPromptPath,
+                skillHints,
+                existingConfig,
+                hookOptions.ApiBaseUrl,
+                SessionMcpPolicy.ShouldEnableThroneMcp(mode));
             await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
@@ -161,9 +163,10 @@ internal sealed class OpencodeSessionHookAdapter(
         string baseUrl,
         IReadOnlyList<string> modelIds,
         string? systemPromptPath,
-        string? reviewHint,
+        IReadOnlyList<string> skillHints,
         string? existingConfig,
-        string? apiBaseUrl)
+        string? apiBaseUrl,
+        bool includeThroneMcp)
     {
         var models = new Dictionary<string, OpencodeConfigModel>(StringComparer.Ordinal);
         foreach (var id in modelIds)
@@ -183,20 +186,22 @@ internal sealed class OpencodeSessionHookAdapter(
             {
                 [TerminalAgentCatalog.OpencodeProviderId] = provider,
             },
-            Instructions: InstructionFiles(systemPromptPath, reviewHint),
-            Mcp: OpencodeMcpServers.MergeThroneServer(existingConfig, apiBaseUrl));
+            Instructions: InstructionFiles(systemPromptPath, skillHints),
+            Mcp: includeThroneMcp
+                ? OpencodeMcpServers.MergeThroneServer(existingConfig, apiBaseUrl)
+                : OpencodeMcpServers.WithoutThroneServer(existingConfig));
     }
 
-    private static string[]? InstructionFiles(string? systemPromptPath, string? reviewHint)
+    private static string[]? InstructionFiles(string? systemPromptPath, IReadOnlyList<string> skillHints)
     {
         var files = new List<string>();
         if (systemPromptPath is not null)
         {
             files.Add(Path.GetFileName(systemPromptPath));
         }
-        if (reviewHint is not null)
+        foreach (var hint in skillHints)
         {
-            files.Add(reviewHint);
+            files.Add(hint);
         }
         return files.Count == 0 ? null : files.ToArray();
     }

@@ -29,17 +29,20 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
         string workspacePath,
         string mode,
         string? systemPrompt,
-        ReviewArtifactWriteTarget? reviewArtifact,
+        IReadOnlyList<SessionSkillPackage> skillPackages,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
-        await WorkspaceConfigFile.MergeAsync(
-            Path.Combine(workspacePath, WorkspaceConfigPath),
-            existing => CodexMcpDocument.WithThroneServer(existing, options.ApiBaseUrl),
-            ct);
+        if (SessionMcpPolicy.ShouldEnableThroneMcp(mode))
+        {
+            await WorkspaceConfigFile.MergeAsync(
+                Path.Combine(workspacePath, WorkspaceConfigPath),
+                existing => CodexMcpDocument.WithThroneServer(existing, options.ApiBaseUrl),
+                ct);
+        }
 
         // One `-c hooks.<event>=...` override per event: each targets a distinct leaf under `hooks`,
         // so Codex merges them rather than the second clobbering the first.
@@ -54,14 +57,10 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
 
         args.Add(BypassHookTrustFlag);
 
-        if (reviewArtifact is not null)
-        {
-            await ReviewArtifactWorkspaceFiles.WriteScriptAsync(
-                workspacePath, reviewArtifact, options.ApiBaseUrl, ct);
-        }
+        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, options.ApiBaseUrl, ct);
 
-        var effectiveSystemPrompt = ReviewArtifactWorkspaceFiles.WithCodexHint(
-            systemPrompt, workspacePath, reviewArtifact);
+        var effectiveSystemPrompt = SessionSkillWorkspaceFiles.WithCodexHints(
+            systemPrompt, workspacePath, skillPackages);
         if (!string.IsNullOrWhiteSpace(effectiveSystemPrompt))
         {
             await WriteProfileAsync(intentId, effectiveSystemPrompt, ct);
