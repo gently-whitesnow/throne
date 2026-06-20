@@ -14,7 +14,7 @@ public sealed record McpIntentReadResult(
     [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt,
     [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry pick the attachment-read MCP tool that matches its 'kind' (image vs text/log) from your own registered tool list, passing this intent's id and the attachment id.")]
     IReadOnlyList<McpIntentAttachmentReadResult> Attachments,
-    [property: Description("Outgoing + incoming graph edges incident to this intent. Mirror roles ('blocked_by' for incoming 'blocks', 'source_of' for incoming 'derived_from') are computed projections — the same edge appears once with a 'direction' field.")]
+    [property: Description("Outgoing + incoming graph edges incident to this intent. Each edge has one forward direction and a blocking flag.")]
     IReadOnlyList<McpIntentLinkRead> Links,
     [property: Description("Repository bindings attached to this intent. Empty when the intent has no bindings. The agent uses 'workspace_path' as the local working tree; when 'pull_request_number' is present the agent reads review comments directly via `gh api repos/{owner}/{repo}/pulls/{n}/comments` — Throne does not cache comment bodies.")]
     IReadOnlyList<McpIntentRepositoryRef> Repositories);
@@ -33,7 +33,7 @@ public sealed record McpIntentRepositoryRef(
 public sealed record McpIntentLinkRead(
     [property: Description("Edge identifier.")] string Id,
     [property: Description("Direction relative to the queried intent: 'outgoing' = this intent is the from_id, 'incoming' = this intent is the to_id.")] string Direction,
-    [property: Description("Edge type: 'relates' (thematic), 'blocks' (dependency), 'derived_from' (causal trace).")] string Type,
+    [property: Description("True when this edge is a hard dependency/blocking edge.")] bool Blocking,
     [property: Description("Authored by 'user' or 'agent'.")] string Author,
     [property: Description("Optional rationale string supplied at link creation; null if absent.")] string? Rationale,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
@@ -51,7 +51,7 @@ public sealed record McpIntentLinkResult(
     [property: Description("Edge identifier.")] string Id,
     [property: Description("Source intent id.")] string FromId,
     [property: Description("Target intent id.")] string ToId,
-    [property: Description("Edge type: 'relates', 'blocks', or 'derived_from'.")] string Type,
+    [property: Description("True when this edge is a hard dependency/blocking edge.")] bool Blocking,
     [property: Description("Authored by 'user' or 'agent'.")] string Author,
     [property: Description("Optional rationale string; null if absent.")] string? Rationale,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt);

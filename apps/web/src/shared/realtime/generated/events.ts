@@ -18,7 +18,7 @@ export interface RealtimeEventMap {
   "intent.created": IntentsComponents["schemas"]["IntentDetailDto"];
   "intent.deleted": { intent_id: string };
   "intent.link_added": IntentsComponents["schemas"]["IntentLinkDto"];
-  "intent.link_removed": { id: string; from_id: string; to_id: string; type: unknown };
+  "intent.link_removed": { id: string; from_id: string; to_id: string; blocking: unknown };
   "intent.pin_moved": { intent_id: string; context_tag_id: string; pin_sort_key: string };
   "intent.pinned": { intent_id: string; context_tag_id: string; pin_sort_key: string };
   "intent.pr_comment_added": { intent_id: string; binding_id: string; comment: unknown };

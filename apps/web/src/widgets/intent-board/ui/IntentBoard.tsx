@@ -102,10 +102,13 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
       for (const peer of entry.blocked_by) {
         if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
       }
-      for (const peer of entry.derived_from) {
+      for (const peer of entry.blocks) {
         if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
       }
-      for (const peer of entry.relates) {
+      for (const peer of entry.linked_from) {
+        if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
+      }
+      for (const peer of entry.linked_to) {
         if (peer.id !== ownerId && linksSummary.has(peer.id)) return true;
       }
     }
@@ -140,9 +143,9 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     if (!entry) return new Set<string>();
     return new Set<string>([
       ...entry.blocked_by.map((p) => p.id),
-      ...entry.derived_from.map((p) => p.id),
-      ...entry.source_of.map((p) => p.id),
-      ...entry.relates.map((p) => p.id)
+      ...entry.blocks.map((p) => p.id),
+      ...entry.linked_from.map((p) => p.id),
+      ...entry.linked_to.map((p) => p.id)
     ]);
   }, [hoveredId, linksSummary]);
 

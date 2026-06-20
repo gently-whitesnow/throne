@@ -85,6 +85,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
         await MongoPromptPartPatchIndexes.CreateAsync(database, cancellationToken);
         await MongoDreamSessionIndexes.CreateAsync(database, cancellationToken);
 
+        await MongoIntentLinkMigration.RunAsync(database, cancellationToken);
         await CreateIntentLinkIndexesAsync(cancellationToken);
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);
@@ -184,14 +185,14 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
     private async Task CreateIntentLinkIndexesAsync(CancellationToken cancellationToken)
     {
         var intentLinks = database.GetCollection<IntentLinkDocument>(MongoCollectionNames.IntentLinks);
+        await MongoIntentLinkMigration.DropOldUniqueIndexAsync(database, cancellationToken);
         await intentLinks.Indexes.CreateManyAsync(
             [
                 new CreateIndexModel<IntentLinkDocument>(
                     Builders<IntentLinkDocument>.IndexKeys
                         .Ascending(x => x.FromId)
-                        .Ascending(x => x.ToId)
-                        .Ascending(x => x.Type),
-                    new CreateIndexOptions { Unique = true, Name = "from_to_type_unique" }),
+                        .Ascending(x => x.ToId),
+                    new CreateIndexOptions { Unique = true, Name = "from_to_unique" }),
                 new CreateIndexModel<IntentLinkDocument>(
                     Builders<IntentLinkDocument>.IndexKeys.Ascending(x => x.FromId),
                     new CreateIndexOptions { Name = "from_id" }),

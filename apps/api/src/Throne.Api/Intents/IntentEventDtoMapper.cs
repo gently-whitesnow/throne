@@ -49,7 +49,7 @@ internal static class IntentEventDtoMapper
         Id = link.Id,
         From_id = link.FromId,
         To_id = link.ToId,
-        Type = IntentLinkDtoMapper.ToContractLinkType(link.Type),
+        Blocking = link.Blocking,
         Author = link.Author switch
         {
             Throne.Domain.Intents.Linking.IntentLinkAuthor.User => ContractIntentLinkAuthor.User,

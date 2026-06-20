@@ -22,7 +22,7 @@ public sealed class IntentTools(
     IIntentRepositoryBindingReader repositoryBindings)
 {
     [McpServerTool(Name = "create_intent", UseStructuredContent = true)]
-    [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one. If the new Intent arises in the context of another active Intent, consider linking them via link_intent(from_id=new, to_id=source, type=\"derived_from\") — or type=\"relates\" for a thematic connection — so the new Intent does not become an orphan. Returns a compact ack; re-read with get_intent if the full body is needed.")]
+    [Description("Create a new Intent with canonical text version v1. Use when no active Intent exists or the user explicitly starts a new one. If the new Intent arises from another active Intent, consider linking them via link_intent(from_id=source, to_id=new, blocking=false) so the new Intent does not become an orphan. Returns a compact ack; re-read with get_intent if the full body is needed.")]
     public async Task<McpWriteAck> CreateIntent(
         [Description("Initial canonical Intent.text. Must be non-empty and contain the user's actual intent, not a summary of tool usage.")] string text,
         [Description("Tag names to attach. Pass exactly one entry — the normalized name of the current repository/project (e.g. 'throne'). The server upserts tags by name (existing tag → reused id, new tag → created and linked). Do not pass thematic / technological / feature tags.")] IReadOnlyList<string>? tags = null,

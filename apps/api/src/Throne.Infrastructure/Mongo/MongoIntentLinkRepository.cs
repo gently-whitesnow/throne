@@ -3,7 +3,6 @@ using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Events;
 using Throne.Domain.Intents.Linking;
-using Throne.Domain.Tags;
 using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
@@ -45,13 +44,13 @@ internal sealed class MongoIntentLinkRepository
             return new CreateIntentLinkOutcome.IntentNotFound(missing);
         }
 
-        var existing = await FindEdgeAsync(session, link.FromId, link.ToId, link.Type, ct);
+        var existing = await FindEdgeAsync(session, link.FromId, link.ToId, ct);
         if (existing is not null)
         {
-            return new CreateIntentLinkOutcome.Duplicate(MapToDomain(existing));
+            return new CreateIntentLinkOutcome.Duplicate(MongoIntentLinkMapper.ToDomain(existing));
         }
 
-        await InsertOneAsync(MapToDocument(link), ct);
+        await InsertOneAsync(MongoIntentLinkMapper.ToDocument(link), ct);
         await _intentEvents.AppendAsync(
             IntentEvent.ForLinkAdded(Guid.NewGuid().ToString("N"), link),
             ct);
@@ -61,14 +60,11 @@ internal sealed class MongoIntentLinkRepository
     public async Task<DeleteIntentLinkOutcome> DeleteAsync(
         IntentId fromId,
         IntentId toId,
-        string type,
         CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(type);
-
         var session = RequireSession(nameof(DeleteAsync));
 
-        var existing = await FindEdgeAsync(session, fromId, toId, type, ct);
+        var existing = await FindEdgeAsync(session, fromId, toId, ct);
         if (existing is null)
         {
             return new DeleteIntentLinkOutcome.NotFound();
@@ -76,7 +72,7 @@ internal sealed class MongoIntentLinkRepository
 
         await DeleteOneAsync(ById(existing.Id), ct);
 
-        var domain = MapToDomain(existing);
+        var domain = MongoIntentLinkMapper.ToDomain(existing);
         await _intentEvents.AppendAsync(
             IntentEvent.ForLinkRemoved(Guid.NewGuid().ToString("N"), domain, _clock.GetUtcNow()),
             ct);
@@ -88,7 +84,7 @@ internal sealed class MongoIntentLinkRepository
         var fb = Builders<IntentLinkDocument>.Filter;
         var filter = fb.Or(fb.Eq(d => d.FromId, intentId.Value), fb.Eq(d => d.ToId, intentId.Value));
         var docs = await Find(filter).SortBy(d => d.CreatedAt).ToListAsync(ct);
-        return await ProjectAsync(Sessions.Current, intentId, docs, ct);
+        return await MongoIntentLinkProjection.ProjectAsync(_intents, Sessions.Current, intentId, docs, ct);
     }
 
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<IntentLinkView>>> ListByIntentsAsync(
@@ -131,7 +127,7 @@ internal sealed class MongoIntentLinkRepository
             peerIds.Add(id);
         }
 
-        var peersById = await LoadPeersAsync(session, peerIds, ct);
+        var peersById = await MongoIntentLinkProjection.LoadPeersAsync(_intents, session, peerIds, ct);
 
         var grouped = new Dictionary<string, List<IntentLinkView>>(StringComparer.Ordinal);
         foreach (var doc in docs)
@@ -145,11 +141,11 @@ internal sealed class MongoIntentLinkRepository
 
             if (queriedSet.Contains(doc.FromId))
             {
-                AppendView(grouped, doc.FromId, MapToDomain(doc), IntentLinkDirection.Outgoing, MapIntentToDomain(peersById[doc.ToId]));
+                AppendView(grouped, doc.FromId, MongoIntentLinkMapper.ToDomain(doc), IntentLinkDirection.Outgoing, MongoIntentLinkMapper.IntentToDomain(peersById[doc.ToId]));
             }
             if (queriedSet.Contains(doc.ToId))
             {
-                AppendView(grouped, doc.ToId, MapToDomain(doc), IntentLinkDirection.Incoming, MapIntentToDomain(peersById[doc.FromId]));
+                AppendView(grouped, doc.ToId, MongoIntentLinkMapper.ToDomain(doc), IntentLinkDirection.Incoming, MongoIntentLinkMapper.IntentToDomain(peersById[doc.FromId]));
             }
         }
 
@@ -178,12 +174,12 @@ internal sealed class MongoIntentLinkRepository
     public async Task<IntentLinksPage> ListPagedAsync(
         IntentId intentId,
         IntentLinkDirection? direction,
-        string? type,
+        bool? blocking,
         int limit,
         string? cursor,
         CancellationToken ct)
     {
-        var filter = BuildPageFilter(intentId, direction, type, cursor);
+        var filter = BuildPageFilter(intentId, direction, blocking, cursor);
         var sort = Builders<IntentLinkDocument>.Sort
             .Combine(
                 Builders<IntentLinkDocument>.Sort.Ascending(d => d.CreatedAt),
@@ -194,7 +190,7 @@ internal sealed class MongoIntentLinkRepository
 
         var hasMore = docs.Count > limit;
         var pageDocs = hasMore ? docs.Take(limit).ToList() : docs;
-        var items = await ProjectAsync(Sessions.Current, intentId, pageDocs, ct);
+        var items = await MongoIntentLinkProjection.ProjectAsync(_intents, Sessions.Current, intentId, pageDocs, ct);
 
         string? next = null;
         if (hasMore && pageDocs.Count > 0)
@@ -206,40 +202,10 @@ internal sealed class MongoIntentLinkRepository
         return new IntentLinksPage(items, next);
     }
 
-    public async Task<IReadOnlyDictionary<string, int>> CountIncomingByTypeAsync(
-        IReadOnlyList<IntentId> intentIds,
-        string type,
-        CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(intentIds);
-        ArgumentException.ThrowIfNullOrWhiteSpace(type);
-
-        var result = new Dictionary<string, int>(StringComparer.Ordinal);
-        if (intentIds.Count == 0)
-        {
-            return result;
-        }
-
-        var ids = intentIds.Select(i => i.Value).Distinct(StringComparer.Ordinal).ToList();
-
-        var fb = Builders<IntentLinkDocument>.Filter;
-        var filter = fb.And(
-            fb.Eq(d => d.Type, type),
-            fb.In(d => d.ToId, ids));
-        var docs = await Find(filter).Project(d => new { d.FromId, d.ToId }).ToListAsync(ct);
-
-        foreach (var doc in docs)
-        {
-            result.TryGetValue(doc.ToId, out var current);
-            result[doc.ToId] = current + 1;
-        }
-        return result;
-    }
-
     private static FilterDefinition<IntentLinkDocument> BuildPageFilter(
         IntentId intentId,
         IntentLinkDirection? direction,
-        string? type,
+        bool? blocking,
         string? cursor)
     {
         var fb = Builders<IntentLinkDocument>.Filter;
@@ -252,9 +218,9 @@ internal sealed class MongoIntentLinkRepository
                 _ => fb.Or(fb.Eq(d => d.FromId, intentId.Value), fb.Eq(d => d.ToId, intentId.Value)),
             },
         };
-        if (!string.IsNullOrWhiteSpace(type))
+        if (blocking is not null)
         {
-            clauses.Add(fb.Eq(d => d.Type, type));
+            clauses.Add(fb.Eq(d => d.Blocking, blocking.Value));
         }
         if (!string.IsNullOrWhiteSpace(cursor))
         {
@@ -264,57 +230,6 @@ internal sealed class MongoIntentLinkRepository
                 fb.And(fb.Eq(d => d.CreatedAt, cursorTime), fb.Gt(d => d.Id, cursorId))));
         }
         return fb.And(clauses);
-    }
-
-    private async Task<List<IntentLinkView>> ProjectAsync(
-        IClientSessionHandle? session,
-        IntentId intentId,
-        List<IntentLinkDocument> docs,
-        CancellationToken ct)
-    {
-        if (docs.Count == 0)
-        {
-            return [];
-        }
-
-        var peerIds = CollectPeerIds(intentId, docs);
-        var peersById = await LoadPeersAsync(session, peerIds, ct);
-
-        var result = new List<IntentLinkView>(docs.Count);
-        foreach (var doc in docs)
-        {
-            var direction = string.Equals(doc.FromId, intentId.Value, StringComparison.Ordinal)
-                ? IntentLinkDirection.Outgoing
-                : IntentLinkDirection.Incoming;
-            var peerId = direction == IntentLinkDirection.Outgoing ? doc.ToId : doc.FromId;
-            if (!peersById.TryGetValue(peerId, out var peer))
-            {
-                continue;
-            }
-            result.Add(new IntentLinkView(MapToDomain(doc), direction, MapIntentToDomain(peer)));
-        }
-        return result;
-    }
-
-    private static HashSet<string> CollectPeerIds(IntentId intentId, IReadOnlyList<IntentLinkDocument> docs)
-    {
-        var peerIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var doc in docs)
-        {
-            peerIds.Add(string.Equals(doc.FromId, intentId.Value, StringComparison.Ordinal) ? doc.ToId : doc.FromId);
-        }
-        return peerIds;
-    }
-
-    private async Task<Dictionary<string, IntentDocument>> LoadPeersAsync(
-        IClientSessionHandle? session,
-        HashSet<string> peerIds,
-        CancellationToken ct)
-    {
-        var peerFilter = Builders<IntentDocument>.Filter.In(d => d.Id, peerIds);
-        var find = session is null ? _intents.Find(peerFilter) : _intents.Find(session, peerFilter);
-        var peers = await find.ToListAsync(ct);
-        return peers.ToDictionary(p => p.Id, p => p, StringComparer.Ordinal);
     }
 
     private async Task<string?> FindMissingEndpointAsync(
@@ -342,13 +257,11 @@ internal sealed class MongoIntentLinkRepository
         IClientSessionHandle session,
         IntentId fromId,
         IntentId toId,
-        string type,
         CancellationToken ct)
     {
         var filter = Builders<IntentLinkDocument>.Filter.And(
             Builders<IntentLinkDocument>.Filter.Eq(d => d.FromId, fromId.Value),
-            Builders<IntentLinkDocument>.Filter.Eq(d => d.ToId, toId.Value),
-            Builders<IntentLinkDocument>.Filter.Eq(d => d.Type, type));
+            Builders<IntentLinkDocument>.Filter.Eq(d => d.ToId, toId.Value));
         return await Find(filter).FirstOrDefaultAsync(ct);
     }
 
@@ -357,33 +270,4 @@ internal sealed class MongoIntentLinkRepository
             ?? throw new InvalidOperationException(
                 $"MongoIntentLinkRepository.{method} must run inside IUnitOfWork.ExecuteAsync.");
 
-    private static IntentLinkDocument MapToDocument(IntentLink link) => new()
-    {
-        Id = link.Id,
-        FromId = link.FromId.Value,
-        ToId = link.ToId.Value,
-        Type = link.Type,
-        Author = link.Author.ToWire(),
-        Rationale = link.Rationale,
-        CreatedAt = link.CreatedAt.UtcDateTime,
-    };
-
-    private static IntentLink MapToDomain(IntentLinkDocument doc) => new(
-        Id: doc.Id,
-        FromId: new IntentId(doc.FromId),
-        ToId: new IntentId(doc.ToId),
-        Type: doc.Type,
-        Author: IntentLinkAuthorExtensions.FromWire(doc.Author),
-        Rationale: doc.Rationale,
-        CreatedAt: new DateTimeOffset(DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc)));
-
-    private static Intent MapIntentToDomain(IntentDocument doc) => Intent.Restore(
-        id: new IntentId(doc.Id),
-        text: doc.Text,
-        status: string.IsNullOrWhiteSpace(doc.Status) ? IntentStatusNames.Draft : doc.Status,
-        currentVersion: doc.CurrentVersion,
-        tagIds: doc.TagIds.Select(v => new TagId(v)).ToList(),
-        sortKey: doc.SortKey,
-        createdAt: DateTime.SpecifyKind(doc.CreatedAt, DateTimeKind.Utc),
-        updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc));
 }
