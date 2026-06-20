@@ -81,22 +81,6 @@ public class CodexSessionHookAdapterTests
         args.Should().Contain(t => t.Contains("/hooks/Stop?mode=interview'"));
     }
 
-    [Fact(DisplayName = "Codex: без systemPrompt пишет только workspace MCP config")]
-    public async Task Writes_workspace_mcp_config_without_profile()
-    {
-        var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(root);
-        var sut = NewAdapter("http://localhost:5008");
-
-        await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, skillPackages: [], CancellationToken.None);
-
-        var configPath = Path.Combine(root, ".codex", "config.toml");
-        (await File.ReadAllTextAsync(configPath)).Should().Contain("url = \"http://localhost:5008/mcp\"");
-        Directory.GetFiles(root, "*", SearchOption.AllDirectories)
-            .Should().Equal(configPath);
-    }
-
     [Fact(DisplayName = "Codex review: запекает artifact writer и hint в developer profile")]
     public async Task Review_writes_artifact_script_and_profile_hint()
     {
@@ -118,7 +102,7 @@ public class CodexSessionHookAdapterTests
         profile.Should().Contain("send-comments");
     }
 
-    [Fact(DisplayName = "Codex interview: пишет intent-ops script и hint-profile без workspace Throne MCP")]
+    [Fact(DisplayName = "Codex interview: пишет intent-ops script и hint-profile")]
     public async Task Interview_writes_intent_operations_script_and_profile_hint()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
@@ -140,8 +124,6 @@ public class CodexSessionHookAdapterTests
         var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
         profile.Should().Contain("Throne intent operations");
         profile.Should().Contain("replace-text --old-file");
-
-        File.Exists(Path.Combine(root, ".codex", "config.toml")).Should().BeFalse();
     }
 
     [Theory(DisplayName = "Codex IsTuiReady распознаёт композёр по input-row маркеру и игнорирует splash")]

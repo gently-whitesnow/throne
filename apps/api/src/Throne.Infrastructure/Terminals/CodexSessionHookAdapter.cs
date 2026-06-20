@@ -20,7 +20,6 @@ namespace Throne.Infrastructure.Terminals;
 public sealed class CodexSessionHookAdapter(SessionHookOptions options, string codexHome) : ISessionHookAdapter
 {
     private const string BypassHookTrustFlag = "--dangerously-bypass-hook-trust";
-    private static readonly string WorkspaceConfigPath = Path.Combine(".codex", "config.toml");
 
     public string Vendor => TerminalAgentCatalog.VendorCodex;
 
@@ -35,14 +34,6 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
-
-        if (SessionMcpPolicy.ShouldEnableThroneMcp(mode))
-        {
-            await WorkspaceConfigFile.MergeAsync(
-                Path.Combine(workspacePath, WorkspaceConfigPath),
-                existing => CodexMcpDocument.WithThroneServer(existing, options.ApiBaseUrl),
-                ct);
-        }
 
         // One `-c hooks.<event>=...` override per event: each targets a distinct leaf under `hooks`,
         // so Codex merges them rather than the second clobbering the first.
