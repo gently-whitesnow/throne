@@ -18,7 +18,7 @@ internal static class IntentLinkRealtimeMapper
                 id = linkRemoved.Link.Id,
                 from_id = linkRemoved.Link.FromId.Value,
                 to_id = linkRemoved.Link.ToId.Value,
-                type = IntentLinkDtoMapper.ToContractLinkType(linkRemoved.Link.Type),
+                blocking = linkRemoved.Link.Blocking,
             }),
         _ => null,
     };

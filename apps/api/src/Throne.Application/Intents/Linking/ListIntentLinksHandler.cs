@@ -17,7 +17,7 @@ public sealed class ListIntentLinksHandler(IIntentLinkRepository repository)
         return repository.ListPagedAsync(
             new IntentId(query.IntentId),
             query.Direction,
-            query.Type,
+            query.Blocking,
             limit,
             query.Cursor,
             ct);

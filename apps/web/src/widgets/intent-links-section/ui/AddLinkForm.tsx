@@ -5,11 +5,7 @@ import { errorMessage, httpErrorCode, useDebouncedValue } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
 import { createIntentLink } from "../api/intent-links-api";
-import {
-  bucketDropParams,
-  type DisplayBucket,
-  type IntentLinkType
-} from "../model/types";
+import { bucketDropParams, type DisplayBucket } from "../model/types";
 
 interface AddLinkFormProps {
   intentId: string;
@@ -20,12 +16,6 @@ interface AddLinkFormProps {
   autoFocus?: boolean;
   onCreated?: () => void;
 }
-
-const linkTypeOptions: { value: IntentLinkType; label: string }[] = [
-  { value: "relates", label: "Связан с" },
-  { value: "blocks", label: "Блокирует" },
-  { value: "derived_from", label: "Происходит из" }
-];
 
 const SEARCH_LIMIT = 20;
 const SEARCH_DEBOUNCE_MS = 200;
@@ -52,7 +42,7 @@ export function AddLinkForm({
   }, [intentId, intentsQuery.data]);
 
   const [selected, setSelected] = useState<string | null>(null);
-  const [type, setType] = useState<IntentLinkType>("relates");
+  const [blocking, setBlocking] = useState(false);
   const [rationale, setRationale] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,10 +65,10 @@ export function AddLinkForm({
 
     const params = presetBucket
       ? bucketDropParams(presetBucket, intentId, selected)
-      : { fromId: intentId, toId: selected, type };
+      : { fromId: intentId, toId: selected, blocking };
     createIntentLink(params.fromId, {
       to_id: params.toId,
-      type: params.type,
+      blocking: params.blocking,
       rationale: rationale.trim() ? rationale.trim() : undefined
     })
       .then(() => {
@@ -93,12 +83,10 @@ export function AddLinkForm({
             ? "Такая связь уже существует."
             : code === "link.self_link"
               ? "Нельзя связать intent сам с собой."
-              : code === "link.type_unsupported"
-                ? "Этот тип пока не поддержан."
-                : errorMessage(err, {
-                    base: "Ошибка",
-                    fallback: "Не удалось создать связь."
-                  })
+              : errorMessage(err, {
+                  base: "Ошибка",
+                  fallback: "Не удалось создать связь."
+                })
         );
         setSubmitting(false);
       });
@@ -110,18 +98,15 @@ export function AddLinkForm({
     <div className="flex flex-col gap-2">
       {!presetBucket && (
         <select
-          value={type}
+          value={blocking ? "blocking" : "normal"}
           onChange={(e) => {
-            setType(e.target.value as IntentLinkType);
+            setBlocking(e.target.value === "blocking");
           }}
           className="rounded border border-base-300 bg-base-100 px-2 py-1 text-[12px] text-base-content"
           aria-label="Тип связи"
         >
-          {linkTypeOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          <option value="normal">Обычная</option>
+          <option value="blocking">Блокирующая</option>
         </select>
       )}
       <input

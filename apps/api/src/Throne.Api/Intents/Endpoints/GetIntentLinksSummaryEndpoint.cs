@@ -69,9 +69,9 @@ internal static class IntentLinksSummaryMapper
         {
             foreach (
                 var peer in summary
-                    .BlockedBy.Concat(summary.DerivedFrom)
-                    .Concat(summary.SourceOf)
-                    .Concat(summary.Relates)
+                    .BlockedBy.Concat(summary.Blocks)
+                    .Concat(summary.LinkedFrom)
+                    .Concat(summary.LinkedTo)
             )
             {
                 foreach (var tagId in peer.TagIds)
@@ -90,9 +90,9 @@ internal static class IntentLinksSummaryMapper
         {
             Intent_id = summary.IntentId,
             Blocked_by = ToPeerCollection(summary.BlockedBy, tagMap),
-            Derived_from = ToPeerCollection(summary.DerivedFrom, tagMap),
-            Source_of = ToPeerCollection(summary.SourceOf, tagMap),
-            Relates = ToPeerCollection(summary.Relates, tagMap),
+            Blocks = ToPeerCollection(summary.Blocks, tagMap),
+            Linked_from = ToPeerCollection(summary.LinkedFrom, tagMap),
+            Linked_to = ToPeerCollection(summary.LinkedTo, tagMap),
         };
 
     private static System.Collections.ObjectModel.Collection<IntentLinkPeerDto> ToPeerCollection(

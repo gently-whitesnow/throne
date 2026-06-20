@@ -52,7 +52,7 @@ events:
     description: A graph edge was removed.
     payload:
       type: object
-      required: [id, from_id, to_id, type]
+      required: [id, from_id, to_id, blocking]
       properties:
         id:
           type: string
@@ -60,8 +60,8 @@ events:
           type: string
         to_id:
           type: string
-        type:
-          $ref: 'intents#/components/schemas/IntentLinkType'
+        blocking:
+          type: boolean
   intent.reordered:
     description: An Intent's sort_key changed (drag-and-drop reorder).
     payload:

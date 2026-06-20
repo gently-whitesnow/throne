@@ -58,9 +58,7 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
   const total = links.length;
   const incomingBlocks = useMemo(
     () =>
-      links.filter(
-        (v) => v.direction === "incoming" && v.link.type === "blocks"
-      ).length,
+      links.filter((v) => v.direction === "incoming" && v.link.blocking).length,
     [links]
   );
 
@@ -68,7 +66,7 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
     const peerId = view.peer.id;
     const fromId = view.direction === "outgoing" ? intentId : peerId;
     const toId = view.direction === "outgoing" ? peerId : intentId;
-    deleteIntentLink(fromId, toId, view.link.type).catch((err: unknown) => {
+    deleteIntentLink(fromId, toId).catch((err: unknown) => {
       setActionError(
         errorMessage(err, {
           base: "Ошибка удаления",
@@ -82,7 +80,7 @@ export function IntentLinksSection({ intentId }: IntentLinksSectionProps) {
     const params = bucketDropParams(bucket, intentId, peerId);
     createIntentLink(params.fromId, {
       to_id: params.toId,
-      type: params.type
+      blocking: params.blocking
     }).catch((err: unknown) => {
       const code = httpErrorCode(err);
       setActionError(

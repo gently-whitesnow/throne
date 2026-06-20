@@ -30,7 +30,6 @@ public interface IIntentLinkRepository
     Task<DeleteIntentLinkOutcome> DeleteAsync(
         IntentId fromId,
         IntentId toId,
-        string type,
         CancellationToken ct);
 
     /// <summary>
@@ -42,19 +41,9 @@ public interface IIntentLinkRepository
     Task<IntentLinksPage> ListPagedAsync(
         IntentId intentId,
         IntentLinkDirection? direction,
-        string? type,
+        bool? blocking,
         int limit,
         string? cursor,
-        CancellationToken ct);
-
-    /// <summary>
-    /// For each input intent id, returns the count of incoming edges of the supplied
-    /// <paramref name="type"/>. Drives the «blocked by N» badge on the board (ADR-0019).
-    /// Missing ids in the result map to 0.
-    /// </summary>
-    Task<IReadOnlyDictionary<string, int>> CountIncomingByTypeAsync(
-        IReadOnlyList<IntentId> intentIds,
-        string type,
         CancellationToken ct);
 
     /// <summary>

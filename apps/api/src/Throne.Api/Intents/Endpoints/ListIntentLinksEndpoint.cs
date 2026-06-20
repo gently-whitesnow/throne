@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Throne.Application.Intents.Linking;
 using Throne.Intents.Contracts.Generated;
 using ContractIntentLinkDirection = Throne.Intents.Contracts.Generated.IntentLinkDirection;
-using ContractIntentLinkType = Throne.Intents.Contracts.Generated.IntentLinkType;
 using DomainIntentLinkDirection = Throne.Application.Ports.IntentLinkDirection;
 
 namespace Throne.Api.Intents;
@@ -12,7 +11,7 @@ public sealed class ListIntentLinksEndpoint(ListIntentLinksHandler handler, Inte
     public async Task<ActionResult<IntentLinksPageDto>> RunAsync(
         string id,
         ContractIntentLinkDirection? direction,
-        ContractIntentLinkType? type,
+        bool? blocking,
         int? limit,
         string? cursor,
         CancellationToken cancellationToken)
@@ -21,7 +20,7 @@ public sealed class ListIntentLinksEndpoint(ListIntentLinksHandler handler, Inte
             new ListIntentLinksQuery(
                 id,
                 MapDirection(direction),
-                type is null ? null : IntentLinkDtoMapper.FromContractLinkType(type.Value),
+                blocking,
                 limit ?? ListIntentLinksHandler.DefaultLimit,
                 cursor),
             cancellationToken);

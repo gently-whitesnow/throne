@@ -9,13 +9,12 @@ public sealed record GetIntentLinksSummaryQuery(IReadOnlyList<string> IntentIds)
 public sealed record IntentLinksSummary(
     string IntentId,
     IReadOnlyList<Intent> BlockedBy,
-    IReadOnlyList<Intent> DerivedFrom,
-    IReadOnlyList<Intent> SourceOf,
-    IReadOnlyList<Intent> Relates);
+    IReadOnlyList<Intent> Blocks,
+    IReadOnlyList<Intent> LinkedFrom,
+    IReadOnlyList<Intent> LinkedTo);
 
 /// <summary>
-/// Aggregates the four link roles surfaced on board cards (`blocked_by`,
-/// `derived_from`, `source_of`, `relates`) for a batch of intents in one round-trip.
+/// Aggregates link roles surfaced on board cards for a batch of intents in one round-trip.
 /// Companion to <see cref="ListIntentsHandler"/> — keeps the list DTO free of graph
 /// joins so list refresh and links refresh can be invalidated independently.
 /// </summary>

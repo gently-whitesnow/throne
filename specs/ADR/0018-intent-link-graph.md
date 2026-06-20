@@ -1,4 +1,4 @@
-# ADR-0018: Intent link graph (M:N edges, stage 1)
+# ADR-0018: Intent link graph (single directed edge + blocking)
 
 ## Status
 
@@ -10,7 +10,7 @@ Throne'у нужна возможность связывать интенты «
 и трассировка зависимостей) и пользователя (UI-навигация). Альтернативы:
 
 - **Inline-mention в тексте (`@[id]`)** — даёт ноль метаданных и привязывает связи к
-  редакциям текста; нет места под direction/type/rationale.
+  редакциям текста; нет места под direction/blocking/rationale.
 - **Открытые пользовательские типы связей** — Jira/Anytype-урок: вырождается в шум.
 - **Двунаправленные пары рёбер** — удваивает запись, ломает идемпотентность delete.
 
@@ -19,18 +19,19 @@ Throne'у нужна возможность связывать интенты «
 
 ## Decision
 
-Stage 1 поставляет минимально-полезное ядро: коллекция, MCP/HTTP/realtime контракты,
-расширение `get_intent`. Принципы:
+Граф поставляет одно минимальное ядро: коллекция, MCP/HTTP/realtime контракты,
+расширение `get_intent` и UI-проекции. Принципы:
 
 1. **Граф ортогонален тексту.** Создание/удаление ребра не бампит `current_version`
    и не меняет `updated_at` — тот же постфикс, что у `MoveTo`. Edges не записываются
    в text-version-историю.
-2. **Одно направленное ребро на отношение.** Зеркальные роли (`blocked_by` для
-   `blocks`, `source_of` для `derived_from`) — это incoming-проекция в response, а не
-   отдельные документы. Уникальность — `(from_id, to_id, type)`.
-3. **Закрытое множество типов.** Stage 1: `relates`, `blocks`, `derived_from`.
-   `duplicate_of` зарезервирован для stage 3 (merge-семантика — отдельный интент).
-4. **Self-link запрещён** (`link.self_link`). Циклы по `blocks` разрешены —
+2. **Одно направленное ребро.** Направление всегда forward: причина/родитель →
+   следствие/потомок. Обратные роли — только projection-time чтение incoming edges.
+   Уникальность — `(from_id, to_id)`.
+3. **`blocking` вместо типов.** `blocking=true` — жёсткая зависимость/actionable
+   сигнал «blocked by». `blocking=false` — мягкий контекст/происхождение.
+   `relates`, `derived_from`, `blocks`, `duplicate_of` не являются частью новой модели.
+4. **Self-link запрещён** (`link.self_link`). Циклы по blocking-edges разрешены —
    валидный сигнал пользователю.
 5. **Без `expected_version`** для мутаций рёбер: они не конфликтуют с правками текста.
 6. **Owner-isolation.** Все запросы фильтруются по `owner_user_id` через
@@ -44,14 +45,16 @@ Stage 1 поставляет минимально-полезное ядро: к�
 
 Коллекция `intent_links`:
 
-```
-{ _id, from_id, to_id, type, author, rationale?, created_at }
-```
-
 Индексы:
-- `unique(from_id, to_id, type)` — `from_to_type_unique`
+- `unique(from_id, to_id)` — `from_to_unique`
 - `from_id` — `from_id`
 - `to_id` — `to_id`
+
+Документ:
+
+```
+{ _id, from_id, to_id, blocking, author, rationale?, created_at }
+```
 
 `get_intent.links[]` отдаёт outgoing + incoming как единый список с полем
 `direction` ∈ `{outgoing, incoming}` и inline-peer-preview (id, status,
@@ -62,13 +65,13 @@ sort_key, text_short, tags). Пагинации в `get_intent` нет — дл�
 
 | Tool | Errors |
 |---|---|
-| `link_intent` | `link.self_link` / `link.duplicate` / `link.type_unsupported` / `intent.not_found` |
+| `link_intent` | `link.self_link` / `link.duplicate` / `intent.not_found` |
 | `unlink_intent` | идемпотентен (success на missing edge) |
-| `list_intent_links` | read-only, `direction`/`type`/`limit`/`cursor` |
+| `list_intent_links` | read-only, `direction`/`blocking`/`limit`/`cursor` |
 
 ### HTTP
 
-`/api/v1/intents/{id}/links` (GET, POST), `/api/v1/intents/{id}/links/{to_id}/{type}`
+`/api/v1/intents/{id}/links` (GET, POST), `/api/v1/intents/{id}/links/{to_id}`
 (DELETE, идемпотентен), под существующим OpenAPI codegen ([ADR-0006](0006-openapi-contract-first-codegen.md)).
 DTO`:` `IntentLinkDto`, `IntentLinkPeerDto`, `IntentLinkViewDto`,
 `IntentLinksPageDto`, `CreateIntentLinkRequest`. `IntentDetailDto` расширен полем
@@ -77,18 +80,17 @@ DTO`:` `IntentLinkDto`, `IntentLinkPeerDto`, `IntentLinkViewDto`,
 ### Realtime
 
 `intent.link_added` (payload — `IntentLinkDto`) и `intent.link_removed`
-(payload — `{id, from_id, to_id, type}`). Repository outcomes реализуют
+(payload — `{id, from_id, to_id, blocking}`). Repository outcomes реализуют
 `IDomainEventCarrier`; стандартный `DomainEventDispatchingUnitOfWork`-pipeline
 ([ADR-0008](0008-realtime-contract-first-events.md)).
 
-## Out of scope (stage 1)
+## Out of scope
 
 - **Миграция `text_versions` → `intent_events`** — отдельный интент. Аргумент: данные-миграции
   и event-collection touchают весь стек чтения/записи и не зависят от link-сущностей.
   Объединить с stage 2 (UI sidebar + объединённый timeline) выгоднее, чем смешивать
   с link-инфраструктурой.
-- **UI-панель связей** — stage 2 (см. описание интента 4bf16bb…).
-- **`duplicate_of` со схлопыванием** — stage 3.
+- **`duplicate_of` со схлопыванием** — отменено: дубль не отдельный тип ребра.
 - **Внешние сущности (Jira/GitHub/URL)** — `to_kind`/`to_id` остаются дверью на будущее,
   но в этом ADR схема принимает только `intent → intent`.
 - **Inline `@[X]` парсер** — read-time view, без хранения рёбер. Может появиться
@@ -110,11 +112,27 @@ DTO`:` `IntentLinkDto`, `IntentLinkPeerDto`, `IntentLinkViewDto`,
 
 ### Negative / Risks
 
-- Без `expected_version` две одновременные мутации могут создать обе ветки одного
-  направления (например, разные `relates` сразу). Это допустимо: уникальность
-  `(from, to, type)` исключает дубликаты, а порядок появления видим в timeline.
+- Без `expected_version` две одновременные мутации могут спорить за одно ребро.
+  Уникальность `(from, to)` исключает дубликаты, а порядок появления видим в timeline.
 - `get_intent.links[]` без пагинации — open-ended; high-degree intents потребуют
   либо `list_intent_links`, либо в stage 2 add-on в виде «N+show more».
 - Cascade-delete стирает входящие/исходящие edges одной командой; user revert
   возможен только до закрытия транзакции — для stage 1 это OK, дальше можно навесить
   soft-delete если потребуется.
+
+## Amendments
+
+### 2026-06-20: схлопывание typed graph
+
+Изначальная модель `relates` / `blocks` / `derived_from` / reserved `duplicate_of`
+оказалась шире реального использования. Модель заменена на одну направленную связь
+с `blocking`.
+
+Миграция:
+
+- `blocks` сохраняет направление и становится `blocking=true`.
+- `derived_from` разворачивается из child→parent в parent→child и становится
+  `blocking=false`.
+- `relates` и `duplicate_of` удаляются.
+- При коллизии после разворота одно `(from_id,to_id)` ребро с `blocking=true`
+  побеждает soft-ребро.

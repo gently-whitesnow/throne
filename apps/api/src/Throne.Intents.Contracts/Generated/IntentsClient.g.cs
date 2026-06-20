@@ -825,10 +825,11 @@ namespace Throne.Intents.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string To_id { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentLinkType>))]
-        public IntentLinkType Type { get; set; }
+        /// <summary>
+        /// True when the edge is a hard dependency that blocks work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("blocking")]
+        public bool Blocking { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("author")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -850,32 +851,6 @@ namespace Throne.Intents.Contracts.Generated
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
-
-    }
-
-    /// <summary>
-    /// Closed set of supported edge types. `relates` / `blocks` / `derived_from` are stage 1. `duplicate_of` is reserved for stage 3 (merge semantics).
-    /// <br/>
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum IntentLinkType
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"relates")]
-        [System.Runtime.Serialization.EnumMember(Value = @"relates")]
-        Relates = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"blocks")]
-        [System.Runtime.Serialization.EnumMember(Value = @"blocks")]
-        Blocks = 1,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"derived_from")]
-        [System.Runtime.Serialization.EnumMember(Value = @"derived_from")]
-        Derived_from = 2,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"duplicate_of")]
-        [System.Runtime.Serialization.EnumMember(Value = @"duplicate_of")]
-        Duplicate_of = 3,
 
     }
 
@@ -938,10 +913,11 @@ namespace Throne.Intents.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string To_id { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentLinkType>))]
-        public IntentLinkType Type { get; set; }
+        /// <summary>
+        /// True when the edge is a hard dependency that blocks work.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("blocking")]
+        public bool Blocking { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("author")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -1098,7 +1074,7 @@ namespace Throne.Intents.Contracts.Generated
         public string Intent_id { get; set; }
 
         /// <summary>
-        /// Other intents (owned by the caller) that have an outgoing `blocks` edge into this intent — the «⚠ blocked by N» badge group.
+        /// Other intents (owned by the caller) that have an incoming `blocking=true` edge into this intent — the «blocked by N» badge group.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("blocked_by")]
@@ -1106,27 +1082,28 @@ namespace Throne.Intents.Contracts.Generated
         public System.Collections.Generic.ICollection<IntentLinkPeerDto> Blocked_by { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
 
         /// <summary>
-        /// Intents this intent points at via outgoing `derived_from` (parents in the structural sense). Usually 0 or 1; not enforced.
+        /// Intents this intent points to via outgoing `blocking=true` edges.
         /// <br/>
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("derived_from")]
+        [System.Text.Json.Serialization.JsonPropertyName("blocks")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IntentLinkPeerDto> Derived_from { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
+        public System.Collections.Generic.ICollection<IntentLinkPeerDto> Blocks { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
 
         /// <summary>
-        /// Intents that point at this intent via incoming `derived_from` (children).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("source_of")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IntentLinkPeerDto> Source_of { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
-
-        /// <summary>
-        /// Symmetric thematic neighbours (`relates` edges in either direction, de-duplicated by peer id).
+        /// Intents that point at this intent via incoming `blocking=false` edges (soft parents / context sources).
         /// <br/>
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("relates")]
+        [System.Text.Json.Serialization.JsonPropertyName("linked_from")]
         [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IntentLinkPeerDto> Relates { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
+        public System.Collections.Generic.ICollection<IntentLinkPeerDto> Linked_from { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
+
+        /// <summary>
+        /// Intents this intent points to via outgoing `blocking=false` edges (soft descendants / context targets).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("linked_to")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentLinkPeerDto> Linked_to { get; set; } = new System.Collections.ObjectModel.Collection<IntentLinkPeerDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -1150,10 +1127,11 @@ namespace Throne.Intents.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string To_id { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntentLinkType>))]
-        public IntentLinkType Type { get; set; }
+        /// <summary>
+        /// True for hard dependency edges; false for soft context/provenance.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("blocking")]
+        public bool Blocking { get; set; }
 
         /// <summary>
         /// Optional free-text justification (≤ 1000 chars).

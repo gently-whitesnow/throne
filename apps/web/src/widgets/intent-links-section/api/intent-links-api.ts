@@ -24,11 +24,7 @@ export function createIntentLink(
 export function deleteIntentLink(
   intentId: string,
   toId: string,
-  type: string,
   signal?: AbortSignal
 ): Promise<void> {
-  return httpDelete(
-    intentsEndpoints.deleteIntentLink(intentId, toId, type),
-    signal
-  );
+  return httpDelete(intentsEndpoints.deleteIntentLink(intentId, toId), signal);
 }
