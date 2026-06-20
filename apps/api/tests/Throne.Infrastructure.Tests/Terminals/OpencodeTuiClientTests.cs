@@ -1,71 +1,56 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
-using Throne.Application.Terminals;
 using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.Tests.Terminals;
 
 public class OpencodeTuiClientTests
 {
-    [Fact(DisplayName = "SubmitInitialPromptAsync: health → create session → prompt_async → select-session")]
-    public async Task Submit_initial_prompt_calls_server_session_api_in_order()
+    [Fact(DisplayName = "CreateSessionAndSubmitAsync: create session → prompt_async, returns sessionID")]
+    public async Task Create_session_then_submit_prompt_in_order()
     {
         var handler = new RecordingHandler();
-        var client = NewClient(handler);
+        var client = new OpencodeTuiClient(new FixedHttpClientFactory(new HttpClient(handler)));
 
-        await client.SubmitInitialPromptAsync(
-            new Uri("http://127.0.0.1:49152/"), "/tmp/ws", "TASK\nbody", CancellationToken.None);
+        var sessionId = await client.CreateSessionAndSubmitAsync(
+            new Uri("http://127.0.0.1:4096/"), "/tmp/ws", "throne-local", "qwen-3", "TASK\nbody",
+            CancellationToken.None);
 
+        sessionId.Should().Be("ses_test");
         handler.Requests.Select(r => (r.Method, r.PathAndQuery)).Should().Equal(
-            (HttpMethod.Get, "/global/health"),
             (HttpMethod.Post, "/session?directory=%2Ftmp%2Fws"),
-            (HttpMethod.Post, "/session/ses_test/prompt_async?directory=%2Ftmp%2Fws"),
-            (HttpMethod.Post, "/tui/select-session?directory=%2Ftmp%2Fws"));
-
-        handler.Requests[2].Body.Should().Contain("\"parts\":[{\"type\":\"text\",\"text\":\"TASK\\nbody\"}]");
-        handler.Requests[3].Body.Should().Contain("\"sessionID\":\"ses_test\"");
+            (HttpMethod.Post, "/session/ses_test/prompt_async?directory=%2Ftmp%2Fws"));
     }
 
-    [Fact(DisplayName = "select-session ретраится, пока TUI-фронт не примет фокус")]
-    public async Task Select_session_is_retried_until_tui_accepts()
+    [Fact(DisplayName = "prompt_async pins model {providerID,modelID} and the text part")]
+    public async Task Prompt_body_pins_model_and_parts()
     {
-        var handler = new RecordingHandler { SelectSessionFalseUntilAttempt = 3 };
-        var client = NewClient(handler);
+        var handler = new RecordingHandler();
+        var client = new OpencodeTuiClient(new FixedHttpClientFactory(new HttpClient(handler)));
 
-        await client.SubmitInitialPromptAsync(
-            new Uri("http://127.0.0.1:49152/"), "/tmp/ws", "TASK", CancellationToken.None);
+        await client.CreateSessionAndSubmitAsync(
+            new Uri("http://127.0.0.1:4096/"), "/tmp/ws", "throne-local", "qwen-3", "TASK\nbody",
+            CancellationToken.None);
 
-        handler.SelectSessionAttempts.Should().Be(3);
+        var promptBody = handler.Requests.Single(r => r.PathAndQuery.Contains("prompt_async")).Body;
+        promptBody.Should().Contain("\"model\":{\"providerID\":\"throne-local\",\"modelID\":\"qwen-3\"}");
+        promptBody.Should().Contain("\"parts\":[{\"type\":\"text\",\"text\":\"TASK\\nbody\"}]");
     }
 
-    [Fact(DisplayName = "select-session best-effort: сессия создана, провал фокуса не валит спавн")]
-    public async Task Select_session_failure_does_not_fail_the_spawn()
+    [Fact(DisplayName = "Сбой создания сессии пробрасывается как ошибка")]
+    public async Task Session_create_failure_throws()
     {
-        var handler = new RecordingHandler { SelectSessionFalseUntilAttempt = int.MaxValue };
-        var client = NewClient(handler);
+        var handler = new RecordingHandler { SessionCreateStatus = HttpStatusCode.InternalServerError };
+        var client = new OpencodeTuiClient(new FixedHttpClientFactory(new HttpClient(handler)));
 
-        var act = () => client.SubmitInitialPromptAsync(
-            new Uri("http://127.0.0.1:49152/"), "/tmp/ws", "TASK", CancellationToken.None);
+        var act = () => client.CreateSessionAndSubmitAsync(
+            new Uri("http://127.0.0.1:4096/"), "/tmp/ws", "throne-local", "qwen-3", "TASK",
+            CancellationToken.None);
 
-        await act.Should().NotThrowAsync();
-        handler.Requests.Select(r => r.PathAndQuery).Should().Contain(
-            "/session?directory=%2Ftmp%2Fws",
-            "/session/ses_test/prompt_async?directory=%2Ftmp%2Fws");
-        handler.SelectSessionAttempts.Should().BeGreaterThan(1);
+        await act.Should().ThrowAsync<HttpRequestException>();
+        handler.Requests.Should().ContainSingle();
     }
-
-    private static OpencodeTuiClient NewClient(RecordingHandler handler) =>
-        new(
-            new FixedHttpClientFactory(new HttpClient(handler)),
-            new RunPreflightOptions
-            {
-                TuiReadinessTimeoutMilliseconds = 200,
-                TuiReadinessPollIntervalMilliseconds = 20,
-            },
-            TimeProvider.System,
-            NullLogger<OpencodeTuiClient>.Instance);
 
     private sealed class FixedHttpClientFactory(HttpClient client) : IHttpClientFactory
     {
@@ -77,8 +62,7 @@ public class OpencodeTuiClientTests
     private sealed class RecordingHandler : HttpMessageHandler
     {
         public List<RequestSnapshot> Requests { get; } = [];
-        public int SelectSessionFalseUntilAttempt { get; init; }
-        public int SelectSessionAttempts { get; private set; }
+        public HttpStatusCode SessionCreateStatus { get; init; } = HttpStatusCode.OK;
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -90,25 +74,16 @@ public class OpencodeTuiClientTests
                 : await request.Content.ReadAsStringAsync(cancellationToken);
             Requests.Add(new RequestSnapshot(request.Method, path, body));
 
-            if (path == "/global/health")
-            {
-                return Json(new { healthy = true, version = "1.17.7" });
-            }
-
             if (path.StartsWith("/session?", StringComparison.Ordinal))
             {
-                return Json(new { id = "ses_test", title = "untitled" });
+                return SessionCreateStatus == HttpStatusCode.OK
+                    ? Json(new { id = "ses_test", title = "untitled" })
+                    : new HttpResponseMessage(SessionCreateStatus);
             }
 
             if (path.Contains("/prompt_async", StringComparison.Ordinal))
             {
                 return new HttpResponseMessage(HttpStatusCode.NoContent);
-            }
-
-            if (path.StartsWith("/tui/select-session", StringComparison.Ordinal))
-            {
-                SelectSessionAttempts++;
-                return Json(SelectSessionAttempts >= SelectSessionFalseUntilAttempt);
             }
 
             return Json(true);
