@@ -22,13 +22,6 @@ const authorLabel: Record<NonNullable<IntentEvent["created_by"]>, string> = {
   system: "Система"
 };
 
-const linkTypeLabel: Record<string, string> = {
-  relates: "связан с",
-  blocks: "блокирует",
-  derived_from: "происходит из",
-  duplicate_of: "дубликат"
-};
-
 export function IntentActivityTimeline({
   intentId
 }: IntentActivityTimelineProps) {
@@ -207,12 +200,9 @@ function EventMeta({
   // Link events. `intent_id` is from_id; `peer_intent_id` is to_id.
   const isOutgoing = event.intent_id === viewerIntentId;
   const peerId = isOutgoing ? event.peer_intent_id : event.intent_id;
-  const linkType = event.link?.type ?? "relates";
   const verb =
     event.kind === "link_added"
-      ? isOutgoing
-        ? (linkTypeLabel[linkType] ?? "связан с")
-        : reverseLinkLabel(linkType)
+      ? linkLabel(event.link?.blocking ?? false, isOutgoing)
       : "удалена связь";
   return (
     <>
@@ -238,10 +228,9 @@ function textChangeKindLabel(kind: string | undefined): string {
   }
 }
 
-function reverseLinkLabel(type: string): string {
-  if (type === "blocks") return "заблокирован";
-  if (type === "derived_from") return "источник для";
-  return linkTypeLabel[type] ?? "связан с";
+function linkLabel(blocking: boolean, isOutgoing: boolean): string {
+  if (blocking) return isOutgoing ? "блокирует" : "заблокирован";
+  return isOutgoing ? "ведёт к" : "вытекает из";
 }
 
 const diffClass =

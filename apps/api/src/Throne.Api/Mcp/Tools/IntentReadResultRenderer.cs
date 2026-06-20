@@ -87,7 +87,7 @@ internal static class IntentReadResultRenderer
         foreach (var l in links)
         {
             sb.Append("- direction=").Append(l.Direction)
-              .Append(" type=").Append(l.Type)
+              .Append(" blocking=").Append(l.Blocking)
               .Append(" peer_id=").Append(l.Peer.Id)
               .Append(" peer_status=").Append(l.Peer.Status)
               .Append(" peer_version=").Append(l.Peer.CurrentVersion)
@@ -146,7 +146,7 @@ internal static class IntentReadResultRenderer
             {
                 ["id"] = l.Id,
                 ["direction"] = l.Direction,
-                ["type"] = l.Type,
+                ["blocking"] = l.Blocking,
                 ["peer_id"] = l.Peer.Id,
                 ["peer_status"] = l.Peer.Status,
                 ["peer_current_version"] = l.Peer.CurrentVersion,

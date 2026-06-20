@@ -61,7 +61,6 @@ internal static class ApiErrorRegistry
         [ErrorCodes.TerminalModeInvalid] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.PromptPartTextMatchFailed] = StatusCodes.Status422UnprocessableEntity,
         [LinkErrorCodes.SelfLink] = StatusCodes.Status422UnprocessableEntity,
-        [LinkErrorCodes.TypeUnsupported] = StatusCodes.Status422UnprocessableEntity,
 
         [ErrorCodes.RepositoryWorkspaceRemovalFailed] = StatusCodes.Status500InternalServerError,
     };

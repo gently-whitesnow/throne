@@ -25,10 +25,10 @@ function entry(
 ): IntentLinksSummaryEntry {
   return {
     intent_id: id,
-    derived_from: parts.derived_from ?? [],
-    source_of: parts.source_of ?? [],
     blocked_by: parts.blocked_by ?? [],
-    relates: parts.relates ?? []
+    blocks: parts.blocks ?? [],
+    linked_from: parts.linked_from ?? [],
+    linked_to: parts.linked_to ?? []
   };
 }
 
@@ -56,27 +56,25 @@ describe("expandResolved", () => {
   });
 
   it("pulls in done neighbours transitively through other done nodes", async () => {
-    // A1 → derived_from D1(done) → derived_from D3(done)
+    // D1(done) → A1, D3(done) → D1
     // A2 → blocked_by D2(done)
-    // R1(done) is only reachable from A1 via `relates` and must be excluded.
     const graph = new Map<string, IntentLinksSummaryEntry>([
       [
         "A1",
         entry("A1", {
-          derived_from: [peer("D1", "done")],
-          relates: [peer("R1", "done")]
+          linked_from: [peer("D1", "done")]
         })
       ],
       ["A2", entry("A2", { blocked_by: [peer("D2", "done")] })],
       [
         "D1",
         entry("D1", {
-          derived_from: [peer("D3", "done")],
-          source_of: [peer("A1", "work")]
+          linked_from: [peer("D3", "done")],
+          linked_to: [peer("A1", "work")]
         })
       ],
-      ["D2", entry("D2", { source_of: [peer("A2", "work")] })],
-      ["D3", entry("D3", { source_of: [peer("D1", "done")] })]
+      ["D2", entry("D2", { blocks: [peer("A2", "work")] })],
+      ["D3", entry("D3", { linked_to: [peer("D1", "done")] })]
     ]);
 
     const result = await expandResolved(["A1", "A2"], fakeFetcher(graph));
@@ -85,16 +83,14 @@ describe("expandResolved", () => {
     // Active nodes are never added as resolved items.
     expect(result.items.has("A1")).toBe(false);
     expect(result.items.has("A2")).toBe(false);
-    // `relates`-only neighbours are excluded (structural links only).
-    expect(result.items.has("R1")).toBe(false);
     // Done nodes' own summaries are captured for edge wiring.
     expect([...result.summaries.keys()].sort()).toEqual(["D1", "D2", "D3"]);
   });
 
   it("maps peers onto canvas cards with empty pin state", async () => {
     const graph = new Map<string, IntentLinksSummaryEntry>([
-      ["A1", entry("A1", { derived_from: [peer("D1", "done")] })],
-      ["D1", entry("D1", { source_of: [peer("A1", "work")] })]
+      ["A1", entry("A1", { linked_from: [peer("D1", "done")] })],
+      ["D1", entry("D1", { linked_to: [peer("A1", "work")] })]
     ]);
 
     const result = await expandResolved(["A1"], fakeFetcher(graph));
@@ -106,9 +102,9 @@ describe("expandResolved", () => {
 
   it("terminates on a done↔done cycle without re-fetching", async () => {
     const graph = new Map<string, IntentLinksSummaryEntry>([
-      ["A1", entry("A1", { derived_from: [peer("D1", "done")] })],
-      ["D1", entry("D1", { derived_from: [peer("D2", "done")] })],
-      ["D2", entry("D2", { derived_from: [peer("D1", "done")] })]
+      ["A1", entry("A1", { linked_from: [peer("D1", "done")] })],
+      ["D1", entry("D1", { linked_from: [peer("D2", "done")] })],
+      ["D2", entry("D2", { linked_from: [peer("D1", "done")] })]
     ]);
 
     const fetcher = fakeFetcher(graph);

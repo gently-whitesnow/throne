@@ -256,7 +256,7 @@ export interface paths {
         };
         /**
          * Batch-fetch link aggregates for a set of intents (board badges + hover overlay).
-         * @description Companion to `listIntents`: instead of bloating the list DTO with graph-join fields, the board fetches per-intent link aggregates here. For each requested id the server returns counts and peer previews for the four roles surfaced on the card (`blocked_by`, `derived_from`, `source_of`, `relates`). Edges whose peer the caller does not own are dropped from the projection. Missing ids in the response map to «no incident edges».
+         * @description Companion to `listIntents`: instead of bloating the list DTO with graph-join fields, the board fetches per-intent link aggregates here. For each requested id the server returns peer previews for the graph roles surfaced on the card (`blocked_by`, `blocks`, `linked_from`, `linked_to`). Edges whose peer the caller does not own are dropped from the projection. Missing ids in the response map to «no incident edges».
          */
         get: operations["getIntentLinksSummary"];
         put?: never;
@@ -282,7 +282,7 @@ export interface paths {
         put?: never;
         /**
          * Create one directed edge between two intents (M:N graph).
-         * @description Creates one directed edge `(from_id=path id, to_id, type)`. Stage 1 supports `relates`, `blocks`, `derived_from`. Mirror roles (`blocked_by`, `source_of`) are computed projections, never separate edges. Self-links are rejected with `link.self_link`. Duplicates `(from_id, to_id, type)` are rejected with `link.duplicate`. The reserved type `duplicate_of` is rejected with `link.type_unsupported` until stage 3.
+         * @description Creates one directed edge `(from_id=path id, to_id)` in the unified forward graph. `blocking=true` marks hard dependency edges; `blocking=false` is soft context/provenance. Self-links are rejected with `link.self_link`. Duplicates `(from_id, to_id)` are rejected with `link.duplicate`.
          */
         post: operations["createIntentLink"];
         delete?: never;
@@ -291,7 +291,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/intents/{id}/links/{to_id}/{type}": {
+    "/api/v1/intents/{id}/links/{to_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -303,7 +303,7 @@ export interface paths {
         post?: never;
         /**
          * Delete one directed edge by its natural key.
-         * @description Idempotent delete by natural key `(from_id=path id, to_id, type)`. Returns 204 whether the edge existed or not — repeated calls with stale state must be safe.
+         * @description Idempotent delete by natural key `(from_id=path id, to_id)`. Returns 204 whether the edge existed or not — repeated calls with stale state must be safe.
          */
         delete: operations["deleteIntentLink"];
         options?: never;
@@ -598,17 +598,13 @@ export interface components {
             id: string;
             from_id: string;
             to_id: string;
-            type: components["schemas"]["IntentLinkType"];
+            /** @description True when the edge is a hard dependency that blocks work. */
+            blocking: boolean;
             author: components["schemas"]["IntentLinkAuthor"];
             rationale?: string;
             /** Format: date-time */
             created_at: string;
         };
-        /**
-         * @description Closed set of supported edge types. `relates` / `blocks` / `derived_from` are stage 1. `duplicate_of` is reserved for stage 3 (merge semantics).
-         * @enum {string}
-         */
-        IntentLinkType: "relates" | "blocks" | "derived_from" | "duplicate_of";
         /**
          * @description Who authored the edge.
          * @enum {string}
@@ -626,7 +622,8 @@ export interface components {
             from_id: string;
             /** @description Target intent id. */
             to_id: string;
-            type: components["schemas"]["IntentLinkType"];
+            /** @description True when the edge is a hard dependency that blocks work. */
+            blocking: boolean;
             author: components["schemas"]["IntentLinkAuthor"];
             /** @description Optional free-text justification supplied by user/agent. */
             rationale?: string;
@@ -659,19 +656,20 @@ export interface components {
         IntentLinksSummaryEntryDto: {
             /** @description Intent the aggregate applies to. */
             intent_id: string;
-            /** @description Other intents (owned by the caller) that have an outgoing `blocks` edge into this intent — the «⚠ blocked by N» badge group. */
+            /** @description Other intents (owned by the caller) that have an incoming `blocking=true` edge into this intent — the «blocked by N» badge group. */
             blocked_by: components["schemas"]["IntentLinkPeerDto"][];
-            /** @description Intents this intent points at via outgoing `derived_from` (parents in the structural sense). Usually 0 or 1; not enforced. */
-            derived_from: components["schemas"]["IntentLinkPeerDto"][];
-            /** @description Intents that point at this intent via incoming `derived_from` (children). */
-            source_of: components["schemas"]["IntentLinkPeerDto"][];
-            /** @description Symmetric thematic neighbours (`relates` edges in either direction, de-duplicated by peer id). */
-            relates: components["schemas"]["IntentLinkPeerDto"][];
+            /** @description Intents this intent points to via outgoing `blocking=true` edges. */
+            blocks: components["schemas"]["IntentLinkPeerDto"][];
+            /** @description Intents that point at this intent via incoming `blocking=false` edges (soft parents / context sources). */
+            linked_from: components["schemas"]["IntentLinkPeerDto"][];
+            /** @description Intents this intent points to via outgoing `blocking=false` edges (soft descendants / context targets). */
+            linked_to: components["schemas"]["IntentLinkPeerDto"][];
         };
         CreateIntentLinkRequest: {
             /** @description Target intent id (must differ from path id). */
             to_id: string;
-            type: components["schemas"]["IntentLinkType"];
+            /** @description True for hard dependency edges; false for soft context/provenance. */
+            blocking: boolean;
             /** @description Optional free-text justification (≤ 1000 chars). */
             rationale?: string;
         };
@@ -1336,7 +1334,7 @@ export interface operations {
         parameters: {
             query?: {
                 direction?: components["schemas"]["IntentLinkDirection"];
-                type?: components["schemas"]["IntentLinkType"];
+                blocking?: boolean;
                 limit?: number;
                 cursor?: string;
             };
@@ -1410,7 +1408,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Validation failed (self-link or unsupported type) */
+            /** @description Validation failed (self-link) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1428,7 +1426,6 @@ export interface operations {
             path: {
                 id: string;
                 to_id: string;
-                type: components["schemas"]["IntentLinkType"];
             };
             cookie?: never;
         };

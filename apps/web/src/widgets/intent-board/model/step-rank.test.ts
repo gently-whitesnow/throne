@@ -11,9 +11,9 @@ function entry(
   return {
     intent_id: intentId,
     blocked_by: blockerIds.map((id) => peer(id)),
-    derived_from: [],
-    source_of: [],
-    relates: []
+    blocks: [],
+    linked_from: [],
+    linked_to: []
   };
 }
 

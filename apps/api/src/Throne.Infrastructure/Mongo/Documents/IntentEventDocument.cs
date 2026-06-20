@@ -68,6 +68,7 @@ internal sealed class IntentEventTextChangeSubdocument
     public string? InsertText { get; set; }
 }
 
+[BsonIgnoreExtraElements]
 internal sealed class IntentEventLinkSubdocument
 {
     [BsonElement("id")]
@@ -79,8 +80,8 @@ internal sealed class IntentEventLinkSubdocument
     [BsonElement("to_id")]
     public string ToId { get; set; } = string.Empty;
 
-    [BsonElement("type")]
-    public string Type { get; set; } = string.Empty;
+    [BsonElement("blocking")]
+    public bool Blocking { get; set; }
 
     [BsonElement("author")]
     public string Author { get; set; } = string.Empty;

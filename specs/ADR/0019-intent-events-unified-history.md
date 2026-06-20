@@ -51,7 +51,7 @@ intent-агрегата. Принципы:
                              на момент события; для link* — null)
    text_change    : object? (для text_changed: { kind, snapshot?, old_text?,
                               new_text?, after_line?, insert_text? })
-   link           : object? (для link*: { id, from_id, to_id, type, author,
+   link           : object? (для link*: { id, from_id, to_id, blocking, author,
                               rationale?, created_at })
    created_at     : timestamp
    created_by     : string? ("user" | "agent" | "system")

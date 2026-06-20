@@ -76,7 +76,7 @@ export function EntityListRowContent({ row }: EntityListRowProps) {
       </NavLink>
       {row.tint ? (
         // Тонкая вертикальная полоска у левого края — маркер «семьи»
-        // карточек (общий derived_from-предок). Лежит поверх NavLink,
+        // карточек (общий soft-link предок). Лежит поверх NavLink,
         // чтобы hover-bg её не перекрашивал; pointer-events отключены,
         // чтобы клик уходил на ссылку.
         <span

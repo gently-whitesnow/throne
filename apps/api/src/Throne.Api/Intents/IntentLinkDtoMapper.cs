@@ -3,10 +3,8 @@ using Throne.Domain.Tags;
 using Throne.Intents.Contracts.Generated;
 using ContractIntentLinkAuthor = Throne.Intents.Contracts.Generated.IntentLinkAuthor;
 using ContractIntentLinkDirection = Throne.Intents.Contracts.Generated.IntentLinkDirection;
-using ContractIntentLinkType = Throne.Intents.Contracts.Generated.IntentLinkType;
 using DomainIntentLink = Throne.Domain.Intents.Linking.IntentLink;
 using DomainIntentLinkAuthor = Throne.Domain.Intents.Linking.IntentLinkAuthor;
-using DomainIntentLinkType = Throne.Domain.Intents.Linking.IntentLinkType;
 using DomainLinkDirection = Throne.Application.Ports.IntentLinkDirection;
 
 namespace Throne.Api.Intents;
@@ -18,7 +16,7 @@ internal static class IntentLinkDtoMapper
         Id = link.Id,
         From_id = link.FromId.Value,
         To_id = link.ToId.Value,
-        Type = ToContractLinkType(link.Type),
+        Blocking = link.Blocking,
         Author = ToContractLinkAuthor(link.Author),
         Rationale = link.Rationale,
         Created_at = link.CreatedAt,
@@ -31,24 +29,6 @@ internal static class IntentLinkDtoMapper
             ? ContractIntentLinkDirection.Outgoing
             : ContractIntentLinkDirection.Incoming,
         Peer = IntentDtoMapper.ToPeerDto(view.Other, tagsById),
-    };
-
-    public static ContractIntentLinkType ToContractLinkType(string type) => type switch
-    {
-        DomainIntentLinkType.Relates => ContractIntentLinkType.Relates,
-        DomainIntentLinkType.Blocks => ContractIntentLinkType.Blocks,
-        DomainIntentLinkType.DerivedFrom => ContractIntentLinkType.Derived_from,
-        DomainIntentLinkType.DuplicateOf => ContractIntentLinkType.Duplicate_of,
-        _ => throw new InvalidOperationException($"Unknown domain link type: {type}"),
-    };
-
-    public static string FromContractLinkType(ContractIntentLinkType type) => type switch
-    {
-        ContractIntentLinkType.Relates => DomainIntentLinkType.Relates,
-        ContractIntentLinkType.Blocks => DomainIntentLinkType.Blocks,
-        ContractIntentLinkType.Derived_from => DomainIntentLinkType.DerivedFrom,
-        ContractIntentLinkType.Duplicate_of => DomainIntentLinkType.DuplicateOf,
-        _ => throw new InvalidOperationException($"Unknown contract link type: {type}"),
     };
 
     public static DomainIntentLinkAuthor FromContractLinkAuthor(ContractIntentLinkAuthor author) => author switch

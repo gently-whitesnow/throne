@@ -109,7 +109,7 @@ public sealed record IntentEventLinkPayload(
     string Id,
     string FromId,
     string ToId,
-    string Type,
+    bool Blocking,
     IntentLinkAuthor Author,
     string? Rationale,
     DateTimeOffset CreatedAt)
@@ -118,7 +118,7 @@ public sealed record IntentEventLinkPayload(
         Id: link.Id,
         FromId: link.FromId.Value,
         ToId: link.ToId.Value,
-        Type: link.Type,
+        Blocking: link.Blocking,
         Author: link.Author,
         Rationale: link.Rationale,
         CreatedAt: link.CreatedAt);

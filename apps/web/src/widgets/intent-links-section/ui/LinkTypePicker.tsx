@@ -14,8 +14,8 @@ interface LinkTypePickerProps {
 
 /**
  * Когда пользователь дропает интент на секцию «Связи» целиком — мы не знаем,
- * какой тип связи он имел в виду. Этот поповер показывает кандидата (peer) и
- * предлагает выбрать тип. Аналогичен «add-link», но без поиска.
+ * какую направленность и blocking-флаг он имел в виду. Этот поповер показывает
+ * кандидата (peer) и предлагает выбрать бакет. Аналогичен «add-link», но без поиска.
  */
 export function LinkTypePicker({
   peerId,
@@ -37,7 +37,7 @@ export function LinkTypePicker({
   return (
     <div className="flex flex-col gap-2">
       <h3 className="m-0 text-[13px] font-semibold text-base-content">
-        Какой тип связи?
+        Какая связь?
       </h3>
       <p className="m-0 line-clamp-2 text-[12px] text-base-content/60">
         {title}
