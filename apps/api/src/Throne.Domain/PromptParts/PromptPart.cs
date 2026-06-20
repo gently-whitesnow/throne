@@ -77,8 +77,14 @@ public sealed class PromptPart
         {
             throw new ArgumentOutOfRangeException(nameof(currentVersion), "current_version must be >= 1.");
         }
-        EnsureModeRoles(modeRoles);
-        return new PromptPart(id, key, scope, text, NormalizeDescription(description), currentVersion, modeRoles, createdAt, updatedAt);
+        // Tolerant rehydration: a mode retired from the code after the row was written
+        // (e.g. a removed bundle mode) must NOT poison hydration of the whole aggregate —
+        // such roles are dropped, not thrown on. Command paths (Create/SetModeRoles/
+        // ValidateModeRoles) stay strict and still reject unknown modes from callers; the
+        // seed reconcile re-derives the desired roles afterwards.
+        var liveModeRoles = DropRetiredModes(modeRoles);
+        EnsureModeRoles(liveModeRoles);
+        return new PromptPart(id, key, scope, text, NormalizeDescription(description), currentVersion, liveModeRoles, createdAt, updatedAt);
     }
 
     /// <summary>
@@ -154,6 +160,18 @@ public sealed class PromptPart
         {
             throw new ArgumentOutOfRangeException(nameof(scope), $"Unknown prompt part scope: {scope}.");
         }
+    }
+
+    /// <summary>
+    /// Drops mode-roles whose mode is no longer known to the code. Used only on the
+    /// restore-from-store path (see <see cref="Restore"/>); never on command paths.
+    /// </summary>
+    private static List<PromptPartModeRole> DropRetiredModes(IReadOnlyList<PromptPartModeRole> modeRoles)
+    {
+        ArgumentNullException.ThrowIfNull(modeRoles);
+        return modeRoles
+            .Where(r => r is not null && PromptPartModeNames.IsKnown(r.Mode))
+            .ToList();
     }
 
     private static void EnsureModeRoles(IReadOnlyList<PromptPartModeRole> modeRoles)

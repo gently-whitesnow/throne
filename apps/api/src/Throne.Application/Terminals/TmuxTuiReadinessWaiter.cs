@@ -3,30 +3,46 @@ using Microsoft.Extensions.Logging;
 namespace Throne.Application.Terminals;
 
 /// <summary>
-/// Polls <see cref="ITmuxSessionManager.CapturePaneAsync"/> until the vendor TUI has rendered
-/// a composer ready to receive bracketed-paste input, then returns. Replaces the historical
-/// blind <c>BracketedPasteWarmup</c> sleep that lost prompts whenever the TUI took longer to
-/// init than the hard-coded delay (Claude Code on this box needs 1200–1500 ms cold; the old
-/// 300 ms warmup silently dropped the user prompt — see ADR-0026 follow-up).
-///
-/// Two complementary signals make the wait robust to vendor cosmetic churn:
+/// Waits until the vendor TUI is ready to receive bracketed-paste input, then returns. Three
+/// complementary signals make the wait robust to vendor cosmetic churn and plugin failures:
 /// <list type="bullet">
-///   <item>vendor-specific marker via <see cref="ISessionHookAdapter.IsTuiReady"/> — fast path
-///   when the TUI's composer glyph is recognised on the very first capture;</item>
-///   <item>screen-stability fallback — when two consecutive non-empty captures are identical,
-///   the TUI has stopped painting and is steady, so paste is safe even if the vendor changed
-///   the marker glyph between releases.</item>
+///   <item>provider-native readiness hook (<see cref="ISessionHookAdapter.ReadinessHookEvent"/>)
+///   — the authoritative "I'm up" signal from the agent itself (OpenCode <c>session.created</c>);
+///   followed by a one-poll settle because the hook can fire a beat before the composer actually
+///   accepts paste;</item>
+///   <item>vendor glyph marker via <see cref="ISessionHookAdapter.IsTuiReady"/> — fast path for
+///   vendors without a readiness event (Claude <c>❯</c>, Codex);</item>
+///   <item>screen-stability fallback — two consecutive non-empty captures that are identical mean
+///   the TUI stopped painting, so paste is safe even with no event and no recognised glyph.</item>
 /// </list>
 /// </summary>
 public sealed partial class TmuxTuiReadinessWaiter(
     ITmuxSessionManager tmux,
     RunPreflightOptions options,
     TimeProvider clock,
+    TerminalReadinessSignals readinessSignals,
     ILogger<TmuxTuiReadinessWaiter> log)
 {
+    /// <summary>
+    /// Latches a readiness signal for <paramref name="intentId"/> before spawn so a fast
+    /// <see cref="ISessionHookAdapter.ReadinessHookEvent"/> callback is not lost in the gap between
+    /// spawn and <see cref="WaitAsync"/>. Returns <c>null</c> for vendors with no readiness event —
+    /// those resolve via the glyph marker / screen-stability paths. Dispose the registration once
+    /// the wait is done. Must be called before <c>tmux</c> spawn for the latch to win the race.
+    /// </summary>
+    public TerminalReadinessSignals.TerminalReadinessRegistration? Arm(
+        string intentId, ISessionHookAdapter adapter)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        ArgumentNullException.ThrowIfNull(adapter);
+
+        return adapter.ReadinessHookEvent is not null ? readinessSignals.Arm(intentId) : null;
+    }
+
     public async Task<TmuxTuiReadinessResult> WaitAsync(
         string intentId,
         ISessionHookAdapter adapter,
+        TerminalReadinessSignals.TerminalReadinessRegistration? readiness,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
@@ -41,8 +57,18 @@ public sealed partial class TmuxTuiReadinessWaiter(
         while (true)
         {
             ct.ThrowIfCancellationRequested();
+            if (readiness?.Ready.IsCompleted == true)
+            {
+                await SettleAfterSignalAsync(poll, ct);
+                LogReadyBySignal(log, intentId, adapter.Vendor, attempts);
+                return TmuxTuiReadinessResult.Ready(attempts);
+            }
+
             attempts++;
             var snapshot = await tmux.CapturePaneAsync(intentId, ct);
+            // Vendor glyph fast-path: vendors without a provider-native readiness event (Claude `❯`,
+            // Codex) still recognise their composer marker on the captured pane. Adapters that own a
+            // readiness hook return false here and resolve via the signal/stability paths instead.
             if (adapter.IsTuiReady(snapshot))
             {
                 LogReadyByMarker(log, intentId, adapter.Vendor, attempts);
@@ -65,12 +91,45 @@ public sealed partial class TmuxTuiReadinessWaiter(
             }
 
             previous = snapshot;
-            await Task.Delay(poll, clock, ct);
+            var remaining = deadline - clock.GetUtcNow();
+            var delay = remaining < poll ? remaining : poll;
+            if (delay <= TimeSpan.Zero)
+            {
+                continue;
+            }
+
+            var delayTask = Task.Delay(delay, clock, ct);
+            if (readiness is null)
+            {
+                await delayTask;
+                continue;
+            }
+
+            var completed = await Task.WhenAny(readiness.Ready, delayTask);
+            if (completed == readiness.Ready)
+            {
+                await SettleAfterSignalAsync(poll, ct);
+                LogReadyBySignal(log, intentId, adapter.Vendor, attempts);
+                return TmuxTuiReadinessResult.Ready(attempts);
+            }
         }
     }
 
+    // The readiness hook (e.g. OpenCode session.created) can fire a beat before the composer
+    // actually accepts bracketed-paste, so a bare signal-triggered return would re-introduce the
+    // lost-prompt race the hook set out to kill — just under a new trigger. One poll-interval settle
+    // lets the composer finish painting before paste. It is bounded and unconditional, so the signal
+    // stays authoritative — unlike waiting for screen stability, which could falsely time out if the
+    // pane keeps repainting after the agent reports ready.
+    private Task SettleAfterSignalAsync(TimeSpan poll, CancellationToken ct) =>
+        Task.Delay(poll, clock, ct);
+
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
-        Message = "tmux TUI ready for intent {IntentId} ({Vendor}): vendor marker matched after {Attempts} capture(s).")]
+        Message = "tmux TUI ready for intent {IntentId} ({Vendor}): readiness hook fired after {Attempts} capture(s).")]
+    private static partial void LogReadyBySignal(ILogger logger, string intentId, string vendor, int attempts);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
+        Message = "tmux TUI ready for intent {IntentId} ({Vendor}): vendor glyph marker matched after {Attempts} capture(s).")]
     private static partial void LogReadyByMarker(ILogger logger, string intentId, string vendor, int attempts);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Debug,

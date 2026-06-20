@@ -11,21 +11,38 @@ public class ReviewArtifactWriteTargetTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 18, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "Review target выбирается только при ровно одном attached PR")]
-    public void Review_target_requires_exactly_one_attached_pull_request()
+    [Fact(DisplayName = "Review target выбирает единственный attached PR без явного выбора")]
+    public void Review_target_selects_single_attached_pull_request()
     {
-        ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Work, []).Should().BeNull();
+        ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Work, null, []).Should().BeNull();
 
-        var target = ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Review, [Binding(42)]);
+        var target = ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Review, null, [Binding(42)]);
         target.Should().Be(new ReviewArtifactWriteTarget("binding-42", 42));
 
-        var noPr = () => ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Review, [Binding(null)]);
+        var noPr = () => ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Review, null, [Binding(null)]);
         noPr.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+    }
 
-        var many = () => ReviewArtifactWriteTarget.Resolve(
+    [Fact(DisplayName = "Review target при нескольких PR требует attached binding_id")]
+    public void Review_target_uses_selected_attached_pull_request()
+    {
+        var target = ReviewArtifactWriteTarget.Resolve(
             TerminalRunModes.Review,
+            "binding-42",
             [Binding(41), Binding(42)]);
-        many.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+        target.Should().Be(new ReviewArtifactWriteTarget("binding-42", 42));
+
+        var missingSelection = () => ReviewArtifactWriteTarget.Resolve(
+            TerminalRunModes.Review,
+            null,
+            [Binding(41), Binding(42)]);
+        missingSelection.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+
+        var detachedSelection = () => ReviewArtifactWriteTarget.Resolve(
+            TerminalRunModes.Review,
+            "binding-99",
+            [Binding(41), Binding(42)]);
+        detachedSelection.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
     private static IntentRepositoryBinding Binding(int? pullRequestNumber) =>

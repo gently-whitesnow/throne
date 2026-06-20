@@ -31,9 +31,6 @@ internal sealed class RepositoryArtifactDocument
     [BsonElement("document")]
     public string Document { get; set; } = string.Empty;
 
-    [BsonElement("render_hint")]
-    public string RenderHint { get; set; } = string.Empty;
-
     [BsonElement("version")]
     public int Version { get; set; }
 

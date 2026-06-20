@@ -20,8 +20,20 @@ internal static class TerminalRunResponseMapper
         {
             response.Blocking_bindings = result.BlockingBindings.ToArray();
         }
+        if (result.Launch is { } launch)
+        {
+            response.Launch = ToLaunchDto(launch);
+        }
         return response;
     }
+
+    private static TerminalLaunchArgs ToLaunchDto(TerminalLaunchRecord launch) => new()
+    {
+        Mode = ParseRunMode(launch.Mode),
+        Vendor = ParseVendor(launch.Vendor),
+        Model = launch.Model,
+        Effort = launch.Effort is { } effort ? ParseEffort(effort) : null,
+    };
 
     public static TerminalLaunchInput ToLaunchInput(RunIntentTerminalRequest request)
     {
@@ -42,6 +54,14 @@ internal static class TerminalRunResponseMapper
             IntentTextSave: request.Intent_text_update is { } update
                 ? new IntentTextSave(update.Expected_version, update.Old_text, update.New_text)
                 : null);
+    }
+
+    public static string? ToReviewBindingId(RunIntentTerminalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return string.IsNullOrWhiteSpace(request.Review_binding_id)
+            ? null
+            : request.Review_binding_id;
     }
 
     private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
@@ -69,6 +89,33 @@ internal static class TerminalRunResponseMapper
         TerminalRunMode.Dream => TerminalRunModes.Dream,
         TerminalRunMode.Free => TerminalRunModes.Free,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), $"Unknown terminal run mode '{mode}'."),
+    };
+
+    private static TerminalRunMode ParseRunMode(string mode) => mode switch
+    {
+        TerminalRunModes.Work => TerminalRunMode.Work,
+        TerminalRunModes.Interview => TerminalRunMode.Interview,
+        TerminalRunModes.Review => TerminalRunMode.Review,
+        TerminalRunModes.Dream => TerminalRunMode.Dream,
+        TerminalRunModes.Free => TerminalRunMode.Free,
+        _ => throw new InvalidOperationException($"Unknown terminal run mode '{mode}'."),
+    };
+
+    private static TerminalAgentVendor ParseVendor(string vendor) => vendor switch
+    {
+        TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
+        TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
+        TerminalAgentCatalog.VendorOpencode => TerminalAgentVendor.Opencode,
+        _ => throw new InvalidOperationException($"Unknown terminal vendor '{vendor}'."),
+    };
+
+    private static TerminalReasoningEffort ParseEffort(string effort) => effort switch
+    {
+        TerminalAgentCatalog.EffortLow => TerminalReasoningEffort.Low,
+        TerminalAgentCatalog.EffortMedium => TerminalReasoningEffort.Medium,
+        TerminalAgentCatalog.EffortHigh => TerminalReasoningEffort.High,
+        TerminalAgentCatalog.EffortXhigh => TerminalReasoningEffort.Xhigh,
+        _ => throw new InvalidOperationException($"Unknown reasoning effort '{effort}'."),
     };
 
     private static RunIntentBindingStatusDto ToBindingDto(RunPreflightBindingStatus status) => new()

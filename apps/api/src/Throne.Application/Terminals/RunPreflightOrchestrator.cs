@@ -1,3 +1,5 @@
+using Throne.Application.Ports;
+
 namespace Throne.Application.Terminals;
 
 /// <summary>
@@ -14,7 +16,8 @@ public sealed class RunPreflightOrchestrator(
     RunPreflightCloneWait cloneWait,
     RunPreflightSpawn spawner,
     RunPreflightPromptGate promptGate,
-    TerminalLaunchResolver launchResolver)
+    TerminalLaunchResolver launchResolver,
+    IIntentTerminalLaunchStore launchStore)
 {
     public async Task<RunPreflightResult> RunAsync(
         string intentId,
@@ -22,12 +25,15 @@ public sealed class RunPreflightOrchestrator(
         TerminalLaunchInput launch,
         TerminalSpawnPrompt prompt,
         bool restart,
-        CancellationToken ct)
+        CancellationToken ct,
+        string? reviewBindingId = null)
     {
         ArgumentNullException.ThrowIfNull(launch);
         ArgumentNullException.ThrowIfNull(prompt);
         RunPreflightModeGuard.EnsureKnown(mode);
         var launchOptions = await launchResolver.ResolveAsync(launch.Vendor, launch.Model, launch.Effort, ct);
+        var launchRecord = new TerminalLaunchRecord(
+            mode, launchOptions.Vendor, launchOptions.Model, launchOptions.Effort);
         await guards.EnsureCapabilityEnabledAsync(ct);
 
         var intent = await guards.LoadIntentAsync(intentId, ct);
@@ -42,17 +48,22 @@ public sealed class RunPreflightOrchestrator(
         var blocking = RunPreflightSession.CollectBlocking(waitResult.Bindings);
         if (blocking.Count > 0)
         {
+            // Echo the attempted axis but do NOT persist it — nothing spawned, so it is not the
+            // intent's last-used launch.
             return RunPreflightSession.BuildResult(
-                intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking);
+                intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking,
+                launchRecord);
         }
-        var reviewArtifact = ReviewArtifactWriteTarget.Resolve(mode, waitResult.Bindings);
+        var reviewArtifact = ReviewArtifactWriteTarget.Resolve(mode, reviewBindingId, waitResult.Bindings);
 
         // Validate the curated selection and persist the task-zone edit (optimistic concurrency)
         // before spawn — a version conflict throws here so the agent never starts on a stale edit.
         await promptGate.ApplyAsync(intent, mode, prompt, ct);
 
         await spawner.SpawnAsync(intent.Id, sessionName, mode, launchOptions, prompt, reviewArtifact, ct);
+        await launchStore.SaveAsync(intent.Id.Value, launchRecord, ct);
         return RunPreflightSession.BuildResult(
-            intent.Id.Value, sessionName, TerminalSessionStates.Running, waitResult.Bindings, blockingBindings: []);
+            intent.Id.Value, sessionName, TerminalSessionStates.Running, waitResult.Bindings, blockingBindings: [],
+            launchRecord);
     }
 }

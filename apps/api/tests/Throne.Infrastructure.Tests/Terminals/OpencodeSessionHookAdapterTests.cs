@@ -22,8 +22,8 @@ public class OpencodeSessionHookAdapterTests
         return new LocalModelDiscoveryService(new LocalModelSettings { BaseUrl = baseUrl }, catalog);
     }
 
-    [Fact(DisplayName = "Пишет opencode.json с provider throne-local, baseURL и models map; argv пустой")]
-    public async Task Writes_opencode_config_and_returns_empty_argv()
+    [Fact(DisplayName = "Пишет opencode.json и возвращает фиксированный TUI server endpoint в argv")]
+    public async Task Writes_opencode_config_and_returns_tui_server_argv()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
         var sut = NewAdapter("http://localhost:1234", ["llama-4", "qwen-3"]);
@@ -31,7 +31,7 @@ public class OpencodeSessionHookAdapterTests
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
-        args.Should().BeEmpty();
+        args.Should().Equal("--hostname", "127.0.0.1", "--port", "49152");
         var configPath = Path.Combine(root, "opencode.json");
         File.Exists(configPath).Should().BeTrue();
         File.Exists(Path.Combine(root, ".opencode", "plugins", "throne.js")).Should().BeTrue();
@@ -117,7 +117,7 @@ public class OpencodeSessionHookAdapterTests
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
 
-        args.Should().BeEmpty();
+        args.Should().Equal("--hostname", "127.0.0.1", "--port", "49152");
         using var doc = JsonDocument.Parse(
             await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
         var provider = doc.RootElement.GetProperty("provider").GetProperty("throne-local");
@@ -125,17 +125,28 @@ public class OpencodeSessionHookAdapterTests
         provider.GetProperty("models").EnumerateObject().Should().BeEmpty();
     }
 
-    [Theory(DisplayName = "IsTuiReady видит композёр OpenCode по '>' в начале строки")]
-    [InlineData("", false)]
-    [InlineData("opencode v0.5.0 — starting up", false)]
-    [InlineData("intent task summary > preview\nrunning", false)]
-    [InlineData("> ", true)]
-    [InlineData("───\n> Tell OpenCode what to do…\n───", true)]
-    public void Is_tui_ready_matches_composer_glyph_at_line_start(string snapshot, bool expected)
+    [Fact(DisplayName = "OpenCode readiness объявляется через SessionReady, glyph-scrape отключён")]
+    public void Opencode_readiness_uses_hook_event_not_glyph_scrape()
     {
         var sut = NewAdapter("http://localhost", []);
 
-        sut.IsTuiReady(snapshot).Should().Be(expected);
+        sut.ReadinessHookEvent.Should().Be(TerminalHookEvents.SessionReady);
+        sut.IsTuiReady("───\n> Tell OpenCode what to do…\n───").Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Первый prompt отправляется в подготовленный TUI HTTP endpoint")]
+    public async Task Initial_prompt_uses_prepared_tui_endpoint()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
+        var client = new RecordingTuiClient();
+        var sut = NewAdapter("http://localhost:1234", ["llama-4"], client);
+
+        await sut.PrepareSpawnArgsAsync(
+            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, reviewArtifact: null, CancellationToken.None);
+        await sut.SubmitInitialPromptAsync("intent-1", root, "TASK", CancellationToken.None);
+
+        client.Calls.Should().Equal(
+            new TuiCall(new Uri("http://127.0.0.1:49152/"), root, "TASK"));
     }
 
     [Fact(DisplayName = "Plugin shim маппит OpenCode lifecycle events в существующий hook endpoint")]
@@ -149,6 +160,7 @@ public class OpencodeSessionHookAdapterTests
 
         var calls = await RunPluginSmokeAsync(root);
         calls.Should().Equal(
+            "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/SessionReady?mode=interview",
             "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/Stop?mode=interview",
             "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/UserPromptSubmit?mode=interview",
             "curl -s -X POST http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/Notification?mode=interview",
@@ -186,6 +198,7 @@ public class OpencodeSessionHookAdapterTests
         TerminalHookEvents.OpenCodeBindings
             .Select(binding => (binding.OpenCodeHook, binding.ThroneEvent, binding.BindingType))
             .Should().Equal(
+                ("session.created", TerminalHookEvents.SessionReady, TerminalHookEvents.OpenCodeBindingEvent),
                 ("session.idle", TerminalHookEvents.Stop, TerminalHookEvents.OpenCodeBindingEvent),
                 ("tui.prompt.append", TerminalHookEvents.UserPromptSubmit, TerminalHookEvents.OpenCodeBindingEvent),
                 ("permission.asked", TerminalHookEvents.Notification, TerminalHookEvents.OpenCodeBindingEvent),
@@ -193,8 +206,37 @@ public class OpencodeSessionHookAdapterTests
                 ("tool.execute.after", TerminalHookEvents.PostToolUse, TerminalHookEvents.OpenCodeBindingTypedHook));
     }
 
-    private static OpencodeSessionHookAdapter NewAdapter(string? baseUrl, IReadOnlyList<string> models) =>
-        new(BuildDiscovery(baseUrl, models), HookOptions);
+    private static OpencodeSessionHookAdapter NewAdapter(
+        string? baseUrl,
+        IReadOnlyList<string> models,
+        IOpencodeTuiClient? client = null) =>
+        new(
+            BuildDiscovery(baseUrl, models),
+            HookOptions,
+            new FixedPortAllocator(),
+            client ?? new RecordingTuiClient());
+
+    private sealed class FixedPortAllocator : IOpencodeTuiPortAllocator
+    {
+        public int Allocate() => 49152;
+    }
+
+    private sealed record TuiCall(Uri Endpoint, string WorkspacePath, string Prompt);
+
+    private sealed class RecordingTuiClient : IOpencodeTuiClient
+    {
+        public List<TuiCall> Calls { get; } = [];
+
+        public Task SubmitInitialPromptAsync(
+            Uri endpoint,
+            string workspacePath,
+            string prompt,
+            CancellationToken ct)
+        {
+            Calls.Add(new TuiCall(endpoint, workspacePath, prompt));
+            return Task.CompletedTask;
+        }
+    }
 
     private static async Task<IReadOnlyList<string>> RunPluginSmokeAsync(string root)
     {
@@ -211,6 +253,7 @@ public class OpencodeSessionHookAdapterTests
               calls.push(strings.reduce((acc, part, index) => acc + part + (values[index] ?? ""), ""));
             };
             const hooks = await ThroneLifecyclePlugin({ $ });
+            await hooks.event({ event: { type: "session.created" } });
             await hooks.event({ event: { type: "session.idle" } });
             await hooks.event({ event: { type: "tui.prompt.append" } });
             await hooks.event({ event: { type: "permission.asked" } });

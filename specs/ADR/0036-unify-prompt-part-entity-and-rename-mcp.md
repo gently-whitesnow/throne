@@ -7,10 +7,19 @@ Date: 2026-06-12
 Заменяет раннюю модель prompt parts с двумя сущностями (`Instruction` + отдельный `PromptPart`) на одну — см. Context.
 Amends [ADR-0014](0014-mcp-initialize-instructions-routing.md) (backing бандла), [ADR-0022](0022-frontier-driven-dream-flow.md) (target патчей), [ADR-0023](0023-mcp-tools-snake-case-naming.md) (одноразовое сквозное переименование контракта), [ADR-0002](0002-domain-model-and-text-versioning.md) (новый owner-kind истории).
 Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md), [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md).
+**Amended 2026-06-19** — bundle как доставка плейбука выпилен, см. ниже.
+
+## Amendment (2026-06-19): bundle removed, standalone = knowledge base
+
+Схлопывание сущностей и переименование (ниже) остаются в силе — `PromptPart` единственная модель, `prompt_parts` единственное хранилище. Что изменилось:
+
+- MCP-тул `get_prompt_bundle` (строка в таблице переименования) **удалён целиком** вместе с `bundles-tree` HTTP-эндпоинтом, `PromptBundleResolver`/`PromptBundleRenderer`, UI визуализацией бандлов и тест-инвариантом «bundle ≡ projection» (§ «Бандл: контент тот же»). Standalone-агент больше не получает плейбук по MCP — Throne для него база знаний интентов (read/write `Intent.text` + `set_intent_status`/`create_intent` по явной просьбе; см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md)).
+- `bundles[].includes` в манифесте **сохранены** и продолжают питать `PromptPartManifestRoles` + `PromptPartSeeder` (seed `mode_roles` для embedded) и `PromptCompositionResolver`. Композиция читается напрямую резолвером, без промежуточного bundle-резолвера.
+- Где ниже сказано «бандл читает `prompt_parts`» / «`get_instruction_bundle → get_prompt_bundle`» — читать как историю до 2026-06-19. Embedded-композиция (`PromptCompositionResolver`) и dream-патчи не затронуты.
 
 ## Context
 
-Ранняя модель prompt parts сознательно завела **две** сущности: `Instruction` (legacy whitelist `common/interview/work/dream/schema_map` + system, источник правды бандла для standalone-агентов) и отдельный `PromptPart` (optional runtime-части под embedded-терминал). Mandatory-инструкции при этом не дублировались, а **проецировались** в `EffectivePart` из манифеста.
+Ранняя модель prompt parts сознательно завела **две** сущности: `Instruction` (legacy whitelist `common/interview/work/dream` + system, источник правды бандла для standalone-агентов) и отдельный `PromptPart` (optional runtime-части под embedded-терминал). Mandatory-инструкции при этом не дублировались, а **проецировались** в `EffectivePart` из манифеста.
 
 На практике две сущности дают два жизненных цикла, два хранилища (`instructions` collection + манифест YAML vs `prompt_parts`), два патч-контура и два резолвера (`get_instruction_bundle` vs `PromptCompositionResolver`). Dream-патчи таргетят только legacy `InstructionKindNames`. Оператор хочет вести и доулучшать **единый** набор частей в одной модели, где инструкции — это просто mandatory-части, а новые — optional. Это инвертирует прежнюю развилку: не «расширяем whitelist инструкций optional-kind'ами», а «растворяем инструкции в parts».
 
@@ -24,7 +33,7 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 
 - `id`, стабильный `key` (уникален в пределах `scope`), `scope ∈ {system, user}`, `text`, `description`, `current_version`, `created_at`, `updated_at`.
 - `mode_roles[] = {mode, role, order}`; `role ∈ {mandatory, default_on, default_off}`; отсутствие записи режима ⇒ часть недоступна в режиме. Whitelist как закрытый список исчезает — его роль выполняет `role=mandatory`.
-- `mode` — объединение бандл-режимов (`interview/work/dream/schema_map`) и embedded-режимов (`work/interview/free`). Legacy-инструкции получают `mandatory`-роли в тех режимах, где их `(scope, kind)` встречался в `bundles[].includes` манифеста; `order` — позиция include.
+- `mode` — объединение бандл-режимов (`interview/work/dream`) и embedded-режимов (`work/interview/free`). Legacy-инструкции получают `mandatory`-роли в тех режимах, где их `(scope, kind)` встречался в `bundles[].includes` манифеста; `order` — позиция include.
 
 ### Append-only история (амендит [ADR-0002](0002-domain-model-and-text-versioning.md))
 

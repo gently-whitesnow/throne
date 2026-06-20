@@ -68,8 +68,9 @@ public partial class RunPreflightOrchestratorTests
             var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
             var launchResolver = BuildLaunchResolver();
             var promptGate = BuildPromptGate(clock, uow);
+            LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
             Orchestrator = new RunPreflightOrchestrator(
-                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver);
+                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver, LaunchStore);
         }
 
         private (RepositoryBindingService Service, IRepositoryCloneRequests CloneQueue) BuildBindingService(
@@ -112,7 +113,8 @@ public partial class RunPreflightOrchestratorTests
             // Happy-path tests stub CapturePaneAsync to a composer marker so the waiter resolves on first capture.
             Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("│ > ready");
             var readinessWaiter = new TmuxTuiReadinessWaiter(
-                Tmux, options, TimeProvider.System, NullLogger<TmuxTuiReadinessWaiter>.Instance);
+                Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
+                NullLogger<TmuxTuiReadinessWaiter>.Instance);
             return new RunPreflightSpawn(
                 Tmux, workspace, Substitute.For<IWorkspaceTrust>(),
                 [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
@@ -135,7 +137,6 @@ public partial class RunPreflightOrchestratorTests
             var promptPartsRepo = Substitute.For<IPromptPartRepository>();
             var promptResolver = new PromptCompositionResolver(
                 SkillManifestFixtures.Provider(),
-                new PromptBundleResolver(promptPartsRepo),
                 promptPartsRepo);
             return new RunPreflightPromptGate(
                 promptResolver, new ReplaceIntentTextHandler(Intents, uow, clock));
@@ -146,6 +147,7 @@ public partial class RunPreflightOrchestratorTests
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
+        public IIntentTerminalLaunchStore LaunchStore { get; }
         public RunPreflightOrchestrator Orchestrator { get; }
 
         public Fixture Setup(

@@ -56,8 +56,11 @@ namespace Throne.Api.Generated
         /// <br/>   (optimistic concurrency — a conflict aborts here), then spawn the chosen
         /// <br/>   agent with `system_prompt` as upfront system context and `user_prompt` as the
         /// <br/>   initial message, only after all bindings are ready.
-        /// <br/>   `tmux has-session -t throne-{intent_id}` is the single source of truth —
-        /// <br/>   Throne persists nothing about the session.
+        /// <br/>   `tmux has-session -t throne-{intent_id}` is the single source of truth for
+        /// <br/>   liveness — Throne persists no session *state*. The resolved launch axis
+        /// <br/>   (`launch`: mode/vendor/model/effort) IS persisted per intent on each
+        /// <br/>   successful spawn so the next page load can both restore the operator's
+        /// <br/>   per-intent choice and show the live session's actual parameters (ADR-0041).
         /// <br/>
         /// <br/>Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
         /// </remarks>
@@ -69,7 +72,7 @@ namespace Throne.Api.Generated
         /// Observe the current tmux session state for an intent.
         /// </summary>
         /// <remarks>
-        /// Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate persisted session state. `tmux has-session -t throne-{intent_id}` remains the source of truth; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback.
+        /// Read-only status probe used by the intent page on mount/reload. It does not auto-bind repositories, enqueue clone jobs, spawn tmux, or mutate any persisted state. `tmux has-session -t throne-{intent_id}` remains the source of truth for liveness; when it returns true the UI can immediately attach the WebSocket to the existing session and show tmux scrollback. The response echoes the persisted `launch` axis (ADR-0041) when the intent was ever launched: with a live session it is that session's actual mode/vendor/model/effort, otherwise the intent's last-used choice the launch controls pre-fill from.
         /// </remarks>
         /// <returns>Current terminal session snapshot.</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/session", Name = "getIntentTerminalSession")]
@@ -99,7 +102,7 @@ namespace Throne.Api.Generated
         /// Receive a local agent hook callback.
         /// </summary>
         /// <remarks>
-        /// Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
+        /// Agent-only local runtime callback injected into the per-session agent config (Claude `--settings` file, Codex inline `-c hooks.*` override, OpenCode project plugin). Drives deterministic intent-status derivation in the embedded contour (ADR-0034 §4). `SessionReady` is a provider-neutral readiness signal for the initial prompt paste and is intentionally ignored by status derivation. Two Throne events park the intent in `awaiting_operator` — `Stop` (turn yielded) and `Notification` (a permission prompt blocks the agent without ending the turn, so no `Stop` fires; Claude scopes it to `permission_prompt` via matcher, OpenCode maps `permission.asked`) — and two return it to the spawn phase (`work`/`review`/`free` → `work`, `interview` → `interview`): `UserPromptSubmit` (operator answered) and `PostToolUse` (agent resumed after an approval, which is not a `UserPromptSubmit`). OpenCode maps `session.idle`, `tui.prompt.append`, `permission.replied`, and `tool.execute.after` onto those Throne events. The `mode` query carries that spawn phase so the return is stateless — the hook knows its own session mode. Bundle-less `dream` passes through without a status change. Codex still injects only the turn-boundary pair.
         /// </remarks>
         /// <param name="mode">Spawn phase of the session the hook fires from. Baked into the per-session hook URL at spawn time; the endpoint maps it to the return status on `UserPromptSubmit` /`PostToolUse` and gates the `Stop`/`Notification` → `awaiting_operator` park. Omitted only by legacy callers.</param>
         /// <returns>Hook callback accepted.</returns>
@@ -110,7 +113,7 @@ namespace Throne.Api.Generated
         /// Resolve the embedded prompt composition before spawn (ADR-0036).
         /// </summary>
         /// <remarks>
-        /// Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires exactly one attached PR/MR on the intent.
+        /// Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/preview", Name = "previewIntentTerminal")]

@@ -86,23 +86,19 @@ function vendorCatalog() {
     vendors: [
       {
         vendor: "claude",
-        label: "Claude",
         supports_effort: true,
         models: ["opus", "sonnet", "haiku"],
         default_model: "opus",
         efforts: ["low", "medium", "high", "xhigh"],
-        default_effort: "high",
-        model_source: "static"
+        default_effort: "high"
       },
       {
         vendor: "codex",
-        label: "Codex",
         supports_effort: true,
         models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
         default_model: "gpt-5.5",
         efforts: ["low", "medium", "high", "xhigh"],
-        default_effort: "medium",
-        model_source: "static"
+        default_effort: "medium"
       }
     ]
   };
@@ -122,13 +118,15 @@ function terminalCapability(): Capability[] {
 }
 
 function sessionResponse(
-  state: RunIntentTerminalResponse["session_state"]
+  state: RunIntentTerminalResponse["session_state"],
+  launch?: RunIntentTerminalResponse["launch"]
 ): RunIntentTerminalResponse {
   return {
     intent_id: "intent-1",
     session_name: "throne-intent-1",
     session_state: state,
-    bindings: []
+    bindings: [],
+    ...(launch ? { launch } : {})
   };
 }
 
@@ -137,8 +135,20 @@ function previewResponse(): IntentTerminalPreviewResponse {
     intent_id: "intent-1",
     intent_version: 2,
     mode: "free",
-    parts: [],
-    selected_part_ids: [],
+    parts: [
+      {
+        part_id: "m1",
+        key: "common",
+        scope: "system",
+        role: "mandatory",
+        order: 0,
+        editable: false,
+        present: true,
+        selected: true,
+        text: "RULES"
+      }
+    ],
+    selected_part_ids: ["m1"],
     system_prompt: "RULES",
     user_prompt: "BODY"
   };
@@ -147,7 +157,9 @@ function previewResponse(): IntentTerminalPreviewResponse {
 const render = () =>
   renderWithQuery(
     <AgentTerminalPanel intentId="intent-1" intentStatus="work" />,
-    { withBridge: false }
+    {
+      withBridge: false
+    }
   );
 
 describe("AgentTerminalPanel", () => {
@@ -186,16 +198,14 @@ describe("AgentTerminalPanel", () => {
 
     render();
 
-    await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
-    });
-
     const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
       name: "Агент терминала"
     });
+    await waitFor(() => {
+      expect(vendor.disabled).toBe(false);
+    });
     fireEvent.change(vendor, { target: { value: "codex" } });
 
-    // До открытия модалки и подтверждения /run не уходит.
     fireEvent.click(screen.getByTestId("agent-terminal-run"));
     expect(runIntentTerminal).not.toHaveBeenCalled();
 
@@ -220,6 +230,7 @@ describe("AgentTerminalPanel", () => {
         model: "gpt-5.5",
         effort: "medium"
       },
+      reviewBindingId: null,
       selectedPartIds: [],
       systemPrompt: "RULES",
       userPrompt: "BODY",
@@ -227,36 +238,62 @@ describe("AgentTerminalPanel", () => {
     });
   });
 
-  it("Review-режим появляется только когда у интента есть attached PR", async () => {
-    getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
+  it("живая сессия показывает фактическую ось запуска из ответа сессии, а не дефолт каталога", async () => {
+    getIntentTerminalSession.mockResolvedValue(
+      sessionResponse("running", {
+        mode: "interview",
+        vendor: "codex",
+        model: "gpt-5.4",
+        effort: "low"
+      })
+    );
+
+    render();
+
+    await screen.findByTestId("terminal-view");
+    const vendor = screen.getByTestId<HTMLSelectElement>(
+      "agent-terminal-vendor"
+    );
+    const model = screen.getByTestId<HTMLSelectElement>("agent-terminal-model");
+    const effort = screen.getByTestId<HTMLSelectElement>(
+      "agent-terminal-effort"
+    );
+    const mode = screen.getByTestId<HTMLSelectElement>("agent-terminal-mode");
+
+    await waitFor(() => {
+      expect(vendor.value).toBe("codex");
+    });
+    expect(model.value).toBe("gpt-5.4");
+    expect(effort.value).toBe("low");
+    expect(mode.value).toBe("interview");
+    expect(vendor.disabled).toBe(true);
+    expect(mode.disabled).toBe(true);
+  });
+
+  it("без живой сессии префиллит ось из last-used интента, а не из дефолта каталога", async () => {
+    getIntentTerminalSession.mockResolvedValue(
+      sessionResponse("exited", {
+        mode: "work",
+        vendor: "codex",
+        model: "gpt-5.3-codex",
+        effort: "high"
+      })
+    );
 
     render();
 
     await waitFor(() => {
       expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
     });
-    const noPrOptions = Array.from(
-      screen.getByTestId("agent-terminal-mode").querySelectorAll("option")
-    ).map((option) => option.value);
-    expect(noPrOptions).not.toContain("review");
-
-    cleanup();
-    listIntentRepositories.mockResolvedValue([
-      {
-        id: "binding-1",
-        clone_status: "ready",
-        pull_request_number: 42
-      }
-    ]);
-
-    render();
+    const vendor = screen.getByTestId<HTMLSelectElement>(
+      "agent-terminal-vendor"
+    );
+    const model = screen.getByTestId<HTMLSelectElement>("agent-terminal-model");
 
     await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+      expect(vendor.value).toBe("codex");
     });
-    const withPrOptions = Array.from(
-      screen.getByTestId("agent-terminal-mode").querySelectorAll("option")
-    ).map((option) => option.value);
-    expect(withPrOptions).toContain("review");
+    expect(model.value).toBe("gpt-5.3-codex");
+    expect(vendor.disabled).toBe(false);
   });
 });

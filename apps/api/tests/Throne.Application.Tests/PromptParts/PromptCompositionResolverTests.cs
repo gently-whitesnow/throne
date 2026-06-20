@@ -90,23 +90,6 @@ public class PromptCompositionResolverTests
         ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    [Fact(DisplayName = "Mandatory-проекция совпадает с MCP-бандлом get_prompt_bundle(work)")]
-    public async Task Mandatory_projection_matches_mcp_bundle()
-    {
-        var resolver = NewResolver(out var repository, optionalParts: []);
-        var bundleHandler = BundleHandler(repository);
-
-        var composition = await resolver.ResolveAsync(
-            new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, ""), CancellationToken.None);
-        var bundle = await bundleHandler.HandleAsync(
-            new GetPromptBundleQuery(PromptBundleModeNames.Work, IntentId: null), CancellationToken.None);
-
-        var mandatory = composition.Parts
-            .Where(p => p.Role == PromptPartRoleNames.Mandatory)
-            .Select(p => (p.Scope, p.Key, p.PartId, p.Text));
-        mandatory.Should().Equal(bundle.Parts.Select(i => (i.Scope, i.Key, i.PromptPartId, i.Text)));
-    }
-
     private static PromptPart OptionalPart(string key, string mode, string role, int order, string text) =>
         PromptPart.Create(
             PromptPartId.New(), PromptPartScopeNames.User, key, text, null,
@@ -124,13 +107,10 @@ public class PromptCompositionResolverTests
             SeedPart(PromptPartScopeNames.System, "interview", "system text for interview"),
             SeedPart(PromptPartScopeNames.System, "work", "system text for work"),
             SeedPart(PromptPartScopeNames.System, "review", "system text for review"),
-            SeedPart(PromptPartScopeNames.System, "dream", "system text for dream"),
-            SeedPart(PromptPartScopeNames.System, "schema_map", "system text for schema_map"),
             SeedPart(PromptPartScopeNames.User, "common", "user common text"),
             SeedPart(PromptPartScopeNames.User, "interview", "user interview text"),
             SeedPart(PromptPartScopeNames.User, "work", "user work text"),
             SeedPart(PromptPartScopeNames.User, "review", "user review text"),
-            SeedPart(PromptPartScopeNames.User, "dream", "user dream text"),
         };
 
         var repo = Substitute.For<IPromptPartRepository>();
@@ -154,30 +134,6 @@ public class PromptCompositionResolverTests
         repository = BuildRepository(optionalParts);
         return new PromptCompositionResolver(
             SkillManifestFixtures.Provider(),
-            new PromptBundleResolver(repository),
             repository);
-    }
-
-    private static GetPromptBundleHandler BundleHandler(IPromptPartRepository repository)
-    {
-        var auto = new IntentStatusAutoTransition(
-            Substitute.For<IIntentRepository>(),
-            new PassThroughUnitOfWork(),
-            new FixedTimeProvider(Now));
-        return new GetPromptBundleHandler(SkillManifestFixtures.Provider(), auto, new PromptBundleResolver(repository));
-    }
-
-    private sealed class PassThroughUnitOfWork : IUnitOfWork
-    {
-        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
-
-        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-
-        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-    }
-
-    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

@@ -7,7 +7,7 @@ namespace Throne.Application.Tests.Manifest;
 
 internal static class SkillManifestFixtures
 {
-    public static readonly IReadOnlyList<string> Keys = ["common", "interview", "work", "review", "dream", "schema_map"];
+    public static readonly IReadOnlyList<string> Keys = ["common", "interview", "work", "review"];
 
     public static SkillManifest Sample()
     {
@@ -25,23 +25,11 @@ internal static class SkillManifestFixtures
                 new BundleInclude(PromptPartScopeNames.User, key),
             ]);
 
-        // schema_map is launched without an intent and has no user-scope counterpart:
-        // system common + system schema_map + user common only (mirrors the real manifest).
-        var schemaMapBundle = new BundleDefinition(
-            PromptBundleModeNames.SchemaMap,
-            [
-                new BundleInclude(PromptPartScopeNames.System, "common"),
-                new BundleInclude(PromptPartScopeNames.System, "schema_map"),
-                new BundleInclude(PromptPartScopeNames.User, "common"),
-            ]);
-
         var bundles = new[]
         {
-            Bundle(PromptBundleModeNames.Interview, "interview"),
-            Bundle(PromptBundleModeNames.Work, "work"),
-            Bundle(PromptBundleModeNames.Review, "review"),
-            Bundle(PromptBundleModeNames.Dream, "dream"),
-            schemaMapBundle,
+            Bundle(PromptPartModeNames.Interview, "interview"),
+            Bundle(PromptPartModeNames.Work, "work"),
+            Bundle(PromptPartModeNames.Review, "review"),
         };
 
         return new SkillManifest(1, systemInstructions, bundles, Array.Empty<DreamSourceManifestEntry>());

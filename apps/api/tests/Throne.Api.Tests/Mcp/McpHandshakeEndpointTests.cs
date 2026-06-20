@@ -63,7 +63,10 @@ public sealed class McpHandshakeEndpointTests(MongoFixture mongo) : IAsyncLifeti
             loggerFactory: null);
 
         mcp.ServerInstructions.Should().Be(ThroneServerInstructions.MiniRouter);
-        mcp.ServerInstructions.Should().Contain("When the user asks to read/");
+        mcp.ServerInstructions.Should().Contain("knowledge base of intents");
+        mcp.ServerInstructions.Should().Contain("set_intent_status only when the user explicitly asks");
+        mcp.ServerInstructions.Should().Contain("does not ship a working playbook");
+        mcp.ServerInstructions.Should().NotContain("get_prompt_bundle");
         mcp.ServerInstructions.Should().NotContain("Before any other action");
         mcp.ServerInstructions.Should().NotContain("MUST first call get_prompt_bundle");
         mcp.ServerInstructions.Should().NotContain("pick the mode by meaning");

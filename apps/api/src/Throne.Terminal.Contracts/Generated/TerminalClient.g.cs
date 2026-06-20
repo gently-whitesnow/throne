@@ -148,7 +148,7 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
-    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires exactly one attached PR/MR and bakes the `review_recommendation` artifact writer into the session workspace.
+    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires an attached PR/MR and bakes the selected `review_recommendation` artifact writer into the session workspace.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -289,6 +289,14 @@ namespace Throne.Terminal.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("selected_part_ids")]
         public System.Collections.Generic.ICollection<string> Selected_part_ids { get; set; }
+
+        /// <summary>
+        /// Binding id of the attached PR/MR to review when `mode=review` and the intent has more than one attached pull request. Omitted with a single attached PR/MR → the server selects it implicitly. A value outside the intent's attached PR/MR bindings aborts pre-flight with 422.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("review_binding_id")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Review_binding_id { get; set; }
 
         /// <summary>
         /// Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected.
@@ -449,6 +457,52 @@ namespace Throne.Terminal.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("blocking_bindings")]
         public System.Collections.Generic.ICollection<string> Blocking_bindings { get; set; }
+
+        /// <summary>
+        /// Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("launch")]
+        public TerminalLaunchArgs Launch { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalLaunchArgs
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalRunMode>))]
+        public TerminalRunMode Mode { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
+        public TerminalAgentVendor Vendor { get; set; }
+
+        /// <summary>
+        /// Resolved model id from the vendor's whitelist.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Model { get; set; }
+
+        /// <summary>
+        /// Resolved reasoning effort; null for a vendor with no effort axis.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
+        public TerminalReasoningEffort? Effort { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -664,13 +718,17 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"UserPromptSubmit")]
         UserPromptSubmit = 1,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"SessionReady")]
+        [System.Runtime.Serialization.EnumMember(Value = @"SessionReady")]
+        SessionReady = 2,
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"Notification")]
         [System.Runtime.Serialization.EnumMember(Value = @"Notification")]
-        Notification = 2,
+        Notification = 3,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"PostToolUse")]
         [System.Runtime.Serialization.EnumMember(Value = @"PostToolUse")]
-        PostToolUse = 3,
+        PostToolUse = 4,
 
     }
 

@@ -35,7 +35,6 @@ internal sealed class MongoRepositoryArtifactStore
         string slug,
         string title,
         string document,
-        string renderHint,
         int? expectedVersion,
         DateTimeOffset now,
         CancellationToken ct)
@@ -44,12 +43,12 @@ internal sealed class MongoRepositoryArtifactStore
 
         var existing = await FindDocumentBySlugAsync(coordinate, slug, ct);
         return existing is null
-            ? await CreateAsync(coordinate, slug, title, document, renderHint, expectedVersion, now, ct)
-            : await UpdateAsync(existing, title, document, renderHint, expectedVersion, now, ct);
+            ? await CreateAsync(coordinate, slug, title, document, expectedVersion, now, ct)
+            : await UpdateAsync(existing, title, document, expectedVersion, now, ct);
     }
 
     private async Task<WriteRepositoryArtifactOutcome> CreateAsync(
-        RepoCoordinate coordinate, string slug, string title, string document, string renderHint,
+        RepoCoordinate coordinate, string slug, string title, string document,
         int? expectedVersion, DateTimeOffset now, CancellationToken ct)
     {
         // expected_version on a page that does not exist yet means «update a version that
@@ -60,7 +59,7 @@ internal sealed class MongoRepositoryArtifactStore
         }
 
         var artifact = RepositoryArtifact.Create(
-            RepositoryArtifactId.New(), coordinate, slug, title, document, renderHint, now);
+            RepositoryArtifactId.New(), coordinate, slug, title, document, now);
         try
         {
             await InsertOneAsync(RepositoryArtifactDocumentMapper.ToDocument(artifact), ct);
@@ -77,7 +76,7 @@ internal sealed class MongoRepositoryArtifactStore
     }
 
     private async Task<WriteRepositoryArtifactOutcome> UpdateAsync(
-        RepositoryArtifactDocument existing, string title, string document, string renderHint,
+        RepositoryArtifactDocument existing, string title, string document,
         int? expectedVersion, DateTimeOffset now, CancellationToken ct)
     {
         if (expectedVersion != existing.Version)
@@ -86,12 +85,11 @@ internal sealed class MongoRepositoryArtifactStore
         }
 
         var artifact = RepositoryArtifactDocumentMapper.ToDomain(existing);
-        artifact.Update(title, document, renderHint, now);
+        artifact.Update(title, document, now);
 
         var update = Builders<RepositoryArtifactDocument>.Update
             .Set(d => d.Title, artifact.Title)
             .Set(d => d.Document, artifact.Document)
-            .Set(d => d.RenderHint, artifact.RenderHint)
             .Set(d => d.Version, artifact.Version)
             .Set(d => d.UpdatedAt, artifact.UpdatedAt.UtcDateTime);
         var casFilter = Builders<RepositoryArtifactDocument>.Filter.And(

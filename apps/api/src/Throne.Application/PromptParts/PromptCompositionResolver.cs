@@ -7,13 +7,12 @@ namespace Throne.Application.PromptParts;
 
 /// <summary>
 /// Resolves the effective embedded prompt composition for a mode (ADR-0036): mandatory
-/// parts taken from the bundle (read from <c>prompt_parts</c> in manifest-include order, so
-/// the embedded preview and <c>get_prompt_bundle</c> read the same source) plus
-/// operator-authored optional parts with their per-mode roles.
+/// parts read from <c>prompt_parts</c> in manifest-include order plus operator-authored
+/// optional parts with their per-mode roles. The manifest's <c>bundles[].includes</c>
+/// declares the ordered mandatory <c>(scope, key)</c> set for each composition mode.
 /// </summary>
 public sealed class PromptCompositionResolver(
     ISkillManifestProvider manifestProvider,
-    PromptBundleResolver bundleResolver,
     IPromptPartRepository promptParts)
 {
     public async Task<PromptComposition> ResolveAsync(ResolvePromptCompositionQuery query, CancellationToken ct)
@@ -49,30 +48,38 @@ public sealed class PromptCompositionResolver(
 
     private async Task<List<EffectivePart>> BuildMandatoryAsync(string mode, CancellationToken ct)
     {
-        // free curates everything by hand — no mandatory parts and no manifest bundle.
+        // free curates everything by hand — no mandatory parts and no manifest composition.
         if (string.Equals(mode, PromptPartModeNames.Free, StringComparison.Ordinal))
         {
             return [];
         }
 
         var manifest = manifestProvider.Current;
-        var bundle = BundleResolver.ResolveOrThrow(manifest, mode);
-        var (entries, _) = await bundleResolver.BuildAsync(bundle, ct);
-
-        var parts = new List<EffectivePart>(entries.Count);
-        for (var i = 0; i < entries.Count; i++)
+        var composition = manifest.Bundles.FirstOrDefault(b => string.Equals(b.Mode, mode, StringComparison.Ordinal));
+        if (composition is null)
         {
-            var entry = entries[i];
+            return [];
+        }
+
+        var parts = new List<EffectivePart>(composition.Includes.Count);
+        var order = 0;
+        foreach (var include in composition.Includes)
+        {
+            var part = await promptParts.GetByScopeKeyAsync(include.Scope, include.Kind, ct);
+            if (part is null)
+            {
+                continue;
+            }
             parts.Add(new EffectivePart(
-                PartId: entry.PromptPartId,
-                Key: entry.Key,
-                Scope: entry.Scope,
+                PartId: part.Id.Value,
+                Key: part.Key,
+                Scope: part.Scope,
                 Role: PromptPartRoleNames.Mandatory,
-                Order: i,
-                Editable: string.Equals(entry.Scope, PromptPartScopeNames.User, StringComparison.Ordinal),
+                Order: order++,
+                Editable: string.Equals(part.Scope, PromptPartScopeNames.User, StringComparison.Ordinal),
                 Present: true,
                 Selected: true,
-                Text: entry.Text));
+                Text: part.Text));
         }
         return parts;
     }

@@ -25,9 +25,6 @@ internal sealed class RepositoryArtifactVersionDocument
     [BsonElement("document")]
     public string Document { get; set; } = string.Empty;
 
-    [BsonElement("render_hint")]
-    public string RenderHint { get; set; } = string.Empty;
-
     [BsonElement("created_at")]
     public DateTime CreatedAt { get; set; }
 }
