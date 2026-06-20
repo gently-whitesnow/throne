@@ -69,8 +69,14 @@ public partial class RunPreflightOrchestratorTests
             var launchResolver = BuildLaunchResolver();
             var promptGate = BuildPromptGate(clock, uow);
             LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
+            SkillSelections = Substitute.For<IIntentSkillModeSelectionStore>();
+            var skillPlanner = new RunPreflightSkillPlanner(
+                BuildSkillSelection(),
+                new SessionSkillPackageRegistry(new InMemorySessionSkillCatalog()),
+                SkillSelections);
+            var launchPlanner = new RunPreflightLaunchPlanner(launchResolver, LaunchStore);
             Orchestrator = new RunPreflightOrchestrator(
-                guards, autoBind, queue, cloneWait, spawn, promptGate, launchResolver, LaunchStore);
+                guards, autoBind, queue, cloneWait, spawn, promptGate, skillPlanner, launchPlanner);
         }
 
         private (RepositoryBindingService Service, IRepositoryCloneRequests CloneQueue) BuildBindingService(
@@ -123,6 +129,16 @@ public partial class RunPreflightOrchestratorTests
                 Substitute.For<IDomainEventDispatcher>());
         }
 
+        private static SessionSkillSelectionService BuildSkillSelection()
+        {
+            var catalog = new InMemorySessionSkillCatalog();
+            var defaults = Substitute.For<ISkillModeDefaultStore>();
+            defaults.ListAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult(SkillModeDefaultSeeds.Build(catalog)));
+            var selections = Substitute.For<IIntentSkillModeSelectionStore>();
+            return new SessionSkillSelectionService(catalog, defaults, selections);
+        }
+
         private static TerminalLaunchResolver BuildLaunchResolver()
         {
             var settingsStore = Substitute.For<ITerminalSettingsStore>();
@@ -148,6 +164,7 @@ public partial class RunPreflightOrchestratorTests
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
         public IIntentTerminalLaunchStore LaunchStore { get; }
+        public IIntentSkillModeSelectionStore SkillSelections { get; }
         public RunPreflightOrchestrator Orchestrator { get; }
 
         public Fixture Setup(
@@ -206,35 +223,36 @@ public partial class RunPreflightOrchestratorTests
         }
     }
 
-    private sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider
-    {
-        public string ResolvedRoot { get; } = root;
-    }
+}
 
-    private sealed class StubHookAdapter(string vendor, IReadOnlyList<string> args) : ISessionHookAdapter
-    {
-        public string Vendor => vendor;
+file sealed class StubWorkspaceRoot(string root) : IWorkspaceRootProvider
+{
+    public string ResolvedRoot { get; } = root;
+}
 
-        public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(string intentId, string workspacePath,
-            string mode, string? systemPrompt, IReadOnlyList<SessionSkillPackage> skillPackages, CancellationToken ct) =>
-            Task.FromResult(args);
+file sealed class StubHookAdapter(string vendor, IReadOnlyList<string> args) : ISessionHookAdapter
+{
+    public string Vendor => vendor;
 
-        public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
+    public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(string intentId, string workspacePath,
+        string mode, string? systemPrompt, IReadOnlyList<SessionSkillPackage> skillPackages, CancellationToken ct) =>
+        Task.FromResult(args);
 
-        public bool IsTuiReady(string paneSnapshot) =>
-            !string.IsNullOrEmpty(paneSnapshot)
-            && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
-    }
+    public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
 
-    private sealed class PassthroughUnitOfWork : IUnitOfWork
-    {
-        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
-        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-    }
+    public bool IsTuiReady(string paneSnapshot) =>
+        !string.IsNullOrEmpty(paneSnapshot)
+        && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
+}
 
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
+file sealed class PassthroughUnitOfWork : IUnitOfWork
+{
+    public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
+    public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+    public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
+}
+
+file sealed class FixedClock(DateTimeOffset now) : TimeProvider
+{
+    public override DateTimeOffset GetUtcNow() => now;
 }

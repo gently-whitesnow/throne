@@ -96,32 +96,7 @@ public static class DependencyInjection
         services.AddSingleton<PullRequestSyncBindingVisitor>();
         services.AddSingleton<PullRequestSyncTickWorkflow>();
         services.AddSingleton<PullRequestAutoBindWorkflow>();
-        // Capability orchestrator + Slice 2 Run pre-flight (terminal).
-        // RunPreflightOrchestrator pulls in ITmuxSessionManager from
-        // Throne.Infrastructure.Terminals — registration there is required.
-        services.AddSingleton<CapabilitiesPersistence>();
-        services.AddSingleton<CapabilitiesService>();
-        services.AddSingleton<ICapabilityAvailability>(sp => sp.GetRequiredService<CapabilitiesService>());
-        services.AddSingleton<TagDefaultsUnion>();
-        services.AddSingleton<RunPreflightAutoBind>();
-        services.AddSingleton<RunPreflightCloneScheduler>();
-        services.AddSingleton<RunPreflightCloneWait>();
-        services.AddSingleton<TerminalReadinessSignals>();
-        services.AddSingleton<TmuxTuiReadinessWaiter>();
-        services.AddSingleton<WorkspaceAttachmentDumper>();
-        services.AddSingleton<RunPreflightWorkspacePreparer>();
-        services.AddSingleton<RunPreflightSpawn>();
-        services.AddSingleton<RunPreflightPromptGate>();
-        services.AddSingleton<RunPreflightGuards>();
-        services.AddSingleton<RunPreflightOrchestrator>();
-        services.AddSingleton<TerminalLaunchResolver>();
-        services.AddSingleton<TerminalSettingsService>();
-        services.AddSingleton<LocalModelDiscoveryService>();
-        // OpenCode is the only `local`-sourced vendor today; its model list flows from the
-        // shared LocalModelDiscoveryService (Throne:LocalModel:BaseUrl → /v1/models).
-        services.AddSingleton<IVendorModelCatalog, OpencodeLocalModelCatalog>();
-        services.AddSingleton<TerminalSessionStatusService>();
-        services.AddSingleton<TerminalSessionKillService>();
+        services.AddTerminalServices();
         services.AddSingleton<TerminalHookStatusHandler>();
         // ADR-0026 § 8: tmux session is torn down when an intent reaches `done`. The handler
         // takes ITmuxSessionManager via Lazy to break the dispatcher↔handler resolution cycle
@@ -138,6 +113,39 @@ public static class DependencyInjection
         services.AddSingleton<VscodeCapabilityGuard>();
         services.AddSingleton<VscodeSpawner>();
         services.AddSingleton<OpenInVscodeService>();
+        return services;
+    }
+
+    private static IServiceCollection AddTerminalServices(this IServiceCollection services)
+    {
+        // RunPreflightOrchestrator pulls in ITmuxSessionManager from Infrastructure registration.
+        services.AddSingleton<CapabilitiesPersistence>();
+        services.AddSingleton<CapabilitiesService>();
+        services.AddSingleton<ICapabilityAvailability>(sp => sp.GetRequiredService<CapabilitiesService>());
+        services.AddSingleton<ISessionSkillCatalog, InMemorySessionSkillCatalog>();
+        services.AddSingleton<SessionSkillPackageRegistry>();
+        services.AddSingleton<SessionSkillSelectionService>();
+        services.AddSingleton<RunPreflightSkillPlanner>();
+        services.AddSingleton<RunPreflightLaunchPlanner>();
+        services.AddSingleton<SkillModeDefaultsService>();
+        services.AddSingleton<TagDefaultsUnion>();
+        services.AddSingleton<RunPreflightAutoBind>();
+        services.AddSingleton<RunPreflightCloneScheduler>();
+        services.AddSingleton<RunPreflightCloneWait>();
+        services.AddSingleton<TerminalReadinessSignals>();
+        services.AddSingleton<TmuxTuiReadinessWaiter>();
+        services.AddSingleton<WorkspaceAttachmentDumper>();
+        services.AddSingleton<RunPreflightWorkspacePreparer>();
+        services.AddSingleton<RunPreflightSpawn>();
+        services.AddSingleton<RunPreflightPromptGate>();
+        services.AddSingleton<RunPreflightGuards>();
+        services.AddSingleton<RunPreflightOrchestrator>();
+        services.AddSingleton<TerminalLaunchResolver>();
+        services.AddSingleton<TerminalSettingsService>();
+        services.AddSingleton<LocalModelDiscoveryService>();
+        services.AddSingleton<IVendorModelCatalog, OpencodeLocalModelCatalog>();
+        services.AddSingleton<TerminalSessionStatusService>();
+        services.AddSingleton<TerminalSessionKillService>();
         return services;
     }
 

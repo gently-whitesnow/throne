@@ -1,38 +1,47 @@
 using FluentAssertions;
 using Throne.Application.Terminals;
+using Throne.Domain.Repositories;
 
 namespace Throne.Application.Tests.Terminals;
 
 public class SessionSkillPackageRegistryTests
 {
-    [Theory(DisplayName = "Interview default resolves intent operations package for every vendor")]
+    [Theory(DisplayName = "Выбранный intent-ops материализуется для каждого вендора")]
     [InlineData(TerminalAgentCatalog.VendorClaude)]
     [InlineData(TerminalAgentCatalog.VendorCodex)]
     [InlineData(TerminalAgentCatalog.VendorOpencode)]
-    public void Interview_resolves_intent_operations(string vendor)
+    public void Selected_intent_operations_resolves_for_every_vendor(string vendor)
     {
-        var packages = SessionSkillPackageRegistry.Resolve(new SessionSkillPackageResolution(
-            "intent-1", TerminalRunModes.Interview, vendor, ReviewArtifact: null));
+        var registry = NewRegistry();
+        var packages = registry.Resolve(new SessionSkillPackageResolution(
+            "intent-1", vendor, [SessionSkillPackageIds.IntentOperations], ReviewArtifact: null));
 
         packages.Should().Equal(new IntentOperationsSessionSkillPackage("intent-1"));
     }
 
-    [Fact(DisplayName = "Review resolves review artifact package only when target exists")]
-    public void Review_resolves_review_artifact_when_target_exists()
+    [Fact(DisplayName = "Review-artifact материализуется без привязки к режиму")]
+    public void Selected_review_artifact_resolves_without_mode_gate()
     {
-        var target = new ReviewArtifactWriteTarget("binding-1", 42);
-        var packages = SessionSkillPackageRegistry.Resolve(new SessionSkillPackageResolution(
-            "intent-1", TerminalRunModes.Review, TerminalAgentCatalog.VendorClaude, target));
+        var registry = NewRegistry();
+        var target = new ReviewArtifactWriteTarget(
+            "binding-1",
+            new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
+        var packages = registry.Resolve(new SessionSkillPackageResolution(
+            "intent-1", TerminalAgentCatalog.VendorClaude, [SessionSkillPackageIds.ReviewArtifact], target));
 
         packages.Should().Equal(new ReviewArtifactSessionSkillPackage(target));
     }
 
-    [Fact(DisplayName = "Non-interview/non-review modes resolve no default skill packages")]
-    public void Work_resolves_no_default_packages()
+    [Fact(DisplayName = "Невыбранные скилы не материализуются")]
+    public void Unselected_skills_resolve_no_packages()
     {
-        var packages = SessionSkillPackageRegistry.Resolve(new SessionSkillPackageResolution(
-            "intent-1", TerminalRunModes.Work, TerminalAgentCatalog.VendorClaude, ReviewArtifact: null));
+        var registry = NewRegistry();
+        var packages = registry.Resolve(new SessionSkillPackageResolution(
+            "intent-1", TerminalAgentCatalog.VendorClaude, [], ReviewArtifact: null));
 
         packages.Should().BeEmpty();
     }
+
+    private static SessionSkillPackageRegistry NewRegistry() =>
+        new(new InMemorySessionSkillCatalog());
 }

@@ -117,6 +117,7 @@ function previewResponse(): IntentTerminalPreviewResponse {
     intent_version: 2,
     mode: "review",
     parts: [],
+    available_skills_for_mode: [],
     selected_part_ids: [],
     system_prompt: "RULES",
     user_prompt: "BODY"

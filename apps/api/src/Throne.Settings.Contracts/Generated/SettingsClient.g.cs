@@ -88,6 +88,150 @@ namespace Throne.Settings.Contracts.Generated
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkillCatalogItemDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("skill_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Skill_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Source { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Description { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkillModeDefaultDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("skill_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Skill_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkillModeDefaultsModeDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Mode { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaults")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SkillModeDefaultDto> Defaults { get; set; } = new System.Collections.ObjectModel.Collection<SkillModeDefaultDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SkillModeDefaultsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("skills")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SkillCatalogItemDto> Skills { get; set; } = new System.Collections.ObjectModel.Collection<SkillCatalogItemDto>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("modes")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<SkillModeDefaultsModeDto> Modes { get; set; } = new System.Collections.ObjectModel.Collection<SkillModeDefaultsModeDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateSkillModeDefaultEntry
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Mode { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("skill_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Skill_id { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateSkillModeDefaultsRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaults")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<UpdateSkillModeDefaultEntry> Defaults { get; set; } = new System.Collections.ObjectModel.Collection<UpdateSkillModeDefaultEntry>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     /// <summary>
     /// `ready` — `total_size_bytes` reflects the latest scan. `calculating` — background sweep in progress; size will arrive on the next request.
     /// <br/>

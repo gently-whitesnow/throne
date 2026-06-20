@@ -1,35 +1,16 @@
 namespace Throne.Application.Terminals;
 
-public static class SessionSkillPackageRegistry
+public sealed class SessionSkillPackageRegistry(ISessionSkillCatalog catalog)
 {
-    private static readonly IReadOnlyList<string> AllVendors =
-    [
-        TerminalAgentCatalog.VendorClaude,
-        TerminalAgentCatalog.VendorCodex,
-        TerminalAgentCatalog.VendorOpencode,
-    ];
-
-    private static readonly IReadOnlyList<SessionSkillPackageDescriptor> Descriptors =
-    [
-        new(
-            SessionSkillPackageIds.ReviewArtifact,
-            SessionSkillPackageSources.Throne,
-            [TerminalRunModes.Review],
-            AllVendors),
-        new(
-            SessionSkillPackageIds.IntentOperations,
-            SessionSkillPackageSources.Throne,
-            [TerminalRunModes.Interview],
-            AllVendors),
-    ];
-
-    public static IReadOnlyList<SessionSkillPackage> Resolve(SessionSkillPackageResolution resolution)
+    public IReadOnlyList<SessionSkillPackage> Resolve(SessionSkillPackageResolution resolution)
     {
         ArgumentNullException.ThrowIfNull(resolution);
         var result = new List<SessionSkillPackage>();
-        foreach (var descriptor in Descriptors)
+        var selected = resolution.SelectedSkillIds.ToHashSet(StringComparer.Ordinal);
+        foreach (var descriptor in catalog.List())
         {
-            if (!descriptor.Matches(resolution.Mode, resolution.Vendor))
+            if (!selected.Contains(descriptor.Id)
+                || !descriptor.Vendors.Contains(resolution.Vendor, StringComparer.Ordinal))
             {
                 continue;
             }
@@ -42,7 +23,7 @@ public static class SessionSkillPackageRegistry
 
     private static void AddPackage(
         List<SessionSkillPackage> result,
-        SessionSkillPackageDescriptor descriptor,
+        SessionSkillDescriptor descriptor,
         SessionSkillPackageResolution resolution)
     {
         switch (descriptor.Id)
@@ -59,17 +40,6 @@ public static class SessionSkillPackageRegistry
 
 public sealed record SessionSkillPackageResolution(
     string IntentId,
-    string Mode,
     string Vendor,
+    IReadOnlyList<string> SelectedSkillIds,
     ReviewArtifactWriteTarget? ReviewArtifact);
-
-internal sealed record SessionSkillPackageDescriptor(
-    string Id,
-    string Source,
-    IReadOnlyList<string> Modes,
-    IReadOnlyList<string> Vendors)
-{
-    public bool Matches(string mode, string vendor) =>
-        Modes.Contains(mode, StringComparer.Ordinal)
-        && Vendors.Contains(vendor, StringComparer.Ordinal);
-}

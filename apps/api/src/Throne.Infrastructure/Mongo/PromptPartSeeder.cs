@@ -16,9 +16,11 @@ internal sealed class PromptPartSeeder(
     ISkillManifestProvider manifestProvider,
     IPromptPartRepository parts,
     IUnitOfWork unitOfWork,
-    TimeProvider clock) : BackgroundService
+    TimeProvider clock) : IHostedService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) => RunAsync(stoppingToken);
+    public Task StartAsync(CancellationToken cancellationToken) => RunAsync(cancellationToken);
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <summary>Runs the system-part seed/reconcile pass once. Exposed for integration tests.</summary>
     internal async Task RunAsync(CancellationToken ct)
