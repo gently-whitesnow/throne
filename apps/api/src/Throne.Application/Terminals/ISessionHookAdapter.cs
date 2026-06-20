@@ -40,7 +40,7 @@ public interface ISessionHookAdapter
         string workspacePath,
         string mode,
         string? systemPrompt,
-        ReviewArtifactWriteTarget? reviewArtifact,
+        IReadOnlyList<SessionSkillPackage> skillPackages,
         CancellationToken ct);
 
     /// <summary>
