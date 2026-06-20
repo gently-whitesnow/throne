@@ -14,8 +14,6 @@ namespace Throne.Infrastructure.Terminals;
 /// </summary>
 public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
 {
-    private const string McpFileName = ".mcp.json";
-    private static readonly string ProjectSettingsPath = Path.Combine(".claude", "settings.local.json");
     private const string SettingsFileName = "throne-session.settings.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
 
@@ -40,18 +38,6 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
         Directory.CreateDirectory(workspacePath);
-        if (SessionMcpPolicy.ShouldEnableThroneMcp(mode))
-        {
-            await WorkspaceConfigFile.MergeAsync(
-                Path.Combine(workspacePath, McpFileName),
-                existing => ClaudeMcpDocument.WithThroneServer(existing, options.ApiBaseUrl),
-                ct);
-            await WorkspaceConfigFile.MergeAsync(
-                Path.Combine(workspacePath, ProjectSettingsPath),
-                ClaudeProjectSettingsDocument.WithThroneMcpEnabled,
-                ct);
-        }
-
         await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, options.ApiBaseUrl, ct);
         await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, skillPackages, ct);
 

@@ -44,36 +44,7 @@ public class OpencodeSessionHookAdapterTests
         var models = provider.GetProperty("models");
         models.GetProperty("llama-4").GetProperty("name").GetString().Should().Be("llama-4");
         models.GetProperty("qwen-3").GetProperty("name").GetString().Should().Be("qwen-3");
-        var mcp = doc.RootElement.GetProperty("mcp").GetProperty("throne");
-        mcp.GetProperty("type").GetString().Should().Be("remote");
-        mcp.GetProperty("url").GetString().Should().Be("http://localhost:5008/mcp");
-        mcp.GetProperty("enabled").GetBoolean().Should().BeTrue();
         doc.RootElement.TryGetProperty("instructions", out _).Should().BeFalse();
-    }
-
-    [Fact(DisplayName = "OpenCode MCP: сохраняет чужие mcp-серверы при перезаписи opencode.json")]
-    public async Task Preserves_existing_mcp_servers()
-    {
-        var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(root);
-        await File.WriteAllTextAsync(Path.Combine(root, "opencode.json"), """
-        {
-          "mcp": {
-            "github": { "type": "remote", "url": "https://example.test/mcp", "enabled": false },
-            "throne": { "type": "remote", "url": "http://old/mcp", "enabled": true }
-          }
-        }
-        """);
-        var sut = NewAdapter("http://localhost:1234", ["llama-4"]);
-
-        await sut.PrepareSpawnArgsAsync(
-            "intent-1", root, TerminalRunModes.Work, systemPrompt: null, skillPackages: [], CancellationToken.None);
-
-        using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
-        var mcp = doc.RootElement.GetProperty("mcp");
-        mcp.GetProperty("github").GetProperty("url").GetString().Should().Be("https://example.test/mcp");
-        mcp.GetProperty("github").GetProperty("enabled").GetBoolean().Should().BeFalse();
-        mcp.GetProperty("throne").GetProperty("url").GetString().Should().Be("http://localhost:5008/mcp");
     }
 
     [Fact(DisplayName = "Непустой systemPrompt пишется в файл и попадает в instructions по имени")]

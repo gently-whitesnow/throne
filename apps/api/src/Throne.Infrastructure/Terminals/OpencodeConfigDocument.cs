@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace Throne.Infrastructure.Terminals;
@@ -11,9 +10,7 @@ internal sealed record OpencodeConfigDocument(
     [property: JsonPropertyName("$schema")] string Schema,
     [property: JsonPropertyName("provider")] IReadOnlyDictionary<string, OpencodeConfigProvider> Provider,
     [property: JsonPropertyName("instructions"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        IReadOnlyList<string>? Instructions,
-    [property: JsonPropertyName("mcp"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        IReadOnlyDictionary<string, JsonNode>? Mcp);
+        IReadOnlyList<string>? Instructions);
 
 internal sealed record OpencodeConfigProvider(
     [property: JsonPropertyName("npm")] string Npm,
