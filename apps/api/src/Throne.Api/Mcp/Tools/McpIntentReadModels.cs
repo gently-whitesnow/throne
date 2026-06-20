@@ -9,7 +9,7 @@ public sealed record McpIntentReadResult(
     [property: Description("Current intent status.")] string Status,
     [property: Description("Current text version.")] int CurrentVersion,
     [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
-    [property: Description("Fractional sort key (base62). Use to reason about the intent's position in the user-defined order.")] string SortKey,
+    [property: Description("Fractional sort key (base62), retained for audit summaries outside model-facing wire output.")] string SortKey,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
     [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt,
     [property: Description("Attachment metadata. Bytes are NOT inlined; for each entry pick the attachment-read MCP tool that matches its 'kind' (image vs text/log) from your own registered tool list, passing this intent's id and the attachment id.")]
@@ -43,7 +43,6 @@ public sealed record McpIntentLinkPeer(
     [property: Description("Peer intent identifier.")] string Id,
     [property: Description("Peer intent status.")] string Status,
     [property: Description("Peer intent current text version.")] int CurrentVersion,
-    [property: Description("Peer intent fractional sort key.")] string SortKey,
     [property: Description("First non-empty line of the peer's text, trimmed to 200 characters.")] string Preview,
     [property: Description("Tags attached to the peer intent.")] IReadOnlyList<McpTagRef> Tags);
 
@@ -76,7 +75,6 @@ public sealed record McpIntentListItem(
     [property: Description("Current text version. Use as expected_version for write tools.")] int CurrentVersion,
     [property: Description("Tags currently attached to the intent.")] IReadOnlyList<McpTagRef> Tags,
     [property: Description("First non-empty line of Intent.text, trimmed to 200 characters.")] string Preview,
-    [property: Description("Fractional sort key (base62). Lower lexicographic value = higher in the list.")] string SortKey,
     [property: Description("Creation timestamp.")] DateTimeOffset CreatedAt,
     [property: Description("Last update timestamp.")] DateTimeOffset UpdatedAt);
 
