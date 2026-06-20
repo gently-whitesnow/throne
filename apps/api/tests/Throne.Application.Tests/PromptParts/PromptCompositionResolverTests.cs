@@ -90,23 +90,6 @@ public class PromptCompositionResolverTests
         ex.Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    [Fact(DisplayName = "Mandatory-проекция совпадает с MCP-бандлом get_prompt_bundle(work)")]
-    public async Task Mandatory_projection_matches_mcp_bundle()
-    {
-        var resolver = NewResolver(out var repository, optionalParts: []);
-        var bundleHandler = BundleHandler(repository);
-
-        var composition = await resolver.ResolveAsync(
-            new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, ""), CancellationToken.None);
-        var bundle = await bundleHandler.HandleAsync(
-            new GetPromptBundleQuery(PromptBundleModeNames.Work, IntentId: null), CancellationToken.None);
-
-        var mandatory = composition.Parts
-            .Where(p => p.Role == PromptPartRoleNames.Mandatory)
-            .Select(p => (p.Scope, p.Key, p.PartId, p.Text));
-        mandatory.Should().Equal(bundle.Parts.Select(i => (i.Scope, i.Key, i.PromptPartId, i.Text)));
-    }
-
     private static PromptPart OptionalPart(string key, string mode, string role, int order, string text) =>
         PromptPart.Create(
             PromptPartId.New(), PromptPartScopeNames.User, key, text, null,
@@ -151,30 +134,6 @@ public class PromptCompositionResolverTests
         repository = BuildRepository(optionalParts);
         return new PromptCompositionResolver(
             SkillManifestFixtures.Provider(),
-            new PromptBundleResolver(repository),
             repository);
-    }
-
-    private static GetPromptBundleHandler BundleHandler(IPromptPartRepository repository)
-    {
-        var auto = new IntentStatusAutoTransition(
-            Substitute.For<IIntentRepository>(),
-            new PassThroughUnitOfWork(),
-            new FixedTimeProvider(Now));
-        return new GetPromptBundleHandler(SkillManifestFixtures.Provider(), auto, new PromptBundleResolver(repository));
-    }
-
-    private sealed class PassThroughUnitOfWork : IUnitOfWork
-    {
-        public Task ExecuteAsync(Func<CancellationToken, Task> work, CancellationToken ct) => work(ct);
-
-        public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-
-        public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
-    }
-
-    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
     }
 }

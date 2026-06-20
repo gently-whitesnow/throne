@@ -1,11 +1,9 @@
 namespace Throne.Domain.PromptParts;
 
 /// <summary>
-/// Run modes a <see cref="PromptPart"/> role can target (ADR-0036). Unifies the bundle
-/// modes (<c>interview</c>/<c>work</c>/<c>review</c>/<c>dream</c>) consumed by
-/// <c>get_prompt_bundle</c> with the embedded composition modes
-/// (<c>work</c>/<c>interview</c>/<c>review</c>/<c>free</c>). Absence of a role for a mode means the
-/// part is unavailable there.
+/// Run modes a <see cref="PromptPart"/> role can target (ADR-0036): the embedded composition
+/// modes <c>interview</c>/<c>work</c>/<c>review</c>/<c>dream</c>/<c>free</c>. Absence of a role
+/// for a mode means the part is unavailable there.
 /// </summary>
 public static class PromptPartModeNames
 {

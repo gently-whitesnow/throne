@@ -1,18 +1,21 @@
 namespace Throne.Application.Mcp;
 
 /// <summary>
-/// Mini-router shipped to every MCP client via <c>InitializeResult.instructions</c>
-/// (see MCP spec, Lifecycle / InitializeResult). Triggers <c>get_prompt_bundle</c>
-/// only on an explicit user request, so already-contextualized embedded sessions
-/// are not pushed into a redundant bundle read by a generic task description.
+/// Instructions shipped to every standalone MCP client via <c>InitializeResult.instructions</c>
+/// (see MCP spec, Lifecycle / InitializeResult). Throne is a knowledge base of intents for
+/// external agents: they read and write <c>Intent.text</c> and may change status, but the
+/// working playbook is not delivered over MCP — full intent execution lives in the embedded
+/// contour (see ADR-0034).
 /// </summary>
 public static class ThroneServerInstructions
 {
     public const string MiniRouter = """
-        This is Throne, an MCP server for intents. The working playbook for an intent is not in local files — it comes from get_prompt_bundle.
+        This is Throne, an MCP server that acts as a knowledge base of intents. Each intent has a canonical Intent.text plus status, tags, attachments and a link graph.
 
-        When the user asks to read/«прочитай» a bundle for a mode (work, interview, review, dream), call get_prompt_bundle({mode, intent_id}) and follow the text it returns — it is the source of truth. Surface any missing_keys to the user instead of improvising. intent_id comes from the message or active context; for work/interview/review create one via create_intent if none is given (dream runs without an intent).
+        Use the intent-management tools to read and write that knowledge: get_intent / read_intent_text to read, replace_intent_text / insert_intent_text_after_line to edit Intent.text, list_intents / search_intent_text to discover, and the link/tag tools for relationships. The active intent_id comes from the message or context.
 
-        Do not call get_prompt_bundle on your own initiative when the user merely describes a task without asking to read a bundle — wait for an explicit request.
+        Change an intent's status with set_intent_status only when the user explicitly asks for it. Create a new intent with create_intent only on an explicit request — there is no automatic status transition and no implicit intent creation.
+
+        Throne does not ship a working playbook over MCP: follow the user's own instructions for how to carry out a task.
         """;
 }

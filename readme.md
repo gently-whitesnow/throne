@@ -62,7 +62,7 @@ Embedded-терминал - приоритетный контур. Он треб
 
 ### 3. Standalone MCP: прямой HTTP `/mcp`
 
-Standalone нужен, если агент запускается вне UI Throne. В этом режиме оператор должен явно просить агента работать через Throne и читать нужный prompt bundle: mini-router из MCP `initialize` - подсказка, а не надёжный lifecycle hook.
+Standalone нужен, если агент запускается вне UI Throne. В этом режиме Throne — база знаний интентов: агент читает и пишет `Intent.text` и по явной просьбе меняет статус через `set_intent_status`. Плейбук исполнения через MCP не доставляется (полный контур исполнения — только embedded). Mini-router из MCP `initialize` — подсказка, а не надёжный lifecycle hook.
 
 Запусти `Throne.Api` на `http://localhost:5008`, затем добавь MCP endpoint в клиент.
 
@@ -228,7 +228,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
 | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) | HTTP API контракты (OpenAPI source of truth) |
 | [specs/contracts/realtime/events.yaml](specs/contracts/realtime/events.yaml) | Realtime server→client события (yaml source of truth) + [ADR-0008](specs/ADR/0008-realtime-contract-first-events.md) |
-| [specs/manifest/throne-skills.yaml](specs/manifest/throne-skills.yaml) | System instructions + bundle манифест (источник правды) |
+| [specs/manifest/throne-skills.yaml](specs/manifest/throne-skills.yaml) | System instructions + embedded-композиция по режимам (источник правды) |
 | [specs/ADR/0014-mcp-initialize-instructions-routing.md](specs/ADR/0014-mcp-initialize-instructions-routing.md) | MCP-доставка инструкций (mini-router в `InitializeResult.instructions`) |
 | [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |
 | [ROOT.md](ROOT.md) | Общие правила для агентов (канон) |

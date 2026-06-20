@@ -19,9 +19,8 @@ const TABS: { id: TabKey; label: string }[] = [
  *   * Dreams — история проходов фронтир-агента (DreamSession) + dream_sources.
  *
  * Кнопка «Скопировать промпт dream» кладёт в буфер полный dream-плейбук
- * ({@link DREAM_PROMPT}) — оператор вставляет его во внешнего агента, и
- * dream-поток отрабатывает без `get_prompt_bundle`. Сам разбор делает фронтир
- * локально через Read/Glob, см. ADR-0022.
+ * ({@link DREAM_PROMPT}) — оператор вставляет его во внешнего агента. Сам разбор
+ * делает фронтир локально через Read/Glob, см. ADR-0022.
  */
 export function ImprovementsSectionPage() {
   const [tab, setTab] = useState<TabKey>("patches");

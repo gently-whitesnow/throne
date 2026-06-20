@@ -1,14 +1,13 @@
 /**
- * Полный dream-плейбук, захардкоженный в UI (слайс 1 выпила bundle).
+ * Полный dream-плейбук, захардкоженный в UI.
  *
  * Источник алгоритма — ADR-0022 (dream-flow) и ADR-0036 (PromptPart).
- * Раньше доставлялся внешнему агенту через MCP `get_prompt_bundle({mode:
- * "dream"})`; теперь оператор копирует его кнопкой на `/improvements`, и
- * dream-поток отрабатывает целиком без бандла. dream-MCP-тулы
- * (`get_dream_sources`, `list/record_dream_session`,
- * `propose_prompt_part_patch`, `get_current_prompt_part`) остаются.
+ * Оператор копирует его кнопкой на `/improvements`, и dream-поток отрабатывает
+ * целиком на dream-MCP-тулах (`get_dream_sources`,
+ * `list/record_dream_session`, `propose_prompt_part_patch`,
+ * `get_current_prompt_part`).
  */
-export const DREAM_PROMPT = `Запусти dream-проход: улучшим мои user-инструкции по моим последним диалогам с агентами. Действуй строго по алгоритму ниже — все нужные данные бери через перечисленные MCP-тулы и локальное чтение диалогов, get_prompt_bundle для dream не нужен.
+export const DREAM_PROMPT = `Запусти dream-проход: улучшим мои user-инструкции по моим последним диалогам с агентами. Действуй строго по алгоритму ниже — все нужные данные бери через перечисленные MCP-тулы и локальное чтение диалогов.
 
 Цель dream — улучшить НАБОР user-частей промпта (\`scope=user\`) на основе анализа реальных диалогов оператора с агентами. После ADR-0036 пользовательская инструкция — это не пара {work, interview}, а множество \`prompt_part\` с ролями по режимам: ядро (\`common\`, \`work\`, \`interview\`, \`dream\`) и модульные/опциональные части (\`dotnet\`, \`contracts\`, \`tests\`, \`commit\`, \`postgres\`, \`mongo\`, \`frontend\` и другие). Поэтому dream думает структурой частей: не «какую строку дописать в work», а «в какой части должно жить это правило, не дублируется ли оно, и не пора ли часть схлопнуть/вынести». Output — PromptPartPatch'и к user-частям; apply / edit / reject — оператор через UI на \`/improvements\`. Throne не хранит диалогов — ты сам читаешь их локально через Read/Glob по путям из get_dream_sources. См. ADR-0036 (единая сущность PromptPart, роли и композиция), ADR-0022 (dream-flow).
 

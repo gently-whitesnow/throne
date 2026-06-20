@@ -4,7 +4,6 @@ using Throne.Api.Intents;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
-using Throne.Application.PromptParts;
 using Throne.Application.Repositories;
 using Throne.Domain.Intents;
 using Throne.Domain.TextVersions;
@@ -15,7 +14,6 @@ namespace Throne.Api.Mcp.Tools;
 public sealed class IntentTools(
     CreateIntentHandler create,
     GetIntentHandler get,
-    GetPromptBundleHandler getPromptBundle,
     ListIntentsHandler listIntents,
     MoveIntentHandler moveIntentHandler,
     IIntentLinkRepository linkRepository,
@@ -90,17 +88,6 @@ public sealed class IntentTools(
 
         var result = IntentReadResultBuilder.Build(intent, attachmentList, links, tagsById, repositories);
         return IntentReadResultRenderer.Render(result);
-    }
-
-    [McpServerTool(Name = "get_prompt_bundle")]
-    [Description("Read the complete prompt bundle for a runtime mode. Pass intent_id once known so the server can transition the Intent's status automatically (interview/work bundles drive transitions on read).")]
-    public async Task<McpToolPayload> GetPromptBundle(
-        [Description("Runtime mode: interview, work, review, or dream. Pick interview/work/review by user intent (see the mini-router instructions returned at MCP initialize); dream runs without an intent_id.")] string mode,
-        [Description("Optional Intent id this bundle will govern. Omit only before the Intent exists.")] string? intent_id = null,
-        CancellationToken cancellationToken = default)
-    {
-        var bundle = await getPromptBundle.HandleAsync(new GetPromptBundleQuery(mode, intent_id), cancellationToken);
-        return PromptBundleRenderer.Render(bundle);
     }
 
     [McpServerTool(Name = "move_intent", UseStructuredContent = true)]
