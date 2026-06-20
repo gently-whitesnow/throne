@@ -18,9 +18,9 @@ public sealed record IntentTerminalPreviewQuery(
 public sealed record IntentTerminalPreview(PromptComposition Composition, int IntentVersion);
 
 /// <summary>
-/// Pre-flight preview (ADR-0036): reads the intent body for the task zone, appends a metadata
-/// block for any current intent attachments (mirrors what <c>get_intent</c> exposes in standalone
-/// so the embedded agent reaches for the same MCP tools), and resolves the embedded prompt
+/// Pre-flight preview (ADR-0036): reads the intent body for the task zone, appends a minimal block
+/// listing any current intent attachments by their workspace-relative path (the bytes are staged on
+/// spawn so the embedded agent opens them with a native <c>Read</c>), and resolves the embedded prompt
 /// composition for the requested mode. Unsupported modes (e.g. <c>dream</c>) are rejected by
 /// <see cref="PromptCompositionResolver"/>.
 /// </summary>
@@ -40,7 +40,7 @@ public sealed class IntentTerminalPreviewHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, ct);
-        var userPrompt = ComposeUserPrompt(intent.Id.Value, intent.State.Text, attachmentList);
+        var userPrompt = ComposeUserPrompt(intent.State.Text, attachmentList);
 
         var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, userPrompt),
@@ -48,9 +48,9 @@ public sealed class IntentTerminalPreviewHandler(
         return new IntentTerminalPreview(composition, intent.State.CurrentVersion);
     }
 
-    private static string ComposeUserPrompt(string intentId, string intentText, IReadOnlyList<IntentAttachment> attachments)
+    private static string ComposeUserPrompt(string intentText, IReadOnlyList<IntentAttachment> attachments)
     {
-        var block = TerminalAttachmentsContextRenderer.Render(intentId, attachments);
+        var block = TerminalAttachmentsContextRenderer.Render(attachments);
         if (block is null)
         {
             return intentText;
