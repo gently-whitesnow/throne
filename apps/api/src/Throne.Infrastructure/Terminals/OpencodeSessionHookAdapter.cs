@@ -82,19 +82,13 @@ internal sealed class OpencodeSessionHookAdapter(
         var skillHints = await SessionSkillWorkspaceFiles.WriteOpencodeHintsAsync(
             workspacePath, skillPackages, ct);
         var configPath = Path.Combine(workspacePath, ConfigFileName);
-        var existingConfig = File.Exists(configPath)
-            ? await File.ReadAllTextAsync(configPath, ct)
-            : null;
         await using (var stream = File.Create(configPath))
         {
             var document = BuildConfig(
                 baseUrl,
                 discovery.Models,
                 systemPromptPath,
-                skillHints,
-                existingConfig,
-                hookOptions.ApiBaseUrl,
-                SessionMcpPolicy.ShouldEnableThroneMcp(mode));
+                skillHints);
             await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
@@ -163,10 +157,7 @@ internal sealed class OpencodeSessionHookAdapter(
         string baseUrl,
         IReadOnlyList<string> modelIds,
         string? systemPromptPath,
-        IReadOnlyList<string> skillHints,
-        string? existingConfig,
-        string? apiBaseUrl,
-        bool includeThroneMcp)
+        IReadOnlyList<string> skillHints)
     {
         var models = new Dictionary<string, OpencodeConfigModel>(StringComparer.Ordinal);
         foreach (var id in modelIds)
@@ -186,10 +177,7 @@ internal sealed class OpencodeSessionHookAdapter(
             {
                 [TerminalAgentCatalog.OpencodeProviderId] = provider,
             },
-            Instructions: InstructionFiles(systemPromptPath, skillHints),
-            Mcp: includeThroneMcp
-                ? OpencodeMcpServers.MergeThroneServer(existingConfig, apiBaseUrl)
-                : OpencodeMcpServers.WithoutThroneServer(existingConfig));
+            Instructions: InstructionFiles(systemPromptPath, skillHints));
     }
 
     private static string[]? InstructionFiles(string? systemPromptPath, IReadOnlyList<string> skillHints)

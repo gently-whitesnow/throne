@@ -29,15 +29,6 @@ public class ClaudeSessionHookAdapterTests
                 $"curl -s -X POST 'http://localhost:5008/api/v1/intents/intent-1/terminal/hooks/{hookEvent}?mode=work' " +
                 "-H 'Content-Type: application/json' -d @-");
         }
-
-        using var mcp = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, ".mcp.json")));
-        var server = mcp.RootElement.GetProperty("mcpServers").GetProperty("throne");
-        server.GetProperty("type").GetString().Should().Be("http");
-        server.GetProperty("url").GetString().Should().Be("http://localhost:5008/mcp");
-
-        using var projectSettings = JsonDocument.Parse(
-            await File.ReadAllTextAsync(Path.Combine(root, ".claude", "settings.local.json")));
-        projectSettings.RootElement.GetProperty("enabledMcpjsonServers")[0].GetString().Should().Be("throne");
     }
 
     [Fact(DisplayName = "Notification скоупится matcher'ом permission_prompt; остальные хуки без matcher")]
@@ -121,7 +112,7 @@ public class ClaudeSessionHookAdapterTests
         skill.Should().Contain("send-comments");
     }
 
-    [Fact(DisplayName = "Interview-сессия пишет intent-ops script + 2 Claude skills без Throne MCP config")]
+    [Fact(DisplayName = "Interview-сессия пишет intent-ops script + 2 Claude skills")]
     public async Task Interview_writes_intent_operations_script_and_skills()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -155,9 +146,6 @@ public class ClaudeSessionHookAdapterTests
             Path.Combine(root, ".claude", "skills", "throne-intent-decompose", "SKILL.md"));
         childSkill.Should().Contain("create --text-file");
         childSkill.Should().Contain("link \"$child_id\"");
-
-        File.Exists(Path.Combine(root, ".mcp.json")).Should().BeFalse();
-        File.Exists(Path.Combine(root, ".claude", "settings.local.json")).Should().BeFalse();
     }
 
     [Theory(DisplayName = "IsTuiReady распознаёт композёр Claude по `❯` промпту и игнорирует пустой/только-сплеш экран")]
