@@ -56,10 +56,11 @@ internal static class IntentOperationsSkillFiles
         {{ScriptPath(workspacePath)}}
         ```
 
-        Use this script instead of Throne MCP tools for intent text/decomposition. It is already
-        bound to `intent_id={{package.IntentId}}`. `replace-text` reads the current intent first,
-        supplies `expected_version` internally, and handles a 409 by asking you to refresh the
-        fragments rather than making you manage version numbers.
+        This script is the write path for editing the current Intent and creating/linking child
+        Intents in this session. It is already bound to `intent_id={{package.IntentId}}`.
+        `replace-text` reads the current intent first, supplies `expected_version` internally, and
+        handles a 409 by asking you to refresh the fragments rather than making you manage version
+        numbers.
 
         Common commands:
 
