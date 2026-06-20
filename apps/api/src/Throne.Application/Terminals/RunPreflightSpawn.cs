@@ -13,7 +13,7 @@ namespace Throne.Application.Terminals;
 public sealed class RunPreflightSpawn(
     ITmuxSessionManager tmux,
     IWorkspaceRootProvider workspaceRoot,
-    IWorkspaceTrust workspaceTrust,
+    RunPreflightWorkspacePreparer workspacePreparer,
     IEnumerable<ISessionHookAdapter> hookAdapters,
     TmuxTuiReadinessWaiter readinessWaiter,
     RunPreflightOptions options,
@@ -38,10 +38,9 @@ public sealed class RunPreflightSpawn(
         ArgumentNullException.ThrowIfNull(prompt);
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intentId.Value);
 
-        // Trust the workspace before the agent boots in it, otherwise the CLI blocks on its
-        // interactive trust prompt and the operator has to confirm by hand on every run. Which
-        // trust store gets seeded depends on the launched vendor.
-        await workspaceTrust.EnsureTrustedAsync(launch.Vendor, workspacePath, ct);
+        // Trust + reset stale per-run staging + dump attachments, before the adapter re-seeds skills
+        // (PrepareSpawnArgsAsync) and the agent boots.
+        await workspacePreparer.PrepareAsync(intentId, launch.Vendor, workspacePath, ct);
 
         // Embedded contour injects the operator-curated rules/task upfront (ADR-0034) instead of a
         // hardcoded bundle prompt. Neither rides on the spawn argv — the rules block goes via the

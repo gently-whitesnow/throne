@@ -37,7 +37,7 @@ public class RunPreflightSpawnInitialPromptTests
         var sut = new RunPreflightSpawn(
             tmux,
             new WorkspaceRoot(workspaceRoot),
-            Substitute.For<IWorkspaceTrust>(),
+            TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
             [adapter],
             new TmuxTuiReadinessWaiter(
                 tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
