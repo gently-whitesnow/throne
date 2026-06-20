@@ -5,7 +5,6 @@ using Throne.Application.Intents;
 using Throne.Application.Intents.Attachments;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
-using Throne.Domain.Intents;
 using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Mcp.Tools;
@@ -15,7 +14,6 @@ public sealed class IntentTools(
     CreateIntentHandler create,
     GetIntentHandler get,
     ListIntentsHandler listIntents,
-    MoveIntentHandler moveIntentHandler,
     IIntentLinkRepository linkRepository,
     IIntentAttachmentRepository attachments,
     IntentToolTagRefs tagRefs,
@@ -89,13 +87,4 @@ public sealed class IntentTools(
         var result = IntentReadResultBuilder.Build(intent, attachmentList, links, tagsById, repositories);
         return IntentReadResultRenderer.Render(result);
     }
-
-    [McpServerTool(Name = "move_intent", UseStructuredContent = true)]
-    [Description("Reorder an intent in the user-defined sort order. Supply at least one of before_id (predecessor) or after_id (successor); supplying both pins the intent strictly between them. The server reads the pivots' sort keys and computes the midpoint — the agent never sends keys.")]
-    public Task<Intent> MoveIntent(
-        [Description("Intent id to move.")] string intent_id,
-        [Description("Id of the intent that should immediately precede the moved intent. Optional when after_id is supplied.")] string? before_id = null,
-        [Description("Id of the intent that should immediately follow the moved intent. Optional when before_id is supplied.")] string? after_id = null,
-        CancellationToken cancellationToken = default) =>
-        moveIntentHandler.HandleAsync(new MoveIntentCommand(intent_id, before_id, after_id), cancellationToken);
 }
