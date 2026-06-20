@@ -86,9 +86,13 @@ internal sealed class OpencodeSessionHookAdapter(
         var reviewHint = await ReviewArtifactWorkspaceFiles.WriteOpencodeHintAsync(
             workspacePath, reviewArtifact, ct);
         var configPath = Path.Combine(workspacePath, ConfigFileName);
+        var existingConfig = File.Exists(configPath)
+            ? await File.ReadAllTextAsync(configPath, ct)
+            : null;
         await using (var stream = File.Create(configPath))
         {
-            var document = BuildConfig(baseUrl, discovery.Models, systemPromptPath, reviewHint);
+            var document = BuildConfig(
+                baseUrl, discovery.Models, systemPromptPath, reviewHint, existingConfig, hookOptions.ApiBaseUrl);
             await JsonSerializer.SerializeAsync(stream, document, JsonOptions, ct);
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
@@ -148,7 +152,9 @@ internal sealed class OpencodeSessionHookAdapter(
         string baseUrl,
         IReadOnlyList<string> modelIds,
         string? systemPromptPath,
-        string? reviewHint)
+        string? reviewHint,
+        string? existingConfig,
+        string? apiBaseUrl)
     {
         var models = new Dictionary<string, OpencodeConfigModel>(StringComparer.Ordinal);
         foreach (var id in modelIds)
@@ -168,7 +174,8 @@ internal sealed class OpencodeSessionHookAdapter(
             {
                 [TerminalAgentCatalog.OpencodeProviderId] = provider,
             },
-            Instructions: InstructionFiles(systemPromptPath, reviewHint));
+            Instructions: InstructionFiles(systemPromptPath, reviewHint),
+            Mcp: OpencodeMcpServers.MergeThroneServer(existingConfig, apiBaseUrl));
     }
 
     private static string[]? InstructionFiles(string? systemPromptPath, string? reviewHint)
