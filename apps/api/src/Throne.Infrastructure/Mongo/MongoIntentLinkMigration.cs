@@ -98,6 +98,11 @@ internal static class MongoIntentLinkMigration
     private static async Task MigrateEventPayloadsAsync(IMongoCollection<BsonDocument> events, CancellationToken ct)
     {
         var docs = await events.Find(Builders<BsonDocument>.Filter.Exists("link.type")).ToListAsync(ct);
+        if (docs.Count == 0)
+        {
+            return;
+        }
+
         foreach (var doc in docs)
         {
             var link = doc.GetValue("link").AsBsonDocument;
