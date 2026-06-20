@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Throne.Application.LocalModels;
@@ -27,21 +29,25 @@ namespace Throne.Infrastructure.Terminals;
 ///   lifecycle events onto the existing Throne hook endpoint.</item>
 /// </list>
 /// </summary>
-public sealed class OpencodeSessionHookAdapter(
+internal sealed class OpencodeSessionHookAdapter(
     LocalModelDiscoveryService localModels,
-    SessionHookOptions hookOptions) : ISessionHookAdapter
+    SessionHookOptions hookOptions,
+    IOpencodeTuiPortAllocator portAllocator,
+    IOpencodeTuiClient tuiClient) : ISessionHookAdapter, INativeInitialPromptSubmitter
 {
     private const string ConfigFileName = "opencode.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
     private const string SchemaUrl = "https://opencode.ai/config.json";
     private const string OpenAiCompatibleNpm = "@ai-sdk/openai-compatible";
     private const string ProviderDisplayName = "Throne Local";
+    private const string TuiHostname = "127.0.0.1";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = true,
     };
+    private readonly ConcurrentDictionary<string, Uri> _tuiEndpoints = new(StringComparer.Ordinal);
 
     public string Vendor => TerminalAgentCatalog.VendorOpencode;
 
@@ -87,21 +93,44 @@ public sealed class OpencodeSessionHookAdapter(
             await stream.WriteAsync("\n"u8.ToArray(), ct);
         }
 
-        // No extra spawn-argv tokens beyond `--model …` (already emitted by the descriptor):
-        // OpenCode finds `opencode.json` by walking up from the working directory it inherits
-        // from tmux, so the config is picked up without a CLI flag.
-        return [];
+        var port = portAllocator.Allocate();
+        var endpoint = new Uri($"http://{TuiHostname}:{port.ToString(CultureInfo.InvariantCulture)}/");
+        _tuiEndpoints[intentId] = endpoint;
+        return ["--hostname", TuiHostname, "--port", port.ToString(CultureInfo.InvariantCulture)];
     }
 
-    // OpenCode owns a provider-native readiness hook (session.created -> SessionReady), so it opts
-    // out of the glyph fast-path entirely: the previous `>` marker was picked from docs/screenshots
-    // and never validated against a live capture. Readiness is gated by the hook signal (with a
-    // settle) plus the screen-stability fallback in TmuxTuiReadinessWaiter.
+    public async Task SubmitInitialPromptAsync(
+        string intentId,
+        string workspacePath,
+        string userPrompt,
+        CancellationToken ct)
+    {
+        if (!_tuiEndpoints.TryGetValue(intentId, out var endpoint))
+        {
+            throw new InvalidOperationException($"OpenCode TUI endpoint was not prepared for intent '{intentId}'.");
+        }
+
+        try
+        {
+            await tuiClient.SubmitInitialPromptAsync(endpoint, workspacePath, userPrompt, ct);
+        }
+        finally
+        {
+            _tuiEndpoints.TryRemove(intentId, out _);
+        }
+    }
+
+    // OpenCode initial prompt delivery uses the provider-native TUI HTTP API. The glyph predicate is
+    // intentionally disabled so only Claude/Codex keep using capture-pane readiness for tmux paste.
     public bool IsTuiReady(string paneSnapshot) => false;
 
     // Per-session files live inside the workspace (`opencode.json` + the system-prompt file),
     // so the intent-done workspace teardown reaps them — nothing to do here.
-    public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
+    public Task CleanupAsync(string intentId, CancellationToken ct)
+    {
+        _tuiEndpoints.TryRemove(intentId, out _);
+        return Task.CompletedTask;
+    }
 
     private static async Task<string?> WriteSystemPromptAsync(
         string workspacePath, string? systemPrompt, CancellationToken ct)

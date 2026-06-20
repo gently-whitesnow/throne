@@ -113,6 +113,20 @@ internal static class TerminalFailures
                 ["last_snapshot_excerpt"] = Excerpt(lastSnapshot),
             });
 
+    public static ApiException InitialPromptSubmitFailed(
+        string intentId,
+        string vendor,
+        string detail) =>
+        new(
+            ErrorCodes.TerminalInitialPromptSubmitFailed,
+            $"Vendor '{vendor}' failed to submit the initial prompt for intent '{intentId}': {detail}",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["vendor"] = vendor,
+                ["detail"] = detail,
+            });
+
     // Surface only the tail of the captured pane — full snapshots can be multi-KB and the tail
     // is where the input row would be. Keeps the Problem Details payload bounded.
     private static string Excerpt(string? snapshot)
