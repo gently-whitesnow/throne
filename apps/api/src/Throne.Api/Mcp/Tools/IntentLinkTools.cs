@@ -95,7 +95,6 @@ public sealed class IntentLinkTools(
             view.Other.Id.Value,
             view.Other.State.Status,
             view.Other.State.CurrentVersion,
-            view.Other.State.SortKey,
             IntentToolHelpers.BuildPreview(view.Other.State.Text),
             view.Other.TagIds
                 .Select(id => tagsById.TryGetValue(id.Value, out var t) ? t : null)

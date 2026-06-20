@@ -40,7 +40,6 @@ internal static class IntentReadResultRenderer
         sb.Append("intent_id=").Append(r.Id).Append('\n');
         sb.Append("status=").Append(r.Status).Append('\n');
         sb.Append("current_version=").Append(r.CurrentVersion).Append('\n');
-        sb.Append("sort_key=").Append(r.SortKey).Append('\n');
         if (r.Tags.Count > 0)
         {
             sb.Append("tags=").Append(string.Join(", ", r.Tags.Select(t => t.Name))).Append('\n');

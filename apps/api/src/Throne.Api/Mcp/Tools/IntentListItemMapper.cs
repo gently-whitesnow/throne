@@ -10,7 +10,6 @@ internal static class IntentListItemMapper
         CurrentVersion: intent.State.CurrentVersion,
         Tags: ResolveTags(intent.TagIds, tagsById),
         Preview: IntentToolHelpers.BuildPreview(intent.State.Text),
-        SortKey: intent.State.SortKey,
         CreatedAt: intent.CreatedAt,
         UpdatedAt: intent.State.UpdatedAt);
 
