@@ -97,6 +97,12 @@ public sealed class RunPreflightSpawn(
         var promptPath = Path.Combine(workspacePath, UserPromptFileName);
         await File.WriteAllTextAsync(promptPath, userPrompt, ct);
 
+        if (adapter is INativeInitialPromptSubmitter submitter)
+        {
+            await SubmitNativeInitialPromptAsync(submitter, intentId, vendor, workspacePath, userPrompt, ct);
+            return;
+        }
+
         // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste
         // and silently dropped the user prompt whenever the TUI took longer to init than the
         // sleep. Only vendors we have an adapter for get the gate — unknown vendors fall through
@@ -116,6 +122,28 @@ public sealed class RunPreflightSpawn(
         }
 
         await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
+    }
+
+    private static async Task SubmitNativeInitialPromptAsync(
+        INativeInitialPromptSubmitter submitter,
+        string intentId,
+        string vendor,
+        string workspacePath,
+        string userPrompt,
+        CancellationToken ct)
+    {
+        try
+        {
+            await submitter.SubmitInitialPromptAsync(intentId, workspacePath, userPrompt, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw TerminalFailures.InitialPromptSubmitFailed(intentId, vendor, ex.Message);
+        }
     }
 
     public Task<bool> HasSessionAsync(string intentId, CancellationToken ct) =>

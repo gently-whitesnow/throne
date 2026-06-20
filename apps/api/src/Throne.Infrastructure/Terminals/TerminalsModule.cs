@@ -39,6 +39,9 @@ public static class TerminalsModule
         services.AddSingleton<IWorkspaceTrustSeeder, CodexTrustSeeder>();
         services.AddSingleton<IWorkspaceTrust, WorkspaceTrust>();
         services.AddSingleton<ITerminalStreamBridge, TmuxStreamBridge>();
+        services.AddHttpClient(OpencodeTuiClient.HttpClientName);
+        services.AddSingleton<IOpencodeTuiClient, OpencodeTuiClient>();
+        services.AddSingleton<IOpencodeTuiPortAllocator, OpencodeTuiPortAllocator>();
         services.AddSingleton(new SessionHookOptions
         {
             ApiBaseUrl = configuration?[SessionHookOptions.ApiBaseUrlKey]
