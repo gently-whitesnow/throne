@@ -55,4 +55,10 @@ internal static partial class TerminalsLog
     [LoggerMessage(EventId = 9, Level = LogLevel.Warning,
         Message = "tmux kill-session: name={SessionName} did not start (binary missing or launcher failure): {Detail}")]
     public static partial void TmuxKillUnavailable(ILogger logger, string sessionName, string detail);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Warning,
+        Message = "OpenCode tui/select-session did not take for session {SessionId} at {Endpoint}; "
+            + "the session is live on the server but not focused in the TUI.")]
+    public static partial void OpencodeSelectSessionNotFocused(
+        ILogger logger, string sessionId, Uri endpoint, Exception? exception);
 }
