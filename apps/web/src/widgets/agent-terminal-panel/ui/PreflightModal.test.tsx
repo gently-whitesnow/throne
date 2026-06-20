@@ -68,6 +68,7 @@ function preview(): IntentTerminalPreviewResponse {
         text: "postgres rule"
       }
     ],
+    available_skills_for_mode: [],
     selected_part_ids: ["m1"],
     system_prompt: "mandatory text",
     user_prompt: "BODY"
@@ -123,8 +124,51 @@ describe("PreflightModal", () => {
     expect(previewIntentTerminal).toHaveBeenCalledTimes(1);
     const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
     expect(payload.selectedPartIds).toEqual(["p1"]);
+    expect(payload.selectedSkillIds).toEqual([]);
     expect(payload.reviewBindingId).toBeNull();
     expect(payload.systemPrompt).toBe("mandatory text\n\npostgres rule");
+  });
+
+  it("выбранные скилы попадают в payload, недоступный скил остаётся выключенным", async () => {
+    previewIntentTerminal.mockResolvedValueOnce({
+      ...preview(),
+      available_skills_for_mode: [
+        {
+          skill_id: "throne-intent-ops",
+          source: "throne",
+          title: "Intent operations",
+          description: "Правка Intent.text",
+          materializable: true,
+          reason: null,
+          default_enabled: false,
+          selected: false
+        },
+        {
+          skill_id: "throne-review-artifact",
+          source: "throne",
+          title: "Review artifact",
+          description: "Запись review_recommendation",
+          materializable: false,
+          reason: "нет привязанного репозитория",
+          default_enabled: true,
+          selected: false
+        }
+      ]
+    });
+    const onLaunch = vi.fn();
+    renderModal(onLaunch);
+
+    const intentOps = await screen.findByLabelText("Intent operations");
+    const reviewArtifact =
+      screen.getByLabelText<HTMLInputElement>("Review artifact");
+    fireEvent.click(intentOps);
+    fireEvent.click(reviewArtifact);
+    fireEvent.click(screen.getByTestId("agent-terminal-preflight-launch"));
+
+    const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
+    expect(payload.selectedSkillIds).toEqual(["throne-intent-ops"]);
+    expect(reviewArtifact.disabled).toBe(true);
+    expect(screen.getByText("нет привязанного репозитория")).toBeTruthy();
   });
 
   it("правка тела части — session override, попадает в собранный system-блок", async () => {

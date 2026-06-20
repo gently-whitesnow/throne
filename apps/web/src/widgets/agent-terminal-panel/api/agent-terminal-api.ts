@@ -15,6 +15,7 @@ function toRequestBody(payload: TerminalRunPayload) {
     effort: payload.launch.effort,
     review_binding_id: payload.reviewBindingId,
     selected_part_ids: payload.selectedPartIds,
+    selected_skill_ids: payload.selectedSkillIds,
     system_prompt: payload.systemPrompt,
     user_prompt: payload.userPrompt,
     intent_text_update: payload.intentTextUpdate

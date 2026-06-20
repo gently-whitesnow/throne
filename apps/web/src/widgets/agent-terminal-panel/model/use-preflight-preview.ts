@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { previewIntentTerminal } from "../api/agent-terminal-api";
 
 import type {
+  AvailableSessionSkill,
   IntentTerminalPreviewResponse,
   PromptPartPreview,
   TerminalLaunchArgs,
@@ -16,6 +17,7 @@ export interface PreflightPreview {
   status: PreviewStatus;
   error: string | null;
   parts: PromptPartPreview[];
+  skills: AvailableSessionSkill[];
   systemPrompt: string;
   body: string;
   freeInput: string;
@@ -26,6 +28,7 @@ export interface PreflightPreview {
   setFreeInput: (value: string) => void;
   setSaveIntentText: (value: boolean) => void;
   togglePart: (partId: string) => void;
+  toggleSkill: (skillId: string) => void;
   buildPayload: (
     launch: TerminalLaunchArgs,
     reviewBindingId: string | null
@@ -38,6 +41,12 @@ function selectedOptionalIds(parts: PromptPartPreview[]): string[] {
   return parts
     .filter((p) => p.role !== MANDATORY && p.selected)
     .map((p) => p.part_id);
+}
+
+function selectedSkillIds(skills: AvailableSessionSkill[]): string[] {
+  return skills
+    .filter((s) => s.materializable && s.selected)
+    .map((s) => s.skill_id);
 }
 
 /**
@@ -74,6 +83,7 @@ export function usePreflightPreview(
   const [status, setStatus] = useState<PreviewStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [parts, setParts] = useState<PromptPartPreview[]>([]);
+  const [skills, setSkills] = useState<AvailableSessionSkill[]>([]);
   const [body, setBodyState] = useState("");
   const [freeInput, setFreeInput] = useState("");
   const [intentVersion, setIntentVersion] = useState(0);
@@ -85,6 +95,7 @@ export function usePreflightPreview(
   const applyResponse = useCallback(
     (response: IntentTerminalPreviewResponse) => {
       setParts(response.parts);
+      setSkills(response.available_skills_for_mode);
       originalBodyRef.current = response.user_prompt;
       saveTouchedRef.current = false;
       setBodyState(response.user_prompt);
@@ -135,6 +146,16 @@ export function usePreflightPreview(
     );
   }, []);
 
+  const toggleSkill = useCallback((skillId: string) => {
+    setSkills((prev) =>
+      prev.map((skill) =>
+        skill.skill_id === skillId && skill.materializable
+          ? { ...skill, selected: !skill.selected }
+          : skill
+      )
+    );
+  }, []);
+
   const setBody = useCallback((value: string) => {
     setBodyState(value);
     if (!saveTouchedRef.current) {
@@ -159,6 +180,7 @@ export function usePreflightPreview(
         launch,
         reviewBindingId,
         selectedPartIds: selectedOptionalIds(parts),
+        selectedSkillIds: selectedSkillIds(skills),
         systemPrompt,
         userPrompt: composeUserPrompt(body, freeInput),
         intentTextUpdate:
@@ -171,13 +193,22 @@ export function usePreflightPreview(
             : null
       };
     },
-    [parts, systemPrompt, body, freeInput, saveIntentText, intentVersion]
+    [
+      parts,
+      skills,
+      systemPrompt,
+      body,
+      freeInput,
+      saveIntentText,
+      intentVersion
+    ]
   );
 
   return {
     status,
     error,
     parts,
+    skills,
     systemPrompt,
     body,
     freeInput,
@@ -188,6 +219,7 @@ export function usePreflightPreview(
     setFreeInput,
     setSaveIntentText,
     togglePart,
+    toggleSkill,
     buildPayload
   };
 }

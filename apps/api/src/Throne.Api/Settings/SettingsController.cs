@@ -11,7 +11,8 @@ public sealed class SettingsController(
     CleanWorkspaceEndpoint cleanEndpoint,
     GetGitProvidersStatusEndpoint providersEndpoint,
     GetLocalModelCatalogEndpoint localModelEndpoint,
-    TerminalSettingsService terminalSettings) : SettingsControllerBase
+    TerminalSettingsService terminalSettings,
+    SkillModeDefaultsService skillModeDefaults) : SettingsControllerBase
 {
     public override Task<ActionResult<WorkspaceSettingsDto>> GetWorkspaceSettings() =>
         Task.FromResult(workspaceEndpoint.Run());
@@ -37,6 +38,21 @@ public sealed class SettingsController(
         var saved = await terminalSettings.SetDefaultVendorAsync(
             ToWireVendor(body.Default_vendor), HttpContext.RequestAborted);
         return Ok(new TerminalSettingsDto { Default_vendor = ToDtoVendor(saved) });
+    }
+
+    public override async Task<ActionResult<SkillModeDefaultsDto>> GetSkillModeDefaults()
+    {
+        var view = await skillModeDefaults.GetAsync(HttpContext.RequestAborted);
+        return Ok(SkillModeDefaultsDtoMapper.ToDto(view));
+    }
+
+    public override async Task<ActionResult<SkillModeDefaultsDto>> SetSkillModeDefaults(
+        UpdateSkillModeDefaultsRequest body)
+    {
+        var view = await skillModeDefaults.ReplaceAsync(
+            SkillModeDefaultsDtoMapper.ToDomain(body),
+            HttpContext.RequestAborted);
+        return Ok(SkillModeDefaultsDtoMapper.ToDto(view));
     }
 
     private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch

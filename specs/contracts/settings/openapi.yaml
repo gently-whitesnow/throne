@@ -97,6 +97,48 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/settings/skill-mode-defaults:
+    get:
+      operationId: getSkillModeDefaults
+      tags: [Settings]
+      summary: Read default session skills per launch mode.
+      description: >
+        Returns the global instance-level matrix of session skill defaults. The skill
+        catalog is source-aware (`source=throne` today) but defaults are keyed only by
+        `(mode, skill_id)`; vendor is a delivery detail.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillModeDefaultsDto'
+    put:
+      operationId: setSkillModeDefaults
+      tags: [Settings]
+      summary: Replace default session skill toggles.
+      description: >
+        Upserts the provided `(mode, skill_id) → enabled` entries. Missing entries keep
+        their current value; the UI normally sends the full matrix.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSkillModeDefaultsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillModeDefaultsDto'
+        '422':
+          description: Validation failed (unknown mode or skill).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/settings/local-model/models:
     get:
       operationId: getLocalModelCatalog
@@ -158,6 +200,80 @@ components:
       properties:
         default_vendor:
           $ref: '#/components/schemas/TerminalAgentVendor'
+    SkillCatalogItemDto:
+      type: object
+      required:
+        - skill_id
+        - source
+        - title
+        - description
+      properties:
+        skill_id:
+          type: string
+        source:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+    SkillModeDefaultDto:
+      type: object
+      required:
+        - skill_id
+        - enabled
+      properties:
+        skill_id:
+          type: string
+        enabled:
+          type: boolean
+    SkillModeDefaultsModeDto:
+      type: object
+      required:
+        - mode
+        - defaults
+      properties:
+        mode:
+          type: string
+        defaults:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillModeDefaultDto'
+    SkillModeDefaultsDto:
+      type: object
+      required:
+        - skills
+        - modes
+      properties:
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillCatalogItemDto'
+        modes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkillModeDefaultsModeDto'
+    UpdateSkillModeDefaultEntry:
+      type: object
+      required:
+        - mode
+        - skill_id
+        - enabled
+      properties:
+        mode:
+          type: string
+        skill_id:
+          type: string
+        enabled:
+          type: boolean
+    UpdateSkillModeDefaultsRequest:
+      type: object
+      required:
+        - defaults
+      properties:
+        defaults:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateSkillModeDefaultEntry'
     WorkspaceStatus:
       type: string
       enum:

@@ -64,6 +64,12 @@ internal static class TerminalRunResponseMapper
             : request.Review_binding_id;
     }
 
+    public static IReadOnlyList<string>? ToSelectedSkillIds(RunIntentTerminalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return request.Selected_skill_ids?.ToArray();
+    }
+
     private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
     {
         TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,

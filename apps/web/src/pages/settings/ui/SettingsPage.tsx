@@ -2,12 +2,14 @@ import {
   Cpu,
   FolderCog,
   GitBranch,
+  PackageCheck,
   TerminalSquare,
   ToggleRight
 } from "lucide-react";
 
 import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
+import { SkillModeDefaultsCard } from "@/widgets/skill-mode-defaults-card";
 import { WorkspaceCard } from "@/widgets/workspace-card";
 
 import { LocalModelCard } from "./LocalModelCard";
@@ -51,6 +53,15 @@ export function SettingsPage() {
         description="Какой агент (claude или codex) предлагать по умолчанию при запуске встроенного терминала. Модель и уровень усилия выбираются per-сессия на странице интента."
       >
         <TerminalDefaultsCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="session-skills"
+        title="Скилы запуска"
+        icon={PackageCheck}
+        description="Глобальные defaults скилов для каждого режима. Окно запуска интента позволяет переопределить выбор на конкретную сессию."
+      >
+        <SkillModeDefaultsCard />
       </SettingsSection>
 
       <SettingsSection

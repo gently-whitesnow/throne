@@ -430,8 +430,8 @@ components:
         (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand)
         and the spawn phase the status hooks return to. The embedded contour injects the
         operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the
-        agent to read a bundle. `review` requires an attached PR/MR and bakes the
-        selected `review_recommendation` artifact writer into the session workspace.
+        agent to read a bundle. Session skills are selected separately in the launch
+        window and materialised only when their spawn identity is available.
     TerminalSessionState:
       type: string
       enum:
@@ -506,6 +506,15 @@ components:
             validates each id against the parts available in `mode` (unknown ids → 422) but
             does NOT recompose `system_prompt` from them — the assembled text travels in
             `system_prompt`. Omitted → no optional parts were curated for this run.
+        selected_skill_ids:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: >
+            Session skill ids the operator enabled for this launch. The server validates
+            every id against the session skill catalog and checks materializability after
+            repository preflight. Unknown or unavailable ids abort preflight with 422.
         review_binding_id:
           type: string
           minLength: 1
@@ -698,6 +707,40 @@ components:
           description: Whether the part is included in the assembled system_prompt.
         text:
           type: string
+    AvailableSessionSkillDto:
+      type: object
+      required:
+        - skill_id
+        - source
+        - title
+        - description
+        - materializable
+        - default_enabled
+        - selected
+      properties:
+        skill_id:
+          type: string
+          description: Stable string id from the session skill catalog.
+        source:
+          type: string
+          description: Skill package origin discriminator (`throne` today).
+        title:
+          type: string
+        description:
+          type: string
+        materializable:
+          type: boolean
+          description: Whether the current intent has the stable spawn identity this skill needs.
+        reason:
+          type: string
+          nullable: true
+          description: Human-readable reason when `materializable=false`.
+        default_enabled:
+          type: boolean
+          description: Persisted mode default from `skill_mode_defaults`.
+        selected:
+          type: boolean
+          description: Effective launch selection after per-intent memory overrides defaults.
     IntentTerminalPreviewResponse:
       type: object
       required:
@@ -705,6 +748,7 @@ components:
         - intent_version
         - mode
         - parts
+        - available_skills_for_mode
         - selected_part_ids
         - system_prompt
         - user_prompt
@@ -725,6 +769,11 @@ components:
           items:
             $ref: '#/components/schemas/PromptPartPreviewDto'
           description: Every part available in the mode (mandatory + optional), ordered as assembled.
+        available_skills_for_mode:
+          type: array
+          items:
+            $ref: '#/components/schemas/AvailableSessionSkillDto'
+          description: Catalog skills with materializability and effective selection for this mode.
         selected_part_ids:
           type: array
           items:

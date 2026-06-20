@@ -195,7 +195,7 @@ export interface components {
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
         };
         /**
-         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires an attached PR/MR and bakes the selected `review_recommendation` artifact writer into the session workspace.
+         * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. Session skills are selected separately in the launch window and materialised only when their spawn identity is available.
          * @enum {string}
          */
         TerminalRunMode: "work" | "interview" | "review" | "dream" | "free";
@@ -225,6 +225,8 @@ export interface components {
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
             /** @description Optional part ids the operator left enabled in the pre-flight modal. The server validates each id against the parts available in `mode` (unknown ids → 422) but does NOT recompose `system_prompt` from them — the assembled text travels in `system_prompt`. Omitted → no optional parts were curated for this run. */
             selected_part_ids?: string[] | null;
+            /** @description Session skill ids the operator enabled for this launch. The server validates every id against the session skill catalog and checks materializability after repository preflight. Unknown or unavailable ids abort preflight with 422. */
+            selected_skill_ids?: string[] | null;
             /** @description Binding id of the attached PR/MR to review when `mode=review` and the intent has more than one attached pull request. Omitted with a single attached PR/MR → the server selects it implicitly. A value outside the intent's attached PR/MR bindings aborts pre-flight with 422. */
             review_binding_id?: string | null;
             /** @description Final rules block assembled by the pre-flight preview (mandatory + selected optional parts) including any session-only inline edit. Delivered verbatim to the agent's system-context flag (Claude `--append-system-prompt`, Codex `-c developer_instructions`). Empty/omitted → no system context is injected. */
@@ -299,6 +301,22 @@ export interface components {
             selected: boolean;
             text: string;
         };
+        AvailableSessionSkillDto: {
+            /** @description Stable string id from the session skill catalog. */
+            skill_id: string;
+            /** @description Skill package origin discriminator (`throne` today). */
+            source: string;
+            title: string;
+            description: string;
+            /** @description Whether the current intent has the stable spawn identity this skill needs. */
+            materializable: boolean;
+            /** @description Human-readable reason when `materializable=false`. */
+            reason?: string | null;
+            /** @description Persisted mode default from `skill_mode_defaults`. */
+            default_enabled: boolean;
+            /** @description Effective launch selection after per-intent memory overrides defaults. */
+            selected: boolean;
+        };
         IntentTerminalPreviewResponse: {
             intent_id: string;
             /**
@@ -309,6 +327,8 @@ export interface components {
             mode: components["schemas"]["TerminalRunMode"];
             /** @description Every part available in the mode (mandatory + optional), ordered as assembled. */
             parts: components["schemas"]["PromptPartPreviewDto"][];
+            /** @description Catalog skills with materializability and effective selection for this mode. */
+            available_skills_for_mode: components["schemas"]["AvailableSessionSkillDto"][];
             /** @description Part ids included in system_prompt (mandatory + selected optional). */
             selected_part_ids: string[];
             /** @description Assembled rules block destined for `--append-system-prompt`. */

@@ -10,6 +10,7 @@ import type { TerminalLaunchArgs, TerminalRunPayload } from "../model/types";
 import { AutoTextarea } from "./AutoTextarea";
 import { PreflightColumn } from "./PreflightColumn";
 import { PreflightSummary } from "./PreflightSummary";
+import { SkillToggleList } from "./SkillToggleList";
 
 interface PreflightModalProps {
   open: boolean;
@@ -97,6 +98,10 @@ export function PreflightModal({
               }}
             />
           </label>
+          <SkillToggleList
+            skills={preview.skills}
+            onToggle={preview.toggleSkill}
+          />
           <PreflightSummary
             systemPrompt={preview.systemPrompt}
             userPrompt={preview.body}

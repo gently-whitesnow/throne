@@ -1,4 +1,3 @@
-using System.Globalization;
 using FluentAssertions;
 using Throne.Application.Errors;
 using Throne.Application.Terminals;
@@ -11,43 +10,34 @@ public class ReviewArtifactWriteTargetTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 18, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "Review target выбирает единственный attached PR без явного выбора")]
-    public void Review_target_selects_single_attached_pull_request()
+    [Fact(DisplayName = "Review-artifact target отсутствует только без binding")]
+    public void Review_artifact_target_requires_binding_only()
     {
-        ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Work, null, []).Should().BeNull();
+        ReviewArtifactWriteTarget.Resolve(null, []).Should().BeNull();
 
-        var target = ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Review, null, [Binding(42)]);
-        target.Should().Be(new ReviewArtifactWriteTarget("binding-42", 42));
-
-        var noPr = () => ReviewArtifactWriteTarget.Resolve(TerminalRunModes.Review, null, [Binding(null)]);
-        noPr.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+        var binding = Binding("binding-no-pr", pullRequestNumber: null);
+        var target = ReviewArtifactWriteTarget.Resolve(null, [binding]);
+        target.Should().Be(new ReviewArtifactWriteTarget("binding-no-pr", binding.Coordinate));
     }
 
-    [Fact(DisplayName = "Review target при нескольких PR требует attached binding_id")]
-    public void Review_target_uses_selected_attached_pull_request()
+    [Fact(DisplayName = "Review-artifact target может выбрать конкретный binding_id без PR-гейта")]
+    public void Review_artifact_target_uses_selected_binding()
     {
+        var selected = Binding("binding-42", pullRequestNumber: null);
         var target = ReviewArtifactWriteTarget.Resolve(
-            TerminalRunModes.Review,
             "binding-42",
-            [Binding(41), Binding(42)]);
-        target.Should().Be(new ReviewArtifactWriteTarget("binding-42", 42));
-
-        var missingSelection = () => ReviewArtifactWriteTarget.Resolve(
-            TerminalRunModes.Review,
-            null,
-            [Binding(41), Binding(42)]);
-        missingSelection.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
+            [Binding("binding-41", 41), selected]);
+        target.Should().Be(new ReviewArtifactWriteTarget("binding-42", selected.Coordinate));
 
         var detachedSelection = () => ReviewArtifactWriteTarget.Resolve(
-            TerminalRunModes.Review,
             "binding-99",
-            [Binding(41), Binding(42)]);
+            [Binding("binding-41", 41), selected]);
         detachedSelection.Should().Throw<ApiException>().Which.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    private static IntentRepositoryBinding Binding(int? pullRequestNumber) =>
+    private static IntentRepositoryBinding Binding(string id, int? pullRequestNumber) =>
         IntentRepositoryBinding.Restore(new IntentRepositoryBindingSnapshot(
-            Id: new BindingId($"binding-{pullRequestNumber?.ToString(CultureInfo.InvariantCulture) ?? "none"}"),
+            Id: new BindingId(id),
             IntentId: new IntentId("intent-1"),
             Coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"),
             WorkspacePath: "/tmp/repo",

@@ -14,6 +14,8 @@ public static class TerminalRunModes
     public const string Dream = "dream";
     public const string Free = "free";
 
+    public static readonly IReadOnlyList<string> All = [Interview, Review, Work, Free, Dream];
+
     public static bool IsKnown(string value) =>
         value is Work or Interview or Review or Dream or Free;
 }

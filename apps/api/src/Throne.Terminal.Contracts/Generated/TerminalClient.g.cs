@@ -148,7 +148,7 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
-    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. `review` requires an attached PR/MR and bakes the selected `review_recommendation` artifact writer into the session workspace.
+    /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. Session skills are selected separately in the launch window and materialised only when their spawn identity is available.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -289,6 +289,13 @@ namespace Throne.Terminal.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("selected_part_ids")]
         public System.Collections.Generic.ICollection<string> Selected_part_ids { get; set; }
+
+        /// <summary>
+        /// Session skill ids the operator enabled for this launch. The server validates every id against the session skill catalog and checks materializability after repository preflight. Unknown or unavailable ids abort preflight with 422.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected_skill_ids")]
+        public System.Collections.Generic.ICollection<string> Selected_skill_ids { get; set; }
 
         /// <summary>
         /// Binding id of the attached PR/MR to review when `mode=review` and the intent has more than one attached pull request. Omitted with a single attached PR/MR → the server selects it implicitly. A value outside the intent's attached PR/MR bindings aborts pre-flight with 422.
@@ -612,6 +619,67 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AvailableSessionSkillDto
+    {
+
+        /// <summary>
+        /// Stable string id from the session skill catalog.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("skill_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Skill_id { get; set; }
+
+        /// <summary>
+        /// Skill package origin discriminator (`throne` today).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Source { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Description { get; set; }
+
+        /// <summary>
+        /// Whether the current intent has the stable spawn identity this skill needs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("materializable")]
+        public bool Materializable { get; set; }
+
+        /// <summary>
+        /// Human-readable reason when `materializable=false`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        public string Reason { get; set; }
+
+        /// <summary>
+        /// Persisted mode default from `skill_mode_defaults`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_enabled")]
+        public bool Default_enabled { get; set; }
+
+        /// <summary>
+        /// Effective launch selection after per-intent memory overrides defaults.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected")]
+        public bool Selected { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentTerminalPreviewResponse
     {
 
@@ -638,6 +706,13 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("parts")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PromptPartPreviewDto> Parts { get; set; } = new System.Collections.ObjectModel.Collection<PromptPartPreviewDto>();
+
+        /// <summary>
+        /// Catalog skills with materializability and effective selection for this mode.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("available_skills_for_mode")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<AvailableSessionSkillDto> Available_skills_for_mode { get; set; } = new System.Collections.ObjectModel.Collection<AvailableSessionSkillDto>();
 
         /// <summary>
         /// Part ids included in system_prompt (mandatory + selected optional).
