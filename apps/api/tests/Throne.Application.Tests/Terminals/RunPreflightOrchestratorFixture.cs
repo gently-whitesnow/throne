@@ -116,7 +116,7 @@ public partial class RunPreflightOrchestratorTests
                 Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 NullLogger<TmuxTuiReadinessWaiter>.Instance);
             return new RunPreflightSpawn(
-                Tmux, workspace, Substitute.For<IWorkspaceTrust>(),
+                Tmux, workspace, TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
                 [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
                 readinessWaiter, options,
                 new SetIntentStatusHandler(Intents, uow, clock),
