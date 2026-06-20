@@ -49,10 +49,23 @@ public sealed class RunPreflightSpawn(
         // profile), the user task is pasted into the live pane after spawn from a file. An empty
         // task skips the paste so the agent boots bare and the operator types it themselves.
         _hookAdapters.TryGetValue(launch.Vendor, out var adapter);
-        var preparedArgs = adapter is not null
+        IReadOnlyList<string> preparedArgs = adapter is not null
             ? await adapter.PrepareSpawnArgsAsync(
                 intentId.Value, workspacePath, mode, prompt.SystemPrompt, reviewArtifact, ct)
             : [];
+
+        // Native-session vendors (OpenCode) own their prompt delivery *before* the visible pane
+        // spawns: the loop runs in a shared `opencode serve`, the pane only attaches. Create the
+        // session + submit the prompt here and fold the returned attach argv into the spawn, so the
+        // front pulls the right session by id — no post-spawn command-bus push to race (this
+        // replaces the old best-effort select-session focus).
+        if (adapter is INativeSessionInitializer initializer)
+        {
+            var attachArgs = await InitializeNativeSessionAsync(
+                initializer, intentId.Value, launch.Vendor, launch.Model, workspacePath, prompt.UserPrompt, ct);
+            preparedArgs = [.. preparedArgs, .. attachArgs];
+        }
+
         var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
         using var readiness = adapter is not null
             ? readinessWaiter.Arm(intentId.Value, adapter)
@@ -71,8 +84,13 @@ public sealed class RunPreflightSpawn(
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
         }
 
-        await DeliverUserPromptAsync(
-            intentId.Value, launch.Vendor, adapter, readiness, workspacePath, prompt.UserPrompt, ct);
+        // Native-session vendors already delivered the prompt before spawn (see above); the pane
+        // only attaches. Everyone else pastes the task into the live pane after a readiness gate.
+        if (adapter is not INativeSessionInitializer)
+        {
+            await DeliverUserPromptAsync(
+                intentId.Value, launch.Vendor, adapter, readiness, workspacePath, prompt.UserPrompt, ct);
+        }
 
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
 
@@ -97,12 +115,6 @@ public sealed class RunPreflightSpawn(
         var promptPath = Path.Combine(workspacePath, UserPromptFileName);
         await File.WriteAllTextAsync(promptPath, userPrompt, ct);
 
-        if (adapter is INativeInitialPromptSubmitter submitter)
-        {
-            await SubmitNativeInitialPromptAsync(submitter, intentId, vendor, workspacePath, userPrompt, ct);
-            return;
-        }
-
         // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste
         // and silently dropped the user prompt whenever the TUI took longer to init than the
         // sleep. Only vendors we have an adapter for get the gate — unknown vendors fall through
@@ -124,17 +136,18 @@ public sealed class RunPreflightSpawn(
         await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
     }
 
-    private static async Task SubmitNativeInitialPromptAsync(
-        INativeInitialPromptSubmitter submitter,
+    private static async Task<IReadOnlyList<string>> InitializeNativeSessionAsync(
+        INativeSessionInitializer initializer,
         string intentId,
         string vendor,
+        string model,
         string workspacePath,
-        string userPrompt,
+        string? userPrompt,
         CancellationToken ct)
     {
         try
         {
-            await submitter.SubmitInitialPromptAsync(intentId, workspacePath, userPrompt, ct);
+            return await initializer.InitializeSessionAsync(intentId, workspacePath, model, userPrompt, ct);
         }
         catch (OperationCanceledException)
         {
