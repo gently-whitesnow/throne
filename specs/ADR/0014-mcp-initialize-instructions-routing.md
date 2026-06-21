@@ -14,7 +14,7 @@ Bundle-обвязка доставки плейбука демонтирован
 - `ThroneServerInstructions.MiniRouter` **переписан**: Throne для standalone-агента — это база знаний интентов. Агент читает/пишет `Intent.text` и по явной просьбе меняет статус через `set_intent_status` / создаёт интент через `create_intent`. Mini-router больше не упоминает `get_prompt_bundle` и режимы `work/interview/review/dream` — это режимы embedded-контура, не standalone. Авто-переходов статуса по чтению бандла нет (их триггерил bundle-read, которого больше не существует).
 - Решения 2, 4, 6 и упоминания `bundles-tree` ниже описывают историческое состояние и читаются как контекст; актуальный текст mini-router и поверхность standalone заданы этим amendment.
 
-Манифест продолжает быть source of truth для `system_instructions` и `bundles[]`, но `bundles[]` теперь питает только embedded-композицию (seed `mode_roles`), а не доставку по MCP.
+Манифест продолжает быть source of truth для `system_instructions` и `bundles[]`, но `bundles[]` теперь питает только embedded-композицию (вывод mandatory `mode_roles`), а не доставку по MCP.
 
 ## Context
 

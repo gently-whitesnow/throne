@@ -9,9 +9,9 @@ import {
 import { Button } from "@/shared/ui";
 
 /**
- * Read-only view of a system prompt part. System parts are seeded from the
- * manifest and reconciled on every start, so neither text nor roles are editable
- * here — they change only via the manifest.
+ * Read-only view of a system prompt part. System parts are read from the
+ * manifest, so neither text nor roles are editable here — they change only via
+ * the manifest.
  */
 export function SystemPartBody({
   part,

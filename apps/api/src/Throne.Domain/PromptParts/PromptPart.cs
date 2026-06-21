@@ -81,7 +81,8 @@ public sealed class PromptPart
         // (e.g. a removed bundle mode) must NOT poison hydration of the whole aggregate —
         // such roles are dropped, not thrown on. Command paths (Create/SetModeRoles/
         // ValidateModeRoles) stay strict and still reject unknown modes from callers; the
-        // seed reconcile re-derives the desired roles afterwards.
+        // manifest-backed system parts derive roles from code; stored user parts keep
+        // reading even when an older mode has been retired.
         var liveModeRoles = DropRetiredModes(modeRoles);
         EnsureModeRoles(liveModeRoles);
         return new PromptPart(id, key, scope, text, NormalizeDescription(description), currentVersion, liveModeRoles, createdAt, updatedAt);
