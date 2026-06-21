@@ -7,14 +7,14 @@ namespace Throne.Application.Terminals;
 
 /// <summary>
 /// Derives intent status from an embedded-terminal hook callback (ADR-0034 §4). Replaces the
-/// model-cooperative MCP path in the embedded contour. Two signals park the intent in
+/// model-cooperative status-write path in the embedded contour. Two signals park the intent in
 /// <c>awaiting_operator</c> — <c>Stop</c> (turn yielded) and <c>Notification</c> (a permission
 /// prompt blocks the agent without ending the turn, so Stop never fires) — and two return it to the
 /// spawn phase: <c>UserPromptSubmit</c> (operator typed an answer) and <c>PostToolUse</c> (the agent
 /// resumed after an approval, which is not a UserPromptSubmit). The mapping is deterministic and
 /// stateless — the spawn phase rides in on the hook URL, no session-mode store. Idempotent by
-/// construction (repeated set to the same status is a no-op at the domain level), so a double
-/// transition via hook + bundle, or PostToolUse firing on every tool call, is harmless.
+/// construction (repeated set to the same status is a no-op at the domain level), so PostToolUse
+/// firing on every tool call is harmless.
 /// </summary>
 public sealed class TerminalHookStatusHandler(IIntentRepository repository, SetIntentStatusHandler setStatus)
 {

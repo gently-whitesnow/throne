@@ -6,10 +6,9 @@ namespace Throne.Application.Repositories;
 public sealed record RegisteredRepository(RepoCoordinate Coordinate, IReadOnlyList<string> DocumentSlugs);
 
 /// <summary>
-/// Read path behind the <c>list_repositories</c> MCP tool (ADR-0030/0031): the registered
-/// coordinates plus the slugs of any knowledge pages already written to each, so the agent
-/// can match its current clone's <c>git remote</c> and see which pages already exist before
-/// writing.
+/// Read path for registered coordinates plus the slugs of any knowledge pages already
+/// written to each, so callers can match a clone's <c>git remote</c> and see which
+/// pages already exist before writing.
 /// </summary>
 public sealed class ListRepositoriesHandler(
     IRepositoryRegistry registry,

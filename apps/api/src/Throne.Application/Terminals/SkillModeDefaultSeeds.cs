@@ -20,7 +20,9 @@ public static class SkillModeDefaultSeeds
 
     private static bool IsEnabled(string mode, string skillId) =>
         (string.Equals(mode, TerminalRunModes.Interview, StringComparison.Ordinal)
-            && string.Equals(skillId, SessionSkillPackageIds.IntentOperations, StringComparison.Ordinal))
+            && string.Equals(skillId, SessionSkillPackageIds.Intent, StringComparison.Ordinal))
         || (string.Equals(mode, TerminalRunModes.Review, StringComparison.Ordinal)
-            && string.Equals(skillId, SessionSkillPackageIds.ReviewArtifact, StringComparison.Ordinal));
+            && string.Equals(skillId, SessionSkillPackageIds.Review, StringComparison.Ordinal))
+        || (string.Equals(mode, TerminalRunModes.Dream, StringComparison.Ordinal)
+            && string.Equals(skillId, SessionSkillPackageIds.Dream, StringComparison.Ordinal));
 }

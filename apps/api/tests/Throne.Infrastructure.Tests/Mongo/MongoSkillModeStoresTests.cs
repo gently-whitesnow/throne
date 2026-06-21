@@ -15,20 +15,20 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
     {
         var (db, defaults, _) = await NewScopeAsync();
         await defaults.ReplaceAsync(
-            [new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.IntentOperations, true)],
+            [new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.Intent, true)],
             CancellationToken.None);
 
         await defaults.UpsertMissingAsync(
             [
-                new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.IntentOperations, false),
-                new SkillModeDefault(TerminalRunModes.Review, SessionSkillPackageIds.ReviewArtifact, true),
+                new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.Intent, false),
+                new SkillModeDefault(TerminalRunModes.Review, SessionSkillPackageIds.Review, true),
             ],
             CancellationToken.None);
 
         (await defaults.ListAsync(CancellationToken.None)).Should().BeEquivalentTo(
             [
-                new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.IntentOperations, true),
-                new SkillModeDefault(TerminalRunModes.Review, SessionSkillPackageIds.ReviewArtifact, true),
+                new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.Intent, true),
+                new SkillModeDefault(TerminalRunModes.Review, SessionSkillPackageIds.Review, true),
             ]);
         var count = await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeDefaults)
             .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty, cancellationToken: CancellationToken.None);
@@ -39,7 +39,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
     public async Task Default_store_replaces_existing_values()
     {
         var (_, defaults, _) = await NewScopeAsync();
-        var key = new SkillModeDefault(TerminalRunModes.Interview, SessionSkillPackageIds.IntentOperations, true);
+        var key = new SkillModeDefault(TerminalRunModes.Interview, SessionSkillPackageIds.Intent, true);
         await defaults.ReplaceAsync([key], CancellationToken.None);
 
         await defaults.ReplaceAsync([key with { Enabled = false }], CancellationToken.None);
@@ -76,18 +76,18 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
         await selections.SaveAsync(
             "intent-1",
             TerminalRunModes.Work,
-            [SessionSkillPackageIds.IntentOperations, SessionSkillPackageIds.IntentOperations],
+            [SessionSkillPackageIds.Intent, SessionSkillPackageIds.Intent],
             CancellationToken.None);
         await selections.SaveAsync(
             "intent-1",
             TerminalRunModes.Review,
-            [SessionSkillPackageIds.ReviewArtifact],
+            [SessionSkillPackageIds.Review],
             CancellationToken.None);
 
         (await selections.GetAsync("intent-1", TerminalRunModes.Work, CancellationToken.None))
-            .Should().Equal(SessionSkillPackageIds.IntentOperations);
+            .Should().Equal(SessionSkillPackageIds.Intent);
         (await selections.GetAsync("intent-1", TerminalRunModes.Review, CancellationToken.None))
-            .Should().Equal(SessionSkillPackageIds.ReviewArtifact);
+            .Should().Equal(SessionSkillPackageIds.Review);
         var count = await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeSelections)
             .CountDocumentsAsync(Builders<BsonDocument>.Filter.Eq("_id", "intent-1"), cancellationToken: CancellationToken.None);
         count.Should().Be(1);
@@ -106,7 +106,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
                     new BsonDocument
                     {
                         ["mode"] = TerminalRunModes.Work,
-                        ["selected_skill_ids"] = new BsonArray { SessionSkillPackageIds.IntentOperations },
+                        ["selected_skill_ids"] = new BsonArray { SessionSkillPackageIds.Intent },
                         ["legacy"] = "ignored",
                     },
                 },
@@ -115,7 +115,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
             cancellationToken: CancellationToken.None);
 
         (await selections.GetAsync("intent-legacy", TerminalRunModes.Work, CancellationToken.None))
-            .Should().Equal(SessionSkillPackageIds.IntentOperations);
+            .Should().Equal(SessionSkillPackageIds.Intent);
     }
 
     [Fact(DisplayName = "SkillModeSelection: GetAsync для отсутствующего mode возвращает null")]
@@ -126,7 +126,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
         await selections.SaveAsync(
             "intent-2",
             TerminalRunModes.Work,
-            [SessionSkillPackageIds.IntentOperations],
+            [SessionSkillPackageIds.Intent],
             CancellationToken.None);
 
         (await selections.GetAsync("intent-2", TerminalRunModes.Free, CancellationToken.None))

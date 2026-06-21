@@ -6,8 +6,8 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
-/// Returns full <see cref="RepositoryBindingDto"/> cards; the compact projection
-/// for MCP <c>get_intent.repositories</c> lives elsewhere.
+/// Returns full <see cref="RepositoryBindingDto"/> cards for the intent page and
+/// CLI binding discovery.
 /// </summary>
 public sealed class ListIntentRepositoriesEndpoint(RepositoryBindingService service)
 {

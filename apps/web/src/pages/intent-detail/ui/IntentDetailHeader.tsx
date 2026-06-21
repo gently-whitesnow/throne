@@ -96,11 +96,11 @@ export function IntentDetailHeader({
               title={
                 copiedAction === "execute"
                   ? "Скопировано"
-                  : `Скопировать: Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`
+                  : `Скопировать: В Throne запусти work-сессию по интенту ${intent.id}`
               }
               onClick={() => {
                 copyToClipboard(
-                  `Используя mcp throne, прочитай бандл work и выполни интент ${intent.id}`,
+                  `В Throne запусти work-сессию по интенту ${intent.id}`,
                   "execute"
                 );
               }}
@@ -116,11 +116,11 @@ export function IntentDetailHeader({
               title={
                 copiedAction === "interview"
                   ? "Скопировано"
-                  : `Скопировать: Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`
+                  : `Скопировать: В Throne запусти interview-сессию по интенту ${intent.id}`
               }
               onClick={() => {
                 copyToClipboard(
-                  `Используя mcp throne, прочитай бандл interview и проведи интервью по интенту ${intent.id}`,
+                  `В Throne запусти interview-сессию по интенту ${intent.id}`,
                   "interview"
                 );
               }}

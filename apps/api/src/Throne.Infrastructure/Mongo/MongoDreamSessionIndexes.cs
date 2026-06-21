@@ -7,7 +7,7 @@ namespace Throne.Infrastructure.Mongo;
 /// Indexes for the <c>dream_sessions</c> collection. (created_at desc) backs
 /// paginated listings; (vendor, created_at desc) backs the vendor filter;
 /// (host, created_at desc) backs the per-machine frontier filter used by the
-/// dream-mode agent on the MCP list / HTTP list paths.
+/// dream-mode agent on the HTTP list path.
 /// </summary>
 internal static class MongoDreamSessionIndexes
 {

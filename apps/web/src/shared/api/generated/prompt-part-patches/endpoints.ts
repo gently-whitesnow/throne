@@ -5,6 +5,7 @@
 
 export const promptPartPatchesEndpoints = {
   listPromptPartPatches: () => "/prompt-part-patches",
+  proposePromptPartPatch: () => "/prompt-part-patches",
   getPromptPartPatch: (patch_id: string) => `/prompt-part-patches/${patch_id}`,
   applyPromptPartPatch: (patch_id: string) => `/prompt-part-patches/${patch_id}/apply`,
   rejectPromptPartPatch: (patch_id: string) => `/prompt-part-patches/${patch_id}/reject`,

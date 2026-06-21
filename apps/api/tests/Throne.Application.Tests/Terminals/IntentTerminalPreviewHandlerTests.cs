@@ -104,11 +104,11 @@ public class IntentTerminalPreviewHandlerTests
             CancellationToken.None);
 
         preview.AvailableSkills.Should().Contain(s =>
-            s.SkillId == SessionSkillPackageIds.IntentOperations
+            s.SkillId == SessionSkillPackageIds.Intent
             && s.Materializable
             && !s.Selected);
         preview.AvailableSkills.Should().Contain(s =>
-            s.SkillId == SessionSkillPackageIds.ReviewArtifact
+            s.SkillId == SessionSkillPackageIds.Review
             && !s.Materializable
             && s.Reason == ReviewArtifactWriteTarget.NoBindingReason
             && !s.Selected);

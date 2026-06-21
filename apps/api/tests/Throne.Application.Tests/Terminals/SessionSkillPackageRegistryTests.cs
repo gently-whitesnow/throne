@@ -6,7 +6,7 @@ namespace Throne.Application.Tests.Terminals;
 
 public class SessionSkillPackageRegistryTests
 {
-    [Theory(DisplayName = "Выбранный intent-ops материализуется для каждого вендора")]
+    [Theory(DisplayName = "Выбранный intent skill материализуется для каждого вендора")]
     [InlineData(TerminalAgentCatalog.VendorClaude)]
     [InlineData(TerminalAgentCatalog.VendorCodex)]
     [InlineData(TerminalAgentCatalog.VendorOpencode)]
@@ -14,12 +14,12 @@ public class SessionSkillPackageRegistryTests
     {
         var registry = NewRegistry();
         var packages = registry.Resolve(new SessionSkillPackageResolution(
-            "intent-1", vendor, [SessionSkillPackageIds.IntentOperations], ReviewArtifact: null));
+            "intent-1", vendor, [SessionSkillPackageIds.Intent], ReviewArtifact: null));
 
-        packages.Should().Equal(new IntentOperationsSessionSkillPackage("intent-1"));
+        packages.Should().Equal(new IntentSessionSkillPackage());
     }
 
-    [Fact(DisplayName = "Review-artifact материализуется без привязки к режиму")]
+    [Fact(DisplayName = "Review skill материализуется без привязки к режиму")]
     public void Selected_review_artifact_resolves_without_mode_gate()
     {
         var registry = NewRegistry();
@@ -27,9 +27,19 @@ public class SessionSkillPackageRegistryTests
             "binding-1",
             new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
         var packages = registry.Resolve(new SessionSkillPackageResolution(
-            "intent-1", TerminalAgentCatalog.VendorClaude, [SessionSkillPackageIds.ReviewArtifact], target));
+            "intent-1", TerminalAgentCatalog.VendorClaude, [SessionSkillPackageIds.Review], target));
 
-        packages.Should().Equal(new ReviewArtifactSessionSkillPackage(target));
+        packages.Should().Equal(new ReviewSessionSkillPackage(target));
+    }
+
+    [Fact(DisplayName = "Dream skill материализуется без привязки к режиму")]
+    public void Selected_dream_resolves_without_mode_gate()
+    {
+        var registry = NewRegistry();
+        var packages = registry.Resolve(new SessionSkillPackageResolution(
+            "intent-1", TerminalAgentCatalog.VendorClaude, [SessionSkillPackageIds.Dream], ReviewArtifact: null));
+
+        packages.Should().Equal(new DreamSessionSkillPackage());
     }
 
     [Fact(DisplayName = "Невыбранные скилы не материализуются")]

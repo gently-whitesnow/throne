@@ -6,6 +6,8 @@ Accepted
 Date: 2026-06-06
 Related: [ADR-0003](0003-mcp-text-editing-semantics.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md)
 
+**Update 2026-06-21:** superseded by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The policy result is now stronger: no Throne MCP surface remains; operational reads/writes use local CLI scripts over HTTP.
+
 ## Context
 
 «Единое окно цикла разработки» добавляет всё больше внешних операций: git-provider (PR, комментарии, clone), файловая система workspace, terminal, capabilities, будущие интеграции. Соблазн на каждую такую операцию завести по MCP-tool'у (`list_intent_pr_comments`, `bind_repository`, `run_terminal`, …) ведёт к расползанию MCP-surface: десятки tool'ов, дублирующих то, что у агента уже есть под рукой через локальный CLI, и каждый — новый способ случайно сломать workspace.

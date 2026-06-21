@@ -5,6 +5,7 @@
 
 export const dreamsEndpoints = {
   listDreamSessions: () => "/dream-sessions",
+  recordDreamSession: () => "/dream-sessions",
   getDreamSession: (dream_session_id: string) => `/dream-sessions/${dream_session_id}`,
   listDreamSources: () => "/dream-sources",
 } as const;

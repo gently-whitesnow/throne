@@ -93,7 +93,7 @@ export interface paths {
         };
         /**
          * List repository bindings attached to an intent.
-         * @description Full binding cards consumed by the intent page. The MCP `get_intent` response uses a compact projection (see `RepositoryBindingSummary`) of the same source.
+         * @description Full binding cards consumed by the intent page and `bin/throne-review` binding discovery.
          */
         get: operations["listIntentRepositories"];
         put?: never;
@@ -460,7 +460,7 @@ export interface paths {
         get: operations["getRepositoryDocument"];
         /**
          * Create or update a knowledge page (manual edit).
-         * @description User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
+         * @description User-driven knowledge-page write path (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
          */
         put: operations["putRepositoryDocument"];
         post?: never;
@@ -616,7 +616,7 @@ export interface components {
              */
             pull_request_number?: number | null;
         };
-        /** @description Compact projection used by MCP `get_intent.repositories[]`. The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`. */
+        /** @description Compact repository binding projection for history/realtime contexts. The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`. */
         RepositoryBindingSummary: {
             binding_id: string;
             provider: components["schemas"]["GitProvider"];

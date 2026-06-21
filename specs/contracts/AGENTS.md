@@ -50,5 +50,5 @@ specs/contracts/
 
 - `operationId`: `camelCase`, глагол + сущность (`listIntents`, `getIntent`, `createIntent`).
 - Схемы DTO: `PascalCase` + суффикс роли (`IntentListItemDto`, `CreateIntentRequest`, `IntentDetailDto`).
-- JSON-поля в DTO: `snake_case` (соответствует существующим .NET options и MCP-контрактам Throne).
+- JSON-поля в DTO: `snake_case` (соответствует существующим .NET options и HTTP-контрактам Throne).
 - Ошибки: `application/problem+json` со схемой `ProblemDetails` из `shared.yaml`.

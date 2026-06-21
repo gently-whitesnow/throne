@@ -7,6 +7,8 @@ Date: 2026-06-13
 Related: [ADR-0009](0009-cross-process-realtime-fanout.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md)
 Derived from: [ADR-0009](0009-cross-process-realtime-fanout.md)
 
+**Update 2026-06-21:** retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The direct HTTP MCP endpoint and standalone MCP setup are removed.
+
 ## Context
 
 [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) makes the embedded terminal the priority execution contour: Throne injects context upfront and derives most status transitions from runtime hooks. The external standalone MCP path remains supported, but it is secondary and less deterministic because the agent must notice the mini-router from MCP `initialize` and call `get_prompt_bundle(mode, intent_id?)`.

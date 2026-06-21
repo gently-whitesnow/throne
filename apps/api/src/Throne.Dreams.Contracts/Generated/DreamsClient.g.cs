@@ -57,13 +57,13 @@ namespace Throne.Dreams.Contracts.Generated
         /// Lower bound of the analysed period (inclusive); null when the agent took the full history.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date_from")]
-        public System.DateTimeOffset Date_from { get; set; }
+        public System.DateTimeOffset? Date_from { get; set; }
 
         /// <summary>
         /// Upper bound of the analysed period (inclusive); null when open-ended.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("date_to")]
-        public System.DateTimeOffset Date_to { get; set; }
+        public System.DateTimeOffset? Date_to { get; set; }
 
         /// <summary>
         /// Opaque agent-side ids / paths of dialogs the agent read.
@@ -87,6 +87,53 @@ namespace Throne.Dreams.Contracts.Generated
         /// <summary>
         /// PromptPartPatch ids created during this pass (opaque on the server).
         /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("proposed_patch_ids")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Proposed_patch_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RecordDreamSessionRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("vendor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Vendor { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.ComponentModel.DataAnnotations.StringLength(255)]
+        public string Host { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("date_from")]
+        public System.DateTimeOffset? Date_from { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("date_to")]
+        public System.DateTimeOffset? Date_to { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("processed_conversation_ids")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Processed_conversation_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.ComponentModel.DataAnnotations.StringLength(4000)]
+        public string Summary { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("reflection")]
+        [System.ComponentModel.DataAnnotations.StringLength(4000)]
+        public string Reflection { get; set; }
+
         [System.Text.Json.Serialization.JsonPropertyName("proposed_patch_ids")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<string> Proposed_patch_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();

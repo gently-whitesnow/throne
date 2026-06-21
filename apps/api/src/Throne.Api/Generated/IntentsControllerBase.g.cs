@@ -127,7 +127,7 @@ namespace Throne.Api.Generated
         /// Replace a unique substring of Intent.text (user-driven).
         /// </summary>
         /// <remarks>
-        /// User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version. ChangedBy=user.
+        /// UI and `bin/throne-intent` write path. Optimistic concurrency via expected_version. ChangedBy=user.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/replace-text", Name = "replaceIntentText")]

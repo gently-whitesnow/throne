@@ -65,12 +65,6 @@ dotnet_naming_symbols.private_static_readonly_fields.required_modifiers = static
 [**/tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
 
-# ADR-0023: MCP tool parameter names ship as part of the MCP wire-format
-# (snake_case: intent_id, from_id, target_scope, …). This directory is an API
-# boundary, not normal C# code, so CA1707 is structurally illegal here.
-[src/Throne.Api/Mcp/Tools/**.cs]
-dotnet_diagnostic.CA1707.severity = none
-
 # ADR-0025: Throne.Domain ведётся в rich-DDD стиле — агрегат сам несёт
 # Create/Restore, инварианты инлайн и state-переходы инстансными методами,
 # поэтому крупные типы и низкий maintainability index здесь нормативны.
@@ -81,4 +75,3 @@ dotnet_diagnostic.CA1707.severity = none
 [**/Throne.Domain/**.cs]
 dotnet_diagnostic.CA1501.severity = none
 dotnet_diagnostic.CA1505.severity = none
-

@@ -54,7 +54,7 @@ public class ReadIntentTextHandlerTests
         slice.NextStartLine.Should().Be(2);
     }
 
-    [Fact(DisplayName = "TextSlice сериализует nextStartLine=null при omit null (MCP output schema)")]
+    [Fact(DisplayName = "TextSlice сериализует nextStartLine=null при omit null")]
     public void TextSlice_json_includes_null_next_start_line()
     {
         var slice = new TextSlice(1, 1, 1, 3, "a", Truncated: false, NextStartLine: null);

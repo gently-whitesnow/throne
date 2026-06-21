@@ -37,6 +37,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PromptPartPatchPageDto>> ListPromptPartPatches([Microsoft.AspNetCore.Mvc.FromQuery] string target_scope = null, [Microsoft.AspNetCore.Mvc.FromQuery] string target_key = null, [Microsoft.AspNetCore.Mvc.FromQuery] PromptPartPatchStatus? status = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null, [Microsoft.AspNetCore.Mvc.FromQuery] string cursor = null);
 
         /// <summary>
+        /// Propose a new PromptPartPatch in status proposed.
+        /// </summary>
+        /// <remarks>
+        /// Agent-facing write used by the dream skill. Targets must use target_scope=user; apply/edit/reject remain operator actions.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-part-patches", Name = "proposePromptPartPatch")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PromptPartPatchDto>> ProposePromptPartPatch([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] ProposePromptPartPatchRequest body);
+
+        /// <summary>
         /// Single PromptPartPatch with current target part text.
         /// </summary>
         /// <returns>OK</returns>

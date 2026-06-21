@@ -60,7 +60,7 @@ public static class DependencyInjection
         services.AddSingleton<GetPromptPartPatchHandler>();
         services.AddSingleton<GetCurrentPromptPartHandler>();
         // DreamSession handlers (ADR-0022): the frontier agent reads dialogs
-        // locally and records its own memory of each /dream pass through MCP.
+        // locally and records its own memory of each /dream pass through HTTP CLI.
         services.AddSingleton<RecordDreamSessionHandler>();
         services.AddSingleton<ListDreamSessionsHandler>();
         services.AddSingleton<GetDreamSessionHandler>();

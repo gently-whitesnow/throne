@@ -9,6 +9,11 @@ Update 2026-06-13: механизм доставки (отдельный stdio�
 удалены. **Сам инвариант ниже остаётся в силе**: все MCP-write входят в процесс
 `Throne.Api`, поэтому мутация, domain events и SSE-фанаут живут в одном процессе.
 
+Update 2026-06-21: MCP transport itself is retired by
+[ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The surviving
+invariant is process-local writes: operational CLI calls enter `Throne.Api` over
+HTTP, and domain events still fan out from that same process.
+
 Тесно связан с [ADR-0008](0008-realtime-contract-first-events.md) — снимает отложенное там ограничение «broker in-memory» в той части, что касается раздельных MCP- и Web-процессов в single-operator local-first деплое ([ADR-0029](0029-local-first-invariant-and-legacy-auth.md)). Cross-instance fanout остаётся открытым ADR поверх seam'а `IRealtimeEventBroker`.
 
 ## Context

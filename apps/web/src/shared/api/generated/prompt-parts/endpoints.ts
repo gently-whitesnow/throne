@@ -6,6 +6,7 @@
 export const promptPartsEndpoints = {
   listPromptParts: () => "/prompt-parts",
   createPromptPart: () => "/prompt-parts",
+  getCurrentPromptPart: () => "/prompt-parts/current",
   getPromptPart: (id: string) => `/prompt-parts/${id}`,
   deletePromptPart: (id: string) => `/prompt-parts/${id}`,
   replacePromptPartText: (id: string) => `/prompt-parts/${id}/replace-text`,

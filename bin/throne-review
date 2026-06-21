@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INTENT_ID="${THRONE_INTENT_ID:-}"
+API_BASE="${THRONE_API_BASE:-http://localhost:5008}"
+API_BASE="${API_BASE%/}"
+ARTIFACT_TYPE="review_recommendation"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  throne-review bindings
+  throne-review write [--binding-id ID] < payload.json
+USAGE
+}
+
+die() {
+  echo "throne-review: $*" >&2
+  exit 64
+}
+
+http_request() {
+  local method="$1"
+  local path="$2"
+  local tmp status url
+  url="${API_BASE}${path}"
+  tmp="$(mktemp)"
+  if [[ $# -ge 3 ]]; then
+    if ! status="$(printf '%s' "$3" | curl -sS -o "${tmp}" -w '%{http_code}' \
+      -X "${method}" "${url}" -H 'Content-Type: application/json' --data-binary @-)"; then
+      rm -f "${tmp}"
+      echo "throne-review: curl failed for ${method} ${path}" >&2
+      exit 1
+    fi
+  else
+    if ! status="$(curl -sS -o "${tmp}" -w '%{http_code}' -X "${method}" "${url}")"; then
+      rm -f "${tmp}"
+      echo "throne-review: curl failed for ${method} ${path}" >&2
+      exit 1
+    fi
+  fi
+  HTTP_STATUS="${status}"
+  HTTP_BODY="$(cat "${tmp}")"
+  rm -f "${tmp}"
+}
+
+print_or_fail() {
+  local action="$1"
+  if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+    printf '%s\n' "${HTTP_BODY}"
+    return
+  fi
+  printf '%s\n' "${HTTP_BODY}" >&2
+  echo "throne-review: ${action} failed with HTTP ${HTTP_STATUS}" >&2
+  exit 1
+}
+
+cmd_bindings() {
+  [[ -n "${INTENT_ID}" ]] || die "THRONE_INTENT_ID is required"
+  http_request GET "/api/v1/intents/${INTENT_ID}/repositories"
+  print_or_fail "bindings"
+}
+
+resolve_binding_id() {
+  if [[ -n "${1:-}" ]]; then
+    printf '%s\n' "$1"
+    return
+  fi
+  if [[ -n "${THRONE_REPOSITORY_BINDING_ID:-}" ]]; then
+    printf '%s\n' "${THRONE_REPOSITORY_BINDING_ID}"
+    return
+  fi
+  [[ -n "${INTENT_ID}" ]] || die "provide --binding-id or set THRONE_INTENT_ID"
+  http_request GET "/api/v1/intents/${INTENT_ID}/repositories"
+  print_or_fail "binding resolution" >/dev/null
+  python3 - "${HTTP_BODY}" <<'PY'
+import json, sys
+data = json.loads(sys.argv[1])
+items = data.get("items", data) if isinstance(data, dict) else data
+ids = [item.get("id") or item.get("binding_id") for item in items]
+ids = [v for v in ids if v]
+if len(ids) != 1:
+    raise SystemExit(f"expected exactly one repository binding, got {len(ids)}; pass --binding-id")
+print(ids[0])
+PY
+}
+
+cmd_write() {
+  local binding_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --binding-id) binding_id="${2:-}"; shift 2 ;;
+      --help) usage; exit 0 ;;
+      *) die "unknown write argument: $1" ;;
+    esac
+  done
+  binding_id="$(resolve_binding_id "${binding_id}")"
+  local payload
+  payload="$(cat)"
+  [[ -n "${payload//[[:space:]]/}" ]] || die "expected JSON payload on stdin"
+  http_request PUT "/api/v1/repositories/${binding_id}/artifacts/${ARTIFACT_TYPE}" "${payload}"
+  print_or_fail "write"
+}
+
+case "${1:-}" in
+  bindings) shift; [[ $# -eq 0 ]] || die "bindings takes no arguments"; cmd_bindings ;;
+  write) shift; cmd_write "$@" ;;
+  --help|-h|"") usage ;;
+  *) die "unknown subcommand: $1" ;;
+esac

@@ -73,7 +73,7 @@ public sealed record PromptPartPatchSuperseded(PromptPartPatch Patch) : IDomainE
 
 /// <summary>
 /// A frontier agent finished a /dream pass and recorded its memory of it via
-/// <c>mcp__throne__record_dream_session</c>. Carried by
+/// <c>bin/throne-dream record-session</c>. Carried by
 /// <see cref="Throne.Application.Ports.CreateDreamSessionOutcome"/>.
 /// </summary>
 public sealed record DreamSessionRecorded(DreamSession Session) : IDomainEvent;

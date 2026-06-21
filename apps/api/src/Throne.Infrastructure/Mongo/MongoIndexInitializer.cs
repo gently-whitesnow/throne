@@ -103,30 +103,6 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
         await MongoRepositoryIndexes.CreateAsync(database, cancellationToken);
         await MongoRepositoryArtifactIndexes.CreateAsync(database, cancellationToken);
         await MongoPullRequestArtifactIndexes.CreateAsync(database, cancellationToken);
-
-        var calls = database.GetCollection<McpCallLogDocument>(MongoCollectionNames.McpCallLog);
-        await calls.Indexes.CreateManyAsync(
-            [
-                new CreateIndexModel<McpCallLogDocument>(
-                    Builders<McpCallLogDocument>.IndexKeys
-                        .Ascending(x => x.IntentId)
-                        .Ascending(x => x.CreatedAt),
-                    new CreateIndexOptions { Name = "intent_created" }),
-                new CreateIndexModel<McpCallLogDocument>(
-                    Builders<McpCallLogDocument>.IndexKeys
-                        .Ascending(x => x.SessionId)
-                        .Ascending(x => x.CreatedAt),
-                    new CreateIndexOptions { Name = "session_created" }),
-                new CreateIndexModel<McpCallLogDocument>(
-                    Builders<McpCallLogDocument>.IndexKeys
-                        .Ascending(x => x.ToolName)
-                        .Ascending(x => x.CreatedAt),
-                    new CreateIndexOptions { Name = "tool_created" }),
-                new CreateIndexModel<McpCallLogDocument>(
-                    Builders<McpCallLogDocument>.IndexKeys.Ascending(x => x.CreatedAt),
-                    new CreateIndexOptions { Name = "created_at" }),
-            ],
-            cancellationToken);
     }
 
     private async Task CreateIntentEventIndexesAsync(CancellationToken cancellationToken)

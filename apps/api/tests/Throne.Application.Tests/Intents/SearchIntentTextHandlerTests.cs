@@ -90,7 +90,7 @@ public class SearchIntentTextHandlerTests
         ex.Code.Should().Be(ErrorCodes.ValidationFailed);
     }
 
-    [Fact(DisplayName = "TextSearchResult сериализует totalMatchesEstimate=null при omit null (MCP output schema)")]
+    [Fact(DisplayName = "TextSearchResult сериализует totalMatchesEstimate=null при omit null")]
     public void TextSearchResult_json_includes_null_total_matches_estimate()
     {
         var result = new TextSearchResult(Matches: [], TotalMatchesEstimate: null);

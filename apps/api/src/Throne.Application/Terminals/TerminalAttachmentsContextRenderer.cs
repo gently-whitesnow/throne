@@ -8,8 +8,7 @@ namespace Throne.Application.Terminals;
 /// user_prompt. The bytes are already staged into the workspace on spawn
 /// (<see cref="WorkspaceAttachmentDumper"/>), so each line carries only the original filename plus the
 /// workspace-relative path the agent opens with a native <c>Read</c> — no <c>id</c>/<c>content_type</c>/
-/// <c>size</c> metadata and no MCP attachment-read hint (token-economy: the embedded contour no longer
-/// round-trips through those tools). The path is computed from metadata via
+/// <c>size</c> metadata. The path is computed from metadata via
 /// <see cref="WorkspaceAttachmentPaths"/>, the same source the dumper writes to, so prompt and disk agree.
 /// </summary>
 public static class TerminalAttachmentsContextRenderer
