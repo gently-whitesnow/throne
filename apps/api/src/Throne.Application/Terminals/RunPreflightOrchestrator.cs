@@ -16,24 +16,32 @@ public sealed class RunPreflightOrchestrator(
     RunPreflightCloneWait cloneWait,
     RunPreflightSpawn spawner,
     RunPreflightPromptGate promptGate,
-    TerminalLaunchResolver launchResolver,
-    IIntentTerminalLaunchStore launchStore)
+    RunPreflightSkillPlanner skills,
+    RunPreflightLaunchPlanner launches)
 {
-    public async Task<RunPreflightResult> RunAsync(
+    public Task<RunPreflightResult> RunAsync(
         string intentId,
         string mode,
         TerminalLaunchInput launch,
         TerminalSpawnPrompt prompt,
         bool restart,
         CancellationToken ct,
+        string? reviewBindingId = null) =>
+        RunAsync(intentId, mode, launch, prompt, selectedSkillIds: null, restart, ct, reviewBindingId);
+
+    public async Task<RunPreflightResult> RunAsync(
+        string intentId,
+        string mode,
+        TerminalLaunchInput launch,
+        TerminalSpawnPrompt prompt,
+        IReadOnlyList<string>? selectedSkillIds,
+        bool restart,
+        CancellationToken ct,
         string? reviewBindingId = null)
     {
-        ArgumentNullException.ThrowIfNull(launch);
         ArgumentNullException.ThrowIfNull(prompt);
         RunPreflightModeGuard.EnsureKnown(mode);
-        var launchOptions = await launchResolver.ResolveAsync(launch.Vendor, launch.Model, launch.Effort, ct);
-        var launchRecord = new TerminalLaunchRecord(
-            mode, launchOptions.Vendor, launchOptions.Model, launchOptions.Effort);
+        var launchPlan = await launches.ResolveAsync(mode, launch, ct);
         await guards.EnsureCapabilityEnabledAsync(ct);
 
         var intent = await guards.LoadIntentAsync(intentId, ct);
@@ -52,18 +60,27 @@ public sealed class RunPreflightOrchestrator(
             // intent's last-used launch.
             return RunPreflightSession.BuildResult(
                 intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking,
-                launchRecord);
+                launchPlan.Record);
         }
-        var reviewArtifact = ReviewArtifactWriteTarget.Resolve(mode, reviewBindingId, waitResult.Bindings);
+        var skillPlan = skills.Build(
+            intent.Id.Value, launchPlan.Options.Vendor, selectedSkillIds, reviewBindingId, waitResult.Bindings);
 
         // Validate the curated selection and persist the task-zone edit (optimistic concurrency)
         // before spawn — a version conflict throws here so the agent never starts on a stale edit.
         await promptGate.ApplyAsync(intent, mode, prompt, ct);
 
-        await spawner.SpawnAsync(intent.Id, sessionName, mode, launchOptions, prompt, reviewArtifact, ct);
-        await launchStore.SaveAsync(intent.Id.Value, launchRecord, ct);
+        await spawner.SpawnAsync(
+            intent.Id,
+            sessionName,
+            mode,
+            launchPlan.Options,
+            prompt,
+            skillPlan.Packages,
+            ct);
+        await launches.SaveAsync(intent.Id.Value, launchPlan, ct);
+        await skills.SaveAsync(intent.Id.Value, mode, skillPlan, ct);
         return RunPreflightSession.BuildResult(
             intent.Id.Value, sessionName, TerminalSessionStates.Running, waitResult.Bindings, blockingBindings: [],
-            launchRecord);
+            launchPlan.Record);
     }
 }

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Throne.Application.Terminals;
+using Throne.Domain.Repositories;
 using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.Tests.Terminals;
@@ -90,12 +91,13 @@ public class CodexSessionHookAdapterTests
 
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            skillPackages: [new ReviewArtifactSessionSkillPackage(new ReviewArtifactWriteTarget("binding-1", 42))],
+            skillPackages: [new ReviewArtifactSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
         var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
         script.Should().Contain("BINDING_ID='binding-1'");
+        script.Should().Contain("REPO_PROVIDER='github'");
 
         var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
         profile.Should().Contain("review_recommendation");
@@ -153,4 +155,7 @@ public class CodexSessionHookAdapterTests
 
     private static CodexSessionHookAdapter NewAdapter(string apiBaseUrl, string? codexHome = null) =>
         new(new SessionHookOptions { ApiBaseUrl = apiBaseUrl }, codexHome ?? NewHome());
+
+    private static ReviewArtifactWriteTarget ReviewTarget() =>
+        new("binding-1", new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
 }

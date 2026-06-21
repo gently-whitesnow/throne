@@ -8,6 +8,7 @@ using Throne.Application.Terminals;
 using Throne.Application.Tests.Manifest;
 using Throne.Domain.Intents;
 using Throne.Domain.PromptParts;
+using Throne.Domain.Repositories;
 
 namespace Throne.Application.Tests.Terminals;
 
@@ -74,9 +75,12 @@ public class IntentTerminalPreviewHandlerTests
         intents.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns((Intent?)null);
         var attachments = Substitute.For<IIntentAttachmentRepository>();
-        var resolver = NewResolver();
-
-        var handler = new IntentTerminalPreviewHandler(intents, attachments, resolver);
+        var handler = new IntentTerminalPreviewHandler(
+            intents,
+            attachments,
+            NewBindings([]),
+            NewResolver(),
+            NewSkillSelection());
 
         var act = () => handler.HandleAsync(
             new IntentTerminalPreviewQuery("missing-id", PromptPartModeNames.Free, null),
@@ -85,6 +89,29 @@ public class IntentTerminalPreviewHandlerTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.IntentNotFound);
         await attachments.DidNotReceiveWithAnyArgs().ListByIntentAsync(default!, default);
+    }
+
+    [Fact(DisplayName = "Preview отдаёт доступные скилы с причиной, если пакет нельзя материализовать")]
+    public async Task Preview_returns_available_skills_with_materialization_reason()
+    {
+        var handler = NewHandler(
+            intentText: "пишем код",
+            attachments: [],
+            out var intentId);
+
+        var preview = await handler.HandleAsync(
+            new IntentTerminalPreviewQuery(intentId.Value, PromptPartModeNames.Review, null),
+            CancellationToken.None);
+
+        preview.AvailableSkills.Should().Contain(s =>
+            s.SkillId == SessionSkillPackageIds.IntentOperations
+            && s.Materializable
+            && !s.Selected);
+        preview.AvailableSkills.Should().Contain(s =>
+            s.SkillId == SessionSkillPackageIds.ReviewArtifact
+            && !s.Materializable
+            && s.Reason == ReviewArtifactWriteTarget.NoBindingReason
+            && !s.Selected);
     }
 
     private static IntentTerminalPreviewHandler NewHandler(
@@ -103,7 +130,20 @@ public class IntentTerminalPreviewHandlerTests
         attachmentRepo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns(attachments);
 
-        return new IntentTerminalPreviewHandler(intents, attachmentRepo, NewResolver());
+        return new IntentTerminalPreviewHandler(
+            intents,
+            attachmentRepo,
+            NewBindings([]),
+            NewResolver(),
+            NewSkillSelection());
+    }
+
+    private static IIntentRepositoryBindingRepository NewBindings(IReadOnlyList<IntentRepositoryBinding> bindings)
+    {
+        var repo = Substitute.For<IIntentRepositoryBindingRepository>();
+        repo.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns(bindings);
+        return repo;
     }
 
     private static PromptCompositionResolver NewResolver()
@@ -114,5 +154,17 @@ public class IntentTerminalPreviewHandlerTests
         return new PromptCompositionResolver(
             SkillManifestFixtures.Provider(),
             repo);
+    }
+
+    private static SessionSkillSelectionService NewSkillSelection()
+    {
+        var catalog = new InMemorySessionSkillCatalog();
+        var defaults = Substitute.For<ISkillModeDefaultStore>();
+        defaults.ListAsync(Arg.Any<CancellationToken>())
+            .Returns(SkillModeDefaultSeeds.Build(catalog));
+        var selections = Substitute.For<IIntentSkillModeSelectionStore>();
+        selections.GetAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((IReadOnlyList<string>?)null);
+        return new SessionSkillSelectionService(catalog, defaults, selections);
     }
 }

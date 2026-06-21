@@ -1,9 +1,7 @@
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import { renderWithQuery } from "@/app/test-utils";
 import type { Capability } from "@/entities/capability";
-
 import type {
   IntentTerminalPreviewResponse,
   RunIntentTerminalResponse,
@@ -148,6 +146,7 @@ function previewResponse(): IntentTerminalPreviewResponse {
         text: "RULES"
       }
     ],
+    available_skills_for_mode: [],
     selected_part_ids: ["m1"],
     system_prompt: "RULES",
     user_prompt: "BODY"
@@ -232,6 +231,7 @@ describe("AgentTerminalPanel", () => {
       },
       reviewBindingId: null,
       selectedPartIds: [],
+      selectedSkillIds: [],
       systemPrompt: "RULES",
       userPrompt: "BODY",
       intentTextUpdate: null
