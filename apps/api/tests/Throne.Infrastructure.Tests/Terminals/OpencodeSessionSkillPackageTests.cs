@@ -4,6 +4,7 @@ using NSubstitute;
 using Throne.Application.LocalModels;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
+using Throne.Domain.Repositories;
 using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.Tests.Terminals;
@@ -20,11 +21,12 @@ public class OpencodeSessionSkillPackageTests
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            skillPackages: [new ReviewArtifactSessionSkillPackage(new ReviewArtifactWriteTarget("binding-1", 42))],
+            skillPackages: [new ReviewArtifactSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
         var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
         script.Should().Contain("BINDING_ID='binding-1'");
+        script.Should().Contain("REPO_PROVIDER='github'");
 
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
         var instructions = doc.RootElement.GetProperty("instructions");
@@ -96,4 +98,7 @@ public class OpencodeSessionSkillPackageTests
             CancellationToken ct) =>
             Task.FromResult("unused");
     }
+
+    private static ReviewArtifactWriteTarget ReviewTarget() =>
+        new("binding-1", new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
 }

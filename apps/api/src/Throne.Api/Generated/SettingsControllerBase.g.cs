@@ -70,6 +70,26 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TerminalSettingsDto>> SetTerminalSettings([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTerminalSettingsRequest body);
 
         /// <summary>
+        /// Read default session skills per launch mode.
+        /// </summary>
+        /// <remarks>
+        /// Returns the global instance-level matrix of session skill defaults. The skill catalog is source-aware (`source=throne` today) but defaults are keyed only by `(mode, skill_id)`; vendor is a delivery detail.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/skill-mode-defaults", Name = "getSkillModeDefaults")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<SkillModeDefaultsDto>> GetSkillModeDefaults();
+
+        /// <summary>
+        /// Replace default session skill toggles.
+        /// </summary>
+        /// <remarks>
+        /// Upserts the provided `(mode, skill_id) → enabled` entries. Missing entries keep their current value; the UI normally sends the full matrix.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/skill-mode-defaults", Name = "setSkillModeDefaults")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<SkillModeDefaultsDto>> SetSkillModeDefaults([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateSkillModeDefaultsRequest body);
+
+        /// <summary>
         /// Discover models from the configured local OpenAI-compatible endpoint.
         /// </summary>
         /// <remarks>

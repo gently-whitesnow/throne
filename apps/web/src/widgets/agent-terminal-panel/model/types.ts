@@ -40,6 +40,9 @@ export type IntentTerminalPreviewResponse =
 export type PromptPartPreview =
   TerminalComponents["schemas"]["PromptPartPreviewDto"];
 
+export type AvailableSessionSkill =
+  TerminalComponents["schemas"]["AvailableSessionSkillDto"];
+
 export type IntentTextUpdate =
   TerminalComponents["schemas"]["IntentTextUpdate"];
 
@@ -53,6 +56,7 @@ export interface TerminalRunPayload {
   launch: TerminalLaunchArgs;
   reviewBindingId: string | null;
   selectedPartIds: string[];
+  selectedSkillIds: string[];
   systemPrompt: string;
   userPrompt: string;
   intentTextUpdate: IntentTextUpdate | null;

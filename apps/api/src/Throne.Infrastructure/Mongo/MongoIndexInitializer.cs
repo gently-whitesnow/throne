@@ -57,6 +57,16 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
                 new CreateIndexOptions { Unique = true, Name = "scope_key_unique" }),
             cancellationToken: cancellationToken);
 
+        var skillModeDefaults = database.GetCollection<SkillModeDefaultDocument>(
+            MongoCollectionNames.SkillModeDefaults);
+        await skillModeDefaults.Indexes.CreateOneAsync(
+            new CreateIndexModel<SkillModeDefaultDocument>(
+                Builders<SkillModeDefaultDocument>.IndexKeys
+                    .Ascending(x => x.Mode)
+                    .Ascending(x => x.SkillId),
+                new CreateIndexOptions { Unique = true, Name = "mode_skill_unique" }),
+            cancellationToken: cancellationToken);
+
         var intentsCollection = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
         await intentsCollection.Indexes.CreateManyAsync(
             [

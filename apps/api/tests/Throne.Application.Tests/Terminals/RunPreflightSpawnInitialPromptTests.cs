@@ -54,7 +54,7 @@ public class RunPreflightSpawnInitialPromptTests
                 TerminalRunModes.Work,
                 new TerminalLaunchOptions(TerminalAgentCatalog.VendorOpencode, "qwen", Effort: null),
                 new TerminalSpawnPrompt("RULES", "TASK", null, null),
-                reviewArtifact: null,
+                skillPackages: [],
                 CancellationToken.None);
 
             var workspacePath = Path.Combine(workspaceRoot, "intents", "intent-1");

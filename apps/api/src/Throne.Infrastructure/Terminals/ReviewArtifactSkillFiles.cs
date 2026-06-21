@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Throne.Application.Terminals;
 
@@ -63,8 +62,10 @@ internal static class ReviewArtifactSkillFiles
         ```
 
         The script is the canonical write path for this session. It is already bound to
-        `binding_id={{target.BindingId}}`, PR `#{{target.PullRequestNumber}}`, artifact
-        `type={{ReviewArtifactWriteTarget.ArtifactType}}`, and the local Throne API.
+        `binding_id={{target.BindingId}}`, repository `{{target.Coordinate.Provider}}/{{target.Coordinate.Owner}}/{{target.Coordinate.Repo}}`,
+        artifact `type={{ReviewArtifactWriteTarget.ArtifactType}}`, and the local Throne API.
+        PR/MR state is resolved live by Throne when the script writes; if the binding does
+        not have a PR/MR attached yet, attach it and retry without respawning the agent.
 
         Pass one JSON payload on stdin. `content` is the human-readable markdown body;
         `review_recommendation` carries the typed signals the UI consumes (today only AI file
@@ -105,12 +106,15 @@ internal static class ReviewArtifactSkillFiles
 
         API_BASE={{Sh(apiBaseUrl)}}
         BINDING_ID={{Sh(target.BindingId)}}
-        PR_NUMBER={{Sh(target.PullRequestNumber.ToString(CultureInfo.InvariantCulture))}}
+        REPO_PROVIDER={{Sh(target.Coordinate.Provider)}}
+        REPO_OWNER={{Sh(target.Coordinate.Owner)}}
+        REPO_NAME={{Sh(target.Coordinate.Repo)}}
         ARTIFACT_TYPE={{Sh(ReviewArtifactWriteTarget.ArtifactType)}}
 
         if [[ "${1:-}" == "--help" ]]; then
           cat <<USAGE
-        Writes Throne PR artifact ${ARTIFACT_TYPE} for binding ${BINDING_ID}, PR #${PR_NUMBER}.
+        Writes Throne PR artifact ${ARTIFACT_TYPE} for binding ${BINDING_ID}
+        (${REPO_PROVIDER}/${REPO_OWNER}/${REPO_NAME}).
         Usage: throne-pr-artifact-write < payload.json
         USAGE
           exit 0
@@ -132,6 +136,13 @@ internal static class ReviewArtifactSkillFiles
           cat "${tmp}"
           rm -f "${tmp}"
           exit 0
+        fi
+
+        if grep -q 'repository_binding.pull_request_not_attached' "${tmp}"; then
+          cat "${tmp}" >&2
+          rm -f "${tmp}"
+          echo "throne-pr-artifact-write: PR/MR is not attached to binding ${BINDING_ID}; attach it and retry." >&2
+          exit 75
         fi
 
         cat "${tmp}" >&2

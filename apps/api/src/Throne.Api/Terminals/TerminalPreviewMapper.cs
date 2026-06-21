@@ -25,6 +25,17 @@ internal static class TerminalPreviewMapper
                 Text = part.Text,
             });
         }
+        var skills = preview.AvailableSkills.Select(skill => new AvailableSessionSkillDto
+        {
+            Skill_id = skill.SkillId,
+            Source = skill.Source,
+            Title = skill.Title,
+            Description = skill.Description,
+            Materializable = skill.Materializable,
+            Reason = skill.Reason,
+            Default_enabled = skill.DefaultEnabled,
+            Selected = skill.Selected,
+        }).ToList();
 
         return new IntentTerminalPreviewResponse
         {
@@ -32,6 +43,7 @@ internal static class TerminalPreviewMapper
             Intent_version = preview.IntentVersion,
             Mode = mode,
             Parts = parts,
+            Available_skills_for_mode = skills,
             Selected_part_ids = composition.SelectedPartIds.ToList(),
             System_prompt = composition.SystemPrompt,
             User_prompt = composition.UserPrompt,

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
 using Throne.Application.Terminals;
+using Throne.Domain.Repositories;
 using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.Tests.Terminals;
@@ -98,11 +99,12 @@ public class ClaudeSessionHookAdapterTests
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            skillPackages: [new ReviewArtifactSessionSkillPackage(new ReviewArtifactWriteTarget("binding-1", 42))],
+            skillPackages: [new ReviewArtifactSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
         var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
         script.Should().Contain("BINDING_ID='binding-1'");
+        script.Should().Contain("REPO_PROVIDER='github'");
         script.Should().Contain("ARTIFACT_TYPE='review_recommendation'");
         script.Should().Contain("/api/v1/repositories/${BINDING_ID}/artifacts/${ARTIFACT_TYPE}");
 
@@ -111,6 +113,9 @@ public class ClaudeSessionHookAdapterTests
         skill.Should().Contain("bin/throne-pr-artifact-write");
         skill.Should().Contain("send-comments");
     }
+
+    private static ReviewArtifactWriteTarget ReviewTarget() =>
+        new("binding-1", new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
 
     [Fact(DisplayName = "Interview-сессия пишет intent-ops script + 2 Claude skills")]
     public async Task Interview_writes_intent_operations_script_and_skills()

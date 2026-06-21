@@ -68,6 +68,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/skill-mode-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read default session skills per launch mode.
+         * @description Returns the global instance-level matrix of session skill defaults. The skill catalog is source-aware (`source=throne` today) but defaults are keyed only by `(mode, skill_id)`; vendor is a delivery detail.
+         */
+        get: operations["getSkillModeDefaults"];
+        /**
+         * Replace default session skill toggles.
+         * @description Upserts the provided `(mode, skill_id) → enabled` entries. Missing entries keep their current value; the UI normally sends the full matrix.
+         */
+        put: operations["setSkillModeDefaults"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/local-model/models": {
         parameters: {
             query?: never;
@@ -122,6 +146,32 @@ export interface components {
         };
         UpdateTerminalSettingsRequest: {
             default_vendor: components["schemas"]["TerminalAgentVendor"];
+        };
+        SkillCatalogItemDto: {
+            skill_id: string;
+            source: string;
+            title: string;
+            description: string;
+        };
+        SkillModeDefaultDto: {
+            skill_id: string;
+            enabled: boolean;
+        };
+        SkillModeDefaultsModeDto: {
+            mode: string;
+            defaults: components["schemas"]["SkillModeDefaultDto"][];
+        };
+        SkillModeDefaultsDto: {
+            skills: components["schemas"]["SkillCatalogItemDto"][];
+            modes: components["schemas"]["SkillModeDefaultsModeDto"][];
+        };
+        UpdateSkillModeDefaultEntry: {
+            mode: string;
+            skill_id: string;
+            enabled: boolean;
+        };
+        UpdateSkillModeDefaultsRequest: {
+            defaults: components["schemas"]["UpdateSkillModeDefaultEntry"][];
         };
         /**
          * @description `ready` — `total_size_bytes` reflects the latest scan. `calculating` — background sweep in progress; size will arrive on the next request.
@@ -320,6 +370,59 @@ export interface operations {
                 };
             };
             /** @description Validation failed (unknown vendor). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getSkillModeDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillModeDefaultsDto"];
+                };
+            };
+        };
+    };
+    setSkillModeDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSkillModeDefaultsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SkillModeDefaultsDto"];
+                };
+            };
+            /** @description Validation failed (unknown mode or skill). */
             422: {
                 headers: {
                     [name: string]: unknown;

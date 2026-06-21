@@ -70,10 +70,13 @@ public static class DependencyInjection
         services.AddSingleton<ICapabilitiesRepository, MongoCapabilitiesRepository>();
         services.AddSingleton<ITerminalSettingsStore, MongoTerminalSettingsStore>();
         services.AddSingleton<IIntentTerminalLaunchStore, MongoIntentTerminalLaunchStore>();
+        services.AddSingleton<ISkillModeDefaultStore, MongoSkillModeDefaultStore>();
+        services.AddSingleton<IIntentSkillModeSelectionStore, MongoIntentSkillModeSelectionStore>();
         services.AddHostedService<MongoIndexInitializer>();
         // PromptPartSeeder runs after the index initializer: it relies on the (scope,key) unique
         // index being in flight and reconciles system parts from the skill manifest (ADR-0036).
         services.AddHostedService<PromptPartSeeder>();
+        services.AddHostedService<SkillModeDefaultSeeder>();
 
         return services;
     }

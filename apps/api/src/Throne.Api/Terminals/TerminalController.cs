@@ -89,6 +89,7 @@ public sealed class TerminalController(
             domainMode,
             launch,
             prompt,
+            TerminalRunResponseMapper.ToSelectedSkillIds(body),
             restart,
             HttpContext.RequestAborted,
             reviewBindingId
