@@ -1,7 +1,7 @@
 namespace Throne.Domain.PromptParts;
 
 /// <summary>
-/// Scope of a <see cref="PromptPart"/>: <c>system</c> parts are seeded from the skill
+/// Scope of a <see cref="PromptPart"/>: <c>system</c> parts are read from the skill
 /// manifest and read-only to operators; <c>user</c> parts are operator-authored.
 /// </summary>
 public static class PromptPartScopeNames

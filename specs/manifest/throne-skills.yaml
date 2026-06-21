@@ -2,8 +2,8 @@
 # and the embedded prompt composition.
 #
 # Backend runtime (`ISkillManifestProvider`) reads this file and uses it to:
-#   * seed mandatory system prompt parts (texts below) and their per-mode roles
-#     into the `prompt_parts` collection (ADR-0036),
+#   * provide mandatory system prompt parts (texts below) directly to runtime
+#     composition (ADR-0036),
 #   * resolve `mode → mandatory (scope, key)` for the embedded composition
 #     (`PromptCompositionResolver`).
 #

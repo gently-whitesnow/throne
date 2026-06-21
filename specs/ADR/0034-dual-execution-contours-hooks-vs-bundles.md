@@ -17,7 +17,7 @@ Related: [ADR-0008](0008-realtime-contract-first-events.md), [ADR-0014](0014-mcp
 - **Embedded** — единственный полноценный контур исполнения: upfront-инъекция контекста + хуки (§ 1, § 4). Не изменён.
 - Финал standalone-прохода (§ 6): `set_intent_status(ready_for_review|awaiting_operator)` остаётся — это intent-management, а не bundle. Семантика по-прежнему живёт в `[Description]` тула `set_intent_status`.
 
-Где ниже по тексту сказано «standalone на бандлах» / «`get_prompt_bundle`» / «чтение бандла двигает статус» — читать как историю до 2026-06-19. Композиция `work/interview/review` в манифесте (`bundles[]`) сохранена, но теперь это только seed `mode_roles` для embedded ([ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md)).
+Где ниже по тексту сказано «standalone на бандлах» / «`get_prompt_bundle`» / «чтение бандла двигает статус» — читать как историю до 2026-06-19. Композиция `work/interview/review` в манифесте (`bundles[]`) сохранена, но теперь это только источник mandatory `mode_roles` для embedded ([ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md)).
 
 ## Контекст
 

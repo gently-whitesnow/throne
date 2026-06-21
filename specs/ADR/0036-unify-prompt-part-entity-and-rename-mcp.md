@@ -8,15 +8,16 @@ Date: 2026-06-12
 Amends [ADR-0014](0014-mcp-initialize-instructions-routing.md) (backing бандла), [ADR-0022](0022-frontier-driven-dream-flow.md) (target патчей), [ADR-0023](0023-mcp-tools-snake-case-naming.md) (одноразовое сквозное переименование контракта), [ADR-0002](0002-domain-model-and-text-versioning.md) (новый owner-kind истории).
 Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md), [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md).
 **Amended 2026-06-19** — bundle как доставка плейбука выпилен, см. ниже.
+**Amended 2026-06-21** — system-части больше не материализуются в Mongo: read-path берёт их напрямую из манифеста через `IPromptPartRepository`, `PromptPartSeeder` удалён.
 
 **Update 2026-06-21:** MCP-переименование и tool-поверхность из этого ADR retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) — MCP-сервер и `apps/api/src/Throne.Api/Mcp` удалены, операции (`propose_prompt_part_patch`, `set_intent_status`/`create_intent`, apply) теперь статические repo-скилы + `bin/throne-*`. Схлопывание сущности `PromptPart` и `prompt_parts` как единственное хранилище остаются в силе.
 
 ## Amendment (2026-06-19): bundle removed, standalone = knowledge base
 
-Схлопывание сущностей и переименование (ниже) остаются в силе — `PromptPart` единственная модель, `prompt_parts` единственное хранилище. Что изменилось:
+Схлопывание сущностей и переименование (ниже) остаются в силе — `PromptPart` единственная модель; `user` runtime-части хранятся в `prompt_parts`, `system`-части синтезируются из манифеста. Что изменилось:
 
 - MCP-тул `get_prompt_bundle` (строка в таблице переименования) **удалён целиком** вместе с `bundles-tree` HTTP-эндпоинтом, `PromptBundleResolver`/`PromptBundleRenderer`, UI визуализацией бандлов и тест-инвариантом «bundle ≡ projection» (§ «Бандл: контент тот же»). Standalone-агент больше не получает плейбук по MCP — Throne для него база знаний интентов (read/write `Intent.text` + `set_intent_status`/`create_intent` по явной просьбе; см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md)).
-- `bundles[].includes` в манифесте **сохранены** и продолжают питать `PromptPartManifestRoles` + `PromptPartSeeder` (seed `mode_roles` для embedded) и `PromptCompositionResolver`. Композиция читается напрямую резолвером, без промежуточного bundle-резолвера.
+- `bundles[].includes` в манифесте **сохранены** и продолжают питать `PromptPartManifestRoles` (вывод mandatory `mode_roles`) и `PromptCompositionResolver`. Композиция читается напрямую резолвером, без промежуточного bundle-резолвера.
 - Где ниже сказано «бандл читает `prompt_parts`» / «`get_instruction_bundle → get_prompt_bundle`» — читать как историю до 2026-06-19. Embedded-композиция (`PromptCompositionResolver`) и dream-патчи не затронуты.
 
 ## Context
@@ -41,23 +42,22 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 
 Унифицированная модель несёт **append-only `text_versions`** (как нынешний `Instruction`), а не только счётчик: части стали патч-таргетами dream и должны иметь историю развития. Вводится `TextVersionOwnerKind.PromptPart`. `PromptPart.ReplaceText` возвращает `TextVersion` (delta), репозиторий пишет её транзакционно; `Create` пишет v1-snapshot.
 
-### Бандл: контент тот же, backing — `prompt_parts` (амендит [ADR-0014](0014-mcp-initialize-instructions-routing.md))
+### Бандл: контент тот же, backing — `IPromptPartRepository` (амендит [ADR-0014](0014-mcp-initialize-instructions-routing.md))
 
-Резолвер бандла читает `prompt_parts`: для режима берёт части с `role=mandatory` в этом режиме, упорядочивает по `order`. Тексты правил байт-в-байт прежние (миграция копирует verbatim), поэтому агент-видимый контент бандла не меняется. Тест-инвариант **«bundle ≡ projection»** (`PromptCompositionResolver` mandatory-проекция ≡ `get_prompt_bundle`) сохраняется и теперь тривиально-истинен: оба резолвера читают один источник.
+Резолвер композиции читает через `IPromptPartRepository`: для режима берёт mandatory-части в порядке `bundles[].includes`, где `system` приходит из манифеста, а `user` — из `prompt_parts`. Тексты правил байт-в-байт прежние, поэтому агент-видимый контент композиции не меняется.
 
-Манифест [throne-skills.yaml](../manifest/throne-skills.yaml) перестаёт быть runtime-источником текста. Он остаётся:
-- **seed-спецификацией** mandatory `system`-частей (`system_instructions` тексты) и композиции (`bundles[].includes` → какие `(scope, key)` mandatory в каком режиме и в каком порядке);
+Манифест [throne-skills.yaml](../manifest/throne-skills.yaml) остаётся runtime-источником mandatory `system`-частей (`system_instructions` тексты) и композиции (`bundles[].includes` → какие `(scope, key)` mandatory в каком режиме и в каком порядке). Он также остаётся:
 - источником `dream_sources` (без изменений).
 
-Идемпотентный стартовый сервис (`PromptPartSeeder`, паттерн hosted-service из [ADR-0019](0019-intent-events-unified-history.md)) на каждом старте сверяет `system`-части с манифестом (создаёт отсутствующие как v1, при расхождении текста — пишет новую версию) и реконсайлит их `mode_roles`. `user`-части он не трогает.
+`system`-части читаются из манифеста через manifest-backed реализацию `IPromptPartRepository`: list/get для scope=`system` синтезируют read-only `PromptPart` с детерминированным id `system:{kind}` и ролями из `PromptPartManifestRoles`. Mongo-документы scope=`system` не читаются и не реконсайлятся. `user`-части создаются явно через UI или patch-apply flow и живут в Mongo как versioned/editable runtime-данные.
 
 ### Миграция и retire (паттерн [ADR-0022](0022-frontier-driven-dream-flow.md))
 
-Тот же стартовый сервис одноразово переносит `user`-инструкции из коллекции `instructions` в `prompt_parts` (`scope=user`, `key=kind`, текущий текст как **первую** версию — без бэкфила исторических `text_versions`, согласовано), `mode_roles` из includes манифеста. Затем коллекция `instructions` и её индексы, а также `text_versions` с `owner_kind=instruction` — **дропаются при старте**. Перенос идемпотентен (skip, если `prompt_part (scope=user, key)` уже есть). Потеря старой истории инструкций допустима.
+Legacy-миграция `instructions` → `prompt_parts` была частью исходного cutover ADR-0036: `user`-инструкции переносились как `scope=user`, `key=kind`, текущий текст как **первая** версия — без бэкфила исторических `text_versions`, согласовано. Текущего startup-сервиса для prompt parts больше нет; `system`-документы в Mongo не мигрируются и не чистятся.
 
 ### Один patch-агрегат `PromptPartPatch`
 
-Домен `InstructionPatch → PromptPartPatch`. Target патча — `(scope, key)` вместо `target_kind`, но patchable scope закрыт до `scope=user`: `system`-части manifest-managed и на каждом старте реконсайлятся из YAML, поэтому операторские патчи к ним были бы перетёрты seeder'ом. `base_version` = `current_version` целевой user-части, optimistic concurrency на apply (409 needs_rebase). Apply, отсутствующей пока user-части (`base_version=0`), лениво создаёт её c `mode_roles` из манифеста (как миграция). **Apply остаётся операторским** (UI/HTTP `/improvements`); в MCP — только `propose` + чтения, новых write-tool'ов не вводим ([ADR-0030](0030-mcp-surface-policy-cli-first.md)).
+Домен `InstructionPatch → PromptPartPatch`. Target патча — `(scope, key)` вместо `target_kind`, но patchable scope закрыт до `scope=user`: `system`-части manifest-managed и меняются только PR-ом к манифесту. `base_version` = `current_version` целевой user-части, optimistic concurrency на apply (409 needs_rebase). Apply, отсутствующей пока user-части (`base_version=0`), лениво создаёт её c `mode_roles` из манифеста (как миграция). **Apply остаётся операторским** (UI/HTTP `/improvements`); в MCP — только `propose` + чтения, новых write-tool'ов не вводим ([ADR-0030](0030-mcp-surface-policy-cli-first.md)).
 
 ### Сквозное переименование (чистый cutover, без алиасов — амендит [ADR-0023](0023-mcp-tools-snake-case-naming.md))
 
@@ -78,14 +78,13 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 
 ### Positive
 
-- Один жизненный цикл, одно хранилище (`prompt_parts`), один резолвер, один patch-агрегат. Dream таргетит user-части по `(scope=user, key)`, не только legacy-kind'ы.
-- Бандл и embedded-композиция by construction читают один источник — расхождение невозможно.
+- Один patch-агрегат и один repository-интерфейс для композиции. Dream таргетит user-части по `(scope=user, key)`, не только legacy-kind'ы.
+- System-композиция by construction читает манифест как единственный источник текста — дрейф Mongo-копии невозможен.
 - Имена поверхности перестают быть legacy-долгом.
 
 ### Negative / Risks
 
 - Атомарный cutover большого объёма (домен/app/persistence/MCP/OpenAPI/manifest/skills/frontend/tests) — нет промежуточного собирающегося состояния, PR крупный.
-- `system`-части теперь дублируются в Mongo (seed из манифеста) — манифест остаётся авторской поверхностью, стартовый сервис обязан реконсайлить, иначе правка YAML «не доезжает».
 - Потеря исторических `text_versions` legacy-инструкций при миграции (осознанно).
 - Внешние standalone-агенты со старыми зашитыми именами тулов сломаются до перечитывания router'а — приемлемо для local-first ([ADR-0029](0029-local-first-invariant-and-legacy-auth.md)).
 

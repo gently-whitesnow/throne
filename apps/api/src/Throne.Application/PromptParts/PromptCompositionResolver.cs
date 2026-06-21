@@ -7,9 +7,10 @@ namespace Throne.Application.PromptParts;
 
 /// <summary>
 /// Resolves the effective embedded prompt composition for a mode (ADR-0036): mandatory
-/// parts read from <c>prompt_parts</c> in manifest-include order plus operator-authored
-/// optional parts with their per-mode roles. The manifest's <c>bundles[].includes</c>
-/// declares the ordered mandatory <c>(scope, key)</c> set for each composition mode.
+/// parts read through <see cref="IPromptPartRepository"/> in manifest-include order plus
+/// operator-authored optional parts with their per-mode roles. The manifest's
+/// <c>bundles[].includes</c> declares the ordered mandatory <c>(scope, key)</c> set for
+/// each composition mode.
 /// </summary>
 public sealed class PromptCompositionResolver(
     ISkillManifestProvider manifestProvider,

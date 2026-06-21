@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Проектные правила для агентов. Bundle-маппинг `mode → keys` и тексты system-частей (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это seed/source для backend runtime и frontend `/instructions` дерева. Operational layer живёт отдельно как статические skills в [skills/](../skills) и CLI в [bin/](../bin): `intent`, `review`, `dream` (см. [ADR-0043](ADR/0043-static-operational-skills-and-mcp-removal.md)).
+Проектные правила для агентов. Bundle-маппинг `mode → keys` и тексты system-частей (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это source для backend runtime и frontend `/instructions` дерева. Operational layer живёт отдельно как статические skills в [skills/](../skills) и CLI в [bin/](../bin): `intent`, `review`, `dream` (см. [ADR-0043](ADR/0043-static-operational-skills-and-mcp-removal.md)).
 
 ## Перед завершением хода
 
