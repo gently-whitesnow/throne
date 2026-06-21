@@ -5,9 +5,9 @@ namespace Throne.Application.PromptParts;
 
 /// <summary>
 /// Derives the mandatory per-mode roles a <c>(scope, key)</c> prompt part must carry, from the
-/// manifest's <c>bundles[].includes</c>. Shared by the startup seeder and the patch apply path
-/// (lazy-create of a user part), so a newly created part lands in the right bundles by
-/// construction (ADR-0036).
+/// manifest's <c>bundles[].includes</c>. Used for manifest-backed system parts and the patch
+/// apply path (lazy-create of a user part), so a newly created user part lands in the right
+/// bundles by construction (ADR-0036).
 /// </summary>
 public static class PromptPartManifestRoles
 {

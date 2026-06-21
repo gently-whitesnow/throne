@@ -14,6 +14,7 @@ using Throne.Infrastructure.LocalModels;
 using Throne.Infrastructure.Manifest;
 using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Mongo.Repositories;
+using Throne.Infrastructure.PromptParts;
 using Throne.Infrastructure.Tokenization;
 
 namespace Throne.Infrastructure;
@@ -52,7 +53,10 @@ public static class DependencyInjection
         services.AddSingleton<IIntentLinkRepository, MongoIntentLinkRepository>();
         services.AddSingleton<ITagRepository, MongoTagRepository>();
         services.AddSingleton<IIntentAttachmentRepository, MongoIntentAttachmentRepository>();
-        services.AddSingleton<IPromptPartRepository, MongoPromptPartRepository>();
+        services.AddSingleton<MongoPromptPartRepository>();
+        services.AddSingleton<IPromptPartRepository>(sp => new ManifestBackedPromptPartRepository(
+            sp.GetRequiredService<ISkillManifestProvider>(),
+            sp.GetRequiredService<MongoPromptPartRepository>()));
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IIntentEventRepository, MongoIntentEventRepository>();
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
@@ -72,9 +76,6 @@ public static class DependencyInjection
         services.AddSingleton<ISkillModeDefaultStore, MongoSkillModeDefaultStore>();
         services.AddSingleton<IIntentSkillModeSelectionStore, MongoIntentSkillModeSelectionStore>();
         services.AddHostedService<MongoIndexInitializer>();
-        // PromptPartSeeder runs after the index initializer: it relies on the (scope,key) unique
-        // index being in flight and reconciles system parts from the skill manifest (ADR-0036).
-        services.AddHostedService<PromptPartSeeder>();
         services.AddHostedService<SkillModeDefaultSeeder>();
 
         return services;

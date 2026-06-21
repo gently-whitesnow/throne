@@ -6,9 +6,9 @@ info:
   description: >
     Prompt parts for the embedded terminal (ADR-0036). A part is a named unit of
     rule text with per-mode roles (mandatory | default_on | default_off). This module manages
-    all prompt_parts — both scopes. System parts are reconciled from the skill manifest and are
-    read-only here (manifest-managed); user parts are operator-authored and fully CRUD-able. The
-    list endpoint returns both scopes (the client groups by scope).
+    all prompt parts across both scopes. System parts are read directly from the skill manifest
+    and are read-only here (manifest-managed); user parts are operator-authored and fully
+    CRUD-able. The list endpoint returns both scopes (the client groups by scope).
 paths:
   /api/v1/prompt-parts:
     get:
