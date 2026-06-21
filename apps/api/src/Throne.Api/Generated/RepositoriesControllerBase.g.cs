@@ -79,7 +79,7 @@ namespace Throne.Api.Generated
         /// List repository bindings attached to an intent.
         /// </summary>
         /// <remarks>
-        /// Full binding cards consumed by the intent page. The MCP `get_intent` response uses a compact projection (see `RepositoryBindingSummary`) of the same source.
+        /// Full binding cards consumed by the intent page and `bin/throne-review` binding discovery.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories", Name = "listIntentRepositories")]
@@ -293,7 +293,7 @@ namespace Throne.Api.Generated
         /// Create or update a knowledge page (manual edit).
         /// </summary>
         /// <remarks>
-        /// User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
+        /// User-driven knowledge-page write path (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
         /// </remarks>
         /// <returns>OK — the page after this write.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "putRepositoryDocument")]

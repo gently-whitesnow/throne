@@ -35,7 +35,7 @@ export interface paths {
         put?: never;
         /**
          * Pre-flight workspace and spawn the agent in a tmux session.
-         * @description Single trigger for the Slice 2 Run pipeline (no MCP equivalent — bundle reads stay idempotent). The server stages the workspace before the session starts:
+         * @description Single trigger for the Slice 2 Run pipeline. The server stages the workspace before the session starts:
          *     1. Stateless auto-bind: union `Tag.default_repositories` across the intent's
          *        tags, dedupe by `(provider, owner, repo)`, bind whatever is missing.
          *     2. For every binding still `pending` or `failed`, enqueue a partial clone

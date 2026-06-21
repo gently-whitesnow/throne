@@ -13,7 +13,7 @@ public class OpencodeSessionSkillPackageTests
 {
     private static readonly SessionHookOptions HookOptions = new() { ApiBaseUrl = "http://localhost:5008/" };
 
-    [Fact(DisplayName = "OpenCode review: запекает artifact writer и hint в instructions")]
+    [Fact(DisplayName = "OpenCode review: стейджит artifact writer и hint в instructions")]
     public async Task Review_writes_artifact_script_and_instruction_hint()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
@@ -21,24 +21,24 @@ public class OpencodeSessionSkillPackageTests
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            skillPackages: [new ReviewArtifactSessionSkillPackage(ReviewTarget())],
+            skillPackages: [new ReviewSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
-        script.Should().Contain("BINDING_ID='binding-1'");
-        script.Should().Contain("REPO_PROVIDER='github'");
+        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-review"));
+        script.Should().NotContain("binding-1");
+        script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
 
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
         var instructions = doc.RootElement.GetProperty("instructions");
         instructions.EnumerateArray().Select(i => i.GetString())
-            .Should().Contain("throne-session.review-artifact.md");
+            .Should().Contain("throne-session.review.md");
 
-        var hint = await File.ReadAllTextAsync(Path.Combine(root, "throne-session.review-artifact.md"));
+        var hint = await File.ReadAllTextAsync(Path.Combine(root, "throne-session.review.md"));
         hint.Should().Contain("review_recommendation");
-        hint.Should().Contain("send-comments");
+        hint.Should().Contain("bin/throne-review write");
     }
 
-    [Fact(DisplayName = "OpenCode interview: пишет intent-ops script/hint без Throne MCP")]
+    [Fact(DisplayName = "OpenCode interview: пишет intent script/hint без mcp config")]
     public async Task Interview_writes_intent_operations_script_and_instruction_hint()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-opencode-{Guid.NewGuid():N}");
@@ -49,19 +49,20 @@ public class OpencodeSessionSkillPackageTests
             root,
             TerminalRunModes.Interview,
             systemPrompt: null,
-            skillPackages: [new IntentOperationsSessionSkillPackage("intent-1")],
+            skillPackages: [new IntentSessionSkillPackage()],
             CancellationToken.None);
 
         var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-intent"));
-        script.Should().Contain("INTENT_ID='intent-1'");
+        script.Should().NotContain("intent-1");
+        script.Should().Contain("THRONE_INTENT_ID");
 
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
         doc.RootElement.GetProperty("instructions").EnumerateArray().Select(i => i.GetString())
-            .Should().Contain("throne-session.intent-ops.md");
+            .Should().Contain("throne-session.intent.md");
         doc.RootElement.TryGetProperty("mcp", out _).Should().BeFalse();
 
-        var hint = await File.ReadAllTextAsync(Path.Combine(root, "throne-session.intent-ops.md"));
-        hint.Should().Contain("Throne intent operations");
+        var hint = await File.ReadAllTextAsync(Path.Combine(root, "throne-session.intent.md"));
+        hint.Should().Contain("Throne Intent Operations");
         hint.Should().Contain("create --text-file");
     }
 

@@ -8,7 +8,7 @@ namespace Throne.Api.Repositories;
 /// Projects an upstream-fresh <see cref="PullRequestComment"/> onto the wire
 /// <see cref="PullRequestCommentDto"/>. The server does not persist comment
 /// bodies — the <see cref="BindingId"/> comes from the binding context (HTTP
-/// path, MCP iteration, realtime fanout).
+/// path, sync iteration, realtime fanout).
 /// </summary>
 internal static class PullRequestCommentDtoMapper
 {

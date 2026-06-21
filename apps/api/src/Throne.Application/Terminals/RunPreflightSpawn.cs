@@ -75,7 +75,8 @@ public sealed class RunPreflightSpawn(
                 WorkingDirectory: workspacePath,
                 Command: invocation.Command,
                 Arguments: invocation.Arguments,
-                EnableMouse: string.Equals(launch.Vendor, TerminalAgentCatalog.VendorOpencode, StringComparison.Ordinal)),
+                EnableMouse: string.Equals(launch.Vendor, TerminalAgentCatalog.VendorOpencode, StringComparison.Ordinal),
+                EnvironmentVariables: BuildSessionEnvironment(intentId.Value, skillPackages)),
             ct);
 
         if (!spawn.IsAlive)
@@ -134,6 +135,33 @@ public sealed class RunPreflightSpawn(
 
         await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
     }
+
+    private Dictionary<string, string> BuildSessionEnvironment(
+        string intentId,
+        IReadOnlyList<SessionSkillPackage> skillPackages)
+    {
+        var env = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["THRONE_INTENT_ID"] = intentId,
+            ["THRONE_API_BASE"] = NormalizeApiBaseUrl(options.ApiBaseUrl),
+        };
+
+        foreach (var package in skillPackages)
+        {
+            if (package is ReviewSessionSkillPackage review)
+            {
+                env["THRONE_REPOSITORY_BINDING_ID"] = review.Target.BindingId;
+                break;
+            }
+        }
+
+        return env;
+    }
+
+    private static string NormalizeApiBaseUrl(string? apiBaseUrl) =>
+        string.IsNullOrWhiteSpace(apiBaseUrl)
+            ? SessionHookOptions.DefaultApiBaseUrl
+            : apiBaseUrl.TrimEnd('/');
 
     private static async Task<IReadOnlyList<string>> InitializeNativeSessionAsync(
         INativeSessionInitializer initializer,

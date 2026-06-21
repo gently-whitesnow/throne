@@ -55,7 +55,6 @@ public static class DependencyInjection
         services.AddSingleton<IPromptPartRepository, MongoPromptPartRepository>();
         services.AddSingleton<ITextVersionRepository, MongoTextVersionRepository>();
         services.AddSingleton<IIntentEventRepository, MongoIntentEventRepository>();
-        services.AddSingleton<IMcpCallLogSink, MongoMcpCallLogSink>();
         services.AddSingleton<ITokenizer, SharpTokenTokenizer>();
         services.AddSingleton<IImageDownscaler, ImageSharpDownscaler>();
         services.AddOptions<IntentAttachmentCompressionOptions>()

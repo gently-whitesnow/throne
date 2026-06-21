@@ -77,6 +77,37 @@ public class TmuxSessionManagerTests
         argvs[2].Should().Equal("set-option", "-t", "throne-intent-abc", "mouse", "on");
     }
 
+    [Fact(DisplayName = "Spawn прокидывает env через tmux -e до команды")]
+    public async Task Spawn_injects_environment_variables()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(launcher);
+        var sut = NewManager(launcher);
+
+        await sut.SpawnAsync(
+            new TmuxSpawnRequest(
+                IntentId,
+                "/Users/me/workspace/intent-abc",
+                "claude",
+                ["--prompt", "hello"],
+                EnvironmentVariables: new Dictionary<string, string>
+                {
+                    ["THRONE_INTENT_ID"] = IntentId,
+                    ["THRONE_API_BASE"] = "http://localhost:5008",
+                }),
+            CancellationToken.None);
+
+        var argv = (ProcessRunRequest)launcher.ReceivedCalls().First().GetArguments()[0]!;
+        argv.Arguments.Should().Equal(
+            "new-session", "-A", "-D",
+            "-s", "throne-intent-abc",
+            "-c", "/Users/me/workspace/intent-abc",
+            "-d",
+            "-e", "THRONE_API_BASE=http://localhost:5008",
+            "-e", "THRONE_INTENT_ID=intent-abc",
+            "claude", "--prompt", "hello");
+    }
+
     [Fact(DisplayName = "Spawn без EnableMouse не трогает set-option (default)")]
     public async Task Spawn_does_not_touch_mouse_by_default()
     {

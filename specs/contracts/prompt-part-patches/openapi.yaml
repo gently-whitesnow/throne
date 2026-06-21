@@ -4,11 +4,11 @@ info:
   version: "1.0.0"
   description: >
     HTTP surface for PromptPartPatch (ADR-0036). Patches are
-    first-class entities: a frontier agent proposes a patch via MCP
-    `propose_prompt_part_patch`, and the operator decides through this HTTP
-    surface — apply (verbatim or with edit for text operations) or reject (with
-    mandatory comment ≥10 chars). A patch can replace text, create a user part
-    with roles, replace roles, or delete a user part. Apply validates
+    first-class entities: a frontier agent proposes a patch through the static
+    `dream` skill CLI, and the operator decides through this HTTP surface —
+    apply (verbatim or with edit for text operations) or reject (with mandatory
+    comment ≥10 chars). A patch can replace text, create a user part with roles,
+    replace roles, or delete a user part. Apply validates
     expectedVersion=base_version; a mismatch returns
     `409 prompt_part_patch.needs_rebase` without mutation. A patch targets a
     PromptPart by (target_scope, target_key).
@@ -58,6 +58,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PromptPartPatchPageDto'
+    post:
+      operationId: proposePromptPartPatch
+      tags: [PromptPartPatches]
+      summary: Propose a new PromptPartPatch in status proposed.
+      description: >
+        Agent-facing write used by the dream skill. Targets must use
+        target_scope=user; apply/edit/reject remain operator actions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposePromptPartPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptPartPatchDto'
+        '409':
+          description: Base version mismatch
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/prompt-part-patches/{patch_id}:
     get:
       operationId: getPromptPartPatch
@@ -260,6 +292,46 @@ components:
         decided_at:
           type: string
           format: date-time
+    ProposePromptPartPatchRequest:
+      type: object
+      required:
+        - target_scope
+        - target_key
+        - patch_text
+        - evidence_card_ids
+        - rationale
+        - base_version
+      properties:
+        target_scope:
+          type: string
+          description: Must be `user`; system prompt parts are manifest-managed.
+        target_key:
+          type: string
+        patch_text:
+          type: string
+          description: Whole new text for replace_text/create; empty for structural operations.
+        evidence_card_ids:
+          type: array
+          items:
+            type: string
+        rationale:
+          type: string
+          maxLength: 500
+        base_version:
+          type: integer
+          format: int32
+          minimum: 0
+        idempotency_key:
+          type: string
+          maxLength: 64
+        operation:
+          $ref: '#/components/schemas/PromptPartPatchOperation'
+          default: replace_text
+        mode_roles:
+          type: array
+          description: Desired mode roles for create/set_roles.
+          items:
+            $ref: '#/components/schemas/PromptPartModeRoleDto'
     PromptPartPatchPageDto:
       type: object
       required: [items]

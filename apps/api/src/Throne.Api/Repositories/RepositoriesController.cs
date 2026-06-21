@@ -7,8 +7,7 @@ namespace Throne.Api.Repositories;
 
 /// <summary>
 /// HTTP surface over the <c>Repository</c> registry and <c>RepositoryArtifact</c> knowledge
-/// pages (ADR-0031). Domain/persistence and the MCP write surface live in their own slices;
-/// this controller only maps requests onto the existing application ports.
+/// pages (ADR-0031). This controller maps requests onto the existing application ports.
 /// </summary>
 public sealed class RepositoriesController(
     ListRepositoriesEndpoint listEndpoint,

@@ -6,10 +6,8 @@ info:
     HTTP surface for DreamSession (ADR-0022). A DreamSession is the agent's
     memory of a single /dream pass: which conversations it read, what summary
     and reflection it produced, which PromptPartPatches it proposed. Records
-    are immutable.
-    Writes happen exclusively through MCP (`record_dream_session`) — there is
-    no POST endpoint, because only the frontier agent at the end of a /dream
-    pass is allowed to record a session. The UI is read-only.
+    are immutable. Agents record sessions through the static `dream` skill CLI;
+    the UI remains read-only.
 
     `/api/v1/dream-sources` exposes the static manifest list of vendor → path
     pairs declared in `specs/manifest/throne-skills.yaml`; sources are a single
@@ -59,6 +57,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DreamSessionPageDto'
+    post:
+      operationId: recordDreamSession
+      tags: [DreamSessions]
+      summary: Record one immutable DreamSession at the end of a dream pass.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordDreamSessionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DreamSessionDto'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/dream-sessions/{dream_session_id}:
     get:
       operationId: getDreamSession
@@ -125,10 +146,12 @@ components:
         date_from:
           type: string
           format: date-time
+          nullable: true
           description: Lower bound of the analysed period (inclusive); null when the agent took the full history.
         date_to:
           type: string
           format: date-time
+          nullable: true
           description: Upper bound of the analysed period (inclusive); null when open-ended.
         processed_conversation_ids:
           type: array
@@ -147,6 +170,42 @@ components:
           items:
             type: string
           description: PromptPartPatch ids created during this pass (opaque on the server).
+    RecordDreamSessionRequest:
+      type: object
+      required:
+        - vendor
+        - host
+        - processed_conversation_ids
+        - summary
+        - proposed_patch_ids
+      properties:
+        vendor:
+          type: string
+        host:
+          type: string
+          maxLength: 255
+        date_from:
+          type: string
+          format: date-time
+          nullable: true
+        date_to:
+          type: string
+          format: date-time
+          nullable: true
+        processed_conversation_ids:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+          maxLength: 4000
+        reflection:
+          type: string
+          maxLength: 4000
+        proposed_patch_ids:
+          type: array
+          items:
+            type: string
     DreamSessionPageDto:
       type: object
       required: [items]

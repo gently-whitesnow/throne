@@ -328,7 +328,7 @@ namespace Throne.Repositories.Contracts.Generated
     }
 
     /// <summary>
-    /// Compact projection used by MCP `get_intent.repositories[]`. The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
+    /// Compact repository binding projection for history/realtime contexts. The HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

@@ -38,7 +38,7 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
         Directory.CreateDirectory(workspacePath);
-        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, options.ApiBaseUrl, ct);
+        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, ct);
         await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, skillPackages, ct);
 
         var settingsPath = Path.Combine(workspacePath, SettingsFileName);

@@ -4,6 +4,8 @@
 
 Accepted — 2026-05-06.
 
+**Update 2026-06-21:** superseded by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) for runtime delivery. Embedded sessions stage attachment files into the workspace; the MCP attachment tools are removed.
+
 ## Context
 
 Канал доставки image- и text-аттачей агенту через MCP-сервер `Throne.Api` ломается уже второй раз.

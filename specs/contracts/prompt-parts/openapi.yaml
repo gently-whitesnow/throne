@@ -56,6 +56,39 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/prompt-parts/current:
+    get:
+      operationId: getCurrentPromptPart
+      tags: [PromptParts]
+      summary: Get current text and version by prompt part scope/key.
+      description: >
+        Agent-facing read helper used by the dream skill before proposing a
+        PromptPartPatch. Missing parts return current_version=0 and empty text.
+      parameters:
+        - in: query
+          name: target_scope
+          required: true
+          schema:
+            type: string
+            enum: [system, user]
+        - in: query
+          name: target_key
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentPromptPartDto'
+        '422':
+          description: Validation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/prompt-parts/{id}:
     get:
       operationId: getPromptPart
@@ -232,6 +265,32 @@ components:
           type: integer
           format: int32
           minimum: 0
+    CurrentPromptPartDto:
+      type: object
+      required:
+        - prompt_part_id
+        - scope
+        - key
+        - text
+        - current_version
+        - updated_at
+      properties:
+        prompt_part_id:
+          type: string
+          description: Empty when the prompt part does not exist yet.
+        scope:
+          type: string
+        key:
+          type: string
+        text:
+          type: string
+        current_version:
+          type: integer
+          format: int32
+          minimum: 0
+        updated_at:
+          type: string
+          format: date-time
           description: Sort position of the part within its mode block.
     PromptPartDto:
       type: object

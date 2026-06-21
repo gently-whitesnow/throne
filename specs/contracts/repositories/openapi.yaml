@@ -204,8 +204,8 @@ paths:
       tags: [IntentRepositories]
       summary: List repository bindings attached to an intent.
       description: >
-        Full binding cards consumed by the intent page. The MCP `get_intent` response uses
-        a compact projection (see `RepositoryBindingSummary`) of the same source.
+        Full binding cards consumed by the intent page and `bin/throne-review`
+        binding discovery.
       parameters:
         - in: path
           name: intent_id
@@ -1154,10 +1154,10 @@ paths:
       tags: [Repositories]
       summary: Create or update a knowledge page (manual edit).
       description: >
-        User-driven counterpart to MCP `write_repository_document` (ADR-0031). Upsert: the
-        first write (`expected_version` absent or 0) creates version 1; an update requires
-        `expected_version == current` or fails with `409`. Optimistic concurrency via
-        `expected_version`.
+        User-driven knowledge-page write path (ADR-0031). Upsert: the first write
+        (`expected_version` absent or 0) creates version 1; an update requires
+        `expected_version == current` or fails with `409`. Optimistic concurrency
+        via `expected_version`.
       parameters:
         - in: path
           name: provider
@@ -1565,8 +1565,8 @@ components:
             - $ref: '#/components/schemas/PullRequestState'
           nullable: true
       description: >
-        Compact projection used by MCP `get_intent.repositories[]`. The HTTP
-        `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
+        Compact repository binding projection for history/realtime contexts. The
+        HTTP `listIntentRepositories` endpoint returns the full `RepositoryBindingDto`.
     RepositoryBindingDto:
       type: object
       required:

@@ -5,9 +5,8 @@ namespace Throne.Application.Terminals;
 
 /// <summary>
 /// Dumps every attachment of an intent (image and text alike) as bytes into the session workspace on
-/// spawn, so the embedded agent opens them with a native <c>Read</c> instead of a round-trip through
-/// the attachment-read MCP tools. The directory is reset first (see <see cref="WorkspaceStagingReset"/>),
-/// so this only writes a fresh set — an attachment removed upstream simply does not reappear. Live
+/// spawn, so the embedded agent opens them with a native <c>Read</c>. The directory is reset first
+/// (see <see cref="WorkspaceStagingReset"/>), so this only writes a fresh set — an attachment removed upstream simply does not reappear. Live
 /// add-after-start is out of scope: new attachments land on the next spawn (defer-to-restart).
 /// </summary>
 public sealed class WorkspaceAttachmentDumper(IIntentAttachmentRepository attachments)

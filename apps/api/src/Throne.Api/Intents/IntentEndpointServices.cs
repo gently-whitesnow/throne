@@ -7,8 +7,7 @@ namespace Throne.Api.Intents;
 /// controllers (Intents / IntentPins / IntentLinks / IntentAttachments).
 /// Endpoints take their dependencies through primary constructors and live as
 /// Singletons next to the application handlers they wrap. Registering them
-/// here keeps <see cref="Mcp.ThroneMcpCoreServices"/> readable while still
-/// being called from the same composition root.
+/// here keeps the composition root readable.
 /// </summary>
 internal static class IntentEndpointServices
 {

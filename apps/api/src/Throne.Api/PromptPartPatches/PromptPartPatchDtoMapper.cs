@@ -85,6 +85,19 @@ public static class PromptPartPatchDtoMapper
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown patch status."),
     };
 
+    public static string FromOperation(PromptPartPatchOperation operation) => operation switch
+    {
+        PromptPartPatchOperation.Replace_text => PromptPartPatchOperationNames.ReplaceText,
+        PromptPartPatchOperation.Create => PromptPartPatchOperationNames.Create,
+        PromptPartPatchOperation.Set_roles => PromptPartPatchOperationNames.SetRoles,
+        PromptPartPatchOperation.Delete => PromptPartPatchOperationNames.Delete,
+        _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unknown patch operation."),
+    };
+
+    public static IReadOnlyList<PromptPartModeRole>? ToDomainRoles(
+        ICollection<PromptPartModeRoleDto>? roles) =>
+        roles?.Select(r => new PromptPartModeRole(r.Mode, r.Role, r.Order)).ToList();
+
     private static PromptPartPatchOperation ToOperation(string operation) => operation switch
     {
         PromptPartPatchOperationNames.ReplaceText => PromptPartPatchOperation.Replace_text,

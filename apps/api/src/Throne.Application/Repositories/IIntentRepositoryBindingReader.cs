@@ -3,11 +3,11 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Read-only projection of <see cref="RepositoryBindingService.ListByIntentAsync"/> for
-/// MCP read paths. Pulled out as a separate port so MCP tool tests can stub
-/// the binding listing without instantiating the full <see cref="RepositoryBindingService"/>
-/// graph. Production wiring forwards to the existing service so the binding-ownership /
-/// intent-existence semantics stay symmetric across HTTP and MCP surfaces.
+/// Read-only projection of <see cref="RepositoryBindingService.ListByIntentAsync"/>.
+/// Pulled out as a separate port so callers can list bindings without instantiating
+/// the full <see cref="RepositoryBindingService"/> graph. Production wiring forwards
+/// to the existing service so the binding-ownership / intent-existence semantics
+/// stay symmetric across HTTP surfaces.
 /// </summary>
 public interface IIntentRepositoryBindingReader
 {

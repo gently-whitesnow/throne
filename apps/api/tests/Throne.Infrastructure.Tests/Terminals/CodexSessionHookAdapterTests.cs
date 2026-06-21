@@ -82,7 +82,7 @@ public class CodexSessionHookAdapterTests
         args.Should().Contain(t => t.Contains("/hooks/Stop?mode=interview'"));
     }
 
-    [Fact(DisplayName = "Codex review: запекает artifact writer и hint в developer profile")]
+    [Fact(DisplayName = "Codex review: стейджит artifact writer и hint в developer profile")]
     public async Task Review_writes_artifact_script_and_profile_hint()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
@@ -91,20 +91,20 @@ public class CodexSessionHookAdapterTests
 
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            skillPackages: [new ReviewArtifactSessionSkillPackage(ReviewTarget())],
+            skillPackages: [new ReviewSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
-        script.Should().Contain("BINDING_ID='binding-1'");
-        script.Should().Contain("REPO_PROVIDER='github'");
+        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-review"));
+        script.Should().NotContain("binding-1");
+        script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
 
         var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
         profile.Should().Contain("review_recommendation");
-        profile.Should().Contain("send-comments");
+        profile.Should().Contain("bin/throne-review write");
     }
 
-    [Fact(DisplayName = "Codex interview: пишет intent-ops script и hint-profile")]
+    [Fact(DisplayName = "Codex interview: пишет статический intent script и hint-profile")]
     public async Task Interview_writes_intent_operations_script_and_profile_hint()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
@@ -116,15 +116,16 @@ public class CodexSessionHookAdapterTests
             root,
             TerminalRunModes.Interview,
             systemPrompt: null,
-            skillPackages: [new IntentOperationsSessionSkillPackage("intent-1")],
+            skillPackages: [new IntentSessionSkillPackage()],
             CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
         var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-intent"));
-        script.Should().Contain("INTENT_ID='intent-1'");
+        script.Should().NotContain("intent-1");
+        script.Should().Contain("THRONE_INTENT_ID");
 
         var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
-        profile.Should().Contain("Throne intent operations");
+        profile.Should().Contain("Throne Intent Operations");
         profile.Should().Contain("replace-text --old-file");
     }
 
