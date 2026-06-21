@@ -16,15 +16,15 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
     {
         var db = NewDatabase();
 
-        var (seeder, parts, _) = Build(db, Manifest(("common", "sys common"), ("work", "sys work")));
+        var (seeder, parts, _) = Build(db, Manifest(("interview", "sys interview"), ("work", "sys work")));
         await seeder.RunAsync(CancellationToken.None);
 
-        var sysCommon = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
-        sysCommon.Should().NotBeNull();
-        sysCommon!.Id.Value.Should().Be("system:common", "MCP bundle text keeps the synthetic system id");
-        sysCommon!.Text.Should().Be("sys common", "system text comes from the manifest");
-        sysCommon.CurrentVersion.Should().Be(1);
-        sysCommon.ModeRoles.Should().ContainSingle(r =>
+        var sysInterview = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "interview", CancellationToken.None);
+        sysInterview.Should().NotBeNull();
+        sysInterview!.Id.Value.Should().Be("system:interview", "the synthetic system:{key} id is preserved");
+        sysInterview!.Text.Should().Be("sys interview", "system text comes from the manifest");
+        sysInterview.CurrentVersion.Should().Be(1);
+        sysInterview.ModeRoles.Should().ContainSingle(r =>
             r.Mode == "work" && r.Role == PromptPartRoleNames.Mandatory && r.Order == 0);
 
         var sysWork = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "work", CancellationToken.None);
@@ -38,18 +38,18 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
     {
         var db = NewDatabase();
 
-        var (seeder1, parts, versions) = Build(db, Manifest(("common", "sys common")));
+        var (seeder1, parts, versions) = Build(db, Manifest(("interview", "sys interview")));
         await seeder1.RunAsync(CancellationToken.None);
         await seeder1.RunAsync(CancellationToken.None); // second pass: no duplicates, no throw
 
-        var afterIdempotent = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
+        var afterIdempotent = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "interview", CancellationToken.None);
         afterIdempotent!.CurrentVersion.Should().Be(1);
 
-        var (seeder2, _, _) = Build(db, Manifest(("common", "sys common v2")));
+        var (seeder2, _, _) = Build(db, Manifest(("interview", "sys interview v2")));
         await seeder2.RunAsync(CancellationToken.None);
 
-        var drifted = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
-        drifted!.Text.Should().Be("sys common v2");
+        var drifted = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "interview", CancellationToken.None);
+        drifted!.Text.Should().Be("sys interview v2");
         drifted.CurrentVersion.Should().Be(2);
         var history = await versions.ListByOwnerAsync(TextVersionOwnerKind.PromptPart, drifted.Id.Value, CancellationToken.None);
         history.Should().HaveCount(2, "drift appends a new version on top of the seeded snapshot");
@@ -60,19 +60,19 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
     {
         var db = NewDatabase();
 
-        var (seeder1, parts, _) = Build(db, Manifest(("common", "sys common"), ("work", "sys work")));
+        var (seeder1, parts, _) = Build(db, Manifest(("interview", "sys interview"), ("work", "sys work")));
         await seeder1.RunAsync(CancellationToken.None);
 
-        var before = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
+        var before = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "interview", CancellationToken.None);
         before.Should().NotBeNull();
-        before!.ModeRoles.Should().NotBeEmpty("seeded common carries a mandatory work-role from the bundle");
+        before!.ModeRoles.Should().NotBeEmpty("seeded part carries a mandatory work-role from the bundle");
 
-        var (seeder2, _, _) = Build(db, ManifestWithoutCommon(("work", "sys work")));
+        var (seeder2, _, _) = Build(db, ManifestWorkOnly(("work", "sys work")));
         await seeder2.RunAsync(CancellationToken.None);
         await seeder2.RunAsync(CancellationToken.None); // idempotent: orphan already gone, nothing to purge
 
-        var orphan = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
-        orphan.Should().BeNull("manifest no longer declares common, so the orphan is removed");
+        var orphan = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "interview", CancellationToken.None);
+        orphan.Should().BeNull("manifest no longer declares interview, so the orphan is removed");
 
         var work = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "work", CancellationToken.None);
         work.Should().NotBeNull("system parts still declared in the manifest survive the purge");
@@ -86,7 +86,7 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
             [
                 new BundleDefinition("work",
                 [
-                    new BundleInclude("system", "common"),
+                    new BundleInclude("system", "interview"),
                     new BundleInclude("system", "work"),
                     new BundleInclude("user", "common"),
                     new BundleInclude("user", "work"),
@@ -94,7 +94,7 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
             ],
             DreamSources: []);
 
-    private static SkillManifest ManifestWithoutCommon(params (string Kind, string Text)[] system) =>
+    private static SkillManifest ManifestWorkOnly(params (string Kind, string Text)[] system) =>
         new(
             Version: 1,
             SystemInstructions: system.Select(s => new SystemInstructionEntry(s.Kind, s.Text)).ToList(),
