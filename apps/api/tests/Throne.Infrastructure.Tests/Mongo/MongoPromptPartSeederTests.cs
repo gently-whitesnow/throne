@@ -55,6 +55,29 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
         history.Should().HaveCount(2, "drift appends a new version on top of the seeded snapshot");
     }
 
+    [Fact(DisplayName = "Seeder вычищает system-часть, которую манифест больше не объявляет, вместе с её mode-ролями")]
+    public async Task Purges_orphaned_system_part_dropped_from_manifest()
+    {
+        var db = NewDatabase();
+
+        var (seeder1, parts, _) = Build(db, Manifest(("common", "sys common"), ("work", "sys work")));
+        await seeder1.RunAsync(CancellationToken.None);
+
+        var before = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
+        before.Should().NotBeNull();
+        before!.ModeRoles.Should().NotBeEmpty("seeded common carries a mandatory work-role from the bundle");
+
+        var (seeder2, _, _) = Build(db, ManifestWithoutCommon(("work", "sys work")));
+        await seeder2.RunAsync(CancellationToken.None);
+        await seeder2.RunAsync(CancellationToken.None); // idempotent: orphan already gone, nothing to purge
+
+        var orphan = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "common", CancellationToken.None);
+        orphan.Should().BeNull("manifest no longer declares common, so the orphan is removed");
+
+        var work = await parts.GetByScopeKeyAsync(PromptPartScopeNames.System, "work", CancellationToken.None);
+        work.Should().NotBeNull("system parts still declared in the manifest survive the purge");
+    }
+
     private static SkillManifest Manifest(params (string Kind, string Text)[] system) =>
         new(
             Version: 1,
@@ -64,6 +87,21 @@ public class MongoPromptPartSeederTests(MongoFixture fixture)
                 new BundleDefinition("work",
                 [
                     new BundleInclude("system", "common"),
+                    new BundleInclude("system", "work"),
+                    new BundleInclude("user", "common"),
+                    new BundleInclude("user", "work"),
+                ]),
+            ],
+            DreamSources: []);
+
+    private static SkillManifest ManifestWithoutCommon(params (string Kind, string Text)[] system) =>
+        new(
+            Version: 1,
+            SystemInstructions: system.Select(s => new SystemInstructionEntry(s.Kind, s.Text)).ToList(),
+            Bundles:
+            [
+                new BundleDefinition("work",
+                [
                     new BundleInclude("system", "work"),
                     new BundleInclude("user", "common"),
                     new BundleInclude("user", "work"),

@@ -10,7 +10,8 @@ namespace Throne.Infrastructure.Mongo;
 /// <summary>
 /// Idempotent startup service (ADR-0036). On every start it SEEDs/reconciles <c>system</c>
 /// prompt parts with the skill manifest: creates missing parts as v1, writes a new version on
-/// text drift, and reconciles mode-roles. Runs after <see cref="MongoIndexInitializer"/>.
+/// text drift, reconciles mode-roles, and purges system parts that the manifest no longer
+/// declares. Runs after <see cref="MongoIndexInitializer"/>.
 /// </summary>
 internal sealed class PromptPartSeeder(
     ISkillManifestProvider manifestProvider,
@@ -41,6 +42,40 @@ internal sealed class PromptPartSeeder(
             }
 
             await ReconcileSystemPartAsync(existing, entry, manifest, ct);
+        }
+
+        await PurgeOrphanedSystemPartsAsync(manifest, ct);
+    }
+
+    // System parts are authored only here, from the manifest. Any system part whose key the
+    // manifest no longer declares is an orphan from a manifest edit (e.g. a dropped bundle key):
+    // it is no longer composed, but ListPromptParts surfaces all scopes, so leave-it-orphaned
+    // would keep it visible to operators. Detach its mode-roles (DeleteAsync refuses a part that
+    // still carries roles) and delete it. Idempotent: a second pass finds nothing to purge.
+    private async Task PurgeOrphanedSystemPartsAsync(SkillManifest manifest, CancellationToken ct)
+    {
+        var declared = new HashSet<string>(
+            manifest.SystemInstructions.Select(e => e.Kind), StringComparer.Ordinal);
+
+        var systemParts = await parts.ListAsync(PromptPartScopeNames.System, ct);
+        foreach (var part in systemParts)
+        {
+            if (declared.Contains(part.Key))
+            {
+                continue;
+            }
+
+            var now = clock.GetUtcNow();
+            await unitOfWork.ExecuteAsync(
+                async inner =>
+                {
+                    if (part.ModeRoles.Count > 0)
+                    {
+                        await parts.SetModeRolesAsync(part.Id, [], now, inner);
+                    }
+                    await parts.DeleteAsync(part.Id, inner);
+                },
+                ct);
         }
     }
 

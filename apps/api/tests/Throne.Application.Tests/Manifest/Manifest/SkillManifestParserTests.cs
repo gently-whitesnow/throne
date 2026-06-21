@@ -102,7 +102,7 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(4);
+        manifest.SystemInstructions.Should().HaveCount(3);
         manifest.Bundles.Should().HaveCount(3);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
         manifest.DreamSources.Should().HaveCount(3);
