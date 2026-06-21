@@ -16,9 +16,23 @@ import type {
 import { BindRepositoryModal } from "./BindRepositoryModal";
 
 // GitLab provider button is gated on the `gitlab` capability; force it enabled
-// so the provider-switch assertions can reach the GitLab option.
+// so the provider-switch / manual-gitlab assertions can reach the GitLab path.
 vi.mock("@/entities/capability", () => ({
   useCapabilityEnabled: () => true
+}));
+
+// Configured GitLab host comes from `git-providers/status`; stub it so the
+// manual SSH-URL host validation has a fixed host to compare against.
+vi.mock("@/entities/git-provider-status", () => ({
+  useGitProvidersStatus: () => ({
+    status: {
+      github: { authenticated: true, state: "ok", host: "github.com" },
+      gitlab: { authenticated: true, state: "ok", host: "gitlab.ati.st" }
+    },
+    isLoading: false,
+    error: null,
+    refresh: () => undefined
+  })
 }));
 
 const repositoryBindingMocks = vi.hoisted(() => ({
@@ -92,23 +106,23 @@ function makeRef(overrides: Partial<GitRepositoryRef> = {}): GitRepositoryRef {
   };
 }
 
-function makeBinding(): RepositoryBinding {
+function makeBinding(repo = "hello-world"): RepositoryBinding {
   return {
-    id: "b1",
+    id: `b-${repo}`,
     intent_id: "intent-1",
     provider: "github",
     host: "github.com",
     owner: "octocat",
-    repo: "hello-world",
+    repo,
     default_branch: "main",
-    workspace_path: "/tmp/throne/intent-1/b1",
+    workspace_path: `/tmp/throne/intent-1/${repo}`,
     clone_status: "pending",
     created_at: "2026-05-20T10:00:00Z",
     updated_at: "2026-05-20T10:00:00Z"
   };
 }
 
-describe("BindRepositoryModal", () => {
+describe("BindRepositoryModal (мультивыбор)", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     listGitProviderRepositories.mockReset();
@@ -131,73 +145,51 @@ describe("BindRepositoryModal", () => {
     });
   }
 
-  it("при открытии грузит «мои» репозитории по умолчанию", async () => {
-    listGitProviderRepositories.mockResolvedValue([makeRef()]);
-    render(
-      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
-    );
-    await flushDebounce();
-    await waitFor(() => {
-      expect(listGitProviderRepositories).toHaveBeenCalledWith("github", 50);
-    });
-    expect(searchGitProviderRepositories).not.toHaveBeenCalled();
-    expect(
-      screen.getByTestId("bind-repository-row-octocat/hello-world")
-    ).toBeTruthy();
-  });
-
-  it("переключение чекбокса «involved» вызывает search со scope=involved", async () => {
-    listGitProviderRepositories.mockResolvedValue([]);
-    searchGitProviderRepositories.mockResolvedValue([
-      makeRef({ owner: "acme", repo: "x", full_name: "acme/x" })
-    ]);
-    render(
-      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
-    );
-    await flushDebounce();
-
-    fireEvent.click(screen.getByTestId("bind-repository-scope-involved"));
-    await flushDebounce();
-
-    await waitFor(() => {
-      expect(searchGitProviderRepositories).toHaveBeenCalledWith(
-        expect.objectContaining({ scope: "involved" })
-      );
-    });
-    expect(screen.getByTestId("bind-repository-row-acme/x")).toBeTruthy();
-  });
-
-  it("переключение провайдера на GitLab грузит мои репозитории GitLab", async () => {
+  it("выбор двух репозиториев оставляет оба чипами и не сбрасывает их при новом поиске", async () => {
     listGitProviderRepositories.mockResolvedValue([
-      makeRef({
-        provider: "gitlab",
-        owner: "team/platform",
-        repo: "core",
-        full_name: "team/platform/core"
-      })
+      makeRef(),
+      makeRef({ owner: "octocat", repo: "spoon", full_name: "octocat/spoon" })
     ]);
     render(
       <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
     );
     await flushDebounce();
 
-    fireEvent.click(screen.getByTestId("bind-repository-provider-gitlab"));
+    fireEvent.click(
+      screen.getByTestId("bind-repository-row-octocat/hello-world")
+    );
+    fireEvent.click(screen.getByTestId("bind-repository-row-octocat/spoon"));
+
+    expect(
+      screen.getByTestId("bind-repository-chip-octocat/hello-world")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("bind-repository-chip-octocat/spoon")
+    ).toBeTruthy();
+
+    // Новый поиск не должен ронять уже выбранные чипы.
+    searchGitProviderRepositories.mockResolvedValue([]);
+    fireEvent.change(screen.getByLabelText("Поиск репозитория"), {
+      target: { value: "nothing" }
+    });
     await flushDebounce();
 
-    await waitFor(() => {
-      expect(listGitProviderRepositories).toHaveBeenLastCalledWith(
-        "gitlab",
-        50
-      );
-    });
     expect(
-      screen.getByTestId("bind-repository-row-team/platform/core")
+      screen.getByTestId("bind-repository-chip-octocat/hello-world")
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("bind-repository-chip-octocat/spoon")
     ).toBeTruthy();
   });
 
-  it("после выбора репо submit отправляет bindIntentRepository с branch и pull_request_number", async () => {
-    listGitProviderRepositories.mockResolvedValue([makeRef()]);
-    bindIntentRepository.mockResolvedValue(makeBinding());
+  it("одно подтверждение привязывает все выбранные репозитории", async () => {
+    listGitProviderRepositories.mockResolvedValue([
+      makeRef(),
+      makeRef({ owner: "octocat", repo: "spoon", full_name: "octocat/spoon" })
+    ]);
+    bindIntentRepository.mockImplementation((_id, body) =>
+      Promise.resolve(makeBinding(String(body.repo)))
+    );
     const onClose = vi.fn();
     const onBound = vi.fn();
     render(
@@ -213,69 +205,162 @@ describe("BindRepositoryModal", () => {
     fireEvent.click(
       screen.getByTestId("bind-repository-row-octocat/hello-world")
     );
-    fireEvent.change(screen.getByTestId("bind-repository-pr-number"), {
-      target: { value: "42" }
-    });
-
+    fireEvent.click(screen.getByTestId("bind-repository-row-octocat/spoon"));
     fireEvent.click(screen.getByTestId("bind-repository-submit"));
 
+    await waitFor(() => {
+      expect(bindIntentRepository).toHaveBeenCalledTimes(2);
+    });
+    expect(bindIntentRepository).toHaveBeenCalledWith(
+      "intent-1",
+      expect.objectContaining({ repo: "hello-world", default_branch: "main" })
+    );
+    expect(bindIntentRepository).toHaveBeenCalledWith(
+      "intent-1",
+      expect.objectContaining({ repo: "spoon" })
+    );
+    expect(onBound).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  it("частичная ошибка оставляет неуспешный чип и не мешает успешным", async () => {
+    listGitProviderRepositories.mockResolvedValue([
+      makeRef(),
+      makeRef({ owner: "octocat", repo: "spoon", full_name: "octocat/spoon" })
+    ]);
+    bindIntentRepository.mockImplementation((_id, body) =>
+      body.repo === "spoon"
+        ? Promise.reject(new HttpError(409, "/x", "conflict"))
+        : Promise.resolve(makeBinding(String(body.repo)))
+    );
+    const onClose = vi.fn();
+    render(<BindRepositoryModal intentId="intent-1" open onClose={onClose} />);
+    await flushDebounce();
+
+    fireEvent.click(
+      screen.getByTestId("bind-repository-row-octocat/hello-world")
+    );
+    fireEvent.click(screen.getByTestId("bind-repository-row-octocat/spoon"));
+    fireEvent.click(screen.getByTestId("bind-repository-submit"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("bind-repository-chip-error-octocat/spoon")
+          .textContent
+      ).toMatch(/привязан/);
+    });
+    // Успешный чип удалён, неуспешный остался, модалка открыта.
+    expect(
+      screen.queryByTestId("bind-repository-chip-octocat/hello-world")
+    ).toBe(null);
+    expect(
+      screen.getByTestId("bind-repository-chip-octocat/spoon")
+    ).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("добавление gitlab-репозитория вставкой SSH-URL биндит namespace/repo", async () => {
+    listGitProviderRepositories.mockResolvedValue([]);
+    bindIntentRepository.mockResolvedValue(makeBinding("bugget-ui"));
+    render(
+      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
+    );
+    await flushDebounce();
+
+    fireEvent.change(screen.getByTestId("bind-repository-ssh-url"), {
+      target: { value: "git@gitlab.ati.st:trucks/bugget/bugget-ui.git" }
+    });
+    fireEvent.click(screen.getByTestId("bind-repository-ssh-add"));
+
+    expect(
+      screen.getByTestId("bind-repository-chip-trucks/bugget/bugget-ui")
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(
+        "bind-repository-chip-host-error-trucks/bugget/bugget-ui"
+      )
+    ).toBe(null);
+
+    fireEvent.click(screen.getByTestId("bind-repository-submit"));
     await waitFor(() => {
       expect(bindIntentRepository).toHaveBeenCalledWith("intent-1", {
-        provider: "github",
-        owner: "octocat",
-        repo: "hello-world",
-        default_branch: "main",
-        pull_request_number: 42
+        provider: "gitlab",
+        host: "gitlab.ati.st",
+        owner: "trucks/bugget",
+        repo: "bugget-ui"
       });
     });
-    expect(onBound).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
   });
 
-  it("422 на невалидном PR-number блокирует submit", async () => {
+  it("SSH-URL с чужим gitlab-хостом даёт ошибку на чипе и не биндится", async () => {
+    listGitProviderRepositories.mockResolvedValue([]);
+    render(
+      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
+    );
+    await flushDebounce();
+
+    fireEvent.change(screen.getByTestId("bind-repository-ssh-url"), {
+      target: { value: "git@gitlab.othercorp.com:foo/bar.git" }
+    });
+    fireEvent.click(screen.getByTestId("bind-repository-ssh-add"));
+
+    expect(
+      screen.getByTestId("bind-repository-chip-host-error-foo/bar").textContent
+    ).toMatch(/не совпадает/);
+    // Чип невалиден → submit недоступен, бинд не уходит.
+    expect(
+      screen.getByTestId("bind-repository-submit").hasAttribute("disabled")
+    ).toBe(true);
+  });
+
+  it("малформленный SSH-URL показывает inline-ошибку и не добавляет чип", async () => {
+    listGitProviderRepositories.mockResolvedValue([]);
+    render(
+      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
+    );
+    await flushDebounce();
+
+    fireEvent.change(screen.getByTestId("bind-repository-ssh-url"), {
+      target: { value: "https://github.com/owner/repo" }
+    });
+    fireEvent.click(screen.getByTestId("bind-repository-ssh-add"));
+
+    expect(screen.getByTestId("bind-repository-ssh-error")).toBeTruthy();
+    expect(screen.queryByTestId("bind-repository-selected-list")).toBe(null);
+  });
+
+  it("submit без выбранных репозиториев недоступен", async () => {
     listGitProviderRepositories.mockResolvedValue([makeRef()]);
     render(
       <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
     );
     await flushDebounce();
+    expect(
+      screen.getByTestId("bind-repository-submit").hasAttribute("disabled")
+    ).toBe(true);
+  });
+
+  it("повторный клик по выбранной строке убирает чип", async () => {
+    listGitProviderRepositories.mockResolvedValue([makeRef()]);
+    render(
+      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
+    );
+    await flushDebounce();
+
     fireEvent.click(
       screen.getByTestId("bind-repository-row-octocat/hello-world")
     );
-    fireEvent.change(screen.getByTestId("bind-repository-pr-number"), {
-      target: { value: "-5" }
-    });
-    const submit = screen.getByTestId("bind-repository-submit");
-    expect(submit.hasAttribute("disabled")).toBe(true);
-    expect(bindIntentRepository).not.toHaveBeenCalled();
-  });
+    expect(
+      screen.getByTestId("bind-repository-chip-octocat/hello-world")
+    ).toBeTruthy();
 
-  it("409 от сервера показывает «уже привязан»", async () => {
-    listGitProviderRepositories.mockResolvedValue([makeRef()]);
-    bindIntentRepository.mockRejectedValue(
-      new HttpError(409, "/x", "conflict")
-    );
-    render(
-      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
-    );
-    await flushDebounce();
     fireEvent.click(
       screen.getByTestId("bind-repository-row-octocat/hello-world")
     );
-    fireEvent.click(screen.getByTestId("bind-repository-submit"));
-    await waitFor(() => {
-      expect(screen.getByTestId("bind-repository-error").textContent).toMatch(
-        /уже привязан/
-      );
-    });
-  });
-
-  it("submit без выбранного репо невозможен", async () => {
-    listGitProviderRepositories.mockResolvedValue([makeRef()]);
-    render(
-      <BindRepositoryModal intentId="intent-1" open onClose={() => undefined} />
-    );
-    await flushDebounce();
-    const submit = screen.getByTestId("bind-repository-submit");
-    expect(submit.hasAttribute("disabled")).toBe(true);
+    expect(
+      screen.queryByTestId("bind-repository-chip-octocat/hello-world")
+    ).toBe(null);
   });
 });

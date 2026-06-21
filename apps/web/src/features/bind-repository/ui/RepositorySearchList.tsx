@@ -6,7 +6,8 @@ interface RepositorySearchListProps {
   results: GitRepositoryRef[];
   isLoading: boolean;
   error: Error | null;
-  selectedFullName: string | null;
+  /** Marks already-picked rows. Multi-select clicks toggle selection. */
+  isSelected?: (repo: GitRepositoryRef) => boolean;
   onSelect: (repo: GitRepositoryRef) => void;
 }
 
@@ -19,7 +20,7 @@ export function RepositorySearchList({
   results,
   isLoading,
   error,
-  selectedFullName,
+  isSelected,
   onSelect
 }: RepositorySearchListProps) {
   if (error) {
@@ -66,7 +67,7 @@ export function RepositorySearchList({
     >
       {results.map((repo) => {
         const fullName = repo.full_name;
-        const isSelected = selectedFullName === fullName;
+        const selected = isSelected?.(repo) ?? false;
         return (
           <li key={fullName} className="m-0 p-0">
             <button
@@ -75,9 +76,9 @@ export function RepositorySearchList({
                 onSelect(repo);
               }}
               data-testid={`bind-repository-row-${fullName}`}
-              aria-pressed={isSelected}
+              aria-pressed={selected}
               className={`flex w-full items-start justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors ${
-                isSelected
+                selected
                   ? "border-primary/60 bg-primary/10"
                   : "border-base-300 bg-base-100 hover:border-primary/40 hover:bg-base-200"
               }`}
@@ -98,7 +99,7 @@ export function RepositorySearchList({
                   {repo.description ? ` · ${repo.description}` : ""}
                 </span>
               </span>
-              {isSelected ? (
+              {selected ? (
                 <Check aria-hidden size={16} className="mt-0.5 text-primary" />
               ) : null}
             </button>
