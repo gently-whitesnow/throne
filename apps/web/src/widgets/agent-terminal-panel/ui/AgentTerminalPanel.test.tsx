@@ -84,19 +84,29 @@ function vendorCatalog() {
     vendors: [
       {
         vendor: "claude",
+        label: "Claude",
         supports_effort: true,
         models: ["opus", "sonnet", "haiku"],
         default_model: "opus",
         efforts: ["low", "medium", "high", "xhigh"],
-        default_effort: "high"
+        default_effort: "high",
+        model_source: "static",
+        login_status: "ready",
+        login_detail: null,
+        selectable: true
       },
       {
         vendor: "codex",
+        label: "Codex",
         supports_effort: true,
         models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
         default_model: "gpt-5.5",
         efforts: ["low", "medium", "high", "xhigh"],
-        default_effort: "medium"
+        default_effort: "medium",
+        model_source: "static",
+        login_status: "ready",
+        login_detail: null,
+        selectable: true
       }
     ]
   };

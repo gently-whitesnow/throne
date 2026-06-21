@@ -17,7 +17,10 @@ const catalog: TerminalVendorCatalog = {
       default_model: "opus",
       efforts: ["low", "medium", "high", "xhigh"],
       default_effort: "high",
-      model_source: "static"
+      model_source: "static",
+      login_status: "ready",
+      login_detail: null,
+      selectable: true
     },
     {
       vendor: "codex",
@@ -27,7 +30,10 @@ const catalog: TerminalVendorCatalog = {
       default_model: "gpt-5.5",
       efforts: ["low", "medium", "high", "xhigh"],
       default_effort: "medium",
-      model_source: "static"
+      model_source: "static",
+      login_status: "logged_out",
+      login_detail: null,
+      selectable: true
     }
   ]
 };

@@ -1,28 +1,29 @@
 import {
-  Cpu,
+  Bot,
   FolderCog,
   GitBranch,
-  PackageCheck,
-  TerminalSquare,
+  ShieldCheck,
   ToggleRight
 } from "lucide-react";
 
 import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
-import { SkillModeDefaultsCard } from "@/widgets/skill-mode-defaults-card";
+import { AgentVendorsCard } from "@/widgets/settings-cards/agent-vendors-card";
+import { ReadinessPanel } from "@/widgets/settings-cards/readiness-panel";
 import { WorkspaceCard } from "@/widgets/workspace-card";
 
-import { LocalModelCard } from "./LocalModelCard";
 import { TerminalDefaultsCard } from "./TerminalDefaultsCard";
 
 /**
- * `/settings` — единая страница настроек профиля.
+ * `/settings` — единая страница настроек профиля, организованная вокруг
+ * критерия «Throne готов».
  *
  * Секции:
- *   * «Возможности» — capability-gating (Slice 2): repositories, terminal, vscode.
- *   * «Терминал» — дефолтный вендор агента (claude | codex) для новых сессий.
- *   * «Провайдеры Git» — статус `gh auth status`.
- *   * «Workspace» — корень `Throne:Workspace:Root` и агрегированный размер на диске.
+ *   * «Готовность» — агрегированный чеклист (вендор/git/tmux/workspace).
+ *   * «Агенты» — дефолтный вендор и статус логина каждого агента.
+ *   * «Git-провайдеры» — статус gh/glab.
+ *   * «Workspace» — корень клонов и размер на диске.
+ *   * «Фичи» — опциональные opt-in возможности (Open in IDE, GitLab).
  */
 export function SettingsPage() {
   return (
@@ -33,53 +34,32 @@ export function SettingsPage() {
         </p>
         <h1 className="m-0 text-2xl font-bold leading-tight">Настройки</h1>
         <p className="m-0 max-w-[64ch] text-sm leading-relaxed text-base-content/70">
-          Возможности, провайдеры Git и параметры workspace в одном месте.
+          Готовность Throne к работе, агенты, провайдеры Git, workspace и
+          опциональные фичи в одном месте.
         </p>
       </header>
 
-      <SettingsSection
-        id="capabilities"
-        title="Возможности"
-        icon={ToggleRight}
-        description="Фичи Throne с внешними зависимостями (gh, tmux, code). Default OFF: включите тогл осознанно после того, как установлен соответствующий CLI. Терминал, Run, «Open in VS Code» и репозитории требуют доступа к хосту: бэкенд надо запускать нативно на хосте (профиль «только web+db», docker-compose.host.yml) — в контейнерном режиме они не детектятся и остаются выключены."
-      >
-        <CapabilitiesCard />
-      </SettingsSection>
+      <section aria-label="Готовность Throne">
+        <ReadinessPanel />
+      </section>
 
       <SettingsSection
-        id="terminal"
-        title="Терминал"
-        icon={TerminalSquare}
-        description="Какой агент (claude или codex) предлагать по умолчанию при запуске встроенного терминала. Модель и уровень усилия выбираются per-сессия на странице интента."
+        id="agents"
+        title="Агенты"
+        icon={Bot}
+        description="Каким агентом (claude или codex) предзаполнять запуск новых сессий и статус логина каждого CLI. Модель и усилие выбираются per-сессия на странице интента."
       >
         <TerminalDefaultsCard />
-      </SettingsSection>
-
-      <SettingsSection
-        id="session-skills"
-        title="Скилы запуска"
-        icon={PackageCheck}
-        description="Глобальные defaults скилов для каждого режима. Окно запуска интента позволяет переопределить выбор на конкретную сессию."
-      >
-        <SkillModeDefaultsCard />
+        <AgentVendorsCard />
       </SettingsSection>
 
       <SettingsSection
         id="git-providers"
-        title="Провайдеры Git"
+        title="Git-провайдеры"
         icon={GitBranch}
         description="Привязка локальных Git-провайдеров: статус gh CLI, авторизация и scopes."
       >
         <GitProvidersCard />
-      </SettingsSection>
-
-      <SettingsSection
-        id="local-model"
-        title="Локальные модели"
-        icon={Cpu}
-        description="Адрес локального OpenAI-совместимого endpoint (Throne:LocalModel:BaseUrl) и модели, прочитанные через /v1/models. Пустой или недоступный endpoint показывается как состояние, а не ошибка."
-      >
-        <LocalModelCard />
       </SettingsSection>
 
       <SettingsSection
@@ -89,6 +69,20 @@ export function SettingsPage() {
         description="Корневая директория клонов репозиториев и её агрегированный размер на диске. Per-intent размеры появятся в отдельных проходах."
       >
         <WorkspaceCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="features"
+        title="Фичи"
+        icon={ToggleRight}
+        description="Опциональные opt-in возможности с внешними зависимостями. Default OFF: включите тогл осознанно после установки соответствующего CLI."
+      >
+        <CapabilitiesCard only={["vscode", "gitlab"]} />
+        <p className="m-0 flex items-center gap-1.5 text-xs leading-relaxed text-base-content/60">
+          <ShieldCheck aria-hidden size={13} strokeWidth={2} />
+          Другие IDE (Cursor, JetBrains) могут быть добавлены позже —
+          provider-neutral задел.
+        </p>
       </SettingsSection>
     </div>
   );

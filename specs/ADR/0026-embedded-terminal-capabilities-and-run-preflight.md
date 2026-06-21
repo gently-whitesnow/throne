@@ -175,3 +175,41 @@ Kill **гейтится** флагом `IntentState.CleanupLocalStateOnDone` (de
 - **`session_state` без realtime-фанаута** — две одновременные вкладки могут расходиться по индикатору. Mitigation: local-only single-user, refresh-on-mount, дополнительное событие можно ввести следующим интентом без breaking change.
 - **Capability `terminal` retrofit OFF после деплоя** — оператор обязан зайти в `/settings` и явно включить тогл, иначе все Slice 2 фичи не видны. Это намеренное поведение (explicit opt-in принцип); UI поправляется одним кликом.
 - **Пути `realtime/websocket/`** ещё не покрыты quality-гейтом «yaml ↔ реализация». T-03/T-05/T-06 не блокируются гейтом; gate на bidirectional yaml вводится отдельным интентом, если поверхность вырастет.
+
+## § 9. Амендмент (2026-06-21) — essentials: detection→ready (embedded-only)
+
+Пересматривает § 1 правило «detection **никогда** не флипает `enabled`» для подмножества
+essential-capability'ей.
+
+Throne работает только в embedded-режиме (standalone — мечта, см. readme «Запуск»). В этом
+контуре explicit opt-in для **обязательных** осей готовности — лишний клик: если `gh`
+авторизован, а `tmux` установлен, оператор уже намерен ими пользоваться. Страница `/settings`
+переехала на модель «Готовность» (панель + чек-лист «Throne готов»), где обязательные
+prerequisite не показываются тумблерами вообще — значит, без авто-готовности их было бы нечем
+включить.
+
+**Решение.** Вводится закрытое множество **essentials** = `{ repositories, terminal }`
+(`CapabilityNames.IsEssential`). Для них:
+
+- `ICapabilityAvailability.IsAvailableAsync` возвращает `detected` напрямую — без проверки
+  персистентного тогла. Run pre-flight gate (§ 2) и фильтр vendor-каталога идут через этот же
+  сервис, поэтому «tmux есть → Run работает» без opt-in.
+- `CapabilityDto.enabled` материализуется как `detected` (зеркалит авто-готовность; фронтовый
+  `isCapabilityEnabled` = `enabled && detected` остаётся прежним).
+- Персистентный тогл essential'а по-прежнему пишется через `PUT /capabilities/{name}`, но на
+  доступность не влияет (UI его не показывает).
+
+Опциональные фичи (`vscode`, `gitlab`, `opencode`) **сохраняют** исходную семантику § 1:
+explicit opt-in (`enabled && detected`). Это compromise, а не отмена правила — детектирование
+флипает готовность только там, где отсутствие фичи делает embedded-контур неработоспособным.
+
+Готовность вендора агента (claude/codex залогинен) — отдельная ось, не capability: она живёт
+на каталоге вендоров (`GET /terminal/vendors` → `login_status`), а не в реестре capability'ей.
+
+**Rationale пересмотра § 1.** Исходное правило защищало от «detection тихо включил фичу, юзер не
+ждал». В embedded-only это не риск: контур не работает без git+tmux+вендора, поэтому
+detection==намерение. Граница узкая (два ключа), обратимость полная (вернуть explicit opt-in —
+убрать ключи из `EssentialNames`), risk-blast — только две essential-оси.
+
+Снимок «Negative / Risks → Capability `terminal` retrofit OFF после деплоя» этим амендментом
+снимается для `terminal`/`repositories`: тогл больше не нужен.
