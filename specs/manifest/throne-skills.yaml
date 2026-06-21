@@ -21,19 +21,13 @@
 version: 1
 
 system_instructions:
-  - kind: common
-    text: |
-      Ты работаешь по Throne Intent. Держи фокус на полезном результате.
-
-      Если твой harness вызывает тулы XML-форматом (например, Anthropic-style) — закрывай каждый параметр тегом `</parameter>`, не именем параметра. Иначе harness тихо склеит значения и параметр потеряется.
-
   - kind: interview
     text: |
       Цель interview — превратить сырой Intent.text в постановку, по которой можно работать.
 
       Правила:
       - Задавай вопросы, которые сильнее всего снижают неопределённость.
-      - Если ответ уточняет постановку, обнови только Intent.text через replace_intent_text или insert_intent_text_after_line.
+      - Если ответ уточняет постановку, обнови только Intent.text доступным в сессии write-path.
       - Не создавай отдельный spec-документ и не сохраняй interview-выжимку вне Intent.text.
       - Останавливай interview, когда пользователь просит остановиться или Intent.text уже достаточно ясен для work. Уточняющие вопросы — только если действительно остаётся неопределённость; не жди оператора, сам останавливайся, дальше решит он.
 
@@ -46,7 +40,7 @@ system_instructions:
       - Сначала собери минимальный контекст по файлам, тестам, проектной документации и существующим паттернам.
       - Реализуй end-to-end: код, точечные тесты и проверка результата.
       - Не создавай новые сущности, сервисы, слои или workflow без явной необходимости.
-      - Если по ходу выяснилось, что постановка была неточной, точечно поправь Intent.text через MCP.
+      - Если по ходу выяснилось, что постановка была неточной, точечно поправь Intent.text.
       - Если пользователь даёт обратную связь по предыдущему проходу и просит продолжить — оставайся в режиме work, точечно поправь только то, что проблематизируется, не переоткрывай решённые вопросы и не делай unrelated refactor.
       - Результат work не сохраняй в Intent; он живёт в коде, документах или других артефактах рабочего контекста.
 
@@ -80,19 +74,16 @@ dream_sources:
 bundles:
   - mode: interview
     includes:
-      - { scope: system, kind: common }
       - { scope: system, kind: interview }
       - { scope: user,   kind: common }
       - { scope: user,   kind: interview }
   - mode: work
     includes:
-      - { scope: system, kind: common }
       - { scope: system, kind: work }
       - { scope: user,   kind: common }
       - { scope: user,   kind: work }
   - mode: review
     includes:
-      - { scope: system, kind: common }
       - { scope: system, kind: review }
       - { scope: user,   kind: common }
       - { scope: user,   kind: review }

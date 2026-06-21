@@ -22,7 +22,6 @@ public class PromptCompositionResolverTests
             new ResolvePromptCompositionQuery(PromptPartModeNames.Work, null, "intent body"), CancellationToken.None);
 
         composition.Parts.Select(p => (p.Scope, p.Key)).Should().Equal(
-            (PromptPartScopeNames.System, "common"),
             (PromptPartScopeNames.System, "work"),
             (PromptPartScopeNames.User, "common"),
             (PromptPartScopeNames.User, "work"));
@@ -103,7 +102,6 @@ public class PromptCompositionResolverTests
         // Mandatory parts: every (scope, key) in the manifest bundles materialised in prompt_parts.
         var seeded = new List<PromptPart>
         {
-            SeedPart(PromptPartScopeNames.System, "common", "system text for common"),
             SeedPart(PromptPartScopeNames.System, "interview", "system text for interview"),
             SeedPart(PromptPartScopeNames.System, "work", "system text for work"),
             SeedPart(PromptPartScopeNames.System, "review", "system text for review"),

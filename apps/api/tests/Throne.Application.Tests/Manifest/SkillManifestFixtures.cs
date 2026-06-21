@@ -7,7 +7,7 @@ namespace Throne.Application.Tests.Manifest;
 
 internal static class SkillManifestFixtures
 {
-    public static readonly IReadOnlyList<string> Keys = ["common", "interview", "work", "review"];
+    public static readonly IReadOnlyList<string> Keys = ["interview", "work", "review"];
 
     public static SkillManifest Sample()
     {
@@ -19,7 +19,6 @@ internal static class SkillManifestFixtures
             Mode: mode,
             Includes:
             [
-                new BundleInclude(PromptPartScopeNames.System, "common"),
                 new BundleInclude(PromptPartScopeNames.System, key),
                 new BundleInclude(PromptPartScopeNames.User, "common"),
                 new BundleInclude(PromptPartScopeNames.User, key),
