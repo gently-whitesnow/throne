@@ -155,7 +155,7 @@ public sealed class PromptPartsEndpointTests(MongoFixture mongo) : IAsyncLifetim
         body.GetProperty("parts").EnumerateArray()
             .Should().Contain(p =>
                 p.GetProperty("scope").GetString() == "system"
-                && p.GetProperty("key").GetString() == "common"
+                && p.GetProperty("key").GetString() == "work"
                 && p.GetProperty("role").GetString() == "mandatory");
     }
 
