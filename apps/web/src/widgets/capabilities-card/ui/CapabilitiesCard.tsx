@@ -60,7 +60,15 @@ const CAPABILITY_VISUALS: Record<
  * (read-time materialization на бэке), retrofit Slice 1: ключ `repositories`
  * тоже стартует выключённым.
  */
-export function CapabilitiesCard() {
+export interface CapabilitiesCardProps {
+  /**
+   * Когда задан — рендерим только capabilities с этими именами, сохраняя порядок
+   * списка. По умолчанию (undefined) рендерим все — поведение не меняется.
+   */
+  only?: CapabilityName[];
+}
+
+export function CapabilitiesCard({ only }: CapabilitiesCardProps = {}) {
   const { capabilities, isLoading, error } = useCapabilities();
 
   if (error !== null) {
@@ -89,9 +97,16 @@ export function CapabilitiesCard() {
     );
   }
 
+  const visible =
+    only === undefined
+      ? capabilities
+      : only
+          .map((name) => capabilities.find((c) => c.name === name))
+          .filter((c): c is Capability => c !== undefined);
+
   return (
     <div className="flex flex-col gap-3" data-testid="capabilities-list">
-      {capabilities.map((capability) => (
+      {visible.map((capability) => (
         <CapabilityRow key={capability.name} capability={capability} />
       ))}
     </div>

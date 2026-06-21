@@ -12,7 +12,7 @@ public class CapabilitiesServiceTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 28, 9, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "List возвращает все карточки с default enabled=false при пустом singleton")]
+    [Fact(DisplayName = "List: essentials enabled=detected (auto-ready), опциональные — enabled=false при пустом singleton")]
     public async Task List_returns_descriptors_with_persisted_defaults()
     {
         var fixture = new ServiceFixture();
@@ -30,25 +30,49 @@ public class CapabilitiesServiceTests
             CapabilityNames.Terminal,
             CapabilityNames.Vscode,
             CapabilityNames.Opencode);
-        views.Should().OnlyContain(v => v.Enabled == false);
+        // Essential terminal is detection-ready (ADR-0026 § 9) → enabled mirrors detected.
+        views.Single(v => v.Name == CapabilityNames.Terminal).Enabled.Should().BeTrue();
         views.Single(v => v.Name == CapabilityNames.Terminal).Detected.Should().BeTrue();
         views.Single(v => v.Name == CapabilityNames.Terminal).DetectionDetail.Should().Be("tmux 3.5a");
+        // Essential repositories undetected → disabled.
+        views.Single(v => v.Name == CapabilityNames.Repositories).Enabled.Should().BeFalse();
         views.Single(v => v.Name == CapabilityNames.Repositories).Detected.Should().BeFalse();
+        // Optional vscode: detected but no explicit opt-in → still disabled.
+        views.Single(v => v.Name == CapabilityNames.Vscode).Enabled.Should().BeFalse();
     }
 
-    [Fact(DisplayName = "List отдаёт persisted enabled из singleton")]
+    [Fact(DisplayName = "List: опциональная capability отдаёт persisted enabled; essential игнорирует toggle")]
     public async Task List_returns_persisted_enabled_toggle()
     {
         var fixture = new ServiceFixture();
         var stored = CapabilitiesAggregate.CreateEmpty(Now);
+        stored.SetEnabled(CapabilityNames.Vscode, true, Now);
         stored.SetEnabled(CapabilityNames.Terminal, true, Now);
         fixture.Persisted(stored);
         fixture.DetectionMissing();
 
         var views = await fixture.Service.ListAsync(CancellationToken.None);
 
-        views.Single(v => v.Name == CapabilityNames.Terminal).Enabled.Should().BeTrue();
-        views.Single(v => v.Name == CapabilityNames.Repositories).Enabled.Should().BeFalse();
+        // Optional vscode reflects the persisted toggle regardless of detection.
+        views.Single(v => v.Name == CapabilityNames.Vscode).Enabled.Should().BeTrue();
+        // Essential terminal ignores the stored toggle — undetected → disabled.
+        views.Single(v => v.Name == CapabilityNames.Terminal).Enabled.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "IsAvailable: essential terminal доступен по detection без opt-in; opt-in без detection — нет")]
+    public async Task IsAvailable_essential_is_detection_ready()
+    {
+        var fixture = new ServiceFixture();
+        fixture.NoPersisted();
+        fixture.DetectionFor(CapabilityNames.Terminal, detected: true, detail: "tmux 3.5a");
+        fixture.DetectionFor(CapabilityNames.Vscode, detected: true, detail: "1.95.3");
+
+        // Essential: detected → available even though nothing was toggled on.
+        (await fixture.Service.IsAvailableAsync(CapabilityNames.Terminal, CancellationToken.None))
+            .Should().BeTrue();
+        // Optional: detected but not toggled on → unavailable.
+        (await fixture.Service.IsAvailableAsync(CapabilityNames.Vscode, CancellationToken.None))
+            .Should().BeFalse();
     }
 
     [Fact(DisplayName = "Toggle с неизвестным name бросает capability.not_found")]
@@ -72,11 +96,13 @@ public class CapabilitiesServiceTests
         fixture.RecordSavesAndReadAfter();
         fixture.DetectionMissing();
 
-        var view = await fixture.Service.ToggleAsync(CapabilityNames.Terminal, enabled: true, CancellationToken.None);
+        // Optional capability: the returned view reflects the persisted toggle (essentials
+        // would instead report enabled=detected, masking the toggle — see auto-ready tests).
+        var view = await fixture.Service.ToggleAsync(CapabilityNames.Vscode, enabled: true, CancellationToken.None);
 
         view.Enabled.Should().BeTrue();
         await fixture.Repository.Received().SaveAsync(
-            Arg.Is<CapabilitiesAggregate>(c => c.IsEnabled(CapabilityNames.Terminal)),
+            Arg.Is<CapabilitiesAggregate>(c => c.IsEnabled(CapabilityNames.Vscode)),
             Arg.Any<CancellationToken>());
     }
 

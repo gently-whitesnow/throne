@@ -287,11 +287,18 @@ components:
       required:
         - root
         - status
+        - writable
       properties:
         root:
           type: string
           minLength: 1
           description: Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`). Inside docker this is the in-container mount point, not a host path.
+        writable:
+          type: boolean
+          description: >
+            Whether `root` currently exists and is writable (probed by creating and deleting a
+            throw-away file). Feeds the «Throne готов» readiness check — a non-writable workspace
+            root blocks clones into intent workspaces.
         host_root:
           type: string
           minLength: 1

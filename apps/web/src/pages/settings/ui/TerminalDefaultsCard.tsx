@@ -32,7 +32,10 @@ export function TerminalDefaultsCard() {
   }
 
   const current = query.data?.default_vendor;
-  const vendors = catalogQuery.data?.vendors ?? [];
+  // Только selectable вендоры — дефолтным запуском нельзя выбрать «в разработке».
+  const vendors = (catalogQuery.data?.vendors ?? []).filter(
+    (v) => v.selectable
+  );
   const selectDisabled =
     query.isLoading ||
     catalogQuery.isLoading ||

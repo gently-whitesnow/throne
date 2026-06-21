@@ -1,4 +1,5 @@
 using Throne.Application.Ports;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 
@@ -11,13 +12,14 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public sealed class RunPreflightGuards(
     IIntentRepository intents,
-    ICapabilitiesRepository capabilities,
+    ICapabilityAvailability capabilities,
     RunPreflightSpawn spawner)
 {
     public async Task EnsureCapabilityEnabledAsync(CancellationToken ct)
     {
-        var stored = await capabilities.GetAsync(ct);
-        if (stored is null || !stored.IsEnabled(CapabilityNames.Terminal))
+        // `terminal` is an essential capability: detection→ready (ADR-0026 § 9). The
+        // availability service returns true when tmux is detected, no explicit opt-in needed.
+        if (!await capabilities.IsAvailableAsync(CapabilityNames.Terminal, ct))
         {
             throw TerminalFailures.CapabilityDisabled(CapabilityNames.Terminal);
         }

@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * Vendor metadata catalog for the embedded-terminal launch surface.
-         * @description Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. The `terminal` capability itself does not gate the response — the dropdowns are populated even before that capability is on — but vendors whose own capability prerequisite is unavailable are filtered out of the list (mirroring the GitLab pattern from ADR-0032 § 8): currently `opencode` requires capability `opencode` to be both enabled and detected. Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); `opencode` reports `model_source=local` and its `models` list is materialised on the fly from the operator's local OpenAI-compatible endpoint (`Throne:LocalModel:BaseUrl`, probed via `GET {BaseUrl}/v1/models`).
+         * @description Backend is the single source of truth for terminal vendor metadata and curated model lists. The frontend builds its launch dropdowns (vendor / model / effort) and the settings default-vendor selector from this response instead of mirroring `TerminalAgentCatalog` by hand. The `terminal` capability itself does not gate the response — the dropdowns are populated even before that capability is on. Every registered vendor is returned with its `login_status` (probed CLI login) and a `selectable` flag; the settings vendor cards render all of them, while the launch dropdowns keep only `selectable=true`. Currently `opencode` reports `login_status=in_development` and `selectable=false` (local-model rework pending). Curated model lists for `claude`/`codex` are backend-static (`model_source=static`); `opencode` reports `model_source=local` and its `models` list is materialised on the fly from the operator's local OpenAI-compatible endpoint (`Throne:LocalModel:BaseUrl`, probed via `GET {BaseUrl}/v1/models`).
          */
         get: operations["listTerminalVendors"];
         put?: never;
@@ -187,7 +187,18 @@ export interface components {
             /** @description Native default effort. Present iff `supports_effort=true`; null for an effort-less vendor. */
             default_effort?: components["schemas"]["TerminalReasoningEffort"] | null;
             model_source: components["schemas"]["TerminalModelSource"];
+            /** @description Result of the per-vendor login probe (CLI present + authenticated). Feeds the vendor card in `/settings` and the «Throne готов» readiness check (≥1 vendor with `ready`). `in_development` is a static placeholder (currently `opencode`) — the vendor is shown but not launchable; see `selectable`. */
+            login_status: components["schemas"]["TerminalVendorLoginStatus"];
+            /** @description Short diagnostic from the login probe (`claude 2.x`, `codex: not logged in`, `в разработке`). Surfaced as the vendor-card subtitle; null when the probe has nothing to add. */
+            login_detail?: string | null;
+            /** @description Whether the launch surface may offer this vendor. False for `in_development` vendors (and any whose capability prerequisite is unavailable) — they still appear in `/settings` with their status, but the launch dropdown filters them out. */
+            selectable: boolean;
         };
+        /**
+         * @description Login readiness of a terminal vendor's CLI. `ready` — CLI on PATH and authenticated (`claude auth status` / `codex login status` exit 0). `logged_out` — CLI present but not authenticated. `missing` — CLI not found on PATH. `in_development` — vendor is intentionally not wired for launch yet (e.g. `opencode` pending local-model rework); it is excluded from the readiness check and not `selectable`.
+         * @enum {string}
+         */
+        TerminalVendorLoginStatus: "ready" | "logged_out" | "missing" | "in_development";
         TerminalVendorCatalogResponse: {
             /** @description Vendor pre-selected on the launch surface when neither the request nor the persisted setting pins one. */
             default_vendor: components["schemas"]["TerminalAgentVendor"];
