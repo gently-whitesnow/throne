@@ -1,6 +1,6 @@
 # AGENTS.local — Throne project specifics
 
-Проектные правила для агентов. Bundle-маппинг `mode → keys` и тексты system-частей (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это seed/source для backend runtime и frontend `/instructions` дерева. Runtime-инструкции попадают агенту через MCP `InitializeResult.instructions` (mini-router) и далее `get_prompt_bundle(mode, intent_id?)` — см. [ADR-0014](ADR/0014-mcp-initialize-instructions-routing.md) + [ADR-0036](ADR/0036-unify-prompt-part-entity-and-rename-mcp.md). Локальных skill-launcher файлов в `.claude/skills/` или `.agents/skills/` больше нет.
+Проектные правила для агентов. Bundle-маппинг `mode → keys` и тексты system-частей (scope=`system`) живут в декларативном манифесте [specs/manifest/throne-skills.yaml](manifest/throne-skills.yaml) — это seed/source для backend runtime и frontend `/instructions` дерева. Operational layer живёт отдельно как статические skills в [skills/](../skills) и CLI в [bin/](../bin): `intent`, `review`, `dream` (см. [ADR-0043](ADR/0043-static-operational-skills-and-mcp-removal.md)).
 
 ## Перед завершением хода
 
@@ -22,9 +22,9 @@ bash scripts/quality/verify.sh --scope backend|frontend    # одна сторо
 Направление зависимостей (диаграмма — канон в [readme.md → «Архитектура»](../readme.md#архитектура)): строго внутрь, `Api → Application → Domain`, `Infrastructure → Application → Domain`, `Api → Infrastructure` только в `Program.cs` / DI wiring.
 
 - **Throne.Domain** — entities, value objects, доменные правила. Без внешних зависимостей.
-- **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про MongoDB и MCP.
+- **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про MongoDB.
 - **Throne.Infrastructure** — реализация портов (Mongo).
-- **Throne.Api** — composition root + транспорт. Сейчас MCP, в будущем HTTP для `apps/web`.
+- **Throne.Api** — composition root + HTTP transport.
 
 Нарушение направления зависимостей провалит `Throne.Architecture.Tests`.
 
@@ -35,8 +35,7 @@ bash scripts/quality/verify.sh --scope backend|frontend    # одна сторо
 - **Layer + whitelist** (`LayerDependencyRulesTests`): помимо «зависимости только внутрь» — Domain whitelist `System` + `Throne.Domain`; Application whitelist `System` + `Microsoft.Extensions` + `Throne.Application` + `Throne.Domain` + `YamlDotNet`. Новый NuGet в Domain/Application = обнови whitelist в тесте + ADR.
 - **ConfigureAwait запрещён в production** (`ConfigureAwaitRulesTests`): Throne — server-side, нет SynchronizationContext. `.ConfigureAwait(...)` — шум.
 - **Single-operator, owner-оси нет** ([ADR-0029](ADR/0029-local-first-invariant-and-legacy-auth.md) § Update): Throne — local-first, один оператор на инстанс. Легаси multi-user слой демонтирован — `owner_user_id`/`ICurrentUserAccessor`, внутренняя авторизация (PAT/JWT/OAuth) и гард `OwnerUserIdRulesTests` удалены. Агрегаты не принимают `ownerUserId`, репозитории не фильтруют по owner. **Не** вводи owner-/user-дискриминатор в новые сущности и не возвращай auth как продуктовую ось; командные воркспейсы — отдельный сервис, не растягивание локальной модели.
-- **MCP tool registration** (`McpToolRegistrationRulesTests`, [ADR-0004](ADR/0004-mcp-call-audit-log.md)): тулы регистрируются ТОЛЬКО через `AddThroneTool<T>()` (оборачивает в `AuditingMcpServerTool`). SDK `WithTools`/`WithToolsFromAssembly` обходят аудит — запрещены. `McpServerTool.Create` вызывается только из `Throne.Api.Mcp.ThroneToolRegistration`.
-- **MCP nullable parameter contract** (`McpBoundMethodParameterRulesTests`): nullable-параметр MCP-тула обязан иметь default (`= null`/`= default`); иначе `AIFunctionFactory` бросит `ArgumentException`, если клиент не прислал ключ.
+- **Operational skills** ([ADR-0043](ADR/0043-static-operational-skills-and-mcp-removal.md)): не генерируй per-intent `SKILL.md` из C# и не возвращай MCP tools. Новые агентские операции добавляются как статический repo skill + `bin/throne-*` CLI поверх HTTP, только если это действительно operational surface.
 - **Inheritance depth / Maintainability Index** (Roslyn analyzers `CA1501` + `CA1505`): пороги живут в [apps/api/CodeMetricsConfig.txt](../apps/api/CodeMetricsConfig.txt), severity `warning` в [apps/api/.editorconfig](../apps/api/.editorconfig). Из-за `TreatWarningsAsErrors=true` любое **новое** нарушение валит `backend-build`. Cyclomatic (`CA1502`) и class coupling (`CA1506`) сюда не входят — выведены в `.quality` budget ([ADR-0028](ADR/0028-quality-harness-recalibration.md)).
 
 ## Maintainability gate (ratchet) и duplicate gate (advisory)
@@ -82,12 +81,11 @@ Cyclomatic complexity (`CA1502`) и class coupling (`CA1506`) **выключен
 - [apps/api/.editorconfig](../apps/api/.editorconfig) — секции `dotnet_diagnostic.CA15{01,05}.severity` и per-file suppress'ы.
 - [apps/api/Directory.Build.props](../apps/api/Directory.Build.props) — `<AdditionalFiles Include="...CodeMetricsConfig.txt" />`.
 
-## Аттачи интента (ADR-0013)
+## Аттачи интента
 
-- Discovery — `get_intent.attachments[]`. У каждой записи поля `kind` (`image`/`text`/`unsupported`) и `recommended_tool` — этот тул и зови.
-- `read_intent_attachment_image(intent_id, attachment_id)` отдаёт нативный image-блок (vision-tokens). Использовать только при `kind="image"`.
-- `read_intent_attachment_text(intent_id, attachment_id, offset?, max_chars?)` — UTF-8 slice, `max_chars` обязательно, при `truncated=true` дочитывай со следующим `offset = returned_bytes_end`.
-- MCP Resources провайдер для аттачей удалён. Никаких `intent://`-URI и `@`-mention.
+- Embedded Run стейджит аттачи в workspace в `.throne/attachments/`.
+- Prompt содержит только имя файла и относительный путь; агент читает файл обычным filesystem read.
+- Live add-after-start вне scope: новые аттачи попадают в следующую сессию.
 
 ## Frontend / UI
 

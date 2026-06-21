@@ -1,6 +1,6 @@
 # Throne
 
-Кокпит цикла разработки вокруг намерения (`Intent`) для человека в связке с AI-агентами. MCP-интерфейс + веб-UI.
+Кокпит цикла разработки вокруг намерения (`Intent`) для человека в связке с AI-агентами. Web UI + embedded agent terminal + static operational skills.
 
 ## Миссия
 
@@ -18,11 +18,11 @@ Throne — кокпит цикла разработки для человека,
 
 ## Запуск
 
-Throne работает локально, без облака и без сетевой авторизации. Основной путь - embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст и ведёт lifecycle через hooks. Standalone MCP-клиенты поддерживаются как вторичный путь через прямой Streamable HTTP endpoint `http://localhost:5008/mcp` (см. [ADR-0037](specs/ADR/0037-direct-http-mcp-for-standalone-agents.md)).
+Throne работает локально, без облака и без сетевой авторизации. Основной путь - embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст, прикладывает operational skills и ведёт lifecycle через hooks. Внешний MCP endpoint удалён; dogfooding вне UI делается теми же статическими skills из репозитория через `bin/throne-*` CLI (см. [ADR-0043](specs/ADR/0043-static-operational-skills-and-mcp-removal.md)).
 
 ### 1. Поднять Throne локально
 
-У Throne два режима запуска (см. [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). Базовая работа (MCP-память, интенты, инструкции) одинакова в обоих; различие — где живёт backend и доступны ли host-фичи (терминал, Run, «Open in VS Code», репозитории).
+У Throne два режима запуска (см. [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). Базовая работа с интентами и инструкциями одинакова в обоих; различие — где живёт backend и доступны ли host-фичи (терминал, Run, «Open in VS Code», репозитории).
 
 UI: `http://localhost:8080`, API: `http://localhost:5008`.
 
@@ -60,81 +60,26 @@ docker compose --profile db up -d
 
 Embedded-терминал - приоритетный контур. Он требует **host-backend режим**: нативный `Throne.Api` видит host CLI (`claude`, `codex`, `gh`, `git`, `tmux`, `code`) и может запускать агента в `tmux` из UI. Для этого поставь нужный CLI, залогинься в него на хосте и включи capability в `/settings`.
 
-### 3. Standalone MCP: прямой HTTP `/mcp`
+### 3. Static operational skills для dogfooding
 
-Standalone нужен, если агент запускается вне UI Throne. В этом режиме Throne — база знаний интентов: агент читает и пишет `Intent.text` и по явной просьбе меняет статус через `set_intent_status`. Плейбук исполнения через MCP не доставляется (полный контур исполнения — только embedded). Mini-router из MCP `initialize` — подсказка, а не надёжный lifecycle hook.
+Operational layer лежит в репозитории обычными файлами:
 
-Запусти `Throne.Api` на `http://localhost:5008`, затем добавь MCP endpoint в клиент.
+- `skills/intent/SKILL.md` + `bin/throne-intent`
+- `skills/review/SKILL.md` + `bin/throne-review`
+- `skills/dream/SKILL.md` + `bin/throne-dream`
 
-**Claude Code**
-
-```bash
-claude mcp add --transport http throne http://localhost:5008/mcp
-```
-
-Ручной вариант в `~/.claude.json` (`mcpServers`):
-
-```json
-{
-  "mcpServers": {
-    "throne": {
-      "type": "http",
-      "url": "http://localhost:5008/mcp"
-    }
-  }
-}
-```
-
-**Cursor** - `~/.cursor/mcp.json` (macOS/Linux) или `%USERPROFILE%\.cursor\mcp.json` (Windows)
-
-```json
-{
-  "mcpServers": {
-    "throne": {
-      "url": "http://localhost:5008/mcp"
-    }
-  }
-}
-```
-
-Cursor HTTP transport стоит проверять после перезапуска IDE: при reconnect/keep-alive проблемах открой MCP settings, переподключи сервер и проверь, что инструменты снова видны.
-
-**Codex** - `~/.codex/config.toml` (macOS/Linux) или `%USERPROFILE%\.codex\config.toml` (Windows)
-
-```toml
-[mcp_servers.throne]
-url = "http://localhost:5008/mcp"
-```
-
-CLI-вариант:
+Embedded Run сам прикладывает нужные skills и инжектит `THRONE_INTENT_ID`, `THRONE_API_BASE`, а для review — `THRONE_REPOSITORY_BINDING_ID`. Если запускаешь обычную агент-сессию прямо в этом репозитории для dogfooding, приложи нужные `skills/<id>/SKILL.md` вручную и задай:
 
 ```bash
-codex mcp add throne --url http://localhost:5008/mcp
+export THRONE_API_BASE=http://localhost:5008
+export THRONE_INTENT_ID=<intent-id>
 ```
 
-**Claude Desktop** - через стандартный stdio↔HTTP bridge `mcp-remote`
+Для review можно передать binding явно:
 
-Claude Desktop для локально запускаемых MCP-серверов использует stdio и не подключается к plain HTTP localhost напрямую. Поддерживаемый путь - внешний bridge `mcp-remote`, а не собственный прокси Throne.
-
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) или `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "throne": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "http://localhost:5008/mcp",
-        "--allow-http"
-      ]
-    }
-  }
-}
+```bash
+export THRONE_REPOSITORY_BINDING_ID=<binding-id>
 ```
-
-`--allow-http` обязателен для plain HTTP. Если локальная политика/CORS/bridge-блокировка мешает localhost, используй туннель (ngrok/cloudflared) или основной путь: embedded-терминал / Claude Code CLI.
 
 ### Host-фичи: репозитории, агент-терминал, VS Code
 
@@ -153,7 +98,7 @@ Claude Desktop для локально запускаемых MCP-серверо
 ```
 throne/
 ├── apps/
-│   ├── api/                 # .NET 10 backend (MCP + future HTTP for web)
+│   ├── api/                 # .NET 10 backend (HTTP API + embedded terminal)
 │       ├── src/
 │       │   ├── Throne.Domain/
 │       │   ├── Throne.Application/
@@ -170,6 +115,8 @@ throne/
 ├── specs/
 │   ├── ADR/                 # Architecture Decision Records
 │   └── AGENTS.local.md
+├── skills/                  # static provider-neutral operational skills
+├── bin/                     # throne-intent/review/dream CLI scripts
 ├── scripts/quality/         # verify.sh + sub-scripts
 ├── .quality/                # quality.config.json
 ├── ROOT.md                  # общие правила для агентов (канон)
@@ -212,11 +159,10 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 ## Технологии
 
 - .NET 10
-- MongoDB (replica set обязателен — write-tools используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0`)
+- MongoDB (replica set обязателен — write paths используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0`)
 - GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; нативный хостовый `gh auth`, см. host-backend режим)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
-- [ModelContextProtocol](https://github.com/modelcontextprotocol/csharp-sdk) (official C# SDK)
 - xUnit + FluentAssertions + Testcontainers
 - Central Package Management (`Directory.Packages.props`)
 
@@ -229,7 +175,8 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) | HTTP API контракты (OpenAPI source of truth) |
 | [specs/contracts/realtime/events.yaml](specs/contracts/realtime/events.yaml) | Realtime server→client события (yaml source of truth) + [ADR-0008](specs/ADR/0008-realtime-contract-first-events.md) |
 | [specs/manifest/throne-skills.yaml](specs/manifest/throne-skills.yaml) | System instructions + embedded-композиция по режимам (источник правды) |
-| [specs/ADR/0014-mcp-initialize-instructions-routing.md](specs/ADR/0014-mcp-initialize-instructions-routing.md) | MCP-доставка инструкций (mini-router в `InitializeResult.instructions`) |
+| [skills/intent/SKILL.md](skills/intent/SKILL.md) / [skills/review/SKILL.md](skills/review/SKILL.md) / [skills/dream/SKILL.md](skills/dream/SKILL.md) | Static operational skills |
+| [specs/ADR/0043-static-operational-skills-and-mcp-removal.md](specs/ADR/0043-static-operational-skills-and-mcp-removal.md) | Operational skills as repo files + MCP removal |
 | [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |
 | [ROOT.md](ROOT.md) | Общие правила для агентов (канон) |
 | [AGENTS.md](AGENTS.md) | Точка входа для Codex/агентов (стаб → ROOT.md) |

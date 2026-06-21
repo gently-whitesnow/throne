@@ -41,7 +41,7 @@ export function DreamSessionRow({ session }: { session: DreamSession }) {
   );
 }
 
-function formatPeriod(from?: string, to?: string): string {
+function formatPeriod(from?: string | null, to?: string | null): string {
   if (!from && !to) return "период не задан";
   const f = from ? new Date(from).toLocaleDateString() : "…";
   const t = to ? new Date(to).toLocaleDateString() : "…";

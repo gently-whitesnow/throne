@@ -28,11 +28,14 @@ public sealed class SessionSkillPackageRegistry(ISessionSkillCatalog catalog)
     {
         switch (descriptor.Id)
         {
-            case SessionSkillPackageIds.ReviewArtifact when resolution.ReviewArtifact is not null:
-                result.Add(new ReviewArtifactSessionSkillPackage(resolution.ReviewArtifact));
+            case SessionSkillPackageIds.Review when resolution.ReviewArtifact is not null:
+                result.Add(new ReviewSessionSkillPackage(resolution.ReviewArtifact));
                 break;
-            case SessionSkillPackageIds.IntentOperations:
-                result.Add(new IntentOperationsSessionSkillPackage(resolution.IntentId));
+            case SessionSkillPackageIds.Intent:
+                result.Add(new IntentSessionSkillPackage());
+                break;
+            case SessionSkillPackageIds.Dream:
+                result.Add(new DreamSessionSkillPackage());
                 break;
         }
     }

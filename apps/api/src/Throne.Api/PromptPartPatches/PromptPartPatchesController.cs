@@ -10,6 +10,7 @@ namespace Throne.Api.PromptPartPatches;
 public sealed class PromptPartPatchesController(
     ListPromptPartPatchesHandler listHandler,
     GetPromptPartPatchHandler getHandler,
+    ProposePromptPartPatchHandler proposeHandler,
     ApplyPromptPartPatchHandler applyHandler,
     RejectPromptPartPatchHandler rejectHandler
 ) : PromptPartPatchesControllerBase
@@ -48,6 +49,27 @@ public sealed class PromptPartPatchesController(
                 )
             );
         }
+    }
+
+    public override async Task<ActionResult<PromptPartPatchDto>> ProposePromptPartPatch(
+        ProposePromptPartPatchRequest body
+    )
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        var patch = await proposeHandler.HandleAsync(
+            new ProposePromptPartPatchCommand(
+                body.Target_scope,
+                body.Target_key,
+                body.Patch_text,
+                body.Evidence_card_ids?.ToList() ?? [],
+                body.Rationale,
+                body.Base_version,
+                body.Idempotency_key,
+                PromptPartPatchDtoMapper.FromOperation(body.Operation),
+                PromptPartPatchDtoMapper.ToDomainRoles(body.Mode_roles)),
+            HttpContext.RequestAborted
+        );
+        return Ok(PromptPartPatchDtoMapper.ToDto(patch));
     }
 
     public override async Task<ActionResult<PromptPartPatchDetailDto>> GetPromptPartPatch(

@@ -7,7 +7,6 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// MCP write-surface is intentionally NOT exposed for this aggregate (ADR-0024 § 8).
 /// Unbind ("delete repository") removes the binding record AND its on-disk workspace
 /// directory (the directory delete lives in <see cref="RepositoryBindingPersistence"/>).
 /// Realtime emission flows through the dispatching unit-of-work

@@ -1,5 +1,7 @@
 # .NET
 bin/
+!/bin/
+!/bin/throne-*
 obj/
 out/
 *.user

@@ -14,7 +14,11 @@ export interface paths {
         /** List PromptPartPatches (newest first), paginated. */
         get: operations["listPromptPartPatches"];
         put?: never;
-        post?: never;
+        /**
+         * Propose a new PromptPartPatch in status proposed.
+         * @description Agent-facing write used by the dream skill. Targets must use target_scope=user; apply/edit/reject remain operator actions.
+         */
+        post: operations["proposePromptPartPatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -121,6 +125,22 @@ export interface components {
             /** Format: date-time */
             decided_at?: string;
         };
+        ProposePromptPartPatchRequest: {
+            /** @description Must be `user`; system prompt parts are manifest-managed. */
+            target_scope: string;
+            target_key: string;
+            /** @description Whole new text for replace_text/create; empty for structural operations. */
+            patch_text: string;
+            evidence_card_ids: string[];
+            rationale: string;
+            /** Format: int32 */
+            base_version: number;
+            idempotency_key?: string;
+            /** @default replace_text */
+            operation: components["schemas"]["PromptPartPatchOperation"];
+            /** @description Desired mode roles for create/set_roles. */
+            mode_roles?: components["schemas"]["PromptPartModeRoleDto"][];
+        };
         PromptPartPatchPageDto: {
             items: components["schemas"]["PromptPartPatchDto"][];
             /** @description Opaque continuation token; null when the page exhausted the result set. */
@@ -187,6 +207,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PromptPartPatchPageDto"];
+                };
+            };
+        };
+    };
+    proposePromptPartPatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposePromptPartPatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromptPartPatchDto"];
+                };
+            };
+            /** @description Base version mismatch */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

@@ -4,6 +4,8 @@
 
 Accepted (amended дважды: (1) добавлена секция §4 «Гарантия покрытия» — четырёхслойная защита от того, что новый MCP tool окажется без логирования; стало fitness function + startup fail-fast + параметризованный smoke-тест; (2) покрытие распространено на MCP prompts (`prompts/get`) — `tool_name = "prompts/get:<promptName>"`, симметричный `AuditingMcpServerPrompt` decorator + `AddThronePrompt<T>` helper)
 
+**Update 2026-06-21:** retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The MCP server and `mcp_call_log` write/index path are removed; CLI calls are not migrated to this audit log.
+
 ## Context
 
 Центральная гипотеза из [readme.md](../../readme.md): ценность MVP не в том, что система уже улучшается, а в том, что она **собирает правильный материал** для будущего обучения. На уровне домена этот материал уже фиксируется через коллекции `intent_qa`, `intent_review` и `text_versions` (см. [ADR-0002](0002-domain-model-and-text-versioning.md)). Но этих следов недостаточно, чтобы реконструировать рабочую сессию агента целиком:

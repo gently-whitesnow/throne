@@ -8,15 +8,14 @@
 #     (`PromptCompositionResolver`).
 #
 # `bundles[]` declares the ordered mandatory composition per mode. It is consumed
-# only by the embedded contour (operator UI + run pre-flight); standalone agents
-# no longer receive a playbook over MCP (ADR-0034, ADR-0036).
+# by the operator UI + run pre-flight system-prompt composition.
 #
 # User-scope prompt parts are runtime data in Mongo. Their texts are not stored
 # here — only the fact that the corresponding key participates in a mode (via
 # `bundles[].includes` with `scope: user`).
 #
-# There is no `skills:` section: vendor skill launchers were superseded by
-# delivery via MCP `InitializeResult.instructions` (see ADR-0014).
+# Operational skills are static repo files under `skills/<id>/`; this manifest
+# keeps only system-prompt composition data.
 
 version: 1
 
@@ -49,15 +48,15 @@ system_instructions:
       Цель review — провести агентское ревью attached PR/MR и записать единственный артефакт `review_recommendation`.
 
       Правила:
-      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`, не из Mongo и не из MCP.
-      - Артефакт `review_recommendation` записывай только через запечённый скрипт `bin/throne-pr-artifact-write` в workspace сессии. Не пиши PR-артефакты напрямую в Mongo, через MCP или через CLI-specific реализацию.
+      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`, не из Mongo.
+      - Артефакт `review_recommendation` записывай только через статический скрипт `bin/throne-review` в workspace сессии. Не пиши PR-артефакты напрямую в Mongo или через provider-specific реализацию.
       - Payload скрипта соответствует `PutPullRequestArtifactRequest` из `specs/contracts/repositories/openapi.yaml`: `render`, `content`, `summary`, `source`, `source_refs`, `head_sha`, `review_recommendation`, `produced_at`. Для review используй `source="agent"`, обычно `render="markdown"` (markdown-тело рекомендации в `content`).
       - Заполняй типизированный `review_recommendation` (схема `ReviewRecommendationContent` в контракте): сейчас в схеме только `file_order[{path, reason, risk}]` — упорядочи его от самых рисковых/корневых файлов к листьям (это порядок чтения на ревью; `risk` ∈ `high|medium|low`). Импакт/провенанс будут добавлены в схему, когда появится UI-консьюмер; пока их не выдумывай.
       - Проставляй `head_sha` — head-sha PR/MR, который ты ревьюил (`gh pr view --json headRefOid` / `glab` / `git rev-parse HEAD` в workspace): по нему UI помечает артефакт устаревшим, когда PR уезжает вперёд.
       - Если gate `send-comments` включён, отправляй actionable замечания per-file/per-line в provider от лица пользователя через `gh`/`glab`. Если gate выключен, оставляй замечания только в чате сессии. Локально provider-комментарии не храни: provider остаётся source of truth.
       - В финале кратко доложи, что записал в `review_recommendation`, какие provider-комментарии отправил или почему не отправил, и какие проверки/просмотры выполнил.
 
-# Default dream_sources surfaced by mcp__throne__get_dream_sources.
+# Default dream_sources surfaced by `bin/throne-dream sources`.
 # Frontier reads conversations from these paths locally — Throne never receives the dialog bytes.
 # Users override / extend the list in their own client (out of scope for v1).
 dream_sources:

@@ -1,3 +1,4 @@
+using Throne.Application.PromptPartPatches;
 using Throne.Domain.PromptParts;
 using Throne.PromptParts.Contracts.Generated;
 
@@ -37,6 +38,23 @@ internal static class PromptPartDtoMapper
         roles is null
             ? []
             : roles.Select(r => new PromptPartModeRole(r.Mode, r.Role, r.Order)).ToList();
+
+    public static CurrentPromptPartDto ToCurrentDto(CurrentPromptPartView view) => new()
+    {
+        Prompt_part_id = view.PromptPartId,
+        Scope = view.Scope,
+        Key = view.Key,
+        Text = view.Text,
+        Current_version = view.CurrentVersion,
+        Updated_at = view.UpdatedAt,
+    };
+
+    public static string FromTargetScope(Target_scope scope) => scope switch
+    {
+        Target_scope.System => PromptPartScopeNames.System,
+        Target_scope.User => PromptPartScopeNames.User,
+        _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unknown prompt part scope."),
+    };
 
     private static List<PromptPartModeRoleDto> ToRoleDtos(IReadOnlyList<PromptPartModeRole> roles) =>
         roles.Select(r => new PromptPartModeRoleDto { Mode = r.Mode, Role = r.Role, Order = r.Order }).ToList();

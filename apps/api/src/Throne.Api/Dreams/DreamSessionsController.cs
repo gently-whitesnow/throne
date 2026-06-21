@@ -8,13 +8,14 @@ using Throne.Dreams.Contracts.Generated;
 namespace Throne.Api.Dreams;
 
 /// <summary>
-/// HTTP controller for DreamSession (ADR-0022) read endpoints. Writes go
-/// exclusively through MCP (<c>record_dream_session</c>); the UI is read-only.
+/// HTTP controller for DreamSession (ADR-0022) read endpoints plus the
+/// CLI-backed dream-session write path.
 /// </summary>
 public sealed class DreamSessionsController(
     ListDreamSessionsHandler listHandler,
     GetDreamSessionHandler getHandler,
-    GetDreamSourcesHandler sourcesHandler
+    GetDreamSourcesHandler sourcesHandler,
+    RecordDreamSessionHandler recordHandler
 ) : DreamsControllerBase
 {
     public override async Task<ActionResult<DreamSessionPageDto>> ListDreamSessions(
@@ -36,6 +37,26 @@ public sealed class DreamSessionsController(
     )
     {
         var session = await getHandler.HandleAsync(dream_session_id, HttpContext.RequestAborted);
+        return Ok(DreamSessionDtoMapper.ToDto(session));
+    }
+
+    public override async Task<ActionResult<DreamSessionDto>> RecordDreamSession(
+        RecordDreamSessionRequest body
+    )
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        var session = await recordHandler.HandleAsync(
+            new RecordDreamSessionCommand(
+                body.Vendor,
+                body.Host,
+                body.Date_from,
+                body.Date_to,
+                body.Processed_conversation_ids?.ToList() ?? [],
+                body.Summary,
+                body.Reflection,
+                body.Proposed_patch_ids?.ToList() ?? []),
+            HttpContext.RequestAborted
+        );
         return Ok(DreamSessionDtoMapper.ToDto(session));
     }
 

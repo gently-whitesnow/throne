@@ -19,8 +19,7 @@ public sealed record WriteRepositoryArtifactCommand(
 /// optimistic-concurrency miss to the typed <see cref="ApiException"/> contract used by
 /// Intent / Instruction / Tag.
 ///
-/// The MCP / HTTP write surfaces that drive this live in later slices; the port is exercised
-/// here and by the persistence tests.
+/// HTTP write paths drive this port; persistence tests exercise it directly.
 /// </summary>
 public sealed class RepositoryArtifactWriter(
     IRepositoryArtifactRepository artifacts,

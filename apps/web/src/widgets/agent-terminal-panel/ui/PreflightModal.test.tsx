@@ -134,7 +134,7 @@ describe("PreflightModal", () => {
       ...preview(),
       available_skills_for_mode: [
         {
-          skill_id: "throne-intent-ops",
+          skill_id: "intent",
           source: "throne",
           title: "Intent operations",
           description: "Правка Intent.text",
@@ -144,7 +144,7 @@ describe("PreflightModal", () => {
           selected: false
         },
         {
-          skill_id: "throne-review-artifact",
+          skill_id: "review",
           source: "throne",
           title: "Review artifact",
           description: "Запись review_recommendation",
@@ -166,7 +166,7 @@ describe("PreflightModal", () => {
     fireEvent.click(screen.getByTestId("agent-terminal-preflight-launch"));
 
     const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
-    expect(payload.selectedSkillIds).toEqual(["throne-intent-ops"]);
+    expect(payload.selectedSkillIds).toEqual(["intent"]);
     expect(reviewArtifact.disabled).toBe(true);
     expect(screen.getByText("нет привязанного репозитория")).toBeTruthy();
   });

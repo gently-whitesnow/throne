@@ -6,6 +6,8 @@ WORKDIR /src
 
 COPY apps/api/Directory.Build.props apps/api/Directory.Packages.props apps/api/.editorconfig ./apps/api/
 COPY apps/api/src ./apps/api/src
+COPY bin ./bin
+COPY skills ./skills
 COPY specs/manifest ./specs/manifest
 
 WORKDIR /src/apps/api

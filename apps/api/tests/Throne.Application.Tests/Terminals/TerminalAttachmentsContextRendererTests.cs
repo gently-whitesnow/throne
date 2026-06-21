@@ -14,7 +14,7 @@ public class TerminalAttachmentsContextRendererTests
         TerminalAttachmentsContextRenderer.Render([]).Should().BeNull();
     }
 
-    [Fact(DisplayName = "Render печатает filename и относительный путь без меты и без MCP-хинта")]
+    [Fact(DisplayName = "Render печатает filename и относительный путь без меты")]
     public void Render_emits_filename_and_relative_path_only()
     {
         var att = new IntentAttachment("att-1", "intent-1", "shot.png", "image/png", 12345, Now);

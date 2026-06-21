@@ -37,6 +37,13 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<DreamSessionPageDto>> ListDreamSessions([Microsoft.AspNetCore.Mvc.FromQuery] string vendor = null, [Microsoft.AspNetCore.Mvc.FromQuery] string host = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null, [Microsoft.AspNetCore.Mvc.FromQuery] string cursor = null);
 
         /// <summary>
+        /// Record one immutable DreamSession at the end of a dream pass.
+        /// </summary>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/dream-sessions", Name = "recordDreamSession")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<DreamSessionDto>> RecordDreamSession([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] RecordDreamSessionRequest body);
+
+        /// <summary>
         /// Single DreamSession by id.
         /// </summary>
         /// <returns>OK</returns>

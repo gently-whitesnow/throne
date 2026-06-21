@@ -25,6 +25,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/prompt-parts/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get current text and version by prompt part scope/key.
+         * @description Agent-facing read helper used by the dream skill before proposing a PromptPartPatch. Missing parts return current_version=0 and empty text.
+         */
+        get: operations["getCurrentPromptPart"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/prompt-parts/{id}": {
         parameters: {
             query?: never;
@@ -103,11 +123,22 @@ export interface components {
             mode: string;
             /** @description Role in the mode (mandatory | default_on | default_off). */
             role: string;
+            /** Format: int32 */
+            order: number;
+        };
+        CurrentPromptPartDto: {
+            /** @description Empty when the prompt part does not exist yet. */
+            prompt_part_id: string;
+            scope: string;
+            key: string;
+            text: string;
+            /** Format: int32 */
+            current_version: number;
             /**
-             * Format: int32
+             * Format: date-time
              * @description Sort position of the part within its mode block.
              */
-            order: number;
+            updated_at: string;
         };
         PromptPartDto: {
             id: string;
@@ -259,6 +290,38 @@ export interface operations {
                 };
             };
             /** @description Validation failed (unknown mode/role, blank key, duplicate mode). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getCurrentPromptPart: {
+        parameters: {
+            query: {
+                target_scope: "system" | "user";
+                target_key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentPromptPartDto"];
+                };
+            };
+            /** @description Validation failed */
             422: {
                 headers: {
                     [name: string]: unknown;

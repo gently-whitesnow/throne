@@ -33,6 +33,10 @@ public static class TerminalsModule
             runPreflightBuilder.Bind(configuration.GetSection(RunPreflightOptions.SectionName));
         }
 
+        runPreflightBuilder.Configure(options =>
+            options.ApiBaseUrl = configuration?[SessionHookOptions.ApiBaseUrlKey]
+                ?? SessionHookOptions.DefaultApiBaseUrl);
+
         services.AddSingleton<TmuxCli>();
         services.AddSingleton<ITmuxSessionManager, TmuxSessionManager>();
         services.AddSingleton<IWorkspaceTrustSeeder, ClaudeTrustSeeder>();

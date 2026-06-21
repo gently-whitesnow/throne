@@ -18,16 +18,22 @@ public sealed class InMemorySessionSkillCatalog : ISessionSkillCatalog
     private static readonly IReadOnlyList<SessionSkillDescriptor> Descriptors =
     [
         new(
-            SessionSkillPackageIds.IntentOperations,
+            SessionSkillPackageIds.Intent,
             SessionSkillPackageSources.Throne,
-            "Intent operations",
+            "Intent",
             "Правка Intent.text и создание/линковка дочерних интентов.",
             AllVendors),
         new(
-            SessionSkillPackageIds.ReviewArtifact,
+            SessionSkillPackageIds.Review,
             SessionSkillPackageSources.Throne,
-            "Review artifact",
+            "Review",
             "Запись PR-артефакта review_recommendation через привязанный репозиторий.",
+            AllVendors),
+        new(
+            SessionSkillPackageIds.Dream,
+            SessionSkillPackageSources.Throne,
+            "Dream",
+            "Dream sources, sessions и PromptPartPatch proposals через CLI.",
             AllVendors),
     ];
 

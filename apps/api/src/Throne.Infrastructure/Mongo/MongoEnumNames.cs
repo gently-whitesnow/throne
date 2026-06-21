@@ -1,4 +1,3 @@
-using Throne.Application.Ports;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
 
@@ -44,12 +43,5 @@ internal static class MongoEnumNames
         "user" => IntentTrainingAuthor.User,
         "system" => IntentTrainingAuthor.System,
         _ => throw new ArgumentOutOfRangeException(nameof(wire), wire, "Unknown intent training author."),
-    };
-
-    public static string ToWire(this McpCallOutcome value) => value switch
-    {
-        McpCallOutcome.Success => "success",
-        McpCallOutcome.Error => "error",
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
     };
 }

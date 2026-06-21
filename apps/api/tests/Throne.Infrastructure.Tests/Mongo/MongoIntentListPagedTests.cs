@@ -71,11 +71,11 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
     public async Task Filters_by_query_substring()
     {
         var (repo, uow) = await NewScopeAsync();
-        var match = await Seed(repo, uow, "Refactor MCP TOOLS", Base);
+        var match = await Seed(repo, uow, "Refactor API TOOLS", Base);
         await Seed(repo, uow, "unrelated", Base.AddMinutes(1));
 
         var page = await repo.ListPagedAsync(
-            new IntentListSpec(Statuses: null, TagId: null, Untagged: false, Pinned: false, Query: "mcp tools", Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
+            new IntentListSpec(Statuses: null, TagId: null, Untagged: false, Pinned: false, Query: "api tools", Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null),
             CancellationToken.None);
 
         page.Items.Should().HaveCount(1);

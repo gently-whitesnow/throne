@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
 using Throne.Application.Errors;
+using Throne.Application.PromptPartPatches;
 using Throne.Application.PromptParts;
 using Throne.Application.TextVersions;
+using Throne.Domain.PromptParts;
 using Throne.PromptParts.Contracts.Generated;
 
 namespace Throne.Api.PromptParts;
@@ -14,7 +16,8 @@ public sealed class PromptPartsController(
     ReplacePromptPartTextHandler replaceHandler,
     SetPromptPartRolesHandler setRolesHandler,
     DeletePromptPartHandler deleteHandler,
-    ListPromptPartVersionsHandler listVersionsHandler
+    ListPromptPartVersionsHandler listVersionsHandler,
+    GetCurrentPromptPartHandler currentHandler
 ) : PromptPartsControllerBase
 {
     public override async Task<ActionResult<ICollection<TextVersionDto>>> ListPromptPartVersions(
@@ -45,6 +48,19 @@ public sealed class PromptPartsController(
             dtos.Add(PromptPartDtoMapper.ToListDto(part));
         }
         return Ok(dtos);
+    }
+
+    public override async Task<ActionResult<CurrentPromptPartDto>> GetCurrentPromptPart(
+        Target_scope target_scope,
+        string target_key
+    )
+    {
+        var view = await currentHandler.HandleAsync(
+            PromptPartDtoMapper.FromTargetScope(target_scope),
+            target_key,
+            HttpContext.RequestAborted
+        );
+        return Ok(PromptPartDtoMapper.ToCurrentDto(view));
     }
 
     public override async Task<ActionResult<PromptPartDto>> CreatePromptPart(
