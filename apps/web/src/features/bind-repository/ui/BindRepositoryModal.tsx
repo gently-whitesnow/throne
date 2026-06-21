@@ -1,26 +1,23 @@
 import { X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 
+import { useGitProvidersStatus } from "@/entities/git-provider-status";
 import {
-  bindIntentRepository,
   type GitProvider,
-  type GitRepositoryRef,
   type RepositoryBinding
 } from "@/entities/repository-binding";
-import { errorMessage } from "@/shared/lib";
 import { Button, Modal } from "@/shared/ui";
 
-import { parsePrNumber } from "../model/pr-number";
+import { refKey, selectionIssue } from "../model/selection";
+import { useBindSelections } from "../model/use-bind-selections";
 import {
   useRepositorySearch,
   type SearchScope
 } from "../model/use-repository-search";
 import { BindRepositorySearchControls } from "./BindRepositorySearchControls";
-import {
-  BindRepositorySelectionForm,
-  type BindRepositoryFormState
-} from "./BindRepositorySelectionForm";
+import { ManualSshUrlInput } from "./ManualSshUrlInput";
 import { RepositorySearchList } from "./RepositorySearchList";
+import { SelectedRepositoriesList } from "./SelectedRepositoriesList";
 
 interface BindRepositoryModalProps {
   intentId: string;
@@ -29,25 +26,20 @@ interface BindRepositoryModalProps {
   onBound?: (binding: RepositoryBinding) => void;
 }
 
-const EMPTY_FORM: BindRepositoryFormState = {
-  branch: "",
-  prNumber: "",
-  selectedPr: null
-};
 const DEFAULT_PROVIDER: GitProvider = "github";
 
 /**
- * Modal for `POST /intents/{id}/repositories`.
+ * Multi-select picker for `POST /intents/{id}/repositories`.
  *
- *  - Search: «Только мои» (default) + checkbox «Где я участвовал»
- *    (`scope=involved`). See parent slice decision on the two scopes.
- *  - Selection: clicking a row pre-fills `branch` with the upstream default
- *    branch — operator may override before submit. `pull_request_number` is
- *    optional; empty input means "don't track a PR" and the server treats
- *    the binding as repo-only.
- *  - 409 → human-readable "репозиторий уже привязан" message. On success the
- *    modal closes immediately; the realtime `intent.repository_bound` event
- *    (handled by `useIntentRepositories`) inserts the row.
+ *  - Search a repo, click to add it as a chip; previously-added chips persist
+ *    across new searches. Each chip keeps its own branch + optional PR.
+ *  - SSH-URL paste adds a repo the autocomplete cannot find (no membership but
+ *    git access). It is bound through the same `gh`/`glab` path — host/provider
+ *    compatibility is validated on the chip (the GitLab clone uses the
+ *    configured host, so a mismatch would otherwise fail silently in clone).
+ *  - One submit fires N independent binds in parallel. Succeeded chips drop;
+ *    failed ones keep their error so the rest are not blocked. Rows appear via
+ *    the realtime `intent.repository_bound` event, same as the single-bind flow.
  */
 export function BindRepositoryModal({
   intentId,
@@ -55,88 +47,70 @@ export function BindRepositoryModal({
   onClose,
   onBound
 }: BindRepositoryModalProps) {
+  // Mount the body only while open: unmounting on close resets all state for a
+  // clean next open and avoids the `git-providers/status` probe (gh/glab auth)
+  // firing on every intent page that renders the trigger button.
+  if (!open) return null;
+  return (
+    <BindRepositoryModalBody
+      intentId={intentId}
+      onClose={onClose}
+      onBound={onBound}
+    />
+  );
+}
+
+function BindRepositoryModalBody({
+  intentId,
+  onClose,
+  onBound
+}: Omit<BindRepositoryModalProps, "open">) {
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
   const [scope, setScope] = useState<SearchScope>("mine");
-  const [selected, setSelected] = useState<GitRepositoryRef | null>(null);
-  const [form, setForm] = useState<BindRepositoryFormState>(EMPTY_FORM);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const titleId = useId();
+
+  const {
+    selections,
+    busy,
+    has,
+    toggleSearch,
+    addManual,
+    remove,
+    setBranch,
+    setPrNumber,
+    setSelectedPr,
+    submit
+  } = useBindSelections(intentId);
+
+  const { status: providerStatus } = useGitProvidersStatus();
+  const gitlabHost = providerStatus?.gitlab.host ?? null;
 
   const {
     results,
     isLoading,
     error: searchError
-  } = useRepositorySearch(query, scope, open, provider);
+  } = useRepositorySearch(query, scope, true, provider);
 
-  // Reset on close so the next open is a clean slate.
-  useEffect(() => {
-    if (open) return;
-    setQuery("");
-    setProvider(DEFAULT_PROVIDER);
-    setScope("mine");
-    setSelected(null);
-    setForm(EMPTY_FORM);
-    setBusy(false);
-    setError(null);
-  }, [open]);
-
-  // Закрытие по Escape / клику вне окна игнорируется, пока идёт привязка.
   const closeIfIdle = () => {
     if (!busy) onClose();
   };
 
-  const prNumberParsed = parsePrNumber(form.prNumber);
-  const canSubmit =
-    selected !== null &&
-    form.branch.trim().length > 0 &&
-    prNumberParsed.kind !== "invalid" &&
-    !busy;
-
-  function pickRepository(repo: GitRepositoryRef) {
-    setSelected(repo);
-    // Switching repos resets PR + branch — the previous values are no longer
-    // meaningful for the new repository. Branch defaults to upstream default.
-    setForm({
-      branch: repo.default_branch,
-      prNumber: "",
-      selectedPr: null
-    });
-  }
+  const bindableCount = selections.filter(
+    (s) => selectionIssue(s, gitlabHost) === null
+  ).length;
+  const canSubmit = !busy && bindableCount > 0;
 
   function changeProvider(nextProvider: GitProvider) {
+    // Keep already-selected repos — only the active search surface changes.
     setProvider(nextProvider);
-    setSelected(null);
-    setForm(EMPTY_FORM);
-    setError(null);
+    setQuery("");
   }
 
   async function handleSubmit() {
-    if (selected === null) return;
-    if (prNumberParsed.kind === "invalid") return;
-    setBusy(true);
-    setError(null);
-    try {
-      const binding = await bindIntentRepository(intentId, {
-        provider: selected.provider,
-        host: selected.host,
-        owner: selected.owner,
-        repo: selected.repo,
-        project_id: selected.project_id,
-        default_branch: form.branch.trim(),
-        pull_request_number:
-          prNumberParsed.kind === "value" ? prNumberParsed.value : undefined
-      });
-      onBound?.(binding);
-      onClose();
-    } catch (err: unknown) {
-      setError(formatBindError(err));
-      setBusy(false);
-    }
+    const done = await submit(gitlabHost, onBound);
+    if (done) onClose();
   }
-
-  if (!open) return null;
 
   return (
     <Modal
@@ -147,10 +121,10 @@ export function BindRepositoryModal({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
-            Привязать репозиторий
+            Привязать репозитории
           </p>
           <h3 id={titleId} className="m-0 text-lg font-semibold leading-tight">
-            Выберите репозиторий и опционально укажите PR
+            Выберите несколько репозиториев и привяжите разом
           </h3>
         </div>
         <button
@@ -185,26 +159,27 @@ export function BindRepositoryModal({
           results={results}
           isLoading={isLoading}
           error={searchError}
-          selectedFullName={selected?.full_name ?? null}
-          onSelect={pickRepository}
+          isSelected={(repo) => has(refKey(repo))}
+          onSelect={toggleSearch}
         />
 
-        <BindRepositorySelectionForm
-          selected={selected}
-          form={form}
-          onChange={setForm}
+        <ManualSshUrlInput
           disabled={busy}
+          onAdd={(ref) => {
+            const result = addManual(ref);
+            return result.ok ? null : (result.reason ?? null);
+          }}
         />
 
-        {error ? (
-          <p
-            role="alert"
-            className="m-0 text-sm text-error"
-            data-testid="bind-repository-error"
-          >
-            {error}
-          </p>
-        ) : null}
+        <SelectedRepositoriesList
+          selections={selections}
+          gitlabHost={gitlabHost}
+          disabled={busy}
+          onRemove={remove}
+          onBranch={setBranch}
+          onPrNumber={setPrNumber}
+          onSelectedPr={setSelectedPr}
+        />
 
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={onClose} disabled={busy}>
@@ -216,22 +191,14 @@ export function BindRepositoryModal({
             disabled={!canSubmit}
             data-testid="bind-repository-submit"
           >
-            {busy ? "Привязываем…" : "Привязать"}
+            {busy
+              ? "Привязываем…"
+              : bindableCount > 0
+                ? `Привязать (${String(bindableCount)})`
+                : "Привязать"}
           </Button>
         </div>
       </form>
     </Modal>
   );
-}
-
-function formatBindError(err: unknown): string {
-  return errorMessage(err, {
-    base: "Не удалось привязать",
-    byStatus: {
-      409: "Этот репозиторий уже привязан к интенту. Чтобы изменить PR — сначала отвяжите.",
-      422: "Не удалось привязать: сервер отклонил параметры (422). Проверьте провайдера и owner/repo.",
-      404: "Интент не найден (404)."
-    },
-    fallback: "Не удалось привязать репозиторий."
-  });
 }

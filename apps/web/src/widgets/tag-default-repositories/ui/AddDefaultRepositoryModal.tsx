@@ -101,7 +101,6 @@ export function AddDefaultRepositoryModal({
           results={results}
           isLoading={isLoading}
           error={error}
-          selectedFullName={null}
           onSelect={(repo) => {
             onPicked({
               provider: repo.provider,
