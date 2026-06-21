@@ -10,14 +10,14 @@ public class SkillManifestParserTests
     private const string ValidYaml = """
         version: 1
         system_instructions:
-          - kind: common
-            text: "common text"
+          - kind: interview
+            text: "interview text"
           - kind: work
             text: "work text"
         bundles:
           - mode: work
             includes:
-              - { scope: system, kind: common }
+              - { scope: system, kind: interview }
               - { scope: system, kind: work }
               - { scope: user, kind: common }
               - { scope: user, kind: work }
@@ -30,8 +30,8 @@ public class SkillManifestParserTests
 
         manifest.Version.Should().Be(1);
         manifest.SystemInstructions.Should().HaveCount(2);
-        manifest.SystemInstructions[0].Kind.Should().Be("common");
-        manifest.SystemInstructions[0].Text.Should().Be("common text");
+        manifest.SystemInstructions[0].Kind.Should().Be("interview");
+        manifest.SystemInstructions[0].Text.Should().Be("interview text");
         manifest.Bundles.Should().HaveCount(1);
         manifest.Bundles[0].Mode.Should().Be("work");
         manifest.Bundles[0].Includes.Should().HaveCount(4);
@@ -82,12 +82,12 @@ public class SkillManifestParserTests
         var yaml = """
             version: 1
             system_instructions:
-              - kind: common
+              - kind: interview
                 text: "x"
             bundles:
               - mode: work
                 includes:
-                  - { scope: system, kind: common }
+                  - { scope: system, kind: interview }
                   - { scope: system, kind: work }
             """;
         var act = () => SkillManifestParser.Parse(yaml);
@@ -102,7 +102,7 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(4);
+        manifest.SystemInstructions.Should().HaveCount(3);
         manifest.Bundles.Should().HaveCount(3);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
         manifest.DreamSources.Should().HaveCount(3);
