@@ -87,12 +87,14 @@ public interface ITmuxSessionManager
 /// and do not handle wheel themselves (e.g. opencode chat log). Off by default — leaves the
 /// mouse with the TUI for vendors that need it for clicks/selection.
 /// </param>
+/// <param name="EnvironmentVariables">Environment variables injected into the tmux session.</param>
 public sealed record TmuxSpawnRequest(
     string IntentId,
     string WorkingDirectory,
     string Command,
     IReadOnlyList<string> Arguments,
-    bool EnableMouse = false);
+    bool EnableMouse = false,
+    IReadOnlyDictionary<string, string>? EnvironmentVariables = null);
 
 /// <summary>
 /// Outcome of a spawn observation.

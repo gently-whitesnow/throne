@@ -3,11 +3,10 @@ namespace Throne.Application.Terminals;
 /// <summary>
 /// Wipes Throne-managed per-run staging from the workspace at the start of every spawn, before the
 /// session is re-seeded (skills via the adapter, attachments via <see cref="WorkspaceAttachmentDumper"/>).
-/// Fixed-name files (settings, system prompt) are overwritten each spawn and never accumulate, but
-/// staged attachments and the <c>.claude/skills/throne-*</c> trees are written per name and would
-/// otherwise leak across runs — e.g. a <c>throne-review-artifact</c> skill written in a review run
-/// would linger after the next run switches to <c>work</c>. Only Throne-owned paths are touched; the
-/// repo clone and operator-authored files are left intact.
+/// Fixed-name files (settings, system prompt) are overwritten each spawn and never accumulate.
+/// Per-skill projections and scripts are written only when selected, so stale copies must be
+/// removed before each spawn. Only Throne-owned paths are touched; the repo clone and
+/// operator-authored files are left intact.
 /// </summary>
 public static class WorkspaceStagingReset
 {
@@ -22,7 +21,17 @@ public static class WorkspaceStagingReset
             {
                 DeleteDirectory(skillDir);
             }
+            DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Intent));
+            DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Review));
+            DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Dream));
         }
+
+        DeleteFile(Path.Combine(workspacePath, "bin", "throne-intent"));
+        DeleteFile(Path.Combine(workspacePath, "bin", "throne-review"));
+        DeleteFile(Path.Combine(workspacePath, "bin", "throne-dream"));
+        DeleteFile(Path.Combine(workspacePath, "throne-session.intent.md"));
+        DeleteFile(Path.Combine(workspacePath, "throne-session.review.md"));
+        DeleteFile(Path.Combine(workspacePath, "throne-session.dream.md"));
     }
 
     private static void DeleteDirectory(string path)
@@ -30,6 +39,14 @@ public static class WorkspaceStagingReset
         if (Directory.Exists(path))
         {
             Directory.Delete(path, recursive: true);
+        }
+    }
+
+    private static void DeleteFile(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
         }
     }
 }

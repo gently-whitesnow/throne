@@ -76,7 +76,7 @@ internal sealed class OpencodeSessionHookAdapter(
 
         await OpencodePluginShim.WriteAsync(
             workspacePath, intentId, mode, NormalizeBaseUrl(hookOptions.ApiBaseUrl), ct);
-        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, hookOptions.ApiBaseUrl, ct);
+        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, ct);
 
         var systemPromptPath = await WriteSystemPromptAsync(workspacePath, systemPrompt, ct);
         var skillHints = await SessionSkillWorkspaceFiles.WriteOpencodeHintsAsync(

@@ -8,6 +8,8 @@ public sealed class RunPreflightOptions
 {
     public const string SectionName = "Throne:Run";
 
+    public string ApiBaseUrl { get; set; } = SessionHookOptions.DefaultApiBaseUrl;
+
     /// <summary>
     /// Maximum number of seconds the pre-flight will block while all bindings
     /// transition to <c>clone_status=ready</c>. Default 300s (5 minutes) per the

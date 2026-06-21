@@ -1,8 +1,8 @@
 namespace Throne.Application.Repositories;
 
 /// <summary>
-/// Bind a git repository to an intent (ADR-0024 § 1). MCP write-surface is
-/// intentionally absent (ADR-0024 § 8) — only the HTTP module dispatches this command.
+/// Bind a git repository to an intent (ADR-0024 § 1). Only the HTTP module
+/// dispatches this command.
 /// </summary>
 public sealed record BindRepositoryCommand(
     string IntentId,

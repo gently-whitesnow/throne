@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+API_BASE="${THRONE_API_BASE:-http://localhost:5008}"
+API_BASE="${API_BASE%/}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  throne-dream sources
+  throne-dream sessions [--vendor V] [--host H] [--limit N] [--cursor C]
+  throne-dream record-session < payload.json
+  throne-dream current-part --scope user --key KEY
+  throne-dream patches [--scope user] [--key KEY] [--status STATUS] [--limit N] [--cursor C]
+  throne-dream get-patch PATCH_ID
+  throne-dream propose-patch < payload.json
+USAGE
+}
+
+die() {
+  echo "throne-dream: $*" >&2
+  exit 64
+}
+
+query_string() {
+  python3 - "$@" <<'PY'
+import sys
+from urllib.parse import urlencode
+pairs = []
+args = sys.argv[1:]
+for i in range(0, len(args), 2):
+    if args[i + 1]:
+        pairs.append((args[i], args[i + 1]))
+print(("?" + urlencode(pairs)) if pairs else "")
+PY
+}
+
+http_request() {
+  local method="$1"
+  local path="$2"
+  local tmp status url
+  url="${API_BASE}${path}"
+  tmp="$(mktemp)"
+  if [[ $# -ge 3 ]]; then
+    if ! status="$(printf '%s' "$3" | curl -sS -o "${tmp}" -w '%{http_code}' \
+      -X "${method}" "${url}" -H 'Content-Type: application/json' --data-binary @-)"; then
+      rm -f "${tmp}"
+      echo "throne-dream: curl failed for ${method} ${path}" >&2
+      exit 1
+    fi
+  else
+    if ! status="$(curl -sS -o "${tmp}" -w '%{http_code}' -X "${method}" "${url}")"; then
+      rm -f "${tmp}"
+      echo "throne-dream: curl failed for ${method} ${path}" >&2
+      exit 1
+    fi
+  fi
+  HTTP_STATUS="${status}"
+  HTTP_BODY="$(cat "${tmp}")"
+  rm -f "${tmp}"
+}
+
+print_or_fail() {
+  local action="$1"
+  if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
+    printf '%s\n' "${HTTP_BODY}"
+    return
+  fi
+  printf '%s\n' "${HTTP_BODY}" >&2
+  echo "throne-dream: ${action} failed with HTTP ${HTTP_STATUS}" >&2
+  exit 1
+}
+
+read_payload() {
+  local payload
+  payload="$(cat)"
+  [[ -n "${payload//[[:space:]]/}" ]] || die "expected JSON payload on stdin"
+  printf '%s' "${payload}"
+}
+
+cmd_sources() {
+  http_request GET "/api/v1/dream-sources"
+  print_or_fail "sources"
+}
+
+cmd_sessions() {
+  local vendor="" host="" limit="" cursor=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --vendor) vendor="${2:-}"; shift 2 ;;
+      --host) host="${2:-}"; shift 2 ;;
+      --limit) limit="${2:-}"; shift 2 ;;
+      --cursor) cursor="${2:-}"; shift 2 ;;
+      --help) usage; exit 0 ;;
+      *) die "unknown sessions argument: $1" ;;
+    esac
+  done
+  local query
+  query="$(query_string vendor "${vendor}" host "${host}" limit "${limit}" cursor "${cursor}")"
+  http_request GET "/api/v1/dream-sessions${query}"
+  print_or_fail "sessions"
+}
+
+cmd_record_session() {
+  [[ $# -eq 0 ]] || die "record-session takes no arguments"
+  http_request POST "/api/v1/dream-sessions" "$(read_payload)"
+  print_or_fail "record-session"
+}
+
+cmd_current_part() {
+  local scope="" key=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --scope) scope="${2:-}"; shift 2 ;;
+      --key) key="${2:-}"; shift 2 ;;
+      --help) usage; exit 0 ;;
+      *) die "unknown current-part argument: $1" ;;
+    esac
+  done
+  [[ -n "${scope}" ]] || die "current-part requires --scope"
+  [[ -n "${key}" ]] || die "current-part requires --key"
+  local query
+  query="$(query_string target_scope "${scope}" target_key "${key}")"
+  http_request GET "/api/v1/prompt-parts/current${query}"
+  print_or_fail "current-part"
+}
+
+cmd_patches() {
+  local scope="" key="" status="" limit="" cursor=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --scope) scope="${2:-}"; shift 2 ;;
+      --key) key="${2:-}"; shift 2 ;;
+      --status) status="${2:-}"; shift 2 ;;
+      --limit) limit="${2:-}"; shift 2 ;;
+      --cursor) cursor="${2:-}"; shift 2 ;;
+      --help) usage; exit 0 ;;
+      *) die "unknown patches argument: $1" ;;
+    esac
+  done
+  local query
+  query="$(query_string target_scope "${scope}" target_key "${key}" status "${status}" limit "${limit}" cursor "${cursor}")"
+  http_request GET "/api/v1/prompt-part-patches${query}"
+  print_or_fail "patches"
+}
+
+cmd_get_patch() {
+  local patch_id="${1:-}"
+  [[ -n "${patch_id}" ]] || die "get-patch requires PATCH_ID"
+  shift
+  [[ $# -eq 0 ]] || die "get-patch takes one argument"
+  http_request GET "/api/v1/prompt-part-patches/${patch_id}"
+  print_or_fail "get-patch"
+}
+
+cmd_propose_patch() {
+  [[ $# -eq 0 ]] || die "propose-patch takes no arguments"
+  http_request POST "/api/v1/prompt-part-patches" "$(read_payload)"
+  print_or_fail "propose-patch"
+}
+
+case "${1:-}" in
+  sources) shift; [[ $# -eq 0 ]] || die "sources takes no arguments"; cmd_sources ;;
+  sessions) shift; cmd_sessions "$@" ;;
+  record-session) shift; cmd_record_session "$@" ;;
+  current-part) shift; cmd_current_part "$@" ;;
+  patches) shift; cmd_patches "$@" ;;
+  get-patch) shift; cmd_get_patch "$@" ;;
+  propose-patch) shift; cmd_propose_patch "$@" ;;
+  --help|-h|"") usage ;;
+  *) die "unknown subcommand: $1" ;;
+esac

@@ -15,7 +15,8 @@ internal static class TmuxSpawnArgsBuilder
 
         // -A: attach if it already exists; -D: detach others; -s: name; -c: cwd; -d: stay detached.
         // After the command argv tmux runs `command args...` directly under its PTY.
-        var args = new List<string>(capacity: 8 + request.Arguments.Count)
+        var env = request.EnvironmentVariables ?? new Dictionary<string, string>();
+        var args = new List<string>(capacity: 8 + (env.Count * 2) + request.Arguments.Count)
         {
             "new-session",
             "-A",
@@ -23,8 +24,16 @@ internal static class TmuxSpawnArgsBuilder
             "-s", sessionName,
             "-c", request.WorkingDirectory,
             "-d",
-            request.Command,
         };
+        foreach (var pair in env.OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            if (!string.IsNullOrWhiteSpace(pair.Key))
+            {
+                args.Add("-e");
+                args.Add($"{pair.Key}={pair.Value}");
+            }
+        }
+        args.Add(request.Command);
         args.AddRange(request.Arguments);
         return args;
     }

@@ -6,6 +6,8 @@ Accepted
 Date: 2026-05-16
 Related: [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0022](0022-frontier-driven-dream-flow.md)
 
+**Update 2026-06-21:** retired for active code by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The `apps/api/src/Throne.Api/Mcp/Tools` boundary and its `.editorconfig` exception were removed.
+
 ## Контекст
 
 `apps/api/src/Throne.Api/Mcp/Tools/**/*.cs` — это [MCP] tool surface: имена параметров уходят в JSON-схему тула и становятся wire-форматом, который видят сторонние агенты (Claude Code, Claude Desktop, Codex CLI и т.п.). MCP spec и весь существующий tool-набор throne'а используют `snake_case` (`intent_id`, `from_id`, `target_kind`, …). Менять имена на C#-нативный `camelCase` нельзя — это публичный контракт.

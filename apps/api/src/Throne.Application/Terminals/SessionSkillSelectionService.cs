@@ -70,7 +70,7 @@ public sealed class SessionSkillSelectionService(
         string? selectedBindingId,
         IReadOnlyList<IntentRepositoryBinding> bindings)
     {
-        if (!selected.Contains(SessionSkillPackageIds.ReviewArtifact, StringComparer.Ordinal))
+        if (!selected.Contains(SessionSkillPackageIds.Review, StringComparer.Ordinal))
         {
             return null;
         }
@@ -86,7 +86,7 @@ public sealed class SessionSkillSelectionService(
             "selected_skill_ids contains a skill that is not materializable for this intent.",
             new Dictionary<string, object?>
             {
-                ["skill_id"] = SessionSkillPackageIds.ReviewArtifact,
+                ["skill_id"] = SessionSkillPackageIds.Review,
                 ["reason"] = ReviewArtifactWriteTarget.NoBindingReason,
             });
     }
@@ -113,7 +113,7 @@ public sealed class SessionSkillSelectionService(
         string skillId,
         IReadOnlyList<IntentRepositoryBinding> bindings)
     {
-        if (string.Equals(skillId, SessionSkillPackageIds.ReviewArtifact, StringComparison.Ordinal)
+        if (string.Equals(skillId, SessionSkillPackageIds.Review, StringComparison.Ordinal)
             && bindings.Count == 0)
         {
             return new SkillMaterialization(false, ReviewArtifactWriteTarget.NoBindingReason);

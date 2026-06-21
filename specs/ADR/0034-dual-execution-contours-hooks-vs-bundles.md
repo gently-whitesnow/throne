@@ -7,6 +7,8 @@ Date: 2026-06-11
 Related: [ADR-0008](0008-realtime-contract-first-events.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md), [ADR-0020](0020-intent-status-needs-help-and-fridge.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0027](0027-runtime-model-native-host-process.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md)
 **Amended 2026-06-19** — см. ниже.
 
+**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The standalone MCP contour is retired; embedded terminal plus static operational skills is the supported execution contour.
+
 ## Amendment (2026-06-19): standalone = knowledge base, bundle removed
 
 Решение признавало два контура: embedded на хуках и standalone «на бандлах» (§ 2). Standalone-контур **перестал быть контуром исполнения интента**: bundle-обвязка доставки плейбука выпилена целиком (MCP-тул `get_prompt_bundle`, его авто-переходы статуса, `bundles-tree`). Действующая граница:

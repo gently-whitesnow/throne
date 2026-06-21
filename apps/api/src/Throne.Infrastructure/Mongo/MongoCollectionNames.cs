@@ -4,7 +4,6 @@ public static class MongoCollectionNames
 {
     public const string Intents = "intents";
     public const string TextVersions = "text_versions";
-    public const string McpCallLog = "mcp_call_log";
     public const string IntentStatusChanges = "intent_status_changes";
     public const string IntentAttachments = "intent_attachments";
     public const string Tags = "tags";

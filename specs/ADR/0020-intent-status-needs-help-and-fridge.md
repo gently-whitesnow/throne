@@ -8,6 +8,8 @@ Extends: [ADR-0017](0017-removal-of-review-stage.md)
 
 > **Update (2026-06-12):** статус `needs_help` переименован в `awaiting_operator` с лейблом «Жду ответа» (см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) § 7). Прямой rename по всему проекту (домен `IntentStatusNames`, OpenAPI-enum `IntentStatus`, system-инструкции манифеста, фронтовые лейблы) без миграции данных и обратного алиаса. Новое имя точнее описывает массовый случай «агент остановился по ходу задачи и ждёт инпута оператора», а не только узкое «застрял». Ниже по тексту `needs_help` сохранён как исторический контекст исходного решения.
 
+> **Update (2026-06-21):** [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) retired agent MCP status writes. Embedded session hooks now derive `awaiting_operator`; status transitions stay product/system concerns rather than operational skill commands.
+
 ## Контекст
 
 Оператор-техножрец работает одновременно в нескольких контекстах (теги-проекты в сайдбаре `apps/web`). Переключаясь между ними, он теряет общую картину «где меня ждут». До этого ADR статус-машина Intent (`IntentStatusNames`) знала только один сигнал «ход за оператором» — `ready_for_review`, который агент проставляет через `mark_ready_for_review` после успешного завершения прохода (см. ADR-0017). Семантика статуса узкая: «работа сделана, иди ревьюить». Случай «агент застрял и не может продолжить» доменом не покрывался — агент либо тихо останавливался в `work`, либо отписывался в чат, либо некорректно выставлял `ready_for_review`. Оператор узнавал о блокировке только при заходе в конкретный Intent.

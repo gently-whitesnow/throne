@@ -14,7 +14,8 @@ export interface paths {
         /** List DreamSessions (newest first), paginated. */
         get: operations["listDreamSessions"];
         put?: never;
-        post?: never;
+        /** Record one immutable DreamSession at the end of a dream pass. */
+        post: operations["recordDreamSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -71,18 +72,30 @@ export interface components {
              * Format: date-time
              * @description Lower bound of the analysed period (inclusive); null when the agent took the full history.
              */
-            date_from?: string;
+            date_from?: string | null;
             /**
              * Format: date-time
              * @description Upper bound of the analysed period (inclusive); null when open-ended.
              */
-            date_to?: string;
+            date_to?: string | null;
             /** @description Opaque agent-side ids / paths of dialogs the agent read. */
             processed_conversation_ids: string[];
             summary: string;
             /** @description Agent's notes on prior applied patches (whether they landed in practice). */
             reflection?: string;
             /** @description PromptPartPatch ids created during this pass (opaque on the server). */
+            proposed_patch_ids: string[];
+        };
+        RecordDreamSessionRequest: {
+            vendor: string;
+            host: string;
+            /** Format: date-time */
+            date_from?: string | null;
+            /** Format: date-time */
+            date_to?: string | null;
+            processed_conversation_ids: string[];
+            summary: string;
+            reflection?: string;
             proposed_patch_ids: string[];
         };
         DreamSessionPageDto: {
@@ -139,6 +152,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DreamSessionPageDto"];
+                };
+            };
+        };
+    };
+    recordDreamSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordDreamSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DreamSessionDto"];
+                };
+            };
+            /** @description Validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

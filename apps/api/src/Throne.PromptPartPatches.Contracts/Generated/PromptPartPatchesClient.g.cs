@@ -208,6 +208,66 @@ namespace Throne.PromptPartPatches.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProposePromptPartPatchRequest
+    {
+
+        /// <summary>
+        /// Must be `user`; system prompt parts are manifest-managed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("target_scope")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Target_scope { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("target_key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Target_key { get; set; }
+
+        /// <summary>
+        /// Whole new text for replace_text/create; empty for structural operations.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("patch_text")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Patch_text { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("evidence_card_ids")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Evidence_card_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("rationale")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.ComponentModel.DataAnnotations.StringLength(500)]
+        public string Rationale { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("base_version")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Base_version { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("idempotency_key")]
+        [System.ComponentModel.DataAnnotations.StringLength(64)]
+        public string Idempotency_key { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("operation")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PromptPartPatchOperation>))]
+        public PromptPartPatchOperation Operation { get; set; } = Throne.PromptPartPatches.Contracts.Generated.PromptPartPatchOperation.Replace_text;
+
+        /// <summary>
+        /// Desired mode roles for create/set_roles.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode_roles")]
+        public System.Collections.Generic.ICollection<PromptPartModeRoleDto> Mode_roles { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PromptPartPatchPageDto
     {
 

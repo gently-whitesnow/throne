@@ -47,6 +47,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<PromptPartDto>> CreatePromptPart([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CreatePromptPartRequest body);
 
         /// <summary>
+        /// Get current text and version by prompt part scope/key.
+        /// </summary>
+        /// <remarks>
+        /// Agent-facing read helper used by the dream skill before proposing a PromptPartPatch. Missing parts return current_version=0 and empty text.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/prompt-parts/current", Name = "getCurrentPromptPart")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<CurrentPromptPartDto>> GetCurrentPromptPart([Microsoft.AspNetCore.Mvc.FromQuery] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] Target_scope target_scope, [Microsoft.AspNetCore.Mvc.FromQuery] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string target_key);
+
+        /// <summary>
         /// Get a single prompt part (full text + roles).
         /// </summary>
         /// <returns>OK</returns>

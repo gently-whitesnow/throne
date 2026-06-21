@@ -91,7 +91,7 @@ public class ClaudeSessionHookAdapterTests
         HookCommand(document, "UserPromptSubmit").Should().Contain("/hooks/UserPromptSubmit?mode=interview'");
     }
 
-    [Fact(DisplayName = "Review-сессия запекает общий artifact writer и Claude skill-hint")]
+    [Fact(DisplayName = "Review-сессия стейджит статический artifact writer и Claude skill")]
     public async Task Review_writes_artifact_script_and_skill()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -99,25 +99,26 @@ public class ClaudeSessionHookAdapterTests
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
-            skillPackages: [new ReviewArtifactSessionSkillPackage(ReviewTarget())],
+            skillPackages: [new ReviewSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-pr-artifact-write"));
-        script.Should().Contain("BINDING_ID='binding-1'");
-        script.Should().Contain("REPO_PROVIDER='github'");
-        script.Should().Contain("ARTIFACT_TYPE='review_recommendation'");
-        script.Should().Contain("/api/v1/repositories/${BINDING_ID}/artifacts/${ARTIFACT_TYPE}");
+        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-review"));
+        script.Should().NotContain("binding-1");
+        script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
+        script.Should().Contain("ARTIFACT_TYPE=");
+        script.Should().Contain("review_recommendation");
+        script.Should().Contain("/api/v1/repositories/${binding_id}/artifacts/${ARTIFACT_TYPE}");
 
         var skill = await File.ReadAllTextAsync(
-            Path.Combine(root, ".claude", "skills", "throne-review-artifact", "SKILL.md"));
-        skill.Should().Contain("bin/throne-pr-artifact-write");
-        skill.Should().Contain("send-comments");
+            Path.Combine(root, ".claude", "skills", "review", "SKILL.md"));
+        skill.Should().Contain("bin/throne-review");
+        skill.Should().Contain("review_recommendation");
     }
 
     private static ReviewArtifactWriteTarget ReviewTarget() =>
         new("binding-1", new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
 
-    [Fact(DisplayName = "Interview-сессия пишет intent-ops script + 2 Claude skills")]
+    [Fact(DisplayName = "Interview-сессия стейджит статический intent script + Claude skill")]
     public async Task Interview_writes_intent_operations_script_and_skills()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -128,7 +129,7 @@ public class ClaudeSessionHookAdapterTests
             root,
             TerminalRunModes.Interview,
             systemPrompt: null,
-            skillPackages: [new IntentOperationsSessionSkillPackage("intent-1")],
+            skillPackages: [new IntentSessionSkillPackage()],
             CancellationToken.None);
 
         var scriptPath = Path.Combine(root, "bin", "throne-intent");
@@ -138,19 +139,17 @@ public class ClaudeSessionHookAdapterTests
         scriptBytes.Take(2).Should().Equal([(byte)'#', (byte)'!']);
 
         var script = await File.ReadAllTextAsync(scriptPath);
-        script.Should().Contain("INTENT_ID='intent-1'");
+        script.Should().NotContain("intent-1");
+        script.Should().Contain("INTENT_ID=\"${THRONE_INTENT_ID:-}\"");
         script.Should().Contain("API_BASE=\"${THRONE_API_BASE:-http://localhost:5008}\"");
         script.Should().Contain("/api/v1/intents/${INTENT_ID}/replace-text");
         script.Should().Contain("\"expected_version\": int(sys.argv[1])");
 
-        var textSkill = await File.ReadAllTextAsync(
-            Path.Combine(root, ".claude", "skills", "throne-intent-text", "SKILL.md"));
-        textSkill.Should().Contain("replace-text --old-file");
-
-        var childSkill = await File.ReadAllTextAsync(
-            Path.Combine(root, ".claude", "skills", "throne-intent-decompose", "SKILL.md"));
-        childSkill.Should().Contain("create --text-file");
-        childSkill.Should().Contain("link \"$child_id\"");
+        var skill = await File.ReadAllTextAsync(
+            Path.Combine(root, ".claude", "skills", "intent", "SKILL.md"));
+        skill.Should().Contain("replace-text --old-file");
+        skill.Should().Contain("create --text-file");
+        skill.Should().Contain("link \"$child_id\"");
     }
 
     [Theory(DisplayName = "IsTuiReady распознаёт композёр Claude по `❯` промпту и игнорирует пустой/только-сплеш экран")]

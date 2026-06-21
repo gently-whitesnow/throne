@@ -48,7 +48,7 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
 
         args.Add(BypassHookTrustFlag);
 
-        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, options.ApiBaseUrl, ct);
+        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, ct);
 
         var effectiveSystemPrompt = SessionSkillWorkspaceFiles.WithCodexHints(
             systemPrompt, workspacePath, skillPackages);

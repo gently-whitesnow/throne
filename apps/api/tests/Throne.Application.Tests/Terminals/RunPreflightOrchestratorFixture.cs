@@ -124,7 +124,8 @@ public partial class RunPreflightOrchestratorTests
             return new RunPreflightSpawn(
                 Tmux, workspace, TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
                 [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
-                readinessWaiter, options,
+                readinessWaiter,
+                options,
                 new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());
         }

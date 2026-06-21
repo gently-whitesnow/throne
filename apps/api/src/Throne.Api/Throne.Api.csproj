@@ -17,10 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol.AspNetCore" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!--
       Skill manifest is the runtime source of truth (see ADR-0014). It must travel
       with the published binary, otherwise the API fails to boot in environments
@@ -30,6 +26,14 @@
     -->
     <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-skills.yaml"
              Link="specs/manifest/throne-skills.yaml"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\skills\**\*"
+             Link="skills/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\bin\throne-*"
+             Link="bin/%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="Always" />
   </ItemGroup>

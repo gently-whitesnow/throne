@@ -160,10 +160,10 @@ events:
     payload_ref: repositories#/components/schemas/RepositoryDto
   repository.document_updated:
     description: >
-      A RepositoryArtifact knowledge page was written (create or update) — covers both the
-      MCP write_repository_document authoring path and the HTTP PUT manual edit. Pointer-only:
-      the markdown body and the version timeline are refetched by the client, so the frame
-      carries just the coordinate + slug + new version (ADR-0031, ADR-0008).
+      A RepositoryArtifact knowledge page was written (create or update).
+      Pointer-only: the markdown body and the version timeline are refetched by
+      the client, so the frame carries just the coordinate + slug + new version
+      (ADR-0031, ADR-0008).
     payload:
       type: object
       required: [provider, owner, repo, slug, version]

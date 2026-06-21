@@ -455,8 +455,8 @@ paths:
       tags: [Intents]
       summary: Replace a unique substring of Intent.text (user-driven).
       description: >
-        User-driven counterpart to MCP replace_intent_text. Optimistic concurrency via expected_version.
-        ChangedBy=user.
+        UI and `bin/throne-intent` write path. Optimistic concurrency via
+        expected_version. ChangedBy=user.
       parameters:
         - in: path
           name: id

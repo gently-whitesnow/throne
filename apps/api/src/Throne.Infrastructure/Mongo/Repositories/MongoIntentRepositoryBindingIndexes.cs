@@ -14,7 +14,7 @@ internal static class MongoIntentRepositoryBindingIndexes
     ///     requests race.
     ///   </item>
     ///   <item>
-    ///     Secondary <c>{intent_id}</c> — drives the per-intent listing (UI / MCP).
+    ///     Secondary <c>{intent_id}</c> — drives the per-intent listing.
     ///   </item>
     ///   <item>
     ///     Secondary <c>(pull_request_state, last_synced_at)</c> — drives
