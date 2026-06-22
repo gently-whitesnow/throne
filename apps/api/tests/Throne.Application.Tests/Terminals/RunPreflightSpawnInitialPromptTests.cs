@@ -34,14 +34,22 @@ public class RunPreflightSpawnInitialPromptTests
             TuiReadinessTimeoutMilliseconds = 100,
             TuiReadinessPollIntervalMilliseconds = 20,
         };
+        var hookAdapters = new ISessionHookAdapter[] { adapter };
+        var submitGate = new TmuxPromptSubmitGate(
+            hookAdapters,
+            new TmuxPromptSubmitConfirmer(
+                tmux, options, TimeProvider.System,
+                NullLogger<TmuxPromptSubmitConfirmer>.Instance),
+            options);
         var sut = new RunPreflightSpawn(
             tmux,
             new WorkspaceRoot(workspaceRoot),
             TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
-            [adapter],
+            hookAdapters,
             new TmuxTuiReadinessWaiter(
                 tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 NullLogger<TmuxTuiReadinessWaiter>.Instance),
+            submitGate,
             options,
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
@@ -102,6 +110,7 @@ public class RunPreflightSpawnInitialPromptTests
 
         public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
         public bool IsTuiReady(string paneSnapshot) => false;
+        public bool IsPromptSubmitted(string paneSnapshot) => false;
     }
 
     private sealed class WorkspaceRoot(string root) : IWorkspaceRootProvider

@@ -37,7 +37,8 @@ public sealed class AttachIntentTerminalSkillsHandler(
     ISessionSkillCatalog catalog,
     SessionSkillSelectionService selection,
     ITmuxSessionManager tmux,
-    ISessionSkillHotAttachWriter writer)
+    ISessionSkillHotAttachWriter writer,
+    TmuxPromptSubmitGate submitGate)
 {
     public async Task<AttachIntentTerminalSkillsResult> HandleAsync(
         AttachIntentTerminalSkillsRequest request,
@@ -108,6 +109,11 @@ public sealed class AttachIntentTerminalSkillsHandler(
         try
         {
             await tmux.PasteFileAsSubmittedPromptAsync(request.IntentId, injectionPath, ct);
+            // Same race the RunPreflightSpawn paste suffers from: the trailing send-keys Enter
+            // can be absorbed by Claude's composer as newline-in-paste if it lands in the same
+            // render frame as the bracketed-paste closing marker. The gate polls for the working
+            // footer and re-sends Enter once before giving up.
+            await submitGate.ConfirmOrThrowAsync(request.IntentId, launch.Vendor, ct);
         }
         finally
         {

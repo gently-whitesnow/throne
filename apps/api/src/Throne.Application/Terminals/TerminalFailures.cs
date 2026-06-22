@@ -113,6 +113,24 @@ internal static class TerminalFailures
                 ["last_snapshot_excerpt"] = Excerpt(lastSnapshot),
             });
 
+    public static ApiException PromptSubmitNotConfirmed(
+        string intentId,
+        string vendor,
+        int retries,
+        int confirmTimeoutMilliseconds,
+        string? lastSnapshot) =>
+        new(
+            TerminalErrorCodes.PromptSubmitNotConfirmed,
+            $"Vendor '{vendor}' did not acknowledge prompt submit for intent '{intentId}' after {retries} retry(ies) / {confirmTimeoutMilliseconds} ms per poll — the pasted prompt is sitting in the composer unsubmitted. Restart the session.",
+            new Dictionary<string, object?>
+            {
+                ["intent_id"] = intentId,
+                ["vendor"] = vendor,
+                ["retries"] = retries,
+                ["confirm_timeout_milliseconds"] = confirmTimeoutMilliseconds,
+                ["last_snapshot_excerpt"] = Excerpt(lastSnapshot),
+            });
+
     public static ApiException InitialPromptSubmitFailed(
         string intentId,
         string vendor,
