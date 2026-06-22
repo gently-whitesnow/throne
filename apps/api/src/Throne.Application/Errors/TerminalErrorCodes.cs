@@ -11,6 +11,7 @@ public static class TerminalErrorCodes
     public const string SpawnFailed = "terminal.spawn_failed";
     public const string TuiReadinessTimeout = "terminal.tui_readiness_timeout";
     public const string InitialPromptSubmitFailed = "terminal.initial_prompt_submit_failed";
+    public const string PromptSubmitNotConfirmed = "terminal.prompt_submit_not_confirmed";
     public const string CloneWaitTimeout = "terminal.clone_wait_timeout";
     public const string ModeInvalid = "terminal.mode_invalid";
     public const string ArgsInvalid = "terminal.args_invalid";

@@ -92,12 +92,19 @@ public class TerminalSessionKillServiceTests
             var waiter = new TmuxTuiReadinessWaiter(
                 Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<TmuxTuiReadinessWaiter>.Instance);
+            var submitGate = new TmuxPromptSubmitGate(
+                Array.Empty<ISessionHookAdapter>(),
+                new TmuxPromptSubmitConfirmer(
+                    Tmux, options, TimeProvider.System,
+                    Microsoft.Extensions.Logging.Abstractions.NullLogger<TmuxPromptSubmitConfirmer>.Instance),
+                options);
             var spawn = new RunPreflightSpawn(
                 Tmux,
                 new StubWorkspaceRoot(WorkspaceRoot),
                 TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
                 Array.Empty<ISessionHookAdapter>(),
                 waiter,
+                submitGate,
                 options,
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());

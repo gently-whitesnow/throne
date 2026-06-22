@@ -50,6 +50,14 @@ public interface ITmuxSessionManager
     Task SendLiteralTextAsync(string intentId, string text, CancellationToken ct);
 
     /// <summary>
+    /// <c>tmux send-keys -t throne-{intent_id} Enter</c>: submits whatever is currently in the
+    /// pane's composer. Used by <see cref="TmuxPromptSubmitConfirmer"/> to retry submit when the
+    /// initial Enter following a bracketed paste was absorbed as a newline-in-paste instead of a
+    /// submit — the paste itself is already in the composer, only the Enter needs replaying.
+    /// </summary>
+    Task SendEnterAsync(string intentId, CancellationToken ct);
+
+    /// <summary>
     /// Pastes the contents of <paramref name="filePath"/> into the session's pane and submits
     /// it with Enter. The implementation chains
     /// <c>tmux load-buffer -b … &lt;path&gt;</c> + <c>tmux paste-buffer -d -p -b … -t …</c> +

@@ -100,6 +100,15 @@ internal sealed class TmuxSessionManager(
         await tmux.RunAsync(["send-keys", "-t", sessionName, "-l", text], ct);
     }
 
+    public async Task SendEnterAsync(string intentId, CancellationToken ct)
+    {
+        var sessionName = TmuxSessionName.For(intentId);
+        // No `-l`: tmux interprets the literal `Enter` token as the Return key, matching the
+        // trailing step of PasteFileAsSubmittedPromptAsync. Used by the submit-confirmation retry
+        // path when the first Enter was absorbed by the composer as newline-in-paste.
+        await tmux.RunAsync(["send-keys", "-t", sessionName, "Enter"], ct);
+    }
+
     public async Task PasteFileAsSubmittedPromptAsync(string intentId, string filePath, CancellationToken ct)
     {
         var sessionName = TmuxSessionName.For(intentId);

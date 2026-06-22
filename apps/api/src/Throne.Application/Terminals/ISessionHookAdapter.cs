@@ -59,4 +59,14 @@ public interface ISessionHookAdapter
     /// signal/stability paths gate the paste instead. Pure function over the snapshot; no I/O.
     /// </summary>
     bool IsTuiReady(string paneSnapshot);
+
+    /// <summary>
+    /// Vendor-specific submit-confirmation predicate over a <c>tmux capture-pane</c> snapshot.
+    /// Returns <c>true</c> once the pane shows the vendor's "prompt accepted" indicator — typically
+    /// a streaming/working footer (Claude/Codex: <c>esc to interrupt</c>) that only renders after
+    /// the trailing <c>send-keys Enter</c> has been honoured by the composer. Native-session
+    /// adapters that bypass the paste path (OpenCode) return <c>false</c>; the confirmer is not
+    /// invoked for them. Pure function over the snapshot; no I/O.
+    /// </summary>
+    bool IsPromptSubmitted(string paneSnapshot);
 }

@@ -91,9 +91,12 @@ public partial class RunPreflightOrchestratorTests
         Received.InOrder(() =>
         {
             fixture.Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
+            // Readiness gate before paste: composer marker must render.
             fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
             fixture.Tmux.PasteFileAsSubmittedPromptAsync(
                 IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>());
+            // Submit-confirmation gate after paste: working footer must render to confirm Enter.
+            fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
         });
         await fixture.Intents.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
