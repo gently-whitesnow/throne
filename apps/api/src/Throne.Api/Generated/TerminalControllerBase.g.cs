@@ -102,7 +102,7 @@ namespace Throne.Api.Generated
         /// Hot-attach session skills into a live tmux session.
         /// </summary>
         /// <remarks>
-        /// Loads the requested skill packages into the running Claude Code session without a restart. The handler writes `SKILL.md` files into the workspace `.claude/skills/{id}/` (so future spawns pick them up natively) and injects a single `&lt;system-reminder&gt;` user message into the live tmux pane via `tmux paste-buffer + Enter`, listing the appended skills and their `SKILL.md` content. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set but still re-injects the reminder. Currently Claude only — other vendors return 422.
+        /// Loads the requested skill packages into a running agent session without a restart when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
         /// </remarks>
         /// <returns>Skills attached; updated set echoed back.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/skills/attach", Name = "attachIntentTerminalSkills")]

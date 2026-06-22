@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
@@ -11,23 +9,19 @@ public sealed record AttachIntentTerminalSkillsRequest(string IntentId, IReadOnl
 public sealed record AttachIntentTerminalSkillsResult(IReadOnlyList<string> AttachedSkillIds);
 
 /// <summary>
-/// Hot-attach a set of session skills into a live Claude Code session without restarting it.
+/// Hot-attach a set of session skills into a live agent session without restarting it.
 /// <list type="number">
 ///   <item>404 if the intent does not exist; 409 if no live tmux session — attach requires a running
 ///         spawn (use <c>run</c> first).</item>
 ///   <item>422 when any requested skill id is unknown, when it is not materialisable for the
-///         current intent (e.g. <c>review</c> without an attached PR/MR), or when the persisted
-///         launch axis is not Claude (other vendors do not yet have a hot-attach path).</item>
-///   <item>Writes <c>.claude/skills/{id}/SKILL.md</c> into the workspace via
-///         <see cref="ISessionSkillHotAttachWriter"/> so a future restart picks the skill up
-///         natively. Composes a single <c>&lt;system-reminder&gt;</c> message that lists every
-///         attached skill with its SKILL.md text and pastes it into the pane through
-///         <see cref="ITmuxSessionManager.PasteFileAsSubmittedPromptAsync"/> so the live agent
-///         sees the new instructions immediately.</item>
+///         current intent (e.g. <c>review</c> without an attached PR/MR), or when the live
+///         vendor has no native skill hot-reload path.</item>
+///   <item>Writes the canonical <c>skills/{id}/SKILL.md</c> and active vendor pointer via
+///         <see cref="ISessionSkillHotAttachWriter"/>. Claude and Codex discover those files
+///         natively in the live session.</item>
 ///   <item>Persists the union with the previously hot-attached set via
 ///         <see cref="IIntentTerminalLaunchStore.SetAttachedSkillIdsAsync"/> and echoes the
-///         resulting full set back. Idempotent for the persisted set; the reminder is re-injected
-///         on every call so the operator's intent is always reflected in the live transcript.</item>
+///         resulting full set back. Idempotent for the persisted set.</item>
 /// </list>
 /// </summary>
 public sealed class AttachIntentTerminalSkillsHandler(
@@ -37,8 +31,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
     ISessionSkillCatalog catalog,
     SessionSkillSelectionService selection,
     ITmuxSessionManager tmux,
-    ISessionSkillHotAttachWriter writer,
-    TmuxPromptSubmitGate submitGate)
+    ISessionSkillHotAttachWriter writer)
 {
     public async Task<AttachIntentTerminalSkillsResult> HandleAsync(
         AttachIntentTerminalSkillsRequest request,
@@ -78,11 +71,11 @@ public sealed class AttachIntentTerminalSkillsHandler(
                 "Hot-attach requires a previously spawned session for this intent.",
                 new Dictionary<string, object?> { ["intent_id"] = request.IntentId });
 
-        if (!string.Equals(launch.Vendor, TerminalAgentCatalog.VendorClaude, StringComparison.Ordinal))
+        if (!SupportsNativeHotAttach(launch.Vendor))
         {
             throw new ApiException(
                 TerminalErrorCodes.SessionSkillVendorUnsupported,
-                "Hot-attach is only supported for the Claude vendor.",
+                "Hot-attach is only supported for vendors with native skill hot-reload.",
                 new Dictionary<string, object?> { ["vendor"] = launch.Vendor });
         }
 
@@ -92,33 +85,13 @@ public sealed class AttachIntentTerminalSkillsHandler(
         // attached; otherwise the validator throws ValidationFailed which we relabel below).
         var validated = ValidateMaterializable(requestedIds, await bindings.FindByIntentAsync(intent.Id, ct));
 
-        var materialization = await writer.MaterializeAsync(
+        await writer.MaterializeAsync(
             new SessionSkillPackageResolution(
                 request.IntentId,
                 launch.Vendor,
                 validated.SelectedSkillIds,
                 validated.ReviewArtifact),
             ct);
-
-        var reminderText = BuildSystemReminder(materialization.Contents);
-        var injectionPath = Path.Combine(
-            materialization.WorkspacePath,
-            $"throne-session.skill-attach.{Guid.NewGuid():N}.txt");
-        Directory.CreateDirectory(materialization.WorkspacePath);
-        await File.WriteAllTextAsync(injectionPath, reminderText, Encoding.UTF8, ct);
-        try
-        {
-            await tmux.PasteFileAsSubmittedPromptAsync(request.IntentId, injectionPath, ct);
-            // Same race the RunPreflightSpawn paste suffers from: the trailing send-keys Enter
-            // can be absorbed by Claude's composer as newline-in-paste if it lands in the same
-            // render frame as the bracketed-paste closing marker. The gate polls for the working
-            // footer and re-sends Enter once before giving up.
-            await submitGate.ConfirmOrThrowAsync(request.IntentId, launch.Vendor, reminderText, ct);
-        }
-        finally
-        {
-            try { File.Delete(injectionPath); } catch (IOException) { /* best-effort */ }
-        }
 
         var previous = launch.AttachedSkillIds ?? Array.Empty<string>();
         var merged = previous.Concat(requestedIds).Distinct(StringComparer.Ordinal).ToArray();
@@ -147,20 +120,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
         }
     }
 
-    private static string BuildSystemReminder(IReadOnlyList<HotAttachedSkillContent> contents)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("<system-reminder>");
-        sb.AppendLine("Throne hot-attach: the following session skills have been loaded into this session.");
-        sb.AppendLine();
-        foreach (var c in contents)
-        {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"## Skill: {c.SkillId}");
-            sb.AppendLine();
-            sb.AppendLine(c.SkillMarkdown.TrimEnd());
-            sb.AppendLine();
-        }
-        sb.AppendLine("</system-reminder>");
-        return sb.ToString();
-    }
+    private static bool SupportsNativeHotAttach(string vendor) =>
+        string.Equals(vendor, TerminalAgentCatalog.VendorClaude, StringComparison.Ordinal)
+        || string.Equals(vendor, TerminalAgentCatalog.VendorCodex, StringComparison.Ordinal);
 }

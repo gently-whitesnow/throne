@@ -12,10 +12,9 @@ namespace Throne.Infrastructure.Terminals;
 /// a freshly generated command hook is not skipped or blocked on interactive review.</para>
 ///
 /// <para>The assembled rules block does NOT fit inline: it is multi-KB and the whole spawn argv is
-/// packed into one ~16 KB tmux imsg (<c>command too long</c> above that). Codex's only file-backed
-/// channel for <c>developer_instructions</c> is a <c>-p &lt;name&gt;</c> profile under
-/// <c>$CODEX_HOME</c>, so the block is written there and referenced by a tiny <c>-p</c> token. That
-/// one profile per intent is reaped by <see cref="CleanupAsync"/> on intent-done.</para>
+/// packed into one ~16 KB tmux imsg (<c>command too long</c> above that). Rules still go through a
+/// <c>-p &lt;name&gt;</c> profile under <c>$CODEX_HOME</c>, while session skills are staged natively
+/// into <c>.agents/skills/</c> by <see cref="ISessionSkillMaterializer"/>.</para>
 /// </summary>
 public sealed class CodexSessionHookAdapter(
     SessionHookOptions options,
@@ -51,12 +50,11 @@ public sealed class CodexSessionHookAdapter(
 
         args.Add(BypassHookTrustFlag);
 
-        var materialization = await skillMaterializer.MaterializeAsync(
+        await skillMaterializer.MaterializeAsync(
             workspacePath, TerminalAgentCatalog.VendorCodex, skillPackages, ct);
-        var effectiveSystemPrompt = WithSkillAppendix(systemPrompt, materialization.SystemPromptAppendix);
-        if (!string.IsNullOrWhiteSpace(effectiveSystemPrompt))
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
         {
-            await WriteProfileAsync(intentId, effectiveSystemPrompt, ct);
+            await WriteProfileAsync(intentId, systemPrompt!, ct);
             args.Add("-p");
             args.Add(CodexSessionProfile.Name(intentId));
         }
@@ -88,19 +86,6 @@ public sealed class CodexSessionHookAdapter(
         }
 
         return Task.CompletedTask;
-    }
-
-    private static string WithSkillAppendix(string? systemPrompt, string? appendix)
-    {
-        if (string.IsNullOrWhiteSpace(appendix))
-        {
-            return systemPrompt ?? string.Empty;
-        }
-
-        var prompt = systemPrompt ?? string.Empty;
-        return string.IsNullOrWhiteSpace(prompt)
-            ? appendix
-            : $"{prompt.TrimEnd()}\n\n{appendix}";
     }
 
     private async Task WriteProfileAsync(string intentId, string systemPrompt, CancellationToken ct)

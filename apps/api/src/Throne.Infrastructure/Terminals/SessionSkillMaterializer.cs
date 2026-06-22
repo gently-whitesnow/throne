@@ -12,9 +12,7 @@ public interface ISessionSkillMaterializer
         CancellationToken ct);
 }
 
-public sealed record MaterializationResult(
-    IReadOnlyList<MaterializedSkill> Skills,
-    string? SystemPromptAppendix);
+public sealed record MaterializationResult(IReadOnlyList<MaterializedSkill> Skills);
 
 public sealed record MaterializedSkill(
     string SkillId,
@@ -36,19 +34,18 @@ internal sealed class SessionSkillMaterializer : ISessionSkillMaterializer
         Directory.CreateDirectory(workspacePath);
         var sourceRoot = SourceRoot();
         var skills = new List<MaterializedSkill>();
-        var codexAppendix = new List<string>();
 
         foreach (var package in DistinctPackages(packages))
         {
             var markdown = await ReadSkillAsync(sourceRoot, package.Id, ct);
+            await WriteCanonicalSkillAsync(workspacePath, package.Id, markdown, ct);
             var binPaths = CopyBins(sourceRoot, workspacePath, package.Id);
             var skillFileName = await MaterializeVendorSkillAsync(
-                workspacePath, vendor, package.Id, markdown, codexAppendix, ct);
+                workspacePath, vendor, package.Id, markdown, ct);
             skills.Add(new MaterializedSkill(package.Id, markdown, skillFileName, binPaths));
         }
 
-        var appendix = codexAppendix.Count == 0 ? null : string.Join("\n\n", codexAppendix);
-        return new MaterializationResult(skills, appendix);
+        return new MaterializationResult(skills);
     }
 
     private static IEnumerable<SessionSkillPackage> DistinctPackages(
@@ -62,7 +59,6 @@ internal sealed class SessionSkillMaterializer : ISessionSkillMaterializer
         string vendor,
         string skillId,
         string markdown,
-        List<string> codexAppendix,
         CancellationToken ct)
     {
         switch (vendor)
@@ -71,11 +67,16 @@ internal sealed class SessionSkillMaterializer : ISessionSkillMaterializer
                 var claudeTarget = Path.Combine(
                     workspacePath, ".claude", "skills", skillId, "SKILL.md");
                 Directory.CreateDirectory(Path.GetDirectoryName(claudeTarget)!);
-                await File.WriteAllTextAsync(claudeTarget, markdown, Encoding.UTF8, ct);
+                await File.WriteAllTextAsync(
+                    claudeTarget, BuildSkillPointer(skillId, markdown), Encoding.UTF8, ct);
                 return null;
 
             case TerminalAgentCatalog.VendorCodex:
-                codexAppendix.Add(markdown.TrimEnd());
+                var codexTarget = Path.Combine(
+                    workspacePath, ".agents", "skills", skillId, "SKILL.md");
+                Directory.CreateDirectory(Path.GetDirectoryName(codexTarget)!);
+                await File.WriteAllTextAsync(
+                    codexTarget, BuildSkillPointer(skillId, markdown), Encoding.UTF8, ct);
                 return null;
 
             case TerminalAgentCatalog.VendorOpencode:
@@ -88,6 +89,77 @@ internal sealed class SessionSkillMaterializer : ISessionSkillMaterializer
                 throw new NotSupportedException($"Unsupported session skill vendor '{vendor}'.");
         }
     }
+
+    private static async Task WriteCanonicalSkillAsync(
+        string workspacePath,
+        string skillId,
+        string markdown,
+        CancellationToken ct)
+    {
+        var target = Path.Combine(workspacePath, "skills", skillId, "SKILL.md");
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        await File.WriteAllTextAsync(target, markdown, Encoding.UTF8, ct);
+    }
+
+    private static string BuildSkillPointer(string skillId, string markdown)
+    {
+        var metadata = ParseSkillMetadata(skillId, markdown);
+        var canonicalPath = $"skills/{skillId}/SKILL.md";
+        var binPath = $"skills/{skillId}/bin/";
+        return $"""
+            ---
+            name: {metadata.Name}
+            description: {metadata.Description}
+            ---
+
+            # {metadata.Name}
+
+            Canonical instructions live at `{canonicalPath}` in this workspace.
+
+            Read `{canonicalPath}` before using this skill. Executable tools stay under `{binPath}`.
+            """;
+    }
+
+    private static SkillMetadata ParseSkillMetadata(string skillId, string markdown)
+    {
+        var name = skillId;
+        var description = $"Use canonical instructions at skills/{skillId}/SKILL.md.";
+        using var reader = new StringReader(markdown);
+        if (!string.Equals(reader.ReadLine(), "---", StringComparison.Ordinal))
+        {
+            return new SkillMetadata(name, description);
+        }
+
+        string? line;
+        while ((line = reader.ReadLine()) is not null)
+        {
+            if (string.Equals(line, "---", StringComparison.Ordinal))
+            {
+                break;
+            }
+            if (line.StartsWith("name:", StringComparison.Ordinal))
+            {
+                name = CleanYamlValue(line["name:".Length..]);
+            }
+            else if (line.StartsWith("description:", StringComparison.Ordinal))
+            {
+                description = CleanYamlValue(line["description:".Length..]);
+            }
+        }
+
+        return new SkillMetadata(name, description);
+    }
+
+    private static string CleanYamlValue(string value)
+    {
+        var trimmed = value.Trim();
+        return trimmed.Length >= 2
+            && ((trimmed[0] == '"' && trimmed[^1] == '"') || (trimmed[0] == '\'' && trimmed[^1] == '\''))
+            ? trimmed[1..^1]
+            : trimmed;
+    }
+
+    private sealed record SkillMetadata(string Name, string Description);
 
     private static List<string> CopyBins(
         string sourceRoot,
