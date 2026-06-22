@@ -516,7 +516,7 @@ namespace Throne.Terminal.Contracts.Generated
         public System.Collections.Generic.ICollection<string> Blocking_bindings { get; set; }
 
         /// <summary>
-        /// Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record).
+        /// Resolved launch axis (mode/vendor/model/effort) of this intent. On `run` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record).
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("launch")]
@@ -562,7 +562,7 @@ namespace Throne.Terminal.Contracts.Generated
         public TerminalReasoningEffort? Effort { get; set; }
 
         /// <summary>
-        /// Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий restart preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время).
+        /// Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время).
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("attached_skill_ids")]

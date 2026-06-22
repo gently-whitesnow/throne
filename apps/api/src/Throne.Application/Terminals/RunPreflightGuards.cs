@@ -33,15 +33,8 @@ public sealed class RunPreflightGuards(
     public async Task EnsureSessionSlotAsync(
         string intentId,
         string sessionName,
-        bool restart,
         CancellationToken ct)
     {
-        if (restart)
-        {
-            await spawner.KillSessionAsync(intentId, ct);
-            return;
-        }
-
         if (await spawner.HasSessionAsync(intentId, ct))
         {
             throw TerminalFailures.SessionAlreadyRunning(intentId, sessionName);

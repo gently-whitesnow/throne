@@ -122,7 +122,7 @@ export function useLaunchAxis({
   ]);
 
   // While the session is live the controls show its real axis, not the local draft — they are
-  // frozen anyway, but a restart with new parameters must be reflected here immediately.
+  // frozen anyway, but the live response parameters must be reflected here immediately.
   const overriding = sessionLive && sessionLaunch !== null;
   const effectiveVendor = overriding ? sessionLaunch.vendor : vendor;
   const effectiveModel = overriding ? sessionLaunch.model : model;

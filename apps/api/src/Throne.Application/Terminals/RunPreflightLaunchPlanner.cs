@@ -15,7 +15,7 @@ public sealed class RunPreflightLaunchPlanner(
     /// <summary>
     /// Resolves the launch axis and, when <paramref name="intentId"/> is provided, joins it with
     /// the previously persisted <c>attached_skill_ids</c> so the response echoes the survived
-    /// hot-attached set (the run/restart pipeline never overwrites them — see ADR-0041 follow-up
+    /// hot-attached set (the run pipeline never overwrites them — see ADR-0041 follow-up
     /// for hot-attach).
     /// </summary>
     public async Task<RunPreflightLaunchPlan> ResolveAsync(

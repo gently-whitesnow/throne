@@ -16,7 +16,11 @@ interface DeleteTagDialogProps {
  * показывает, к скольким интентам привязан тег (тот же usage-кеш, что и в
  * списке), и при необходимости предлагает «открепить и удалить».
  */
-export function DeleteTagDialog({ tag, onClose, onDeleted }: DeleteTagDialogProps) {
+export function DeleteTagDialog({
+  tag,
+  onClose,
+  onDeleted
+}: DeleteTagDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
   const usageQuery = useTagUsage(tag.id);
@@ -54,7 +58,10 @@ export function DeleteTagDialog({ tag, onClose, onDeleted }: DeleteTagDialogProp
           <AlertTriangle size={20} strokeWidth={2} />
         </span>
         <div className="flex min-w-0 flex-col gap-2">
-          <h3 id={titleId} className="m-0 text-base font-semibold leading-tight">
+          <h3
+            id={titleId}
+            className="m-0 text-base font-semibold leading-tight"
+          >
             Удалить #{tag.name}?
           </h3>
           <p
@@ -89,11 +96,7 @@ export function DeleteTagDialog({ tag, onClose, onDeleted }: DeleteTagDialogProp
           onClick={handleConfirm}
           disabled={busy || loadingUsage}
         >
-          {busy
-            ? "Удаляем…"
-            : detach
-              ? "Открепить и удалить"
-              : "Удалить"}
+          {busy ? "Удаляем…" : detach ? "Открепить и удалить" : "Удалить"}
         </button>
       </div>
     </Modal>

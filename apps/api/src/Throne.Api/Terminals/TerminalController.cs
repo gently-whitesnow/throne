@@ -56,12 +56,7 @@ public sealed class TerminalController(
     public override Task<ActionResult<RunIntentTerminalResponse>> RunIntentTerminal(
         string intent_id,
         RunIntentTerminalRequest body
-    ) => ExecuteAsync(intent_id, body, restart: false);
-
-    public override Task<ActionResult<RunIntentTerminalResponse>> RestartIntentTerminal(
-        string intent_id,
-        RunIntentTerminalRequest body
-    ) => ExecuteAsync(intent_id, body, restart: true);
+    ) => ExecuteAsync(intent_id, body);
 
     public override async Task<ActionResult<RunIntentTerminalResponse>> GetIntentTerminalSession(
         string intent_id
@@ -92,8 +87,7 @@ public sealed class TerminalController(
 
     private async Task<ActionResult<RunIntentTerminalResponse>> ExecuteAsync(
         string intentId,
-        RunIntentTerminalRequest body,
-        bool restart
+        RunIntentTerminalRequest body
     )
     {
         ArgumentNullException.ThrowIfNull(body);
@@ -107,7 +101,6 @@ public sealed class TerminalController(
             launch,
             prompt,
             TerminalRunResponseMapper.ToSelectedSkillIds(body),
-            restart,
             HttpContext.RequestAborted,
             reviewBindingId
         );

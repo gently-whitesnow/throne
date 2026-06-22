@@ -51,7 +51,7 @@ internal sealed class MongoIntentTerminalLaunchStore(IMongoDatabase database, Mo
         update = record.Effort is { } effort
             ? update.Set(d => d.Effort, effort)
             : update.Unset(d => d.Effort);
-        // attached_skill_ids is intentionally NOT touched here: the run/restart pipeline does not
+        // attached_skill_ids is intentionally NOT touched here: the run pipeline does not
         // overwrite hot-attached skills — they live independently via SetAttachedSkillIdsAsync.
         var options = new UpdateOptions { IsUpsert = true };
 

@@ -7,7 +7,6 @@ import {
   attachIntentTerminalSkills,
   getIntentTerminalSession,
   killIntentTerminal,
-  restartIntentTerminal,
   runIntentTerminal
 } from "../api/agent-terminal-api";
 
@@ -26,7 +25,7 @@ export interface TerminalSessionStartedAt {
 
 export interface TerminalSessionView {
   state: TerminalSessionState | "idle";
-  /** Response payload from the most recent /run or /restart call. */
+  /** Response payload from the most recent /run call or status probe. */
   lastResponse: RunIntentTerminalResponse | null;
   /** True once the initial status probe has resolved (success or error) — gates axis prefill. */
   probeSettled: boolean;
@@ -42,7 +41,6 @@ export interface TerminalSessionView {
   isAttachingSkills: boolean;
   startedAt: TerminalSessionStartedAt | null;
   start: (payload: TerminalRunPayload) => Promise<void>;
-  restart: (payload: TerminalRunPayload) => Promise<void>;
   /** Kill the live tmux session without respawning. */
   kill: () => Promise<void>;
   /** Hot-attach extra session skills into the live tmux session. */
@@ -147,12 +145,10 @@ export function useTerminalSession(
   useRealtimeEvent("terminal.prompt_submit_unconfirmed", onSubmitUnconfirmed);
 
   const runImpl = useCallback(
-    async (payload: TerminalRunPayload, restart: boolean) => {
+    async (payload: TerminalRunPayload) => {
       setIsStarting(true);
       try {
-        const response = restart
-          ? await restartIntentTerminal(intentId, payload)
-          : await runIntentTerminal(intentId, payload);
+        const response = await runIntentTerminal(intentId, payload);
         apply(response);
       } catch (err) {
         setInternal((prev) => ({
@@ -167,11 +163,7 @@ export function useTerminalSession(
   );
 
   const start = useCallback(
-    (payload: TerminalRunPayload) => runImpl(payload, false),
-    [runImpl]
-  );
-  const restart = useCallback(
-    (payload: TerminalRunPayload) => runImpl(payload, true),
+    (payload: TerminalRunPayload) => runImpl(payload),
     [runImpl]
   );
 
@@ -244,7 +236,6 @@ export function useTerminalSession(
     isStopping,
     isAttachingSkills,
     start,
-    restart,
     kill,
     attachSkills,
     markSessionEnded

@@ -304,7 +304,7 @@ public sealed class IntentRepositoryBinding
     }
 
     /// <summary>
-    /// <c>failed</c> is reachable from either <c>pending</c> (interrupted at restart) or
+    /// <c>failed</c> is reachable from either <c>pending</c> (interrupted clone) or
     /// <c>cloning</c> (clone crashed) per ADR-0024 §5.
     /// </summary>
     private static void EnsureFailedTransition(string current)
