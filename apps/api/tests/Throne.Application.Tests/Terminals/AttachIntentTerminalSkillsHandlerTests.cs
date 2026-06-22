@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
@@ -44,12 +43,30 @@ public class AttachIntentTerminalSkillsHandlerTests
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
     }
 
-    [Fact(DisplayName = "Vendor=codex → SessionSkillVendorUnsupported 422")]
-    public async Task Attach_non_claude_vendor_throws_422()
+    [Fact(DisplayName = "Vendor=codex hot-attach пишет native .agents skill и persist-ит set")]
+    public async Task Attach_codex_vendor_materializes_native_skill_and_persists()
     {
         var codexLaunch = new TerminalLaunchRecord(
             TerminalRunModes.Work, TerminalAgentCatalog.VendorCodex, "gpt-5.5", "high", Array.Empty<string>());
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: codexLaunch);
+
+        var result = await fixture.Handler.HandleAsync(
+            new AttachIntentTerminalSkillsRequest(IntentIdValue, [SessionSkillPackageIds.Intent]),
+            CancellationToken.None);
+
+        result.AttachedSkillIds.Should().Equal(SessionSkillPackageIds.Intent);
+        var workspacePath = Path.Combine(WorkspaceRoot, "intents", IntentIdValue);
+        File.Exists(Path.Combine(workspacePath, ".agents", "skills", SessionSkillPackageIds.Intent, "SKILL.md"))
+            .Should().BeTrue();
+        await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
+    }
+
+    [Fact(DisplayName = "Vendor=opencode → SessionSkillVendorUnsupported 422")]
+    public async Task Attach_opencode_vendor_throws_422()
+    {
+        var opencodeLaunch = new TerminalLaunchRecord(
+            TerminalRunModes.Work, TerminalAgentCatalog.VendorOpencode, "llama-4", null, Array.Empty<string>());
+        var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: opencodeLaunch);
 
         var act = () => fixture.Handler.HandleAsync(
             new AttachIntentTerminalSkillsRequest(IntentIdValue, [SessionSkillPackageIds.Intent]),
@@ -59,8 +76,8 @@ public class AttachIntentTerminalSkillsHandlerTests
         ex.Which.Code.Should().Be(TerminalErrorCodes.SessionSkillVendorUnsupported);
     }
 
-    [Fact(DisplayName = "Happy path: два intent-скила записываются, paste вызывается один раз, union persist-ится")]
-    public async Task Attach_happy_path_writes_skills_pastes_reminder_and_persists_union()
+    [Fact(DisplayName = "Happy path: скилы материализуются без paste, union persist-ится")]
+    public async Task Attach_happy_path_writes_skills_without_paste_and_persists_union()
     {
         var workspacePath = Path.Combine(WorkspaceRoot, "intents", IntentIdValue);
         if (Directory.Exists(workspacePath))
@@ -80,18 +97,19 @@ public class AttachIntentTerminalSkillsHandlerTests
         result.AttachedSkillIds.Should().BeEquivalentTo(
             new[] { SessionSkillPackageIds.Dream, SessionSkillPackageIds.Intent });
 
-        // SKILL.md files were materialized into .claude/skills/{id}/SKILL.md
-        File.Exists(Path.Combine(workspacePath, ".claude", "skills", SessionSkillPackageIds.Intent, "SKILL.md"))
-            .Should().BeTrue();
+        var canonical = await File.ReadAllTextAsync(
+            Path.Combine(workspacePath, "skills", SessionSkillPackageIds.Intent, "SKILL.md"));
+        canonical.Should().Contain("# intent skill stub");
+        var pointer = await File.ReadAllTextAsync(
+            Path.Combine(workspacePath, ".claude", "skills", SessionSkillPackageIds.Intent, "SKILL.md"));
+        pointer.Should().Contain("skills/intent/SKILL.md");
+        pointer.Should().NotContain("# intent skill stub");
         var scriptPath = Path.Combine(
             workspacePath, "skills", SessionSkillPackageIds.Intent, "bin", "throne-intent");
         File.Exists(scriptPath).Should().BeTrue();
         AssertExecutable(scriptPath);
 
-        await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
-            IntentIdValue,
-            Arg.Is<string>(p => p.Contains("throne-session.skill-attach.", StringComparison.Ordinal)),
-            Arg.Any<CancellationToken>());
+        await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
         await fixture.Launches.Received(1).SetAttachedSkillIdsAsync(
             IntentIdValue,
             Arg.Is<IReadOnlyList<string>>(ids =>
@@ -99,30 +117,6 @@ public class AttachIntentTerminalSkillsHandlerTests
                 && ids.Contains(SessionSkillPackageIds.Intent)
                 && ids.Contains(SessionSkillPackageIds.Dream)),
             Arg.Any<CancellationToken>());
-    }
-
-    [Fact(DisplayName = "Submit-confirmer не подтвердил Enter → PromptSubmitNotConfirmed, persisted set не меняется")]
-    public async Task Attach_submit_not_confirmed_throws_and_does_not_persist()
-    {
-        var workspacePath = Path.Combine(WorkspaceRoot, "intents", IntentIdValue);
-        if (Directory.Exists(workspacePath))
-        {
-            Directory.Delete(workspacePath, recursive: true);
-        }
-        Directory.CreateDirectory(workspacePath);
-        var launch = ClaudeLaunch();
-        var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: launch);
-        // Composer never shows the working footer — submit appears lost on every retry.
-        fixture.Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("❯ # intent skill stub");
-
-        var act = () => fixture.Handler.HandleAsync(
-            new AttachIntentTerminalSkillsRequest(IntentIdValue, [SessionSkillPackageIds.Intent]),
-            CancellationToken.None);
-
-        var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(TerminalErrorCodes.PromptSubmitNotConfirmed);
-        await fixture.Launches.DidNotReceiveWithAnyArgs().SetAttachedSkillIdsAsync(default!, default!, default);
     }
 
     [Fact(DisplayName = "Idempotent: повторный вызов с теми же id не дублирует persisted set")]
@@ -147,9 +141,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             Arg.Is<IReadOnlyList<string>>(ids =>
                 ids.Count == 1 && ids[0] == SessionSkillPackageIds.Intent),
             Arg.Any<CancellationToken>());
-        // Reminder is still re-injected on every call so the live agent always sees the latest intent.
-        await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
-            IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
     }
 
     private static TerminalLaunchRecord ClaudeLaunch(IReadOnlyList<string>? previousAttached = null) =>
@@ -185,51 +177,16 @@ public class AttachIntentTerminalSkillsHandlerTests
             Bindings.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
                 .Returns(Array.Empty<IntentRepositoryBinding>());
             Tmux.HasSessionAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(hasSession);
-            // Default capture-pane stub: the submit-confirmation gate must see a working footer to
-            // resolve. Tests that exercise an unconfirmed-submit override this on the fixture.
-            Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns("esc to interrupt");
             Launches.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(launch);
 
             var selection = new SessionSkillSelectionService(
                 Catalog,
                 Substitute.For<ISkillModeDefaultStore>(),
                 Substitute.For<IIntentSkillModeSelectionStore>());
-            var options = new RunPreflightOptions
-            {
-                TuiReadinessPollIntervalMilliseconds = 20,
-                PromptSubmitConfirmTimeoutMilliseconds = 200,
-                PromptSubmitMaxRetries = 1,
-            };
-            var submitGate = new TmuxPromptSubmitGate(
-                [new ClaudeStubAdapter()],
-                new TmuxPromptSubmitConfirmer(
-                    Tmux, options, TimeProvider.System,
-                    NullLogger<TmuxPromptSubmitConfirmer>.Instance),
-                options);
             Handler = new AttachIntentTerminalSkillsHandler(
-                Intents, Bindings, Launches, Catalog, selection, Tmux, Writer, submitGate);
+                Intents, Bindings, Launches, Catalog, selection, Tmux, Writer);
             return this;
         }
-    }
-
-    private sealed class ClaudeStubAdapter : ISessionHookAdapter
-    {
-        public string Vendor => TerminalAgentCatalog.VendorClaude;
-
-        public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
-            string intentId, string workspacePath, string mode, string? systemPrompt,
-            IReadOnlyList<SessionSkillPackage> skillPackages, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<string>>([]);
-
-        public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
-
-        public bool IsTuiReady(string paneSnapshot) =>
-            !string.IsNullOrEmpty(paneSnapshot) && paneSnapshot.Contains('❯');
-
-        public bool IsPromptSubmitted(string paneSnapshot) =>
-            !string.IsNullOrEmpty(paneSnapshot)
-            && paneSnapshot.Contains("esc to interrupt", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class TestSkillWriter : ISessionSkillHotAttachWriter
@@ -242,12 +199,17 @@ public class AttachIntentTerminalSkillsHandlerTests
             // can assert filesystem layout without pulling Throne.Infrastructure into the unit
             // suite (which would also require the static skill source tree at AppContext.BaseDirectory).
             var workspacePath = Path.Combine(WorkspaceRoot, "intents", resolution.IntentId);
-            var contents = new List<HotAttachedSkillContent>(resolution.SelectedSkillIds.Count);
             foreach (var skillId in resolution.SelectedSkillIds)
             {
-                var target = Path.Combine(workspacePath, ".claude", "skills", skillId, "SKILL.md");
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                File.WriteAllText(target, $"# {skillId} skill stub\n");
+                var canonical = Path.Combine(workspacePath, "skills", skillId, "SKILL.md");
+                Directory.CreateDirectory(Path.GetDirectoryName(canonical)!);
+                File.WriteAllText(canonical, $"# {skillId} skill stub\n");
+                var vendorRoot = resolution.Vendor == TerminalAgentCatalog.VendorCodex
+                    ? ".agents"
+                    : ".claude";
+                var pointer = Path.Combine(workspacePath, vendorRoot, "skills", skillId, "SKILL.md");
+                Directory.CreateDirectory(Path.GetDirectoryName(pointer)!);
+                File.WriteAllText(pointer, $"Read skills/{skillId}/SKILL.md\n");
                 var script = Path.Combine(workspacePath, "skills", skillId, "bin", $"throne-{skillId}");
                 Directory.CreateDirectory(Path.GetDirectoryName(script)!);
                 File.WriteAllText(script, "#!/usr/bin/env sh\n");
@@ -257,9 +219,8 @@ public class AttachIntentTerminalSkillsHandlerTests
                         script,
                         UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
                 }
-                contents.Add(new HotAttachedSkillContent(skillId, $"# {skillId} skill stub\n"));
             }
-            return Task.FromResult(new HotAttachMaterialization(workspacePath, contents));
+            return Task.FromResult(new HotAttachMaterialization(workspacePath));
         }
     }
 

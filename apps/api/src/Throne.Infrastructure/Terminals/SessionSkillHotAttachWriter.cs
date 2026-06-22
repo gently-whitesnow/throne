@@ -6,8 +6,8 @@ namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
 /// Infrastructure implementation of <see cref="ISessionSkillHotAttachWriter"/>. Reuses the same
-/// materializer as cold-spawn so the workspace gets the native Claude skill files and the
-/// companion executable bins atomically.
+/// materializer as cold-spawn so the workspace gets the canonical skill files, native vendor
+/// pointers, and companion executable bins atomically.
 /// </summary>
 internal sealed class SessionSkillHotAttachWriter(
     SessionSkillPackageRegistry packages,
@@ -23,12 +23,9 @@ internal sealed class SessionSkillHotAttachWriter(
         var resolved = packages.Resolve(resolution);
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", resolution.IntentId);
 
-        var materialization = await skillMaterializer.MaterializeAsync(
-            workspacePath, TerminalAgentCatalog.VendorClaude, resolved, ct);
+        await skillMaterializer.MaterializeAsync(
+            workspacePath, resolution.Vendor, resolved, ct);
 
-        var contents = materialization.Skills
-            .Select(skill => new HotAttachedSkillContent(skill.SkillId, skill.SkillMarkdown))
-            .ToArray();
-        return new HotAttachMaterialization(workspacePath, contents);
+        return new HotAttachMaterialization(workspacePath);
     }
 }

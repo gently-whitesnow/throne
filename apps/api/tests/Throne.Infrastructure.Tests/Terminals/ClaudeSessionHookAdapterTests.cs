@@ -91,7 +91,7 @@ public class ClaudeSessionHookAdapterTests
         HookCommand(document, "UserPromptSubmit").Should().Contain("/hooks/UserPromptSubmit?mode=interview'");
     }
 
-    [Fact(DisplayName = "Review-сессия стейджит статический artifact writer и Claude skill")]
+    [Fact(DisplayName = "Review-сессия стейджит artifact writer, canonical skill и Claude pointer")]
     public async Task Review_writes_artifact_script_and_skill()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
@@ -111,10 +111,15 @@ public class ClaudeSessionHookAdapterTests
         script.Should().Contain("/api/v1/repositories/${binding_id}/artifacts/${ARTIFACT_TYPE}");
         AssertExecutable(scriptPath);
 
-        var skill = await File.ReadAllTextAsync(
+        var canonical = await File.ReadAllTextAsync(Path.Combine(root, "skills", "review", "SKILL.md"));
+        canonical.Should().Contain("skills/review/bin/throne-review");
+        canonical.Should().Contain("review_recommendation");
+
+        var pointer = await File.ReadAllTextAsync(
             Path.Combine(root, ".claude", "skills", "review", "SKILL.md"));
-        skill.Should().Contain("skills/review/bin/throne-review");
-        skill.Should().Contain("review_recommendation");
+        pointer.Should().Contain("skills/review/SKILL.md");
+        pointer.Should().Contain("skills/review/bin/");
+        pointer.Should().NotContain("Payload shape");
     }
 
     private static ReviewArtifactWriteTarget ReviewTarget() =>
@@ -147,11 +152,15 @@ public class ClaudeSessionHookAdapterTests
         script.Should().Contain("/api/v1/intents/${INTENT_ID}/replace-text");
         script.Should().Contain("\"expected_version\": int(sys.argv[1])");
 
-        var skill = await File.ReadAllTextAsync(
+        var canonical = await File.ReadAllTextAsync(Path.Combine(root, "skills", "intent", "SKILL.md"));
+        canonical.Should().Contain("replace-text --old-file");
+        canonical.Should().Contain("create --text-file");
+        canonical.Should().Contain("link \"$child_id\"");
+
+        var pointer = await File.ReadAllTextAsync(
             Path.Combine(root, ".claude", "skills", "intent", "SKILL.md"));
-        skill.Should().Contain("replace-text --old-file");
-        skill.Should().Contain("create --text-file");
-        skill.Should().Contain("link \"$child_id\"");
+        pointer.Should().Contain("skills/intent/SKILL.md");
+        pointer.Should().NotContain("replace-text --old-file");
     }
 
     [Theory(DisplayName = "IsTuiReady распознаёт композёр Claude по `❯` промпту и игнорирует пустой/только-сплеш экран")]

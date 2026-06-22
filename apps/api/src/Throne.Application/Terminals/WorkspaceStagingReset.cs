@@ -14,17 +14,8 @@ public static class WorkspaceStagingReset
     {
         DeleteDirectory(WorkspaceAttachmentPaths.DirectoryPath(workspacePath));
 
-        var skillsRoot = Path.Combine(workspacePath, ".claude", "skills");
-        if (Directory.Exists(skillsRoot))
-        {
-            foreach (var skillDir in Directory.EnumerateDirectories(skillsRoot, "throne-*"))
-            {
-                DeleteDirectory(skillDir);
-            }
-            DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Intent));
-            DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Review));
-            DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Dream));
-        }
+        ResetVendorSkills(Path.Combine(workspacePath, ".claude", "skills"));
+        ResetVendorSkills(Path.Combine(workspacePath, ".agents", "skills"));
 
         DeleteDirectory(Path.Combine(workspacePath, "skills", SessionSkillPackageIds.Intent));
         DeleteDirectory(Path.Combine(workspacePath, "skills", SessionSkillPackageIds.Review));
@@ -32,6 +23,22 @@ public static class WorkspaceStagingReset
         DeleteFile(Path.Combine(workspacePath, "throne-session.intent.md"));
         DeleteFile(Path.Combine(workspacePath, "throne-session.review.md"));
         DeleteFile(Path.Combine(workspacePath, "throne-session.dream.md"));
+    }
+
+    private static void ResetVendorSkills(string skillsRoot)
+    {
+        if (!Directory.Exists(skillsRoot))
+        {
+            return;
+        }
+
+        foreach (var skillDir in Directory.EnumerateDirectories(skillsRoot, "throne-*"))
+        {
+            DeleteDirectory(skillDir);
+        }
+        DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Intent));
+        DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Review));
+        DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Dream));
     }
 
     private static void DeleteDirectory(string path)
