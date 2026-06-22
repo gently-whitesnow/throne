@@ -17,15 +17,20 @@ public sealed class TagsController(
     SetTagDefaultRepositoriesHandler setDefaultsHandler
 ) : TagsControllerBase
 {
-    public override async Task<ActionResult<ICollection<TagDto>>> ListTags()
+    public override async Task<ActionResult<TagListPageDto>> ListTags(
+        string cursor = null!,
+        int? limit = null,
+        string search = null!)
     {
-        var tags = await listHandler.HandleAsync(new ListTagsQuery(), HttpContext.RequestAborted);
-        var dtos = new List<TagDto>(tags.Count);
-        foreach (var tag in tags)
+        var page = await listHandler.HandleAsync(
+            new ListTagsQuery(search, limit, TagListCursorCodec.Parse(cursor)),
+            HttpContext.RequestAborted);
+
+        return Ok(new TagListPageDto
         {
-            dtos.Add(TagDtoMapper.ToDto(tag));
-        }
-        return Ok(dtos);
+            Items = page.Items.Select(TagDtoMapper.ToListItemDto).ToArray(),
+            Next_cursor = TagListCursorCodec.Encode(page.NextCursor),
+        });
     }
 
     public override async Task<ActionResult<TagDto>> CreateTag(CreateTagRequest body)
