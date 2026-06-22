@@ -5,23 +5,23 @@ using Throne.Infrastructure.Terminals;
 namespace Throne.Infrastructure.Tests.Terminals;
 
 /// <summary>
-/// Drift-gate for the <c>~/.claude.json</c> merge: it must trust the target directory without
-/// disturbing the operator's other projects or settings, and must refuse to touch documents it
-/// would otherwise clobber.
+/// Drift-gate for the <c>~/.claude.json</c> merge: it must seed the target directory's
+/// Claude project state without disturbing the operator's other projects or settings, and
+/// must refuse to touch documents it would otherwise clobber.
 /// </summary>
 public class ClaudeTrustDocumentTests
 {
     private const string Path = "/Users/x/.throne/workspaces/intents/abc";
 
-    [Fact(DisplayName = "Создаёт projects-запись с trust в пустом/отсутствующем файле")]
+    [Fact(DisplayName = "Создаёт projects-запись с trust и onboarding в пустом/отсутствующем файле")]
     public void Seeds_into_empty_document()
     {
         var updated = ClaudeTrustDocument.WithTrustedWorkspace(null, Path);
 
-        TrustFlag(updated, Path).Should().BeTrue();
+        ProjectState(updated, Path).Should().Be((true, true, 1));
     }
 
-    [Fact(DisplayName = "Добавляет trust новому проекту, не трогая существующие")]
+    [Fact(DisplayName = "Добавляет trust и onboarding новому проекту, не трогая существующие")]
     public void Adds_entry_preserving_siblings()
     {
         var existing = """
@@ -33,10 +33,10 @@ public class ClaudeTrustDocumentTests
         var root = JsonNode.Parse(updated!)!.AsObject();
         root["numStartups"]!.GetValue<int>().Should().Be(7);
         root["projects"]!["/other"]!["lastCost"]!.GetValue<double>().Should().Be(1.5);
-        TrustFlag(updated, Path).Should().BeTrue();
+        ProjectState(updated, Path).Should().Be((true, true, 1));
     }
 
-    [Fact(DisplayName = "Выставляет trust в уже существующей записи проекта, сохраняя её поля")]
+    [Fact(DisplayName = "Выставляет trust и onboarding в уже существующей записи проекта, сохраняя её поля")]
     public void Flips_flag_on_existing_entry()
     {
         var existing = $$"""
@@ -47,23 +47,64 @@ public class ClaudeTrustDocumentTests
 
         var entry = JsonNode.Parse(updated!)!["projects"]![Path]!;
         entry["lastCost"]!.GetValue<int>().Should().Be(2);
-        entry["hasTrustDialogAccepted"]!.GetValue<bool>().Should().BeTrue();
+        ProjectState(updated, Path).Should().Be((true, true, 1));
     }
 
-    [Fact(DisplayName = "Не переписывает файл, когда trust уже выставлен")]
-    public void NoOp_when_already_trusted()
+    [Fact(DisplayName = "Добавляет onboarding к проекту, где уже есть trust")]
+    public void Seeds_onboarding_when_trust_already_exists()
     {
         var existing = $$"""
         { "projects": { "{{Path}}": { "hasTrustDialogAccepted": true } } }
         """;
 
+        var updated = ClaudeTrustDocument.WithTrustedWorkspace(existing, Path);
+
+        ProjectState(updated, Path).Should().Be((true, true, 1));
+    }
+
+    [Fact(DisplayName = "Не переписывает файл, когда trust и onboarding уже выставлены")]
+    public void NoOp_when_already_seeded()
+    {
+        var existing = $$"""
+        {
+          "projects": {
+            "{{Path}}": {
+              "hasTrustDialogAccepted": true,
+              "hasCompletedProjectOnboarding": true,
+              "projectOnboardingSeenCount": 1
+            }
+          }
+        }
+        """;
+
         ClaudeTrustDocument.WithTrustedWorkspace(existing, Path).Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Не затирает существующий положительный onboarding seen count")]
+    public void Keeps_existing_positive_onboarding_seen_count()
+    {
+        var existing = $$"""
+        {
+          "projects": {
+            "{{Path}}": {
+              "hasTrustDialogAccepted": false,
+              "hasCompletedProjectOnboarding": false,
+              "projectOnboardingSeenCount": 3
+            }
+          }
+        }
+        """;
+
+        var updated = ClaudeTrustDocument.WithTrustedWorkspace(existing, Path);
+
+        ProjectState(updated, Path).Should().Be((true, true, 3));
     }
 
     [Theory(DisplayName = "Отказывается трогать документы, которые мог бы испортить")]
     [InlineData("not json at all")]
     [InlineData("[1, 2, 3]")]
     [InlineData("""{ "projects": "oops-a-string" }""")]
+    [InlineData($$"""{ "projects": { "{{Path}}": "oops-a-string" } }""")]
     public void Refuses_to_clobber(string existing)
     {
         ClaudeTrustDocument.WithTrustedWorkspace(existing, Path).Should().BeNull();
@@ -116,6 +157,12 @@ public class ClaudeTrustDocumentTests
         ClaudeTrustDocument.WithoutTrustedWorkspacesUnder(existing, Path).Should().BeNull();
     }
 
-    private static bool TrustFlag(string? json, string path) =>
-        JsonNode.Parse(json!)!["projects"]![path]!["hasTrustDialogAccepted"]!.GetValue<bool>();
+    private static (bool Trust, bool Onboarding, int SeenCount) ProjectState(string? json, string path)
+    {
+        var entry = JsonNode.Parse(json!)!["projects"]![path]!;
+        return (
+            entry["hasTrustDialogAccepted"]!.GetValue<bool>(),
+            entry["hasCompletedProjectOnboarding"]!.GetValue<bool>(),
+            entry["projectOnboardingSeenCount"]!.GetValue<int>());
+    }
 }
