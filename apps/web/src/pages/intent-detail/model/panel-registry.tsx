@@ -36,14 +36,12 @@ export const intentDetailPanels: readonly IntentPanelDescriptor[] = [
     id: "repository-bindings",
     placement: "review",
     order: 10,
-    capability: "repositories",
     Component: ({ intent }) => <RepositoryBindingsList intentId={intent.id} />
   },
   {
     id: "pull-request-comments",
     placement: "review",
     order: 20,
-    capability: "repositories",
     Component: ({ intent }) => (
       <PullRequestCommentsSection intentId={intent.id} />
     )

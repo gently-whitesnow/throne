@@ -1,6 +1,7 @@
 using Throne.Application.Terminals;
-using Throne.Application.Terminals.Capabilities;
 using Throne.Terminal.Contracts.Generated;
+// Capability-availability gating dropped with the toggle model — vendor selectability
+// now depends only on the `in_development` flag (ADR-0032 refactor).
 
 namespace Throne.Api.Terminals;
 
@@ -22,8 +23,7 @@ namespace Throne.Api.Terminals;
 /// </summary>
 public sealed class TerminalVendorCatalogMapper(
     IEnumerable<IVendorModelCatalog> dynamicCatalogs,
-    IEnumerable<IAgentVendorLoginProbe> loginProbes,
-    ICapabilityAvailability capabilities)
+    IEnumerable<IAgentVendorLoginProbe> loginProbes)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
         dynamicCatalogs.ToDictionary(c => c.Vendor, StringComparer.Ordinal);
@@ -45,15 +45,7 @@ public sealed class TerminalVendorCatalogMapper(
         };
     }
 
-    private async Task<bool> IsSelectableAsync(TerminalVendorDescriptor descriptor, CancellationToken ct)
-    {
-        if (descriptor.InDevelopment)
-        {
-            return false;
-        }
-        return descriptor.RequiredCapability is null
-            || await capabilities.IsAvailableAsync(descriptor.RequiredCapability, ct);
-    }
+    private static bool IsSelectable(TerminalVendorDescriptor descriptor) => !descriptor.InDevelopment;
 
     private async Task<(TerminalVendorLoginStatus Status, string? Detail)> ResolveLoginAsync(
         TerminalVendorDescriptor descriptor, CancellationToken ct)
@@ -91,7 +83,7 @@ public sealed class TerminalVendorCatalogMapper(
             Model_source = ParseModelSource(descriptor.ModelSource),
             Login_status = login.Status,
             Login_detail = login.Detail,
-            Selectable = await IsSelectableAsync(descriptor, ct),
+            Selectable = IsSelectable(descriptor),
         };
     }
 

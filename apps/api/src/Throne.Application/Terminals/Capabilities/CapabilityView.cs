@@ -9,7 +9,12 @@ public sealed record CapabilityView(
     string Name,
     string Title,
     string Description,
-    string PrerequisiteHint,
+    string? SelectedProvider,
+    IReadOnlyList<CapabilityProviderView> Providers);
+
+public sealed record CapabilityProviderView(
+    string Name,
+    string Title,
+    string? PrerequisiteHint,
     bool Detected,
-    string? DetectionDetail,
-    bool Enabled);
+    string? DetectionDetail);

@@ -42,7 +42,7 @@ public sealed class RunPreflightOrchestrator(
         ArgumentNullException.ThrowIfNull(prompt);
         RunPreflightModeGuard.EnsureKnown(mode);
         var launchPlan = await launches.ResolveAsync(mode, launch, ct);
-        await guards.EnsureCapabilityEnabledAsync(ct);
+        await guards.EnsureTmuxDetectedAsync(ct);
 
         var intent = await guards.LoadIntentAsync(intentId, ct);
         var sessionName = TmuxSessionName.For(intent.Id.Value);

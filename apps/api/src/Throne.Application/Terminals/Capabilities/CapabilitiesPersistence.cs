@@ -4,10 +4,8 @@ using CapabilitiesAggregate = Throne.Domain.Capabilities.Capabilities;
 namespace Throne.Application.Terminals.Capabilities;
 
 /// <summary>
-/// Read + upsert helper for the <see cref="CapabilitiesAggregate"/> singleton. Split
-/// out of <see cref="CapabilitiesService"/> so that service stays under the project's
-/// CA1502 type-level cyclomatic budget while keeping the unit-of-work choreography in
-/// one place.
+/// Read + upsert helper for the <see cref="CapabilitiesAggregate"/> singleton. The
+/// singleton row materialises lazily on first write.
 /// </summary>
 public sealed class CapabilitiesPersistence(
     ICapabilitiesRepository repository,
@@ -17,23 +15,27 @@ public sealed class CapabilitiesPersistence(
     public Task<CapabilitiesAggregate?> GetAsync(CancellationToken ct) =>
         repository.GetAsync(ct);
 
-    public Task UpsertToggleAsync(string name, bool enabled, CancellationToken ct)
+    /// <summary>
+    /// Persist the new <paramref name="provider"/> selection for capability
+    /// <paramref name="name"/>. Pass <c>null</c> to clear. Returns <c>true</c> when the
+    /// stored value actually changed or when the singleton row was just created.
+    /// </summary>
+    public Task<bool> UpsertSelectionAsync(string name, string? provider, CancellationToken ct)
     {
         var now = clock.GetUtcNow();
-        return unitOfWork.ExecuteAsync(inner => WriteToggleAsync(name, enabled, now, inner), ct);
+        return unitOfWork.ExecuteAsync(inner => WriteSelectionAsync(name, provider, now, inner), ct);
     }
 
-    private async Task WriteToggleAsync(string name, bool enabled, DateTimeOffset now, CancellationToken ct)
+    private async Task<bool> WriteSelectionAsync(string name, string? provider, DateTimeOffset now, CancellationToken ct)
     {
         var existed = await repository.GetAsync(ct);
         var current = existed ?? CapabilitiesAggregate.CreateEmpty(now);
-        // SetEnabled returns false when the value would not change — skip the write
-        // to avoid bumping current_version on a no-op PUT. Empty-aggregate path
-        // always saves so the singleton row materialises lazily.
-        var changed = current.SetEnabled(name, enabled, now);
+        var changed = current.SetSelectedProvider(name, provider, now);
         if (changed || existed is null)
         {
             await repository.SaveAsync(current, ct);
+            return true;
         }
+        return false;
     }
 }

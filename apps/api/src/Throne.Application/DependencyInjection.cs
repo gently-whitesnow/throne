@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Dreams;
 using Throne.Application.Events;
+using Throne.Application.Ide;
 using Throne.Application.Intents;
 using Throne.Application.Intents.Events;
 using Throne.Application.Intents.Linking;
@@ -13,7 +14,6 @@ using Throne.Application.Tags;
 using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
 using Throne.Application.TextVersions;
-using Throne.Application.Vscode;
 
 namespace Throne.Application;
 
@@ -108,11 +108,12 @@ public static class DependencyInjection
         services.AddSingleton<IDomainEventHandler, IntentLocalStateCleanupOnDoneHandler>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
-        // VS Code shell-out (Slice 2 / ADR-0026 § 7). Capability-gated by
-        // `capabilities.vscode` (toggle + live `code --version` probe).
-        services.AddSingleton<VscodeCapabilityGuard>();
-        services.AddSingleton<VscodeSpawner>();
-        services.AddSingleton<OpenInVscodeService>();
+        // Open-in-IDE (ADR-0026 § 7 + carrier-capability ADR): a single carrier
+        // capability `open_in_ide` with multiple interchangeable IDE openers
+        // (VS Code, Cursor). The opener registry is per-process; concrete
+        // IIdeOpener implementations are registered by Infrastructure.
+        services.AddSingleton<IIdeOpenerRegistry, IdeOpenerRegistry>();
+        services.AddSingleton<OpenInIdeService>();
         return services;
     }
 
@@ -121,7 +122,6 @@ public static class DependencyInjection
         // RunPreflightOrchestrator pulls in ITmuxSessionManager from Infrastructure registration.
         services.AddSingleton<CapabilitiesPersistence>();
         services.AddSingleton<CapabilitiesService>();
-        services.AddSingleton<ICapabilityAvailability>(sp => sp.GetRequiredService<CapabilitiesService>());
         services.AddSingleton<ISessionSkillCatalog, InMemorySessionSkillCatalog>();
         services.AddSingleton<SessionSkillPackageRegistry>();
         services.AddSingleton<SessionSkillSelectionService>();

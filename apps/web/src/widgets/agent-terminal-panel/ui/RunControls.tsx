@@ -46,8 +46,6 @@ interface RunControlsProps {
   isStarting: boolean;
   /** True пока POST /kill в полёте. */
   isStopping: boolean;
-  /** Включать UI Run-кнопки и xterm-блока (terminal-capability). */
-  terminalEnabled: boolean;
 }
 
 export function RunControls({
@@ -73,8 +71,7 @@ export function RunControls({
   runDisabledReason,
   sessionLive,
   isStarting,
-  isStopping,
-  terminalEnabled
+  isStopping
 }: RunControlsProps) {
   const dropdownDisabled = sessionLive || metadataLoading || metadataError;
 
@@ -171,41 +168,39 @@ export function RunControls({
         </span>
       ) : null}
 
-      {terminalEnabled ? (
-        sessionLive ? (
-          <>
-            <Button
-              data-testid="agent-terminal-restart"
-              variant="primary"
-              icon={<RotateCcw aria-hidden size={14} strokeWidth={2} />}
-              disabled={isStarting || isStopping}
-              onClick={onRestart}
-            >
-              {isStarting ? "Перезапускаем…" : "Перезапустить сессию"}
-            </Button>
-            <Button
-              data-testid="agent-terminal-kill"
-              className="btn-error"
-              icon={<Square aria-hidden size={14} strokeWidth={2} />}
-              disabled={isStarting || isStopping}
-              onClick={onKill}
-            >
-              {isStopping ? "Завершаем…" : "Завершить сессию"}
-            </Button>
-          </>
-        ) : (
+      {sessionLive ? (
+        <>
           <Button
-            data-testid="agent-terminal-run"
+            data-testid="agent-terminal-restart"
             variant="primary"
-            icon={<Play aria-hidden size={14} strokeWidth={2} />}
-            disabled={runDisabled || isStarting}
-            title={runDisabledReason ?? undefined}
-            onClick={onRun}
+            icon={<RotateCcw aria-hidden size={14} strokeWidth={2} />}
+            disabled={isStarting || isStopping}
+            onClick={onRestart}
           >
-            {isStarting ? "Запускаем…" : "Запустить в терминале"}
+            {isStarting ? "Перезапускаем…" : "Перезапустить сессию"}
           </Button>
-        )
-      ) : null}
+          <Button
+            data-testid="agent-terminal-kill"
+            className="btn-error"
+            icon={<Square aria-hidden size={14} strokeWidth={2} />}
+            disabled={isStarting || isStopping}
+            onClick={onKill}
+          >
+            {isStopping ? "Завершаем…" : "Завершить сессию"}
+          </Button>
+        </>
+      ) : (
+        <Button
+          data-testid="agent-terminal-run"
+          variant="primary"
+          icon={<Play aria-hidden size={14} strokeWidth={2} />}
+          disabled={runDisabled || isStarting}
+          title={runDisabledReason ?? undefined}
+          onClick={onRun}
+        >
+          {isStarting ? "Запускаем…" : "Запустить в терминале"}
+        </Button>
+      )}
     </div>
   );
 }

@@ -18,7 +18,6 @@ internal static class GitInfrastructureModule
     {
         var workspaceBuilder = services.AddOptions<WorkspaceOptions>();
         var githubBuilder = services.AddOptions<GitHubCliOptions>();
-        var gitlabSettingsBuilder = services.AddOptions<GitLabSettings>();
         var gitlabCliBuilder = services.AddOptions<GitLabCliOptions>();
         var prSyncBuilder = services.AddOptions<PullRequestSyncOptions>();
         var cloneRunnerBuilder = services.AddOptions<CloneRunnerOptions>();
@@ -26,7 +25,6 @@ internal static class GitInfrastructureModule
         {
             workspaceBuilder.Bind(configuration.GetSection(WorkspaceOptions.SectionName));
             githubBuilder.Bind(configuration.GetSection(GitHubCliOptions.SectionName));
-            gitlabSettingsBuilder.Bind(configuration.GetSection(GitLabSettings.SectionName));
             gitlabCliBuilder.Bind(configuration.GetSection(GitLabCliOptions.SectionName));
             prSyncBuilder.Bind(configuration.GetSection(PullRequestSyncOptions.SectionName));
             cloneRunnerBuilder.Bind(configuration.GetSection(CloneRunnerOptions.SectionName));
@@ -56,6 +54,7 @@ internal static class GitInfrastructureModule
         services.AddSingleton<GhPullRequestLister>();
         services.AddSingleton<GhRefListers>();
         services.AddSingleton<IGitProvider, GitHubCliProvider>();
+        services.AddSingleton<IGitLabHostProvider, MongoGitLabHostProvider>();
         services.AddSingleton<GlabCliInvoker>();
         services.AddSingleton<GlabRepoSearcher>();
         services.AddSingleton<GlabRepoActions>();

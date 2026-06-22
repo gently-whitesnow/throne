@@ -121,10 +121,30 @@ export interface paths {
         };
         /**
          * Authentication status for every configured git provider CLI.
-         * @description Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses the configured `Throne:GitLab:Host`.
+         * @description Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses the host persisted via `setGitLabHost` (default `gitlab.com`).
          */
         get: operations["getGitProvidersStatus"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/git-providers/gitlab/host": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Persist the GitLab host used by `glab` (e.g. `gitlab.com`, `gitlab.example.com`).
+         * @description Replaces the singleton GitLab host setting in Mongo. There is no env-var fallback; the very first read materialises the default `gitlab.com`. Takes effect on the next `glab` invocation (auth probe, repo search, clone) without restart.
+         */
+        put: operations["setGitLabHost"];
         post?: never;
         delete?: never;
         options?: never;
@@ -253,8 +273,15 @@ export interface components {
         GitProviderAuthState: "authenticated" | "unauthenticated" | "offline" | "missing";
         GitProvidersStatusDto: {
             github: components["schemas"]["GitProviderAuthStatusDto"];
-            /** @description Status for the configured GitLab host. */
             gitlab: components["schemas"]["GitProviderAuthStatusDto"];
+        };
+        GitLabHostSettingsDto: {
+            /** @description Hostname used by `glab` (e.g. `gitlab.com`, `gitlab.example.com`). */
+            host: string;
+        };
+        UpdateGitLabHostRequest: {
+            /** @description Status for the configured GitLab host. */
+            host: string;
         };
         ProblemDetails: {
             type: string;
@@ -471,6 +498,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GitProvidersStatusDto"];
+                };
+            };
+        };
+    };
+    setGitLabHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGitLabHostRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GitLabHostSettingsDto"];
+                };
+            };
+            /** @description Empty or invalid host. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

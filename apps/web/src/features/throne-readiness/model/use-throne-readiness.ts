@@ -1,4 +1,3 @@
-import { selectCapability, useCapabilities } from "@/entities/capability";
 import {
   isProviderHealthy,
   useGitProvidersStatus
@@ -9,7 +8,7 @@ import {
 } from "@/entities/terminal-setting";
 import { useWorkspaceSettings } from "@/entities/workspace-setting";
 
-export type ReadinessItemKey = "vendor" | "git" | "tmux" | "workspace";
+export type ReadinessItemKey = "vendor" | "git" | "workspace";
 
 export interface ReadinessItem {
   key: ReadinessItemKey;
@@ -27,27 +26,21 @@ export interface ThroneReadiness {
 
 const HINT = {
   vendor: "https://code.claude.com/docs/en/authentication",
-  git: "https://docs.github.com/en/github-cli/github-cli/quickstart",
-  tmux: "https://github.com/tmux/tmux/wiki/Installing"
+  git: "https://docs.github.com/en/github-cli/github-cli/quickstart"
 } as const;
 
 /**
- * Агрегирует «Throne готов» из четырёх независимых entity-источников. Живёт в
- * features (а не в виджете), потому что и AppShell-бейдж, и панель готовности
- * — два виджета — должны переиспользовать одну и ту же логику без cross-import
- * между виджетами (Steiger запретил бы widget→widget).
+ * Агрегирует «Throne готов» из независимых entity-источников. Живёт в features
+ * (а не в виджете), потому что и AppShell-бейдж, и панель готовности — два
+ * виджета — должны переиспользовать одну и ту же логику без cross-import между
+ * виджетами (Steiger запретил бы widget→widget).
  */
 export function useThroneReadiness(): ThroneReadiness {
-  const caps = useCapabilities();
   const git = useGitProvidersStatus();
   const catalog = useTerminalVendorCatalogQuery();
   const workspace = useWorkspaceSettings();
 
-  // isLoading — любой источник ещё грузит первый ответ (нет данных). Entity-хуки
-  // уже маппят свои флаги в «первый fetch без данных»; у каталога `isLoading`
-  // уже означает pending-без-данных.
   const isLoading =
-    (caps.isLoading && caps.capabilities.length === 0) ||
     (git.isLoading && git.status === null) ||
     catalog.isLoading ||
     (workspace.isLoading && workspace.settings === null);
@@ -55,7 +48,6 @@ export function useThroneReadiness(): ThroneReadiness {
   const items: ReadinessItem[] = [
     buildVendorItem(catalog.data?.vendors ?? []),
     buildGitItem(git.status),
-    buildTmuxItem(caps),
     buildWorkspaceItem(workspace.settings)
   ];
 
@@ -96,20 +88,6 @@ function buildGitItem(
         : "GitLab авторизован"
       : "Авторизуйтесь через gh или glab",
     hintHref: HINT.git
-  };
-}
-
-function buildTmuxItem(
-  caps: ReturnType<typeof useCapabilities>
-): ReadinessItem {
-  const terminal = selectCapability(caps.capabilities, "terminal");
-  const ok = terminal?.detected === true;
-  return {
-    key: "tmux",
-    label: "tmux установлен",
-    ok,
-    detail: ok ? "tmux найден на хосте" : "Установите tmux на хосте",
-    hintHref: HINT.tmux
   };
 }
 

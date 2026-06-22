@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Throne.Application.Ide;
 using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
+using Throne.Infrastructure.Ide;
 using Throne.Infrastructure.Terminals.Capabilities;
 // RunPreflightOptions binding pulls Throne.Application.Terminals into the Infrastructure
 // composition root — Application-only DI cannot bind IConfiguration sections directly.
@@ -63,10 +65,13 @@ public static class TerminalsModule
 
         services.AddSingleton<ICapabilityProbe, TmuxCapabilityProbe>();
         services.AddSingleton<ICapabilityProbe, VsCodeCapabilityProbe>();
-        services.AddSingleton<ICapabilityProbe, RepositoriesCapabilityProbe>();
-        services.AddSingleton<ICapabilityProbe, GitLabCapabilityProbe>();
-        services.AddSingleton<ICapabilityProbe, OpencodeCapabilityProbe>();
+        services.AddSingleton<ICapabilityProbe, CursorCapabilityProbe>();
         services.AddSingleton<ICapabilityDetectionCache, CapabilityDetectionCache>();
+
+        // IDE openers (one per provider key) for the `open_in_ide` carrier
+        // capability. Registry resolution is dictionary-based on ProviderName.
+        services.AddSingleton<IIdeOpener, VsCodeOpener>();
+        services.AddSingleton<IIdeOpener, CursorOpener>();
 
         // Per-vendor login probes feed the vendor-card status and the readiness check
         // (`GET /terminal/vendors` → login_status). opencode has no probe — it is surfaced

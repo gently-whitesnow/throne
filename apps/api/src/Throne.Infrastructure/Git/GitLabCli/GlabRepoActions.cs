@@ -6,7 +6,7 @@ namespace Throne.Infrastructure.Git.GitLabCli;
 
 internal sealed class GlabRepoActions(
     GlabCliInvoker glab,
-    IOptions<GitLabSettings> settings,
+    IGitLabHostProvider hostProvider,
     IOptions<GitLabCliOptions> options,
     IProcessLauncher launcher)
 {
@@ -20,7 +20,7 @@ internal sealed class GlabRepoActions(
             return;
         }
 
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var path = GlabProjectPath.FullPath(owner, repo);
         var result = await glab.RunCloneAsync(
             ["repo", "clone", path, targetPath, "--", "--filter=blob:none"],
@@ -36,10 +36,11 @@ internal sealed class GlabRepoActions(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
 
+        var host = await hostProvider.GetHostAsync(ct);
         var result = await RunGitAsync(
             workspacePath,
             ["fetch", "--all", "--prune"],
-            GlabEnvironment.ForHost(ReadHost()),
+            GlabEnvironment.ForHost(host),
             ct);
         if (!result.IsSuccess)
         {
@@ -72,14 +73,6 @@ internal sealed class GlabRepoActions(
         {
             throw GlabExceptions.ToolExecutableMissing("git", _opts.GitExecutablePath, ex);
         }
-    }
-
-    private string ReadHost()
-    {
-        var host = settings.Value.Host?.Trim();
-        return string.IsNullOrWhiteSpace(host)
-            ? throw new GitProviderException(GitProviderErrorKind.CliFailure, "Throne:GitLab:Host is not configured.")
-            : host;
     }
 
     private static bool TryReuseExistingClone(string targetPath)

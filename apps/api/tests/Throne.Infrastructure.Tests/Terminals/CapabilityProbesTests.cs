@@ -2,9 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
-using Throne.Application.LocalModels;
 using Throne.Application.Ports;
-using Throne.Domain.Capabilities;
 using Throne.Infrastructure.Terminals;
 using Throne.Infrastructure.Terminals.Capabilities;
 
@@ -17,7 +15,7 @@ namespace Throne.Infrastructure.Tests.Terminals;
 /// </summary>
 public class CapabilityProbesTests
 {
-    [Fact(DisplayName = "TmuxCapabilityProbe: detected=true когда tmux -V exit 0")]
+    [Fact(DisplayName = "TmuxCapabilityProbe: detected=true when tmux -V exits 0; capability key is the literal provider name")]
     public async Task Tmux_probe_returns_detected_on_success()
     {
         var launcher = Substitute.For<IProcessLauncher>();
@@ -33,12 +31,12 @@ public class CapabilityProbesTests
 
         var result = await probe.ProbeAsync(CancellationToken.None);
 
-        probe.CapabilityName.Should().Be(CapabilityNames.Terminal);
+        probe.CapabilityName.Should().Be("tmux");
         result.Detected.Should().BeTrue();
         result.Detail.Should().Contain("tmux 3.5a");
     }
 
-    [Fact(DisplayName = "TmuxCapabilityProbe: detected=false если binary не найден")]
+    [Fact(DisplayName = "TmuxCapabilityProbe: detected=false when the binary is missing")]
     public async Task Tmux_probe_folds_missing_binary()
     {
         var launcher = Substitute.For<IProcessLauncher>();
@@ -51,10 +49,10 @@ public class CapabilityProbesTests
         var result = await probe.ProbeAsync(CancellationToken.None);
 
         result.Detected.Should().BeFalse();
-        result.Detail.Should().Contain("not found", because: "detail повторяет launcher-сообщение");
+        result.Detail.Should().Contain("not found");
     }
 
-    [Fact(DisplayName = "VsCodeCapabilityProbe: detected=true когда code --version exit 0")]
+    [Fact(DisplayName = "VsCodeCapabilityProbe: detected=true when code --version exits 0; key is literal vscode")]
     public async Task VsCode_probe_returns_detected_on_success()
     {
         var launcher = Substitute.For<IProcessLauncher>();
@@ -68,12 +66,12 @@ public class CapabilityProbesTests
 
         var result = await probe.ProbeAsync(CancellationToken.None);
 
-        probe.CapabilityName.Should().Be(CapabilityNames.Vscode);
+        probe.CapabilityName.Should().Be("vscode");
         result.Detected.Should().BeTrue();
         result.Detail.Should().Be("1.95.3");
     }
 
-    [Fact(DisplayName = "VsCodeCapabilityProbe: detected=false если code CLI отсутствует")]
+    [Fact(DisplayName = "VsCodeCapabilityProbe: detected=false when the code CLI is missing")]
     public async Task VsCode_probe_folds_missing_binary()
     {
         var launcher = Substitute.For<IProcessLauncher>();
@@ -86,84 +84,35 @@ public class CapabilityProbesTests
         result.Detected.Should().BeFalse();
     }
 
-    [Fact(DisplayName = "OpencodeCapabilityProbe: detected=true когда CLI и discovery=Ready")]
-    public async Task Opencode_probe_detected_when_cli_and_discovery_ready()
-    {
-        var launcher = StubLauncherSuccess("opencode", "1.2.3\n");
-        var discovery = BuildDiscovery(LocalModelDiscoveryResult.Ready("http://localhost:11435", ["m1"]));
-        var probe = new OpencodeCapabilityProbe(launcher, discovery, NullLogger<OpencodeCapabilityProbe>.Instance);
-
-        var result = await probe.ProbeAsync(CancellationToken.None);
-
-        probe.CapabilityName.Should().Be(CapabilityNames.Opencode);
-        result.Detected.Should().BeTrue();
-        result.Detail.Should().Contain("1.2.3").And.Contain("11435");
-    }
-
-    [Fact(DisplayName = "OpencodeCapabilityProbe: detected=false если CLI отсутствует — discovery не зовётся")]
-    public async Task Opencode_probe_folds_missing_cli()
+    [Fact(DisplayName = "CursorCapabilityProbe: detected=true when cursor --version exits 0; key is literal cursor")]
+    public async Task Cursor_probe_returns_detected_on_success()
     {
         var launcher = Substitute.For<IProcessLauncher>();
-        launcher.RunAsync(Arg.Is<ProcessRunRequest>(r => r.FileName == "opencode"), Arg.Any<CancellationToken>())
-            .Returns<Task<ProcessRunResult>>(_ => throw new System.ComponentModel.Win32Exception("missing"));
-        var catalog = Substitute.For<ILocalModelCatalogPort>();
-        var discovery = new LocalModelDiscoveryService(new LocalModelSettings { BaseUrl = "http://x" }, catalog);
-        var probe = new OpencodeCapabilityProbe(launcher, discovery, NullLogger<OpencodeCapabilityProbe>.Instance);
-
-        var result = await probe.ProbeAsync(CancellationToken.None);
-
-        result.Detected.Should().BeFalse();
-        result.Detail.Should().Contain("opencode CLI not found");
-        await catalog.DidNotReceive().ListModelIdsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact(DisplayName = "OpencodeCapabilityProbe: CLI есть, но discovery!=Ready → detected=false с деталью")]
-    public async Task Opencode_probe_folds_unreachable_discovery()
-    {
-        var launcher = StubLauncherSuccess("opencode", "1.2.3\n");
-        var discovery = BuildDiscovery(LocalModelDiscoveryResult.NotConfigured());
-        var probe = new OpencodeCapabilityProbe(launcher, discovery, NullLogger<OpencodeCapabilityProbe>.Instance);
-
-        var result = await probe.ProbeAsync(CancellationToken.None);
-
-        result.Detected.Should().BeFalse();
-        result.Detail.Should().Contain("LocalModel:BaseUrl");
-    }
-
-    private static IProcessLauncher StubLauncherSuccess(string fileName, string stdout)
-    {
-        var launcher = Substitute.For<IProcessLauncher>();
-        launcher.RunAsync(Arg.Is<ProcessRunRequest>(r => r.FileName == fileName), Arg.Any<CancellationToken>())
+        launcher.RunAsync(Arg.Is<ProcessRunRequest>(r => r.FileName == "cursor"), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new ProcessRunResult(
                 ExitCode: 0,
-                StandardOutput: stdout,
+                StandardOutput: "Cursor 0.42.0\n",
                 StandardError: string.Empty,
                 Elapsed: TimeSpan.Zero)));
-        return launcher;
+        var probe = new CursorCapabilityProbe(launcher, NullLogger<CursorCapabilityProbe>.Instance);
+
+        var result = await probe.ProbeAsync(CancellationToken.None);
+
+        probe.CapabilityName.Should().Be("cursor");
+        result.Detected.Should().BeTrue();
+        result.Detail.Should().Contain("Cursor 0.42.0");
     }
 
-    private static LocalModelDiscoveryService BuildDiscovery(LocalModelDiscoveryResult planned)
+    [Fact(DisplayName = "CursorCapabilityProbe: detected=false when the cursor CLI is missing")]
+    public async Task Cursor_probe_folds_missing_binary()
     {
-        var catalog = Substitute.For<ILocalModelCatalogPort>();
-        if (planned.Status == LocalModelDiscoveryStatus.Ready)
-        {
-            catalog.ListModelIdsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(planned.Models));
-        }
-        else if (planned.Status == LocalModelDiscoveryStatus.Unreachable)
-        {
-            catalog.ListModelIdsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns<Task<IReadOnlyList<string>>>(_ => throw new InvalidOperationException(planned.Error));
-        }
-        else if (planned.Status == LocalModelDiscoveryStatus.Empty)
-        {
-            catalog.ListModelIdsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
-        }
-        var settings = new LocalModelSettings
-        {
-            BaseUrl = planned.Status == LocalModelDiscoveryStatus.NotConfigured ? null : planned.BaseUrl,
-        };
-        return new LocalModelDiscoveryService(settings, catalog);
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Is<ProcessRunRequest>(r => r.FileName == "cursor"), Arg.Any<CancellationToken>())
+            .Returns<Task<ProcessRunResult>>(_ => throw new System.ComponentModel.Win32Exception("missing"));
+        var probe = new CursorCapabilityProbe(launcher, NullLogger<CursorCapabilityProbe>.Instance);
+
+        var result = await probe.ProbeAsync(CancellationToken.None);
+
+        result.Detected.Should().BeFalse();
     }
 }

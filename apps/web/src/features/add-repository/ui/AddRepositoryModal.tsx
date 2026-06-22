@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Lock, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { useCapabilityEnabled } from "@/entities/capability";
+import { useGitProvidersStatus } from "@/entities/git-provider-status";
 import {
   createRepository,
   repositoriesQueryKeys,
@@ -38,8 +38,10 @@ export function AddRepositoryModal({
   const [involved, setInvolved] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // GitLab gated behind the `gitlab` capability (ADR-0032 § 8).
-  const gitlabEnabled = useCapabilityEnabled("gitlab");
+  // GitLab availability is detection-only: surface the button when `glab` has
+  // an authenticated session against the configured host.
+  const { status } = useGitProvidersStatus();
+  const gitlabEnabled = status?.gitlab.authenticated === true;
   useEffect(() => {
     if (!gitlabEnabled && provider === "gitlab") {
       setProvider("github");

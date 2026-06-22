@@ -41,7 +41,6 @@ public sealed partial class RepositoryBindingService(
         ArgumentNullException.ThrowIfNull(command);
 
         var intentId = await resolver.EnsureIntentExistsAsync(command.IntentId, ct);
-        await resolver.EnsureProviderSurfaceEnabledAsync(command.Provider, ct);
         var provider = resolver.ResolveProvider(command.Provider);
         await RepositoryBindingResolver.EnsureProviderAuthenticatedAsync(provider, ct);
 

@@ -12,8 +12,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List feature capabilities with prerequisite detection status and current toggle.
-         * @description Returns every capability Throne knows about. Each entry combines static metadata (`title`, `description`, `prerequisite_hint`) with runtime detection (`detected`, `detection_detail`) and the persisted toggle (`enabled`). New capabilities default to `enabled=false`: explicit opt-in is required per Slice 2. Detection is a TTL-cached health-check (`tmux --version`, `code --version`, `gh auth status` etc.) and does NOT auto-enable the toggle.
+         * List carrier capabilities with available providers and selected provider.
+         * @description Each entry exposes static metadata (`title`, `description`), the list of candidate providers with their live detection status and the currently `selected_provider` (null when no provider is selected/detected).
          */
         get: operations["listCapabilities"];
         put?: never;
@@ -24,7 +24,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/settings/capabilities/{name}": {
+    "/api/v1/settings/capabilities/{name}/selected-provider": {
         parameters: {
             query?: never;
             header?: never;
@@ -33,10 +33,10 @@ export interface paths {
         };
         get?: never;
         /**
-         * Toggle a capability on or off.
-         * @description Persists the `enabled` flag for the capability identified by `name`. Toggling on without a satisfied prerequisite is permitted — UI surfaces a red marker so the operator can install the missing tool later. Toggling off is immediate and hides the corresponding UI surfaces without touching any persisted user data.
+         * Select the active provider for a carrier capability.
+         * @description Persists `selected_provider` for the capability identified by `name`. Pass `null` to clear the selection — the UI falls back to «whichever provider is detected» when only one candidate is available.
          */
-        put: operations["setCapabilityEnabled"];
+        put: operations["setCapabilitySelectedProvider"];
         post?: never;
         delete?: never;
         options?: never;
@@ -49,27 +49,33 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Closed set of capability keys exposed in settings.
+         * @description Closed set of carrier capability keys. New entries are added only when a feature has multiple interchangeable providers.
          * @enum {string}
          */
-        CapabilityName: "repositories" | "gitlab" | "terminal" | "vscode" | "opencode";
+        CapabilityName: "open_in_ide";
+        CapabilityProviderDto: {
+            /** @description Stable provider key (e.g. `vscode`, `cursor`). */
+            name: string;
+            /** @description Human label rendered in the radio. */
+            title: string;
+            /** @description Operator-facing instruction for installing the missing prerequisite. */
+            prerequisite_hint?: string;
+            /** @description True when the provider's prerequisite is satisfied on this host. */
+            detected: boolean;
+            /** @description Short free-form note from the detector (`code 1.95.3`, `cursor not found`). */
+            detection_detail?: string | null;
+        };
         CapabilityDto: {
             name: components["schemas"]["CapabilityName"];
-            /** @description Short human-readable label rendered as the card title in `/settings`. */
             title: string;
-            /** @description One-to-two sentence summary of what this capability unlocks in Throne. */
             description: string;
-            /** @description Operator-facing instruction for installing the missing prerequisite (e.g. `brew install tmux`, `gh auth login`). Rendered next to the toggle. */
-            prerequisite_hint: string;
-            /** @description True when the prerequisite health-check succeeded on the last detection pass. Detection alone never flips `enabled` — the operator opts in explicitly. */
-            detected: boolean;
-            /** @description Short free-form note from the detector (`tmux 3.5a`, `gh: not authenticated`, `code CLI not found`). Useful for the UI to expose alongside the red/green dot. */
-            detection_detail?: string | null;
-            /** @description Persisted toggle from the singleton `capabilities` document. Defaults to `false` for every new capability — see Slice 2 ADR. */
-            enabled: boolean;
+            /** @description Operator-selected provider name. Null when nothing is persisted — consumers fall back to the single detected provider when only one candidate exists. */
+            selected_provider?: string | null;
+            providers: components["schemas"]["CapabilityProviderDto"][];
         };
-        SetCapabilityEnabledRequest: {
-            enabled: boolean;
+        SetCapabilityProviderRequest: {
+            /** @description Provider name to persist as selected. Pass null to clear. */
+            selected_provider?: string | null;
         };
         ProblemDetails: {
             type: string;
@@ -111,7 +117,7 @@ export interface operations {
             };
         };
     };
-    setCapabilityEnabled: {
+    setCapabilitySelectedProvider: {
         parameters: {
             query?: never;
             header?: never;
@@ -122,7 +128,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SetCapabilityEnabledRequest"];
+                "application/json": components["schemas"]["SetCapabilityProviderRequest"];
             };
         };
         responses: {
@@ -135,7 +141,7 @@ export interface operations {
                     "application/json": components["schemas"]["CapabilityDto"];
                 };
             };
-            /** @description Unknown capability name. */
+            /** @description Unknown capability name or unknown provider for this capability. */
             404: {
                 headers: {
                     [name: string]: unknown;

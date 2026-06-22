@@ -9,7 +9,6 @@ using Throne.Application.Repositories;
 using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
 using Throne.Application.Tests.Manifest;
-using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Repositories;
@@ -47,7 +46,7 @@ public partial class RunPreflightOrchestratorTests
         public Fixture()
         {
             Intents = Substitute.For<IIntentRepository>();
-            Capabilities = Substitute.For<ICapabilityAvailability>();
+            Detection = Substitute.For<ICapabilityDetectionCache>();
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tags = Substitute.For<ITagRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
@@ -65,7 +64,7 @@ public partial class RunPreflightOrchestratorTests
             };
             var cloneWait = new RunPreflightCloneWait(Bindings, runPreflightOptions, clock);
             var spawn = BuildSpawn(workspace, clock, uow, runPreflightOptions);
-            var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
+            var guards = new RunPreflightGuards(Intents, Detection, spawn);
             var launchResolver = BuildLaunchResolver();
             var promptGate = BuildPromptGate(clock, uow);
             LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
@@ -146,7 +145,7 @@ public partial class RunPreflightOrchestratorTests
             settingsStore.GetDefaultVendorAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(TerminalAgentCatalog.VendorClaude));
             return new TerminalLaunchResolver(
-                settingsStore, Array.Empty<IVendorModelCatalog>(), Substitute.For<Throne.Application.Terminals.Capabilities.ICapabilityAvailability>());
+                settingsStore, Array.Empty<IVendorModelCatalog>());
         }
 
         private RunPreflightPromptGate BuildPromptGate(TimeProvider clock, IUnitOfWork uow)
@@ -160,7 +159,7 @@ public partial class RunPreflightOrchestratorTests
         }
 
         public IIntentRepository Intents { get; }
-        public ICapabilityAvailability Capabilities { get; }
+        public ICapabilityDetectionCache Detection { get; }
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
@@ -175,10 +174,11 @@ public partial class RunPreflightOrchestratorTests
             IReadOnlyList<IntentRepositoryBinding>? bindings = null,
             TmuxSpawnResult? spawn = null)
         {
-            // `terminal` is detection-ready (ADR-0026 § 9): the guard asks ICapabilityAvailability,
-            // which folds detection into availability. capabilityEnabled mimics «tmux detected».
-            Capabilities.IsAvailableAsync(CapabilityNames.Terminal, Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(capabilityEnabled));
+            // tmux is no longer a carrier capability — the guard reads the detection cache
+            // directly. capabilityEnabled mimics «tmux detected» on the host.
+            Detection.GetAsync("tmux", Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult<CapabilityProbeResult?>(
+                    new CapabilityProbeResult(capabilityEnabled, capabilityEnabled ? "tmux 3.4" : "tmux missing")));
 
             if (intentExists)
             {

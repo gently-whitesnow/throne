@@ -26,7 +26,7 @@ function binding(): RepositoryBinding {
 }
 
 describe("ReviewScopeBar", () => {
-  it("рендерит слот openInVscode слева от merge-control", () => {
+  it("рендерит слот openInIde слева от merge-control", () => {
     render(
       <ReviewScopeBar
         binding={binding()}
@@ -34,9 +34,9 @@ describe("ReviewScopeBar", () => {
         selectedCommitSha={null}
         commits={[]}
         commitsLoading={false}
-        openInVscode={
-          <button type="button" data-testid="vscode-slot">
-            VS Code
+        openInIde={
+          <button type="button" data-testid="ide-slot">
+            IDE
           </button>
         }
         mergeControl={
@@ -50,12 +50,12 @@ describe("ReviewScopeBar", () => {
       />
     );
 
-    const vscode = screen.getByTestId("vscode-slot");
+    const ide = screen.getByTestId("ide-slot");
     const merge = screen.getByTestId("merge-slot");
-    expect(vscode).toBeTruthy();
+    expect(ide).toBeTruthy();
     expect(merge).toBeTruthy();
     expect(
-      vscode.compareDocumentPosition(merge) & Node.DOCUMENT_POSITION_FOLLOWING
+      ide.compareDocumentPosition(merge) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeGreaterThan(0);
   });
 });

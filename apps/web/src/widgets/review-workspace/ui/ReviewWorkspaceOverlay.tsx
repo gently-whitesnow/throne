@@ -17,7 +17,7 @@ import {
   repositoryFullName,
   type RepositoryBinding
 } from "@/entities/repository-binding";
-import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
+import { OpenBindingInIdeButton } from "@/features/open-in-ide";
 import { useResizablePane } from "@/shared/lib";
 import { Modal, ResizeHandle } from "@/shared/ui";
 
@@ -180,8 +180,8 @@ export function ReviewWorkspaceOverlay({
         selectedCommitSha={ws.selectedCommitSha}
         commits={ws.commits}
         commitsLoading={ws.commitsLoading}
-        openInVscode={
-          <OpenBindingInVscodeButton
+        openInIde={
+          <OpenBindingInIdeButton
             intentId={intentId}
             bindingId={binding.id}
             fullName={repositoryFullName(binding)}

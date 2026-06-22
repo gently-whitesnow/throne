@@ -1,27 +1,25 @@
 using Throne.Application.Ports;
 using Throne.Application.Terminals.Capabilities;
-using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 
 namespace Throne.Application.Terminals;
 
 /// <summary>
-/// Validation helpers used by <see cref="RunPreflightOrchestrator"/>: capability gate,
-/// intent existence, session-slot. Split out so the orchestrator stays within the
+/// Validation helpers used by <see cref="RunPreflightOrchestrator"/>: tmux detection
+/// gate, intent existence, session-slot. Split out so the orchestrator stays within the
 /// project-wide CA1502 type-level cyclomatic budget.
 /// </summary>
 public sealed class RunPreflightGuards(
     IIntentRepository intents,
-    ICapabilityAvailability capabilities,
+    ICapabilityDetectionCache detection,
     RunPreflightSpawn spawner)
 {
-    public async Task EnsureCapabilityEnabledAsync(CancellationToken ct)
+    public async Task EnsureTmuxDetectedAsync(CancellationToken ct)
     {
-        // `terminal` is an essential capability: detection→ready (ADR-0026 § 9). The
-        // availability service returns true when tmux is detected, no explicit opt-in needed.
-        if (!await capabilities.IsAvailableAsync(CapabilityNames.Terminal, ct))
+        var probe = await detection.GetAsync("tmux", ct);
+        if (probe is null || !probe.Detected)
         {
-            throw TerminalFailures.CapabilityDisabled(CapabilityNames.Terminal);
+            throw TerminalFailures.CapabilityDisabled("tmux");
         }
     }
 
