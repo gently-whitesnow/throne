@@ -17,7 +17,7 @@ public interface IIntentTerminalLaunchStore
     /// <summary>
     /// Upsert the launch axis for the intent (mode/vendor/model/effort only).
     /// <see cref="TerminalLaunchRecord.AttachedSkillIds"/> is intentionally NOT touched —
-    /// the run/restart pipeline never overwrites hot-attached skills, they survive until
+    /// the run pipeline never overwrites hot-attached skills, they survive until
     /// explicit clearing via <see cref="SetAttachedSkillIdsAsync"/>.
     /// </summary>
     Task SaveAsync(string intentId, TerminalLaunchRecord record, CancellationToken ct);

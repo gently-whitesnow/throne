@@ -5,7 +5,7 @@ namespace Throne.Application.Terminals;
 
 /// <summary>
 /// Tears the per-intent tmux session down without respawning (the «kill session»
-/// button). Unlike <see cref="RunPreflightOrchestrator"/> restart it never re-runs
+/// button). Unlike <see cref="RunPreflightOrchestrator"/>, it never re-runs
 /// pre-flight or spawns — it kills and reports the post-kill snapshot as exited.
 /// </summary>
 public sealed class TerminalSessionKillService(

@@ -14,7 +14,9 @@ interface TagRowProps {
   onRequestDelete: (tag: Tag) => void;
 }
 
-function slugErrorText(reason: "empty" | "too-long" | "bad-chars" | null): string {
+function slugErrorText(
+  reason: "empty" | "too-long" | "bad-chars" | null
+): string {
   switch (reason) {
     case "empty":
       return "Имя не может быть пустым.";

@@ -1,4 +1,4 @@
-import { Play, RotateCcw, Square } from "lucide-react";
+import { Play, Square } from "lucide-react";
 
 import {
   EFFORT_LABEL,
@@ -34,15 +34,13 @@ interface RunControlsProps {
   metadataError: boolean;
   /** Открывает preflight-модалку для нового запуска. */
   onRun: () => void;
-  /** Открывает preflight-модалку для перезапуска живой сессии. */
-  onRestart: () => void;
   onKill: () => void;
   /** True когда disabled-state триггерится pre-flight'ом или live-сессией. */
   runDisabled: boolean;
   runDisabledReason: string | null;
   /** True когда `tmux has-session` → true: dropdown замораживаются. */
   sessionLive: boolean;
-  /** True пока POST /run или /restart в полёте. */
+  /** True пока POST /run в полёте. */
   isStarting: boolean;
   /** True пока POST /kill в полёте. */
   isStopping: boolean;
@@ -65,7 +63,6 @@ export function RunControls({
   metadataLoading,
   metadataError,
   onRun,
-  onRestart,
   onKill,
   runDisabled,
   runDisabledReason,
@@ -169,26 +166,15 @@ export function RunControls({
       ) : null}
 
       {sessionLive ? (
-        <>
-          <Button
-            data-testid="agent-terminal-restart"
-            variant="primary"
-            icon={<RotateCcw aria-hidden size={14} strokeWidth={2} />}
-            disabled={isStarting || isStopping}
-            onClick={onRestart}
-          >
-            {isStarting ? "Перезапускаем…" : "Перезапустить сессию"}
-          </Button>
-          <Button
-            data-testid="agent-terminal-kill"
-            className="btn-error"
-            icon={<Square aria-hidden size={14} strokeWidth={2} />}
-            disabled={isStarting || isStopping}
-            onClick={onKill}
-          >
-            {isStopping ? "Завершаем…" : "Завершить сессию"}
-          </Button>
-        </>
+        <Button
+          data-testid="agent-terminal-kill"
+          className="btn-error"
+          icon={<Square aria-hidden size={14} strokeWidth={2} />}
+          disabled={isStarting || isStopping}
+          onClick={onKill}
+        >
+          {isStopping ? "Завершаем…" : "Завершить сессию"}
+        </Button>
       ) : (
         <Button
           data-testid="agent-terminal-run"

@@ -19,7 +19,6 @@ const runIntentTerminal =
       payload: TerminalRunPayload
     ) => Promise<RunIntentTerminalResponse>
   >();
-const restartIntentTerminal = vi.fn<() => Promise<RunIntentTerminalResponse>>();
 const previewIntentTerminal =
   vi.fn<
     (
@@ -35,7 +34,6 @@ vi.mock("../api/agent-terminal-api", () => ({
     getIntentTerminalSession(intentId),
   runIntentTerminal: (intentId: string, payload: TerminalRunPayload) =>
     runIntentTerminal(intentId, payload),
-  restartIntentTerminal: () => restartIntentTerminal(),
   previewIntentTerminal: (
     intentId: string,
     mode: TerminalRunMode,
@@ -180,7 +178,6 @@ describe("AgentTerminalPanel", () => {
   beforeEach(() => {
     getIntentTerminalSession.mockReset();
     runIntentTerminal.mockReset();
-    restartIntentTerminal.mockReset();
     previewIntentTerminal.mockReset();
     previewIntentTerminal.mockResolvedValue(previewResponse());
     listIntentRepositories.mockReset();
@@ -204,7 +201,7 @@ describe("AgentTerminalPanel", () => {
 
     const mode = screen.getByTestId("agent-terminal-mode");
     expect(mode.hasAttribute("disabled")).toBe(true);
-    expect(screen.getByTestId("agent-terminal-restart")).toBeTruthy();
+    expect(screen.getByTestId("agent-terminal-kill")).toBeTruthy();
     expect(screen.queryByTestId("agent-terminal-run")).toBeNull();
     expect(runIntentTerminal).not.toHaveBeenCalled();
   });

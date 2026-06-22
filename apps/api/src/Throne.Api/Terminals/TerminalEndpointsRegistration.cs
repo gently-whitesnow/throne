@@ -5,7 +5,7 @@ namespace Throne.Api.Terminals;
 
 /// <summary>
 /// Composition entry point for the embedded-terminal WebSocket endpoint. The REST
-/// surface (`POST .../terminal/run`, `.../terminal/restart`) is owned by T-05; T-03
+/// surface (`POST .../terminal/run`) is owned by T-05; T-03
 /// only wires up the attach-only WebSocket and its capability gate.
 /// </summary>
 public static class TerminalEndpointsRegistration

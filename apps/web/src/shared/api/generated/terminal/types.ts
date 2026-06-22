@@ -54,7 +54,7 @@ export interface paths {
          *        successful spawn so the next page load can both restore the operator's
          *        per-intent choice and show the live session's actual parameters (ADR-0041).
          *
-         *     Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
+         *     Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` response or status probe (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
          */
         post: operations["runIntentTerminal"];
         delete?: never;
@@ -83,26 +83,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/intents/{intent_id}/terminal/restart": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Kill the live tmux session and re-run the pre-flight pipeline.
-         * @description `tmux kill-session -t throne-{intent_id}` followed by the same staged pre-flight as `run`. Pre-flight is idempotent — a ready workspace produces an immediate spawn. The user is fully responsible for interrupting whatever was running inside the session; the server does NOT confirm.
-         */
-        post: operations["restartIntentTerminal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/intents/{intent_id}/terminal/kill": {
         parameters: {
             query?: never;
@@ -114,7 +94,7 @@ export interface paths {
         put?: never;
         /**
          * Kill the live tmux session without respawning.
-         * @description `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot with `session_state=exited`. Unlike `restart` this does not re-run the pre-flight pipeline or spawn a new session — it just tears the session down. Idempotent: a missing session is reported as `exited` all the same. The user is fully responsible for whatever was running inside; the server does NOT confirm.
+         * @description `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot with `session_state=exited`. This does not re-run the pre-flight pipeline or spawn a new session — it just tears the session down. Idempotent: a missing session is reported as `exited` all the same. The user is fully responsible for whatever was running inside; the server does NOT confirm.
          */
         post: operations["killIntentTerminal"];
         delete?: never;
@@ -134,7 +114,7 @@ export interface paths {
         put?: never;
         /**
          * Hot-attach session skills into a live tmux session.
-         * @description Loads the requested skill packages into a running agent session without a restart when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
+         * @description Loads the requested skill packages into a running agent session without a respawn when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
          */
         post: operations["attachIntentTerminalSkills"];
         delete?: never;
@@ -174,7 +154,7 @@ export interface paths {
         put?: never;
         /**
          * Resolve the embedded prompt composition before spawn (ADR-0036).
-         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
+         * @description Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run` receives the chosen `review_binding_id`.
          */
         post: operations["previewIntentTerminal"];
         delete?: never;
@@ -297,7 +277,7 @@ export interface components {
             bindings: components["schemas"]["RunIntentBindingStatusDto"][];
             /** @description IDs of bindings whose `clone_status` is `failed` or `broken`. Present when `session_state=blocked`; the UI uses them to render an actionable error per row. */
             blocking_bindings?: string[];
-            /** @description Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record). */
+            /** @description Resolved launch axis (mode/vendor/model/effort) of this intent. On `run` it echoes the axis the spawn actually used (defaults applied). On the status probe it is the persisted last-used axis: with a live session those are the running session's real parameters; otherwise the choice the controls pre-fill from. Null only when the intent was never launched (no persisted record). */
             launch?: components["schemas"]["TerminalLaunchArgs"] | null;
         };
         TerminalLaunchArgs: {
@@ -307,7 +287,7 @@ export interface components {
             model: string;
             /** @description Resolved reasoning effort; null for a vendor with no effort axis. */
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
-            /** @description Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий restart preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время). */
+            /** @description Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время). */
             attached_skill_ids?: string[] | null;
         };
         AttachIntentTerminalSkillsRequest: {
@@ -450,7 +430,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description A tmux session for this intent is already running (call `restart` instead), or the `intent_text_update.expected_version` no longer matches — the spawn was aborted. */
+            /** @description A tmux session for this intent is already running, or the `intent_text_update.expected_version` no longer matches — the spawn was aborted. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -500,59 +480,6 @@ export interface operations {
                 };
             };
             /** @description Capability `terminal` disabled. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    restartIntentTerminal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                intent_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RunIntentTerminalRequest"];
-            };
-        };
-        responses: {
-            /** @description Restart accepted; same payload shape as `run`. */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RunIntentTerminalResponse"];
-                };
-            };
-            /** @description Intent not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description The `intent_text_update.expected_version` no longer matches — the spawn was aborted. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Capability `terminal` disabled, prerequisite missing, invalid mode, or unknown selected parts. */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -15,7 +15,7 @@ namespace Throne.Application.Terminals;
 ///   Populated when <paramref name="SessionState"/> = <see cref="TerminalSessionStates.Blocked"/>.
 /// </param>
 /// <param name="Launch">
-///   Resolved launch axis surfaced to the UI (ADR-0041): the axis a run/restart actually
+///   Resolved launch axis surfaced to the UI (ADR-0041): the axis a run actually
 ///   spawned with, or the persisted last-used axis on the status probe. Null when the intent
 ///   was never launched.
 /// </param>
@@ -37,8 +37,8 @@ public sealed record RunPreflightBindingStatus(
     string? CloneError);
 
 /// <summary>
-/// Closed enum of tmux-session lifecycle buckets surfaced by the HTTP <c>run</c> /
-/// <c>restart</c> endpoints. Mirrors the OpenAPI <c>TerminalSessionState</c> enum.
+/// Closed enum of tmux-session lifecycle buckets surfaced by the HTTP <c>run</c> endpoint
+/// and status probe. Mirrors the OpenAPI <c>TerminalSessionState</c> enum.
 /// </summary>
 public static class TerminalSessionStates
 {

@@ -24,10 +24,9 @@ public sealed class RunPreflightOrchestrator(
         string mode,
         TerminalLaunchInput launch,
         TerminalSpawnPrompt prompt,
-        bool restart,
         CancellationToken ct,
         string? reviewBindingId = null) =>
-        RunAsync(intentId, mode, launch, prompt, selectedSkillIds: null, restart, ct, reviewBindingId);
+        RunAsync(intentId, mode, launch, prompt, selectedSkillIds: null, ct, reviewBindingId);
 
     public async Task<RunPreflightResult> RunAsync(
         string intentId,
@@ -35,7 +34,6 @@ public sealed class RunPreflightOrchestrator(
         TerminalLaunchInput launch,
         TerminalSpawnPrompt prompt,
         IReadOnlyList<string>? selectedSkillIds,
-        bool restart,
         CancellationToken ct,
         string? reviewBindingId = null)
     {
@@ -46,7 +44,7 @@ public sealed class RunPreflightOrchestrator(
 
         var intent = await guards.LoadIntentAsync(intentId, ct);
         var sessionName = TmuxSessionName.For(intent.Id.Value);
-        await guards.EnsureSessionSlotAsync(intent.Id.Value, sessionName, restart, ct);
+        await guards.EnsureSessionSlotAsync(intent.Id.Value, sessionName, ct);
 
         await autoBind.ApplyAsync(intent, ct);
         await cloneQueue.EnqueuePendingAndFailedAsync(intent.Id, ct);
