@@ -222,6 +222,7 @@ export function AgentTerminalPanel({
         metadataError={axis.metadataError}
         notReadyBindings={notReady}
         sessionError={session.error}
+        submitUnconfirmed={sessionLive && session.submitUnconfirmed}
       />
 
       {session.startedAt !== null ? (

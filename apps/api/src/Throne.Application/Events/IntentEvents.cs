@@ -121,3 +121,12 @@ public sealed record IntentPrCommentAdded(
 public sealed record TerminalSessionStarted(string IntentId) : IDomainEvent;
 
 public sealed record TerminalSessionStopped(string IntentId) : IDomainEvent;
+
+/// <summary>
+/// The post-spawn background prompt delivery (<see cref="Terminals.RunPreflightPromptDelivery"/>)
+/// could not confirm the initial prompt was submitted — the TUI never became ready, or the trailing
+/// Enter was not acknowledged within the confirm budget. The tmux session is alive (spawn succeeded);
+/// this is a best-effort UX hint so the front can prompt the operator to check the composer and
+/// resend, NOT a spawn failure. A lost event is harmless — the live pane shows the real state.
+/// </summary>
+public sealed record TerminalPromptSubmitUnconfirmed(string IntentId) : IDomainEvent;

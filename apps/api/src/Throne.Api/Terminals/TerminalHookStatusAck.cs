@@ -7,6 +7,7 @@ namespace Throne.Api.Terminals;
 public sealed class TerminalHookStatusAck(
     TerminalHookStatusHandler hookStatus,
     TerminalReadinessSignals readinessSignals,
+    TerminalPromptSubmitSignals submitSignals,
     ILogger<TerminalHookStatusAck> logger
 )
 {
@@ -24,6 +25,12 @@ public sealed class TerminalHookStatusAck(
             if (@event == Event.SessionReady)
             {
                 readinessSignals.TrySignal(intentId);
+            }
+            else if (@event == Event.UserPromptSubmit)
+            {
+                // Authoritative confirmation that the agent accepted the (just-pasted) prompt — wakes
+                // the post-spawn delivery's confirm gate. No-op if nothing is armed (later turns).
+                submitSignals.TrySignal(intentId);
             }
         }
         catch (ApiException ex)

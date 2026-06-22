@@ -1,6 +1,3 @@
-using System.Text;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Throne.Application.Events;
 using Throne.Application.Git;
 using Throne.Application.Intents;
@@ -13,21 +10,17 @@ namespace Throne.Application.Terminals;
 /// Workspace-path computation + tmux spawn invocation. Lives in its own type so the
 /// orchestrator above stays within the project-wide CA1502 type-level budget.
 /// </summary>
-public sealed partial class RunPreflightSpawn(
+public sealed class RunPreflightSpawn(
     ITmuxSessionManager tmux,
     IWorkspaceRootProvider workspaceRoot,
     RunPreflightWorkspacePreparer workspacePreparer,
     IEnumerable<ISessionHookAdapter> hookAdapters,
-    TmuxTuiReadinessWaiter readinessWaiter,
-    TmuxPromptSubmitGate submitGate,
+    IRunPreflightPromptDelivery promptDelivery,
     RunPreflightOptions options,
     SetIntentStatusHandler setStatus,
-    IDomainEventDispatcher events,
-    ILogger<RunPreflightSpawn>? log = null)
+    IDomainEventDispatcher events)
 {
     private const string SourcePrefix = "terminal:spawn:";
-    private const string UserPromptFileName = "throne-session.user-prompt.txt";
-    private readonly ILogger<RunPreflightSpawn> _log = log ?? NullLogger<RunPreflightSpawn>.Instance;
 
     private readonly Dictionary<string, ISessionHookAdapter> _hookAdapters =
         hookAdapters.ToDictionary(a => a.Vendor, StringComparer.Ordinal);
@@ -72,9 +65,6 @@ public sealed partial class RunPreflightSpawn(
         }
 
         var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
-        using var readiness = adapter is not null
-            ? readinessWaiter.Arm(intentId.Value, adapter)
-            : null;
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
@@ -90,84 +80,17 @@ public sealed partial class RunPreflightSpawn(
             throw TerminalFailures.SpawnFailed(intentId.Value, sessionName, spawn.Detail);
         }
 
-        // Native-session vendors already delivered the prompt before spawn (see above); the pane
-        // only attaches. Everyone else pastes the task into the live pane after a readiness gate.
-        if (adapter is not INativeSessionInitializer)
-        {
-            await DeliverUserPromptAsync(
-                intentId.Value, mode, launch.Vendor, adapter, readiness, workspacePath, prompt.UserPrompt, ct);
-        }
-
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
-
         await events.DispatchAsync(new TerminalSessionStarted(intentId.Value), ct);
-    }
 
-    private async Task DeliverUserPromptAsync(
-        string intentId,
-        string mode,
-        string vendor,
-        ISessionHookAdapter? adapter,
-        TerminalReadinessSignals.TerminalReadinessRegistration? readiness,
-        string workspacePath,
-        string? userPrompt,
-        CancellationToken ct)
-    {
-        if (string.IsNullOrWhiteSpace(userPrompt))
+        // The session is alive — return Running now so the front attaches the live pane immediately.
+        // Native-session vendors (OpenCode) already delivered the prompt before spawn; everyone else
+        // gets the readiness-gated paste + submit confirmation as a detached best-effort task so a
+        // slow TUI or absorbed Enter never fails the spawn — it surfaces as a soft inline hint.
+        if (adapter is not INativeSessionInitializer && !string.IsNullOrWhiteSpace(prompt.UserPrompt))
         {
-            return;
-        }
-
-        Directory.CreateDirectory(workspacePath);
-        var promptPath = Path.Combine(workspacePath, UserPromptFileName);
-        await File.WriteAllTextAsync(promptPath, userPrompt, ct);
-        LogInitialPromptDeliveryPrepared(
-            _log,
-            intentId,
-            mode,
-            vendor,
-            userPrompt.Length,
-            _log.IsEnabled(LogLevel.Information) ? Encoding.UTF8.GetByteCount(userPrompt) : 0,
-            promptPath);
-
-        if (adapter is not null)
-        {
-            await WaitForVendorReadinessOrThrowAsync(intentId, mode, vendor, adapter, readiness, ct);
-        }
-
-        await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
-        LogInitialPromptSubmitCommandReturned(_log, intentId, mode, vendor, promptPath);
-
-        if (adapter is not null)
-        {
-            // Symmetric companion to the readiness gate above: without it, the trailing Enter
-            // occasionally arrives in the same render frame as the bracketed-paste closing marker
-            // and Claude/Codex absorb it as newline-in-paste, leaving the prompt unsubmitted.
-            await submitGate.ConfirmOrThrowAsync(intentId, vendor, adapter, userPrompt, ct);
-        }
-    }
-
-    // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste and
-    // silently dropped the user prompt whenever the TUI took longer to init than the sleep. Only
-    // vendors we have an adapter for hit this — unknown vendors fall through and skip the wait.
-    private async Task WaitForVendorReadinessOrThrowAsync(
-        string intentId,
-        string mode,
-        string vendor,
-        ISessionHookAdapter adapter,
-        TerminalReadinessSignals.TerminalReadinessRegistration? readiness,
-        CancellationToken ct)
-    {
-        var result = await readinessWaiter.WaitAsync(intentId, adapter, readiness, ct);
-        LogInitialPromptReadinessGateFinished(_log, intentId, mode, vendor, result.IsReady, result.Attempts);
-        if (!result.IsReady)
-        {
-            throw TerminalFailures.TuiReadinessTimeout(
-                intentId,
-                vendor,
-                options.TuiReadinessTimeoutMilliseconds,
-                result.Attempts,
-                result.LastSnapshot);
+            promptDelivery.Kick(new TerminalPromptDeliveryRequest(
+                intentId.Value, mode, launch.Vendor, adapter, workspacePath, prompt.UserPrompt));
         }
     }
 
@@ -253,34 +176,4 @@ public sealed partial class RunPreflightSpawn(
         TerminalRunModes.Interview => IntentStatusNames.Interview,
         _ => null,
     };
-
-    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
-        Message = "terminal initial prompt delivery prepared: intent={IntentId} mode={Mode} vendor={Vendor} chars={CharCount} bytes={ByteCount} file={PromptPath}")]
-    private static partial void LogInitialPromptDeliveryPrepared(
-        ILogger logger,
-        string intentId,
-        string mode,
-        string vendor,
-        int charCount,
-        int byteCount,
-        string promptPath);
-
-    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
-        Message = "terminal initial prompt readiness gate finished: intent={IntentId} mode={Mode} vendor={Vendor} ready={Ready} attempts={Attempts}")]
-    private static partial void LogInitialPromptReadinessGateFinished(
-        ILogger logger,
-        string intentId,
-        string mode,
-        string vendor,
-        bool ready,
-        int attempts);
-
-    [LoggerMessage(EventId = 3, Level = LogLevel.Information,
-        Message = "terminal initial prompt submit command returned: intent={IntentId} mode={Mode} vendor={Vendor} file={PromptPath}")]
-    private static partial void LogInitialPromptSubmitCommandReturned(
-        ILogger logger,
-        string intentId,
-        string mode,
-        string vendor,
-        string promptPath);
 }

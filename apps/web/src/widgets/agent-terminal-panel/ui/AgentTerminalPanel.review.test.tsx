@@ -46,6 +46,12 @@ vi.mock("../api/agent-terminal-api", () => ({
   attachIntentTerminalSkills: vi.fn()
 }));
 
+// The panel subscribes to terminal.prompt_submit_unconfirmed via use-terminal-session;
+// stub the realtime hook so no EventSource is opened in jsdom.
+vi.mock("@/shared/realtime", () => ({
+  useRealtimeEvent: vi.fn()
+}));
+
 vi.mock("./TerminalView", () => ({
   TerminalView: () => <div data-testid="terminal-view" />
 }));

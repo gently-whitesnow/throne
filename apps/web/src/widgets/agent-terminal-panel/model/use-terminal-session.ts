@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { errorMessage } from "@/shared/lib";
+import { useRealtimeEvent } from "@/shared/realtime";
 
 import {
   attachIntentTerminalSkills,
@@ -31,6 +32,11 @@ export interface TerminalSessionView {
   probeSettled: boolean;
   /** User-facing error from the most recent action. */
   error: string | null;
+  /**
+   * Soft hint: the background prompt delivery could not confirm the initial prompt was submitted
+   * (the session is alive — not an error). Set from the realtime event, cleared on the next run.
+   */
+  submitUnconfirmed: boolean;
   isStarting: boolean;
   isStopping: boolean;
   isAttachingSkills: boolean;
@@ -49,6 +55,7 @@ interface InternalState {
   state: TerminalSessionState | "idle";
   lastResponse: RunIntentTerminalResponse | null;
   error: string | null;
+  submitUnconfirmed: boolean;
   startedAt: TerminalSessionStartedAt | null;
 }
 
@@ -56,6 +63,7 @@ const INITIAL: InternalState = {
   state: "idle",
   lastResponse: null,
   error: null,
+  submitUnconfirmed: false,
   startedAt: null
 };
 
@@ -93,6 +101,9 @@ export function useTerminalSession(
             response.session_state === "blocked"
               ? "Клон части репозиториев не готов — спавн агента невозможен."
               : null,
+          // A fresh run/probe response resets the soft submit hint; the realtime event re-raises it
+          // a beat later only if the background delivery actually failed to confirm.
+          submitUnconfirmed: false,
           startedAt: hasLiveSession
             ? { attempt: nextAttempt, sessionName: response.session_name }
             : null
@@ -121,6 +132,19 @@ export function useTerminalSession(
       abort.abort();
     };
   }, [intentId, terminalEnabled, apply]);
+
+  const onSubmitUnconfirmed = useCallback(
+    (payload: { intent_id: string }) => {
+      if (payload.intent_id !== intentId) return;
+      setInternal((prev) =>
+        prev.state === "running" || prev.state === "spawning"
+          ? { ...prev, submitUnconfirmed: true }
+          : prev
+      );
+    },
+    [intentId]
+  );
+  useRealtimeEvent("terminal.prompt_submit_unconfirmed", onSubmitUnconfirmed);
 
   const runImpl = useCallback(
     async (payload: TerminalRunPayload, restart: boolean) => {
@@ -214,6 +238,7 @@ export function useTerminalSession(
     lastResponse: internal.lastResponse,
     probeSettled,
     error: internal.error,
+    submitUnconfirmed: internal.submitUnconfirmed,
     startedAt: internal.startedAt,
     isStarting,
     isStopping,
