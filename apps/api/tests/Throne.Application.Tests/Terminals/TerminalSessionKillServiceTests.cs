@@ -6,10 +6,10 @@ using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
-using CapabilitiesAggregate = Throne.Domain.Capabilities.Capabilities;
 
 namespace Throne.Application.Tests.Terminals;
 
@@ -86,7 +86,7 @@ public class TerminalSessionKillServiceTests
         public Fixture()
         {
             Intents = Substitute.For<IIntentRepository>();
-            Capabilities = Substitute.For<ICapabilitiesRepository>();
+            Capabilities = Substitute.For<ICapabilityAvailability>();
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
             var options = new RunPreflightOptions();
@@ -108,7 +108,7 @@ public class TerminalSessionKillServiceTests
         }
 
         public IIntentRepository Intents { get; }
-        public ICapabilitiesRepository Capabilities { get; }
+        public ICapabilityAvailability Capabilities { get; }
         public IIntentRepositoryBindingRepository Bindings { get; }
         public IIntentTerminalLaunchStore LaunchStore { get; }
         public ITmuxSessionManager Tmux { get; }
@@ -119,16 +119,9 @@ public class TerminalSessionKillServiceTests
             bool intentExists = false,
             IReadOnlyList<IntentRepositoryBinding>? bindings = null)
         {
-            if (capabilityEnabled)
-            {
-                var stored = CapabilitiesAggregate.CreateEmpty(Now);
-                stored.SetEnabled(CapabilityNames.Terminal, true, Now);
-                Capabilities.GetAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<CapabilitiesAggregate?>(stored));
-            }
-            else
-            {
-                Capabilities.GetAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<CapabilitiesAggregate?>(null));
-            }
+            // `terminal` is detection-ready (ADR-0026 § 9); the kill guard asks ICapabilityAvailability.
+            Capabilities.IsAvailableAsync(CapabilityNames.Terminal, Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult(capabilityEnabled));
 
             if (intentExists)
             {

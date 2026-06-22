@@ -12,13 +12,21 @@ public class TerminalVendorCatalogMapperTests
 {
     private static TerminalVendorCatalogMapper Build(
         IVendorModelCatalog[]? dynamicCatalogs = null,
-        bool opencodeAvailable = true)
+        bool opencodeAvailable = true,
+        AgentVendorLoginStatus claudeLogin = AgentVendorLoginStatus.Ready,
+        AgentVendorLoginStatus codexLogin = AgentVendorLoginStatus.LoggedOut)
     {
         var capabilities = Substitute.For<ICapabilityAvailability>();
         capabilities.IsAvailableAsync(CapabilityNames.Opencode, Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(opencodeAvailable));
+        IAgentVendorLoginProbe[] probes =
+        [
+            new StubLoginProbe(TerminalAgentCatalog.VendorClaude, claudeLogin),
+            new StubLoginProbe(TerminalAgentCatalog.VendorCodex, codexLogin),
+        ];
         return new TerminalVendorCatalogMapper(
             dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
+            probes,
             capabilities);
     }
 
@@ -87,21 +95,59 @@ public class TerminalVendorCatalogMapperTests
         opencode.Default_model.Should().BeNull();
     }
 
-    [Fact(DisplayName = "Capability opencode выключена/undetected → вендор пропадает из списка")]
-    public async Task Hides_opencode_when_capability_unavailable()
+    [Fact(DisplayName = "login_status: проба вендора отражается, claude=ready/codex=logged_out, оба selectable")]
+    public async Task Maps_vendor_login_status()
+    {
+        var dto = await Build(
+            claudeLogin: AgentVendorLoginStatus.Ready,
+            codexLogin: AgentVendorLoginStatus.LoggedOut).ToDtoAsync(CancellationToken.None);
+
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Claude);
+        claude.Login_status.Should().Be(TerminalVendorLoginStatus.Ready);
+        claude.Selectable.Should().BeTrue();
+
+        var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Codex);
+        codex.Login_status.Should().Be(TerminalVendorLoginStatus.Logged_out);
+        codex.Selectable.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "login_status: claude CLI отсутствует → missing, но всё ещё selectable")]
+    public async Task Maps_missing_cli_login_status()
+    {
+        var dto = await Build(claudeLogin: AgentVendorLoginStatus.Missing).ToDtoAsync(CancellationToken.None);
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Claude);
+
+        claude.Login_status.Should().Be(TerminalVendorLoginStatus.Missing);
+        claude.Selectable.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "opencode: всегда виден как in_development и не selectable (независимо от capability)")]
+    public async Task Opencode_is_in_development_and_not_selectable()
     {
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
-        var mapper = Build([dynamicCatalog], opencodeAvailable: false);
 
-        var dto = await mapper.ToDtoAsync(CancellationToken.None);
+        foreach (var available in new[] { true, false })
+        {
+            var dto = await Build([dynamicCatalog], opencodeAvailable: available)
+                .ToDtoAsync(CancellationToken.None);
+            var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
 
-        dto.Vendors.Select(v => v.Vendor)
-            .Should().Equal(TerminalAgentVendor.Claude, TerminalAgentVendor.Codex);
+            opencode.Login_status.Should().Be(TerminalVendorLoginStatus.In_development);
+            opencode.Selectable.Should().BeFalse();
+            opencode.Login_detail.Should().Be("в разработке");
+        }
     }
 
     private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog
     {
         public string Vendor { get; } = vendor;
         public Task<IReadOnlyList<string>> ListModelsAsync(CancellationToken ct) => Task.FromResult(models);
+    }
+
+    private sealed class StubLoginProbe(string vendor, AgentVendorLoginStatus status) : IAgentVendorLoginProbe
+    {
+        public string Vendor { get; } = vendor;
+        public Task<AgentVendorLoginResult> ProbeAsync(CancellationToken ct) =>
+            Task.FromResult(new AgentVendorLoginResult(status, Detail: null));
     }
 }

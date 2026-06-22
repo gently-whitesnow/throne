@@ -7,13 +7,13 @@ using Throne.Application.Ports;
 using Throne.Application.PromptParts;
 using Throne.Application.Repositories;
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Application.Tests.Manifest;
 using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
-using CapabilitiesAggregate = Throne.Domain.Capabilities.Capabilities;
 
 namespace Throne.Application.Tests.Terminals;
 
@@ -47,7 +47,7 @@ public partial class RunPreflightOrchestratorTests
         public Fixture()
         {
             Intents = Substitute.For<IIntentRepository>();
-            Capabilities = Substitute.For<ICapabilitiesRepository>();
+            Capabilities = Substitute.For<ICapabilityAvailability>();
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tags = Substitute.For<ITagRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
@@ -160,7 +160,7 @@ public partial class RunPreflightOrchestratorTests
         }
 
         public IIntentRepository Intents { get; }
-        public ICapabilitiesRepository Capabilities { get; }
+        public ICapabilityAvailability Capabilities { get; }
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
@@ -175,16 +175,10 @@ public partial class RunPreflightOrchestratorTests
             IReadOnlyList<IntentRepositoryBinding>? bindings = null,
             TmuxSpawnResult? spawn = null)
         {
-            if (capabilityEnabled)
-            {
-                var stored = CapabilitiesAggregate.CreateEmpty(Now);
-                stored.SetEnabled(CapabilityNames.Terminal, true, Now);
-                Capabilities.GetAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<CapabilitiesAggregate?>(stored));
-            }
-            else
-            {
-                Capabilities.GetAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<CapabilitiesAggregate?>(null));
-            }
+            // `terminal` is detection-ready (ADR-0026 § 9): the guard asks ICapabilityAvailability,
+            // which folds detection into availability. capabilityEnabled mimics «tmux detected».
+            Capabilities.IsAvailableAsync(CapabilityNames.Terminal, Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult(capabilityEnabled));
 
             if (intentExists)
             {

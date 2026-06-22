@@ -81,7 +81,10 @@ function vendorCatalog() {
         default_model: "opus",
         efforts: ["high"],
         default_effort: "high",
-        model_source: "static"
+        model_source: "static",
+        login_status: "ready",
+        login_detail: null,
+        selectable: true
       }
     ]
   };

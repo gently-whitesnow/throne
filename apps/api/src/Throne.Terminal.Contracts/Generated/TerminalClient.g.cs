@@ -104,6 +104,30 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalModelSource>))]
         public TerminalModelSource Model_source { get; set; }
 
+        /// <summary>
+        /// Result of the per-vendor login probe (CLI present + authenticated). Feeds the vendor card in `/settings` and the «Throne готов» readiness check (≥1 vendor with `ready`). `in_development` is a static placeholder (currently `opencode`) — the vendor is shown but not launchable; see `selectable`.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("login_status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalVendorLoginStatus>))]
+        public TerminalVendorLoginStatus Login_status { get; set; }
+
+        /// <summary>
+        /// Short diagnostic from the login probe (`claude 2.x`, `codex: not logged in`, `в разработке`). Surfaced as the vendor-card subtitle; null when the probe has nothing to add.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("login_detail")]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        public string Login_detail { get; set; }
+
+        /// <summary>
+        /// Whether the launch surface may offer this vendor. False for `in_development` vendors (and any whose capability prerequisite is unavailable) — they still appear in `/settings` with their status, but the launch dropdown filters them out.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selectable")]
+        public bool Selectable { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -112,6 +136,32 @@ namespace Throne.Terminal.Contracts.Generated
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
+
+    }
+
+    /// <summary>
+    /// Login readiness of a terminal vendor's CLI. `ready` — CLI on PATH and authenticated (`claude auth status` / `codex login status` exit 0). `logged_out` — CLI present but not authenticated. `missing` — CLI not found on PATH. `in_development` — vendor is intentionally not wired for launch yet (e.g. `opencode` pending local-model rework); it is excluded from the readiness check and not `selectable`.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TerminalVendorLoginStatus
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready")]
+        [System.Runtime.Serialization.EnumMember(Value = @"ready")]
+        Ready = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"logged_out")]
+        [System.Runtime.Serialization.EnumMember(Value = @"logged_out")]
+        Logged_out = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"missing")]
+        [System.Runtime.Serialization.EnumMember(Value = @"missing")]
+        Missing = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"in_development")]
+        [System.Runtime.Serialization.EnumMember(Value = @"in_development")]
+        In_development = 3,
 
     }
 

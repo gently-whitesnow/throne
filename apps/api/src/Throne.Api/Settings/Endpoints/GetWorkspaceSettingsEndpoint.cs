@@ -20,6 +20,7 @@ public sealed class GetWorkspaceSettingsEndpoint(WorkspaceSizeProbe probe, IOpti
             Host_root = string.IsNullOrWhiteSpace(hostRoot) ? null : hostRoot,
             Status = snapshot.IsCalculating ? WorkspaceStatus.Calculating : WorkspaceStatus.Ready,
             Total_size_bytes = snapshot.TotalSizeBytes,
+            Writable = WorkspaceWritabilityProbe.IsWritable(snapshot.Root),
         });
     }
 }

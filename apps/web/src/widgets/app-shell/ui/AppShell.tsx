@@ -2,6 +2,7 @@ import {
   FileText,
   FolderGit2,
   Hash,
+  PackageCheck,
   Settings,
   Sparkles,
   Sprout
@@ -9,6 +10,7 @@ import {
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useCapabilityEnabled } from "@/entities/capability";
+import { useThroneReadiness } from "@/features/throne-readiness";
 
 import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
 
@@ -18,12 +20,15 @@ const NAV_ITEMS = [
   { to: "/repositories", label: "Repositories", icon: FolderGit2 },
   { to: "/instructions", label: "Prompt parts", icon: FileText },
   { to: "/improvements", label: "Improvements", icon: Sprout },
+  { to: "/launch-skills", label: "Launch skills", icon: PackageCheck },
   { to: "/settings", label: "Settings", icon: Settings }
 ] as const;
 
 export function AppShell() {
   const proposedPatches = useProposedPatchesCount();
   const repositoriesEnabled = useCapabilityEnabled("repositories");
+  const readiness = useThroneReadiness();
+  const showNotReadyBadge = !readiness.isLoading && !readiness.ready;
   const navItems = NAV_ITEMS.filter(
     (item) => item.to !== "/repositories" || repositoriesEnabled
   );
@@ -56,6 +61,14 @@ export function AppShell() {
                   className="absolute right-0.5 top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-error px-1 text-[9px] font-bold leading-none text-error-content"
                 >
                   {String(proposedPatches)}
+                </span>
+              ) : null}
+              {to === "/settings" && showNotReadyBadge ? (
+                <span
+                  aria-label="Throne не готов к работе"
+                  className="absolute right-0.5 top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-error px-1 text-[9px] font-bold leading-none text-error-content"
+                >
+                  !
                 </span>
               ) : null}
             </NavLink>

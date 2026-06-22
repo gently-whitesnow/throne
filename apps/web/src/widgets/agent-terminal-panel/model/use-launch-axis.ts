@@ -76,18 +76,27 @@ export function useLaunchAxis({
   const settingsQuery = useTerminalSettingsQuery();
   const catalog = catalogQuery.data;
 
+  // Only selectable vendors reach the launch dropdown — opencode «в разработке»
+  // (selectable=false) is shown in /settings but never offered for launch.
+  const selectableVendors = useMemo(
+    () => (catalog?.vendors ?? []).filter((v) => v.selectable),
+    [catalog]
+  );
+
   const initialized = useRef(false);
   useEffect(() => {
     if (initialized.current || catalog === undefined) return;
     if (!settingsQuery.isFetched || !ready) return;
 
     // Persisted intent launch wins over the global default_vendor; the vendor must still exist
-    // in the catalog (it may have been disabled since), otherwise fall back to the default.
-    const persistedVendor =
-      sessionLaunch !== null &&
-      findVendorMetadata(catalog, sessionLaunch.vendor) !== undefined
-        ? sessionLaunch.vendor
+    // in the catalog AND be selectable (non-selectable vendors like opencode «в разработке» are
+    // shown in settings but never offered for launch), otherwise fall back to the default.
+    const persistedMeta =
+      sessionLaunch !== null
+        ? findVendorMetadata(catalog, sessionLaunch.vendor)
         : undefined;
+    const persistedVendor =
+      persistedMeta?.selectable === true ? sessionLaunch?.vendor : undefined;
     const resolved =
       persistedVendor ??
       resolveDefaultVendor(catalog, settingsQuery.data?.default_vendor);
@@ -158,7 +167,7 @@ export function useLaunchAxis({
   );
 
   return {
-    vendors: catalog?.vendors ?? [],
+    vendors: selectableVendors,
     vendor: effectiveVendor,
     selectedMeta,
     model: effectiveModel,
