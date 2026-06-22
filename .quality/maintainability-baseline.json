@@ -1,5 +1,21 @@
 {
   "profile": "strict",
   "version": 1,
-  "violations": []
+  "violations": [
+    {
+      "code": "CTOR_DEPS",
+      "path": "apps/api/src/Throne.Application/Terminals/RunPreflightSpawn.cs",
+      "subject": "RunPreflightSpawn primary constructor"
+    },
+    {
+      "code": "TYPE_LOC",
+      "path": "apps/api/src/Throne.Application/Terminals/RunPreflightSpawn.cs",
+      "subject": "RunPreflightSpawn"
+    },
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Infrastructure/Terminals/TerminalsLog.cs",
+      "subject": "TerminalsLog"
+    }
+  ]
 }
