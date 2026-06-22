@@ -93,7 +93,7 @@ export interface paths {
         };
         /**
          * List repository bindings attached to an intent.
-         * @description Full binding cards consumed by the intent page and `bin/throne-review` binding discovery.
+         * @description Full binding cards consumed by the intent page and `skills/review/bin/throne-review` binding discovery.
          */
         get: operations["listIntentRepositories"];
         put?: never;

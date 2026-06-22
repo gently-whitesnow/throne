@@ -24,9 +24,11 @@ public class OpencodeSessionSkillPackageTests
             skillPackages: [new ReviewSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-review"));
+        var scriptPath = Path.Combine(root, "skills", "review", "bin", "throne-review");
+        var script = await File.ReadAllTextAsync(scriptPath);
         script.Should().NotContain("binding-1");
         script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
+        AssertExecutable(scriptPath);
 
         using var doc = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "opencode.json")));
         var instructions = doc.RootElement.GetProperty("instructions");
@@ -35,7 +37,7 @@ public class OpencodeSessionSkillPackageTests
 
         var hint = await File.ReadAllTextAsync(Path.Combine(root, "throne-session.review.md"));
         hint.Should().Contain("review_recommendation");
-        hint.Should().Contain("bin/throne-review write");
+        hint.Should().Contain("skills/review/bin/throne-review write");
     }
 
     [Fact(DisplayName = "OpenCode interview: пишет intent script/hint без mcp config")]
@@ -52,7 +54,8 @@ public class OpencodeSessionSkillPackageTests
             skillPackages: [new IntentSessionSkillPackage()],
             CancellationToken.None);
 
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-intent"));
+        var script = await File.ReadAllTextAsync(
+            Path.Combine(root, "skills", "intent", "bin", "throne-intent"));
         script.Should().NotContain("intent-1");
         script.Should().Contain("THRONE_INTENT_ID");
 
@@ -78,6 +81,7 @@ public class OpencodeSessionSkillPackageTests
         return new OpencodeSessionHookAdapter(
             discovery,
             HookOptions,
+            new SessionSkillMaterializer(),
             new FixedServeGateway(),
             new NoopTuiClient());
     }
@@ -102,4 +106,14 @@ public class OpencodeSessionSkillPackageTests
 
     private static ReviewArtifactWriteTarget ReviewTarget() =>
         new("binding-1", new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));
+
+    private static void AssertExecutable(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        File.GetUnixFileMode(path).Should().HaveFlag(UnixFileMode.UserExecute);
+    }
 }

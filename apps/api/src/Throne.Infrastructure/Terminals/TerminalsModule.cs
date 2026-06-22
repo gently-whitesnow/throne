@@ -48,6 +48,7 @@ public static class TerminalsModule
         services.AddHttpClient(OpencodeTuiClient.HttpClientName);
         services.AddSingleton<IOpencodeTuiClient, OpencodeTuiClient>();
         services.AddSingleton<IOpencodeServeGateway, OpencodeServeGateway>();
+        services.AddSingleton<ISessionSkillMaterializer, SessionSkillMaterializer>();
         services.AddSingleton(new SessionHookOptions
         {
             ApiBaseUrl = configuration?[SessionHookOptions.ApiBaseUrlKey]
@@ -57,7 +58,9 @@ public static class TerminalsModule
         services.AddSingleton<Throne.Application.Ports.ISessionSkillHotAttachWriter, SessionSkillHotAttachWriter>();
         services.AddSingleton<ISessionHookAdapter>(sp =>
             new CodexSessionHookAdapter(
-                sp.GetRequiredService<SessionHookOptions>(), CodexSessionProfile.ResolveHome()));
+                sp.GetRequiredService<SessionHookOptions>(),
+                sp.GetRequiredService<ISessionSkillMaterializer>(),
+                CodexSessionProfile.ResolveHome()));
         services.AddSingleton<ISessionHookAdapter, OpencodeSessionHookAdapter>();
         // Application orchestrators consume the bare options instance (see
         // PullRequestSyncBackoff for the same pattern) so Throne.Application

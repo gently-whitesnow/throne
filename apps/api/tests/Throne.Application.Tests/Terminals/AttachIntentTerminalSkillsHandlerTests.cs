@@ -82,6 +82,10 @@ public class AttachIntentTerminalSkillsHandlerTests
         // SKILL.md files were materialized into .claude/skills/{id}/SKILL.md
         File.Exists(Path.Combine(workspacePath, ".claude", "skills", SessionSkillPackageIds.Intent, "SKILL.md"))
             .Should().BeTrue();
+        var scriptPath = Path.Combine(
+            workspacePath, "skills", SessionSkillPackageIds.Intent, "bin", "throne-intent");
+        File.Exists(scriptPath).Should().BeTrue();
+        AssertExecutable(scriptPath);
 
         await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
             IntentIdValue,
@@ -174,7 +178,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             SessionSkillPackageResolution resolution,
             CancellationToken ct)
         {
-            // Mirror infrastructure side-effect: create the SKILL.md files so the happy-path test
+            // Mirror infrastructure side-effect: create the SKILL.md + bin files so the happy-path test
             // can assert filesystem layout without pulling Throne.Infrastructure into the unit
             // suite (which would also require the static skill source tree at AppContext.BaseDirectory).
             var workspacePath = Path.Combine(WorkspaceRoot, "intents", resolution.IntentId);
@@ -184,9 +188,28 @@ public class AttachIntentTerminalSkillsHandlerTests
                 var target = Path.Combine(workspacePath, ".claude", "skills", skillId, "SKILL.md");
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
                 File.WriteAllText(target, $"# {skillId} skill stub\n");
+                var script = Path.Combine(workspacePath, "skills", skillId, "bin", $"throne-{skillId}");
+                Directory.CreateDirectory(Path.GetDirectoryName(script)!);
+                File.WriteAllText(script, "#!/usr/bin/env sh\n");
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(
+                        script,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                }
                 contents.Add(new HotAttachedSkillContent(skillId, $"# {skillId} skill stub\n"));
             }
             return Task.FromResult(new HotAttachMaterialization(workspacePath, contents));
         }
+    }
+
+    private static void AssertExecutable(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        File.GetUnixFileMode(path).Should().HaveFlag(UnixFileMode.UserExecute);
     }
 }

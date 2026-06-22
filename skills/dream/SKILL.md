@@ -1,21 +1,21 @@
 ---
 name: dream
-description: Available for reading Throne dream sources and recent dream sessions to pull conversation context for the current host, and for proposing user prompt-part patches plus recording dream sessions through bin/throne-dream.
+description: Available for reading Throne dream sources and recent dream sessions to pull conversation context for the current host, and for proposing user prompt-part patches plus recording dream sessions through skills/dream/bin/throne-dream.
 ---
 
 # Throne Dream Operations
 
-Use `bin/throne-dream` for dream-mode memory and user prompt-part patch proposals. The script reads `THRONE_API_BASE`.
+Use `skills/dream/bin/throne-dream` for dream-mode memory and user prompt-part patch proposals. The script reads `THRONE_API_BASE`.
 
 Commands:
 
 ```bash
-bin/throne-dream sources
-bin/throne-dream sessions --host "$(hostname)" --limit 5
-bin/throne-dream current-part --scope user --key work
-bin/throne-dream patches --scope user --key work --limit 50
-bin/throne-dream propose-patch < /tmp/prompt-part-patch.json
-bin/throne-dream record-session < /tmp/dream-session.json
+skills/dream/bin/throne-dream sources
+skills/dream/bin/throne-dream sessions --host "$(hostname)" --limit 5
+skills/dream/bin/throne-dream current-part --scope user --key work
+skills/dream/bin/throne-dream patches --scope user --key work --limit 50
+skills/dream/bin/throne-dream propose-patch < /tmp/prompt-part-patch.json
+skills/dream/bin/throne-dream record-session < /tmp/dream-session.json
 ```
 
 Workflow:
