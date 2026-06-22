@@ -9,6 +9,25 @@ namespace Throne.Application.Tests.Terminals;
 
 internal static class TerminalSpawnTestDoubles
 {
+    /// <summary>The production vendor descriptors, wired through the real registry — mirrors the
+    /// DI composition so tests exercise the same lookup as the host.</summary>
+    public static ITerminalVendorCatalog VendorCatalog() =>
+        new TerminalVendorCatalog(
+        [
+            TerminalVendorDescriptors.Claude,
+            TerminalVendorDescriptors.Codex,
+            TerminalVendorDescriptors.Opencode,
+        ]);
+
+    /// <summary>The production session-skill descriptors, wired through the real registry.</summary>
+    public static ISessionSkillCatalog SkillCatalog() =>
+        new SessionSkillCatalog(
+        [
+            SessionSkillDescriptors.Intent,
+            SessionSkillDescriptors.Review,
+            SessionSkillDescriptors.Dream,
+        ]);
+
     public static RunPreflightWorkspacePreparer EmptyWorkspacePreparer() =>
         new(Substitute.For<IWorkspaceTrust>(), new WorkspaceAttachmentDumper(EmptyAttachmentRepo()));
 

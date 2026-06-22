@@ -16,6 +16,7 @@
 | [0006](0006-openapi-contract-first-codegen.md) | OpenAPI contract-first: `specs/contracts/<module>/openapi.yaml` — SoT HTTP API, codegen NSwag + openapi-typescript, gate `contracts` ловит drift | Accepted |
 | [0008](0008-realtime-contract-first-events.md) | Realtime contract-first events: `events.yaml` SoT, SSE-транспорт, in-memory broker, domain-event pipeline через `DomainEventDispatchingUnitOfWork` | Accepted |
 | [0029](0029-local-first-invariant-and-legacy-auth.md) | Local-first инвариант: ядро — однопользовательский local-first кокпит без auth-гейта; легаси multi-user слой (`owner_user_id`, PAT/JWT/OAuth) демонтирован, owner-оси нет | Accepted; резолвит фантомный `ADR-0012` |
+| [0045](0045-throne-extension-pattern.md) | Throne extension pattern: единая идиома осей расширяемости — порт → DI fan-out (`IEnumerable<T>`) → registry с lookup по строковому ключу; Capabilities как эталон; чеклист «как добавить N-й провайдер/вендор/скилл»; vendor/skill поведение в дескрипторе, не в `if`/`switch` | Accepted; кодифицирует [0024](0024-intent-repository-binding-and-cli-providers.md)/[0026](0026-embedded-terminal-capabilities-and-run-preflight.md)/[0032](0032-gitlab-provider.md)/[0043](0043-static-operational-skills-and-mcp-removal.md) |
 
 ## Module-scoped (один bounded context)
 
