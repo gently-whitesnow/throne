@@ -11,15 +11,18 @@ namespace Throne.Application.Ports;
 public interface ISessionSkillHotAttachWriter
 {
     /// <summary>
-    /// Writes <c>.claude/skills/{id}/SKILL.md</c> into <paramref name="workspacePath"/> for every
-    /// resolved package (so future spawns pick the skill up natively) and returns the SKILL.md
-    /// content for each package, in input order, so the handler can quote it into the live-pane
-    /// reminder.
+    /// Resolves the supplied session-skill ids to packages, writes
+    /// <c>.claude/skills/{id}/SKILL.md</c> into the intent's workspace (so future spawns pick the
+    /// skill up natively), and returns the SKILL.md content for each package in input order so the
+    /// handler can quote it into the live-pane reminder.
     /// </summary>
-    Task<IReadOnlyList<HotAttachedSkillContent>> WriteAsync(
-        string workspacePath,
-        IReadOnlyList<SessionSkillPackage> packages,
+    Task<HotAttachMaterialization> MaterializeAsync(
+        SessionSkillPackageResolution resolution,
         CancellationToken ct);
 }
 
 public sealed record HotAttachedSkillContent(string SkillId, string SkillMarkdown);
+
+public sealed record HotAttachMaterialization(
+    string WorkspacePath,
+    IReadOnlyList<HotAttachedSkillContent> Contents);

@@ -1,9 +1,4 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AvailableSessionSkill } from "../model/types";
@@ -16,10 +11,13 @@ function skill(
 ): AvailableSessionSkill {
   return {
     skill_id: id,
+    source: "throne",
     title: `Skill ${id}`,
     description: `desc ${id}`,
     materializable: true,
     reason: null,
+    default_enabled: false,
+    selected: false,
     ...overrides
   };
 }
@@ -33,7 +31,10 @@ describe("SkillsAttachControl", () => {
     render(
       <SkillsAttachControl
         attachedSkillIds={["alpha", "beta"]}
-        available={[skill("alpha", { title: "Alpha" }), skill("beta", { title: "Beta" })]}
+        available={[
+          skill("alpha", { title: "Alpha" }),
+          skill("beta", { title: "Beta" })
+        ]}
         sessionLive
         isLoadingAvailable={false}
         isAttaching={false}
@@ -41,12 +42,12 @@ describe("SkillsAttachControl", () => {
       />
     );
 
-    expect(screen.getByTestId("agent-terminal-skill-badge-alpha").textContent).toBe(
-      "Alpha"
-    );
-    expect(screen.getByTestId("agent-terminal-skill-badge-beta").textContent).toBe(
-      "Beta"
-    );
+    expect(
+      screen.getByTestId("agent-terminal-skill-badge-alpha").textContent
+    ).toBe("Alpha");
+    expect(
+      screen.getByTestId("agent-terminal-skill-badge-beta").textContent
+    ).toBe("Beta");
   });
 
   it("кнопка «Скилы» disabled когда сессия не живая", () => {
@@ -81,8 +82,12 @@ describe("SkillsAttachControl", () => {
     fireEvent.click(screen.getByTestId("agent-terminal-skills-attach-toggle"));
 
     const inputs = screen.getAllByRole<HTMLInputElement>("checkbox");
-    const alpha = inputs.find((i) => i.getAttribute("aria-label") === "Skill alpha");
-    const beta = inputs.find((i) => i.getAttribute("aria-label") === "Skill beta");
+    const alpha = inputs.find(
+      (i) => i.getAttribute("aria-label") === "Skill alpha"
+    );
+    const beta = inputs.find(
+      (i) => i.getAttribute("aria-label") === "Skill beta"
+    );
     expect(alpha?.checked).toBe(true);
     expect(alpha?.disabled).toBe(true);
     expect(beta?.checked).toBe(false);
