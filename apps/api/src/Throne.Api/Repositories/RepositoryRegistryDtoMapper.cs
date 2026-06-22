@@ -10,22 +10,6 @@ namespace Throne.Api.Repositories;
 /// </summary>
 internal static class RepositoryRegistryDtoMapper
 {
-    public static RepositoryDto ToRepositoryDto(Repository repository)
-    {
-        ArgumentNullException.ThrowIfNull(repository);
-        return new RepositoryDto
-        {
-            Provider = RepositoryEnumDtoMapper.ToWireProvider(repository.Coordinate.Provider),
-            Host = repository.Coordinate.Host,
-            Owner = repository.Coordinate.Owner,
-            Repo = repository.Coordinate.Repo,
-            Project_id = repository.Coordinate.ProjectId,
-            Full_name = repository.Coordinate.FullName,
-            Created_at = repository.CreatedAt,
-            Updated_at = repository.UpdatedAt,
-        };
-    }
-
     public static RepositoryDocumentSummaryDto ToDocumentSummaryDto(RepositoryArtifact artifact)
     {
         ArgumentNullException.ThrowIfNull(artifact);

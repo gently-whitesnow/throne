@@ -1,6 +1,5 @@
 import {
   FileText,
-  FolderGit2,
   Hash,
   PackageCheck,
   Settings,
@@ -16,7 +15,6 @@ import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
   { to: "/tags", label: "Tags", icon: Hash },
-  { to: "/repositories", label: "Repositories", icon: FolderGit2 },
   { to: "/instructions", label: "Prompt parts", icon: FileText },
   { to: "/improvements", label: "Improvements", icon: Sprout },
   { to: "/launch-skills", label: "Launch skills", icon: PackageCheck },

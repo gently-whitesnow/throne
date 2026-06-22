@@ -10,9 +10,6 @@ namespace Throne.Api.Repositories;
 /// pages (ADR-0031). This controller maps requests onto the existing application ports.
 /// </summary>
 public sealed class RepositoriesController(
-    ListRepositoriesEndpoint listEndpoint,
-    CreateRepositoryEndpoint createEndpoint,
-    GetRepositoryEndpoint getEndpoint,
     ListRepositoryDocumentsEndpoint listDocumentsEndpoint,
     GetRepositoryDocumentEndpoint getDocumentEndpoint,
     PutRepositoryDocumentEndpoint putDocumentEndpoint,
@@ -21,15 +18,6 @@ public sealed class RepositoriesController(
     GetPullRequestArtifactEndpoint getPrArtifactEndpoint,
     PutPullRequestArtifactEndpoint putPrArtifactEndpoint) : RepositoriesControllerBase
 {
-    public override Task<ActionResult<ICollection<RepositoryDto>>> ListRepositories() =>
-        listEndpoint.RunAsync(HttpContext.RequestAborted);
-
-    public override Task<ActionResult<RepositoryDto>> CreateRepository(CreateRepositoryRequest body) =>
-        createEndpoint.RunAsync(body, Url, HttpContext.RequestAborted);
-
-    public override Task<ActionResult<RepositoryDto>> GetRepository(GitProvider provider, string owner, string repo) =>
-        getEndpoint.RunAsync(provider, owner, repo, HttpContext.RequestAborted);
-
     public override Task<ActionResult<ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments(
         GitProvider provider, string owner, string repo) =>
         listDocumentsEndpoint.RunAsync(provider, owner, repo, HttpContext.RequestAborted);
