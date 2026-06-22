@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.Ports;
@@ -100,6 +101,30 @@ public class AttachIntentTerminalSkillsHandlerTests
             Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "Submit-confirmer не подтвердил Enter → PromptSubmitNotConfirmed, persisted set не меняется")]
+    public async Task Attach_submit_not_confirmed_throws_and_does_not_persist()
+    {
+        var workspacePath = Path.Combine(WorkspaceRoot, "intents", IntentIdValue);
+        if (Directory.Exists(workspacePath))
+        {
+            Directory.Delete(workspacePath, recursive: true);
+        }
+        Directory.CreateDirectory(workspacePath);
+        var launch = ClaudeLaunch();
+        var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: launch);
+        // Composer never shows the working footer — submit appears lost on every retry.
+        fixture.Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns("❯ # intent skill stub");
+
+        var act = () => fixture.Handler.HandleAsync(
+            new AttachIntentTerminalSkillsRequest(IntentIdValue, [SessionSkillPackageIds.Intent]),
+            CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(TerminalErrorCodes.PromptSubmitNotConfirmed);
+        await fixture.Launches.DidNotReceiveWithAnyArgs().SetAttachedSkillIdsAsync(default!, default!, default);
+    }
+
     [Fact(DisplayName = "Idempotent: повторный вызов с теми же id не дублирует persisted set")]
     public async Task Attach_is_idempotent_for_persisted_set()
     {
@@ -160,16 +185,51 @@ public class AttachIntentTerminalSkillsHandlerTests
             Bindings.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
                 .Returns(Array.Empty<IntentRepositoryBinding>());
             Tmux.HasSessionAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(hasSession);
+            // Default capture-pane stub: the submit-confirmation gate must see a working footer to
+            // resolve. Tests that exercise an unconfirmed-submit override this on the fixture.
+            Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+                .Returns("esc to interrupt");
             Launches.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(launch);
 
             var selection = new SessionSkillSelectionService(
                 Catalog,
                 Substitute.For<ISkillModeDefaultStore>(),
                 Substitute.For<IIntentSkillModeSelectionStore>());
+            var options = new RunPreflightOptions
+            {
+                TuiReadinessPollIntervalMilliseconds = 20,
+                PromptSubmitConfirmTimeoutMilliseconds = 200,
+                PromptSubmitMaxRetries = 1,
+            };
+            var submitGate = new TmuxPromptSubmitGate(
+                [new ClaudeStubAdapter()],
+                new TmuxPromptSubmitConfirmer(
+                    Tmux, options, TimeProvider.System,
+                    NullLogger<TmuxPromptSubmitConfirmer>.Instance),
+                options);
             Handler = new AttachIntentTerminalSkillsHandler(
-                Intents, Bindings, Launches, Catalog, selection, Tmux, Writer);
+                Intents, Bindings, Launches, Catalog, selection, Tmux, Writer, submitGate);
             return this;
         }
+    }
+
+    private sealed class ClaudeStubAdapter : ISessionHookAdapter
+    {
+        public string Vendor => TerminalAgentCatalog.VendorClaude;
+
+        public Task<IReadOnlyList<string>> PrepareSpawnArgsAsync(
+            string intentId, string workspacePath, string mode, string? systemPrompt,
+            IReadOnlyList<SessionSkillPackage> skillPackages, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
+
+        public bool IsTuiReady(string paneSnapshot) =>
+            !string.IsNullOrEmpty(paneSnapshot) && paneSnapshot.Contains('❯');
+
+        public bool IsPromptSubmitted(string paneSnapshot) =>
+            !string.IsNullOrEmpty(paneSnapshot)
+            && paneSnapshot.Contains("esc to interrupt", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class TestSkillWriter : ISessionSkillHotAttachWriter

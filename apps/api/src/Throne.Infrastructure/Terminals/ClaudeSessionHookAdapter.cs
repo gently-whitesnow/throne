@@ -74,6 +74,13 @@ public sealed class ClaudeSessionHookAdapter(
         !string.IsNullOrEmpty(paneSnapshot)
         && paneSnapshot.Contains('❯');
 
+    // After Enter, Claude Code prints a working footer with `esc to interrupt` while the model is
+    // processing the just-submitted prompt. The footer does not render before submit (or in the
+    // pre-paste ready state), so its presence is a positive confirmation that Enter was honoured.
+    public bool IsPromptSubmitted(string paneSnapshot) =>
+        !string.IsNullOrEmpty(paneSnapshot)
+        && paneSnapshot.Contains("esc to interrupt", StringComparison.OrdinalIgnoreCase);
+
     private object BuildSettings(string intentId, string mode) =>
         new
         {

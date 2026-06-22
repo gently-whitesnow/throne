@@ -87,12 +87,16 @@ public class RunPreflightSpawnStagingTests
         var tmux = Substitute.For<ITmuxSessionManager>();
         tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>())
             .Returns(new TmuxSpawnResult("throne-intent-1", IsAlive: true, Detail: null));
-        tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("│ > ready");
+        // Pre-submit capture: composer ready; post-submit capture: working footer with
+        // "esc to interrupt" to satisfy the prompt-submit confirmation gate.
+        tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns("│ > ready", "esc to interrupt");
 
         var options = new RunPreflightOptions
         {
             TuiReadinessTimeoutMilliseconds = 200,
             TuiReadinessPollIntervalMilliseconds = 20,
+            PromptSubmitConfirmTimeoutMilliseconds = 200,
         };
         var intents = Substitute.For<IIntentRepository>();
         intents.SetStatusAsync(
@@ -104,14 +108,22 @@ public class RunPreflightSpawnStagingTests
 
         var preparer = new RunPreflightWorkspacePreparer(
             Substitute.For<IWorkspaceTrust>(), new WorkspaceAttachmentDumper(attachments));
+        var hookAdapters = new ISessionHookAdapter[] { new StubAdapter() };
+        var submitGate = new TmuxPromptSubmitGate(
+            hookAdapters,
+            new TmuxPromptSubmitConfirmer(
+                tmux, options, TimeProvider.System,
+                NullLogger<TmuxPromptSubmitConfirmer>.Instance),
+            options);
         return new RunPreflightSpawn(
             tmux,
             new WorkspaceRoot(workspaceRoot),
             preparer,
-            [new StubAdapter()],
+            hookAdapters,
             new TmuxTuiReadinessWaiter(
                 tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 NullLogger<TmuxTuiReadinessWaiter>.Instance),
+            submitGate,
             options,
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
@@ -130,6 +142,9 @@ public class RunPreflightSpawnStagingTests
 
         public bool IsTuiReady(string paneSnapshot) =>
             paneSnapshot.Contains("│ >", StringComparison.Ordinal);
+
+        public bool IsPromptSubmitted(string paneSnapshot) =>
+            paneSnapshot.Contains("esc to interrupt", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class WorkspaceRoot(string root) : IWorkspaceRootProvider

@@ -39,6 +39,21 @@ public sealed class RunPreflightOptions
     public int TuiReadinessPollIntervalMilliseconds { get; set; } = 100;
 
     /// <summary>
+    /// Upper bound (milliseconds) per poll cycle of <see cref="TmuxPromptSubmitConfirmer"/>. After
+    /// a paste + Enter the working footer ("esc to interrupt") typically renders within one
+    /// readiness-poll interval; 1500 ms covers two poll cycles before falling through to a retry,
+    /// so a transiently slow render does not amplify into a false-negative timeout.
+    /// </summary>
+    public int PromptSubmitConfirmTimeoutMilliseconds { get; set; } = 1500;
+
+    /// <summary>
+    /// Maximum number of extra <c>send-keys Enter</c> the confirmer issues when the first submit
+    /// was absorbed as a newline-in-paste. Default 1 — empirically one re-send clears the race;
+    /// raising the bound past observed retry needs would just delay the failure.
+    /// </summary>
+    public int PromptSubmitMaxRetries { get; set; } = 1;
+
+    /// <summary>
     /// Hostname for the shared persistent <c>opencode serve</c> process. One serve per Throne
     /// host runs in a fixed-name tmux session; every OpenCode session is created against it and
     /// the operator's <c>opencode attach</c> front connects to it. Loopback by default.

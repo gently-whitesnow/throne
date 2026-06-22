@@ -19,6 +19,7 @@ public sealed partial class RunPreflightSpawn(
     RunPreflightWorkspacePreparer workspacePreparer,
     IEnumerable<ISessionHookAdapter> hookAdapters,
     TmuxTuiReadinessWaiter readinessWaiter,
+    TmuxPromptSubmitGate submitGate,
     RunPreflightOptions options,
     SetIntentStatusHandler setStatus,
     IDomainEventDispatcher events,
@@ -129,38 +130,45 @@ public sealed partial class RunPreflightSpawn(
             _log.IsEnabled(LogLevel.Information) ? Encoding.UTF8.GetByteCount(userPrompt) : 0,
             promptPath);
 
-        // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste
-        // and silently dropped the user prompt whenever the TUI took longer to init than the
-        // sleep. Only vendors we have an adapter for get the gate — unknown vendors fall through
-        // and skip the wait rather than block forever on a probe that has no marker.
         if (adapter is not null)
         {
-            var result = await readinessWaiter.WaitAsync(intentId, adapter, readiness, ct);
-            LogInitialPromptReadinessGateFinished(
-                _log,
-                intentId,
-                mode,
-                vendor,
-                result.IsReady,
-                result.Attempts);
-            if (!result.IsReady)
-            {
-                throw TerminalFailures.TuiReadinessTimeout(
-                    intentId,
-                    vendor,
-                    options.TuiReadinessTimeoutMilliseconds,
-                    result.Attempts,
-                    result.LastSnapshot);
-            }
+            await WaitForVendorReadinessOrThrowAsync(intentId, mode, vendor, adapter, readiness, ct);
         }
 
         await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
-        LogInitialPromptSubmitCommandReturned(
-            _log,
-            intentId,
-            mode,
-            vendor,
-            promptPath);
+        LogInitialPromptSubmitCommandReturned(_log, intentId, mode, vendor, promptPath);
+
+        if (adapter is not null)
+        {
+            // Symmetric companion to the readiness gate above: without it, the trailing Enter
+            // occasionally arrives in the same render frame as the bracketed-paste closing marker
+            // and Claude/Codex absorb it as newline-in-paste, leaving the prompt unsubmitted.
+            await submitGate.ConfirmOrThrowAsync(intentId, vendor, adapter, userPrompt, ct);
+        }
+    }
+
+    // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste and
+    // silently dropped the user prompt whenever the TUI took longer to init than the sleep. Only
+    // vendors we have an adapter for hit this — unknown vendors fall through and skip the wait.
+    private async Task WaitForVendorReadinessOrThrowAsync(
+        string intentId,
+        string mode,
+        string vendor,
+        ISessionHookAdapter adapter,
+        TerminalReadinessSignals.TerminalReadinessRegistration? readiness,
+        CancellationToken ct)
+    {
+        var result = await readinessWaiter.WaitAsync(intentId, adapter, readiness, ct);
+        LogInitialPromptReadinessGateFinished(_log, intentId, mode, vendor, result.IsReady, result.Attempts);
+        if (!result.IsReady)
+        {
+            throw TerminalFailures.TuiReadinessTimeout(
+                intentId,
+                vendor,
+                options.TuiReadinessTimeoutMilliseconds,
+                result.Attempts,
+                result.LastSnapshot);
+        }
     }
 
     private Dictionary<string, string> BuildSessionEnvironment(

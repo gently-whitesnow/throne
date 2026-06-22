@@ -134,6 +134,8 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightCloneWait>();
         services.AddSingleton<TerminalReadinessSignals>();
         services.AddSingleton<TmuxTuiReadinessWaiter>();
+        services.AddSingleton<TmuxPromptSubmitConfirmer>();
+        services.AddSingleton<TmuxPromptSubmitGate>();
         services.AddSingleton<WorkspaceAttachmentDumper>();
         services.AddSingleton<RunPreflightWorkspacePreparer>();
         services.AddSingleton<RunPreflightSpawn>();

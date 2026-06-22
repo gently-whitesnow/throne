@@ -71,6 +71,13 @@ public sealed class CodexSessionHookAdapter(
         !string.IsNullOrEmpty(paneSnapshot)
         && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
 
+    // Codex renders an `esc to interrupt` working footer while processing a submitted prompt,
+    // matching the cross-vendor convention Claude uses. Pre-submit ready state never paints it,
+    // so its presence is a positive confirmation that the trailing Enter was honoured.
+    public bool IsPromptSubmitted(string paneSnapshot) =>
+        !string.IsNullOrEmpty(paneSnapshot)
+        && paneSnapshot.Contains("esc to interrupt", StringComparison.OrdinalIgnoreCase);
+
     public Task CleanupAsync(string intentId, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
