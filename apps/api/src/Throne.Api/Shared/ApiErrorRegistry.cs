@@ -20,7 +20,6 @@ internal static class ApiErrorRegistry
         [ErrorCodes.RepositoryBlobNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.RepositoryArtifactNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.PullRequestArtifactNotFound] = StatusCodes.Status404NotFound,
-        [ErrorCodes.RepositoryNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.CapabilityNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.CapabilityProviderNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.PromptPartNotFound] = StatusCodes.Status404NotFound,

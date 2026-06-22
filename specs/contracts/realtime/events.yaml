@@ -151,13 +151,6 @@ events:
           type: string
         comment:
           $ref: 'repositories#/components/schemas/PullRequestCommentDto'
-  repository.registered:
-    description: >
-      A repository registry row was materialised for a coordinate the first time it surfaced
-      (ADR-0031). Fires on every path that ensures the registry — manual create, intent bind,
-      tag default, or the first knowledge-page write — but only when a new row is inserted,
-      never on the idempotent no-op.
-    payload_ref: repositories#/components/schemas/RepositoryDto
   repository.document_updated:
     description: >
       A RepositoryArtifact knowledge page was written (create or update).

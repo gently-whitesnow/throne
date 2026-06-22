@@ -1,10 +1,5 @@
 import type { RepositoriesComponents } from "@/shared/api";
 
-export type Repository = RepositoriesComponents["schemas"]["RepositoryDto"];
-
-export type CreateRepositoryRequest =
-  RepositoriesComponents["schemas"]["CreateRepositoryRequest"];
-
 export type RepositoryDocumentSummary =
   RepositoriesComponents["schemas"]["RepositoryDocumentSummaryDto"];
 

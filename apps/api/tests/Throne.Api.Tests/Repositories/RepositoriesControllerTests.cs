@@ -22,55 +22,6 @@ public sealed class RepositoriesControllerTests(MongoFixture mongo) : IAsyncLife
 
     void IDisposable.Dispose() { /* IAsyncLifetime.DisposeAsync owns cleanup */ }
 
-    [Fact(DisplayName = "POST /api/v1/repositories регистрирует координату (201), повтор идемпотентен (200)")]
-    public async Task Create_is_idempotent()
-    {
-        var body = new { provider = "github", owner = "octo", repo = "hello" };
-
-        var first = await _fixture.Client.PostAsJsonAsync(Repositories(), body);
-        first.StatusCode.Should().Be(HttpStatusCode.Created);
-        var dto = await first.Content.ReadFromJsonAsync<JsonElement>();
-        dto.GetProperty("full_name").GetString().Should().Be("octo/hello");
-        dto.GetProperty("provider").GetString().Should().Be("github");
-
-        var second = await _fixture.Client.PostAsJsonAsync(Repositories(), body);
-        second.StatusCode.Should().Be(HttpStatusCode.OK);
-    }
-
-    [Fact(DisplayName = "GET /api/v1/repositories отдаёт зарегистрированные координаты (метаданные, без страниц)")]
-    public async Task List_includes_registered()
-    {
-        await _fixture.Client.PostAsJsonAsync(Repositories(), new { provider = "github", owner = "octo", repo = "hello" });
-
-        var response = await _fixture.Client.GetAsync(Repositories());
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var items = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
-        items.Should().ContainSingle(i => i.GetProperty("full_name").GetString() == "octo/hello");
-    }
-
-    [Fact(DisplayName = "GET /api/v1/repositories/{coord} — 200 для известного, 404 для незарегистрированного")]
-    public async Task Get_200_and_404()
-    {
-        await _fixture.Client.PostAsJsonAsync(Repositories(), new { provider = "github", owner = "octo", repo = "hello" });
-
-        var found = await _fixture.Client.GetAsync(Repository("github", "octo", "hello"));
-        found.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var missing = await _fixture.Client.GetAsync(Repository("github", "octo", "unknown"));
-        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact(DisplayName = "GET /api/v1/repositories/{coord} с невалидным owner даёт 422")]
-    public async Task Get_invalid_coordinate_422()
-    {
-        var response = await _fixture.Client.GetAsync(Repository("github", "_bad", "hello"));
-
-        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-        problem.GetProperty("code").GetString().Should().Be("repository.coordinate_invalid");
-    }
-
     [Fact(DisplayName = "PUT .../documents/{slug} создаёт версию 1, апдейт по expected_version даёт 2, рассинхрон — 409")]
     public async Task Put_creates_updates_and_conflicts()
     {
@@ -153,11 +104,6 @@ public sealed class RepositoriesControllerTests(MongoFixture mongo) : IAsyncLife
         var missing = await _fixture.Client.GetAsync(Versions("github", "octo", "hello", "no-such-page"));
         missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
-
-    private static Uri Repositories() => new("/api/v1/repositories", UriKind.Relative);
-
-    private static Uri Repository(string provider, string owner, string repo) =>
-        new($"/api/v1/repositories/{provider}/{owner}/{repo}", UriKind.Relative);
 
     private static Uri Documents(string provider, string owner, string repo) =>
         new($"/api/v1/repositories/{provider}/{owner}/{repo}/documents", UriKind.Relative);

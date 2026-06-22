@@ -5,9 +5,6 @@ import { repositoriesQueryKeys } from "@/entities/repository";
 import { useRealtimeEvent } from "@/shared/realtime";
 
 export function useRepositoryRealtimeEvents(qc: QueryClient): void {
-  useRealtimeEvent("repository.registered", () => {
-    void qc.invalidateQueries({ queryKey: repositoriesQueryKeys.list() });
-  });
   useRealtimeEvent("repository.document_updated", (payload) => {
     const coordinate = {
       provider: payload.provider,

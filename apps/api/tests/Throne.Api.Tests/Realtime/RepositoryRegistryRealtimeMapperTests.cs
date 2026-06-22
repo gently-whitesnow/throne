@@ -8,10 +8,9 @@ using Throne.Realtime.Contracts.Generated;
 namespace Throne.Api.Tests.Realtime;
 
 /// <summary>
-/// Smoke-проверки mapper'а реестра репозиториев (ADR-0031): два события
-/// (<c>repository.registered</c>, <c>repository.document_updated</c>) должны укладываться
-/// в форму из <c>specs/contracts/realtime/events.yaml</c>. JSON-сериализация идёт теми же
-/// опциями, что использует <see cref="RealtimeController"/>, чтобы snake_case-ключи и
+/// Smoke-проверки mapper'а реестра репозиториев (ADR-0031): <c>repository.document_updated</c>
+/// должен укладываться в форму из <c>specs/contracts/realtime/events.yaml</c>. JSON-сериализация
+/// идёт теми же опциями, что использует <see cref="RealtimeController"/>, чтобы snake_case-ключи и
 /// строковый <c>provider</c> провалидировались на wire-уровне.
 /// </summary>
 public class RepositoryRegistryRealtimeMapperTests
@@ -24,24 +23,6 @@ public class RepositoryRegistryRealtimeMapperTests
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         DictionaryKeyPolicy = JsonNamingPolicy.SnakeCaseLower,
     };
-
-    [Fact(DisplayName = "repository.registered: payload — полный RepositoryDto")]
-    public void Maps_registered_to_repository_dto()
-    {
-        var repository = Repository.Create(RepositoryId.New(), Coordinate, Now);
-
-        var envelope = RepositoryRegistryRealtimeMapper.TryMap(new RepositoryRegistered(repository));
-
-        envelope.Should().NotBeNull();
-        envelope!.Name.Should().Be(RealtimeEventNames.RepositoryRegistered);
-
-        using var json = SerializePayload(envelope.Payload);
-        var root = json.RootElement;
-        root.GetProperty("provider").GetString().Should().Be("github");
-        root.GetProperty("owner").GetString().Should().Be("octo");
-        root.GetProperty("repo").GetString().Should().Be("throne");
-        root.GetProperty("full_name").GetString().Should().Be(Coordinate.FullName);
-    }
 
     [Fact(DisplayName = "repository.document_updated: pointer-payload {provider, owner, repo, slug, version}")]
     public void Maps_document_updated_to_pointer_payload()
