@@ -7,7 +7,7 @@ Date: 2026-06-13
 Amends [ADR-0030](0030-mcp-surface-policy-cli-first.md) and [ADR-0036](0036-unify-prompt-part-entity-and-rename-mcp.md).
 Related: [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md).
 
-**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The structural `PromptPartPatch` contract remains, but dream proposes patches through `bin/throne-dream propose-patch` over HTTP instead of an MCP tool.
+**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The structural `PromptPartPatch` contract remains, but dream proposes patches through `skills/dream/bin/throne-dream propose-patch` over HTTP instead of an MCP tool.
 
 ## Context
 

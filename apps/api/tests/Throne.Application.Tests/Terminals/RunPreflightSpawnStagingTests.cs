@@ -25,7 +25,7 @@ public class RunPreflightSpawnStagingTests
         // Stale artifacts from a prior run that must not survive the spawn.
         SeedFile(workspacePath, ".claude/skills/throne-review-artifact/SKILL.md", "stale generated review skill");
         SeedFile(workspacePath, ".claude/skills/review/SKILL.md", "stale review skill");
-        SeedFile(workspacePath, "bin/throne-review", "stale review script");
+        SeedFile(workspacePath, "skills/review/bin/throne-review", "stale review script");
         SeedFile(workspacePath, ".throne/attachments/removed-upstream.txt", "gone");
         // A non-Throne skill the operator owns — must be left intact.
         SeedFile(workspacePath, ".claude/skills/keep-me/SKILL.md", "operator skill");
@@ -61,7 +61,7 @@ public class RunPreflightSpawnStagingTests
                 .Should().BeFalse();
             Directory.Exists(Path.Combine(workspacePath, ".claude", "skills", "throne-review-artifact"))
                 .Should().BeFalse();
-            File.Exists(Path.Combine(workspacePath, "bin", "throne-review"))
+            Directory.Exists(Path.Combine(workspacePath, "skills", "review"))
                 .Should().BeFalse();
             File.Exists(Path.Combine(workspacePath, ".claude", "skills", "keep-me", "SKILL.md"))
                 .Should().BeTrue();

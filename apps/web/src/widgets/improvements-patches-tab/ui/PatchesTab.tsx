@@ -38,8 +38,9 @@ export function PatchesTab() {
   if (items.length === 0) {
     return (
       <p className="m-0 rounded border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
-        Патчи появятся, когда dream-проход вызовет `bin/throne-dream
-        propose-patch`. Запусти dream-сессию в Throne либо подожди cron.
+        Патчи появятся, когда dream-проход вызовет
+        `skills/dream/bin/throne-dream propose-patch`. Запусти dream-сессию в
+        Throne либо подожди cron.
       </p>
     );
   }

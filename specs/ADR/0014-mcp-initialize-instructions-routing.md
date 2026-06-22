@@ -4,7 +4,7 @@
 
 Accepted. Заменяет ранний UX-вход через vendor-локальные skill-лаунчеры (`.claude/skills/`, `.agents/skills/`) — см. Context. **Amended 2026-06-19** — см. ниже.
 
-**Update 2026-06-21:** superseded by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) for operational delivery. Runtime mode prompts still come from manifest composition, but operations are static repo skills plus `bin/throne-*`, not MCP initialize instructions.
+**Update 2026-06-21:** superseded by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) for operational delivery. Runtime mode prompts still come from manifest composition, but operations are static repo skills plus `skills/<id>/bin/throne-*`, not MCP initialize instructions.
 
 ## Amendment (2026-06-19): standalone = knowledge base, bundle removed
 

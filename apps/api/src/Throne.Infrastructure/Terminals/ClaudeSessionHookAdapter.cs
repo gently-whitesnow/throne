@@ -12,7 +12,9 @@ namespace Throne.Infrastructure.Terminals;
 /// blow past tmux's spawn-argv imsg limit. Both files live beside the clone (never inside it), so
 /// the repo stays free of runtime state and the workspace teardown on intent-done reaps them.
 /// </summary>
-public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISessionHookAdapter
+public sealed class ClaudeSessionHookAdapter(
+    SessionHookOptions options,
+    ISessionSkillMaterializer skillMaterializer) : ISessionHookAdapter
 {
     private const string SettingsFileName = "throne-session.settings.json";
     private const string SystemPromptFileName = "throne-session.append-system-prompt.txt";
@@ -38,8 +40,8 @@ public sealed class ClaudeSessionHookAdapter(SessionHookOptions options) : ISess
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
 
         Directory.CreateDirectory(workspacePath);
-        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, ct);
-        await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, skillPackages, ct);
+        await skillMaterializer.MaterializeAsync(
+            workspacePath, TerminalAgentCatalog.VendorClaude, skillPackages, ct);
 
         var settingsPath = Path.Combine(workspacePath, SettingsFileName);
         await using (var stream = File.Create(settingsPath))

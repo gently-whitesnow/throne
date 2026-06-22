@@ -17,7 +17,10 @@ namespace Throne.Infrastructure.Terminals;
 /// <c>$CODEX_HOME</c>, so the block is written there and referenced by a tiny <c>-p</c> token. That
 /// one profile per intent is reaped by <see cref="CleanupAsync"/> on intent-done.</para>
 /// </summary>
-public sealed class CodexSessionHookAdapter(SessionHookOptions options, string codexHome) : ISessionHookAdapter
+public sealed class CodexSessionHookAdapter(
+    SessionHookOptions options,
+    ISessionSkillMaterializer skillMaterializer,
+    string codexHome) : ISessionHookAdapter
 {
     private const string BypassHookTrustFlag = "--dangerously-bypass-hook-trust";
 
@@ -48,10 +51,9 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
 
         args.Add(BypassHookTrustFlag);
 
-        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, ct);
-
-        var effectiveSystemPrompt = SessionSkillWorkspaceFiles.WithCodexHints(
-            systemPrompt, workspacePath, skillPackages);
+        var materialization = await skillMaterializer.MaterializeAsync(
+            workspacePath, TerminalAgentCatalog.VendorCodex, skillPackages, ct);
+        var effectiveSystemPrompt = WithSkillAppendix(systemPrompt, materialization.SystemPromptAppendix);
         if (!string.IsNullOrWhiteSpace(effectiveSystemPrompt))
         {
             await WriteProfileAsync(intentId, effectiveSystemPrompt, ct);
@@ -79,6 +81,19 @@ public sealed class CodexSessionHookAdapter(SessionHookOptions options, string c
         }
 
         return Task.CompletedTask;
+    }
+
+    private static string WithSkillAppendix(string? systemPrompt, string? appendix)
+    {
+        if (string.IsNullOrWhiteSpace(appendix))
+        {
+            return systemPrompt ?? string.Empty;
+        }
+
+        var prompt = systemPrompt ?? string.Empty;
+        return string.IsNullOrWhiteSpace(prompt)
+            ? appendix
+            : $"{prompt.TrimEnd()}\n\n{appendix}";
     }
 
     private async Task WriteProfileAsync(string intentId, string systemPrompt, CancellationToken ct)

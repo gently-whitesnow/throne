@@ -1,18 +1,18 @@
 ---
 name: review
-description: Use when reviewing the PR/MR attached to the current Throne Intent to write the single review_recommendation artifact through bin/throne-review. Event-driven, triggered by PR/MR review work.
+description: Use when reviewing the PR/MR attached to the current Throne Intent to write the single review_recommendation artifact through skills/review/bin/throne-review. Event-driven, triggered by PR/MR review work.
 ---
 
 # Throne Review Recommendation
 
-Use `bin/throne-review write` to store the single `review_recommendation` artifact for the PR/MR attached to the current intent.
+Use `skills/review/bin/throne-review write` to store the single `review_recommendation` artifact for the PR/MR attached to the current intent.
 
-The script reads `THRONE_API_BASE`, `THRONE_INTENT_ID`, and optionally `THRONE_REPOSITORY_BINDING_ID`. If no binding id is in the environment, pass `--binding-id` or run `bin/throne-review bindings`.
+The script reads `THRONE_API_BASE`, `THRONE_INTENT_ID`, and optionally `THRONE_REPOSITORY_BINDING_ID`. If no binding id is in the environment, pass `--binding-id` or run `skills/review/bin/throne-review bindings`.
 
 Write one JSON payload on stdin. The payload follows `PutPullRequestArtifactRequest` in `specs/contracts/repositories/openapi.yaml`.
 
 ```bash
-bin/throne-review write < /tmp/review-recommendation.json
+skills/review/bin/throne-review write < /tmp/review-recommendation.json
 ```
 
 Payload shape:
