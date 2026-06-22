@@ -388,47 +388,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/repositories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List every repository in the registry.
-         * @description Metadata-only registry rows (ADR-0031), ordered by coordinate. A row materialises the first time a `(provider, owner, repo)` coordinate surfaces — from a bind, a tag default, a knowledge-page write, or manual `createRepository`. Knowledge pages are NOT embedded here; fetch them via `listRepositoryDocuments`.
-         */
-        get: operations["listRepositories"];
-        put?: never;
-        /**
-         * Manually register a repository by coordinate.
-         * @description Idempotent registration of a `(provider, owner, repo)` coordinate (ADR-0031), backing the manual "add repository" affordance with the provider repository autocomplete. Returns `201` when the row is created and `200` when the coordinate was already registered.
-         */
-        post: operations["createRepository"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/repositories/{provider}/{owner}/{repo}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a single registry row by coordinate. */
-        get: operations["getRepository"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/repositories/{provider}/{owner}/{repo}/documents": {
         parameters: {
             query?: never;
@@ -886,28 +845,6 @@ export interface components {
             pull_request_state: components["schemas"]["PullRequestState"];
             /** @description Provider's one-line summary of the merge outcome, when available. */
             message?: string | null;
-        };
-        RepositoryDto: {
-            provider: components["schemas"]["GitProvider"];
-            host: string;
-            owner: string;
-            repo: string;
-            /** Format: int32 */
-            project_id?: number | null;
-            /** @description `{owner}/{repo}` — convenience field for UI rendering. */
-            full_name: string;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            updated_at: string;
-        };
-        CreateRepositoryRequest: {
-            provider: components["schemas"]["GitProvider"];
-            host: string;
-            owner: string;
-            repo: string;
-            /** Format: int32 */
-            project_id?: number | null;
         };
         /** @description Compact page card used by `listRepositoryDocuments`; omits the markdown `document` body to avoid shipping large payloads in a list (see `specs/contracts/AGENTS.md`). */
         RepositoryDocumentSummaryDto: {
@@ -1912,110 +1849,6 @@ export interface operations {
                 };
             };
             /** @description Provider unsupported or unauthenticated. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    listRepositories: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RepositoryDto"][];
-                };
-            };
-        };
-    };
-    createRepository: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateRepositoryRequest"];
-            };
-        };
-        responses: {
-            /** @description The coordinate was already registered; the existing row is returned. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RepositoryDto"];
-                };
-            };
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RepositoryDto"];
-                };
-            };
-            /** @description Coordinate failed validation (unknown provider, malformed owner/repo). */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getRepository: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: components["schemas"]["GitProvider"];
-                owner: string;
-                repo: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RepositoryDto"];
-                };
-            };
-            /** @description No registry row for this coordinate. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Coordinate failed validation. */
             422: {
                 headers: {
                     [name: string]: unknown;

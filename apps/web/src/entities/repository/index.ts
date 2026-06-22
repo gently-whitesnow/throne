@@ -1,6 +1,4 @@
 export type {
-  Repository,
-  CreateRepositoryRequest,
   RepositoryCoordinate,
   RepositoryDocument,
   RepositoryDocumentSummary,
@@ -8,9 +6,6 @@ export type {
   PutRepositoryDocumentRequest
 } from "./model/types";
 export {
-  listRepositories,
-  createRepository,
-  getRepository,
   listRepositoryDocuments,
   getRepositoryDocument,
   putRepositoryDocument,
@@ -18,8 +13,6 @@ export {
 } from "./api/repositories-api";
 export {
   repositoriesQueryKeys,
-  useRepositoriesQuery,
-  useRepositoryQuery,
   useRepositoryDocumentQuery,
   useRepositoryDocumentVersionsQuery
 } from "./api/repositories-queries";
