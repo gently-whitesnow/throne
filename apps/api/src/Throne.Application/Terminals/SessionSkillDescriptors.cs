@@ -8,19 +8,11 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public static class SessionSkillDescriptors
 {
-    private static readonly IReadOnlyList<string> AllVendors =
-    [
-        TerminalAgentCatalog.VendorClaude,
-        TerminalAgentCatalog.VendorCodex,
-        TerminalAgentCatalog.VendorOpencode,
-    ];
-
     public static readonly SessionSkillDescriptor Intent = new(
         SessionSkillPackageIds.Intent,
         SessionSkillPackageSources.Throne,
         "Intent",
         "Правка Intent.text и создание/линковка дочерних интентов.",
-        AllVendors,
         DefaultModes: [TerminalRunModes.Interview],
         CreatePackage: static _ => new IntentSessionSkillPackage());
 
@@ -29,7 +21,6 @@ public static class SessionSkillDescriptors
         SessionSkillPackageSources.Throne,
         "Review",
         "Запись PR-артефакта review_recommendation через привязанный репозиторий.",
-        AllVendors,
         DefaultModes: [TerminalRunModes.Review],
         // Review needs a resolved write target — without an attached PR/MR it is not
         // materialisable, so the factory returns null and the registry skips it.
@@ -42,7 +33,6 @@ public static class SessionSkillDescriptors
         SessionSkillPackageSources.Throne,
         "Dream",
         "Dream sources, sessions и PromptPartPatch proposals через CLI.",
-        AllVendors,
         DefaultModes: [TerminalRunModes.Dream],
         CreatePackage: static _ => new DreamSessionSkillPackage());
 }

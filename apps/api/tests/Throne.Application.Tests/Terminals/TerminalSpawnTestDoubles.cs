@@ -29,7 +29,7 @@ internal static class TerminalSpawnTestDoubles
         ]);
 
     public static RunPreflightWorkspacePreparer EmptyWorkspacePreparer() =>
-        new(Substitute.For<IWorkspaceTrust>(), new WorkspaceAttachmentDumper(EmptyAttachmentRepo()));
+        new(Substitute.For<IWorkspaceTrust>(), SkillCatalog(), new WorkspaceAttachmentDumper(EmptyAttachmentRepo()));
 
     private static IIntentAttachmentRepository EmptyAttachmentRepo()
     {
