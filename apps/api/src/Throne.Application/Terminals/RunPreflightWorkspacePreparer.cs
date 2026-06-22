@@ -13,6 +13,7 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public sealed class RunPreflightWorkspacePreparer(
     IWorkspaceTrust workspaceTrust,
+    ISessionSkillCatalog skillCatalog,
     WorkspaceAttachmentDumper attachmentDumper)
 {
     public async Task PrepareAsync(IntentId intentId, string vendor, string workspacePath, CancellationToken ct)
@@ -24,7 +25,7 @@ public sealed class RunPreflightWorkspacePreparer(
 
         // Reset before re-seeding (skills via the adapter, attachments below) so nothing from a prior
         // run — a skill tree written in a different mode, an upstream-deleted attachment — leaks in.
-        WorkspaceStagingReset.Reset(workspacePath);
+        WorkspaceStagingReset.Reset(workspacePath, skillCatalog.List().Select(skill => skill.Id));
         await attachmentDumper.DumpAsync(intentId, workspacePath, ct);
     }
 }

@@ -40,12 +40,13 @@ public static class AgentSpawnCommand
     /// Vendor-neutral here — the adapter owns what they mean.
     /// </param>
     public static AgentSpawnInvocation Build(
+        TerminalVendorDescriptor descriptor,
         TerminalLaunchOptions options,
         IReadOnlyList<string>? preparedArgs = null)
     {
+        ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(options);
 
-        var descriptor = TerminalAgentCatalog.DescriptorFor(options.Vendor);
         var args = new List<string>(descriptor.BuildBaseArgs(options));
 
         if (preparedArgs is { Count: > 0 })

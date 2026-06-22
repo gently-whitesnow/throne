@@ -9,35 +9,20 @@ public sealed class SessionSkillPackageRegistry(ISessionSkillCatalog catalog)
         var selected = resolution.SelectedSkillIds.ToHashSet(StringComparer.Ordinal);
         foreach (var descriptor in catalog.List())
         {
-            if (!selected.Contains(descriptor.Id)
-                || !descriptor.Vendors.Contains(resolution.Vendor, StringComparer.Ordinal))
+            if (!selected.Contains(descriptor.Id))
             {
                 continue;
             }
 
-            AddPackage(result, descriptor, resolution);
+            // The descriptor owns construction (and materialisability — null means skip),
+            // so a new skill needs no case here (ADR-0045).
+            if (descriptor.CreatePackage(resolution) is { } package)
+            {
+                result.Add(package);
+            }
         }
 
         return result;
-    }
-
-    private static void AddPackage(
-        List<SessionSkillPackage> result,
-        SessionSkillDescriptor descriptor,
-        SessionSkillPackageResolution resolution)
-    {
-        switch (descriptor.Id)
-        {
-            case SessionSkillPackageIds.Review when resolution.ReviewArtifact is not null:
-                result.Add(new ReviewSessionSkillPackage(resolution.ReviewArtifact));
-                break;
-            case SessionSkillPackageIds.Intent:
-                result.Add(new IntentSessionSkillPackage());
-                break;
-            case SessionSkillPackageIds.Dream:
-                result.Add(new DreamSessionSkillPackage());
-                break;
-        }
     }
 }
 

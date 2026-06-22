@@ -17,6 +17,7 @@ public sealed class RunPreflightSpawn(
     IEnumerable<ISessionHookAdapter> hookAdapters,
     IRunPreflightPromptDelivery promptDelivery,
     RunPreflightOptions options,
+    ITerminalVendorCatalog vendors,
     SetIntentStatusHandler setStatus,
     IDomainEventDispatcher events)
 {
@@ -64,14 +65,15 @@ public sealed class RunPreflightSpawn(
             preparedArgs = [.. preparedArgs, .. attachArgs];
         }
 
-        var invocation = AgentSpawnCommand.Build(launch, preparedArgs);
+        var descriptor = vendors.DescriptorFor(launch.Vendor);
+        var invocation = AgentSpawnCommand.Build(descriptor, launch, preparedArgs);
         var spawn = await tmux.SpawnAsync(
             new TmuxSpawnRequest(
                 IntentId: intentId.Value,
                 WorkingDirectory: workspacePath,
                 Command: invocation.Command,
                 Arguments: invocation.Arguments,
-                EnableMouse: string.Equals(launch.Vendor, TerminalAgentCatalog.VendorOpencode, StringComparison.Ordinal),
+                EnableMouse: descriptor.EnableMouse,
                 EnvironmentVariables: BuildSessionEnvironment(intentId.Value, skillPackages)),
             ct);
 

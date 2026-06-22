@@ -11,18 +11,10 @@ public static class SkillModeDefaultSeeds
         {
             foreach (var skill in skills)
             {
-                result.Add(new SkillModeDefault(mode, skill.Id, IsEnabled(mode, skill.Id)));
+                result.Add(new SkillModeDefault(mode, skill.Id, skill.IsDefaultFor(mode)));
             }
         }
 
         return result;
     }
-
-    private static bool IsEnabled(string mode, string skillId) =>
-        (string.Equals(mode, TerminalRunModes.Interview, StringComparison.Ordinal)
-            && string.Equals(skillId, SessionSkillPackageIds.Intent, StringComparison.Ordinal))
-        || (string.Equals(mode, TerminalRunModes.Review, StringComparison.Ordinal)
-            && string.Equals(skillId, SessionSkillPackageIds.Review, StringComparison.Ordinal))
-        || (string.Equals(mode, TerminalRunModes.Dream, StringComparison.Ordinal)
-            && string.Equals(skillId, SessionSkillPackageIds.Dream, StringComparison.Ordinal));
 }

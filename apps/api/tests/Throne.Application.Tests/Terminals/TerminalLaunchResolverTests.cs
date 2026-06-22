@@ -16,6 +16,7 @@ public class TerminalLaunchResolverTests
         store.GetDefaultVendorAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(defaultVendor));
         return new TerminalLaunchResolver(
             store,
+            TerminalSpawnTestDoubles.VendorCatalog(),
             dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>());
     }
 

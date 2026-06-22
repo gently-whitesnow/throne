@@ -26,6 +26,7 @@ public sealed record TerminalLaunchInput(string? Vendor, string? Model, string? 
 /// </summary>
 public sealed class TerminalLaunchResolver(
     ITerminalSettingsStore settings,
+    ITerminalVendorCatalog vendors,
     IEnumerable<IVendorModelCatalog> dynamicCatalogs)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
@@ -38,12 +39,8 @@ public sealed class TerminalLaunchResolver(
         CancellationToken ct)
     {
         var resolvedVendor = vendor ?? await settings.GetDefaultVendorAsync(ct);
-        if (!TerminalAgentCatalog.IsKnownVendor(resolvedVendor))
-        {
-            throw TerminalFailures.VendorInvalid(resolvedVendor);
-        }
-
-        var descriptor = TerminalAgentCatalog.DescriptorFor(resolvedVendor);
+        var descriptor = vendors.Find(resolvedVendor)
+            ?? throw TerminalFailures.VendorInvalid(vendors, resolvedVendor);
 
         var resolvedModel = await ResolveModelAsync(descriptor, model, ct);
 
@@ -73,14 +70,14 @@ public sealed class TerminalLaunchResolver(
     {
         if (!_dynamicCatalogs.TryGetValue(descriptor.Vendor, out var catalog))
         {
-            throw TerminalFailures.ModelInvalid(descriptor.Vendor, requestedModel ?? "(none)");
+            throw TerminalFailures.ModelInvalid(descriptor, requestedModel ?? "(none)");
         }
 
         var liveModels = await catalog.ListModelsAsync(ct);
         var resolved = requestedModel ?? (liveModels.Count == 0 ? null : liveModels[0]);
         if (resolved is null || !liveModels.Contains(resolved, StringComparer.Ordinal))
         {
-            throw TerminalFailures.ModelInvalid(descriptor.Vendor, requestedModel ?? "(none)");
+            throw TerminalFailures.ModelInvalid(descriptor, requestedModel ?? "(none)");
         }
         return resolved;
     }
@@ -90,7 +87,7 @@ public sealed class TerminalLaunchResolver(
         var resolved = requestedModel ?? descriptor.DefaultModel;
         if (resolved is null || !descriptor.HasModel(resolved))
         {
-            throw TerminalFailures.ModelInvalid(descriptor.Vendor, requestedModel ?? "(none)");
+            throw TerminalFailures.ModelInvalid(descriptor, requestedModel ?? "(none)");
         }
         return resolved;
     }
