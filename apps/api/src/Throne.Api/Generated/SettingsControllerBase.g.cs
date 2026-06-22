@@ -103,11 +103,21 @@ namespace Throne.Api.Generated
         /// Authentication status for every configured git provider CLI.
         /// </summary>
         /// <remarks>
-        /// Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses the configured `Throne:GitLab:Host`.
+        /// Drives the settings page indicator. Throne never persists provider tokens itself — the underlying `gh` / `glab` CLIs own auth (see ADR-0024). GitLab uses the host persisted via `setGitLabHost` (default `gitlab.com`).
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/git-providers/status", Name = "getGitProvidersStatus")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<GitProvidersStatusDto>> GetGitProvidersStatus();
+
+        /// <summary>
+        /// Persist the GitLab host used by `glab` (e.g. `gitlab.com`, `gitlab.example.com`).
+        /// </summary>
+        /// <remarks>
+        /// Replaces the singleton GitLab host setting in Mongo. There is no env-var fallback; the very first read materialises the default `gitlab.com`. Takes effect on the next `glab` invocation (auth probe, repo search, clone) without restart.
+        /// </remarks>
+        /// <returns>OK</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/git-providers/gitlab/host", Name = "setGitLabHost")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<GitLabHostSettingsDto>> SetGitLabHost([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateGitLabHostRequest body);
 
     }
 

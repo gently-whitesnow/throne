@@ -1,6 +1,5 @@
 import { Fragment } from "react";
 
-import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import type { IntentDetail } from "@/entities/intent";
 
 import { intentDetailPanels } from "../model/panel-registry";
@@ -24,10 +23,7 @@ const regionGap: Record<PanelPlacement, string> = {
 };
 
 export function PanelRegion({ placement, intent }: PanelRegionProps) {
-  const { capabilities } = useCapabilities();
-  const panels = selectPanels(intentDetailPanels, placement, (capability) =>
-    isCapabilityEnabled(capabilities, capability)
-  );
+  const panels = selectPanels(intentDetailPanels, placement);
 
   if (panels.length === 0) return null;
 

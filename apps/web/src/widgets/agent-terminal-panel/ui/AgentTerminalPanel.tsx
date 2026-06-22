@@ -1,7 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { isCapabilityEnabled, useCapabilities } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
 import {
   isCloneReady,
@@ -35,20 +34,14 @@ export function AgentTerminalPanel({
     defaultRunModeForStatus(intentStatus)
   );
 
-  const { capabilities, isLoading: capabilitiesLoading } = useCapabilities();
   const { bindings } = useIntentRepositories(intentId);
 
-  const terminalEnabled = isCapabilityEnabled(capabilities, "terminal");
-  const session = useTerminalSession(intentId, terminalEnabled);
+  const session = useTerminalSession(intentId, true);
   const sessionLive =
     session.state === "running" || session.state === "spawning";
   const sessionLaunch = session.lastResponse?.launch ?? null;
 
-  // Capabilities decide whether a probe runs at all, so the prefill must not seed defaults
-  // before they settle: wait for capabilities, then for the probe (or accept «no probe» when
-  // the terminal capability is off — the axis then falls back to catalog defaults).
-  const prefillReady =
-    !capabilitiesLoading && (!terminalEnabled || session.probeSettled);
+  const prefillReady = session.probeSettled;
 
   const axis = useLaunchAxis({
     sessionLaunch,
@@ -101,17 +94,15 @@ export function AgentTerminalPanel({
     reviewSelection.reviewTargets.length > 1 &&
     reviewSelection.selectedReviewTargetId === "";
 
-  const runDisabledReason = !terminalEnabled
-    ? "Включите «Терминал агента» в настройках, чтобы запускать сессии."
-    : axis.metadataError
-      ? "Не удалось загрузить список агентов. Обновите страницу."
-      : !axis.launchReady
-        ? "Загружаем список агентов…"
-        : hasBlockingBinding
-          ? "Дождитесь готовности клонов всех репозиториев."
-          : hasMissingReviewTarget
-            ? "Выберите PR/MR для review."
-            : null;
+  const runDisabledReason = axis.metadataError
+    ? "Не удалось загрузить список агентов. Обновите страницу."
+    : !axis.launchReady
+      ? "Загружаем список агентов…"
+      : hasBlockingBinding
+        ? "Дождитесь готовности клонов всех репозиториев."
+        : hasMissingReviewTarget
+          ? "Выберите PR/MR для review."
+          : null;
 
   const [preflight, setPreflight] = useState<"run" | "restart" | null>(null);
 
@@ -164,11 +155,6 @@ export function AgentTerminalPanel({
         <h2 className="m-0 text-sm font-semibold text-base-content">
           Запустить агента
         </h2>
-        {capabilitiesLoading ? (
-          <span className="text-[11px] text-base-content/60">
-            Загружаем возможности…
-          </span>
-        ) : null}
       </header>
 
       <RunControls
@@ -198,16 +184,12 @@ export function AgentTerminalPanel({
         }}
         onKill={handleKill}
         runDisabled={
-          !terminalEnabled ||
-          !axis.launchReady ||
-          hasBlockingBinding ||
-          hasMissingReviewTarget
+          !axis.launchReady || hasBlockingBinding || hasMissingReviewTarget
         }
         runDisabledReason={runDisabledReason}
         sessionLive={sessionLive}
         isStarting={session.isStarting}
         isStopping={session.isStopping}
-        terminalEnabled={terminalEnabled}
       />
 
       {effectiveMode === "review" ? (
@@ -262,7 +244,7 @@ export function AgentTerminalPanel({
         </p>
       ) : null}
 
-      {terminalEnabled && session.startedAt !== null ? (
+      {session.startedAt !== null ? (
         <TerminalView
           intentId={intentId}
           attempt={session.startedAt.attempt}
@@ -270,9 +252,7 @@ export function AgentTerminalPanel({
         />
       ) : null}
 
-      {terminalEnabled &&
-      session.state === "exited" &&
-      session.startedAt === null ? (
+      {session.state === "exited" && session.startedAt === null ? (
         <p className="m-0 text-xs text-base-content/60">
           Сессия завершена. Нажмите «Запустить в терминале», чтобы начать
           заново.

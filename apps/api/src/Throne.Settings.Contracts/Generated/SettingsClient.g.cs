@@ -529,12 +529,53 @@ namespace Throne.Settings.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required]
         public GitProviderAuthStatusDto Github { get; set; } = new GitProviderAuthStatusDto();
 
-        /// <summary>
-        /// Status for the configured GitLab host.
-        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("gitlab")]
         [System.ComponentModel.DataAnnotations.Required]
         public GitProviderAuthStatusDto Gitlab { get; set; } = new GitProviderAuthStatusDto();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class GitLabHostSettingsDto
+    {
+
+        /// <summary>
+        /// Hostname used by `glab` (e.g. `gitlab.com`, `gitlab.example.com`).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Host { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateGitLabHostRequest
+    {
+
+        /// <summary>
+        /// Status for the configured GitLab host.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Host { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

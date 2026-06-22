@@ -1,20 +1,18 @@
 using Microsoft.Extensions.Logging;
 using Throne.Application.Ports;
 using Throne.Application.Terminals.Capabilities;
-using Throne.Domain.Capabilities;
 
 namespace Throne.Infrastructure.Terminals.Capabilities;
 
 /// <summary>
-/// `code --version` probe for capability `vscode`. Same folding rules as
-/// <see cref="TmuxCapabilityProbe"/>; in the docker-compose API container the binary is
-/// intentionally missing and <c>detected=false</c> is the expected steady-state result
-/// (the UI hides the buttons — Slice 2 Q4, ADR-0026 § 7).
+/// `code --version` probe for provider <c>vscode</c> under capability
+/// <c>open_in_ide</c>. The cache keys probes by <see cref="CapabilityName"/>; for
+/// carrier capabilities this is the provider name, not the capability key.
 /// </summary>
 internal sealed class VsCodeCapabilityProbe(IProcessLauncher launcher, ILogger<VsCodeCapabilityProbe> log)
     : ICapabilityProbe
 {
-    public string CapabilityName => CapabilityNames.Vscode;
+    public string CapabilityName => "vscode";
 
     public async Task<CapabilityProbeResult> ProbeAsync(CancellationToken ct)
     {

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
-import { useCapabilityEnabled } from "@/entities/capability";
 import { useThroneReadiness } from "@/features/throne-readiness";
 
 import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
@@ -26,12 +25,9 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const proposedPatches = useProposedPatchesCount();
-  const repositoriesEnabled = useCapabilityEnabled("repositories");
   const readiness = useThroneReadiness();
   const showNotReadyBadge = !readiness.isLoading && !readiness.ready;
-  const navItems = NAV_ITEMS.filter(
-    (item) => item.to !== "/repositories" || repositoriesEnabled
-  );
+  const navItems = NAV_ITEMS;
   return (
     <div className="grid h-screen grid-rows-[auto_1fr] overflow-hidden md:grid-cols-[56px_1fr] md:grid-rows-1">
       <aside

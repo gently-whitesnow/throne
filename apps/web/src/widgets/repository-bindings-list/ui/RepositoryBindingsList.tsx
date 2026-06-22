@@ -6,7 +6,7 @@ import {
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { BindRepositoryButton } from "@/features/bind-repository";
-import { OpenIntentInVscodeButton } from "@/features/open-in-vscode";
+import { OpenIntentInIdeButton } from "@/features/open-in-ide";
 import { SectionHeading } from "@/shared/ui";
 
 import { RepositoryBindingRow } from "./RepositoryBindingRow";
@@ -65,7 +65,7 @@ export function RepositoryBindingsList({
         count={visible.length > 0 ? visible.length : undefined}
         actions={
           <>
-            <OpenIntentInVscodeButton intentId={intentId} />
+            <OpenIntentInIdeButton intentId={intentId} />
             <BindRepositoryButton intentId={intentId} />
           </>
         }

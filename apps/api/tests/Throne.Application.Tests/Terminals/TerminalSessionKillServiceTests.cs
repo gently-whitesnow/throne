@@ -7,7 +7,6 @@ using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
-using Throne.Domain.Capabilities;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 
@@ -86,7 +85,7 @@ public class TerminalSessionKillServiceTests
         public Fixture()
         {
             Intents = Substitute.For<IIntentRepository>();
-            Capabilities = Substitute.For<ICapabilityAvailability>();
+            Detection = Substitute.For<ICapabilityDetectionCache>();
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
             var options = new RunPreflightOptions();
@@ -102,13 +101,13 @@ public class TerminalSessionKillServiceTests
                 options,
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());
-            var guards = new RunPreflightGuards(Intents, Capabilities, spawn);
+            var guards = new RunPreflightGuards(Intents, Detection, spawn);
             LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
             Service = new TerminalSessionKillService(guards, Bindings, LaunchStore, spawn);
         }
 
         public IIntentRepository Intents { get; }
-        public ICapabilityAvailability Capabilities { get; }
+        public ICapabilityDetectionCache Detection { get; }
         public IIntentRepositoryBindingRepository Bindings { get; }
         public IIntentTerminalLaunchStore LaunchStore { get; }
         public ITmuxSessionManager Tmux { get; }
@@ -119,9 +118,10 @@ public class TerminalSessionKillServiceTests
             bool intentExists = false,
             IReadOnlyList<IntentRepositoryBinding>? bindings = null)
         {
-            // `terminal` is detection-ready (ADR-0026 § 9); the kill guard asks ICapabilityAvailability.
-            Capabilities.IsAvailableAsync(CapabilityNames.Terminal, Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult(capabilityEnabled));
+            // tmux is no longer a carrier capability — the kill guard queries detection directly.
+            Detection.GetAsync("tmux", Arg.Any<CancellationToken>())
+                .Returns(Task.FromResult<CapabilityProbeResult?>(
+                    new CapabilityProbeResult(capabilityEnabled, capabilityEnabled ? "tmux 3.4" : "tmux missing")));
 
             if (intentExists)
             {

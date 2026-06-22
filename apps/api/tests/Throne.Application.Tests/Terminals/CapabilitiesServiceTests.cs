@@ -12,112 +12,93 @@ public class CapabilitiesServiceTests
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 28, 9, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "List: essentials enabled=detected (auto-ready), опциональные — enabled=false при пустом singleton")]
-    public async Task List_returns_descriptors_with_persisted_defaults()
+    [Fact(DisplayName = "List: open_in_ide with no persisted selection and one detected provider")]
+    public async Task List_returns_descriptor_with_provider_views()
     {
         var fixture = new ServiceFixture();
         fixture.NoPersisted();
-        fixture.DetectionFor(CapabilityNames.Terminal, detected: true, detail: "tmux 3.5a");
-        fixture.DetectionFor(CapabilityNames.Repositories, detected: false, detail: "gh not authenticated");
-        fixture.DetectionFor(CapabilityNames.Gitlab, detected: false, detail: "glab not configured");
-        fixture.DetectionFor(CapabilityNames.Vscode, detected: true, detail: "1.95.3");
+        fixture.DetectionFor("vscode", detected: true, detail: "1.95.3");
+        fixture.DetectionFor("cursor", detected: false, detail: "cursor CLI not found on PATH");
 
         var views = await fixture.Service.ListAsync(CancellationToken.None);
 
-        views.Select(v => v.Name).Should().Equal(
-            CapabilityNames.Repositories,
-            CapabilityNames.Gitlab,
-            CapabilityNames.Terminal,
-            CapabilityNames.Vscode,
-            CapabilityNames.Opencode);
-        // Essential terminal is detection-ready (ADR-0026 § 9) → enabled mirrors detected.
-        views.Single(v => v.Name == CapabilityNames.Terminal).Enabled.Should().BeTrue();
-        views.Single(v => v.Name == CapabilityNames.Terminal).Detected.Should().BeTrue();
-        views.Single(v => v.Name == CapabilityNames.Terminal).DetectionDetail.Should().Be("tmux 3.5a");
-        // Essential repositories undetected → disabled.
-        views.Single(v => v.Name == CapabilityNames.Repositories).Enabled.Should().BeFalse();
-        views.Single(v => v.Name == CapabilityNames.Repositories).Detected.Should().BeFalse();
-        // Optional vscode: detected but no explicit opt-in → still disabled.
-        views.Single(v => v.Name == CapabilityNames.Vscode).Enabled.Should().BeFalse();
+        views.Select(v => v.Name).Should().Equal(CapabilityNames.OpenInIde);
+        var view = views.Single();
+        view.SelectedProvider.Should().BeNull();
+        view.Providers.Select(p => p.Name).Should().Contain(["vscode", "cursor"]);
+        view.Providers.Single(p => p.Name == "vscode").Detected.Should().BeTrue();
+        view.Providers.Single(p => p.Name == "cursor").Detected.Should().BeFalse();
     }
 
-    [Fact(DisplayName = "List: опциональная capability отдаёт persisted enabled; essential игнорирует toggle")]
-    public async Task List_returns_persisted_enabled_toggle()
+    [Fact(DisplayName = "List: returns persisted selected_provider")]
+    public async Task List_returns_persisted_selection()
     {
         var fixture = new ServiceFixture();
         var stored = CapabilitiesAggregate.CreateEmpty(Now);
-        stored.SetEnabled(CapabilityNames.Vscode, true, Now);
-        stored.SetEnabled(CapabilityNames.Terminal, true, Now);
+        stored.SetSelectedProvider(CapabilityNames.OpenInIde, "cursor", Now);
         fixture.Persisted(stored);
         fixture.DetectionMissing();
 
         var views = await fixture.Service.ListAsync(CancellationToken.None);
 
-        // Optional vscode reflects the persisted toggle regardless of detection.
-        views.Single(v => v.Name == CapabilityNames.Vscode).Enabled.Should().BeTrue();
-        // Essential terminal ignores the stored toggle — undetected → disabled.
-        views.Single(v => v.Name == CapabilityNames.Terminal).Enabled.Should().BeFalse();
+        views.Single().SelectedProvider.Should().Be("cursor");
     }
 
-    [Fact(DisplayName = "IsAvailable: essential terminal доступен по detection без opt-in; opt-in без detection — нет")]
-    public async Task IsAvailable_essential_is_detection_ready()
-    {
-        var fixture = new ServiceFixture();
-        fixture.NoPersisted();
-        fixture.DetectionFor(CapabilityNames.Terminal, detected: true, detail: "tmux 3.5a");
-        fixture.DetectionFor(CapabilityNames.Vscode, detected: true, detail: "1.95.3");
-
-        // Essential: detected → available even though nothing was toggled on.
-        (await fixture.Service.IsAvailableAsync(CapabilityNames.Terminal, CancellationToken.None))
-            .Should().BeTrue();
-        // Optional: detected but not toggled on → unavailable.
-        (await fixture.Service.IsAvailableAsync(CapabilityNames.Vscode, CancellationToken.None))
-            .Should().BeFalse();
-    }
-
-    [Fact(DisplayName = "Toggle с неизвестным name бросает capability.not_found")]
-    public async Task Toggle_unknown_capability_throws()
+    [Fact(DisplayName = "SetSelectedProvider with unknown capability throws capability.not_found")]
+    public async Task Set_unknown_capability_throws()
     {
         var fixture = new ServiceFixture();
         fixture.NoPersisted();
 
-        var act = () => fixture.Service.ToggleAsync("jira", enabled: true, CancellationToken.None);
+        var act = () => fixture.Service.SetSelectedProviderAsync("jira", "vscode", CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.CapabilityNotFound);
     }
 
-    [Fact(DisplayName = "Toggle материализует singleton при первом включении и сохраняет toggle=true")]
-    public async Task Toggle_materializes_singleton_on_first_write()
+    [Fact(DisplayName = "SetSelectedProvider with unknown provider throws capability.provider_not_found")]
+    public async Task Set_unknown_provider_throws()
     {
         var fixture = new ServiceFixture();
-        // Repository starts empty; after SaveAsync we flip the GetAsync stub to
-        // return the persisted aggregate so the post-write view reflects it.
+        fixture.NoPersisted();
+
+        var act = () => fixture.Service.SetSelectedProviderAsync(
+            CapabilityNames.OpenInIde, "emacs", CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ApiException>();
+        ex.Which.Code.Should().Be(ErrorCodes.CapabilityProviderNotFound);
+    }
+
+    [Fact(DisplayName = "SetSelectedProvider materialises singleton and persists provider on first write")]
+    public async Task Set_materialises_singleton_on_first_write()
+    {
+        var fixture = new ServiceFixture();
         fixture.RecordSavesAndReadAfter();
         fixture.DetectionMissing();
 
-        // Optional capability: the returned view reflects the persisted toggle (essentials
-        // would instead report enabled=detected, masking the toggle — see auto-ready tests).
-        var view = await fixture.Service.ToggleAsync(CapabilityNames.Vscode, enabled: true, CancellationToken.None);
+        var view = await fixture.Service.SetSelectedProviderAsync(
+            CapabilityNames.OpenInIde, "vscode", CancellationToken.None);
 
-        view.Enabled.Should().BeTrue();
+        view.SelectedProvider.Should().Be("vscode");
         await fixture.Repository.Received().SaveAsync(
-            Arg.Is<CapabilitiesAggregate>(c => c.IsEnabled(CapabilityNames.Vscode)),
+            Arg.Is<CapabilitiesAggregate>(c => c.GetSelectedProvider(CapabilityNames.OpenInIde) == "vscode"),
             Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Toggle no-op (тот же enabled) не делает SaveAsync")]
-    public async Task Toggle_no_op_skips_save()
+    [Fact(DisplayName = "SetSelectedProvider no-op (same provider) does not call SaveAsync")]
+    public async Task Set_no_op_skips_save()
     {
         var fixture = new ServiceFixture();
         var stored = CapabilitiesAggregate.CreateEmpty(Now);
-        stored.SetEnabled(CapabilityNames.Terminal, true, Now);
+        stored.SetSelectedProvider(CapabilityNames.OpenInIde, "vscode", Now);
         fixture.Persisted(stored);
         fixture.DetectionMissing();
 
-        await fixture.Service.ToggleAsync(CapabilityNames.Terminal, enabled: true, CancellationToken.None);
+        await fixture.Service.SetSelectedProviderAsync(
+            CapabilityNames.OpenInIde, "vscode", CancellationToken.None);
 
-        await fixture.Repository.DidNotReceive().SaveAsync(Arg.Any<CapabilitiesAggregate>(), Arg.Any<CancellationToken>());
+        await fixture.Repository.DidNotReceive().SaveAsync(
+            Arg.Any<CapabilitiesAggregate>(), Arg.Any<CancellationToken>());
     }
 
     private sealed class ServiceFixture

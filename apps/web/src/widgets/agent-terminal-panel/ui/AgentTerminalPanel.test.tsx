@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "@/app/test-utils";
-import type { Capability } from "@/entities/capability";
 import type {
   IntentTerminalPreviewResponse,
   RunIntentTerminalResponse,
@@ -58,11 +57,6 @@ vi.mock("./TerminalView", () => ({
   )
 }));
 
-vi.mock("@/entities/capability/api/capabilities-api", () => ({
-  fetchCapabilities: () => Promise.resolve(terminalCapability()),
-  setCapabilityEnabled: vi.fn()
-}));
-
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
   listIntentRepositories: () => listIntentRepositories(),
   bindIntentRepository: vi.fn(),
@@ -110,19 +104,6 @@ function vendorCatalog() {
       }
     ]
   };
-}
-
-function terminalCapability(): Capability[] {
-  return [
-    {
-      name: "terminal",
-      title: "Терминал агента",
-      description: "tmux-сессия агента на странице интента.",
-      prerequisite_hint: "brew install tmux",
-      detected: true,
-      enabled: true
-    }
-  ];
 }
 
 function sessionResponse(

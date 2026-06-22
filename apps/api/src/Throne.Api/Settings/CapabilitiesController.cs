@@ -1,8 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
-using Throne.Api.Shared;
-using Throne.Application.Errors;
 using Throne.Application.Terminals.Capabilities;
 using Throne.Capabilities.Contracts.Generated;
 
@@ -17,15 +14,15 @@ public sealed class CapabilitiesController(CapabilitiesService service) : Capabi
         return Ok(dtos);
     }
 
-    public override async Task<ActionResult<CapabilityDto>> SetCapabilityEnabled(
+    public override async Task<ActionResult<CapabilityDto>> SetCapabilitySelectedProvider(
         CapabilityName name,
-        SetCapabilityEnabledRequest body
+        SetCapabilityProviderRequest body
     )
     {
         ArgumentNullException.ThrowIfNull(body);
-        var view = await service.ToggleAsync(
+        var view = await service.SetSelectedProviderAsync(
             CapabilityDtoMapper.ToDomainName(name),
-            body.Enabled,
+            body.Selected_provider,
             HttpContext.RequestAborted
         );
         return Ok(CapabilityDtoMapper.ToDto(view));

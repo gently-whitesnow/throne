@@ -17,7 +17,7 @@ internal sealed partial class GlabReviewWorkspaceActions
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(threadId);
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var flag = resolved ? "true" : "false";
         var apiPath = $"projects/{project}/merge_requests/{number}/discussions/{threadId}?resolved={flag}";
@@ -47,7 +47,7 @@ internal sealed partial class GlabReviewWorkspaceActions
                 GitProviderErrorKind.ReviewCommentAnchorInvalid,
                 "GitLab note delete requires a thread_id (discussion id).");
         }
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var apiPath =
             $"projects/{project}/merge_requests/{number}/discussions/{threadId}/notes/{commentId}";

@@ -1,9 +1,6 @@
 using FluentAssertions;
-using NSubstitute;
 using Throne.Api.Terminals;
 using Throne.Application.Terminals;
-using Throne.Application.Terminals.Capabilities;
-using Throne.Domain.Capabilities;
 using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Tests.Terminals;
@@ -12,13 +9,9 @@ public class TerminalVendorCatalogMapperTests
 {
     private static TerminalVendorCatalogMapper Build(
         IVendorModelCatalog[]? dynamicCatalogs = null,
-        bool opencodeAvailable = true,
         AgentVendorLoginStatus claudeLogin = AgentVendorLoginStatus.Ready,
         AgentVendorLoginStatus codexLogin = AgentVendorLoginStatus.LoggedOut)
     {
-        var capabilities = Substitute.For<ICapabilityAvailability>();
-        capabilities.IsAvailableAsync(CapabilityNames.Opencode, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(opencodeAvailable));
         IAgentVendorLoginProbe[] probes =
         [
             new StubLoginProbe(TerminalAgentCatalog.VendorClaude, claudeLogin),
@@ -26,8 +19,7 @@ public class TerminalVendorCatalogMapperTests
         ];
         return new TerminalVendorCatalogMapper(
             dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
-            probes,
-            capabilities);
+            probes);
     }
 
     [Fact(DisplayName = "Каталог: default_vendor=claude и все три вендора отданы в порядке каталога")]
@@ -121,21 +113,17 @@ public class TerminalVendorCatalogMapperTests
         claude.Selectable.Should().BeTrue();
     }
 
-    [Fact(DisplayName = "opencode: всегда виден как in_development и не selectable (независимо от capability)")]
+    [Fact(DisplayName = "opencode: помечен как in_development и не selectable")]
     public async Task Opencode_is_in_development_and_not_selectable()
     {
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
 
-        foreach (var available in new[] { true, false })
-        {
-            var dto = await Build([dynamicCatalog], opencodeAvailable: available)
-                .ToDtoAsync(CancellationToken.None);
-            var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
+        var dto = await Build([dynamicCatalog]).ToDtoAsync(CancellationToken.None);
+        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
 
-            opencode.Login_status.Should().Be(TerminalVendorLoginStatus.In_development);
-            opencode.Selectable.Should().BeFalse();
-            opencode.Login_detail.Should().Be("в разработке");
-        }
+        opencode.Login_status.Should().Be(TerminalVendorLoginStatus.In_development);
+        opencode.Selectable.Should().BeFalse();
+        opencode.Login_detail.Should().Be("в разработке");
     }
 
     private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog

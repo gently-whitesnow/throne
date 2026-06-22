@@ -19,11 +19,11 @@ import { TerminalDefaultsCard } from "./TerminalDefaultsCard";
  * критерия «Throne готов».
  *
  * Секции:
- *   * «Готовность» — агрегированный чеклист (вендор/git/tmux/workspace).
+ *   * «Готовность» — агрегированный чеклист (вендор/git/workspace).
  *   * «Агенты» — дефолтный вендор и статус логина каждого агента.
- *   * «Git-провайдеры» — статус gh/glab.
+ *   * «Git-провайдеры» — статус gh/glab + GitLab host.
  *   * «Workspace» — корень клонов и размер на диске.
- *   * «Фичи» — опциональные opt-in возможности (Open in IDE, GitLab).
+ *   * «Фичи» — carrier-фичи: выбор провайдера (например, Open in IDE).
  */
 export function SettingsPage() {
   return (
@@ -75,13 +75,13 @@ export function SettingsPage() {
         id="features"
         title="Фичи"
         icon={ToggleRight}
-        description="Опциональные opt-in возможности с внешними зависимостями. Default OFF: включите тогл осознанно после установки соответствующего CLI."
+        description="Carrier-фичи: выберите конкретного провайдера или оставьте «Авто», чтобы Throne подобрал доступного локально."
       >
-        <CapabilitiesCard only={["vscode", "gitlab"]} />
+        <CapabilitiesCard only={["open_in_ide"]} />
         <p className="m-0 flex items-center gap-1.5 text-xs leading-relaxed text-base-content/60">
           <ShieldCheck aria-hidden size={13} strokeWidth={2} />
-          Другие IDE (Cursor, JetBrains) могут быть добавлены позже —
-          provider-neutral задел.
+          Новые провайдеры (JetBrains и др.) появятся в этом списке по мере
+          добавления — provider-neutral задел.
         </p>
       </SettingsSection>
     </div>

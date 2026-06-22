@@ -5,5 +5,5 @@
 
 export const capabilitiesEndpoints = {
   listCapabilities: () => "/settings/capabilities",
-  setCapabilityEnabled: (name: string) => `/settings/capabilities/${name}`,
+  setCapabilitySelectedProvider: (name: string) => `/settings/capabilities/${name}/selected-provider`,
 } as const;

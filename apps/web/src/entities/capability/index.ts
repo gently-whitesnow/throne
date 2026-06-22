@@ -1,17 +1,24 @@
-export type { Capability, CapabilityName } from "./model/types";
+export type {
+  Capability,
+  CapabilityName,
+  CapabilityProvider
+} from "./model/types";
+export { OPEN_IN_IDE } from "./model/types";
 export {
   fetchCapabilities,
-  setCapabilityEnabled
+  setCapabilitySelectedProvider
 } from "./api/capabilities-api";
 export {
   capabilitiesQueryKeys,
   useCapabilitiesQuery,
-  useSetCapabilityEnabled
+  useSetSelectedProvider
 } from "./api/capabilities-queries";
 export {
-  isCapabilityEnabled,
   selectCapability,
+  selectedIdeProvider,
+  detectedIdeProviders,
   useCapabilities,
-  useCapabilityEnabled,
+  useSelectedIdeProvider,
+  useDetectedIdeProviders,
   type CapabilitiesState
 } from "./model/use-capabilities";

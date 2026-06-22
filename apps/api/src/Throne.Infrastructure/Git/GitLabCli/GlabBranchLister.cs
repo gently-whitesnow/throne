@@ -1,11 +1,10 @@
 using System.Globalization;
-using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 using Throne.Infrastructure.Git.GitHubCli;
 
 namespace Throne.Infrastructure.Git.GitLabCli;
 
-internal sealed class GlabBranchLister(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed class GlabBranchLister(GlabCliInvoker glab, IGitLabHostProvider hostProvider)
 {
     public async Task<IReadOnlyList<GitBranchRef>> ListAsync(
         string owner,
@@ -14,7 +13,7 @@ internal sealed class GlabBranchLister(GlabCliInvoker glab, IOptions<GitLabSetti
         int limit,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var effectiveLimit = limit > 0 ? limit : glab.PageSize;
         var project = GlabProjectPath.ApiId(owner, repo);
         var result = await glab.RunAsync(
@@ -28,13 +27,5 @@ internal sealed class GlabBranchLister(GlabCliInvoker glab, IOptions<GitLabSetti
 
         var branches = GlabBranchListParser.Parse(result.StandardOutput);
         return GhBranchFilter.Apply(branches, query, effectiveLimit);
-    }
-
-    private string ReadHost()
-    {
-        var host = settings.Value.Host?.Trim();
-        return string.IsNullOrWhiteSpace(host)
-            ? throw new GitProviderException(GitProviderErrorKind.CliFailure, "Throne:GitLab:Host is not configured.")
-            : host;
     }
 }

@@ -7,7 +7,10 @@ import {
 } from "@tanstack/react-query";
 
 import type { Capability, CapabilityName } from "../model/types";
-import { fetchCapabilities, setCapabilityEnabled } from "./capabilities-api";
+import {
+  fetchCapabilities,
+  setCapabilitySelectedProvider
+} from "./capabilities-api";
 
 export const capabilitiesQueryKeys = {
   all: ["capabilities"] as const,
@@ -22,24 +25,27 @@ export function useCapabilitiesQuery(): UseQueryResult<Capability[]> {
   });
 }
 
-interface ToggleArgs {
+interface SetSelectedProviderArgs {
   name: CapabilityName;
-  enabled: boolean;
+  selectedProvider: string | null;
 }
 
-export function useSetCapabilityEnabled(): UseMutationResult<
+export function useSetSelectedProvider(): UseMutationResult<
   Capability,
   Error,
-  ToggleArgs
+  SetSelectedProviderArgs
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, enabled }) => setCapabilityEnabled(name, enabled),
+    mutationFn: ({ name, selectedProvider }) =>
+      setCapabilitySelectedProvider(name, selectedProvider),
     onSuccess: (updated) => {
       queryClient.setQueryData<Capability[] | undefined>(
         capabilitiesQueryKeys.list(),
         (prev) =>
-          prev?.map((c) => (c.name === updated.name ? updated : c)) ?? [updated]
+          prev?.map((c) =>
+            (c.name as string) === (updated.name as string) ? updated : c
+          ) ?? [updated]
       );
     }
   });
