@@ -5,7 +5,10 @@ using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Mongo;
 
-internal sealed class MongoTerminalSettingsStore(IMongoDatabase database, MongoSessionAccessor sessions)
+internal sealed class MongoTerminalSettingsStore(
+    IMongoDatabase database,
+    MongoSessionAccessor sessions,
+    ITerminalVendorCatalog vendors)
     : ITerminalSettingsStore
 {
     private readonly IMongoCollection<TerminalSettingsDocument> _collection =
@@ -19,7 +22,7 @@ internal sealed class MongoTerminalSettingsStore(IMongoDatabase database, MongoS
             : await _collection.Find(session, d => d.Id == TerminalSettingsDocument.SingletonId).FirstOrDefaultAsync(ct);
 
         // Never-written row → native default, so callers never special-case absence.
-        return doc is null || !TerminalAgentCatalog.IsKnownVendor(doc.DefaultVendor)
+        return doc is null || !vendors.IsKnownVendor(doc.DefaultVendor)
             ? TerminalAgentCatalog.DefaultVendor
             : doc.DefaultVendor;
     }

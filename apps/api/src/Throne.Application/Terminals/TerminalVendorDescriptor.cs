@@ -16,6 +16,10 @@ namespace Throne.Application.Terminals;
 /// <see cref="Efforts"/> is non-empty. A vendor without an effort axis carries a null
 /// default, an empty effort list, and its <see cref="BuildBaseArgs"/> must not emit any
 /// effort flag (the resolved <see cref="TerminalLaunchOptions.Effort"/> is null for it).
+///
+/// Per-vendor execution toggles live here as flags (<see cref="EnableMouse"/>,
+/// <see cref="SupportsNativeHotAttach"/>) so spawn / hot-attach read a capability off the
+/// descriptor instead of branching on the vendor token (ADR-0045).
 /// </summary>
 public sealed record TerminalVendorDescriptor(
     string Vendor,
@@ -26,7 +30,9 @@ public sealed record TerminalVendorDescriptor(
     string? DefaultEffort,
     string ModelSource,
     Func<TerminalLaunchOptions, IReadOnlyList<string>> BuildBaseArgs,
-    bool InDevelopment = false)
+    bool InDevelopment = false,
+    bool EnableMouse = false,
+    bool SupportsNativeHotAttach = false)
 {
     /// <summary>
     /// Static native default model = first entry of <see cref="Models"/>. Null when the

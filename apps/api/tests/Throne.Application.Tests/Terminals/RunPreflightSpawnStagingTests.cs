@@ -28,6 +28,10 @@ public class RunPreflightSpawnStagingTests
         SeedFile(workspacePath, ".agents/skills/review/SKILL.md", "stale codex review skill");
         SeedFile(workspacePath, "skills/review/bin/throne-review", "stale review script");
         SeedFile(workspacePath, "skills/review/SKILL.md", "stale canonical review skill");
+        SeedFile(workspacePath, ".claude/skills/inspect/SKILL.md", "stale future skill");
+        SeedFile(workspacePath, ".agents/skills/inspect/SKILL.md", "stale future codex skill");
+        SeedFile(workspacePath, "skills/inspect/SKILL.md", "stale future canonical skill");
+        SeedFile(workspacePath, "throne-session.inspect.md", "stale future opencode skill");
         SeedFile(workspacePath, ".throne/attachments/removed-upstream.txt", "gone");
         // A non-Throne skill the operator owns — must be left intact.
         SeedFile(workspacePath, ".claude/skills/keep-me/SKILL.md", "operator skill");
@@ -67,6 +71,14 @@ public class RunPreflightSpawnStagingTests
             Directory.Exists(Path.Combine(workspacePath, ".claude", "skills", "throne-review-artifact"))
                 .Should().BeFalse();
             Directory.Exists(Path.Combine(workspacePath, "skills", "review"))
+                .Should().BeFalse();
+            Directory.Exists(Path.Combine(workspacePath, ".claude", "skills", "inspect"))
+                .Should().BeFalse();
+            Directory.Exists(Path.Combine(workspacePath, ".agents", "skills", "inspect"))
+                .Should().BeFalse();
+            Directory.Exists(Path.Combine(workspacePath, "skills", "inspect"))
+                .Should().BeFalse();
+            File.Exists(Path.Combine(workspacePath, "throne-session.inspect.md"))
                 .Should().BeFalse();
             File.Exists(Path.Combine(workspacePath, ".claude", "skills", "keep-me", "SKILL.md"))
                 .Should().BeTrue();
@@ -114,7 +126,7 @@ public class RunPreflightSpawnStagingTests
                 Intent.Restore(ci.ArgAt<IntentId>(0), "x", ci.ArgAt<string>(1), 1, [], Now, Now)));
 
         var preparer = new RunPreflightWorkspacePreparer(
-            Substitute.For<IWorkspaceTrust>(), new WorkspaceAttachmentDumper(attachments));
+            Substitute.For<IWorkspaceTrust>(), SkillCatalogWithFutureSkill(), new WorkspaceAttachmentDumper(attachments));
         var hookAdapters = new ISessionHookAdapter[] { new StubAdapter() };
         return new RunPreflightSpawn(
             tmux,
@@ -123,6 +135,7 @@ public class RunPreflightSpawnStagingTests
             hookAdapters,
             Substitute.For<IRunPreflightPromptDelivery>(),
             options,
+            TerminalSpawnTestDoubles.VendorCatalog(),
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
     }
@@ -156,4 +169,19 @@ public class RunPreflightSpawnStagingTests
         public Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
         public Task<T> ExecuteOutsideTransactionAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct) => work(ct);
     }
+
+    private static ISessionSkillCatalog SkillCatalogWithFutureSkill() =>
+        new SessionSkillCatalog(
+        [
+            SessionSkillDescriptors.Intent,
+            SessionSkillDescriptors.Review,
+            SessionSkillDescriptors.Dream,
+            new SessionSkillDescriptor(
+                "inspect",
+                SessionSkillPackageSources.Throne,
+                "Inspect",
+                "Future managed skill used to prove staging cleanup follows the catalog.",
+                DefaultModes: [],
+                CreatePackage: static _ => null),
+        ]);
 }

@@ -43,6 +43,7 @@ public class RunPreflightSpawnInitialPromptTests
             hookAdapters,
             delivery,
             options,
+            TerminalSpawnTestDoubles.VendorCatalog(),
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
 

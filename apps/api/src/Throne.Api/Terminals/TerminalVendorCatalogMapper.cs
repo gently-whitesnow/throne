@@ -22,6 +22,7 @@ namespace Throne.Api.Terminals;
 /// GitLab pattern from ADR-0032 § 8.
 /// </summary>
 public sealed class TerminalVendorCatalogMapper(
+    ITerminalVendorCatalog catalog,
     IEnumerable<IVendorModelCatalog> dynamicCatalogs,
     IEnumerable<IAgentVendorLoginProbe> loginProbes)
 {
@@ -33,8 +34,8 @@ public sealed class TerminalVendorCatalogMapper(
 
     public async Task<TerminalVendorCatalogResponse> ToDtoAsync(CancellationToken ct)
     {
-        var vendors = new List<TerminalVendorMetadataDto>(TerminalAgentCatalog.Descriptors.Count);
-        foreach (var descriptor in TerminalAgentCatalog.Descriptors)
+        var vendors = new List<TerminalVendorMetadataDto>(catalog.Descriptors.Count);
+        foreach (var descriptor in catalog.Descriptors)
         {
             vendors.Add(await ToVendorDtoAsync(descriptor, ct));
         }

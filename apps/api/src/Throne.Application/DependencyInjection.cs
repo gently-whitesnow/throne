@@ -122,7 +122,19 @@ public static class DependencyInjection
         // RunPreflightOrchestrator pulls in ITmuxSessionManager from Infrastructure registration.
         services.AddSingleton<CapabilitiesPersistence>();
         services.AddSingleton<CapabilitiesService>();
-        services.AddSingleton<ISessionSkillCatalog, InMemorySessionSkillCatalog>();
+        // Agent-vendor axis (ADR-0045): each descriptor is registered individually and resolved
+        // through the DI-backed catalog — a new vendor is one descriptor + one line here, no
+        // central list or switch. Registration order is the launch-surface display order.
+        services.AddSingleton(TerminalVendorDescriptors.Claude);
+        services.AddSingleton(TerminalVendorDescriptors.Codex);
+        services.AddSingleton(TerminalVendorDescriptors.Opencode);
+        services.AddSingleton<ITerminalVendorCatalog, TerminalVendorCatalog>();
+        // Operational skills (ADR-0045): one descriptor per skill, resolved through the
+        // DI-backed catalog — add a skill = new descriptor + folder + one line below.
+        services.AddSingleton(SessionSkillDescriptors.Intent);
+        services.AddSingleton(SessionSkillDescriptors.Review);
+        services.AddSingleton(SessionSkillDescriptors.Dream);
+        services.AddSingleton<ISessionSkillCatalog, SessionSkillCatalog>();
         services.AddSingleton<SessionSkillPackageRegistry>();
         services.AddSingleton<SessionSkillSelectionService>();
         services.AddSingleton<RunPreflightSkillPlanner>();
