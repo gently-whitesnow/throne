@@ -16,7 +16,7 @@ public sealed class TerminalSessionKillService(
 {
     public async Task<RunPreflightResult> KillAsync(string intentId, CancellationToken ct)
     {
-        await guards.EnsureCapabilityEnabledAsync(ct);
+        await guards.EnsureTmuxDetectedAsync(ct);
         var intent = await guards.LoadIntentAsync(intentId, ct);
         var sessionName = TmuxSessionName.For(intent.Id.Value);
 

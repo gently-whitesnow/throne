@@ -1,0 +1,95 @@
+openapi: "3.1.0"
+info:
+  title: Throne Open in IDE
+  version: "1.0.0"
+  x-csharp-namespace: Throne.Ide.Contracts.Generated
+  description: >
+    Shell-out to the host IDE selected for the carrier capability `open_in_ide`
+    (VS Code, Cursor, …). Two granularities — the intent's aggregate workspace
+    and a single repository binding workspace.
+paths:
+  /api/v1/ide/open/intents/{intent_id}:
+    post:
+      operationId: openIntentInIde
+      tags: [Ide]
+      summary: Open the intent's aggregate workspace in the selected IDE.
+      description: >
+        Spawns the selected IDE binary against `{workspace_root}/intents/{intent_id}/`.
+        Provider is resolved from the persisted `open_in_ide.selected_provider`,
+        with a fallback to «the single detected provider» when nothing is selected.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Spawn accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenInIdeResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: No IDE provider available (none selected and none detected).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/ide/open/bindings/{intent_id}/{binding_id}:
+    post:
+      operationId: openBindingInIde
+      tags: [Ide]
+      summary: Open a single repository binding's workspace in the selected IDE.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Spawn accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenInIdeResponse'
+        '404':
+          description: Binding or intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: No IDE provider available or clone not ready.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    OpenInIdeResponse:
+      type: object
+      required:
+        - workspace_path
+        - provider
+      properties:
+        workspace_path:
+          type: string
+          minLength: 1
+          description: Absolute path passed to the IDE CLI.
+        provider:
+          type: string
+          minLength: 1
+          description: Provider that was actually invoked (`vscode`, `cursor`, …).

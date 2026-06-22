@@ -19,7 +19,7 @@ interface ReviewScopeBarProps {
   commits: PullRequestCommit[];
   commitsLoading: boolean;
   mergeControl?: ReactNode;
-  openInVscode?: ReactNode;
+  openInIde?: ReactNode;
   onSelectRequest: () => void;
   onSelectCommit: (sha: string) => void;
   onClose: () => void;
@@ -37,7 +37,7 @@ export function ReviewScopeBar({
   commits,
   commitsLoading,
   mergeControl,
-  openInVscode,
+  openInIde,
   onSelectRequest,
   onSelectCommit,
   onClose
@@ -103,9 +103,9 @@ export function ReviewScopeBar({
         </select>
       </div>
 
-      {openInVscode !== undefined || mergeControl !== undefined ? (
+      {openInIde !== undefined || mergeControl !== undefined ? (
         <div className="ml-auto flex items-center gap-2">
-          {openInVscode}
+          {openInIde}
           {mergeControl}
         </div>
       ) : null}
@@ -114,7 +114,7 @@ export function ReviewScopeBar({
         type="button"
         aria-label="Закрыть ревью"
         onClick={onClose}
-        className={`${openInVscode !== undefined || mergeControl !== undefined ? "ml-2" : "ml-auto"} rounded-md p-1.5 text-base-content/60 hover:bg-base-200 hover:text-base-content`}
+        className={`${openInIde !== undefined || mergeControl !== undefined ? "ml-2" : "ml-auto"} rounded-md p-1.5 text-base-content/60 hover:bg-base-200 hover:text-base-content`}
       >
         <X size={18} strokeWidth={2} />
       </button>

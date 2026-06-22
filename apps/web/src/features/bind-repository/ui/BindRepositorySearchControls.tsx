@@ -1,7 +1,7 @@
 import { Search } from "lucide-react";
 import { useEffect } from "react";
 
-import { useCapabilityEnabled } from "@/entities/capability";
+import { useGitProvidersStatus } from "@/entities/git-provider-status";
 import type { GitProvider } from "@/entities/repository-binding";
 
 import type { SearchScope } from "../model/use-repository-search";
@@ -33,12 +33,13 @@ export function BindRepositorySearchControls({
   onScopeChange,
   disabled
 }: BindRepositorySearchControlsProps) {
-  // GitLab is gated behind the `gitlab` capability (ADR-0032 § 8): hide the
-  // option entirely until the operator enabled it and `glab` was detected.
-  const gitlabEnabled = useCapabilityEnabled("gitlab");
+  // GitLab availability is detection-only: hide the option until `glab` is
+  // authenticated against the configured host.
+  const { status } = useGitProvidersStatus();
+  const gitlabEnabled = status?.gitlab.authenticated === true;
 
-  // Capability flipped off while GitLab was selected → fall back to GitHub so
-  // the search does not keep hitting a provider the user can no longer pick.
+  // GitLab logout / host change while GitLab is selected → fall back to GitHub
+  // so the search does not keep hitting a provider the user can no longer pick.
   useEffect(() => {
     if (!gitlabEnabled && provider === "gitlab") {
       onProviderChange("github");

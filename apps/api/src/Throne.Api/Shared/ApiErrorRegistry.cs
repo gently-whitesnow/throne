@@ -22,6 +22,7 @@ internal static class ApiErrorRegistry
         [ErrorCodes.PullRequestArtifactNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.RepositoryNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.CapabilityNotFound] = StatusCodes.Status404NotFound,
+        [ErrorCodes.CapabilityProviderNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.PromptPartNotFound] = StatusCodes.Status404NotFound,
 
         [ErrorCodes.IntentVersionConflict] = StatusCodes.Status409Conflict,
@@ -55,6 +56,8 @@ internal static class ApiErrorRegistry
         [ErrorCodes.RepositoryReviewAnchorInvalid] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.RepositoryCoordinateInvalid] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.CapabilityDisabled] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.IdeProviderUnavailable] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.GitLabHostInvalid] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.TerminalRunPreflightBlocked] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.TerminalSpawnFailed] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.TerminalCloneWaitTimeout] = StatusCodes.Status422UnprocessableEntity,

@@ -1,5 +1,5 @@
 import { useCapabilitiesQuery } from "../api/capabilities-queries";
-import type { Capability, CapabilityName } from "./types";
+import { OPEN_IN_IDE, type Capability, type CapabilityName } from "./types";
 
 export interface CapabilitiesState {
   capabilities: readonly Capability[];
@@ -9,11 +9,6 @@ export interface CapabilitiesState {
 
 const EMPTY: readonly Capability[] = [];
 
-/**
- * Тонкий wrapper над react-query. Источник правды для capability-gating UI:
- * страница `/settings` показывает карточки, intent-страница и retrofit Slice 1
- * включают/прячут секции по `isCapabilityEnabled`.
- */
 export function useCapabilities(): CapabilitiesState {
   const query = useCapabilitiesQuery();
   return {
@@ -27,24 +22,46 @@ export function selectCapability(
   capabilities: readonly Capability[],
   name: CapabilityName
 ): Capability | undefined {
-  return capabilities.find((c) => c.name === name);
+  // Currently CapabilityName resolves to a single literal — eslint flags the
+  // equality as always-true, so compare via a widened string view.
+  return capabilities.find((c) => (c.name as string) === (name as string));
 }
 
 /**
- * Capability считается «полностью включённой», только если оператор включил тогл
- * И prerequisite задетектился. Toggle ON без detected — пользователь хотел
- * включить заранее, но UI-секции рендерить нельзя: соответствующая фича просто
- * не заработает (например, `code` CLI отсутствует в контейнере → кнопки скрыты).
+ * Effective provider for the `open_in_ide` capability:
+ * either the operator-selected one (if its provider is still detected) or the
+ * single detected provider when nothing is persisted. Returns null when no
+ * provider is usable on the host.
  */
-export function isCapabilityEnabled(
-  capabilities: readonly Capability[],
-  name: CapabilityName
-): boolean {
-  const cap = selectCapability(capabilities, name);
-  return cap !== undefined && cap.enabled && cap.detected;
+export function selectedIdeProvider(
+  capabilities: readonly Capability[]
+): string | null {
+  const cap = selectCapability(capabilities, OPEN_IN_IDE);
+  if (cap === undefined) return null;
+  const detected = cap.providers.filter((p) => p.detected);
+  if (cap.selected_provider !== null && cap.selected_provider !== undefined) {
+    const match = detected.find((p) => p.name === cap.selected_provider);
+    if (match !== undefined) return match.name;
+  }
+  return detected.length === 1 ? detected[0].name : null;
 }
 
-export function useCapabilityEnabled(name: CapabilityName): boolean {
+export function detectedIdeProviders(
+  capabilities: readonly Capability[]
+): readonly string[] {
+  const cap = selectCapability(capabilities, OPEN_IN_IDE);
+  if (cap === undefined) return EMPTY_NAMES;
+  return cap.providers.filter((p) => p.detected).map((p) => p.name);
+}
+
+const EMPTY_NAMES: readonly string[] = [];
+
+export function useSelectedIdeProvider(): string | null {
   const { capabilities } = useCapabilities();
-  return isCapabilityEnabled(capabilities, name);
+  return selectedIdeProvider(capabilities);
+}
+
+export function useDetectedIdeProviders(): readonly string[] {
+  const { capabilities } = useCapabilities();
+  return detectedIdeProviders(capabilities);
 }

@@ -15,14 +15,9 @@ import type {
 
 import { BindRepositoryModal } from "./BindRepositoryModal";
 
-// GitLab provider button is gated on the `gitlab` capability; force it enabled
-// so the provider-switch / manual-gitlab assertions can reach the GitLab path.
-vi.mock("@/entities/capability", () => ({
-  useCapabilityEnabled: () => true
-}));
-
 // Configured GitLab host comes from `git-providers/status`; stub it so the
-// manual SSH-URL host validation has a fixed host to compare against.
+// manual SSH-URL host validation has a fixed host to compare against. The
+// `gitlab.authenticated=true` flag also re-enables the GitLab provider button.
 vi.mock("@/entities/git-provider-status", () => ({
   useGitProvidersStatus: () => ({
     status: {

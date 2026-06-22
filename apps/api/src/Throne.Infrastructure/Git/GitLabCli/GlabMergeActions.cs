@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 using Throne.Domain.Repositories;
 
@@ -10,7 +9,7 @@ namespace Throne.Infrastructure.Git.GitLabCli;
 /// <c>glab mr merge</c> porcelain so the instance's merge-method and approval
 /// rules are honoured.
 /// </summary>
-internal sealed class GlabMergeActions(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed class GlabMergeActions(GlabCliInvoker glab, IGitLabHostProvider hostProvider)
 {
     public async Task<PullRequestMergeStatus?> GetMergeStatusAsync(
         string owner,
@@ -18,7 +17,7 @@ internal sealed class GlabMergeActions(GlabCliInvoker glab, IOptions<GitLabSetti
         int number,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var result = await glab.RunAsync(
             ["api", $"projects/{project}/merge_requests/{number}"],
@@ -41,7 +40,7 @@ internal sealed class GlabMergeActions(GlabCliInvoker glab, IOptions<GitLabSetti
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var args = new List<string>
         {
             "mr", "merge", number.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -108,11 +107,4 @@ internal sealed class GlabMergeActions(GlabCliInvoker glab, IOptions<GitLabSetti
         || stderr.Contains("unresolved", StringComparison.OrdinalIgnoreCase)
         || stderr.Contains("draft", StringComparison.OrdinalIgnoreCase);
 
-    private string ReadHost()
-    {
-        var host = settings.Value.Host?.Trim();
-        return string.IsNullOrWhiteSpace(host)
-            ? throw new GitProviderException(GitProviderErrorKind.CliFailure, "Throne:GitLab:Host is not configured.")
-            : host;
-    }
 }

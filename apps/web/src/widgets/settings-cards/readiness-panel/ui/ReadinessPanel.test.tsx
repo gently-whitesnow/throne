@@ -5,17 +5,13 @@ import { renderWithQuery } from "@/app/test-utils";
 
 import { ReadinessPanel } from "./ReadinessPanel";
 
-const fetchCapabilities = vi.fn<() => Promise<unknown>>();
 const fetchGitProvidersStatus = vi.fn<() => Promise<unknown>>();
 const fetchTerminalVendorCatalog = vi.fn<() => Promise<unknown>>();
 const fetchWorkspaceSettings = vi.fn<() => Promise<unknown>>();
 
-vi.mock("@/entities/capability/api/capabilities-api", () => ({
-  fetchCapabilities: () => fetchCapabilities(),
-  setCapabilityEnabled: vi.fn()
-}));
 vi.mock("@/entities/git-provider-status/api/git-providers-status-api", () => ({
-  fetchGitProvidersStatus: () => fetchGitProvidersStatus()
+  fetchGitProvidersStatus: () => fetchGitProvidersStatus(),
+  setGitLabHost: vi.fn()
 }));
 vi.mock("@/entities/terminal-setting/api/terminal-vendor-catalog-api", () => ({
   fetchTerminalVendorCatalog: () => fetchTerminalVendorCatalog()
@@ -44,7 +40,6 @@ function vendor(login_status: string) {
 
 describe("ReadinessPanel", () => {
   beforeEach(() => {
-    fetchCapabilities.mockReset();
     fetchGitProvidersStatus.mockReset();
     fetchTerminalVendorCatalog.mockReset();
     fetchWorkspaceSettings.mockReset();
@@ -55,9 +50,6 @@ describe("ReadinessPanel", () => {
   });
 
   it("рендерит «Throne готов» когда все критерии выполнены", async () => {
-    fetchCapabilities.mockResolvedValue([
-      { name: "terminal", title: "Terminal", detected: true, enabled: true }
-    ]);
     fetchGitProvidersStatus.mockResolvedValue({
       github: { authenticated: true, state: "ok" }
     });
@@ -77,16 +69,13 @@ describe("ReadinessPanel", () => {
     ).toBe("true");
   });
 
-  it("рендерит «Не готов» и ссылку «Как установить» при незакрытом критерии", async () => {
-    fetchCapabilities.mockResolvedValue([
-      { name: "terminal", title: "Terminal", detected: false, enabled: false }
-    ]);
+  it("рендерит «Не готов» при незакрытом критерии вендора", async () => {
     fetchGitProvidersStatus.mockResolvedValue({
       github: { authenticated: true, state: "ok" }
     });
     fetchTerminalVendorCatalog.mockResolvedValue({
       default_vendor: "claude",
-      vendors: [vendor("ready")]
+      vendors: [vendor("logged_out")]
     });
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
@@ -97,7 +86,7 @@ describe("ReadinessPanel", () => {
     });
     expect(screen.getAllByText("Как установить").length).toBeGreaterThan(0);
     expect(
-      screen.getByTestId("readiness-item-tmux").getAttribute("data-ok")
+      screen.getByTestId("readiness-item-vendor").getAttribute("data-ok")
     ).toBe("false");
   });
 });

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Throne.Api.Generated;
 using Throne.Api.Settings.Endpoints;
+using Throne.Application.Git;
 using Throne.Application.Terminals;
 using Throne.Settings.Contracts.Generated;
 
@@ -12,7 +13,8 @@ public sealed class SettingsController(
     GetGitProvidersStatusEndpoint providersEndpoint,
     GetLocalModelCatalogEndpoint localModelEndpoint,
     TerminalSettingsService terminalSettings,
-    SkillModeDefaultsService skillModeDefaults) : SettingsControllerBase
+    SkillModeDefaultsService skillModeDefaults,
+    IGitLabHostProvider gitLabHost) : SettingsControllerBase
 {
     public override Task<ActionResult<WorkspaceSettingsDto>> GetWorkspaceSettings() =>
         Task.FromResult(workspaceEndpoint.Run());
@@ -53,6 +55,13 @@ public sealed class SettingsController(
             SkillModeDefaultsDtoMapper.ToDomain(body),
             HttpContext.RequestAborted);
         return Ok(SkillModeDefaultsDtoMapper.ToDto(view));
+    }
+
+    public override async Task<ActionResult<GitLabHostSettingsDto>> SetGitLabHost(UpdateGitLabHostRequest body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        var host = await gitLabHost.SetHostAsync(body.Host, HttpContext.RequestAborted);
+        return Ok(new GitLabHostSettingsDto { Host = host });
     }
 
     private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch

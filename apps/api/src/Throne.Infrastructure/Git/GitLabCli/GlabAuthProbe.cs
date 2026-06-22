@@ -1,22 +1,13 @@
-using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 using Throne.Domain.Repositories;
 
 namespace Throne.Infrastructure.Git.GitLabCli;
 
-internal sealed class GlabAuthProbe(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed class GlabAuthProbe(GlabCliInvoker glab, IGitLabHostProvider hostProvider)
 {
     public async Task<ProviderAuthStatus> ProbeAsync(CancellationToken ct)
     {
-        var host = settings.Value.Host?.Trim();
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            return new ProviderAuthStatus(
-                Provider: GitProviderNames.GitLab,
-                IsAuthenticated: false,
-                Detail: "Throne:GitLab:Host is not configured.",
-                State: ProviderAuthStateNames.Missing);
-        }
+        var host = await hostProvider.GetHostAsync(ct);
 
         var version = await RunVersionAsync(host, ct);
         if (!version.IsAuthenticated)

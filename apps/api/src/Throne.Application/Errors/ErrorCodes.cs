@@ -39,6 +39,12 @@ public static class ErrorCodes
     public const string RepositoryCoordinateInvalid = "repository.coordinate_invalid";
     public const string CapabilityNotFound = "capability.not_found";
     public const string CapabilityDisabled = "capability.disabled";
+    public const string CapabilityProviderNotFound = "capability.provider_not_found";
+    // Single 422 code for all IDE-provider resolution issues; concrete reason
+    // (not_selected_and_none_detected / selected_not_detected / ambiguous) is carried
+    // in the problem extensions to stay within the ErrorCodes member budget.
+    public const string IdeProviderUnavailable = "ide.provider_unavailable";
+    public const string GitLabHostInvalid = "settings.gitlab_host.invalid";
     public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
     public const string TerminalRunPreflightBlocked = "terminal.run_preflight_blocked";
     public const string TerminalSpawnFailed = "terminal.spawn_failed";

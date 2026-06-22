@@ -1,70 +1,22 @@
-import {
-  AlertCircle,
-  AlertTriangle,
-  Bot,
-  CheckCircle2,
-  ExternalLink,
-  FolderGit2,
-  PlugZap,
-  TerminalSquare,
-  XCircle,
-  type LucideIcon
-} from "lucide-react";
+import { AlertCircle, CheckCircle2, Code2, XCircle } from "lucide-react";
 
 import {
   useCapabilities,
-  useSetCapabilityEnabled,
+  useSetSelectedProvider,
   type Capability,
-  type CapabilityName
+  type CapabilityName,
+  type CapabilityProvider
 } from "@/entities/capability";
-
-const CAPABILITY_VISUALS: Record<
-  CapabilityName,
-  { icon: LucideIcon; setupHref: string; setupLabel: string }
-> = {
-  repositories: {
-    icon: FolderGit2,
-    setupHref: "https://docs.github.com/en/github-cli/github-cli/quickstart",
-    setupLabel: "Установить и авторизовать gh CLI"
-  },
-  gitlab: {
-    icon: FolderGit2,
-    setupHref: "https://docs.gitlab.com/editor_extensions/gitlab_cli/",
-    setupLabel: "Установить и авторизовать glab CLI"
-  },
-  terminal: {
-    icon: TerminalSquare,
-    setupHref:
-      "https://github.com/tmux/tmux/wiki/Installing#installing-the-latest-stable-release",
-    setupLabel: "Установить tmux"
-  },
-  vscode: {
-    icon: PlugZap,
-    setupHref:
-      "https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line",
-    setupLabel: "Установить команду code в PATH"
-  },
-  opencode: {
-    icon: Bot,
-    setupHref: "https://opencode.ai/docs/",
-    setupLabel: "Установить opencode CLI и настроить локальный эндпоинт"
-  }
-};
 
 /**
  * Settings → «Возможности».
  *
- * Карточки для каждой capability из `/api/v1/settings/capabilities`. Тогл
- * включения разрешён даже при `detected=false` — оператор может включить
- * заранее, UI пометит «требуется prerequisite». Default OFF для всех ключей
- * (read-time materialization на бэке), retrofit Slice 1: ключ `repositories`
- * тоже стартует выключённым.
+ * Renders one section per carrier capability (today only `open_in_ide`). The
+ * radio group picks the IDE provider; clearing the radio sends `null` and the
+ * server falls back to «whichever single provider is detected».
  */
 export interface CapabilitiesCardProps {
-  /**
-   * Когда задан — рендерим только capabilities с этими именами, сохраняя порядок
-   * списка. По умолчанию (undefined) рендерим все — поведение не меняется.
-   */
+  /** Restrict rendering to a subset of capabilities (in given order). */
   only?: CapabilityName[];
 }
 
@@ -92,7 +44,7 @@ export function CapabilitiesCard({ only }: CapabilitiesCardProps = {}) {
   if (capabilities.length === 0) {
     return (
       <p className="m-0 text-sm text-base-content/60">
-        На сервере нет ни одной возможности — обновите бэкенд.
+        На сервере нет ни одной возможности.
       </p>
     );
   }
@@ -101,165 +53,213 @@ export function CapabilitiesCard({ only }: CapabilitiesCardProps = {}) {
     only === undefined
       ? capabilities
       : only
-          .map((name) => capabilities.find((c) => c.name === name))
+          .map((name) =>
+            capabilities.find((c) => (c.name as string) === (name as string))
+          )
           .filter((c): c is Capability => c !== undefined);
 
   return (
     <div className="flex flex-col gap-3" data-testid="capabilities-list">
       {visible.map((capability) => (
-        <CapabilityRow key={capability.name} capability={capability} />
+        <CapabilitySection key={capability.name} capability={capability} />
       ))}
     </div>
   );
 }
 
-function CapabilityRow({ capability }: { capability: Capability }) {
-  const visuals = CAPABILITY_VISUALS[capability.name];
-  const Icon = visuals.icon;
-  const toggle = useSetCapabilityEnabled();
+function CapabilitySection({ capability }: { capability: Capability }) {
+  const mutation = useSetSelectedProvider();
+  const selected = capability.selected_provider ?? null;
 
-  const handleToggle = (next: boolean) => {
-    toggle.mutate({ name: capability.name, enabled: next });
+  const handleChange = (next: string | null) => {
+    mutation.mutate({ name: capability.name, selectedProvider: next });
   };
 
   return (
     <section
       data-testid={`capability-card-${capability.name}`}
-      data-enabled={capability.enabled}
-      data-detected={capability.detected}
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 p-4"
     >
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span
-            aria-hidden
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-          >
-            <Icon size={18} strokeWidth={2} />
-          </span>
-          <div className="flex min-w-0 flex-col gap-1">
-            <h3 className="m-0 text-base font-semibold leading-tight">
-              {capability.title}
-            </h3>
-            <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
-              {capability.description}
-            </p>
-          </div>
+      <header className="flex min-w-0 items-start gap-3">
+        <span
+          aria-hidden
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+        >
+          <Code2 size={18} strokeWidth={2} />
+        </span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <h3 className="m-0 text-base font-semibold leading-tight">
+            {capability.title}
+          </h3>
+          <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
+            {capability.description}
+          </p>
         </div>
-        <ToggleSwitch
-          name={capability.name}
-          title={capability.title}
-          checked={capability.enabled}
-          disabled={toggle.isPending}
-          onChange={handleToggle}
-        />
       </header>
 
-      <PrerequisiteRow capability={capability} />
+      <ProviderRadioGroup
+        capability={capability.name}
+        providers={capability.providers}
+        selected={selected}
+        disabled={mutation.isPending}
+        onChange={handleChange}
+      />
 
-      <footer className="flex flex-wrap items-center justify-between gap-3">
-        <a
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-          href={visuals.setupHref}
-          rel="noopener noreferrer"
-          target="_blank"
+      {mutation.error instanceof Error ? (
+        <p
+          role="alert"
+          className="m-0 text-xs text-error"
+          data-testid={`capability-error-${capability.name}`}
         >
-          {visuals.setupLabel}
-          <ExternalLink aria-hidden size={14} strokeWidth={2} />
-        </a>
-        {toggle.error instanceof Error ? (
-          <span
-            role="alert"
-            className="text-xs text-error"
-            data-testid={`capability-toggle-error-${capability.name}`}
-          >
-            Не удалось сохранить тогл: {toggle.error.message}
-          </span>
-        ) : null}
-      </footer>
+          Не удалось сохранить выбор провайдера: {mutation.error.message}
+        </p>
+      ) : null}
     </section>
   );
 }
 
-function PrerequisiteRow({ capability }: { capability: Capability }) {
-  const detected = capability.detected;
-  const enabledWithoutPrereq = capability.enabled && !detected;
-  const detail =
-    capability.detection_detail && capability.detection_detail.length > 0
-      ? capability.detection_detail
-      : capability.prerequisite_hint;
+interface ProviderRadioGroupProps {
+  capability: CapabilityName;
+  providers: readonly CapabilityProvider[];
+  selected: string | null;
+  disabled: boolean;
+  onChange: (next: string | null) => void;
+}
 
+function ProviderRadioGroup({
+  capability,
+  providers,
+  selected,
+  disabled,
+  onChange
+}: ProviderRadioGroupProps) {
+  const groupName = `capability-provider-${capability}`;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      <span
-        data-testid={`capability-prereq-${capability.name}`}
-        data-detected={detected}
-        className={
-          detected
-            ? "inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 font-semibold text-success"
-            : "inline-flex items-center gap-1.5 rounded-full bg-error/10 px-2.5 py-0.5 font-semibold text-error"
-        }
-      >
-        {detected ? (
-          <CheckCircle2 aria-hidden size={12} strokeWidth={2.25} />
-        ) : (
-          <XCircle aria-hidden size={12} strokeWidth={2.25} />
-        )}
-        {detected ? "Prerequisite OK" : "Prerequisite отсутствует"}
-      </span>
-      <span className="text-base-content/70">{detail}</span>
-      {enabledWithoutPrereq ? (
-        <span className="inline-flex items-center gap-1 text-error">
-          <AlertTriangle aria-hidden size={12} strokeWidth={2.25} />
-          включено, но prerequisite не задетектился
-        </span>
-      ) : null}
-    </div>
+    <fieldset
+      className="m-0 flex flex-col gap-2 p-0"
+      data-testid={`capability-providers-${capability}`}
+    >
+      <legend className="sr-only">Выберите IDE-провайдер</legend>
+      <ProviderRadioOption
+        groupName={groupName}
+        value=""
+        checked={selected === null}
+        disabled={disabled}
+        title="Авто"
+        description="Использовать единственный обнаруженный провайдер."
+        onSelect={() => {
+          onChange(null);
+        }}
+      />
+      {providers.map((provider) => (
+        <ProviderRadioOption
+          key={provider.name}
+          groupName={groupName}
+          value={provider.name}
+          checked={selected === provider.name}
+          disabled={disabled}
+          title={provider.title}
+          provider={provider}
+          onSelect={() => {
+            onChange(provider.name);
+          }}
+        />
+      ))}
+    </fieldset>
   );
 }
 
-interface ToggleSwitchProps {
-  name: CapabilityName;
-  title: string;
+interface ProviderRadioOptionProps {
+  groupName: string;
+  value: string;
   checked: boolean;
   disabled: boolean;
-  onChange: (next: boolean) => void;
+  title: string;
+  description?: string;
+  provider?: CapabilityProvider;
+  onSelect: () => void;
 }
 
-function ToggleSwitch({
-  name,
-  title,
+function ProviderRadioOption({
+  groupName,
+  value,
   checked,
   disabled,
-  onChange
-}: ToggleSwitchProps) {
+  title,
+  description,
+  provider,
+  onSelect
+}: ProviderRadioOptionProps) {
+  const id = `${groupName}-${value === "" ? "auto" : value}`;
   return (
     <label
-      className="flex shrink-0 cursor-pointer select-none items-center gap-2"
-      htmlFor={`capability-toggle-${name}`}
+      htmlFor={id}
+      data-testid={`${groupName}-option-${value === "" ? "auto" : value}`}
+      data-checked={checked}
+      className={
+        checked
+          ? "flex cursor-pointer items-start gap-3 rounded-md border border-primary/60 bg-primary/5 px-3 py-2"
+          : "flex cursor-pointer items-start gap-3 rounded-md border border-base-300 px-3 py-2 hover:bg-base-200/60"
+      }
     >
-      <span className="sr-only">{`${title} — включить возможность`}</span>
-      <span
-        aria-hidden
-        className={
-          checked
-            ? "text-xs font-semibold uppercase tracking-wide text-primary"
-            : "text-xs font-semibold uppercase tracking-wide text-base-content/50"
-        }
-      >
-        {checked ? "Вкл" : "Выкл"}
-      </span>
       <input
-        id={`capability-toggle-${name}`}
-        data-testid={`capability-toggle-${name}`}
-        type="checkbox"
-        className="toggle toggle-primary"
+        id={id}
+        name={groupName}
+        type="radio"
+        value={value}
+        className="radio radio-sm radio-primary mt-0.5"
         checked={checked}
         disabled={disabled}
-        onChange={(event) => {
-          onChange(event.target.checked);
-        }}
+        onChange={onSelect}
       />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold leading-tight">{title}</span>
+          {provider !== undefined ? (
+            <DetectedPill detected={provider.detected} />
+          ) : null}
+        </div>
+        {provider !== undefined ? (
+          <ProviderDetail provider={provider} />
+        ) : description !== undefined ? (
+          <p className="m-0 text-xs leading-relaxed text-base-content/60">
+            {description}
+          </p>
+        ) : null}
+      </div>
     </label>
+  );
+}
+
+function DetectedPill({ detected }: { detected: boolean }) {
+  return (
+    <span
+      data-detected={detected}
+      className={
+        detected
+          ? "inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success"
+          : "inline-flex items-center gap-1 rounded-full bg-error/10 px-2 py-0.5 text-[11px] font-semibold text-error"
+      }
+    >
+      {detected ? (
+        <CheckCircle2 aria-hidden size={11} strokeWidth={2.25} />
+      ) : (
+        <XCircle aria-hidden size={11} strokeWidth={2.25} />
+      )}
+      {detected ? "Найден" : "Не найден"}
+    </span>
+  );
+}
+
+function ProviderDetail({ provider }: { provider: CapabilityProvider }) {
+  const hasDetail =
+    provider.detection_detail != null && provider.detection_detail.length > 0;
+  const hasHint =
+    provider.prerequisite_hint != null && provider.prerequisite_hint.length > 0;
+  if (!hasDetail && !hasHint) return null;
+  return (
+    <p className="m-0 text-xs leading-relaxed text-base-content/60">
+      {hasDetail ? provider.detection_detail : provider.prerequisite_hint}
+    </p>
   );
 }

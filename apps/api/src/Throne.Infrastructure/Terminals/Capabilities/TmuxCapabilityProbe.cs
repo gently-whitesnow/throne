@@ -1,17 +1,17 @@
 using Microsoft.Extensions.Logging;
 using Throne.Application.Terminals.Capabilities;
-using Throne.Domain.Capabilities;
 
 namespace Throne.Infrastructure.Terminals.Capabilities;
 
 /// <summary>
-/// `tmux --version` probe for capability `terminal`. Folds binary-missing and non-zero
-/// exits into <see cref="CapabilityProbeResult.Detected"/>=<c>false</c>; never throws.
+/// `tmux --version` probe keyed by the literal provider name <c>tmux</c>. Tmux
+/// is no longer a carrier capability — it is a runtime prerequisite of the
+/// terminal launch path that the preflight guard queries via the cache.
 /// </summary>
 internal sealed class TmuxCapabilityProbe(TmuxCli tmux, ILogger<TmuxCapabilityProbe> log)
     : ICapabilityProbe
 {
-    public string CapabilityName => CapabilityNames.Terminal;
+    public string CapabilityName => "tmux";
 
     public async Task<CapabilityProbeResult> ProbeAsync(CancellationToken ct)
     {

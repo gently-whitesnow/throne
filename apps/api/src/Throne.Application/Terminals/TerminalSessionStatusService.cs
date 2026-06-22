@@ -11,7 +11,7 @@ public sealed class TerminalSessionStatusService(
 {
     public async Task<RunPreflightResult> GetAsync(string intentId, CancellationToken ct)
     {
-        await guards.EnsureCapabilityEnabledAsync(ct);
+        await guards.EnsureTmuxDetectedAsync(ct);
         var intent = await guards.LoadIntentAsync(intentId, ct);
         var sessionName = TmuxSessionName.For(intent.Id.Value);
         var snapshot = await bindings.FindByIntentAsync(intent.Id, ct);

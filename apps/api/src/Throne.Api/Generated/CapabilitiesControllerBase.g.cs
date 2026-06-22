@@ -30,24 +30,24 @@ namespace Throne.Api.Generated
     public abstract class CapabilitiesControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
-        /// List feature capabilities with prerequisite detection status and current toggle.
+        /// List carrier capabilities with available providers and selected provider.
         /// </summary>
         /// <remarks>
-        /// Returns every capability Throne knows about. Each entry combines static metadata (`title`, `description`, `prerequisite_hint`) with runtime detection (`detected`, `detection_detail`) and the persisted toggle (`enabled`). New capabilities default to `enabled=false`: explicit opt-in is required per Slice 2. Detection is a TTL-cached health-check (`tmux --version`, `code --version`, `gh auth status` etc.) and does NOT auto-enable the toggle.
+        /// Each entry exposes static metadata (`title`, `description`), the list of candidate providers with their live detection status and the currently `selected_provider` (null when no provider is selected/detected).
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/capabilities", Name = "listCapabilities")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<CapabilityDto>>> ListCapabilities();
 
         /// <summary>
-        /// Toggle a capability on or off.
+        /// Select the active provider for a carrier capability.
         /// </summary>
         /// <remarks>
-        /// Persists the `enabled` flag for the capability identified by `name`. Toggling on without a satisfied prerequisite is permitted — UI surfaces a red marker so the operator can install the missing tool later. Toggling off is immediate and hides the corresponding UI surfaces without touching any persisted user data.
+        /// Persists `selected_provider` for the capability identified by `name`. Pass `null` to clear the selection — the UI falls back to «whichever provider is detected» when only one candidate is available.
         /// </remarks>
         /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/capabilities/{name}", Name = "setCapabilityEnabled")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<CapabilityDto>> SetCapabilityEnabled([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CapabilityName name, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetCapabilityEnabledRequest body);
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/capabilities/{name}/selected-provider", Name = "setCapabilitySelectedProvider")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<CapabilityDto>> SetCapabilitySelectedProvider([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] CapabilityName name, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetCapabilityProviderRequest body);
 
     }
 

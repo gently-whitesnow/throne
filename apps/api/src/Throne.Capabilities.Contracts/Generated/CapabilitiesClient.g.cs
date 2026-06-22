@@ -27,86 +27,54 @@ namespace Throne.Capabilities.Contracts.Generated
     
 
     /// <summary>
-    /// Closed set of capability keys exposed in settings.
+    /// Closed set of carrier capability keys. New entries are added only when a feature has multiple interchangeable providers.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum CapabilityName
     {
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"repositories")]
-        [System.Runtime.Serialization.EnumMember(Value = @"repositories")]
-        Repositories = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"gitlab")]
-        [System.Runtime.Serialization.EnumMember(Value = @"gitlab")]
-        Gitlab = 1,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"terminal")]
-        [System.Runtime.Serialization.EnumMember(Value = @"terminal")]
-        Terminal = 2,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"vscode")]
-        [System.Runtime.Serialization.EnumMember(Value = @"vscode")]
-        Vscode = 3,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"opencode")]
-        [System.Runtime.Serialization.EnumMember(Value = @"opencode")]
-        Opencode = 4,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"open_in_ide")]
+        [System.Runtime.Serialization.EnumMember(Value = @"open_in_ide")]
+        Open_in_ide = 0,
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class CapabilityDto
+    public partial class CapabilityProviderDto
     {
 
+        /// <summary>
+        /// Stable provider key (e.g. `vscode`, `cursor`).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<CapabilityName>))]
-        public CapabilityName Name { get; set; }
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Name { get; set; }
 
         /// <summary>
-        /// Short human-readable label rendered as the card title in `/settings`.
+        /// Human label rendered in the radio.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Title { get; set; }
 
         /// <summary>
-        /// One-to-two sentence summary of what this capability unlocks in Throne.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public string Description { get; set; }
-
-        /// <summary>
-        /// Operator-facing instruction for installing the missing prerequisite (e.g. `brew install tmux`, `gh auth login`). Rendered next to the toggle.
-        /// <br/>
+        /// Operator-facing instruction for installing the missing prerequisite.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("prerequisite_hint")]
-        [System.ComponentModel.DataAnnotations.Required]
         public string Prerequisite_hint { get; set; }
 
         /// <summary>
-        /// True when the prerequisite health-check succeeded on the last detection pass. Detection alone never flips `enabled` — the operator opts in explicitly.
-        /// <br/>
+        /// True when the provider's prerequisite is satisfied on this host.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("detected")]
         public bool Detected { get; set; }
 
         /// <summary>
-        /// Short free-form note from the detector (`tmux 3.5a`, `gh: not authenticated`, `code CLI not found`). Useful for the UI to expose alongside the red/green dot.
-        /// <br/>
+        /// Short free-form note from the detector (`code 1.95.3`, `cursor not found`).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("detection_detail")]
         public string Detection_detail { get; set; }
-
-        /// <summary>
-        /// Persisted toggle from the singleton `capabilities` document. Defaults to `false` for every new capability — see Slice 2 ADR.
-        /// <br/>
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
-        public bool Enabled { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -120,11 +88,53 @@ namespace Throne.Capabilities.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class SetCapabilityEnabledRequest
+    public partial class CapabilityDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
-        public bool Enabled { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<CapabilityName>))]
+        public CapabilityName Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Description { get; set; }
+
+        /// <summary>
+        /// Operator-selected provider name. Null when nothing is persisted — consumers fall back to the single detected provider when only one candidate exists.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected_provider")]
+        public string Selected_provider { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("providers")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<CapabilityProviderDto> Providers { get; set; } = new System.Collections.ObjectModel.Collection<CapabilityProviderDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetCapabilityProviderRequest
+    {
+
+        /// <summary>
+        /// Provider name to persist as selected. Pass null to clear.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected_provider")]
+        public string Selected_provider { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
