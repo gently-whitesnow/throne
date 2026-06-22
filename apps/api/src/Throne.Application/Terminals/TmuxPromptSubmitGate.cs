@@ -22,19 +22,19 @@ public sealed class TmuxPromptSubmitGate
         _options = options;
     }
 
-    public async Task<bool> ConfirmOrThrowAsync(string intentId, string vendor, CancellationToken ct)
+    public async Task<bool> ConfirmOrThrowAsync(string intentId, string vendor, string? submittedPrompt, CancellationToken ct)
     {
         if (!_hookAdapters.TryGetValue(vendor, out var adapter))
         {
             return false;
         }
-        return await ConfirmOrThrowAsync(intentId, vendor, adapter, ct);
+        return await ConfirmOrThrowAsync(intentId, vendor, adapter, submittedPrompt, ct);
     }
 
     public async Task<bool> ConfirmOrThrowAsync(
-        string intentId, string vendor, ISessionHookAdapter adapter, CancellationToken ct)
+        string intentId, string vendor, ISessionHookAdapter adapter, string? submittedPrompt, CancellationToken ct)
     {
-        var confirmation = await _confirmer.ConfirmAsync(intentId, adapter, ct);
+        var confirmation = await _confirmer.ConfirmAsync(intentId, adapter, submittedPrompt, ct);
         if (!confirmation.IsConfirmed)
         {
             throw TerminalFailures.PromptSubmitNotConfirmed(

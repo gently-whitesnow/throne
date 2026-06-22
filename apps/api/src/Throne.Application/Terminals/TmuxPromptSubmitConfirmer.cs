@@ -30,6 +30,7 @@ public sealed partial class TmuxPromptSubmitConfirmer(
     public async Task<TmuxPromptSubmitResult> ConfirmAsync(
         string intentId,
         ISessionHookAdapter adapter,
+        string? submittedPrompt,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
@@ -44,7 +45,8 @@ public sealed partial class TmuxPromptSubmitConfirmer(
         var retries = 0;
         while (true)
         {
-            var (confirmed, snapshot, attempts) = await PollOnceAsync(intentId, adapter, pollTimeout, poll, ct);
+            var (confirmed, snapshot, attempts) = await PollOnceAsync(
+                intentId, adapter, submittedPrompt, pollTimeout, poll, ct);
             if (confirmed)
             {
                 LogConfirmed(log, intentId, adapter.Vendor, retries, attempts);
@@ -70,6 +72,7 @@ public sealed partial class TmuxPromptSubmitConfirmer(
     private async Task<(bool Confirmed, string Snapshot, int Attempts)> PollOnceAsync(
         string intentId,
         ISessionHookAdapter adapter,
+        string? submittedPrompt,
         TimeSpan timeout,
         TimeSpan poll,
         CancellationToken ct)
@@ -86,6 +89,13 @@ public sealed partial class TmuxPromptSubmitConfirmer(
             {
                 return (true, snapshot, attempts);
             }
+            if (attempts > 1
+                && !string.IsNullOrWhiteSpace(submittedPrompt)
+                && adapter.IsTuiReady(snapshot)
+                && !PromptStillVisible(snapshot, submittedPrompt))
+            {
+                return (true, snapshot, attempts);
+            }
 
             if (clock.GetUtcNow() >= deadline)
             {
@@ -99,6 +109,37 @@ public sealed partial class TmuxPromptSubmitConfirmer(
                 continue;
             }
             await Task.Delay(delay, clock, ct);
+        }
+    }
+
+    private static bool PromptStillVisible(string snapshot, string? submittedPrompt)
+    {
+        if (string.IsNullOrWhiteSpace(snapshot) || string.IsNullOrWhiteSpace(submittedPrompt))
+        {
+            return false;
+        }
+
+        foreach (var fragment in PromptFragments(submittedPrompt))
+        {
+            if (snapshot.Contains(fragment, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static IEnumerable<string> PromptFragments(string submittedPrompt)
+    {
+        const int minFragmentLength = 12;
+        const int maxFragmentLength = 80;
+        foreach (var line in submittedPrompt.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (line.Length < minFragmentLength)
+            {
+                continue;
+            }
+            yield return line.Length <= maxFragmentLength ? line : line[^maxFragmentLength..];
         }
     }
 

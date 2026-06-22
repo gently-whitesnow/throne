@@ -113,7 +113,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
             // can be absorbed by Claude's composer as newline-in-paste if it lands in the same
             // render frame as the bracketed-paste closing marker. The gate polls for the working
             // footer and re-sends Enter once before giving up.
-            await submitGate.ConfirmOrThrowAsync(request.IntentId, launch.Vendor, ct);
+            await submitGate.ConfirmOrThrowAsync(request.IntentId, launch.Vendor, reminderText, ct);
         }
         finally
         {

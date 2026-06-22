@@ -19,7 +19,7 @@ public class TmuxPromptSubmitConfirmerTests
         var adapter = new EscToInterruptAdapter();
         var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 200, maxRetries: 1);
 
-        var result = await confirmer.ConfirmAsync(IntentId, adapter, CancellationToken.None);
+        var result = await confirmer.ConfirmAsync(IntentId, adapter, submittedPrompt: null, CancellationToken.None);
 
         result.IsConfirmed.Should().BeTrue();
         result.Retries.Should().Be(0);
@@ -42,7 +42,7 @@ public class TmuxPromptSubmitConfirmerTests
         var adapter = new EscToInterruptAdapter();
         var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 100, maxRetries: 1);
 
-        var result = await confirmer.ConfirmAsync(IntentId, adapter, CancellationToken.None);
+        var result = await confirmer.ConfirmAsync(IntentId, adapter, submittedPrompt: null, CancellationToken.None);
 
         result.IsConfirmed.Should().BeTrue();
         result.Retries.Should().Be(1);
@@ -58,13 +58,34 @@ public class TmuxPromptSubmitConfirmerTests
         var adapter = new EscToInterruptAdapter();
         var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 100, maxRetries: 1);
 
-        var result = await confirmer.ConfirmAsync(IntentId, adapter, CancellationToken.None);
+        var result = await confirmer.ConfirmAsync(IntentId, adapter, submittedPrompt: null, CancellationToken.None);
 
         result.IsConfirmed.Should().BeFalse();
         result.Retries.Should().Be(1);
         result.LastSnapshot.Should().Contain("pasted prompt still in composer");
         // The retry path must have re-sent Enter once before giving up.
         await tmux.Received(1).SendEnterAsync(IntentId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Prompt успел завершиться до footer capture — пустой composer подтверждает submit без retry")]
+    public async Task Confirms_when_composer_is_cleared_before_working_footer_is_seen()
+    {
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        tmux.CapturePaneAsync(IntentId, Arg.Any<CancellationToken>())
+            .Returns("❯", "❯");
+        var adapter = new EscToInterruptAdapter();
+        var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 200, maxRetries: 1);
+
+        var result = await confirmer.ConfirmAsync(
+            IntentId,
+            adapter,
+            submittedPrompt: "please run this distinctive prompt",
+            CancellationToken.None);
+
+        result.IsConfirmed.Should().BeTrue();
+        result.Retries.Should().Be(0);
+        await tmux.Received(2).CapturePaneAsync(IntentId, Arg.Any<CancellationToken>());
+        await tmux.DidNotReceiveWithAnyArgs().SendEnterAsync(default!, default);
     }
 
     private static TmuxPromptSubmitConfirmer NewConfirmer(
@@ -92,7 +113,9 @@ public class TmuxPromptSubmitConfirmerTests
 
         public Task CleanupAsync(string intentId, CancellationToken ct) => Task.CompletedTask;
 
-        public bool IsTuiReady(string paneSnapshot) => false;
+        public bool IsTuiReady(string paneSnapshot) =>
+            !string.IsNullOrEmpty(paneSnapshot)
+            && paneSnapshot.Contains('❯');
 
         public bool IsPromptSubmitted(string paneSnapshot) =>
             !string.IsNullOrEmpty(paneSnapshot)
