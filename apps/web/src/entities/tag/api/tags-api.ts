@@ -7,11 +7,15 @@ import {
   tagsEndpoints
 } from "@/shared/api";
 
-import type { Tag, TagDefaultRepository, TagDetail } from "../model/types";
+import type {
+  Tag,
+  TagDefaultRepository,
+  TagDetail,
+  TagUsage
+} from "../model/types";
 
 type CreateTagBody = TagsComponents["schemas"]["CreateTagRequest"];
 type RenameTagBody = TagsComponents["schemas"]["RenameTagRequest"];
-type TagUsage = TagsComponents["schemas"]["TagUsageDto"];
 
 export function fetchTags(signal?: AbortSignal): Promise<Tag[]> {
   return httpGet<Tag[]>(tagsEndpoints.listTags(), signal);
