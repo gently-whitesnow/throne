@@ -4,7 +4,7 @@
 
 Accepted. Заменяет ранний серверный insight-pipeline (chat-uploads → static extractor → local LLM → InsightCard → InstructionPatch), поток chat-history transfer и предыдущую DreamRun-модель — см. Context.
 
-**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). Dream remains frontier-driven and still writes `PromptPartPatch` proposals plus `DreamSession` memory, but the operational path is `bin/throne-dream` over HTTP instead of MCP tools.
+**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). Dream remains frontier-driven and still writes `PromptPartPatch` proposals plus `DreamSession` memory, but the operational path is `skills/dream/bin/throne-dream` over HTTP instead of MCP tools.
 
 ## Context
 

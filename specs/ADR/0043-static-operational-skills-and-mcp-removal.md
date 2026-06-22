@@ -27,9 +27,9 @@ Throne has three provider-neutral operational skills as static repo files:
 
 Each skill calls a static CLI script from `bin/`:
 
-- `bin/throne-intent` edits `Intent.text`, creates child intents, and links intents.
-- `bin/throne-review` writes the single `review_recommendation` repository artifact.
-- `bin/throne-dream` reads dream sources/sessions, reads current prompt parts, proposes prompt-part patches, and records dream sessions.
+- `skills/intent/bin/throne-intent` edits `Intent.text`, creates child intents, and links intents.
+- `skills/review/bin/throne-review` writes the single `review_recommendation` repository artifact.
+- `skills/dream/bin/throne-dream` reads dream sources/sessions, reads current prompt parts, proposes prompt-part patches, and records dream sessions.
 
 The scripts use the public HTTP API on `THRONE_API_BASE` and ambient session context:
 
@@ -64,7 +64,7 @@ ADR-0037 standalone direct HTTP MCP is retired. There is no `/mcp` endpoint and 
 
 - Operational behavior is versioned and reviewed as repo files.
 - Providers share one source of operational instructions instead of separate generated skill bodies.
-- `PromptPartPatch` UI and contracts remain; dream now reaches them through `bin/throne-dream`.
+- `PromptPartPatch` UI and contracts remain; dream now reaches them through `skills/dream/bin/throne-dream`.
 - `dream_sources` remain manifest data.
 - Intent status is not agent-written. Embedded session hooks derive status transitions.
 - Layer A system-prompt composition remains unchanged.

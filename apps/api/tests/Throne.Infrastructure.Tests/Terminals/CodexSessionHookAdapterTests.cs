@@ -95,13 +95,15 @@ public class CodexSessionHookAdapterTests
             CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-review"));
+        var scriptPath = Path.Combine(root, "skills", "review", "bin", "throne-review");
+        var script = await File.ReadAllTextAsync(scriptPath);
         script.Should().NotContain("binding-1");
         script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
+        AssertExecutable(scriptPath);
 
         var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
         profile.Should().Contain("review_recommendation");
-        profile.Should().Contain("bin/throne-review write");
+        profile.Should().Contain("skills/review/bin/throne-review write");
     }
 
     [Fact(DisplayName = "Codex interview: пишет статический intent script и hint-profile")]
@@ -120,7 +122,8 @@ public class CodexSessionHookAdapterTests
             CancellationToken.None);
 
         args.Should().ContainInOrder("-p", "throne-intent-1");
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-intent"));
+        var script = await File.ReadAllTextAsync(
+            Path.Combine(root, "skills", "intent", "bin", "throne-intent"));
         script.Should().NotContain("intent-1");
         script.Should().Contain("THRONE_INTENT_ID");
 
@@ -155,7 +158,19 @@ public class CodexSessionHookAdapterTests
     }
 
     private static CodexSessionHookAdapter NewAdapter(string apiBaseUrl, string? codexHome = null) =>
-        new(new SessionHookOptions { ApiBaseUrl = apiBaseUrl }, codexHome ?? NewHome());
+        new(new SessionHookOptions { ApiBaseUrl = apiBaseUrl },
+            new SessionSkillMaterializer(),
+            codexHome ?? NewHome());
+
+    private static void AssertExecutable(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        File.GetUnixFileMode(path).Should().HaveFlag(UnixFileMode.UserExecute);
+    }
 
     private static ReviewArtifactWriteTarget ReviewTarget() =>
         new("binding-1", new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"));

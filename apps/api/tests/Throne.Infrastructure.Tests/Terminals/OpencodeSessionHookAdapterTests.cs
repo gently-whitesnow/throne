@@ -173,6 +173,7 @@ public class OpencodeSessionHookAdapterTests
         new(
             BuildDiscovery(baseUrl, models),
             HookOptions,
+            new SessionSkillMaterializer(),
             new FixedServeGateway(),
             client ?? new RecordingTuiClient());
 

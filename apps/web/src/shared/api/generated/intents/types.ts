@@ -201,7 +201,7 @@ export interface paths {
         put?: never;
         /**
          * Replace a unique substring of Intent.text (user-driven).
-         * @description UI and `bin/throne-intent` write path. Optimistic concurrency via expected_version. ChangedBy=user.
+         * @description UI and `skills/intent/bin/throne-intent` write path. Optimistic concurrency via expected_version. ChangedBy=user.
          */
         post: operations["replaceIntentText"];
         delete?: never;
