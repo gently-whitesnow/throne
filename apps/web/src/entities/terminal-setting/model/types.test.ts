@@ -62,6 +62,6 @@ describe("resolveDefaultVendor", () => {
   });
 
   it("дефолт каталога, когда настройка указывает на неизвестный вендор", () => {
-    expect(resolveDefaultVendor(catalog, "phantom" as never)).toBe("claude");
+    expect(resolveDefaultVendor(catalog, "phantom")).toBe("claude");
   });
 });

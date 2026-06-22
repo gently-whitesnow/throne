@@ -19,19 +19,19 @@ public sealed class RepositoriesController(
     PutPullRequestArtifactEndpoint putPrArtifactEndpoint) : RepositoriesControllerBase
 {
     public override Task<ActionResult<ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments(
-        GitProvider provider, string owner, string repo) =>
+        string provider, string owner, string repo) =>
         listDocumentsEndpoint.RunAsync(provider, owner, repo, HttpContext.RequestAborted);
 
     public override Task<ActionResult<RepositoryDocumentDto>> GetRepositoryDocument(
-        GitProvider provider, string owner, string repo, string slug) =>
+        string provider, string owner, string repo, string slug) =>
         getDocumentEndpoint.RunAsync(provider, owner, repo, slug, HttpContext.RequestAborted);
 
     public override Task<ActionResult<RepositoryDocumentDto>> PutRepositoryDocument(
-        GitProvider provider, string owner, string repo, string slug, PutRepositoryDocumentRequest body) =>
+        string provider, string owner, string repo, string slug, PutRepositoryDocumentRequest body) =>
         putDocumentEndpoint.RunAsync(provider, owner, repo, slug, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions(
-        GitProvider provider, string owner, string repo, string slug) =>
+        string provider, string owner, string repo, string slug) =>
         listVersionsEndpoint.RunAsync(provider, owner, repo, slug, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<PullRequestArtifactDto>>> ListPullRequestArtifacts(string binding_id) =>

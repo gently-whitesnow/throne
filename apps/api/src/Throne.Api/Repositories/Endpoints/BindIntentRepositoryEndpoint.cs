@@ -21,7 +21,7 @@ public sealed class BindIntentRepositoryEndpoint(RepositoryBindingService servic
         ArgumentNullException.ThrowIfNull(body);
         var command = new BindRepositoryCommand(
             IntentId: intentId,
-            Provider: RepositoryEnumDtoMapper.ToProviderName(body.Provider),
+            Provider: body.Provider,
             Owner: body.Owner,
             Repo: body.Repo,
             Host: body.Host,

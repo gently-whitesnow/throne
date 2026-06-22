@@ -41,7 +41,7 @@ public sealed class TerminalVendorCatalogMapper(
         }
         return new TerminalVendorCatalogResponse
         {
-            Default_vendor = ParseVendor(TerminalAgentCatalog.DefaultVendor),
+            Default_vendor = TerminalAgentCatalog.DefaultVendor,
             Vendors = vendors,
         };
     }
@@ -70,7 +70,7 @@ public sealed class TerminalVendorCatalogMapper(
         var login = await ResolveLoginAsync(descriptor, ct);
         return new TerminalVendorMetadataDto
         {
-            Vendor = ParseVendor(descriptor.Vendor),
+            Vendor = descriptor.Vendor,
             Label = descriptor.Label,
             Supports_effort = descriptor.SupportsEffort,
             Models = models,
@@ -107,14 +107,6 @@ public sealed class TerminalVendorCatalogMapper(
         }
         return descriptor.Models.ToArray();
     }
-
-    private static TerminalAgentVendor ParseVendor(string vendor) => vendor switch
-    {
-        TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
-        TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
-        TerminalAgentCatalog.VendorOpencode => TerminalAgentVendor.Opencode,
-        _ => throw new InvalidOperationException($"Unknown terminal vendor '{vendor}'."),
-    };
 
     private static TerminalReasoningEffort ParseEffort(string effort) => effort switch
     {

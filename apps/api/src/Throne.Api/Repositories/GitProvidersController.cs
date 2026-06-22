@@ -12,19 +12,19 @@ public sealed class GitProvidersController(
     ListGitProviderRepositoryPullRequestsEndpoint pullsEndpoint) : GitProvidersControllerBase
 {
     public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> SearchGitProviderRepositories(
-        GitProvider provider,
+        string provider,
         string q = null!,
         RepositorySearchScope? scope = null,
         int? limit = null) =>
         searchEndpoint.RunAsync(provider, q, scope, limit, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<GitRepositoryRefDto>>> ListGitProviderRepositories(
-        GitProvider provider,
+        string provider,
         int? limit = null) =>
         listEndpoint.RunAsync(provider, limit, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<GitBranchRefDto>>> ListGitProviderRepositoryBranches(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string q = null!,
@@ -32,7 +32,7 @@ public sealed class GitProvidersController(
         branchesEndpoint.RunAsync(provider, owner, repo, q, limit, HttpContext.RequestAborted);
 
     public override Task<ActionResult<ICollection<GitPullRequestRefDto>>> ListGitProviderRepositoryPullRequests(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string q = null!,

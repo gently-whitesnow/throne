@@ -1,7 +1,10 @@
 import { Search } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
-import { useGitProvidersStatus } from "@/entities/git-provider-status";
+import {
+  gitProviderEntries,
+  useGitProvidersStatus
+} from "@/entities/git-provider-status";
 import type { GitProvider } from "@/entities/repository-binding";
 
 import type { SearchScope } from "../model/use-repository-search";
@@ -36,49 +39,47 @@ export function BindRepositorySearchControls({
   // GitLab availability is detection-only: hide the option until `glab` is
   // authenticated against the configured host.
   const { status } = useGitProvidersStatus();
-  const gitlabEnabled = status?.gitlab.authenticated === true;
+  const selectableProviders = useMemo(
+    () =>
+      status === null
+        ? ["github"]
+        : gitProviderEntries(status)
+            .filter((entry) => entry.status.authenticated)
+            .map((entry) => entry.provider),
+    [status]
+  );
 
-  // GitLab logout / host change while GitLab is selected → fall back to GitHub
-  // so the search does not keep hitting a provider the user can no longer pick.
+  // Provider logout / host change while selected → fall back to the first
+  // authenticated provider so search does not keep hitting an unavailable key.
   useEffect(() => {
-    if (!gitlabEnabled && provider === "gitlab") {
-      onProviderChange("github");
+    if (
+      selectableProviders.length > 0 &&
+      !selectableProviders.includes(provider)
+    ) {
+      onProviderChange(selectableProviders[0]);
     }
-  }, [gitlabEnabled, provider, onProviderChange]);
+  }, [selectableProviders, provider, onProviderChange]);
 
   return (
     <div className="flex flex-col gap-2">
       <div className="join w-fit" role="radiogroup" aria-label="Git provider">
-        <button
-          type="button"
-          className={`btn join-item btn-xs ${
-            provider === "github" ? "btn-primary" : "btn-ghost"
-          }`}
-          aria-pressed={provider === "github"}
-          onClick={() => {
-            onProviderChange("github");
-          }}
-          disabled={disabled}
-          data-testid="bind-repository-provider-github"
-        >
-          GitHub
-        </button>
-        {gitlabEnabled ? (
+        {selectableProviders.map((entryProvider) => (
           <button
+            key={entryProvider}
             type="button"
             className={`btn join-item btn-xs ${
-              provider === "gitlab" ? "btn-primary" : "btn-ghost"
+              provider === entryProvider ? "btn-primary" : "btn-ghost"
             }`}
-            aria-pressed={provider === "gitlab"}
+            aria-pressed={provider === entryProvider}
             onClick={() => {
-              onProviderChange("gitlab");
+              onProviderChange(entryProvider);
             }}
             disabled={disabled}
-            data-testid="bind-repository-provider-gitlab"
+            data-testid={`bind-repository-provider-${entryProvider}`}
           >
-            GitLab
+            {providerLabel(entryProvider)}
           </button>
-        ) : null}
+        ))}
       </div>
       <label className="flex items-center gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2 focus-within:border-primary">
         <Search aria-hidden size={14} className="text-base-content/50" />
@@ -110,4 +111,10 @@ export function BindRepositorySearchControls({
       </label>
     </div>
   );
+}
+
+function providerLabel(provider: string): string {
+  if (provider === "github") return "GitHub";
+  if (provider === "gitlab") return "GitLab";
+  return provider;
 }

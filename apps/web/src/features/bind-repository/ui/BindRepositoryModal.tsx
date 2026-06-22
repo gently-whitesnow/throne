@@ -1,7 +1,10 @@
 import { X } from "lucide-react";
 import { useId, useState } from "react";
 
-import { useGitProvidersStatus } from "@/entities/git-provider-status";
+import {
+  findGitProviderStatus,
+  useGitProvidersStatus
+} from "@/entities/git-provider-status";
 import {
   type GitProvider,
   type RepositoryBinding
@@ -84,7 +87,8 @@ function BindRepositoryModalBody({
   } = useBindSelections(intentId);
 
   const { status: providerStatus } = useGitProvidersStatus();
-  const gitlabHost = providerStatus?.gitlab.host ?? null;
+  const gitlabHost =
+    findGitProviderStatus(providerStatus, "gitlab")?.host ?? null;
 
   const {
     results,

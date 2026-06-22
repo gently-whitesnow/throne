@@ -13,7 +13,7 @@ namespace Throne.Api.Repositories.Endpoints;
 public sealed class PutRepositoryDocumentEndpoint(RepositoryArtifactWriter writer)
 {
     public async Task<ActionResult<RepositoryDocumentDto>> RunAsync(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string slug,
@@ -25,7 +25,7 @@ public sealed class PutRepositoryDocumentEndpoint(RepositoryArtifactWriter write
         try
         {
             var coordinate = RepositoryCoordinateFactory.Create(
-                RepositoryEnumDtoMapper.ToProviderName(provider),
+                provider,
                 owner,
                 repo
             );
