@@ -16,7 +16,7 @@ interface RunControlsProps {
   onModeChange: (mode: TerminalRunMode) => void;
   /** Список вендоров из backend-каталога; пуст, пока metadata грузится. */
   vendors: readonly TerminalVendorMetadata[];
-  vendor: TerminalAgentVendor | "";
+  vendor: string;
   onVendorChange: (vendor: TerminalAgentVendor) => void;
   /** Модели выбранного вендора из metadata. */
   models: readonly string[];
@@ -103,7 +103,7 @@ export function RunControls({
           value={vendor}
           disabled={dropdownDisabled}
           onChange={(event) => {
-            onVendorChange(event.target.value as TerminalAgentVendor);
+            onVendorChange(event.target.value);
           }}
         >
           {vendor === "" ? <option value="" disabled hidden /> : null}

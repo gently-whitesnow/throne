@@ -28,7 +28,7 @@ internal static class RepositoryRegistryDtoMapper
         ArgumentNullException.ThrowIfNull(artifact);
         return new RepositoryDocumentDto
         {
-            Provider = RepositoryEnumDtoMapper.ToWireProvider(artifact.Coordinate.Provider),
+            Provider = artifact.Coordinate.Provider,
             Host = artifact.Coordinate.Host,
             Owner = artifact.Coordinate.Owner,
             Repo = artifact.Coordinate.Repo,

@@ -8,7 +8,7 @@ namespace Throne.Api.Repositories.Endpoints;
 public sealed class GetRepositoryDocumentEndpoint(GetRepositoryDocumentHandler handler)
 {
     public async Task<ActionResult<RepositoryDocumentDto>> RunAsync(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string slug,
@@ -16,7 +16,7 @@ public sealed class GetRepositoryDocumentEndpoint(GetRepositoryDocumentHandler h
     )
     {
         var coordinate = RepositoryCoordinateFactory.Create(
-            RepositoryEnumDtoMapper.ToProviderName(provider),
+            provider,
             owner,
             repo
         );

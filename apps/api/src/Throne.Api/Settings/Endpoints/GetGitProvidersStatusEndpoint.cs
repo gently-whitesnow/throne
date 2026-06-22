@@ -9,30 +9,17 @@ public sealed class GetGitProvidersStatusEndpoint(IGitProviderRegistry providers
 {
     public async Task<ActionResult<GitProvidersStatusDto>> RunAsync(CancellationToken ct)
     {
-        // Probe every registered provider once, keyed by name — adding a provider only needs its
-        // DI registration, the loop picks it up. Projecting the map onto the fixed wire fields
-        // below stays a per-field mapper: the DTO is a closed OpenAPI object, so until the wire
-        // schema opens (out of scope, ADR-0045 § «known tax») each field is named explicitly.
-        var statuses = new Dictionary<string, GitProviderAuthStatusDto>(StringComparer.Ordinal);
+        var dto = new GitProvidersStatusDto();
         foreach (var provider in providers.AllProviders)
         {
-            statuses[provider.ProviderName] = ToDto(await provider.GetAuthStatusAsync(ct));
+            dto.Providers.Add(new GitProviderStatusDto
+            {
+                Provider = provider.ProviderName,
+                Status = ToDto(await provider.GetAuthStatusAsync(ct)),
+            });
         }
-
-        var dto = new GitProvidersStatusDto
-        {
-            Github = statuses.GetValueOrDefault(GitProviderNames.GitHub) ?? Unknown(GitProviderNames.GitHub),
-            Gitlab = statuses.GetValueOrDefault(GitProviderNames.GitLab) ?? Unknown(GitProviderNames.GitLab),
-        };
         return new OkObjectResult(dto);
     }
-
-    private static GitProviderAuthStatusDto Unknown(string provider) => new()
-    {
-        Authenticated = false,
-        State = GitProviderAuthState.Missing,
-        Error = $"Git provider '{provider}' is not configured on this Throne build.",
-    };
 
     private static GitProviderAuthStatusDto ToDto(ProviderAuthStatus status)
     {

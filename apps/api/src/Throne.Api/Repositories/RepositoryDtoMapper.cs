@@ -43,7 +43,7 @@ internal static class RepositoryDtoMapper
         ArgumentNullException.ThrowIfNull(reference);
         return new GitRepositoryRefDto
         {
-            Provider = RepositoryEnumDtoMapper.ToWireProvider(reference.Provider),
+            Provider = reference.Provider,
             Host = reference.ResolvedHost,
             Owner = reference.Owner,
             Repo = reference.Repo,

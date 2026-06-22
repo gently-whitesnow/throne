@@ -493,12 +493,12 @@ components:
         `exited` — session was alive previously but has since been torn down.
     TerminalAgentVendor:
       type: string
-      enum:
-        - claude
-        - codex
-        - opencode
+      minLength: 1
+      pattern: '^[a-z0-9][a-z0-9-]*$'
       description: >
-        Which agent CLI the tmux session boots. Provider-neutral axis: the spawn
+        Stable terminal vendor key. The value set is intentionally open and
+        delivered by `GET /api/v1/terminal/vendors`; unknown values are rejected
+        by server-side catalog validation. Provider-neutral axis: the spawn
         command is built per vendor (`claude --model … --effort …` vs
         `codex -m … -c model_reasoning_effort=…` vs `opencode --model throne-local/…`,
         no effort axis). Omitted on the request → the server falls back to

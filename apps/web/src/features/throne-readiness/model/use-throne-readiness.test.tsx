@@ -37,6 +37,20 @@ function vendor(login_status: string, selectable = true) {
   };
 }
 
+function gitStatus(authenticated: boolean) {
+  return {
+    providers: [
+      {
+        provider: "github",
+        status: {
+          authenticated,
+          state: authenticated ? "authenticated" : "missing"
+        }
+      }
+    ]
+  };
+}
+
 function wrapper({ children }: { children: ReactNode }) {
   const client = createTestQueryClient();
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
@@ -54,9 +68,7 @@ describe("useThroneReadiness", () => {
   });
 
   it("ready=true когда все критерии выполнены", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "ok" }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
     fetchTerminalVendorCatalog.mockResolvedValue({
       default_vendor: "claude",
       vendors: [vendor("ready")]
@@ -73,9 +85,7 @@ describe("useThroneReadiness", () => {
   });
 
   it("ready=false когда вендор не залогинен", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "ok" }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
     fetchTerminalVendorCatalog.mockResolvedValue({
       default_vendor: "claude",
       vendors: [vendor("in_development", false)]

@@ -52,6 +52,20 @@ public sealed class GitProvidersControllerTests(MongoFixture mongo) : IAsyncLife
             RepositorySearchScope.Involved, "hello", 50, Arg.Any<CancellationToken>());
     }
 
+    [Fact(DisplayName = "GET /api/v1/git-providers/{unknown}/repositories/search даёт 422")]
+    public async Task Search_unknown_provider_returns_422()
+    {
+        var response = await _fixture.Client.GetAsync(
+            new Uri("/api/v1/git-providers/bitbucket/repositories/search", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        await _fixture.Provider.DidNotReceive().SearchRepositoriesAsync(
+            Arg.Any<RepositorySearchScope>(),
+            Arg.Any<string?>(),
+            Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact(DisplayName = "GET /api/v1/git-providers/gitlab/repositories/search делегирует GitLab provider")]
     public async Task Search_uses_provider_from_route()
     {

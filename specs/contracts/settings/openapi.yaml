@@ -206,14 +206,13 @@ components:
   schemas:
     TerminalAgentVendor:
       type: string
-      enum:
-        - claude
-        - codex
-        - opencode
+      minLength: 1
+      pattern: '^[a-z0-9][a-z0-9-]*$'
       description: >
         Default agent CLI for new embedded-terminal sessions. Mirror of
         `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag
-        does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
+        does not resolve `$ref` across OpenAPI documents. The value set is intentionally
+        open and validated by the terminal vendor catalog.
     TerminalSettingsDto:
       type: object
       required:
@@ -462,12 +461,25 @@ components:
     GitProvidersStatusDto:
       type: object
       required:
-        - github
-        - gitlab
+        - providers
       properties:
-        github:
-          $ref: '#/components/schemas/GitProviderAuthStatusDto'
-        gitlab:
+        providers:
+          type: array
+          description: Auth status for every registered git provider, in registry order.
+          items:
+            $ref: '#/components/schemas/GitProviderStatusDto'
+    GitProviderStatusDto:
+      type: object
+      required:
+        - provider
+        - status
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          pattern: '^[a-z0-9][a-z0-9-]*$'
+          description: Stable git provider key from the backend registry.
+        status:
           $ref: '#/components/schemas/GitProviderAuthStatusDto'
     GitLabHostSettingsDto:
       type: object

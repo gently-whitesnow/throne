@@ -38,7 +38,7 @@ namespace Throne.Api.Generated
         /// <param name="q">Optional case-insensitive substring filter applied client-side over `full_name`.</param>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/{provider}/repositories/search", Name = "searchGitProviderRepositories")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitRepositoryRefDto>>> SearchGitProviderRepositories([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] RepositorySearchScope? scope = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitRepositoryRefDto>>> SearchGitProviderRepositories([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] RepositorySearchScope? scope = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
 
         /// <summary>
         /// List repositories owned by the authenticated provider account.
@@ -48,7 +48,7 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/{provider}/repositories/my", Name = "listGitProviderRepositories")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitRepositoryRefDto>>> ListGitProviderRepositories([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitRepositoryRefDto>>> ListGitProviderRepositories([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
 
         /// <summary>
         /// List branches of a repository for typeahead.
@@ -58,7 +58,7 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/{provider}/repositories/{owner}/{repo}/branches", Name = "listGitProviderRepositoryBranches")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitBranchRefDto>>> ListGitProviderRepositoryBranches([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitBranchRefDto>>> ListGitProviderRepositoryBranches([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
 
         /// <summary>
         /// List open pull requests / merge requests of a repository for typeahead.
@@ -68,7 +68,7 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/git-providers/{provider}/repositories/{owner}/{repo}/pulls", Name = "listGitProviderRepositoryPullRequests")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitPullRequestRefDto>>> ListGitProviderRepositoryPullRequests([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<GitPullRequestRefDto>>> ListGitProviderRepositoryPullRequests([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.FromQuery] string q = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null);
 
     }
 
@@ -253,14 +253,14 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents", Name = "listRepositoryDocuments")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo);
 
         /// <summary>
         /// Get a single knowledge page with its markdown body.
         /// </summary>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "getRepositoryDocument")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> GetRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> GetRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
 
         /// <summary>
         /// Create or update a knowledge page (manual edit).
@@ -270,7 +270,7 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK — the page after this write.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "putRepositoryDocument")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> PutRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PutRepositoryDocumentRequest body);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> PutRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PutRepositoryDocumentRequest body);
 
         /// <summary>
         /// Version history timeline of a knowledge page.
@@ -280,7 +280,7 @@ namespace Throne.Api.Generated
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}/versions", Name = "listRepositoryDocumentVersions")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] GitProvider provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
 
         /// <summary>
         /// List latest pull request artifacts for a repository binding.

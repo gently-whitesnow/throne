@@ -27,24 +27,6 @@ namespace Throne.Repositories.Contracts.Generated
     
 
     /// <summary>
-    /// Set of supported git providers.
-    /// <br/>
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum GitProvider
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"github")]
-        [System.Runtime.Serialization.EnumMember(Value = @"github")]
-        Github = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"gitlab")]
-        [System.Runtime.Serialization.EnumMember(Value = @"gitlab")]
-        Gitlab = 1,
-
-    }
-
-    /// <summary>
     /// `mine` — only repositories owned by the authenticated user (default). `involved` — additionally collaborator / org-member repos.
     /// <br/>
     /// </summary>
@@ -119,8 +101,9 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
-        public GitProvider Provider { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
 
         /// <summary>
         /// Provider host. GitHub is always `github.com`; GitLab uses the configured self-managed host.
@@ -266,8 +249,9 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
-        public GitProvider Provider { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
 
         /// <summary>
         /// Provider host persisted with the binding. GitHub defaults to `github.com`; GitLab stores the configured self-managed host.
@@ -341,8 +325,9 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
-        public GitProvider Provider { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("host")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -409,8 +394,9 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
-        public GitProvider Provider { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("host")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -1329,8 +1315,9 @@ namespace Throne.Repositories.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GitProvider>))]
-        public GitProvider Provider { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("host")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
