@@ -494,11 +494,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * @description Set of supported git providers.
-         * @enum {string}
-         */
-        GitProvider: "github" | "gitlab";
+        /** @description Stable git provider key. The value set is intentionally open: supported providers are delivered by the backend registry/catalog and unknown values are rejected by server-side validation. */
+        GitProvider: string;
         /**
          * @description `mine` — only repositories owned by the authenticated user (default). `involved` — additionally collaborator / org-member repos.
          * @enum {string}

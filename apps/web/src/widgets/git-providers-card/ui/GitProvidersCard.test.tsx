@@ -11,6 +11,18 @@ const render = (ui: React.ReactElement) =>
 const fetchGitProvidersStatus = vi.fn<() => Promise<unknown>>();
 const setGitLabHost = vi.fn<(host: string) => Promise<{ host: string }>>();
 
+function providerCatalog(
+  github: Record<string, unknown>,
+  gitlab: Record<string, unknown>
+) {
+  return {
+    providers: [
+      { provider: "github", status: github },
+      { provider: "gitlab", status: gitlab }
+    ]
+  };
+}
+
 // The hook imports its API from a relative path, so we mock that path —
 // the public barrel keeps re-exporting the real selectors / meta / hook.
 vi.mock("@/entities/git-provider-status/api/git-providers-status-api", () => ({
@@ -43,33 +55,37 @@ describe("GitProvidersCard", () => {
 
     expect(screen.getByText(/Загружаем статус/)).toBeTruthy();
 
-    resolve({
-      github: {
-        authenticated: false,
-        state: "unauthenticated",
-        error: "no creds"
-      },
-      gitlab: { authenticated: false, state: "missing", error: "no host" }
-    });
+    resolve(
+      providerCatalog(
+        {
+          authenticated: false,
+          state: "unauthenticated",
+          error: "no creds"
+        },
+        { authenticated: false, state: "missing", error: "no host" }
+      )
+    );
     await waitFor(() => {
       expect(screen.queryByText(/Загружаем статус/)).toBeNull();
     });
   });
 
   it("показывает зелёный pill, login и scopes при authenticated=true", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: {
-        authenticated: true,
-        state: "authenticated",
-        login: "octocat",
-        scopes: ["repo", "read:org"]
-      },
-      gitlab: {
-        authenticated: false,
-        state: "missing",
-        error: "Throne:GitLab:Host is not configured."
-      }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        {
+          authenticated: true,
+          state: "authenticated",
+          login: "octocat",
+          scopes: ["repo", "read:org"]
+        },
+        {
+          authenticated: false,
+          state: "missing",
+          error: "Throne:GitLab:Host is not configured."
+        }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -82,18 +98,20 @@ describe("GitProvidersCard", () => {
   });
 
   it("показывает красный pill и текст ошибки CLI при authenticated=false", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: {
-        authenticated: false,
-        state: "unauthenticated",
-        error: "gh: not logged in"
-      },
-      gitlab: {
-        authenticated: false,
-        state: "missing",
-        error: "no host"
-      }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        {
+          authenticated: false,
+          state: "unauthenticated",
+          error: "gh: not logged in"
+        },
+        {
+          authenticated: false,
+          state: "missing",
+          error: "no host"
+        }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -104,15 +122,17 @@ describe("GitProvidersCard", () => {
   });
 
   it("показывает янтарный GitLab статус при offline", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "authenticated", login: "octocat" },
-      gitlab: {
-        authenticated: false,
-        state: "offline",
-        host: "gitlab.example.com",
-        error: "timeout"
-      }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        { authenticated: true, state: "authenticated", login: "octocat" },
+        {
+          authenticated: false,
+          state: "offline",
+          host: "gitlab.example.com",
+          error: "timeout"
+        }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -124,14 +144,16 @@ describe("GitProvidersCard", () => {
   });
 
   it("повторно дёргает API по клику «Проверить»", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: {
-        authenticated: false,
-        state: "unauthenticated",
-        error: "no creds"
-      },
-      gitlab: { authenticated: false, state: "missing", error: "no host" }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        {
+          authenticated: false,
+          state: "unauthenticated",
+          error: "no creds"
+        },
+        { authenticated: false, state: "missing", error: "no host" }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -157,15 +179,17 @@ describe("GitProvidersCard", () => {
   });
 
   it("сохраняет новый GitLab host по кнопке «Сохранить»", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "authenticated", login: "octocat" },
-      gitlab: {
-        authenticated: true,
-        state: "authenticated",
-        host: "gitlab.com",
-        login: "me"
-      }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        { authenticated: true, state: "authenticated", login: "octocat" },
+        {
+          authenticated: true,
+          state: "authenticated",
+          host: "gitlab.com",
+          login: "me"
+        }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -182,14 +206,16 @@ describe("GitProvidersCard", () => {
   });
 
   it("inline-ошибка валидации при пустом host'е и mutation не дёргается", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "authenticated", login: "octocat" },
-      gitlab: {
-        authenticated: true,
-        state: "authenticated",
-        host: "gitlab.com"
-      }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        { authenticated: true, state: "authenticated", login: "octocat" },
+        {
+          authenticated: true,
+          state: "authenticated",
+          host: "gitlab.com"
+        }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -205,14 +231,16 @@ describe("GitProvidersCard", () => {
   });
 
   it("inline-ошибка валидации при host'е со схемой", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "authenticated", login: "octocat" },
-      gitlab: {
-        authenticated: true,
-        state: "authenticated",
-        host: "gitlab.com"
-      }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        { authenticated: true, state: "authenticated", login: "octocat" },
+        {
+          authenticated: true,
+          state: "authenticated",
+          host: "gitlab.com"
+        }
+      )
+    );
 
     render(<GitProvidersCard />);
 
@@ -230,15 +258,17 @@ describe("GitProvidersCard", () => {
   });
 
   it("ссылка «Как настроить gh» ведёт на docs.github.com и открывается в новой вкладке", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: {
-        authenticated: true,
-        state: "authenticated",
-        login: "octocat",
-        scopes: []
-      },
-      gitlab: { authenticated: false, state: "missing", error: "no host" }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(
+      providerCatalog(
+        {
+          authenticated: true,
+          state: "authenticated",
+          login: "octocat",
+          scopes: []
+        },
+        { authenticated: false, state: "missing", error: "no host" }
+      )
+    );
 
     render(<GitProvidersCard />);
 

@@ -216,11 +216,8 @@ export interface components {
          * @enum {string}
          */
         TerminalSessionState: "spawning" | "running" | "blocked" | "exited";
-        /**
-         * @description Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…` vs `opencode --model throne-local/…`, no effort axis). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
-         * @enum {string}
-         */
-        TerminalAgentVendor: "claude" | "codex" | "opencode";
+        /** @description Stable terminal vendor key. The value set is intentionally open and delivered by `GET /api/v1/terminal/vendors`; unknown values are rejected by server-side catalog validation. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…` vs `opencode --model throne-local/…`, no effort axis). Omitted on the request → the server falls back to `default_terminal_vendor` from settings. */
+        TerminalAgentVendor: string;
         /**
          * @description Single reasoning-effort axis shared across vendors (the vendor effort dictionaries overlap on low/medium/high/xhigh). The claude-only `max` tier is intentionally excluded.
          * @enum {string}

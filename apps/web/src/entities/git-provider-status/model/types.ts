@@ -6,6 +6,9 @@ export type GitProvidersStatus =
 export type GitProviderAuthStatus =
   SettingsComponents["schemas"]["GitProviderAuthStatusDto"];
 
+export type GitProviderStatusEntry =
+  SettingsComponents["schemas"]["GitProviderStatusDto"];
+
 export interface GitProviderHealthMeta {
   label: string;
   className: string;

@@ -34,16 +34,16 @@ public class TerminalVendorCatalogMapperTests
     {
         var dto = await Build().ToDtoAsync(CancellationToken.None);
 
-        dto.Default_vendor.Should().Be(TerminalAgentVendor.Claude);
+        dto.Default_vendor.Should().Be(TerminalAgentCatalog.VendorClaude);
         dto.Vendors.Select(v => v.Vendor)
-            .Should().Equal(TerminalAgentVendor.Claude, TerminalAgentVendor.Codex, TerminalAgentVendor.Opencode);
+            .Should().Equal(TerminalAgentCatalog.VendorClaude, TerminalAgentCatalog.VendorCodex, TerminalAgentCatalog.VendorOpencode);
     }
 
     [Fact(DisplayName = "claude metadata: модели opus-first, дефолт opus, эффорт high, источник static")]
     public async Task Maps_claude_metadata()
     {
         var dto = await Build().ToDtoAsync(CancellationToken.None);
-        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Claude);
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorClaude);
 
         claude.Label.Should().Be("Claude");
         claude.Models.Should().Equal("opus", "sonnet", "haiku");
@@ -58,7 +58,7 @@ public class TerminalVendorCatalogMapperTests
     public async Task Maps_codex_metadata()
     {
         var dto = await Build().ToDtoAsync(CancellationToken.None);
-        var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Codex);
+        var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorCodex);
 
         codex.Default_model.Should().Be(codex.Models.First());
         codex.Models.Should().Equal("gpt-5.5", "gpt-5.4", "gpt-5.3-codex");
@@ -72,7 +72,7 @@ public class TerminalVendorCatalogMapperTests
     {
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4", "qwen-3"]);
         var dto = await Build([dynamicCatalog]).ToDtoAsync(CancellationToken.None);
-        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
+        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorOpencode);
 
         opencode.Label.Should().Be("OpenCode");
         opencode.Models.Should().Equal("llama-4", "qwen-3");
@@ -88,7 +88,7 @@ public class TerminalVendorCatalogMapperTests
     {
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, []);
         var dto = await Build([dynamicCatalog]).ToDtoAsync(CancellationToken.None);
-        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
+        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorOpencode);
 
         opencode.Models.Should().BeEmpty();
         opencode.Default_model.Should().BeNull();
@@ -101,11 +101,11 @@ public class TerminalVendorCatalogMapperTests
             claudeLogin: AgentVendorLoginStatus.Ready,
             codexLogin: AgentVendorLoginStatus.LoggedOut).ToDtoAsync(CancellationToken.None);
 
-        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Claude);
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorClaude);
         claude.Login_status.Should().Be(TerminalVendorLoginStatus.Ready);
         claude.Selectable.Should().BeTrue();
 
-        var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Codex);
+        var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorCodex);
         codex.Login_status.Should().Be(TerminalVendorLoginStatus.Logged_out);
         codex.Selectable.Should().BeTrue();
     }
@@ -114,7 +114,7 @@ public class TerminalVendorCatalogMapperTests
     public async Task Maps_missing_cli_login_status()
     {
         var dto = await Build(claudeLogin: AgentVendorLoginStatus.Missing).ToDtoAsync(CancellationToken.None);
-        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Claude);
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorClaude);
 
         claude.Login_status.Should().Be(TerminalVendorLoginStatus.Missing);
         claude.Selectable.Should().BeTrue();
@@ -126,7 +126,7 @@ public class TerminalVendorCatalogMapperTests
         var dynamicCatalog = new StubCatalog(TerminalAgentCatalog.VendorOpencode, ["llama-4"]);
 
         var dto = await Build([dynamicCatalog]).ToDtoAsync(CancellationToken.None);
-        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentVendor.Opencode);
+        var opencode = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorOpencode);
 
         opencode.Login_status.Should().Be(TerminalVendorLoginStatus.In_development);
         opencode.Selectable.Should().BeFalse();

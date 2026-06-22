@@ -14,13 +14,12 @@ public sealed class ListGitProviderRepositoriesEndpoint(IGitProviderRegistry pro
     private const int DefaultLimit = 30;
 
     public async Task<ActionResult<ICollection<GitRepositoryRefDto>>> RunAsync(
-        GitProvider provider,
+        string provider,
         int? limit,
         CancellationToken ct
     )
     {
-        var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
-        var gitProvider = providers.GetByName(providerName) ?? throw Unsupported(providerName);
+        var gitProvider = providers.GetByName(provider) ?? throw Unsupported(provider);
 
         var refs = await gitProvider.ListUserRepositoriesAsync(limit ?? DefaultLimit, ct);
         return new OkObjectResult(refs.Select(RepositoryDtoMapper.ToRepositoryRefDto).ToList());

@@ -50,8 +50,9 @@ namespace Throne.Terminal.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("vendor")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
-        public TerminalAgentVendor Vendor { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Vendor { get; set; }
 
         /// <summary>
         /// Human-facing vendor label for the launch/settings dropdown.
@@ -175,8 +176,9 @@ namespace Throne.Terminal.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("default_vendor")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
-        public TerminalAgentVendor Default_vendor { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Default_vendor { get; set; }
 
         /// <summary>
         /// Every registered vendor, in catalog order.
@@ -255,28 +257,6 @@ namespace Throne.Terminal.Contracts.Generated
     }
 
     /// <summary>
-    /// Which agent CLI the tmux session boots. Provider-neutral axis: the spawn command is built per vendor (`claude --model … --effort …` vs `codex -m … -c model_reasoning_effort=…` vs `opencode --model throne-local/…`, no effort axis). Omitted on the request → the server falls back to `default_terminal_vendor` from settings.
-    /// <br/>
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum TerminalAgentVendor
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"claude")]
-        [System.Runtime.Serialization.EnumMember(Value = @"claude")]
-        Claude = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"codex")]
-        [System.Runtime.Serialization.EnumMember(Value = @"codex")]
-        Codex = 1,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"opencode")]
-        [System.Runtime.Serialization.EnumMember(Value = @"opencode")]
-        Opencode = 2,
-
-    }
-
-    /// <summary>
     /// Single reasoning-effort axis shared across vendors (the vendor effort dictionaries overlap on low/medium/high/xhigh). The claude-only `max` tier is intentionally excluded.
     /// <br/>
     /// </summary>
@@ -315,8 +295,9 @@ namespace Throne.Terminal.Contracts.Generated
         /// Omitted → server falls back to `default_terminal_vendor` from settings.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("vendor")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
-        public TerminalAgentVendor? Vendor { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Vendor { get; set; }
 
         /// <summary>
         /// Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400.
@@ -544,8 +525,9 @@ namespace Throne.Terminal.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("vendor")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
-        public TerminalAgentVendor Vendor { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Vendor { get; set; }
 
         /// <summary>
         /// Resolved model id from the vendor's whitelist.

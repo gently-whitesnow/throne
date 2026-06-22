@@ -1,4 +1,5 @@
 import {
+  gitProviderEntries,
   isProviderHealthy,
   useGitProvidersStatus
 } from "@/entities/git-provider-status";
@@ -73,22 +74,25 @@ function buildVendorItem(
 function buildGitItem(
   status: ReturnType<typeof useGitProvidersStatus>["status"]
 ): ReadinessItem {
-  // Селектор entity терпит undefined-провайдера (бэкенд может вернуть только
-  // один из github/gitlab), поэтому не падаем на частичном ответе.
-  const github = isProviderHealthy(status?.github);
-  const gitlab = isProviderHealthy(status?.gitlab);
-  const ok = github || gitlab;
+  const ready = gitProviderEntries(status).find((entry) =>
+    isProviderHealthy(entry.status)
+  );
+  const ok = ready !== undefined;
   return {
     key: "git",
     label: "Git-провайдер авторизован",
     ok,
     detail: ok
-      ? github
-        ? "GitHub авторизован"
-        : "GitLab авторизован"
-      : "Авторизуйтесь через gh или glab",
+      ? `${providerLabel(ready.provider)} авторизован`
+      : "Авторизуйтесь в Git provider CLI",
     hintHref: HINT.git
   };
+}
+
+function providerLabel(provider: string): string {
+  if (provider === "github") return "GitHub";
+  if (provider === "gitlab") return "GitLab";
+  return provider;
 }
 
 function buildWorkspaceItem(

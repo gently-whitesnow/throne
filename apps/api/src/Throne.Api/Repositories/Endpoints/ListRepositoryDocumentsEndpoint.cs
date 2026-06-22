@@ -10,14 +10,14 @@ namespace Throne.Api.Repositories.Endpoints;
 public sealed class ListRepositoryDocumentsEndpoint(IRepositoryArtifactRepository artifacts)
 {
     public async Task<ActionResult<ICollection<RepositoryDocumentSummaryDto>>> RunAsync(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         CancellationToken ct
     )
     {
         var coordinate = RepositoryCoordinateFactory.Create(
-            RepositoryEnumDtoMapper.ToProviderName(provider),
+            provider,
             owner,
             repo
         );

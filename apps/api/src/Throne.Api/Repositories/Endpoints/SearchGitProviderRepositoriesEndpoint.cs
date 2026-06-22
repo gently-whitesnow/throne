@@ -16,15 +16,14 @@ public sealed class SearchGitProviderRepositoriesEndpoint(IGitProviderRegistry p
     private const int DefaultLimit = 30;
 
     public async Task<ActionResult<ICollection<GitRepositoryRefDto>>> RunAsync(
-        GitProvider provider,
+        string provider,
         string? q,
         WireScope? scope,
         int? limit,
         CancellationToken ct
     )
     {
-        var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
-        var gitProvider = providers.GetByName(providerName) ?? throw Unsupported(providerName);
+        var gitProvider = providers.GetByName(provider) ?? throw Unsupported(provider);
 
         var resolvedScope = scope is null ? AppScope.Mine : ToApplicationScope(scope.Value);
         var refs = await gitProvider.SearchRepositoriesAsync(

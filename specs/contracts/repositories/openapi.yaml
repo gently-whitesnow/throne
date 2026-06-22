@@ -1268,11 +1268,12 @@ components:
   schemas:
     GitProvider:
       type: string
-      enum:
-        - github
-        - gitlab
+      minLength: 1
+      pattern: '^[a-z0-9][a-z0-9-]*$'
       description: >
-        Set of supported git providers.
+        Stable git provider key. The value set is intentionally open:
+        supported providers are delivered by the backend registry/catalog and
+        unknown values are rejected by server-side validation.
     RepositorySearchScope:
       type: string
       enum:

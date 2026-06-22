@@ -26,36 +26,15 @@ namespace Throne.Settings.Contracts.Generated
 
     
 
-    /// <summary>
-    /// Default agent CLI for new embedded-terminal sessions. Mirror of `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
-    /// <br/>
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum TerminalAgentVendor
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"claude")]
-        [System.Runtime.Serialization.EnumMember(Value = @"claude")]
-        Claude = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"codex")]
-        [System.Runtime.Serialization.EnumMember(Value = @"codex")]
-        Codex = 1,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"opencode")]
-        [System.Runtime.Serialization.EnumMember(Value = @"opencode")]
-        Opencode = 2,
-
-    }
-
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TerminalSettingsDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("default_vendor")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
-        public TerminalAgentVendor Default_vendor { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Default_vendor { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -74,8 +53,9 @@ namespace Throne.Settings.Contracts.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("default_vendor")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalAgentVendor>))]
-        public TerminalAgentVendor Default_vendor { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Default_vendor { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
@@ -525,13 +505,39 @@ namespace Throne.Settings.Contracts.Generated
     public partial class GitProvidersStatusDto
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("github")]
+        /// <summary>
+        /// Auth status for every registered git provider, in registry order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("providers")]
         [System.ComponentModel.DataAnnotations.Required]
-        public GitProviderAuthStatusDto Github { get; set; } = new GitProviderAuthStatusDto();
+        public System.Collections.Generic.ICollection<GitProviderStatusDto> Providers { get; set; } = new System.Collections.ObjectModel.Collection<GitProviderStatusDto>();
 
-        [System.Text.Json.Serialization.JsonPropertyName("gitlab")]
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class GitProviderStatusDto
+    {
+
+        /// <summary>
+        /// Stable git provider key from the backend registry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required]
-        public GitProviderAuthStatusDto Gitlab { get; set; } = new GitProviderAuthStatusDto();
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public GitProviderAuthStatusDto Status { get; set; } = new GitProviderAuthStatusDto();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

@@ -3,8 +3,7 @@ import { AlertCircle, TerminalSquare } from "lucide-react";
 import {
   useSetDefaultTerminalVendor,
   useTerminalSettingsQuery,
-  useTerminalVendorCatalogQuery,
-  type TerminalAgentVendor
+  useTerminalVendorCatalogQuery
 } from "@/entities/terminal-setting";
 
 /**
@@ -74,7 +73,7 @@ export function TerminalDefaultsCard() {
           value={current ?? ""}
           disabled={selectDisabled}
           onChange={(event) => {
-            mutation.mutate(event.target.value as TerminalAgentVendor);
+            mutation.mutate(event.target.value);
           }}
         >
           {current === undefined ? <option value="" disabled hidden /> : null}
