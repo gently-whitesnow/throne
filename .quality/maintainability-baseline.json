@@ -3,6 +3,11 @@
   "version": 1,
   "violations": [
     {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Application/Errors/TerminalErrorCodes.cs",
+      "subject": "TerminalErrorCodes"
+    },
+    {
       "code": "CTOR_DEPS",
       "path": "apps/api/src/Throne.Application/Terminals/RunPreflightSpawn.cs",
       "subject": "RunPreflightSpawn primary constructor"
@@ -11,6 +16,11 @@
       "code": "TYPE_LOC",
       "path": "apps/api/src/Throne.Application/Terminals/RunPreflightSpawn.cs",
       "subject": "RunPreflightSpawn"
+    },
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/src/Throne.Application/Terminals/TerminalFailures.cs",
+      "subject": "TerminalFailures"
     },
     {
       "code": "TYPE_PUB",

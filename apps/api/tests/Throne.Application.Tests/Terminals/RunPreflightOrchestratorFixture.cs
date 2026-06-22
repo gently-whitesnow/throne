@@ -61,6 +61,7 @@ public partial class RunPreflightOrchestratorTests
             {
                 TuiReadinessTimeoutMilliseconds = 200,
                 TuiReadinessPollIntervalMilliseconds = 20,
+                PromptSubmitConfirmTimeoutMilliseconds = 200,
             };
             var cloneWait = new RunPreflightCloneWait(Bindings, runPreflightOptions, clock);
             var spawn = BuildSpawn(workspace, clock, uow, runPreflightOptions);
@@ -115,15 +116,29 @@ public partial class RunPreflightOrchestratorTests
             IWorkspaceRootProvider workspace, TimeProvider clock, IUnitOfWork uow, RunPreflightOptions options)
         {
             // FixedClock would hang the readiness poll loop, so feed the waiter a System TimeProvider.
-            // Happy-path tests stub CapturePaneAsync to a composer marker so the waiter resolves on first capture.
-            Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("│ > ready");
+            // First capture-pane after readiness: composer marker (waiter resolves on first capture).
+            // Subsequent captures (post-paste): working footer with "esc to interrupt" so the
+            // prompt-submit confirmer resolves on the next capture.
+            Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+                .Returns("│ > ready", "esc to interrupt");
             var readinessWaiter = new TmuxTuiReadinessWaiter(
                 Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
                 NullLogger<TmuxTuiReadinessWaiter>.Instance);
+            var hookAdapters = new ISessionHookAdapter[]
+            {
+                new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath]),
+            };
+            var submitGate = new TmuxPromptSubmitGate(
+                hookAdapters,
+                new TmuxPromptSubmitConfirmer(
+                    Tmux, options, TimeProvider.System,
+                    NullLogger<TmuxPromptSubmitConfirmer>.Instance),
+                options);
             return new RunPreflightSpawn(
                 Tmux, workspace, TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
-                [new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath])],
+                hookAdapters,
                 readinessWaiter,
+                submitGate,
                 options,
                 new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());
@@ -238,6 +253,10 @@ file sealed class StubHookAdapter(string vendor, IReadOnlyList<string> args) : I
     public bool IsTuiReady(string paneSnapshot) =>
         !string.IsNullOrEmpty(paneSnapshot)
         && paneSnapshot.Contains("│ >", StringComparison.Ordinal);
+
+    public bool IsPromptSubmitted(string paneSnapshot) =>
+        !string.IsNullOrEmpty(paneSnapshot)
+        && paneSnapshot.Contains("esc to interrupt", StringComparison.OrdinalIgnoreCase);
 }
 
 file sealed class PassthroughUnitOfWork : IUnitOfWork

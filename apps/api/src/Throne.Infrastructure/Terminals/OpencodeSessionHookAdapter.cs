@@ -140,6 +140,10 @@ internal sealed class OpencodeSessionHookAdapter(
     // intentionally disabled so only Claude/Codex keep using capture-pane readiness for tmux paste.
     public bool IsTuiReady(string paneSnapshot) => false;
 
+    // No tmux paste path on the native-session route — RunPreflightSpawn skips the prompt-submit
+    // confirmer for INativeSessionInitializer adapters, so this predicate is never queried.
+    public bool IsPromptSubmitted(string paneSnapshot) => false;
+
     // Per-session files live inside the workspace (`opencode.json` + the system-prompt file),
     // so the intent-done workspace teardown reaps them. The shared serve is host-scoped and is
     // intentionally left running for other intents — nothing per-intent to tear down here.

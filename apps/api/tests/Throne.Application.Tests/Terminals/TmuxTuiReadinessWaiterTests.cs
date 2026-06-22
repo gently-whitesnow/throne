@@ -167,5 +167,7 @@ public class TmuxTuiReadinessWaiterTests
         public bool IsTuiReady(string paneSnapshot) =>
             !string.IsNullOrEmpty(paneSnapshot)
             && paneSnapshot.Contains(marker, StringComparison.Ordinal);
+
+        public bool IsPromptSubmitted(string paneSnapshot) => false;
     }
 }
