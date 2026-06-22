@@ -33,6 +33,7 @@ internal static class TerminalRunResponseMapper
         Vendor = ParseVendor(launch.Vendor),
         Model = launch.Model,
         Effort = launch.Effort is { } effort ? ParseEffort(effort) : null,
+        Attached_skill_ids = launch.AttachedSkillIds.Count == 0 ? null : launch.AttachedSkillIds.ToArray(),
     };
 
     public static TerminalLaunchInput ToLaunchInput(RunIntentTerminalRequest request)

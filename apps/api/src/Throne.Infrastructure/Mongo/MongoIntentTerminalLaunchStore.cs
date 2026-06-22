@@ -25,7 +25,14 @@ internal sealed class MongoIntentTerminalLaunchStore(IMongoDatabase database, Mo
             ? await _collection.Find(d => d.Id == intentId).FirstOrDefaultAsync(ct)
             : await _collection.Find(session, d => d.Id == intentId).FirstOrDefaultAsync(ct);
 
-        return doc is null ? null : new TerminalLaunchRecord(doc.Mode, doc.Vendor, doc.Model, doc.Effort);
+        if (doc is null)
+        {
+            return null;
+        }
+        var attached = doc.AttachedSkillIds is { Count: > 0 }
+            ? (IReadOnlyList<string>)doc.AttachedSkillIds.ToArray()
+            : Array.Empty<string>();
+        return new TerminalLaunchRecord(doc.Mode, doc.Vendor, doc.Model, doc.Effort, attached);
     }
 
     public async Task SaveAsync(string intentId, TerminalLaunchRecord record, CancellationToken ct)
@@ -44,7 +51,34 @@ internal sealed class MongoIntentTerminalLaunchStore(IMongoDatabase database, Mo
         update = record.Effort is { } effort
             ? update.Set(d => d.Effort, effort)
             : update.Unset(d => d.Effort);
+        // attached_skill_ids is intentionally NOT touched here: the run/restart pipeline does not
+        // overwrite hot-attached skills — they live independently via SetAttachedSkillIdsAsync.
         var options = new UpdateOptions { IsUpsert = true };
+
+        var session = sessions.Current;
+        if (session is null)
+        {
+            await _collection.UpdateOneAsync(d => d.Id == intentId, update, options, ct);
+        }
+        else
+        {
+            await _collection.UpdateOneAsync(session, d => d.Id == intentId, update, options, ct);
+        }
+    }
+
+    public async Task SetAttachedSkillIdsAsync(
+        string intentId,
+        IReadOnlyList<string> attachedSkillIds,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        ArgumentNullException.ThrowIfNull(attachedSkillIds);
+
+        var builder = Builders<IntentTerminalLaunchDocument>.Update;
+        var update = attachedSkillIds.Count == 0
+            ? builder.Unset(d => d.AttachedSkillIds)
+            : builder.Set(d => d.AttachedSkillIds, attachedSkillIds.ToList());
+        var options = new UpdateOptions { IsUpsert = false };
 
         var session = sessions.Current;
         if (session is null)

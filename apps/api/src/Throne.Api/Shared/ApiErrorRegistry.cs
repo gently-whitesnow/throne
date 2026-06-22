@@ -8,7 +8,7 @@ internal static class ApiErrorRegistry
 {
     private static readonly Dictionary<string, int> StatusByCode = new()
     {
-        [ErrorCodes.TerminalArgsInvalid] = StatusCodes.Status400BadRequest,
+        [TerminalErrorCodes.ArgsInvalid] = StatusCodes.Status400BadRequest,
 
         [ErrorCodes.IntentNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.IntentAttachmentNotFound] = StatusCodes.Status404NotFound,
@@ -37,7 +37,8 @@ internal static class ApiErrorRegistry
         [ErrorCodes.RepositoryPullRequestAlreadyAttached] = StatusCodes.Status409Conflict,
         [ErrorCodes.RepositoryPullRequestMergeRejected] = StatusCodes.Status409Conflict,
         [ErrorCodes.RepositoryArtifactVersionConflict] = StatusCodes.Status409Conflict,
-        [ErrorCodes.TerminalSessionAlreadyRunning] = StatusCodes.Status409Conflict,
+        [TerminalErrorCodes.SessionAlreadyRunning] = StatusCodes.Status409Conflict,
+        [TerminalErrorCodes.SessionNotLive] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartAlreadyExists] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartVersionConflict] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartHasRoles] = StatusCodes.Status409Conflict,
@@ -58,10 +59,13 @@ internal static class ApiErrorRegistry
         [ErrorCodes.CapabilityDisabled] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.IdeProviderUnavailable] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.GitLabHostInvalid] = StatusCodes.Status422UnprocessableEntity,
-        [ErrorCodes.TerminalRunPreflightBlocked] = StatusCodes.Status422UnprocessableEntity,
-        [ErrorCodes.TerminalSpawnFailed] = StatusCodes.Status422UnprocessableEntity,
-        [ErrorCodes.TerminalCloneWaitTimeout] = StatusCodes.Status422UnprocessableEntity,
-        [ErrorCodes.TerminalModeInvalid] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.RunPreflightBlocked] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.SpawnFailed] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.CloneWaitTimeout] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.ModeInvalid] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.SessionSkillUnknown] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.SessionSkillNotMaterializable] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.SessionSkillVendorUnsupported] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.PromptPartTextMatchFailed] = StatusCodes.Status422UnprocessableEntity,
         [LinkErrorCodes.SelfLink] = StatusCodes.Status422UnprocessableEntity,
 

@@ -99,6 +99,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> KillIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
 
         /// <summary>
+        /// Hot-attach session skills into a live tmux session.
+        /// </summary>
+        /// <remarks>
+        /// Loads the requested skill packages into the running Claude Code session without a restart. The handler writes `SKILL.md` files into the workspace `.claude/skills/{id}/` (so future spawns pick them up natively) and injects a single `&lt;system-reminder&gt;` user message into the live tmux pane via `tmux paste-buffer + Enter`, listing the appended skills and their `SKILL.md` content. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set but still re-injects the reminder. Currently Claude only — other vendors return 422.
+        /// </remarks>
+        /// <returns>Skills attached; updated set echoed back.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/skills/attach", Name = "attachIntentTerminalSkills")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<AttachIntentTerminalSkillsResponse>> AttachIntentTerminalSkills([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] AttachIntentTerminalSkillsRequest body);
+
+        /// <summary>
         /// Receive a local agent hook callback.
         /// </summary>
         /// <remarks>

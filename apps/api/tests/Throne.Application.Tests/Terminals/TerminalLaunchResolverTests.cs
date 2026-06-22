@@ -52,7 +52,7 @@ public class TerminalLaunchResolverTests
             TerminalAgentCatalog.VendorClaude, model: "gpt-5.5", effort: null, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalArgsInvalid);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.ArgsInvalid);
     }
 
     [Fact(DisplayName = "Curated model and explicit effort pass through")]
@@ -92,7 +92,7 @@ public class TerminalLaunchResolverTests
             TerminalAgentCatalog.VendorOpencode, model: "unknown", effort: null, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalArgsInvalid);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.ArgsInvalid);
     }
 
     [Fact(DisplayName = "Opencode: caller-supplied effort silently dropped (descriptor unsupported)")]

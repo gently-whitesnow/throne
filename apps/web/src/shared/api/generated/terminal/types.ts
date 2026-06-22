@@ -123,6 +123,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/terminal/skills/attach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hot-attach session skills into a live tmux session.
+         * @description Loads the requested skill packages into the running Claude Code session without a restart. The handler writes `SKILL.md` files into the workspace `.claude/skills/{id}/` (so future spawns pick them up natively) and injects a single `<system-reminder>` user message into the live tmux pane via `tmux paste-buffer + Enter`, listing the appended skills and their `SKILL.md` content. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set but still re-injects the reminder. Currently Claude only — other vendors return 422.
+         */
+        post: operations["attachIntentTerminalSkills"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/terminal/hooks/{event}": {
         parameters: {
             query?: never;
@@ -287,6 +307,16 @@ export interface components {
             model: string;
             /** @description Resolved reasoning effort; null for a vendor with no effort axis. */
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
+            /** @description Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий restart preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время). */
+            attached_skill_ids?: string[] | null;
+        };
+        AttachIntentTerminalSkillsRequest: {
+            /** @description Skill ids from the session skill catalog to hot-attach to the live session. */
+            skill_ids: string[];
+        };
+        AttachIntentTerminalSkillsResponse: {
+            /** @description Full set of skills currently attached to the live session after the call (union of previous and the new request). */
+            attached_skill_ids: string[];
         };
         PreviewIntentTerminalRequest: {
             mode: components["schemas"]["TerminalRunMode"];
@@ -563,6 +593,59 @@ export interface operations {
                 };
             };
             /** @description Capability `terminal` disabled. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    attachIntentTerminalSkills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachIntentTerminalSkillsRequest"];
+            };
+        };
+        responses: {
+            /** @description Skills attached; updated set echoed back. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachIntentTerminalSkillsResponse"];
+                };
+            };
+            /** @description Intent not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description No live tmux session — attach requires a running session (use `run` first). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unknown skill id, skill not materializable for the current intent, or vendor unsupported. */
             422: {
                 headers: {
                     [name: string]: unknown;
