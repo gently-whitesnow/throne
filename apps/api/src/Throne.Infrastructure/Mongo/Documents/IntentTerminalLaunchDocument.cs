@@ -26,4 +26,14 @@ internal sealed class IntentTerminalLaunchDocument
     [BsonElement("effort")]
     [BsonIgnoreIfNull]
     public string? Effort { get; set; }
+
+    /// <summary>
+    /// Session skills hot-attached into the live tmux session through
+    /// <c>POST /terminal/skills/attach</c>. Independent of <c>mode/vendor/model/effort</c>:
+    /// the run/restart pipeline does NOT touch this field; only the attach handler updates
+    /// it via <see cref="MongoIntentTerminalLaunchStore.SetAttachedSkillIdsAsync"/>.
+    /// </summary>
+    [BsonElement("attached_skill_ids")]
+    [BsonIgnoreIfNull]
+    public List<string>? AttachedSkillIds { get; set; }
 }

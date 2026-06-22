@@ -38,6 +38,7 @@ internal static class ApiErrorRegistry
         [ErrorCodes.RepositoryPullRequestMergeRejected] = StatusCodes.Status409Conflict,
         [ErrorCodes.RepositoryArtifactVersionConflict] = StatusCodes.Status409Conflict,
         [ErrorCodes.TerminalSessionAlreadyRunning] = StatusCodes.Status409Conflict,
+        [ErrorCodes.TerminalSessionNotLive] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartAlreadyExists] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartVersionConflict] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartHasRoles] = StatusCodes.Status409Conflict,
@@ -62,6 +63,9 @@ internal static class ApiErrorRegistry
         [ErrorCodes.TerminalSpawnFailed] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.TerminalCloneWaitTimeout] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.TerminalModeInvalid] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.SessionSkillUnknown] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.SessionSkillNotMaterializable] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.SessionSkillVendorUnsupported] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.PromptPartTextMatchFailed] = StatusCodes.Status422UnprocessableEntity,
         [LinkErrorCodes.SelfLink] = StatusCodes.Status422UnprocessableEntity,
 

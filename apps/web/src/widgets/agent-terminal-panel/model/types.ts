@@ -43,6 +43,9 @@ export type PromptPartPreview =
 export type AvailableSessionSkill =
   TerminalComponents["schemas"]["AvailableSessionSkillDto"];
 
+export type AttachIntentTerminalSkillsResponse =
+  TerminalComponents["schemas"]["AttachIntentTerminalSkillsResponse"];
+
 export type IntentTextUpdate =
   TerminalComponents["schemas"]["IntentTextUpdate"];
 

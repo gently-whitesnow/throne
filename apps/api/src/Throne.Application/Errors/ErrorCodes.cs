@@ -46,6 +46,10 @@ public static class ErrorCodes
     public const string IdeProviderUnavailable = "ide.provider_unavailable";
     public const string GitLabHostInvalid = "settings.gitlab_host.invalid";
     public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
+    public const string TerminalSessionNotLive = "terminal.session_not_live";
+    public const string SessionSkillUnknown = "terminal.session_skill.unknown";
+    public const string SessionSkillNotMaterializable = "terminal.session_skill.not_materializable";
+    public const string SessionSkillVendorUnsupported = "terminal.session_skill.vendor_unsupported";
     public const string TerminalRunPreflightBlocked = "terminal.run_preflight_blocked";
     public const string TerminalSpawnFailed = "terminal.spawn_failed";
     public const string TerminalTuiReadinessTimeout = "terminal.tui_readiness_timeout";

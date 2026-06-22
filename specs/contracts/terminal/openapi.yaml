@@ -229,6 +229,59 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/terminal/skills/attach:
+    post:
+      operationId: attachIntentTerminalSkills
+      tags: [Terminal]
+      summary: Hot-attach session skills into a live tmux session.
+      description: >
+        Loads the requested skill packages into the running Claude Code session
+        without a restart. The handler writes `SKILL.md` files into the workspace
+        `.claude/skills/{id}/` (so future spawns pick them up natively) and
+        injects a single `<system-reminder>` user message into the live tmux pane
+        via `tmux paste-buffer + Enter`, listing the appended skills and their
+        `SKILL.md` content. The selection is persisted in
+        `terminal_launches.attached_skill_ids` and re-applied on the next
+        preflight preview as default-on. Idempotent: re-attaching an already
+        attached skill is a no-op for the persisted set but still re-injects the
+        reminder. Currently Claude only — other vendors return 422.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachIntentTerminalSkillsRequest'
+      responses:
+        '200':
+          description: Skills attached; updated set echoed back.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachIntentTerminalSkillsResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: No live tmux session — attach requires a running session (use `run` first).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Unknown skill id, skill not materializable for the current intent, or vendor unsupported.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/terminal/hooks/{event}:
     post:
       operationId: receiveIntentTerminalHook
@@ -690,6 +743,37 @@ components:
           description: Resolved reasoning effort; null for a vendor with no effort axis.
           allOf:
             - $ref: '#/components/schemas/TerminalReasoningEffort'
+        attached_skill_ids:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: >
+            Скилы, догруженные в живую сессию через POST /terminal/skills/attach.
+            Persist в `terminal_launches`, на следующий restart preflight модалка
+            пометит эти скилы как default-on. Не путать с `selected_skill_ids` в
+            `RunIntentTerminalRequest` (выбор на спавн-время).
+    AttachIntentTerminalSkillsRequest:
+      type: object
+      required: [skill_ids]
+      properties:
+        skill_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+          description: Skill ids from the session skill catalog to hot-attach to the live session.
+    AttachIntentTerminalSkillsResponse:
+      type: object
+      required: [attached_skill_ids]
+      properties:
+        attached_skill_ids:
+          type: array
+          items:
+            type: string
+          description: >
+            Full set of skills currently attached to the live session after the call (union of previous and the new request).
     PreviewIntentTerminalRequest:
       type: object
       required:
