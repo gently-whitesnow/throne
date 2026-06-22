@@ -59,4 +59,51 @@ internal static partial class TerminalsLog
     [LoggerMessage(EventId = 11, Level = LogLevel.Information,
         Message = "OpenCode shared serve is healthy at {Endpoint}.")]
     public static partial void OpencodeServeReady(ILogger logger, Uri endpoint);
+
+    [LoggerMessage(EventId = 15, Level = LogLevel.Debug,
+        Message = "terminal input {SessionName}: chars={CharLength} bytes={ByteLength} control={ControlHex}")]
+    public static partial void TerminalInputFrame(
+        ILogger logger,
+        string sessionName,
+        int charLength,
+        int byteLength,
+        string controlHex);
+
+    [LoggerMessage(EventId = 16, Level = LogLevel.Debug,
+        Message = "terminal control input {SessionName}: chars={CharLength} bytes={ByteLength} control={ControlHex}")]
+    public static partial void TerminalControlInputFrame(
+        ILogger logger,
+        string sessionName,
+        int charLength,
+        int byteLength,
+        string controlHex);
+
+    [LoggerMessage(EventId = 17, Level = LogLevel.Warning,
+        Message = "terminal input send failed {SessionName}: chars={CharLength} bytes={ByteLength} control={ControlHex} detail={Detail}")]
+    public static partial void TerminalInputSendFailed(
+        ILogger logger,
+        string sessionName,
+        int charLength,
+        int byteLength,
+        string controlHex,
+        string detail);
+
+    [LoggerMessage(EventId = 18, Level = LogLevel.Information,
+        Message = "tmux prompt submit starting {SessionName}: buffer={BufferName} file_bytes={FileBytes} path={FilePath}")]
+    public static partial void TmuxPromptSubmitStarting(
+        ILogger logger,
+        string sessionName,
+        string bufferName,
+        long fileBytes,
+        string filePath);
+
+    [LoggerMessage(EventId = 19, Level = LogLevel.Information,
+        Message = "tmux prompt submit step {SessionName}: step={Step} success={Success} exit={ExitCode} detail={Detail}")]
+    public static partial void TmuxPromptSubmitStep(
+        ILogger logger,
+        string sessionName,
+        string step,
+        bool success,
+        int exitCode,
+        string detail);
 }
