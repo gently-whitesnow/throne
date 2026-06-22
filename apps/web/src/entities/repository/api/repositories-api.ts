@@ -1,47 +1,12 @@
-import {
-  httpGet,
-  httpPost,
-  httpPut,
-  repositoriesEndpoints
-} from "@/shared/api";
+import { httpGet, httpPut, repositoriesEndpoints } from "@/shared/api";
 
 import type {
-  CreateRepositoryRequest,
   PutRepositoryDocumentRequest,
-  Repository,
   RepositoryCoordinate,
   RepositoryDocument,
   RepositoryDocumentSummary,
   RepositoryDocumentVersion
 } from "../model/types";
-
-export function listRepositories(signal?: AbortSignal): Promise<Repository[]> {
-  return httpGet<Repository[]>(
-    repositoriesEndpoints.listRepositories(),
-    signal
-  );
-}
-
-export function createRepository(
-  body: CreateRepositoryRequest,
-  signal?: AbortSignal
-): Promise<Repository> {
-  return httpPost<Repository>(
-    repositoriesEndpoints.createRepository(),
-    body,
-    signal
-  );
-}
-
-export function getRepository(
-  { provider, owner, repo }: RepositoryCoordinate,
-  signal?: AbortSignal
-): Promise<Repository> {
-  return httpGet<Repository>(
-    repositoriesEndpoints.getRepository(provider, owner, repo),
-    signal
-  );
-}
 
 export function listRepositoryDocuments(
   { provider, owner, repo }: RepositoryCoordinate,

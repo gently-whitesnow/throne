@@ -6,12 +6,9 @@ using Throne.Realtime.Contracts.Generated;
 namespace Throne.Api.Realtime;
 
 /// <summary>
-/// Maps the repository registry + knowledge-page domain events (ADR-0031) onto the
-/// contract-first realtime envelopes declared in <c>specs/contracts/realtime/events.yaml</c>:
-/// <list type="bullet">
-///   <item><c>repository.registered</c> — full <see cref="Throne.Repositories.Contracts.Generated.RepositoryDto"/>;</item>
-///   <item><c>repository.document_updated</c> — pointer-only <c>{ provider, owner, repo, slug, version }</c>.</item>
-/// </list>
+/// Maps the knowledge-page domain event (ADR-0031) onto the contract-first realtime
+/// envelope declared in <c>specs/contracts/realtime/events.yaml</c>:
+/// <c>repository.document_updated</c> — pointer-only <c>{ provider, owner, repo, slug, version }</c>.
 /// The document body and version timeline are refetched by the client, so the page-write frame
 /// stays a pointer (Q2 of the slice interview).
 /// </summary>
@@ -19,9 +16,6 @@ internal static class RepositoryRegistryRealtimeMapper
 {
     public static RealtimeEventEnvelope? TryMap(IDomainEvent evt) => evt switch
     {
-        RepositoryRegistered registered => new RealtimeEventEnvelope(
-            RealtimeEventNames.RepositoryRegistered,
-            RepositoryRegistryDtoMapper.ToRepositoryDto(registered.Repository)),
         RepositoryDocumentUpdated updated => new RealtimeEventEnvelope(
             RealtimeEventNames.RepositoryDocumentUpdated,
             new
