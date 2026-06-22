@@ -9,8 +9,7 @@ public sealed class SessionSkillPackageRegistry(ISessionSkillCatalog catalog)
         var selected = resolution.SelectedSkillIds.ToHashSet(StringComparer.Ordinal);
         foreach (var descriptor in catalog.List())
         {
-            if (!selected.Contains(descriptor.Id)
-                || !descriptor.Vendors.Contains(resolution.Vendor, StringComparer.Ordinal))
+            if (!selected.Contains(descriptor.Id))
             {
                 continue;
             }

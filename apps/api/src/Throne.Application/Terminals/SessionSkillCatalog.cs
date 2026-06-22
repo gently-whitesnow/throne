@@ -56,7 +56,6 @@ public sealed record SessionSkillDescriptor(
     string Source,
     string Title,
     string Description,
-    IReadOnlyList<string> Vendors,
     IReadOnlyList<string> DefaultModes,
     Func<SessionSkillPackageResolution, SessionSkillPackage?> CreatePackage)
 {

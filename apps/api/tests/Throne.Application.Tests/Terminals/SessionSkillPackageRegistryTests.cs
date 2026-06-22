@@ -6,10 +6,11 @@ namespace Throne.Application.Tests.Terminals;
 
 public class SessionSkillPackageRegistryTests
 {
-    [Theory(DisplayName = "Выбранный intent skill материализуется для каждого вендора")]
+    [Theory(DisplayName = "Выбранный intent skill материализуется для provider-neutral vendor token")]
     [InlineData(TerminalAgentCatalog.VendorClaude)]
     [InlineData(TerminalAgentCatalog.VendorCodex)]
     [InlineData(TerminalAgentCatalog.VendorOpencode)]
+    [InlineData("future-vendor")]
     public void Selected_intent_operations_resolves_for_every_vendor(string vendor)
     {
         var registry = NewRegistry();
