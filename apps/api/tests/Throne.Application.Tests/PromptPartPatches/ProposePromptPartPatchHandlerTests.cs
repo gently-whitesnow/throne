@@ -216,7 +216,6 @@ public class ProposePromptPartPatchHandlerTests
             TargetScope: PromptPartScopeNames.User,
             TargetKey: "work",
             PatchText: "new text",
-            EvidenceCardIds: [],
             Rationale: "because",
             BaseVersion: baseVersion,
             IdempotencyKey: idempotencyKey);
@@ -227,7 +226,6 @@ public class ProposePromptPartPatchHandlerTests
             targetScope: PromptPartScopeNames.User,
             targetKey: "work",
             patchText: "new text",
-            evidenceCardIds: [],
             rationale: "because",
             baseVersion: 3,
             now: Now);

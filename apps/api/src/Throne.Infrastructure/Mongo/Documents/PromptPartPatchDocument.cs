@@ -31,9 +31,6 @@ internal sealed class PromptPartPatchDocument
     [BsonIgnoreIfNull]
     public string? AppliedText { get; set; }
 
-    [BsonElement("evidence_card_ids")]
-    public List<string> EvidenceCardIds { get; set; } = new();
-
     [BsonElement("rationale")]
     public string Rationale { get; set; } = string.Empty;
 

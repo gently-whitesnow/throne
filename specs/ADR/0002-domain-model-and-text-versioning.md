@@ -4,6 +4,8 @@
 
 Accepted (amended дважды: (1) qa/review вынесены в отдельные коллекции `intent_qa` / `intent_review`, версионирование унифицировано в `text_versions`, `reason` убран; (2) формат версий перепроектирован с full-snapshot на delta-only после v1, чтобы закрыть риск ~20 MB на Intent при долгом dogfooding; см. §2 / §4 / §5)
 
+**Update 2026-06-21:** retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) в части MCP. Упоминания MCP-агента/MCP tools ниже историчны — MCP-поверхность удалена, доставку операций ведут статические CLI-скиллы. Доменная модель и версионирование текста из этого ADR в силе.
+
 ## Context
 
 [ADR-0001](0001-foundation-clean-architecture-monorepo.md) зафиксировал слои и tech stack, но оставил доменную модель и контракт версионирования открытыми. [readme.md](../../readme.md) задаёт миссию и границы MVP: Intent/Instruction, версионирование `text`, training-only следы и dogfooding-телеметрию. Эти решения нужно зафиксировать **до** Mongo-схемы и до MCP tools — иначе любой первый vertical slice их закопает в коде без явного обоснования.

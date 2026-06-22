@@ -8,6 +8,7 @@ usage() {
   cat <<'USAGE'
 Usage:
   throne-dream sources
+  throne-dream parts [--json]
   throne-dream sessions [--vendor V] [--host H] [--limit N] [--cursor C]
   throne-dream record-session < payload.json
   throne-dream current-part --scope user --key KEY
@@ -81,6 +82,49 @@ read_payload() {
 cmd_sources() {
   http_request GET "/api/v1/dream-sources"
   print_or_fail "sources"
+}
+
+format_parts_map() {
+  # -c (а не heredoc), иначе heredoc займёт stdin и до json.load ничего не дойдёт.
+  # Карта частей: source of truth по ролям — mode_roles (из БД), а не проза
+  # в хвосте work, поэтому печатаем именно роли по режимам.
+  python3 -c '
+import json
+import sys
+
+try:
+    parts = json.load(sys.stdin)
+except json.JSONDecodeError as exc:
+    sys.stderr.write("throne-dream: could not parse prompt-parts response: %s\n" % exc)
+    sys.exit(1)
+
+for part in sorted(parts, key=lambda p: (0 if p.get("scope") == "system" else 1, p.get("key", ""))):
+    roles = sorted(part.get("mode_roles") or [], key=lambda r: (r.get("mode", ""), r.get("order", 0)))
+    rendered = " ".join("%s:%s" % (r.get("mode"), r.get("role")) for r in roles) or "(no roles)"
+    print("%s/%s\tv%s\t%s" % (part.get("scope"), part.get("key"), part.get("current_version"), rendered))
+'
+}
+
+cmd_parts() {
+  local raw=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json) raw=1; shift ;;
+      --help) usage; exit 0 ;;
+      *) die "unknown parts argument: $1" ;;
+    esac
+  done
+  http_request GET "/api/v1/prompt-parts"
+  if [[ ! "${HTTP_STATUS}" =~ ^2 ]]; then
+    printf '%s\n' "${HTTP_BODY}" >&2
+    echo "throne-dream: parts failed with HTTP ${HTTP_STATUS}" >&2
+    exit 1
+  fi
+  if [[ -n "${raw}" ]]; then
+    printf '%s\n' "${HTTP_BODY}"
+    return
+  fi
+  printf '%s' "${HTTP_BODY}" | format_parts_map
 }
 
 cmd_sessions() {
@@ -161,6 +205,7 @@ cmd_propose_patch() {
 
 case "${1:-}" in
   sources) shift; [[ $# -eq 0 ]] || die "sources takes no arguments"; cmd_sources ;;
+  parts) shift; cmd_parts "$@" ;;
   sessions) shift; cmd_sessions "$@" ;;
   record-session) shift; cmd_record_session "$@" ;;
   current-part) shift; cmd_current_part "$@" ;;

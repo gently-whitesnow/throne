@@ -96,7 +96,6 @@ public class GetPromptPartPatchHandlerTests
             targetScope: PromptPartScopeNames.User,
             targetKey: "work",
             patchText: "patch text",
-            evidenceCardIds: [],
             rationale: "r",
             baseVersion: baseVersion,
             now: Now);

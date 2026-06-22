@@ -1,10 +1,7 @@
-import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 import { DreamsTab } from "@/widgets/improvements-dreams-tab";
 import { PatchesTab } from "@/widgets/improvements-patches-tab";
-
-import { DREAM_PROMPT } from "../model/dream-prompt";
 
 type TabKey = "patches" | "dreams";
 
@@ -18,9 +15,8 @@ const TABS: { id: TabKey; label: string }[] = [
  *   * Patches — PromptPartPatch list + diff preview + apply / apply-with-edit / reject;
  *   * Dreams — история проходов фронтир-агента (DreamSession) + dream_sources.
  *
- * Кнопка «Скопировать промпт dream» кладёт в буфер полный dream-плейбук
- * ({@link DREAM_PROMPT}) — оператор вставляет его во внешнего агента. Сам разбор
- * делает фронтир локально через Read/Glob, см. ADR-0022.
+ * Dream запускается через /dream (скилл skills/dream/SKILL.md) — единственный
+ * источник плейбука; см. ADR-0022 (dream-flow), ADR-0043 (static skills).
  */
 export function ImprovementsSectionPage() {
   const [tab, setTab] = useState<TabKey>("patches");
@@ -32,12 +28,7 @@ export function ImprovementsSectionPage() {
         aria-label="Improvements"
       >
         <header className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <h2 className="m-0 text-xl font-bold tracking-tight">
-              Improvements
-            </h2>
-            <CopyPromptButton />
-          </div>
+          <h2 className="m-0 text-xl font-bold tracking-tight">Improvements</h2>
           <p className="m-0 text-sm leading-relaxed text-base-content/70">
             Patches — конкретные изменения user-инструкций, которые предложил
             фронтир-агент. Apply / apply-with-edit / reject — твоё решение.
@@ -67,37 +58,5 @@ export function ImprovementsSectionPage() {
         </div>
       </section>
     </div>
-  );
-}
-
-function CopyPromptButton() {
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <button
-      type="button"
-      className="btn btn-xs btn-outline"
-      onClick={() => {
-        void navigator.clipboard.writeText(DREAM_PROMPT).then(() => {
-          setCopied(true);
-          window.setTimeout(() => {
-            setCopied(false);
-          }, 1500);
-        });
-      }}
-      aria-label="Скопировать промпт dream"
-      title="Скопировать промпт dream"
-    >
-      {copied ? (
-        <>
-          <Check aria-hidden size={14} strokeWidth={2} /> Скопировано
-        </>
-      ) : (
-        <>
-          <Copy aria-hidden size={14} strokeWidth={2} /> Скопировать промпт
-          dream
-        </>
-      )}
-    </button>
   );
 }

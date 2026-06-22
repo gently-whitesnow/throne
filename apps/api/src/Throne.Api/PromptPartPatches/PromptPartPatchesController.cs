@@ -61,7 +61,6 @@ public sealed class PromptPartPatchesController(
                 body.Target_scope,
                 body.Target_key,
                 body.Patch_text,
-                body.Evidence_card_ids?.ToList() ?? [],
                 body.Rationale,
                 body.Base_version,
                 body.Idempotency_key,

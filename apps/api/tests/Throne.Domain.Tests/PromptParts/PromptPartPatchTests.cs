@@ -16,7 +16,6 @@ public class PromptPartPatchTests
                 targetScope: PromptPartScopeNames.User,
                 targetKey: "work",
                 patchText: "new part text",
-                evidenceCardIds: ["card-1", "card-2"],
                 rationale: "rationale",
                 baseVersion: 5,
                 now: Now);
@@ -33,11 +32,10 @@ public class PromptPartPatchTests
                 UpdatedAt: Now,
                 DecidedAt: Now),
             patchText: "new part text",
-            evidenceCardIds: ["card-1"],
             rationale: "r");
     }
 
-    [Fact(DisplayName = "Create стартует со status=proposed и сохраняет target/evidence/base_version")]
+    [Fact(DisplayName = "Create стартует со status=proposed и сохраняет target/base_version")]
     public void Create_initial_state()
     {
         var patch = NewPatch();
@@ -50,7 +48,6 @@ public class PromptPartPatchTests
         patch.State.AppliedText.Should().BeNull();
         patch.State.RejectComment.Should().BeNull();
         patch.State.AppliedVersion.Should().BeNull();
-        patch.EvidenceCardIds.Should().Equal("card-1", "card-2");
         patch.Rationale.Should().Be("rationale");
         patch.State.DecidedAt.Should().BeNull();
     }
@@ -70,7 +67,6 @@ public class PromptPartPatchTests
             operation: PromptPartPatchOperationNames.SetRoles,
             patchText: string.Empty,
             modeRoles: roles,
-            evidenceCardIds: [],
             rationale: "rationale",
             baseVersion: 3,
             now: Now);
@@ -80,26 +76,20 @@ public class PromptPartPatchTests
         patch.PatchText.Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "Create отвергает unknown/system target_scope, base_version<0, evidence>лимита")]
+    [Fact(DisplayName = "Create отвергает unknown/system target_scope и base_version<0")]
     public void Create_validates_inputs()
     {
         var act1 = () => PromptPartPatch.Create(
-            "id", "wat", "work", "text", [], "r", 1, Now);
+            "id", "wat", "work", "text", "r", 1, Now);
         act1.Should().Throw<ArgumentOutOfRangeException>();
 
         var actSystem = () => PromptPartPatch.Create(
-            "id", PromptPartScopeNames.System, "work", "text", [], "r", 1, Now);
+            "id", PromptPartScopeNames.System, "work", "text", "r", 1, Now);
         actSystem.Should().Throw<ArgumentOutOfRangeException>();
 
         var act2 = () => PromptPartPatch.Create(
-            "id", PromptPartScopeNames.User, "work", "text", [], "r", -1, Now);
+            "id", PromptPartScopeNames.User, "work", "text", "r", -1, Now);
         act2.Should().Throw<ArgumentOutOfRangeException>();
-
-        var manyIds = Enumerable.Range(0, PromptPartPatch.MaxEvidenceCardIds + 1)
-            .Select(i => $"id-{i}").ToArray();
-        var act3 = () => PromptPartPatch.Create(
-            "id", PromptPartScopeNames.User, "work", "text", manyIds, "r", 1, Now);
-        act3.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact(DisplayName = "Apply verbatim переводит в Applied и сохраняет PatchText как AppliedText")]
@@ -162,7 +152,6 @@ public class PromptPartPatchTests
             operation: PromptPartPatchOperationNames.SetRoles,
             patchText: string.Empty,
             modeRoles: [],
-            evidenceCardIds: [],
             rationale: "rationale",
             baseVersion: 5,
             now: Now);
