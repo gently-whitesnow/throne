@@ -143,7 +143,7 @@ public sealed partial class RunPreflightSpawn(
             // Symmetric companion to the readiness gate above: without it, the trailing Enter
             // occasionally arrives in the same render frame as the bracketed-paste closing marker
             // and Claude/Codex absorb it as newline-in-paste, leaving the prompt unsubmitted.
-            await submitGate.ConfirmOrThrowAsync(intentId, vendor, adapter, ct);
+            await submitGate.ConfirmOrThrowAsync(intentId, vendor, adapter, userPrompt, ct);
         }
     }
 

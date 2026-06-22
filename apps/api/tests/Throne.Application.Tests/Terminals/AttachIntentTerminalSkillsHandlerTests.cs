@@ -114,7 +114,7 @@ public class AttachIntentTerminalSkillsHandlerTests
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: launch);
         // Composer never shows the working footer — submit appears lost on every retry.
         fixture.Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("❯ pasted prompt text still in composer");
+            .Returns("❯ # intent skill stub");
 
         var act = () => fixture.Handler.HandleAsync(
             new AttachIntentTerminalSkillsRequest(IntentIdValue, [SessionSkillPackageIds.Intent]),
