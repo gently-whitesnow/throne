@@ -87,9 +87,17 @@ export function TagDefaultRepositoriesSection({
     >
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h3 className="m-0 text-base font-semibold leading-tight">
-            Default repositories
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="m-0 text-base font-semibold leading-tight">
+              Default repositories
+            </h3>
+            <span
+              title="Версия тега (optimistic locking)"
+              className="rounded bg-base-200 px-1.5 py-0.5 text-[11px] tabular-nums text-base-content/60"
+            >
+              v{String(tag.current_version)}
+            </span>
+          </div>
           <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
             Эти репозитории Throne автоматически биндит каждому интенту с тегом
             <code className="ml-1 rounded bg-base-200 px-1 py-0.5 font-mono text-xs">
@@ -107,7 +115,7 @@ export function TagDefaultRepositoriesSection({
           }}
           variant="primary"
         >
-          Add repository
+          Добавить репозиторий
         </Button>
       </header>
 

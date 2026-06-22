@@ -1,4 +1,4 @@
-import { Check, Copy, MessagesSquare, Play, X } from "lucide-react";
+import { Check, Copy, X } from "lucide-react";
 import { useState } from "react";
 
 import type { IntentDetail } from "@/entities/intent";
@@ -7,8 +7,6 @@ import { CleanupOnDoneToggle } from "@/features/set-intent-cleanup-on-done";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
 import { formatRelativeTime } from "@/shared/lib";
 import { Button } from "@/shared/ui";
-
-type CopyAction = "id" | "execute" | "interview";
 
 interface IntentDetailHeaderProps {
   intent: IntentDetail;
@@ -27,18 +25,18 @@ export function IntentDetailHeader({
   onClose,
   onDeleted
 }: IntentDetailHeaderProps) {
-  const [copiedAction, setCopiedAction] = useState<CopyAction | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const copyToClipboard = (text: string, action: CopyAction) => {
+  const copyId = () => {
     void (async () => {
       try {
-        await navigator.clipboard.writeText(text);
-        setCopiedAction(action);
+        await navigator.clipboard.writeText(intent.id);
+        setCopied(true);
         window.setTimeout(() => {
-          setCopiedAction((current) => (current === action ? null : current));
+          setCopied(false);
         }, 1500);
       } catch {
-        setCopiedAction(null);
+        setCopied(false);
       }
     })();
   };
@@ -52,81 +50,22 @@ export function IntentDetailHeader({
         <h1 className="m-0 min-w-0 break-words text-lg font-semibold leading-snug text-base-content">
           {title}
         </h1>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[11px] text-base-content/60">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <SetIntentStatusForm intent={intent} onSaved={onStatusSaved} />
-            <CleanupOnDoneToggle intent={intent} onSaved={onStatusSaved} />
-            <span className="tabular-nums font-semibold text-base-content/70">
-              v{intent.current_version}
-            </span>
-            <span className="text-base-content/30">·</span>
-            <time
-              dateTime={intent.updated_at}
-              title={updatedDate.toLocaleString()}
-              className="tabular-nums"
-            >
-              изменён {formatRelativeTime(updatedDate)}
-            </time>
-          </div>
-          <div className="flex flex-shrink-0 items-center gap-1">
-            <CopyButton
-              active={copiedAction === "id"}
-              ariaLabel={
-                copiedAction === "id"
-                  ? "Идентификатор скопирован"
-                  : "Скопировать id интента"
-              }
-              title={
-                copiedAction === "id"
-                  ? "Скопировано"
-                  : `Скопировать id: ${intent.id}`
-              }
-              onClick={() => {
-                copyToClipboard(intent.id, "id");
-              }}
-              icon={<Copy aria-hidden size={14} strokeWidth={2} />}
-            />
-            <CopyButton
-              active={copiedAction === "execute"}
-              ariaLabel={
-                copiedAction === "execute"
-                  ? "Команда «выполни intent» скопирована"
-                  : "Скопировать команду «выполни intent»"
-              }
-              title={
-                copiedAction === "execute"
-                  ? "Скопировано"
-                  : `Скопировать: В Throne запусти work-сессию по интенту ${intent.id}`
-              }
-              onClick={() => {
-                copyToClipboard(
-                  `В Throne запусти work-сессию по интенту ${intent.id}`,
-                  "execute"
-                );
-              }}
-              icon={<Play aria-hidden size={14} strokeWidth={2} />}
-            />
-            <CopyButton
-              active={copiedAction === "interview"}
-              ariaLabel={
-                copiedAction === "interview"
-                  ? "Команда «проведи интервью» скопирована"
-                  : "Скопировать команду «проведи интервью»"
-              }
-              title={
-                copiedAction === "interview"
-                  ? "Скопировано"
-                  : `Скопировать: В Throne запусти interview-сессию по интенту ${intent.id}`
-              }
-              onClick={() => {
-                copyToClipboard(
-                  `В Throne запусти interview-сессию по интенту ${intent.id}`,
-                  "interview"
-                );
-              }}
-              icon={<MessagesSquare aria-hidden size={14} strokeWidth={2} />}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[11px] text-base-content/60">
+          <SetIntentStatusForm intent={intent} onSaved={onStatusSaved} />
+          <CleanupOnDoneToggle intent={intent} onSaved={onStatusSaved} />
+          <span aria-hidden className="h-3.5 w-px flex-shrink-0 bg-base-300" />
+          <span className="tabular-nums font-semibold text-base-content/70">
+            v{intent.current_version}
+          </span>
+          <span className="text-base-content/30">·</span>
+          <time
+            dateTime={intent.updated_at}
+            title={updatedDate.toLocaleString()}
+            className="tabular-nums"
+          >
+            изменён {formatRelativeTime(updatedDate)}
+          </time>
+          <IntentIdChip id={intent.id} copied={copied} onCopy={copyId} />
         </div>
       </div>
       <div className="flex flex-shrink-0 items-center gap-2">
@@ -150,32 +89,45 @@ export function IntentDetailHeader({
   );
 }
 
-interface CopyButtonProps {
-  active: boolean;
-  ariaLabel: string;
-  title: string;
-  onClick: () => void;
-  icon: React.ReactNode;
+interface IntentIdChipProps {
+  id: string;
+  copied: boolean;
+  onCopy: () => void;
 }
 
-function CopyButton({
-  active,
-  ariaLabel,
-  title,
-  onClick,
-  icon
-}: CopyButtonProps) {
+function IntentIdChip({ id, copied, onCopy }: IntentIdChipProps) {
   return (
     <button
       type="button"
-      aria-label={ariaLabel}
-      title={title}
-      onClick={onClick}
-      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      aria-label={
+        copied ? "Идентификатор скопирован" : `Скопировать id интента ${id}`
+      }
+      title={copied ? "Скопировано" : `Скопировать id: ${id}`}
+      onClick={onCopy}
+      className="group inline-flex h-6 flex-shrink-0 items-center gap-1.5 rounded-md border border-base-300/80 bg-base-200/40 pl-2 pr-1.5 font-mono text-[11px] leading-none text-base-content/55 transition-colors hover:border-base-300 hover:bg-base-200 hover:text-base-content/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
-      {active ? <Check aria-hidden size={14} strokeWidth={2} /> : icon}
+      <span className="tabular-nums">{shortId(id)}</span>
+      {copied ? (
+        <Check
+          aria-hidden
+          size={12}
+          strokeWidth={2.5}
+          className="text-success"
+        />
+      ) : (
+        <Copy
+          aria-hidden
+          size={12}
+          strokeWidth={2}
+          className="opacity-50 transition-opacity group-hover:opacity-100"
+        />
+      )}
     </button>
   );
+}
+
+function shortId(id: string): string {
+  return id.length > 8 ? `${id.slice(0, 8)}…` : id;
 }
 
 function firstLine(text: string): string {
