@@ -104,14 +104,25 @@ internal sealed class TmuxSessionManager(
     {
         var sessionName = TmuxSessionName.For(intentId);
         var bufferName = sessionName + "-task";
+        var fileBytes = File.Exists(filePath) ? new FileInfo(filePath).Length : -1;
+        TerminalsLog.TmuxPromptSubmitStarting(log, sessionName, bufferName, fileBytes, filePath);
 
         // load-buffer: tmux server reads the file directly — the argv stays tiny no matter the
         // payload size. paste-buffer: -d deletes the buffer afterwards (no leak between runs),
         // -p wraps the bytes in bracketed-paste markers so claude/codex TUIs treat embedded
         // \n as paste content, not as Enter. The final send-keys Enter is the single submit.
-        await tmux.RunAsync(["load-buffer", "-b", bufferName, filePath], ct);
-        await tmux.RunAsync(["paste-buffer", "-d", "-p", "-b", bufferName, "-t", sessionName], ct);
-        await tmux.RunAsync(["send-keys", "-t", sessionName, "Enter"], ct);
+        LogPromptSubmitStep(
+            sessionName,
+            "load-buffer",
+            await tmux.RunAsync(["load-buffer", "-b", bufferName, filePath], ct));
+        LogPromptSubmitStep(
+            sessionName,
+            "paste-buffer",
+            await tmux.RunAsync(["paste-buffer", "-d", "-p", "-b", bufferName, "-t", sessionName], ct));
+        LogPromptSubmitStep(
+            sessionName,
+            "send-keys-enter",
+            await tmux.RunAsync(["send-keys", "-t", sessionName, "Enter"], ct));
     }
 
     public async Task<string> CapturePaneAsync(string intentId, CancellationToken ct)
@@ -124,5 +135,17 @@ internal sealed class TmuxSessionManager(
             return string.Empty;
         }
         return outcome.Result?.StandardOutput ?? string.Empty;
+    }
+
+    private void LogPromptSubmitStep(string sessionName, string step, TmuxRunOutcome outcome)
+    {
+        var detail = TmuxOutcomeDetail.Extract(outcome) ?? "<empty>";
+        TerminalsLog.TmuxPromptSubmitStep(
+            log,
+            sessionName,
+            step,
+            outcome.IsSuccess,
+            outcome.Result?.ExitCode ?? -1,
+            detail);
     }
 }
