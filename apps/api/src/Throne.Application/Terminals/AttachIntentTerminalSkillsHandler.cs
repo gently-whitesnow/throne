@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using Throne.Application.Errors;
-using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 
@@ -37,9 +36,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
     IIntentTerminalLaunchStore launches,
     ISessionSkillCatalog catalog,
     SessionSkillSelectionService selection,
-    SessionSkillPackageRegistry packages,
     ITmuxSessionManager tmux,
-    IWorkspaceRootProvider workspaceRoot,
     ISessionSkillHotAttachWriter writer)
 {
     public async Task<AttachIntentTerminalSkillsResult> HandleAsync(
@@ -61,7 +58,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
         if (unknown.Length > 0)
         {
             throw new ApiException(
-                ErrorCodes.SessionSkillUnknown,
+                TerminalErrorCodes.SessionSkillUnknown,
                 "Hot-attach received unknown session skill ids.",
                 new Dictionary<string, object?> { ["unknown_skill_ids"] = unknown });
         }
@@ -69,21 +66,21 @@ public sealed class AttachIntentTerminalSkillsHandler(
         if (!await tmux.HasSessionAsync(request.IntentId, ct))
         {
             throw new ApiException(
-                ErrorCodes.TerminalSessionNotLive,
+                TerminalErrorCodes.SessionNotLive,
                 "Hot-attach requires a live tmux session — call /terminal/run first.",
                 new Dictionary<string, object?> { ["intent_id"] = request.IntentId });
         }
 
         var launch = await launches.GetAsync(request.IntentId, ct)
             ?? throw new ApiException(
-                ErrorCodes.TerminalSessionNotLive,
+                TerminalErrorCodes.SessionNotLive,
                 "Hot-attach requires a previously spawned session for this intent.",
                 new Dictionary<string, object?> { ["intent_id"] = request.IntentId });
 
         if (!string.Equals(launch.Vendor, TerminalAgentCatalog.VendorClaude, StringComparison.Ordinal))
         {
             throw new ApiException(
-                ErrorCodes.SessionSkillVendorUnsupported,
+                TerminalErrorCodes.SessionSkillVendorUnsupported,
                 "Hot-attach is only supported for the Claude vendor.",
                 new Dictionary<string, object?> { ["vendor"] = launch.Vendor });
         }
@@ -94,20 +91,19 @@ public sealed class AttachIntentTerminalSkillsHandler(
         // attached; otherwise the validator throws ValidationFailed which we relabel below).
         var validated = ValidateMaterializable(requestedIds, await bindings.FindByIntentAsync(intent.Id, ct));
 
-        var resolved = packages.Resolve(new SessionSkillPackageResolution(
-            request.IntentId,
-            launch.Vendor,
-            validated.SelectedSkillIds,
-            validated.ReviewArtifact));
-        var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intent.Id.Value);
+        var materialization = await writer.MaterializeAsync(
+            new SessionSkillPackageResolution(
+                request.IntentId,
+                launch.Vendor,
+                validated.SelectedSkillIds,
+                validated.ReviewArtifact),
+            ct);
 
-        var contents = await writer.WriteAsync(workspacePath, resolved, ct);
-
-        var reminderText = BuildSystemReminder(contents);
+        var reminderText = BuildSystemReminder(materialization.Contents);
         var injectionPath = Path.Combine(
-            workspacePath,
+            materialization.WorkspacePath,
             $"throne-session.skill-attach.{Guid.NewGuid():N}.txt");
-        Directory.CreateDirectory(workspacePath);
+        Directory.CreateDirectory(materialization.WorkspacePath);
         await File.WriteAllTextAsync(injectionPath, reminderText, Encoding.UTF8, ct);
         try
         {
@@ -139,7 +135,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
             // codes (unknown vs not-materializable). Unknown is checked upfront, so anything that
             // slips through here is a materializability issue.
             throw new ApiException(
-                ErrorCodes.SessionSkillNotMaterializable,
+                TerminalErrorCodes.SessionSkillNotMaterializable,
                 "Hot-attach received a skill that cannot be materialised for this intent.",
                 ex.Extensions);
         }

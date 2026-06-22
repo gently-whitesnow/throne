@@ -1,4 +1,3 @@
-import { AlertCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IntentStatus } from "@/entities/intent";
@@ -17,10 +16,10 @@ import { TERMINAL_RUN_MODES, defaultRunModeForStatus } from "../model/types";
 import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
 
 import { PreflightModal } from "./PreflightModal";
-import { PreflightProgress } from "./PreflightProgress";
 import { ReviewTargetSelect } from "./ReviewTargetSelect";
 import { RunControls } from "./RunControls";
 import { SkillsAttachControl } from "./SkillsAttachControl";
+import { TerminalPanelAlerts } from "./TerminalPanelAlerts";
 import { TerminalView } from "./TerminalView";
 
 interface AgentTerminalPanelProps {
@@ -219,48 +218,11 @@ export function AgentTerminalPanel({
         />
       ) : null}
 
-      {axis.metadataError ? (
-        <p
-          role="alert"
-          className="m-0 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
-        >
-          <AlertCircle
-            aria-hidden
-            size={14}
-            strokeWidth={2}
-            className="mt-0.5"
-          />
-          <span>
-            Не удалось загрузить список агентов. Обновите страницу, чтобы
-            запустить сессию.
-          </span>
-        </p>
-      ) : null}
-
-      {hasBlockingBinding ? (
-        <div className="flex flex-col gap-1">
-          <p className="m-0 text-xs text-base-content/70">
-            Готовим workspace: спавн агента начнётся, когда все репозитории
-            будут клонированы.
-          </p>
-          <PreflightProgress bindings={notReady} />
-        </div>
-      ) : null}
-
-      {session.error !== null ? (
-        <p
-          role="alert"
-          className="m-0 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
-        >
-          <AlertCircle
-            aria-hidden
-            size={14}
-            strokeWidth={2}
-            className="mt-0.5"
-          />
-          <span>{session.error}</span>
-        </p>
-      ) : null}
+      <TerminalPanelAlerts
+        metadataError={axis.metadataError}
+        notReadyBindings={notReady}
+        sessionError={session.error}
+      />
 
       {session.startedAt !== null ? (
         <TerminalView

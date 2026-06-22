@@ -1,7 +1,6 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
-using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
 using Throne.Domain.Intents;
@@ -24,7 +23,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalSessionNotLive);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.SessionNotLive);
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
         await fixture.Launches.DidNotReceiveWithAnyArgs().SetAttachedSkillIdsAsync(default!, default!, default);
     }
@@ -40,7 +39,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.SessionSkillUnknown);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.SessionSkillUnknown);
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
     }
 
@@ -56,7 +55,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.SessionSkillVendorUnsupported);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.SessionSkillVendorUnsupported);
     }
 
     [Fact(DisplayName = "Happy path: два intent-скила записываются, paste вызывается один раз, union persist-ится")]
@@ -138,7 +137,6 @@ public class AttachIntentTerminalSkillsHandlerTests
         public IIntentTerminalLaunchStore Launches { get; } = Substitute.For<IIntentTerminalLaunchStore>();
         public ISessionSkillCatalog Catalog { get; } = new InMemorySessionSkillCatalog();
         public ITmuxSessionManager Tmux { get; } = Substitute.For<ITmuxSessionManager>();
-        public IWorkspaceRootProvider WorkspaceRoot { get; } = Substitute.For<IWorkspaceRootProvider>();
         public ISessionSkillHotAttachWriter Writer { get; } = new TestSkillWriter();
 
         public AttachIntentTerminalSkillsHandler Handler { get; private set; } = default!;
@@ -148,8 +146,6 @@ public class AttachIntentTerminalSkillsHandlerTests
             bool hasSession = false,
             TerminalLaunchRecord? launch = null)
         {
-            WorkspaceRoot.ResolvedRoot.Returns(AttachIntentTerminalSkillsHandlerTests.WorkspaceRoot);
-
             if (intentExists)
             {
                 var intentId = new IntentId(IntentIdValue);
@@ -166,33 +162,31 @@ public class AttachIntentTerminalSkillsHandlerTests
                 Catalog,
                 Substitute.For<ISkillModeDefaultStore>(),
                 Substitute.For<IIntentSkillModeSelectionStore>());
-            var registry = new SessionSkillPackageRegistry(Catalog);
             Handler = new AttachIntentTerminalSkillsHandler(
-                Intents, Bindings, Launches, Catalog, selection, registry, Tmux, WorkspaceRoot, Writer);
+                Intents, Bindings, Launches, Catalog, selection, Tmux, Writer);
             return this;
         }
     }
 
     private sealed class TestSkillWriter : ISessionSkillHotAttachWriter
     {
-        public Task<IReadOnlyList<HotAttachedSkillContent>> WriteAsync(
-            string workspacePath,
-            IReadOnlyList<SessionSkillPackage> packages,
+        public Task<HotAttachMaterialization> MaterializeAsync(
+            SessionSkillPackageResolution resolution,
             CancellationToken ct)
         {
             // Mirror infrastructure side-effect: create the SKILL.md files so the happy-path test
             // can assert filesystem layout without pulling Throne.Infrastructure into the unit
             // suite (which would also require the static skill source tree at AppContext.BaseDirectory).
-            foreach (var package in packages)
+            var workspacePath = Path.Combine(WorkspaceRoot, "intents", resolution.IntentId);
+            var contents = new List<HotAttachedSkillContent>(resolution.SelectedSkillIds.Count);
+            foreach (var skillId in resolution.SelectedSkillIds)
             {
-                var target = Path.Combine(workspacePath, ".claude", "skills", package.Id, "SKILL.md");
+                var target = Path.Combine(workspacePath, ".claude", "skills", skillId, "SKILL.md");
                 Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                File.WriteAllText(target, $"# {package.Id} skill stub\n");
+                File.WriteAllText(target, $"# {skillId} skill stub\n");
+                contents.Add(new HotAttachedSkillContent(skillId, $"# {skillId} skill stub\n"));
             }
-            var content = packages
-                .Select(p => new HotAttachedSkillContent(p.Id, $"# {p.Id} skill stub\n"))
-                .ToArray();
-            return Task.FromResult<IReadOnlyList<HotAttachedSkillContent>>(content);
+            return Task.FromResult(new HotAttachMaterialization(workspacePath, contents));
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Text;
+using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
 
@@ -10,27 +11,28 @@ namespace Throne.Infrastructure.Terminals;
 /// skill up natively from <c>.claude/skills/{id}/SKILL.md</c>) and reads the same source-root
 /// resolution for the live-pane reminder text — no duplication of skill-tree discovery.
 /// </summary>
-internal sealed class SessionSkillHotAttachWriter : ISessionSkillHotAttachWriter
+internal sealed class SessionSkillHotAttachWriter(
+    SessionSkillPackageRegistry packages,
+    IWorkspaceRootProvider workspaceRoot) : ISessionSkillHotAttachWriter
 {
-    public async Task<IReadOnlyList<HotAttachedSkillContent>> WriteAsync(
-        string workspacePath,
-        IReadOnlyList<SessionSkillPackage> packages,
+    public async Task<HotAttachMaterialization> MaterializeAsync(
+        SessionSkillPackageResolution resolution,
         CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
-        ArgumentNullException.ThrowIfNull(packages);
+        ArgumentNullException.ThrowIfNull(resolution);
 
-        // Materialize into .claude/skills/{id}/SKILL.md so the live Claude session picks them up
-        // natively on subsequent restarts (and right now, Claude reads SKILL.md from disk lazily).
-        await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, packages, ct);
+        var resolved = packages.Resolve(resolution);
+        var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", resolution.IntentId);
 
-        var contents = new List<HotAttachedSkillContent>(packages.Count);
-        foreach (var package in packages)
+        await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, resolved, ct);
+
+        var contents = new List<HotAttachedSkillContent>(resolved.Count);
+        foreach (var package in resolved)
         {
             var target = Path.Combine(workspacePath, ".claude", "skills", package.Id, "SKILL.md");
             var text = await File.ReadAllTextAsync(target, Encoding.UTF8, ct);
             contents.Add(new HotAttachedSkillContent(package.Id, text));
         }
-        return contents;
+        return new HotAttachMaterialization(workspacePath, contents);
     }
 }

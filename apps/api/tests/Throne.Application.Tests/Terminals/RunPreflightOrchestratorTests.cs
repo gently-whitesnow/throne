@@ -39,7 +39,7 @@ public partial class RunPreflightOrchestratorTests
         var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, "interactive", DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalModeInvalid);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.ModeInvalid);
     }
 
     [Fact(DisplayName = "Run без живой сессии и готовых клонов спавнит tmux и paste-ит задачу в pane")]
@@ -206,7 +206,7 @@ public partial class RunPreflightOrchestratorTests
             IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, restart: false, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalTuiReadinessTimeout);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.TuiReadinessTimeout);
         await fixture.Tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
@@ -222,7 +222,7 @@ public partial class RunPreflightOrchestratorTests
         var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalSessionAlreadyRunning);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.SessionAlreadyRunning);
     }
 
     [Fact(DisplayName = "Restart=true сначала kill-session, затем спавнит заново")]
@@ -271,7 +271,7 @@ public partial class RunPreflightOrchestratorTests
         var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, restart: false, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(ErrorCodes.TerminalSpawnFailed);
+        ex.Which.Code.Should().Be(TerminalErrorCodes.SpawnFailed);
         await fixture.Intents.DidNotReceive().SetStatusAsync(
             Arg.Any<IntentId>(),
             Arg.Any<string>(),
