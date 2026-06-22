@@ -254,3 +254,15 @@ events:
       properties:
         intent_id:
           type: string
+  terminal.prompt_submit_unconfirmed:
+    description: >
+      The background prompt delivery for a freshly spawned session could not confirm the
+      initial prompt was submitted (TUI never became ready, or the trailing Enter was not
+      acknowledged within the gate budget). The session is alive — this is a soft hint so the
+      front can nudge the operator to check the composer and resend, not a spawn failure.
+    payload:
+      type: object
+      required: [intent_id]
+      properties:
+        intent_id:
+          type: string

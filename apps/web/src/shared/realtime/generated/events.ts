@@ -40,6 +40,7 @@ export interface RealtimeEventMap {
   "tag.created": TagsComponents["schemas"]["TagDto"];
   "tag.deleted": { tag_id: string };
   "tag.updated": TagsComponents["schemas"]["TagDto"];
+  "terminal.prompt_submit_unconfirmed": { intent_id: string };
   "terminal.session_started": { intent_id: string };
   "terminal.session_stopped": { intent_id: string };
 }
@@ -75,6 +76,7 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "tag.created",
   "tag.deleted",
   "tag.updated",
+  "terminal.prompt_submit_unconfirmed",
   "terminal.session_started",
   "terminal.session_stopped",
 ] as const;

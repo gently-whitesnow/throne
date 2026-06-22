@@ -19,7 +19,8 @@ public class TmuxPromptSubmitConfirmerTests
         var adapter = new EscToInterruptAdapter();
         var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 200, maxRetries: 1);
 
-        var result = await confirmer.ConfirmAsync(IntentId, adapter, submittedPrompt: null, CancellationToken.None);
+        var result = await confirmer.ConfirmAsync(
+            IntentId, adapter, submittedPrompt: null, submitSignal: null, CancellationToken.None);
 
         result.IsConfirmed.Should().BeTrue();
         result.Retries.Should().Be(0);
@@ -42,7 +43,8 @@ public class TmuxPromptSubmitConfirmerTests
         var adapter = new EscToInterruptAdapter();
         var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 100, maxRetries: 1);
 
-        var result = await confirmer.ConfirmAsync(IntentId, adapter, submittedPrompt: null, CancellationToken.None);
+        var result = await confirmer.ConfirmAsync(
+            IntentId, adapter, submittedPrompt: null, submitSignal: null, CancellationToken.None);
 
         result.IsConfirmed.Should().BeTrue();
         result.Retries.Should().Be(1);
@@ -58,7 +60,8 @@ public class TmuxPromptSubmitConfirmerTests
         var adapter = new EscToInterruptAdapter();
         var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 100, maxRetries: 1);
 
-        var result = await confirmer.ConfirmAsync(IntentId, adapter, submittedPrompt: null, CancellationToken.None);
+        var result = await confirmer.ConfirmAsync(
+            IntentId, adapter, submittedPrompt: null, submitSignal: null, CancellationToken.None);
 
         result.IsConfirmed.Should().BeFalse();
         result.Retries.Should().Be(1);
@@ -80,11 +83,35 @@ public class TmuxPromptSubmitConfirmerTests
             IntentId,
             adapter,
             submittedPrompt: "please run this distinctive prompt",
+            submitSignal: null,
             CancellationToken.None);
 
         result.IsConfirmed.Should().BeTrue();
         result.Retries.Should().Be(0);
         await tmux.Received(2).CapturePaneAsync(IntentId, Arg.Any<CancellationToken>());
+        await tmux.DidNotReceiveWithAnyArgs().SendEnterAsync(default!, default);
+    }
+
+    [Fact(DisplayName = "UserPromptSubmit hook бьёт scrape: Confirmed даже когда pane не показал working footer")]
+    public async Task Hook_signal_confirms_before_pane_scrape()
+    {
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        // The pane never flips to the working footer — the only path to Confirmed is the hook signal.
+        tmux.CapturePaneAsync(IntentId, Arg.Any<CancellationToken>())
+            .Returns("❯ pasted prompt still in composer");
+        var adapter = new EscToInterruptAdapter();
+        var confirmer = NewConfirmer(tmux, confirmTimeoutMs: 200, maxRetries: 1);
+
+        var submitSignals = new TerminalPromptSubmitSignals();
+        using var registration = submitSignals.Arm(IntentId);
+        // The authoritative UserPromptSubmit hook fired.
+        submitSignals.TrySignal(IntentId).Should().BeTrue();
+
+        var result = await confirmer.ConfirmAsync(
+            IntentId, adapter, submittedPrompt: null, submitSignal: registration, CancellationToken.None);
+
+        result.IsConfirmed.Should().BeTrue();
+        result.Retries.Should().Be(0);
         await tmux.DidNotReceiveWithAnyArgs().SendEnterAsync(default!, default);
     }
 

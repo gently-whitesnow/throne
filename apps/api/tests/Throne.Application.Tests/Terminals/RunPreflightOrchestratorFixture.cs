@@ -115,30 +115,18 @@ public partial class RunPreflightOrchestratorTests
         private RunPreflightSpawn BuildSpawn(
             IWorkspaceRootProvider workspace, TimeProvider clock, IUnitOfWork uow, RunPreflightOptions options)
         {
-            // FixedClock would hang the readiness poll loop, so feed the waiter a System TimeProvider.
-            // First capture-pane after readiness: composer marker (waiter resolves on first capture).
-            // Subsequent captures (post-paste): working footer with "esc to interrupt" so the
-            // prompt-submit confirmer resolves on the next capture.
-            Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-                .Returns("│ > ready", "esc to interrupt");
-            var readinessWaiter = new TmuxTuiReadinessWaiter(
-                Tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
-                NullLogger<TmuxTuiReadinessWaiter>.Instance);
+            // Prompt delivery is detached behind IRunPreflightPromptDelivery now — fake it so spawn
+            // orchestration can be asserted on "delivery kicked" without racing the background task
+            // (delivery mechanics are covered directly in RunPreflightPromptDeliveryTests).
+            Delivery = Substitute.For<IRunPreflightPromptDelivery>();
             var hookAdapters = new ISessionHookAdapter[]
             {
                 new StubHookAdapter(TerminalAgentCatalog.VendorClaude, ["--settings", SettingsPath]),
             };
-            var submitGate = new TmuxPromptSubmitGate(
-                hookAdapters,
-                new TmuxPromptSubmitConfirmer(
-                    Tmux, options, TimeProvider.System,
-                    NullLogger<TmuxPromptSubmitConfirmer>.Instance),
-                options);
             return new RunPreflightSpawn(
                 Tmux, workspace, TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
                 hookAdapters,
-                readinessWaiter,
-                submitGate,
+                Delivery,
                 options,
                 new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());
@@ -178,6 +166,7 @@ public partial class RunPreflightOrchestratorTests
         public IIntentRepositoryBindingRepository Bindings { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
+        public IRunPreflightPromptDelivery Delivery { get; private set; } = default!;
         public IIntentTerminalLaunchStore LaunchStore { get; }
         public IIntentSkillModeSelectionStore SkillSelections { get; }
         public RunPreflightOrchestrator Orchestrator { get; }

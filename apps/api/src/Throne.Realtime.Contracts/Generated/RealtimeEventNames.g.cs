@@ -39,6 +39,7 @@ public static class RealtimeEventNames
     public const string TagCreated = "tag.created";
     public const string TagDeleted = "tag.deleted";
     public const string TagUpdated = "tag.updated";
+    public const string TerminalPromptSubmitUnconfirmed = "terminal.prompt_submit_unconfirmed";
     public const string TerminalSessionStarted = "terminal.session_started";
     public const string TerminalSessionStopped = "terminal.session_stopped";
 
@@ -72,6 +73,7 @@ public static class RealtimeEventNames
         TagCreated,
         TagDeleted,
         TagUpdated,
+        TerminalPromptSubmitUnconfirmed,
         TerminalSessionStarted,
         TerminalSessionStopped,
     };

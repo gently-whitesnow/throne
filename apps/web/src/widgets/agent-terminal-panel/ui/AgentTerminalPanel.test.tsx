@@ -45,6 +45,28 @@ vi.mock("../api/agent-terminal-api", () => ({
   attachIntentTerminalSkills: vi.fn()
 }));
 
+// Capture realtime subscriptions so tests can fire synthetic SSE payloads
+// without spinning up an EventSource in jsdom (the panel now subscribes to
+// terminal.prompt_submit_unconfirmed via use-terminal-session).
+type RealtimeHandlers = Record<string, ((payload: unknown) => void)[]>;
+const realtimeHandlers: RealtimeHandlers = {};
+
+vi.mock("@/shared/realtime", () => ({
+  useRealtimeEvent: (name: string, handler: (payload: unknown) => void) => {
+    const list = realtimeHandlers[name] ?? [];
+    list.push(handler);
+    realtimeHandlers[name] = list;
+  }
+}));
+
+function emitRealtime(name: string, payload: unknown) {
+  const list = realtimeHandlers[name] as
+    | ((payload: unknown) => void)[]
+    | undefined;
+  if (list === undefined) return;
+  for (const fn of list) fn(payload);
+}
+
 vi.mock("./TerminalView", () => ({
   TerminalView: ({
     intentId,
@@ -163,6 +185,9 @@ describe("AgentTerminalPanel", () => {
     previewIntentTerminal.mockResolvedValue(previewResponse());
     listIntentRepositories.mockReset();
     listIntentRepositories.mockResolvedValue([]);
+    for (const k of Object.keys(realtimeHandlers)) {
+      realtimeHandlers[k] = [];
+    }
   });
 
   afterEach(() => {
@@ -182,6 +207,24 @@ describe("AgentTerminalPanel", () => {
     expect(screen.getByTestId("agent-terminal-restart")).toBeTruthy();
     expect(screen.queryByTestId("agent-terminal-run")).toBeNull();
     expect(runIntentTerminal).not.toHaveBeenCalled();
+  });
+
+  it("показывает мягкую подсказку, когда приходит prompt_submit_unconfirmed для живой сессии", async () => {
+    getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
+
+    render();
+    await screen.findByTestId("terminal-view");
+
+    expect(screen.queryByRole("status")).toBeNull();
+
+    emitRealtime("terminal.prompt_submit_unconfirmed", {
+      intent_id: "intent-1"
+    });
+
+    const hint = await screen.findByText(
+      /стартовый промпт не отправился автоматически/i
+    );
+    expect(hint).toBeTruthy();
   });
 
   it("Run открывает модалку, а /run уходит только после подтверждения с собранным payload", async () => {
