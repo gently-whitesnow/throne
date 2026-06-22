@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Throne.Application.Terminals;
 
 namespace Throne.Infrastructure.Terminals;
@@ -7,9 +9,9 @@ namespace Throne.Infrastructure.Terminals;
 /// <see cref="InboundFrameDispatcher"/>. Stops when the peer closes cleanly or
 /// cancellation fires.
 /// </summary>
-internal sealed class TerminalInboundPump(TmuxCli tmux)
+internal sealed class TerminalInboundPump(TmuxCli tmux, ILogger? log = null)
 {
-    private readonly InboundFrameDispatcher _dispatcher = new(tmux);
+    private readonly InboundFrameDispatcher _dispatcher = new(tmux, log ?? NullLogger.Instance);
 
     public async Task RunAsync(ITerminalSocket connection, string sessionName, CancellationToken ct)
     {

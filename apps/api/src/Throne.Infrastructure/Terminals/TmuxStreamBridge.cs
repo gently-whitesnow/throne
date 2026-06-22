@@ -61,7 +61,7 @@ internal sealed class TmuxStreamBridge(
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var token = linkedCts.Token;
 
-        var inboundPump = new TerminalInboundPump(tmux);
+        var inboundPump = new TerminalInboundPump(tmux, log);
         var inboundTask = inboundPump.RunAsync(connection, sessionName, token);
         var outboundTask = TerminalOutboundPump.RunAsync(connection, fifoPath, token);
         var aliveTask = WatchSessionAsync(intentId, token);

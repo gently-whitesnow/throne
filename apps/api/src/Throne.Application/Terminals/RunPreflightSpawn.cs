@@ -1,3 +1,6 @@
+using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Throne.Application.Events;
 using Throne.Application.Git;
 using Throne.Application.Intents;
@@ -10,7 +13,7 @@ namespace Throne.Application.Terminals;
 /// Workspace-path computation + tmux spawn invocation. Lives in its own type so the
 /// orchestrator above stays within the project-wide CA1502 type-level budget.
 /// </summary>
-public sealed class RunPreflightSpawn(
+public sealed partial class RunPreflightSpawn(
     ITmuxSessionManager tmux,
     IWorkspaceRootProvider workspaceRoot,
     RunPreflightWorkspacePreparer workspacePreparer,
@@ -18,10 +21,12 @@ public sealed class RunPreflightSpawn(
     TmuxTuiReadinessWaiter readinessWaiter,
     RunPreflightOptions options,
     SetIntentStatusHandler setStatus,
-    IDomainEventDispatcher events)
+    IDomainEventDispatcher events,
+    ILogger<RunPreflightSpawn>? log = null)
 {
     private const string SourcePrefix = "terminal:spawn:";
     private const string UserPromptFileName = "throne-session.user-prompt.txt";
+    private readonly ILogger<RunPreflightSpawn> _log = log ?? NullLogger<RunPreflightSpawn>.Instance;
 
     private readonly Dictionary<string, ISessionHookAdapter> _hookAdapters =
         hookAdapters.ToDictionary(a => a.Vendor, StringComparer.Ordinal);
@@ -89,7 +94,7 @@ public sealed class RunPreflightSpawn(
         if (adapter is not INativeSessionInitializer)
         {
             await DeliverUserPromptAsync(
-                intentId.Value, launch.Vendor, adapter, readiness, workspacePath, prompt.UserPrompt, ct);
+                intentId.Value, mode, launch.Vendor, adapter, readiness, workspacePath, prompt.UserPrompt, ct);
         }
 
         await SetSpawnPhaseAsync(intentId.Value, mode, ct);
@@ -99,6 +104,7 @@ public sealed class RunPreflightSpawn(
 
     private async Task DeliverUserPromptAsync(
         string intentId,
+        string mode,
         string vendor,
         ISessionHookAdapter? adapter,
         TerminalReadinessSignals.TerminalReadinessRegistration? readiness,
@@ -114,6 +120,14 @@ public sealed class RunPreflightSpawn(
         Directory.CreateDirectory(workspacePath);
         var promptPath = Path.Combine(workspacePath, UserPromptFileName);
         await File.WriteAllTextAsync(promptPath, userPrompt, ct);
+        LogInitialPromptDeliveryPrepared(
+            _log,
+            intentId,
+            mode,
+            vendor,
+            userPrompt.Length,
+            _log.IsEnabled(LogLevel.Information) ? Encoding.UTF8.GetByteCount(userPrompt) : 0,
+            promptPath);
 
         // Vendor TUI readiness gate (ADR-0026 follow-up): a blind warmup raced spawn → paste
         // and silently dropped the user prompt whenever the TUI took longer to init than the
@@ -122,6 +136,13 @@ public sealed class RunPreflightSpawn(
         if (adapter is not null)
         {
             var result = await readinessWaiter.WaitAsync(intentId, adapter, readiness, ct);
+            LogInitialPromptReadinessGateFinished(
+                _log,
+                intentId,
+                mode,
+                vendor,
+                result.IsReady,
+                result.Attempts);
             if (!result.IsReady)
             {
                 throw TerminalFailures.TuiReadinessTimeout(
@@ -134,6 +155,12 @@ public sealed class RunPreflightSpawn(
         }
 
         await tmux.PasteFileAsSubmittedPromptAsync(intentId, promptPath, ct);
+        LogInitialPromptSubmitCommandReturned(
+            _log,
+            intentId,
+            mode,
+            vendor,
+            promptPath);
     }
 
     private Dictionary<string, string> BuildSessionEnvironment(
@@ -218,4 +245,34 @@ public sealed class RunPreflightSpawn(
         TerminalRunModes.Interview => IntentStatusNames.Interview,
         _ => null,
     };
+
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
+        Message = "terminal initial prompt delivery prepared: intent={IntentId} mode={Mode} vendor={Vendor} chars={CharCount} bytes={ByteCount} file={PromptPath}")]
+    private static partial void LogInitialPromptDeliveryPrepared(
+        ILogger logger,
+        string intentId,
+        string mode,
+        string vendor,
+        int charCount,
+        int byteCount,
+        string promptPath);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "terminal initial prompt readiness gate finished: intent={IntentId} mode={Mode} vendor={Vendor} ready={Ready} attempts={Attempts}")]
+    private static partial void LogInitialPromptReadinessGateFinished(
+        ILogger logger,
+        string intentId,
+        string mode,
+        string vendor,
+        bool ready,
+        int attempts);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information,
+        Message = "terminal initial prompt submit command returned: intent={IntentId} mode={Mode} vendor={Vendor} file={PromptPath}")]
+    private static partial void LogInitialPromptSubmitCommandReturned(
+        ILogger logger,
+        string intentId,
+        string mode,
+        string vendor,
+        string promptPath);
 }
