@@ -1,6 +1,6 @@
 ---
 name: intent
-description: Edit the current Throne Intent.text and create or link child intents through bin/throne-intent.
+description: Available for reading the current Throne Intent.text, editing it, and decomposing it into child intents (create + link) through bin/throne-intent. Routine operation whenever the session needs to inspect or refine the intent.
 ---
 
 # Throne Intent Operations
