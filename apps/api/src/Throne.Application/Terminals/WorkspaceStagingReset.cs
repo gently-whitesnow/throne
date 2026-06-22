@@ -26,9 +26,9 @@ public static class WorkspaceStagingReset
             DeleteDirectory(Path.Combine(skillsRoot, SessionSkillPackageIds.Dream));
         }
 
-        DeleteFile(Path.Combine(workspacePath, "bin", "throne-intent"));
-        DeleteFile(Path.Combine(workspacePath, "bin", "throne-review"));
-        DeleteFile(Path.Combine(workspacePath, "bin", "throne-dream"));
+        DeleteDirectory(Path.Combine(workspacePath, "skills", SessionSkillPackageIds.Intent));
+        DeleteDirectory(Path.Combine(workspacePath, "skills", SessionSkillPackageIds.Review));
+        DeleteDirectory(Path.Combine(workspacePath, "skills", SessionSkillPackageIds.Dream));
         DeleteFile(Path.Combine(workspacePath, "throne-session.intent.md"));
         DeleteFile(Path.Combine(workspacePath, "throne-session.review.md"));
         DeleteFile(Path.Combine(workspacePath, "throne-session.dream.md"));

@@ -4,7 +4,7 @@
 
 Accepted
 
-**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The graph model remains; agent-side create/link operations now run through `bin/throne-intent` over HTTP instead of MCP tools.
+**Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The graph model remains; agent-side create/link operations now run through `skills/intent/bin/throne-intent` over HTTP instead of MCP tools.
 
 ## Context
 

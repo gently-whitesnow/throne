@@ -79,7 +79,7 @@ namespace Throne.Api.Generated
         /// List repository bindings attached to an intent.
         /// </summary>
         /// <remarks>
-        /// Full binding cards consumed by the intent page and `bin/throne-review` binding discovery.
+        /// Full binding cards consumed by the intent page and `skills/review/bin/throne-review` binding discovery.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories", Name = "listIntentRepositories")]

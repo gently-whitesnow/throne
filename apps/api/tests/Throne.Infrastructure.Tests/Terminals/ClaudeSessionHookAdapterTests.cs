@@ -15,7 +15,7 @@ public class ClaudeSessionHookAdapterTests
         var sut = new ClaudeSessionHookAdapter(new SessionHookOptions
         {
             ApiBaseUrl = "http://localhost:5008/",
-        });
+        }, new SessionSkillMaterializer());
 
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, skillPackages: [], CancellationToken.None);
@@ -36,7 +36,7 @@ public class ClaudeSessionHookAdapterTests
     public async Task Notification_carries_permission_prompt_matcher()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: null, skillPackages: [], CancellationToken.None);
@@ -52,7 +52,7 @@ public class ClaudeSessionHookAdapterTests
     public async Task Writes_system_prompt_file_and_references_it()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: "RULES\nblock", skillPackages: [], CancellationToken.None);
@@ -68,7 +68,7 @@ public class ClaudeSessionHookAdapterTests
     public async Task Blank_system_prompt_writes_no_file()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         var args = await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Work, systemPrompt: "   ", skillPackages: [], CancellationToken.None);
@@ -81,7 +81,7 @@ public class ClaudeSessionHookAdapterTests
     public async Task Bakes_spawn_mode_into_hook_url()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Interview, systemPrompt: null, skillPackages: [], CancellationToken.None);
@@ -95,23 +95,25 @@ public class ClaudeSessionHookAdapterTests
     public async Task Review_writes_artifact_script_and_skill()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1", root, TerminalRunModes.Review, systemPrompt: null,
             skillPackages: [new ReviewSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
-        var script = await File.ReadAllTextAsync(Path.Combine(root, "bin", "throne-review"));
+        var scriptPath = Path.Combine(root, "skills", "review", "bin", "throne-review");
+        var script = await File.ReadAllTextAsync(scriptPath);
         script.Should().NotContain("binding-1");
         script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
         script.Should().Contain("ARTIFACT_TYPE=");
         script.Should().Contain("review_recommendation");
         script.Should().Contain("/api/v1/repositories/${binding_id}/artifacts/${ARTIFACT_TYPE}");
+        AssertExecutable(scriptPath);
 
         var skill = await File.ReadAllTextAsync(
             Path.Combine(root, ".claude", "skills", "review", "SKILL.md"));
-        skill.Should().Contain("bin/throne-review");
+        skill.Should().Contain("skills/review/bin/throne-review");
         skill.Should().Contain("review_recommendation");
     }
 
@@ -122,7 +124,7 @@ public class ClaudeSessionHookAdapterTests
     public async Task Interview_writes_intent_operations_script_and_skills()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-settings-{Guid.NewGuid():N}");
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         await sut.PrepareSpawnArgsAsync(
             "intent-1",
@@ -132,7 +134,7 @@ public class ClaudeSessionHookAdapterTests
             skillPackages: [new IntentSessionSkillPackage()],
             CancellationToken.None);
 
-        var scriptPath = Path.Combine(root, "bin", "throne-intent");
+        var scriptPath = Path.Combine(root, "skills", "intent", "bin", "throne-intent");
         // No UTF-8 BOM: a BOM before `#!` breaks the shebang (ENOEXEC → /bin/sh fallback).
         var scriptBytes = await File.ReadAllBytesAsync(scriptPath);
         scriptBytes.Take(3).Should().NotEqual([(byte)0xEF, (byte)0xBB, (byte)0xBF]);
@@ -158,7 +160,7 @@ public class ClaudeSessionHookAdapterTests
     [InlineData("─────────────\n❯ Try \"how does <filepath> work?\"\n─────────────", true)]
     public void Is_tui_ready_matches_composer_input_row(string snapshot, bool expected)
     {
-        var sut = new ClaudeSessionHookAdapter(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" });
+        var sut = NewAdapter();
 
         sut.IsTuiReady(snapshot).Should().Be(expected);
     }
@@ -178,4 +180,17 @@ public class ClaudeSessionHookAdapterTests
             .TryGetProperty("matcher", out var matcher)
             ? matcher.GetString()
             : null;
+
+    private static ClaudeSessionHookAdapter NewAdapter() =>
+        new(new SessionHookOptions { ApiBaseUrl = "http://localhost:5008" }, new SessionSkillMaterializer());
+
+    private static void AssertExecutable(string path)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        File.GetUnixFileMode(path).Should().HaveFlag(UnixFileMode.UserExecute);
+    }
 }

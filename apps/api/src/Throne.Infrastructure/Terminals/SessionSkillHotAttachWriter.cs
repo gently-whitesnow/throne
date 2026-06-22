@@ -1,4 +1,3 @@
-using System.Text;
 using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
@@ -6,13 +5,13 @@ using Throne.Application.Terminals;
 namespace Throne.Infrastructure.Terminals;
 
 /// <summary>
-/// Infrastructure implementation of <see cref="ISessionSkillHotAttachWriter"/>. Reuses
-/// <see cref="SessionSkillWorkspaceFiles"/> for the workspace write (so future spawns pick the
-/// skill up natively from <c>.claude/skills/{id}/SKILL.md</c>) and reads the same source-root
-/// resolution for the live-pane reminder text — no duplication of skill-tree discovery.
+/// Infrastructure implementation of <see cref="ISessionSkillHotAttachWriter"/>. Reuses the same
+/// materializer as cold-spawn so the workspace gets the native Claude skill files and the
+/// companion executable bins atomically.
 /// </summary>
 internal sealed class SessionSkillHotAttachWriter(
     SessionSkillPackageRegistry packages,
+    ISessionSkillMaterializer skillMaterializer,
     IWorkspaceRootProvider workspaceRoot) : ISessionSkillHotAttachWriter
 {
     public async Task<HotAttachMaterialization> MaterializeAsync(
@@ -24,15 +23,12 @@ internal sealed class SessionSkillHotAttachWriter(
         var resolved = packages.Resolve(resolution);
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", resolution.IntentId);
 
-        await SessionSkillWorkspaceFiles.WriteClaudeSkillsAsync(workspacePath, resolved, ct);
+        var materialization = await skillMaterializer.MaterializeAsync(
+            workspacePath, TerminalAgentCatalog.VendorClaude, resolved, ct);
 
-        var contents = new List<HotAttachedSkillContent>(resolved.Count);
-        foreach (var package in resolved)
-        {
-            var target = Path.Combine(workspacePath, ".claude", "skills", package.Id, "SKILL.md");
-            var text = await File.ReadAllTextAsync(target, Encoding.UTF8, ct);
-            contents.Add(new HotAttachedSkillContent(package.Id, text));
-        }
+        var contents = materialization.Skills
+            .Select(skill => new HotAttachedSkillContent(skill.SkillId, skill.SkillMarkdown))
+            .ToArray();
         return new HotAttachMaterialization(workspacePath, contents);
     }
 }

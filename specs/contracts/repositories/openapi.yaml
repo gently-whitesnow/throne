@@ -204,7 +204,7 @@ paths:
       tags: [IntentRepositories]
       summary: List repository bindings attached to an intent.
       description: >
-        Full binding cards consumed by the intent page and `bin/throne-review`
+        Full binding cards consumed by the intent page and `skills/review/bin/throne-review`
         binding discovery.
       parameters:
         - in: path

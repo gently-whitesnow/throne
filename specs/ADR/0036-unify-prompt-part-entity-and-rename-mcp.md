@@ -10,7 +10,7 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 **Amended 2026-06-19** — bundle как доставка плейбука выпилен, см. ниже.
 **Amended 2026-06-21** — system-части больше не материализуются в Mongo: read-path берёт их напрямую из манифеста через `IPromptPartRepository`, `PromptPartSeeder` удалён.
 
-**Update 2026-06-21:** MCP-переименование и tool-поверхность из этого ADR retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) — MCP-сервер и `apps/api/src/Throne.Api/Mcp` удалены, операции (`propose_prompt_part_patch`, `set_intent_status`/`create_intent`, apply) теперь статические repo-скилы + `bin/throne-*`. Схлопывание сущности `PromptPart` и `prompt_parts` как единственное хранилище остаются в силе.
+**Update 2026-06-21:** MCP-переименование и tool-поверхность из этого ADR retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) — MCP-сервер и `apps/api/src/Throne.Api/Mcp` удалены, операции (`propose_prompt_part_patch`, `set_intent_status`/`create_intent`, apply) теперь статические repo-скилы + `skills/<id>/bin/throne-*`. Схлопывание сущности `PromptPart` и `prompt_parts` как единственное хранилище остаются в силе.
 
 ## Amendment (2026-06-19): bundle removed, standalone = knowledge base
 

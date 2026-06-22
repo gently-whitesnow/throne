@@ -18,7 +18,7 @@ Throne — кокпит цикла разработки для человека,
 
 ## Запуск
 
-Throne работает локально, без облака и без сетевой авторизации. Основной путь - embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст, прикладывает operational skills и ведёт lifecycle через hooks. Внешний MCP endpoint удалён; dogfooding вне UI делается теми же статическими skills из репозитория через `bin/throne-*` CLI (см. [ADR-0043](specs/ADR/0043-static-operational-skills-and-mcp-removal.md)).
+Throne работает локально, без облака и без сетевой авторизации. Основной путь - embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст, прикладывает operational skills и ведёт lifecycle через hooks. Внешний MCP endpoint удалён; dogfooding вне UI делается теми же статическими skills из репозитория через `skills/<id>/bin/throne-*` CLI (см. [ADR-0043](specs/ADR/0043-static-operational-skills-and-mcp-removal.md)).
 
 ### 1. Поднять Throne локально
 
@@ -64,9 +64,9 @@ Embedded-терминал - приоритетный контур. Он треб
 
 Operational layer лежит в репозитории обычными файлами:
 
-- `skills/intent/SKILL.md` + `bin/throne-intent`
-- `skills/review/SKILL.md` + `bin/throne-review`
-- `skills/dream/SKILL.md` + `bin/throne-dream`
+- `skills/intent/SKILL.md` + `skills/intent/bin/throne-intent`
+- `skills/review/SKILL.md` + `skills/review/bin/throne-review`
+- `skills/dream/SKILL.md` + `skills/dream/bin/throne-dream`
 
 Embedded Run сам прикладывает нужные skills и инжектит `THRONE_INTENT_ID`, `THRONE_API_BASE`, а для review — `THRONE_REPOSITORY_BINDING_ID`. Если запускаешь обычную агент-сессию прямо в этом репозитории для dogfooding, приложи нужные `skills/<id>/SKILL.md` вручную и задай:
 

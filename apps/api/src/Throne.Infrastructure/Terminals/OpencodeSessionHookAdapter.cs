@@ -34,6 +34,7 @@ namespace Throne.Infrastructure.Terminals;
 internal sealed class OpencodeSessionHookAdapter(
     LocalModelDiscoveryService localModels,
     SessionHookOptions hookOptions,
+    ISessionSkillMaterializer skillMaterializer,
     IOpencodeServeGateway serveGateway,
     IOpencodeTuiClient tuiClient) : ISessionHookAdapter, INativeSessionInitializer
 {
@@ -76,11 +77,14 @@ internal sealed class OpencodeSessionHookAdapter(
 
         await OpencodePluginShim.WriteAsync(
             workspacePath, intentId, mode, NormalizeBaseUrl(hookOptions.ApiBaseUrl), ct);
-        await SessionSkillWorkspaceFiles.WriteScriptsAsync(workspacePath, skillPackages, ct);
+        var materialization = await skillMaterializer.MaterializeAsync(
+            workspacePath, TerminalAgentCatalog.VendorOpencode, skillPackages, ct);
 
         var systemPromptPath = await WriteSystemPromptAsync(workspacePath, systemPrompt, ct);
-        var skillHints = await SessionSkillWorkspaceFiles.WriteOpencodeHintsAsync(
-            workspacePath, skillPackages, ct);
+        var skillHints = materialization.Skills
+            .Select(skill => skill.SkillFileName)
+            .OfType<string>()
+            .ToArray();
         var configPath = Path.Combine(workspacePath, ConfigFileName);
         await using (var stream = File.Create(configPath))
         {
