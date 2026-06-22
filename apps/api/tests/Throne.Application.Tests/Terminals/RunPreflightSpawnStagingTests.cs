@@ -25,10 +25,13 @@ public class RunPreflightSpawnStagingTests
         // Stale artifacts from a prior run that must not survive the spawn.
         SeedFile(workspacePath, ".claude/skills/throne-review-artifact/SKILL.md", "stale generated review skill");
         SeedFile(workspacePath, ".claude/skills/review/SKILL.md", "stale review skill");
+        SeedFile(workspacePath, ".agents/skills/review/SKILL.md", "stale codex review skill");
         SeedFile(workspacePath, "skills/review/bin/throne-review", "stale review script");
+        SeedFile(workspacePath, "skills/review/SKILL.md", "stale canonical review skill");
         SeedFile(workspacePath, ".throne/attachments/removed-upstream.txt", "gone");
         // A non-Throne skill the operator owns — must be left intact.
         SeedFile(workspacePath, ".claude/skills/keep-me/SKILL.md", "operator skill");
+        SeedFile(workspacePath, ".agents/skills/keep-me/SKILL.md", "operator codex skill");
 
         var attachments = Substitute.For<IIntentAttachmentRepository>();
         var image = new IntentAttachment("att-9", "intent-1", "diagram.png", "image/png", 4, Now);
@@ -59,11 +62,15 @@ public class RunPreflightSpawnStagingTests
                 .Should().BeFalse();
             Directory.Exists(Path.Combine(workspacePath, ".claude", "skills", "review"))
                 .Should().BeFalse();
+            Directory.Exists(Path.Combine(workspacePath, ".agents", "skills", "review"))
+                .Should().BeFalse();
             Directory.Exists(Path.Combine(workspacePath, ".claude", "skills", "throne-review-artifact"))
                 .Should().BeFalse();
             Directory.Exists(Path.Combine(workspacePath, "skills", "review"))
                 .Should().BeFalse();
             File.Exists(Path.Combine(workspacePath, ".claude", "skills", "keep-me", "SKILL.md"))
+                .Should().BeTrue();
+            File.Exists(Path.Combine(workspacePath, ".agents", "skills", "keep-me", "SKILL.md"))
                 .Should().BeTrue();
         }
         finally
