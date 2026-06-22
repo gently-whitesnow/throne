@@ -20,7 +20,7 @@ public sealed class SessionSkillSelectionService(
     /// Preview the effective skill selection for the launch modal. <paramref name="attachedSkillIds"/>
     /// carries the set of skills currently hot-attached to the live session
     /// (<c>terminal_launches.attached_skill_ids</c>): a hot-attached skill is treated as
-    /// default-on for the next preflight so the operator's intent survives a restart even when
+    /// default-on for the next preflight so the operator's intent survives a respawn even when
     /// the original mode-default would have it off.
     /// </summary>
     public async Task<IReadOnlyList<AvailableSessionSkill>> PreviewAsync(
@@ -46,7 +46,7 @@ public sealed class SessionSkillSelectionService(
             var materialization = MaterializationFor(skill.Id, bindings);
             var modeDefault = defaultMap.TryGetValue(skill.Id, out var enabled) && enabled;
             // Hot-attached skills become default-on on the next preflight: they were explicitly
-            // loaded into a live session and the next restart should preserve that selection by
+            // loaded into a live session and the next spawn should preserve that selection by
             // default. `default_enabled` keeps reflecting the user-level setting; the attach
             // override only widens the effective default used for the «remembered» fallback.
             var attachDefault = attached?.Contains(skill.Id) ?? false;

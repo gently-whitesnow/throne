@@ -53,7 +53,7 @@ public sealed class IntentTerminalPreviewHandler(
             new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, userPrompt),
             ct);
         // Pull the hot-attached skill ids from the persisted launch record so they survive a
-        // restart as default-on selections in the modal (see SessionSkillSelectionService).
+        // respawn as default-on selections in the modal (see SessionSkillSelectionService).
         var launch = await launches.GetAsync(intent.Id.Value, ct);
         var skills = await skillSelection.PreviewAsync(
             intent.Id.Value, query.Mode, bindingList, launch?.AttachedSkillIds, ct);

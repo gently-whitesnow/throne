@@ -4,8 +4,8 @@ info:
   version: "1.0.0"
   x-csharp-namespace: Throne.Terminal.Contracts.Generated
   description: >
-    REST surface for the embedded agent terminal. Spawns and restarts a `tmux`-backed
-    session per intent. The bidirectional WebSocket channel for PTY frames lives
+    REST surface for the embedded agent terminal. Spawns a `tmux`-backed session
+    per intent. The bidirectional WebSocket channel for PTY frames lives
     outside OpenAPI — see `specs/contracts/realtime/websocket/terminal.yaml` and the
     Slice 2 ADR for rationale (`realtime/events.yaml` is SSE-only by ADR-0008).
 paths:
@@ -64,8 +64,8 @@ paths:
 
         Status is 202 because clones may still be running when the response is
         written; the UI subscribes to `intent.repository_clone_progress` (SSE) for
-        per-binding progress and re-fetches `session_state` from the next `run` /
-        `restart` response (Slice 2 keeps realtime SSE additions out of scope —
+        per-binding progress and re-fetches `session_state` from the next `run`
+        response or status probe (Slice 2 keeps realtime SSE additions out of scope —
         session-state delivery via response is sufficient for the local-only,
         single-user surface).
       parameters:
@@ -95,7 +95,7 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
         '409':
           description: >
-            A tmux session for this intent is already running (call `restart` instead), or the
+            A tmux session for this intent is already running, or the
             `intent_text_update.expected_version` no longer matches — the spawn was aborted.
           content:
             application/problem+json:
@@ -146,53 +146,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-  /api/v1/intents/{intent_id}/terminal/restart:
-    post:
-      operationId: restartIntentTerminal
-      tags: [Terminal]
-      summary: Kill the live tmux session and re-run the pre-flight pipeline.
-      description: >
-        `tmux kill-session -t throne-{intent_id}` followed by the same staged
-        pre-flight as `run`. Pre-flight is idempotent — a ready workspace produces
-        an immediate spawn. The user is fully responsible for interrupting whatever
-        was running inside the session; the server does NOT confirm.
-      parameters:
-        - in: path
-          name: intent_id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RunIntentTerminalRequest'
-      responses:
-        '202':
-          description: Restart accepted; same payload shape as `run`.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RunIntentTerminalResponse'
-        '404':
-          description: Intent not found.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-        '409':
-          description: The `intent_text_update.expected_version` no longer matches — the spawn was aborted.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-        '422':
-          description: Capability `terminal` disabled, prerequisite missing, invalid mode, or unknown selected parts.
-          content:
-            application/problem+json:
-              schema:
-                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/terminal/kill:
     post:
       operationId: killIntentTerminal
@@ -200,8 +153,8 @@ paths:
       summary: Kill the live tmux session without respawning.
       description: >
         `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot
-        with `session_state=exited`. Unlike `restart` this does not re-run the pre-flight
-        pipeline or spawn a new session — it just tears the session down. Idempotent: a
+        with `session_state=exited`. This does not re-run the pre-flight pipeline
+        or spawn a new session — it just tears the session down. Idempotent: a
         missing session is reported as `exited` all the same. The user is fully
         responsible for whatever was running inside; the server does NOT confirm.
       parameters:
@@ -236,7 +189,7 @@ paths:
       summary: Hot-attach session skills into a live tmux session.
       description: >
         Loads the requested skill packages into a running agent session without a
-        restart when the persisted launch vendor has native skill hot-reload
+        respawn when the persisted launch vendor has native skill hot-reload
         (Claude or Codex). The handler writes the canonical `SKILL.md` to
         `skills/{id}/SKILL.md` and a thin vendor pointer to
         `.claude/skills/{id}/SKILL.md` for Claude or
@@ -349,7 +302,7 @@ paths:
         pre-flight modal from this response and never assembles the runtime prompt itself.
         Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI.
         `review` additionally requires at least one attached PR/MR on the intent; when more
-        than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
+        than one is attached, `run` receives the chosen `review_binding_id`.
       parameters:
         - in: path
           name: intent_id
@@ -716,7 +669,7 @@ components:
         launch:
           nullable: true
           description: >
-            Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`/`restart`
+            Resolved launch axis (mode/vendor/model/effort) of this intent. On `run`
             it echoes the axis the spawn actually used (defaults applied). On the status probe
             it is the persisted last-used axis: with a live session those are the running
             session's real parameters; otherwise the choice the controls pre-fill from. Null
@@ -750,7 +703,7 @@ components:
             type: string
           description: >
             Скилы, догруженные в живую сессию через POST /terminal/skills/attach.
-            Persist в `terminal_launches`, на следующий restart preflight модалка
+            Persist в `terminal_launches`, на следующий preflight модалка
             пометит эти скилы как default-on. Не путать с `selected_skill_ids` в
             `RunIntentTerminalRequest` (выбор на спавн-время).
     AttachIntentTerminalSkillsRequest:

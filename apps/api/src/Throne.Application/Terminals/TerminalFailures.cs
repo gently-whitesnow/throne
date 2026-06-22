@@ -78,7 +78,7 @@ internal static class TerminalFailures
     public static ApiException SessionAlreadyRunning(string intentId, string sessionName) =>
         new(
             TerminalErrorCodes.SessionAlreadyRunning,
-            $"tmux session '{sessionName}' for intent '{intentId}' is already running — use /restart instead.",
+            $"tmux session '{sessionName}' for intent '{intentId}' is already running.",
             new Dictionary<string, object?>
             {
                 ["intent_id"] = intentId,

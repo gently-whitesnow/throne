@@ -36,7 +36,6 @@ vi.mock("../api/agent-terminal-api", () => ({
     getIntentTerminalSession(intentId),
   runIntentTerminal: (intentId: string, payload: TerminalRunPayload) =>
     runIntentTerminal(intentId, payload),
-  restartIntentTerminal: vi.fn(),
   previewIntentTerminal: (
     intentId: string,
     mode: TerminalRunMode,

@@ -24,7 +24,7 @@ public partial class RunPreflightOrchestratorTests
     {
         var fixture = new Fixture().Setup(intentExists: true);
 
-        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
+        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.CapabilityDisabled);
@@ -36,7 +36,7 @@ public partial class RunPreflightOrchestratorTests
     {
         var fixture = new Fixture().Setup(capabilityEnabled: true);
 
-        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, "interactive", DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
+        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, "interactive", DefaultLaunch, NoPrompt, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(TerminalErrorCodes.ModeInvalid);
@@ -53,7 +53,7 @@ public partial class RunPreflightOrchestratorTests
             spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
 
         var result = await fixture.Orchestrator.RunAsync(
-            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, restart: false, CancellationToken.None);
+            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, CancellationToken.None);
 
         result.SessionState.Should().Be(TerminalSessionStates.Running);
         result.SessionName.Should().Be($"throne-{IntentIdValue}");
@@ -112,7 +112,7 @@ public partial class RunPreflightOrchestratorTests
             spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
 
         var result = await fixture.Orchestrator.RunAsync(
-            IntentIdValue, TerminalRunModes.Free, DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
+            IntentIdValue, TerminalRunModes.Free, DefaultLaunch, NoPrompt, CancellationToken.None);
 
         result.SessionState.Should().Be(TerminalSessionStates.Running);
         await fixture.Tmux.Received(1).SpawnAsync(
@@ -146,7 +146,7 @@ public partial class RunPreflightOrchestratorTests
             spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
 
         var result = await fixture.Orchestrator.RunAsync(
-            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, bigPrompt, restart: false, CancellationToken.None);
+            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, bigPrompt, CancellationToken.None);
 
         result.SessionState.Should().Be(TerminalSessionStates.Running);
         await fixture.Tmux.Received(1).SpawnAsync(
@@ -168,7 +168,7 @@ public partial class RunPreflightOrchestratorTests
             bindings: [broken]);
 
         var result = await fixture.Orchestrator.RunAsync(
-            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
+            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, CancellationToken.None);
 
         result.SessionState.Should().Be(TerminalSessionStates.Blocked);
         result.BlockingBindings.Should().ContainSingle().Which.Should().Be(broken.Id.Value);
@@ -180,7 +180,7 @@ public partial class RunPreflightOrchestratorTests
         await fixture.Tmux.DidNotReceive().SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Run при живой сессии без restart=true бросает terminal.session_already_running")]
+    [Fact(DisplayName = "Run при живой сессии бросает terminal.session_already_running")]
     public async Task Run_existing_session_throws_409()
     {
         var fixture = new Fixture().Setup(
@@ -188,32 +188,10 @@ public partial class RunPreflightOrchestratorTests
             intentExists: true,
             hasSession: true);
 
-        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
+        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(TerminalErrorCodes.SessionAlreadyRunning);
-    }
-
-    [Fact(DisplayName = "Restart=true сначала kill-session, затем спавнит заново")]
-    public async Task Restart_kills_then_spawns()
-    {
-        var fixture = new Fixture().Setup(
-            capabilityEnabled: true,
-            intentExists: true,
-            hasSession: true,
-            bindings: [NewBinding(cloneStatus: CloneStatusNames.Ready)],
-            spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
-        fixture.Tmux.KillSessionAsync(IntentIdValue, Arg.Any<CancellationToken>()).Returns(true);
-
-        var result = await fixture.Orchestrator.RunAsync(
-            IntentIdValue, TerminalRunModes.Interview, DefaultLaunch, CuratedPrompt, restart: true, CancellationToken.None);
-
-        result.SessionState.Should().Be(TerminalSessionStates.Running);
-        Received.InOrder(() =>
-        {
-            fixture.Tmux.KillSessionAsync(IntentIdValue, Arg.Any<CancellationToken>());
-            fixture.Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
-        });
     }
 
     [Fact(DisplayName = "Run на отсутствующий intent → intent.not_found")]
@@ -221,7 +199,7 @@ public partial class RunPreflightOrchestratorTests
     {
         var fixture = new Fixture().Setup(capabilityEnabled: true);
 
-        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, restart: false, CancellationToken.None);
+        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, NoPrompt, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(ErrorCodes.IntentNotFound);
@@ -237,7 +215,7 @@ public partial class RunPreflightOrchestratorTests
             bindings: [NewBinding(cloneStatus: CloneStatusNames.Ready)],
             spawn: new TmuxSpawnResult($"throne-{IntentIdValue}", IsAlive: false, Detail: "tmux: command not found"));
 
-        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, restart: false, CancellationToken.None);
+        var act = () => fixture.Orchestrator.RunAsync(IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(TerminalErrorCodes.SpawnFailed);

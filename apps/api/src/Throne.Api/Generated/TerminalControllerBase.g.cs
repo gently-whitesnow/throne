@@ -62,7 +62,7 @@ namespace Throne.Api.Generated
         /// <br/>   successful spawn so the next page load can both restore the operator's
         /// <br/>   per-intent choice and show the live session's actual parameters (ADR-0041).
         /// <br/>
-        /// <br/>Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` / `restart` response (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
+        /// <br/>Status is 202 because clones may still be running when the response is written; the UI subscribes to `intent.repository_clone_progress` (SSE) for per-binding progress and re-fetches `session_state` from the next `run` response or status probe (Slice 2 keeps realtime SSE additions out of scope — session-state delivery via response is sufficient for the local-only, single-user surface).
         /// </remarks>
         /// <returns>Pre-flight accepted. Inspect `session_state` and `bindings` for current progress.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/run", Name = "runIntentTerminal")]
@@ -79,20 +79,10 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> GetIntentTerminalSession([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
 
         /// <summary>
-        /// Kill the live tmux session and re-run the pre-flight pipeline.
-        /// </summary>
-        /// <remarks>
-        /// `tmux kill-session -t throne-{intent_id}` followed by the same staged pre-flight as `run`. Pre-flight is idempotent — a ready workspace produces an immediate spawn. The user is fully responsible for interrupting whatever was running inside the session; the server does NOT confirm.
-        /// </remarks>
-        /// <returns>Restart accepted; same payload shape as `run`.</returns>
-        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/restart", Name = "restartIntentTerminal")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> RestartIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] RunIntentTerminalRequest body);
-
-        /// <summary>
         /// Kill the live tmux session without respawning.
         /// </summary>
         /// <remarks>
-        /// `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot with `session_state=exited`. Unlike `restart` this does not re-run the pre-flight pipeline or spawn a new session — it just tears the session down. Idempotent: a missing session is reported as `exited` all the same. The user is fully responsible for whatever was running inside; the server does NOT confirm.
+        /// `tmux kill-session -t throne-{intent_id}`, then return the post-kill snapshot with `session_state=exited`. This does not re-run the pre-flight pipeline or spawn a new session — it just tears the session down. Idempotent: a missing session is reported as `exited` all the same. The user is fully responsible for whatever was running inside; the server does NOT confirm.
         /// </remarks>
         /// <returns>Session torn down; `session_state=exited`.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/kill", Name = "killIntentTerminal")]
@@ -102,7 +92,7 @@ namespace Throne.Api.Generated
         /// Hot-attach session skills into a live tmux session.
         /// </summary>
         /// <remarks>
-        /// Loads the requested skill packages into a running agent session without a restart when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
+        /// Loads the requested skill packages into a running agent session without a respawn when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
         /// </remarks>
         /// <returns>Skills attached; updated set echoed back.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/skills/attach", Name = "attachIntentTerminalSkills")]
@@ -123,7 +113,7 @@ namespace Throne.Api.Generated
         /// Resolve the embedded prompt composition before spawn (ADR-0036).
         /// </summary>
         /// <remarks>
-        /// Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run`/`restart` receives the chosen `review_binding_id`.
+        /// Returns the effective prompt composition for the requested embedded mode: mandatory parts (projected from the skill manifest) plus the operator-authored optional parts with their per-mode roles. `selected_part_ids` overrides the default-on optional selection; omit it to get the mode defaults. `system_prompt` is the assembled rules block (mandatory + selected optional) destined for `--append-system-prompt`; `user_prompt` is the intent body draft for the task zone. The frontend renders the pre-flight modal from this response and never assembles the runtime prompt itself. Only embedded modes `work`/`interview`/`review`/`free` are surfaced in the intent UI. `review` additionally requires at least one attached PR/MR on the intent; when more than one is attached, `run` receives the chosen `review_binding_id`.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/preview", Name = "previewIntentTerminal")]

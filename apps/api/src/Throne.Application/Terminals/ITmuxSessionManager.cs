@@ -29,7 +29,7 @@ public interface ITmuxSessionManager
     Task<bool> HasSessionAsync(string intentId, CancellationToken ct);
 
     /// <summary>
-    /// <c>tmux kill-session -t throne-{intent_id}</c>. Used by Restart-flow (T-05).
+    /// <c>tmux kill-session -t throne-{intent_id}</c>.
     /// Returns <c>true</c> if a session was killed, <c>false</c> if no such session existed.
     /// </summary>
     Task<bool> KillSessionAsync(string intentId, CancellationToken ct);
