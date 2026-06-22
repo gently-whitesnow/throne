@@ -1,6 +1,6 @@
 ---
 name: review
-description: Write the Throne review_recommendation pull request artifact through bin/throne-review.
+description: Use when reviewing the PR/MR attached to the current Throne Intent to write the single review_recommendation artifact through bin/throne-review. Event-driven, triggered by PR/MR review work.
 ---
 
 # Throne Review Recommendation

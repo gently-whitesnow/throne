@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Run Throne dream operations through bin/throne-dream: read sources/sessions, propose prompt-part patches, and record dream sessions.
+description: Available for reading Throne dream sources and recent dream sessions to pull conversation context for the current host, and for proposing user prompt-part patches plus recording dream sessions through bin/throne-dream.
 ---
 
 # Throne Dream Operations
