@@ -17,7 +17,7 @@ public sealed class ListGitProviderRepositoryBranchesEndpoint(IGitProviderRegist
     private const int DefaultLimit = 10;
 
     public async Task<ActionResult<ICollection<GitBranchRefDto>>> RunAsync(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string? q,
@@ -25,8 +25,7 @@ public sealed class ListGitProviderRepositoryBranchesEndpoint(IGitProviderRegist
         CancellationToken ct
     )
     {
-        var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
-        var gitProvider = providers.GetByName(providerName) ?? throw Unsupported(providerName);
+        var gitProvider = providers.GetByName(provider) ?? throw Unsupported(provider);
 
         var refs = await gitProvider.ListBranchesAsync(owner, repo, q, limit ?? DefaultLimit, ct);
         return new OkObjectResult(refs.Select(RepositoryDtoMapper.ToBranchRefDto).ToList());

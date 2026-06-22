@@ -300,14 +300,14 @@ components:
           minimum: 0
     TagDefaultGitProvider:
       type: string
-      enum:
-        - github
-        - gitlab
+      minLength: 1
+      pattern: '^[a-z0-9][a-z0-9-]*$'
       description: >
-        Mirror of `repositories#/components/schemas/GitProvider`. Duplicated locally so
-        the tags contract generator never reaches across files (NSwag does not resolve
-        relative `$ref` between OpenAPI documents). Keep enum values in sync — see
-        ADR-0024 for the canonical list.
+        Stable git provider key. Mirror of
+        `repositories#/components/schemas/GitProvider`, duplicated locally so the
+        tags contract generator never reaches across files (NSwag does not resolve
+        relative `$ref` between OpenAPI documents). The value set is intentionally
+        open and validated by the server registry.
     TagDefaultRepositoryDto:
       type: object
       required:

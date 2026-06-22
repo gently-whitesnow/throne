@@ -16,7 +16,7 @@ public sealed class ListRepositoryDocumentVersionsEndpoint(
 )
 {
     public async Task<ActionResult<ICollection<RepositoryDocumentVersionDto>>> RunAsync(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string slug,
@@ -24,7 +24,7 @@ public sealed class ListRepositoryDocumentVersionsEndpoint(
     )
     {
         var coordinate = RepositoryCoordinateFactory.Create(
-            RepositoryEnumDtoMapper.ToProviderName(provider),
+            provider,
             owner,
             repo
         );

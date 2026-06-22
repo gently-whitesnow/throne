@@ -1,10 +1,13 @@
 export type {
   GitProvidersStatus,
   GitProviderAuthStatus,
+  GitProviderStatusEntry,
   GitProviderHealthMeta
 } from "./model/types";
 export { gitProviderHealthMeta } from "./model/types";
 export {
+  gitProviderEntries,
+  findGitProviderStatus,
   isProviderHealthy,
   providerHealthKey,
   describeProviderSession

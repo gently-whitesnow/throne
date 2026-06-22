@@ -156,11 +156,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * @description Default agent CLI for new embedded-terminal sessions. Mirror of `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. Keep the enum in sync.
-         * @enum {string}
-         */
-        TerminalAgentVendor: "claude" | "codex" | "opencode";
+        /** @description Default agent CLI for new embedded-terminal sessions. Mirror of `terminal#/components/schemas/TerminalAgentVendor` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. The value set is intentionally open and validated by the terminal vendor catalog. */
+        TerminalAgentVendor: string;
         TerminalSettingsDto: {
             default_vendor: components["schemas"]["TerminalAgentVendor"];
         };
@@ -272,8 +269,13 @@ export interface components {
          */
         GitProviderAuthState: "authenticated" | "unauthenticated" | "offline" | "missing";
         GitProvidersStatusDto: {
-            github: components["schemas"]["GitProviderAuthStatusDto"];
-            gitlab: components["schemas"]["GitProviderAuthStatusDto"];
+            /** @description Auth status for every registered git provider, in registry order. */
+            providers: components["schemas"]["GitProviderStatusDto"][];
+        };
+        GitProviderStatusDto: {
+            /** @description Stable git provider key from the backend registry. */
+            provider: string;
+            status: components["schemas"]["GitProviderAuthStatusDto"];
         };
         GitLabHostSettingsDto: {
             /** @description Hostname used by `glab` (e.g. `gitlab.com`, `gitlab.example.com`). */

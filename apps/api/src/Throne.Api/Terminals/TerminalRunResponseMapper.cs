@@ -30,7 +30,7 @@ internal static class TerminalRunResponseMapper
     private static TerminalLaunchArgs ToLaunchDto(TerminalLaunchRecord launch) => new()
     {
         Mode = ParseRunMode(launch.Mode),
-        Vendor = ParseVendor(launch.Vendor),
+        Vendor = launch.Vendor,
         Model = launch.Model,
         Effort = launch.Effort is { } effort ? ParseEffort(effort) : null,
         Attached_skill_ids = launch.AttachedSkillIds.Count == 0 ? null : launch.AttachedSkillIds.ToArray(),
@@ -40,7 +40,7 @@ internal static class TerminalRunResponseMapper
     {
         ArgumentNullException.ThrowIfNull(request);
         return new TerminalLaunchInput(
-            Vendor: request.Vendor is { } vendor ? ToWireVendor(vendor) : null,
+            Vendor: request.Vendor,
             Model: request.Model,
             Effort: request.Effort is { } effort ? ToWireEffort(effort) : null);
     }
@@ -71,14 +71,6 @@ internal static class TerminalRunResponseMapper
         return request.Selected_skill_ids?.ToArray();
     }
 
-    private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
-    {
-        TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,
-        TerminalAgentVendor.Codex => TerminalAgentCatalog.VendorCodex,
-        TerminalAgentVendor.Opencode => TerminalAgentCatalog.VendorOpencode,
-        _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
-    };
-
     private static string ToWireEffort(TerminalReasoningEffort effort) => effort switch
     {
         TerminalReasoningEffort.Low => TerminalAgentCatalog.EffortLow,
@@ -106,14 +98,6 @@ internal static class TerminalRunResponseMapper
         TerminalRunModes.Dream => TerminalRunMode.Dream,
         TerminalRunModes.Free => TerminalRunMode.Free,
         _ => throw new InvalidOperationException($"Unknown terminal run mode '{mode}'."),
-    };
-
-    private static TerminalAgentVendor ParseVendor(string vendor) => vendor switch
-    {
-        TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
-        TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
-        TerminalAgentCatalog.VendorOpencode => TerminalAgentVendor.Opencode,
-        _ => throw new InvalidOperationException($"Unknown terminal vendor '{vendor}'."),
     };
 
     private static TerminalReasoningEffort ParseEffort(string effort) => effort switch

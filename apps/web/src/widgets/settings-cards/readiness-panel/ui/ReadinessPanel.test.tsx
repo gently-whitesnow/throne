@@ -38,6 +38,20 @@ function vendor(login_status: string) {
   };
 }
 
+function gitStatus(authenticated: boolean) {
+  return {
+    providers: [
+      {
+        provider: "github",
+        status: {
+          authenticated,
+          state: authenticated ? "authenticated" : "missing"
+        }
+      }
+    ]
+  };
+}
+
 describe("ReadinessPanel", () => {
   beforeEach(() => {
     fetchGitProvidersStatus.mockReset();
@@ -50,9 +64,7 @@ describe("ReadinessPanel", () => {
   });
 
   it("рендерит «Throne готов» когда все критерии выполнены", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "ok" }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
     fetchTerminalVendorCatalog.mockResolvedValue({
       default_vendor: "claude",
       vendors: [vendor("ready")]
@@ -70,9 +82,7 @@ describe("ReadinessPanel", () => {
   });
 
   it("рендерит «Не готов» при незакрытом критерии вендора", async () => {
-    fetchGitProvidersStatus.mockResolvedValue({
-      github: { authenticated: true, state: "ok" }
-    });
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
     fetchTerminalVendorCatalog.mockResolvedValue({
       default_vendor: "claude",
       vendors: [vendor("logged_out")]

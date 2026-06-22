@@ -9,11 +9,13 @@ import {
 } from "lucide-react";
 import {
   describeProviderSession,
+  gitProviderEntries,
   gitProviderHealthMeta,
   isProviderHealthy,
   providerHealthKey,
   useGitProvidersStatus,
-  type GitProviderAuthStatus
+  type GitProviderAuthStatus,
+  type GitProviderStatusEntry
 } from "@/entities/git-provider-status";
 import { Button } from "@/shared/ui";
 
@@ -77,8 +79,7 @@ export function GitProvidersCard() {
       <ProviderBody
         isLoading={isLoading}
         error={error}
-        github={status?.github}
-        gitlab={status?.gitlab}
+        providers={gitProviderEntries(status)}
       />
 
       <footer className="flex flex-wrap gap-3">
@@ -108,11 +109,10 @@ export function GitProvidersCard() {
 interface ProviderBodyProps {
   isLoading: boolean;
   error: Error | null;
-  github: GitProviderAuthStatus | undefined;
-  gitlab: GitProviderAuthStatus | undefined;
+  providers: GitProviderStatusEntry[];
 }
 
-function ProviderBody({ isLoading, error, github, gitlab }: ProviderBodyProps) {
+function ProviderBody({ isLoading, error, providers }: ProviderBodyProps) {
   if (error) {
     return (
       <p
@@ -125,69 +125,86 @@ function ProviderBody({ isLoading, error, github, gitlab }: ProviderBodyProps) {
     );
   }
 
-  if (!github && !gitlab && isLoading) {
+  if (providers.length === 0 && isLoading) {
     return (
       <p className="m-0 text-sm text-base-content/60">Загружаем статус…</p>
     );
   }
 
-  if (!github && !gitlab) {
+  if (providers.length === 0) {
     return <p className="m-0 text-sm text-base-content/60">Нет данных.</p>;
   }
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      <ProviderStatusRow name="GitHub" cli="gh" status={github} />
-      <GitLabProviderRow status={gitlab} />
+      {providers.map((entry) =>
+        entry.provider === "gitlab" ? (
+          <GitLabProviderRow key={entry.provider} status={entry} />
+        ) : (
+          <ProviderStatusRow
+            key={entry.provider}
+            provider={entry.provider}
+            status={entry}
+          />
+        )
+      )}
     </div>
   );
 }
 
 interface ProviderStatusRowProps {
-  name: string;
-  cli: string;
-  status: GitProviderAuthStatus | undefined;
+  provider: string;
+  status: GitProviderStatusEntry;
 }
 
-function ProviderStatusRow({ name, cli, status }: ProviderStatusRowProps) {
+function ProviderStatusRow({ provider, status }: ProviderStatusRowProps) {
   return (
     <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
-      <ProviderHeader name={name} cli={cli} host={status?.host} />
-      <ProviderHealth status={status} />
+      <ProviderHeader provider={provider} host={status.status.host} />
+      <ProviderHealth status={status.status} />
     </div>
   );
 }
 
-function GitLabProviderRow({
-  status
-}: {
-  status: GitProviderAuthStatus | undefined;
-}) {
+function GitLabProviderRow({ status }: { status: GitProviderStatusEntry }) {
   return (
     <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
-      <ProviderHeader name="GitLab" cli="glab" host={status?.host} />
-      <GitLabHostField initial={status?.host ?? ""} />
-      <ProviderHealth status={status} />
+      <ProviderHeader provider="gitlab" host={status.status.host} />
+      <GitLabHostField initial={status.status.host ?? ""} />
+      <ProviderHealth status={status.status} />
     </div>
   );
 }
 
 interface ProviderHeaderProps {
-  name: string;
-  cli: string;
+  provider: string;
   host: string | null | undefined;
 }
 
-function ProviderHeader({ name, cli, host }: ProviderHeaderProps) {
+function ProviderHeader({ provider, host }: ProviderHeaderProps) {
+  const label = providerLabel(provider);
+  const cli = providerCli(provider);
   return (
     <div>
-      <h4 className="m-0 text-sm font-semibold leading-tight">{name}</h4>
+      <h4 className="m-0 text-sm font-semibold leading-tight">{label}</h4>
       <p className="m-0 mt-1 text-xs text-base-content/60">
         <code className="font-mono">{cli}</code>
         {host ? ` · ${host}` : ""}
       </p>
     </div>
   );
+}
+
+function providerLabel(provider: string): string {
+  if (provider === "github") return "GitHub";
+  if (provider === "gitlab") return "GitLab";
+  return provider;
+}
+
+function providerCli(provider: string): string {
+  if (provider === "github") return "gh";
+  if (provider === "gitlab") return "glab";
+  return provider;
 }
 
 function ProviderHealth({

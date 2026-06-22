@@ -1,4 +1,21 @@
-import type { GitProviderAuthStatus } from "./types";
+import type {
+  GitProviderAuthStatus,
+  GitProvidersStatus,
+  GitProviderStatusEntry
+} from "./types";
+
+export function gitProviderEntries(
+  status: GitProvidersStatus | null | undefined
+): GitProviderStatusEntry[] {
+  return [...(status?.providers ?? [])];
+}
+
+export function findGitProviderStatus(
+  status: GitProvidersStatus | null | undefined,
+  provider: string
+): GitProviderAuthStatus | undefined {
+  return status?.providers.find((entry) => entry.provider === provider)?.status;
+}
 
 /** True when the provider CLI reports a usable session. */
 export function isProviderHealthy(

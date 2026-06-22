@@ -21,13 +21,35 @@ import { BindRepositoryModal } from "./BindRepositoryModal";
 vi.mock("@/entities/git-provider-status", () => ({
   useGitProvidersStatus: () => ({
     status: {
-      github: { authenticated: true, state: "ok", host: "github.com" },
-      gitlab: { authenticated: true, state: "ok", host: "gitlab.ati.st" }
+      providers: [
+        {
+          provider: "github",
+          status: {
+            authenticated: true,
+            state: "authenticated",
+            host: "github.com"
+          }
+        },
+        {
+          provider: "gitlab",
+          status: {
+            authenticated: true,
+            state: "authenticated",
+            host: "gitlab.ati.st"
+          }
+        }
+      ]
     },
     isLoading: false,
     error: null,
     refresh: () => undefined
-  })
+  }),
+  gitProviderEntries: (status: { providers?: unknown[] } | null) =>
+    status?.providers ?? [],
+  findGitProviderStatus: (
+    status: { providers?: { provider: string; status: unknown }[] } | null,
+    provider: string
+  ) => status?.providers?.find((entry) => entry.provider === provider)?.status
 }));
 
 const repositoryBindingMocks = vi.hoisted(() => ({

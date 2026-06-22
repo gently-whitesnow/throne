@@ -31,15 +31,15 @@ public sealed class SettingsController(
     public override async Task<ActionResult<TerminalSettingsDto>> GetTerminalSettings()
     {
         var vendor = await terminalSettings.GetDefaultVendorAsync(HttpContext.RequestAborted);
-        return Ok(new TerminalSettingsDto { Default_vendor = ToDtoVendor(vendor) });
+        return Ok(new TerminalSettingsDto { Default_vendor = vendor });
     }
 
     public override async Task<ActionResult<TerminalSettingsDto>> SetTerminalSettings(UpdateTerminalSettingsRequest body)
     {
         ArgumentNullException.ThrowIfNull(body);
         var saved = await terminalSettings.SetDefaultVendorAsync(
-            ToWireVendor(body.Default_vendor), HttpContext.RequestAborted);
-        return Ok(new TerminalSettingsDto { Default_vendor = ToDtoVendor(saved) });
+            body.Default_vendor, HttpContext.RequestAborted);
+        return Ok(new TerminalSettingsDto { Default_vendor = saved });
     }
 
     public override async Task<ActionResult<SkillModeDefaultsDto>> GetSkillModeDefaults()
@@ -64,19 +64,4 @@ public sealed class SettingsController(
         return Ok(new GitLabHostSettingsDto { Host = host });
     }
 
-    private static string ToWireVendor(TerminalAgentVendor vendor) => vendor switch
-    {
-        TerminalAgentVendor.Claude => TerminalAgentCatalog.VendorClaude,
-        TerminalAgentVendor.Codex => TerminalAgentCatalog.VendorCodex,
-        TerminalAgentVendor.Opencode => TerminalAgentCatalog.VendorOpencode,
-        _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
-    };
-
-    private static TerminalAgentVendor ToDtoVendor(string vendor) => vendor switch
-    {
-        TerminalAgentCatalog.VendorClaude => TerminalAgentVendor.Claude,
-        TerminalAgentCatalog.VendorCodex => TerminalAgentVendor.Codex,
-        TerminalAgentCatalog.VendorOpencode => TerminalAgentVendor.Opencode,
-        _ => throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'."),
-    };
 }

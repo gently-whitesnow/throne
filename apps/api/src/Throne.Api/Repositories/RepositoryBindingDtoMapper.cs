@@ -13,7 +13,7 @@ internal static class RepositoryBindingDtoMapper
         {
             Id = binding.Id.Value,
             Intent_id = binding.IntentId.Value,
-            Provider = RepositoryEnumDtoMapper.ToWireProvider(binding.Coordinate.Provider),
+            Provider = binding.Coordinate.Provider,
             Host = binding.Coordinate.Host,
             Owner = binding.Coordinate.Owner,
             Repo = binding.Coordinate.Repo,

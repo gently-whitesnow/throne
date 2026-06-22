@@ -156,32 +156,15 @@ namespace Throne.Tags.Contracts.Generated
 
     }
 
-    /// <summary>
-    /// Mirror of `repositories#/components/schemas/GitProvider`. Duplicated locally so the tags contract generator never reaches across files (NSwag does not resolve relative `$ref` between OpenAPI documents). Keep enum values in sync — see ADR-0024 for the canonical list.
-    /// <br/>
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public enum TagDefaultGitProvider
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"github")]
-        [System.Runtime.Serialization.EnumMember(Value = @"github")]
-        Github = 0,
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"gitlab")]
-        [System.Runtime.Serialization.EnumMember(Value = @"gitlab")]
-        Gitlab = 1,
-
-    }
-
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TagDefaultRepositoryDto
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TagDefaultGitProvider>))]
-        public TagDefaultGitProvider Provider { get; set; }
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Provider { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("host")]
         [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]

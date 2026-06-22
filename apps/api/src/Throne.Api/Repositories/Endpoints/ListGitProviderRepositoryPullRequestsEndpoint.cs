@@ -16,7 +16,7 @@ public sealed class ListGitProviderRepositoryPullRequestsEndpoint(IGitProviderRe
     private const int DefaultLimit = 10;
 
     public async Task<ActionResult<ICollection<GitPullRequestRefDto>>> RunAsync(
-        GitProvider provider,
+        string provider,
         string owner,
         string repo,
         string? q,
@@ -24,8 +24,7 @@ public sealed class ListGitProviderRepositoryPullRequestsEndpoint(IGitProviderRe
         CancellationToken ct
     )
     {
-        var providerName = RepositoryEnumDtoMapper.ToProviderName(provider);
-        var gitProvider = providers.GetByName(providerName) ?? throw Unsupported(providerName);
+        var gitProvider = providers.GetByName(provider) ?? throw Unsupported(provider);
 
         var refs = await gitProvider.ListPullRequestsAsync(
             owner,
