@@ -3,7 +3,7 @@ namespace Throne.Application.Ports;
 /// <summary>
 /// Persistence port for the single operator-controlled terminal setting: the default
 /// agent vendor used to pre-fill the launch controls and as the server-side fallback
-/// when a run/restart request omits <c>vendor</c>. Model and effort defaults are native
+/// when a run request omits <c>vendor</c>. Model and effort defaults are native
 /// to the vendor and never persisted.
 /// </summary>
 public interface ITerminalSettingsStore

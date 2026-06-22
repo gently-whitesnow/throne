@@ -80,8 +80,7 @@ export function AgentTerminalPanel({
     }
   }, [availableModes, intentStatus, mode]);
 
-  // While live the mode control shows the running session's real mode, not the draft (frozen
-  // anyway); a restart with a different mode is reflected immediately.
+  // While live the mode control shows the running session's real mode, not the draft.
   const effectiveMode =
     sessionLive && sessionLaunch !== null ? sessionLaunch.mode : mode;
 
@@ -105,7 +104,7 @@ export function AgentTerminalPanel({
           ? "Выберите PR/MR для review."
           : null;
 
-  const [preflight, setPreflight] = useState<"run" | "restart" | null>(null);
+  const [preflightOpen, setPreflightOpen] = useState(false);
 
   const launchArgs = axis.launchArgs(effectiveMode);
 
@@ -115,7 +114,6 @@ export function AgentTerminalPanel({
   // сокет на любом постороннем ре-рендере панели.
   const {
     start: startSession,
-    restart: restartSession,
     attachSkills: attachSessionSkills,
     markSessionEnded
   } = session;
@@ -125,15 +123,10 @@ export function AgentTerminalPanel({
 
   const handleLaunch = useCallback(
     (payload: TerminalRunPayload) => {
-      const action = preflight;
-      setPreflight(null);
-      if (action === "restart") {
-        void restartSession(payload);
-      } else {
-        void startSession(payload);
-      }
+      setPreflightOpen(false);
+      void startSession(payload);
     },
-    [preflight, startSession, restartSession]
+    [startSession]
   );
 
   const handleKill = useCallback(() => {
@@ -183,10 +176,7 @@ export function AgentTerminalPanel({
           metadataLoading={axis.metadataLoading}
           metadataError={axis.metadataError}
           onRun={() => {
-            setPreflight("run");
-          }}
-          onRestart={() => {
-            setPreflight("restart");
+            setPreflightOpen(true);
           }}
           onKill={handleKill}
           runDisabled={
@@ -242,14 +232,14 @@ export function AgentTerminalPanel({
 
       {launchArgs !== null ? (
         <PreflightModal
-          open={preflight !== null}
+          open={preflightOpen}
           intentId={intentId}
           launch={launchArgs}
           reviewBindingId={reviewBindingId}
-          actionLabel={preflight === "restart" ? "Перезапустить" : "Запустить"}
+          actionLabel="Запустить"
           isSubmitting={session.isStarting}
           onClose={() => {
-            setPreflight(null);
+            setPreflightOpen(false);
           }}
           onLaunch={handleLaunch}
         />

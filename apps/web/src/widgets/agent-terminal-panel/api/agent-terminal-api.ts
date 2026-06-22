@@ -58,18 +58,6 @@ export function getIntentTerminalSession(
   );
 }
 
-export function restartIntentTerminal(
-  intentId: string,
-  payload: TerminalRunPayload,
-  signal?: AbortSignal
-): Promise<RunIntentTerminalResponse> {
-  return httpPost<RunIntentTerminalResponse>(
-    terminalEndpoints.restartIntentTerminal(intentId),
-    toRequestBody(payload),
-    signal
-  );
-}
-
 export function killIntentTerminal(
   intentId: string,
   signal?: AbortSignal

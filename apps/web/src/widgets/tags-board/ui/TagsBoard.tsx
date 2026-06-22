@@ -1,12 +1,7 @@
 import { Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import {
-  type Tag,
-  createTag,
-  useTagUsages,
-  useTags
-} from "@/entities/tag";
+import { type Tag, createTag, useTagUsages, useTags } from "@/entities/tag";
 import { errorMessage } from "@/shared/lib";
 import { Button, normalizeTagSlug, TAG_NAME_MAX_LENGTH } from "@/shared/ui";
 
