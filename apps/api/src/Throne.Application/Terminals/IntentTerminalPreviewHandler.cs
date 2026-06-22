@@ -31,6 +31,7 @@ public sealed class IntentTerminalPreviewHandler(
     IIntentRepository intents,
     IIntentAttachmentRepository attachments,
     IIntentRepositoryBindingRepository bindings,
+    IIntentTerminalLaunchStore launches,
     PromptCompositionResolver resolver,
     SessionSkillSelectionService skillSelection)
 {
@@ -51,7 +52,11 @@ public sealed class IntentTerminalPreviewHandler(
         var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, userPrompt),
             ct);
-        var skills = await skillSelection.PreviewAsync(intent.Id.Value, query.Mode, bindingList, ct);
+        // Pull the hot-attached skill ids from the persisted launch record so they survive a
+        // restart as default-on selections in the modal (see SessionSkillSelectionService).
+        var launch = await launches.GetAsync(intent.Id.Value, ct);
+        var skills = await skillSelection.PreviewAsync(
+            intent.Id.Value, query.Mode, bindingList, launch?.AttachedSkillIds, ct);
         return new IntentTerminalPreview(composition, intent.State.CurrentVersion, skills);
     }
 

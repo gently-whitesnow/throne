@@ -561,6 +561,59 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
         public TerminalReasoningEffort? Effort { get; set; }
 
+        /// <summary>
+        /// Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий restart preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("attached_skill_ids")]
+        public System.Collections.Generic.ICollection<string> Attached_skill_ids { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AttachIntentTerminalSkillsRequest
+    {
+
+        /// <summary>
+        /// Skill ids from the session skill catalog to hot-attach to the live session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("skill_ids")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<string> Skill_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AttachIntentTerminalSkillsResponse
+    {
+
+        /// <summary>
+        /// Full set of skills currently attached to the live session after the call (union of previous and the new request).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("attached_skill_ids")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> Attached_skill_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

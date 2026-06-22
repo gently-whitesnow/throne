@@ -1,6 +1,7 @@
 import { httpGet, httpPost, terminalEndpoints } from "@/shared/api";
 
 import type {
+  AttachIntentTerminalSkillsResponse,
   IntentTerminalPreviewResponse,
   RunIntentTerminalResponse,
   TerminalRunMode,
@@ -76,6 +77,18 @@ export function killIntentTerminal(
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.killIntentTerminal(intentId),
     undefined,
+    signal
+  );
+}
+
+export function attachIntentTerminalSkills(
+  intentId: string,
+  skillIds: string[],
+  signal?: AbortSignal
+): Promise<AttachIntentTerminalSkillsResponse> {
+  return httpPost<AttachIntentTerminalSkillsResponse>(
+    terminalEndpoints.attachIntentTerminalSkills(intentId),
+    { skill_ids: skillIds },
     signal
   );
 }

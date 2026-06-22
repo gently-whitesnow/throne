@@ -40,7 +40,9 @@ vi.mock("../api/agent-terminal-api", () => ({
     intentId: string,
     mode: TerminalRunMode,
     selectedPartIds: string[] | null
-  ) => previewIntentTerminal(intentId, mode, selectedPartIds)
+  ) => previewIntentTerminal(intentId, mode, selectedPartIds),
+  killIntentTerminal: vi.fn(),
+  attachIntentTerminalSkills: vi.fn()
 }));
 
 vi.mock("./TerminalView", () => ({
@@ -158,6 +160,7 @@ describe("AgentTerminalPanel", () => {
     runIntentTerminal.mockReset();
     restartIntentTerminal.mockReset();
     previewIntentTerminal.mockReset();
+    previewIntentTerminal.mockResolvedValue(previewResponse());
     listIntentRepositories.mockReset();
     listIntentRepositories.mockResolvedValue([]);
   });

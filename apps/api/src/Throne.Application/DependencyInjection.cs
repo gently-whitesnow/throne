@@ -140,6 +140,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightPromptGate>();
         services.AddSingleton<RunPreflightGuards>();
         services.AddSingleton<RunPreflightOrchestrator>();
+        services.AddSingleton<AttachIntentTerminalSkillsHandler>();
         services.AddSingleton<TerminalLaunchResolver>();
         services.AddSingleton<TerminalSettingsService>();
         services.AddSingleton<LocalModelDiscoveryService>();

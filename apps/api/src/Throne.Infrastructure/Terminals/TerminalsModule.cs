@@ -54,6 +54,7 @@ public static class TerminalsModule
                 ?? SessionHookOptions.DefaultApiBaseUrl,
         });
         services.AddSingleton<ISessionHookAdapter, ClaudeSessionHookAdapter>();
+        services.AddSingleton<Throne.Application.Ports.ISessionSkillHotAttachWriter, SessionSkillHotAttachWriter>();
         services.AddSingleton<ISessionHookAdapter>(sp =>
             new CodexSessionHookAdapter(
                 sp.GetRequiredService<SessionHookOptions>(), CodexSessionProfile.ResolveHome()));

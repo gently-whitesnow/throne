@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { errorMessage } from "@/shared/lib";
 
 import {
+  attachIntentTerminalSkills,
   getIntentTerminalSession,
   killIntentTerminal,
   restartIntentTerminal,
@@ -32,11 +33,14 @@ export interface TerminalSessionView {
   error: string | null;
   isStarting: boolean;
   isStopping: boolean;
+  isAttachingSkills: boolean;
   startedAt: TerminalSessionStartedAt | null;
   start: (payload: TerminalRunPayload) => Promise<void>;
   restart: (payload: TerminalRunPayload) => Promise<void>;
   /** Kill the live tmux session without respawning. */
   kill: () => Promise<void>;
+  /** Hot-attach extra session skills into the live tmux session. */
+  attachSkills: (skillIds: string[]) => Promise<void>;
   /** Local-only signal that the WebSocket bridge observed a clean close. */
   markSessionEnded: () => void;
 }
@@ -62,6 +66,7 @@ export function useTerminalSession(
   const [internal, setInternal] = useState<InternalState>(INITIAL);
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [isAttachingSkills, setIsAttachingSkills] = useState(false);
   // The axis prefill must wait for the probe so it seeds from the intent's persisted launch
   // rather than racing it with the catalog default. Tracks only the enabled-path probe: it
   // flips to true when the probe resolves. The capability-off case is handled by the caller
@@ -158,6 +163,44 @@ export function useTerminalSession(
     }
   }, [intentId, apply]);
 
+  const attachSkills = useCallback(
+    async (skillIds: string[]) => {
+      if (skillIds.length === 0) return;
+      setIsAttachingSkills(true);
+      try {
+        const response = await attachIntentTerminalSkills(intentId, skillIds);
+        setInternal((prev) => {
+          if (prev.lastResponse === null) return prev;
+          const launch = prev.lastResponse.launch
+            ? {
+                ...prev.lastResponse.launch,
+                attached_skill_ids: response.attached_skill_ids
+              }
+            : prev.lastResponse.launch;
+          return {
+            ...prev,
+            error: null,
+            lastResponse: { ...prev.lastResponse, launch }
+          };
+        });
+      } catch (err) {
+        setInternal((prev) => ({
+          ...prev,
+          error: errorMessage(err, {
+            base: "Не удалось догрузить скилы в сессию",
+            byStatus: {
+              409: "Сессия не запущена — догрузка возможна только в живую сессию.",
+              422: "Скил недоступен для текущего интента или вендор не поддерживается."
+            }
+          })
+        }));
+      } finally {
+        setIsAttachingSkills(false);
+      }
+    },
+    [intentId]
+  );
+
   const markSessionEnded = useCallback(() => {
     setInternal((prev) =>
       prev.state === "idle"
@@ -174,9 +217,11 @@ export function useTerminalSession(
     startedAt: internal.startedAt,
     isStarting,
     isStopping,
+    isAttachingSkills,
     start,
     restart,
     kill,
+    attachSkills,
     markSessionEnded
   };
 }

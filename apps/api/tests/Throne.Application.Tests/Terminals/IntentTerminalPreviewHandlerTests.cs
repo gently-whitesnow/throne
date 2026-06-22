@@ -79,6 +79,7 @@ public class IntentTerminalPreviewHandlerTests
             intents,
             attachments,
             NewBindings([]),
+            NewLaunches(),
             NewResolver(),
             NewSkillSelection());
 
@@ -134,8 +135,17 @@ public class IntentTerminalPreviewHandlerTests
             intents,
             attachmentRepo,
             NewBindings([]),
+            NewLaunches(),
             NewResolver(),
             NewSkillSelection());
+    }
+
+    private static IIntentTerminalLaunchStore NewLaunches()
+    {
+        var store = Substitute.For<IIntentTerminalLaunchStore>();
+        store.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((TerminalLaunchRecord?)null);
+        return store;
     }
 
     private static IIntentRepositoryBindingRepository NewBindings(IReadOnlyList<IntentRepositoryBinding> bindings)
