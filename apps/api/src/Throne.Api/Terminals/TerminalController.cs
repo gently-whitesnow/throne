@@ -12,10 +12,27 @@ public sealed class TerminalController(
     TerminalSessionKillService killService,
     TerminalHookStatusAck hookStatusAck,
     IntentTerminalPreviewHandler previewHandler,
+    AttachIntentTerminalSkillsHandler attachHandler,
     TerminalVendorCatalogMapper vendorCatalogMapper,
     ILogger<TerminalController> logger
 ) : TerminalControllerBase
 {
+    public override async Task<ActionResult<Throne.Terminal.Contracts.Generated.AttachIntentTerminalSkillsResponse>> AttachIntentTerminalSkills(
+        string intent_id,
+        Throne.Terminal.Contracts.Generated.AttachIntentTerminalSkillsRequest body
+    )
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        var skillIds = body.Skill_ids?.ToArray() ?? Array.Empty<string>();
+        var result = await attachHandler.HandleAsync(
+            new Application.Terminals.AttachIntentTerminalSkillsRequest(intent_id, skillIds),
+            HttpContext.RequestAborted);
+        return Ok(new Throne.Terminal.Contracts.Generated.AttachIntentTerminalSkillsResponse
+        {
+            Attached_skill_ids = result.AttachedSkillIds.ToList(),
+        });
+    }
+
     public override async Task<ActionResult<TerminalVendorCatalogResponse>> ListTerminalVendors()
     {
         var dto = await vendorCatalogMapper.ToDtoAsync(HttpContext.RequestAborted);

@@ -1,4 +1,3 @@
-import { AlertCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IntentStatus } from "@/entities/intent";
@@ -9,6 +8,7 @@ import {
 
 import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
 
+import { useAttachableSkills } from "../model/use-attachable-skills";
 import { useLaunchAxis } from "../model/use-launch-axis";
 import { useReviewTargetSelection } from "../model/use-review-target-selection";
 import { useTerminalSession } from "../model/use-terminal-session";
@@ -16,9 +16,10 @@ import { TERMINAL_RUN_MODES, defaultRunModeForStatus } from "../model/types";
 import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
 
 import { PreflightModal } from "./PreflightModal";
-import { PreflightProgress } from "./PreflightProgress";
 import { ReviewTargetSelect } from "./ReviewTargetSelect";
 import { RunControls } from "./RunControls";
+import { SkillsAttachControl } from "./SkillsAttachControl";
+import { TerminalPanelAlerts } from "./TerminalPanelAlerts";
 import { TerminalView } from "./TerminalView";
 
 interface AgentTerminalPanelProps {
@@ -115,8 +116,12 @@ export function AgentTerminalPanel({
   const {
     start: startSession,
     restart: restartSession,
+    attachSkills: attachSessionSkills,
     markSessionEnded
   } = session;
+
+  const attachedSkillIds = sessionLaunch?.attached_skill_ids ?? [];
+  const attachable = useAttachableSkills(intentId, effectiveMode, sessionLive);
 
   const handleLaunch = useCallback(
     (payload: TerminalRunPayload) => {
@@ -157,40 +162,52 @@ export function AgentTerminalPanel({
         </h2>
       </header>
 
-      <RunControls
-        mode={effectiveMode}
-        modes={availableModes}
-        onModeChange={setMode}
-        vendors={axis.vendors}
-        vendor={axis.vendor ?? ""}
-        onVendorChange={axis.onVendorChange}
-        models={axis.selectedMeta?.models ?? []}
-        model={axis.model ?? ""}
-        onModelChange={axis.setModel}
-        efforts={
-          (axis.selectedMeta?.efforts ??
-            []) as readonly TerminalReasoningEffort[]
-        }
-        effort={axis.effort ?? ""}
-        onEffortChange={axis.setEffort}
-        supportsEffort={axis.selectedMeta?.supports_effort ?? false}
-        metadataLoading={axis.metadataLoading}
-        metadataError={axis.metadataError}
-        onRun={() => {
-          setPreflight("run");
-        }}
-        onRestart={() => {
-          setPreflight("restart");
-        }}
-        onKill={handleKill}
-        runDisabled={
-          !axis.launchReady || hasBlockingBinding || hasMissingReviewTarget
-        }
-        runDisabledReason={runDisabledReason}
-        sessionLive={sessionLive}
-        isStarting={session.isStarting}
-        isStopping={session.isStopping}
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <RunControls
+          mode={effectiveMode}
+          modes={availableModes}
+          onModeChange={setMode}
+          vendors={axis.vendors}
+          vendor={axis.vendor ?? ""}
+          onVendorChange={axis.onVendorChange}
+          models={axis.selectedMeta?.models ?? []}
+          model={axis.model ?? ""}
+          onModelChange={axis.setModel}
+          efforts={
+            (axis.selectedMeta?.efforts ??
+              []) as readonly TerminalReasoningEffort[]
+          }
+          effort={axis.effort ?? ""}
+          onEffortChange={axis.setEffort}
+          supportsEffort={axis.selectedMeta?.supports_effort ?? false}
+          metadataLoading={axis.metadataLoading}
+          metadataError={axis.metadataError}
+          onRun={() => {
+            setPreflight("run");
+          }}
+          onRestart={() => {
+            setPreflight("restart");
+          }}
+          onKill={handleKill}
+          runDisabled={
+            !axis.launchReady || hasBlockingBinding || hasMissingReviewTarget
+          }
+          runDisabledReason={runDisabledReason}
+          sessionLive={sessionLive}
+          isStarting={session.isStarting}
+          isStopping={session.isStopping}
+        />
+        <SkillsAttachControl
+          attachedSkillIds={attachedSkillIds}
+          available={attachable.skills}
+          sessionLive={sessionLive}
+          isLoadingAvailable={attachable.status === "loading"}
+          isAttaching={session.isAttachingSkills}
+          onAttach={(ids) => {
+            void attachSessionSkills(ids);
+          }}
+        />
+      </div>
 
       {effectiveMode === "review" ? (
         <ReviewTargetSelect
@@ -201,48 +218,11 @@ export function AgentTerminalPanel({
         />
       ) : null}
 
-      {axis.metadataError ? (
-        <p
-          role="alert"
-          className="m-0 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
-        >
-          <AlertCircle
-            aria-hidden
-            size={14}
-            strokeWidth={2}
-            className="mt-0.5"
-          />
-          <span>
-            Не удалось загрузить список агентов. Обновите страницу, чтобы
-            запустить сессию.
-          </span>
-        </p>
-      ) : null}
-
-      {hasBlockingBinding ? (
-        <div className="flex flex-col gap-1">
-          <p className="m-0 text-xs text-base-content/70">
-            Готовим workspace: спавн агента начнётся, когда все репозитории
-            будут клонированы.
-          </p>
-          <PreflightProgress bindings={notReady} />
-        </div>
-      ) : null}
-
-      {session.error !== null ? (
-        <p
-          role="alert"
-          className="m-0 flex items-start gap-2 rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error"
-        >
-          <AlertCircle
-            aria-hidden
-            size={14}
-            strokeWidth={2}
-            className="mt-0.5"
-          />
-          <span>{session.error}</span>
-        </p>
-      ) : null}
+      <TerminalPanelAlerts
+        metadataError={axis.metadataError}
+        notReadyBindings={notReady}
+        sessionError={session.error}
+      />
 
       {session.startedAt !== null ? (
         <TerminalView

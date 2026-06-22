@@ -41,7 +41,9 @@ vi.mock("../api/agent-terminal-api", () => ({
     intentId: string,
     mode: TerminalRunMode,
     selectedPartIds: string[] | null
-  ) => previewIntentTerminal(intentId, mode, selectedPartIds)
+  ) => previewIntentTerminal(intentId, mode, selectedPartIds),
+  killIntentTerminal: vi.fn(),
+  attachIntentTerminalSkills: vi.fn()
 }));
 
 vi.mock("./TerminalView", () => ({

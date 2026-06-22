@@ -45,14 +45,6 @@ public static class ErrorCodes
     // in the problem extensions to stay within the ErrorCodes member budget.
     public const string IdeProviderUnavailable = "ide.provider_unavailable";
     public const string GitLabHostInvalid = "settings.gitlab_host.invalid";
-    public const string TerminalSessionAlreadyRunning = "terminal.session_already_running";
-    public const string TerminalRunPreflightBlocked = "terminal.run_preflight_blocked";
-    public const string TerminalSpawnFailed = "terminal.spawn_failed";
-    public const string TerminalTuiReadinessTimeout = "terminal.tui_readiness_timeout";
-    public const string TerminalInitialPromptSubmitFailed = "terminal.initial_prompt_submit_failed";
-    public const string TerminalCloneWaitTimeout = "terminal.clone_wait_timeout";
-    public const string TerminalModeInvalid = "terminal.mode_invalid";
-    public const string TerminalArgsInvalid = "terminal.args_invalid";
     public const string PromptPartNotFound = "prompt_part.not_found";
     public const string PromptPartAlreadyExists = "prompt_part.already_exists";
     public const string PromptPartVersionConflict = "prompt_part.version_conflict";

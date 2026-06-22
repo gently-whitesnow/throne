@@ -16,7 +16,7 @@ internal static class TerminalFailures
 
     public static ApiException ModeInvalid(string mode) =>
         new(
-            ErrorCodes.TerminalModeInvalid,
+            TerminalErrorCodes.ModeInvalid,
             $"Unknown terminal run mode '{mode}'. Allowed: work | interview | review | dream | free.",
             new Dictionary<string, object?> { ["mode"] = mode });
 
@@ -48,13 +48,13 @@ internal static class TerminalFailures
 
     public static ApiException VendorInvalid(string vendor) =>
         new(
-            ErrorCodes.TerminalArgsInvalid,
+            TerminalErrorCodes.ArgsInvalid,
             $"Unknown terminal vendor '{vendor}'. Allowed: {string.Join(" | ", TerminalAgentCatalog.Descriptors.Select(d => d.Vendor))}.",
             new Dictionary<string, object?> { ["vendor"] = vendor });
 
     public static ApiException ModelInvalid(string vendor, string model) =>
         new(
-            ErrorCodes.TerminalArgsInvalid,
+            TerminalErrorCodes.ArgsInvalid,
             BuildModelInvalidDetail(vendor, model),
             new Dictionary<string, object?> { ["vendor"] = vendor, ["model"] = model });
 
@@ -71,13 +71,13 @@ internal static class TerminalFailures
 
     public static ApiException EffortInvalid(string effort) =>
         new(
-            ErrorCodes.TerminalArgsInvalid,
+            TerminalErrorCodes.ArgsInvalid,
             $"Unknown reasoning effort '{effort}'. Allowed: low | medium | high | xhigh.",
             new Dictionary<string, object?> { ["effort"] = effort });
 
     public static ApiException SessionAlreadyRunning(string intentId, string sessionName) =>
         new(
-            ErrorCodes.TerminalSessionAlreadyRunning,
+            TerminalErrorCodes.SessionAlreadyRunning,
             $"tmux session '{sessionName}' for intent '{intentId}' is already running — use /restart instead.",
             new Dictionary<string, object?>
             {
@@ -87,7 +87,7 @@ internal static class TerminalFailures
 
     public static ApiException SpawnFailed(string intentId, string sessionName, string? detail) =>
         new(
-            ErrorCodes.TerminalSpawnFailed,
+            TerminalErrorCodes.SpawnFailed,
             detail ?? $"tmux refused to spawn session '{sessionName}'.",
             new Dictionary<string, object?>
             {
@@ -102,7 +102,7 @@ internal static class TerminalFailures
         int captures,
         string? lastSnapshot) =>
         new(
-            ErrorCodes.TerminalTuiReadinessTimeout,
+            TerminalErrorCodes.TuiReadinessTimeout,
             $"Vendor '{vendor}' TUI for intent '{intentId}' did not render a ready composer within {waitedMilliseconds} ms ({captures} captures). User prompt not delivered — restart the run.",
             new Dictionary<string, object?>
             {
@@ -118,7 +118,7 @@ internal static class TerminalFailures
         string vendor,
         string detail) =>
         new(
-            ErrorCodes.TerminalInitialPromptSubmitFailed,
+            TerminalErrorCodes.InitialPromptSubmitFailed,
             $"Vendor '{vendor}' failed to submit the initial prompt for intent '{intentId}': {detail}",
             new Dictionary<string, object?>
             {
@@ -144,7 +144,7 @@ internal static class TerminalFailures
         int waitedSeconds,
         IReadOnlyList<string> pendingBindings) =>
         new(
-            ErrorCodes.TerminalCloneWaitTimeout,
+            TerminalErrorCodes.CloneWaitTimeout,
             $"Pre-flight gave up waiting for clones after {waitedSeconds}s; bindings still in progress: {string.Join(", ", pendingBindings)}.",
             new Dictionary<string, object?>
             {
