@@ -15,29 +15,28 @@ internal static class CapabilityDtoMapper
         Name = ParseName(view.Name),
         Title = view.Title,
         Description = view.Description,
+        Selected_provider = view.SelectedProvider,
+        Providers = view.Providers.Select(ToDto).ToArray(),
+    };
+
+    public static CapabilityProviderDto ToDto(CapabilityProviderView view) => new()
+    {
+        Name = view.Name,
+        Title = view.Title,
         Prerequisite_hint = view.PrerequisiteHint,
         Detected = view.Detected,
         Detection_detail = view.DetectionDetail,
-        Enabled = view.Enabled,
     };
 
     public static string ToDomainName(CapabilityName name) => name switch
     {
-        CapabilityName.Repositories => CapabilityNames.Repositories,
-        CapabilityName.Gitlab => CapabilityNames.Gitlab,
-        CapabilityName.Terminal => CapabilityNames.Terminal,
-        CapabilityName.Vscode => CapabilityNames.Vscode,
-        CapabilityName.Opencode => CapabilityNames.Opencode,
+        CapabilityName.Open_in_ide => CapabilityNames.OpenInIde,
         _ => throw new ArgumentOutOfRangeException(nameof(name), $"Unknown capability name '{name}'."),
     };
 
     private static CapabilityName ParseName(string domain) => domain switch
     {
-        CapabilityNames.Repositories => CapabilityName.Repositories,
-        CapabilityNames.Gitlab => CapabilityName.Gitlab,
-        CapabilityNames.Terminal => CapabilityName.Terminal,
-        CapabilityNames.Vscode => CapabilityName.Vscode,
-        CapabilityNames.Opencode => CapabilityName.Opencode,
+        CapabilityNames.OpenInIde => CapabilityName.Open_in_ide,
         _ => throw new InvalidOperationException(
             $"Capability '{domain}' is not exposed in the OpenAPI contract (extend `CapabilityName` first)."),
     };

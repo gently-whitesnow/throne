@@ -14,7 +14,7 @@ public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 27, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "GetAsync до первой записи возвращает null")]
+    [Fact(DisplayName = "GetAsync returns null before first write")]
     public async Task Get_returns_null_before_first_write()
     {
         var scope = await CapabilitiesRepositoryTestScope.CreateAsync(fixture);
@@ -24,12 +24,12 @@ public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
         result.Should().BeNull();
     }
 
-    [Fact(DisplayName = "SaveAsync upsert'ит singleton-документ и подцепляет toggles")]
+    [Fact(DisplayName = "SaveAsync upserts singleton with selections map")]
     public async Task Save_upserts_singleton_document()
     {
         var scope = await CapabilitiesRepositoryTestScope.CreateAsync(fixture);
         var aggregate = DomainCapabilities.CreateEmpty(Now);
-        aggregate.SetEnabled(CapabilityNames.Terminal, true, Now.AddMinutes(1));
+        aggregate.SetSelectedProvider(CapabilityNames.OpenInIde, "vscode", Now.AddMinutes(1));
 
         await scope.Uow.ExecuteAsync(
             ct => scope.Repository.SaveAsync(aggregate, ct),
@@ -41,23 +41,22 @@ public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
             .FirstOrDefaultAsync();
         stored.Should().NotBeNull();
         stored!.Id.Should().Be(DomainCapabilities.SingletonId);
-        stored.Toggles.Should().ContainKey(CapabilityNames.Terminal).WhoseValue.Should().BeTrue();
+        stored.Selections.Should().ContainKey(CapabilityNames.OpenInIde).WhoseValue.Should().Be("vscode");
 
         var roundtrip = await scope.Repository.GetAsync(CancellationToken.None);
         roundtrip.Should().NotBeNull();
-        roundtrip!.IsEnabled(CapabilityNames.Terminal).Should().BeTrue();
-        roundtrip.IsEnabled(CapabilityNames.Vscode).Should().BeFalse();
+        roundtrip!.GetSelectedProvider(CapabilityNames.OpenInIde).Should().Be("vscode");
     }
 
-    [Fact(DisplayName = "Повторный SaveAsync обновляет toggles без создания второго документа")]
+    [Fact(DisplayName = "Second SaveAsync updates selection in place without creating duplicate documents")]
     public async Task Save_twice_updates_in_place()
     {
         var scope = await CapabilitiesRepositoryTestScope.CreateAsync(fixture);
         var aggregate = DomainCapabilities.CreateEmpty(Now);
-        aggregate.SetEnabled(CapabilityNames.Repositories, true, Now.AddMinutes(1));
+        aggregate.SetSelectedProvider(CapabilityNames.OpenInIde, "vscode", Now.AddMinutes(1));
         await scope.Uow.ExecuteAsync(ct => scope.Repository.SaveAsync(aggregate, ct), CancellationToken.None);
 
-        aggregate.SetEnabled(CapabilityNames.Repositories, false, Now.AddMinutes(2));
+        aggregate.SetSelectedProvider(CapabilityNames.OpenInIde, "cursor", Now.AddMinutes(2));
         await scope.Uow.ExecuteAsync(ct => scope.Repository.SaveAsync(aggregate, ct), CancellationToken.None);
 
         var count = await scope.Database
@@ -65,7 +64,7 @@ public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
             .CountDocumentsAsync(FilterDefinition<CapabilitiesDocument>.Empty);
         count.Should().Be(1);
         var fetched = await scope.Repository.GetAsync(CancellationToken.None);
-        fetched!.IsEnabled(CapabilityNames.Repositories).Should().BeFalse();
+        fetched!.GetSelectedProvider(CapabilityNames.OpenInIde).Should().Be("cursor");
         fetched.CurrentVersion.Should().Be(aggregate.CurrentVersion);
     }
 }

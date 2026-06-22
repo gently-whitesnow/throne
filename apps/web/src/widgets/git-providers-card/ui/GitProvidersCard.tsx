@@ -7,7 +7,6 @@ import {
   RefreshCw,
   XCircle
 } from "lucide-react";
-
 import {
   describeProviderSession,
   gitProviderHealthMeta,
@@ -18,6 +17,8 @@ import {
 } from "@/entities/git-provider-status";
 import { Button } from "@/shared/ui";
 
+import { GitLabHostField } from "./GitLabHostField";
+
 const GH_SETUP_DOCS_URL =
   "https://docs.github.com/en/github-cli/github-cli/quickstart";
 const GLAB_SETUP_DOCS_URL = "https://docs.gitlab.com/cli/auth/login/";
@@ -25,8 +26,10 @@ const GLAB_SETUP_DOCS_URL = "https://docs.gitlab.com/cli/auth/login/";
 /**
  * Settings → «Провайдеры Git».
  *
- * Показывает GitHub и GitLab CLI auth status. Индикаторы рисуются
- * семантическими токенами: success / warning / error.
+ * GitHub + GitLab CLI auth status (`gh`, `glab`). The GitLab card carries an
+ * inline editor for the persisted `gitlab.host` — Mongo singleton (no env-var
+ * fallback). Saving invalidates the providers-status query so the auth probe
+ * runs against the new host on next refresh.
  */
 export function GitProvidersCard() {
   const { status, isLoading, error, refresh } = useGitProvidersStatus();
@@ -135,7 +138,7 @@ function ProviderBody({ isLoading, error, github, gitlab }: ProviderBodyProps) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <ProviderStatusRow name="GitHub" cli="gh" status={github} />
-      <ProviderStatusRow name="GitLab" cli="glab" status={gitlab} />
+      <GitLabProviderRow status={gitlab} />
     </div>
   );
 }
@@ -147,22 +150,58 @@ interface ProviderStatusRowProps {
 }
 
 function ProviderStatusRow({ name, cli, status }: ProviderStatusRowProps) {
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
+      <ProviderHeader name={name} cli={cli} host={status?.host} />
+      <ProviderHealth status={status} />
+    </div>
+  );
+}
+
+function GitLabProviderRow({
+  status
+}: {
+  status: GitProviderAuthStatus | undefined;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
+      <ProviderHeader name="GitLab" cli="glab" host={status?.host} />
+      <GitLabHostField initial={status?.host ?? ""} />
+      <ProviderHealth status={status} />
+    </div>
+  );
+}
+
+interface ProviderHeaderProps {
+  name: string;
+  cli: string;
+  host: string | null | undefined;
+}
+
+function ProviderHeader({ name, cli, host }: ProviderHeaderProps) {
+  return (
+    <div>
+      <h4 className="m-0 text-sm font-semibold leading-tight">{name}</h4>
+      <p className="m-0 mt-1 text-xs text-base-content/60">
+        <code className="font-mono">{cli}</code>
+        {host ? ` · ${host}` : ""}
+      </p>
+    </div>
+  );
+}
+
+function ProviderHealth({
+  status
+}: {
+  status: GitProviderAuthStatus | undefined;
+}) {
   const healthy = isProviderHealthy(status);
   const key = providerHealthKey(status);
   const meta = gitProviderHealthMeta[key];
   const description = describeProviderSession(status);
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-200/40 p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h4 className="m-0 text-sm font-semibold leading-tight">{name}</h4>
-          <p className="m-0 mt-1 text-xs text-base-content/60">
-            <code className="font-mono">{cli}</code>
-            {status?.host ? ` · ${status.host}` : ""}
-          </p>
-        </div>
-      </div>
+    <>
       <span
         data-testid="provider-health-pill"
         className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${meta.className}`}
@@ -202,6 +241,6 @@ function ProviderStatusRow({ name, cli, status }: ProviderStatusRowProps) {
       ) : (
         <p className="m-0 text-sm text-base-content/70">{description}</p>
       )}
-    </div>
+    </>
   );
 }

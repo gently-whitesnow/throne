@@ -32,7 +32,7 @@ internal sealed class MongoCapabilitiesRepository
         var update = Builders<CapabilitiesDocument>.Update
             .Set(d => d.CurrentVersion, capabilities.CurrentVersion)
             .Set(d => d.UpdatedAt, capabilities.UpdatedAt.UtcDateTime)
-            .Set(d => d.Toggles, new Dictionary<string, bool>(capabilities.Toggles, StringComparer.Ordinal))
+            .Set(d => d.Selections, new Dictionary<string, string>(capabilities.Selections, StringComparer.Ordinal))
             .SetOnInsert(d => d.Id, Capabilities.SingletonId);
 
         // Upsert is intentionally not on the base — it's a one-off here.
@@ -46,12 +46,20 @@ internal sealed class MongoCapabilitiesRepository
 
     private static Capabilities MapToDomain(CapabilitiesDocument doc)
     {
-        var toggles = doc.Toggles is { Count: > 0 }
-            ? new Dictionary<string, bool>(doc.Toggles, StringComparer.Ordinal)
-            : new Dictionary<string, bool>(StringComparer.Ordinal);
+        // Project Dictionary<string,string> into the nullable-valued shape the domain
+        // restores from — Restore drops null/empty selections so stale rows survive
+        // the upgrade as a no-op.
+        var selections = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (doc.Selections is { Count: > 0 })
+        {
+            foreach (var (name, provider) in doc.Selections)
+            {
+                selections[name] = provider;
+            }
+        }
         return Capabilities.Restore(
             currentVersion: doc.CurrentVersion < 1 ? 1 : doc.CurrentVersion,
             updatedAt: DateTime.SpecifyKind(doc.UpdatedAt, DateTimeKind.Utc),
-            toggles: toggles);
+            selections: selections);
     }
 }

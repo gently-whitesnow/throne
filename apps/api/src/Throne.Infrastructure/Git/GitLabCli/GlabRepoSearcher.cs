@@ -1,11 +1,10 @@
 using System.Globalization;
-using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 using Throne.Infrastructure.Git.GitHubCli;
 
 namespace Throne.Infrastructure.Git.GitLabCli;
 
-internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IGitLabHostProvider hostProvider)
 {
     public async Task<IReadOnlyList<GitRepositoryRef>> SearchAsync(
         RepositorySearchScope scope,
@@ -13,7 +12,7 @@ internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSetti
         int limit,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var effectiveLimit = limit > 0 ? limit : glab.PageSize;
         var mine = await ListAsync(host, owned: true, query, effectiveLimit, ct);
         var combined = await CombineForScopeAsync(scope, host, query, mine, effectiveLimit, ct);
@@ -73,14 +72,4 @@ internal sealed class GlabRepoSearcher(GlabCliInvoker glab, IOptions<GitLabSetti
             : $"{path}&search={Uri.EscapeDataString(query)}&search_namespaces=true";
     }
 
-    private string ReadHost()
-    {
-        var host = settings.Value.Host?.Trim();
-        return string.IsNullOrWhiteSpace(host)
-            ? throw new GitProviderException(
-                GitProviderErrorKind.CliFailure,
-                "Throne:GitLab:Host is not configured.",
-                detail: null)
-            : host;
-    }
 }

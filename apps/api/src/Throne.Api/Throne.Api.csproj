@@ -12,7 +12,7 @@
     <ProjectReference Include="..\Throne.Settings.Contracts\Throne.Settings.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Capabilities.Contracts\Throne.Capabilities.Contracts.csproj" />
     <ProjectReference Include="..\Throne.Terminal.Contracts\Throne.Terminal.Contracts.csproj" />
-    <ProjectReference Include="..\Throne.Vscode.Contracts\Throne.Vscode.Contracts.csproj" />
+    <ProjectReference Include="..\Throne.Ide.Contracts\Throne.Ide.Contracts.csproj" />
     <ProjectReference Include="..\Throne.PromptParts.Contracts\Throne.PromptParts.Contracts.csproj" />
   </ItemGroup>
 

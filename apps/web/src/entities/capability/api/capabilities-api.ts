@@ -9,14 +9,14 @@ export function fetchCapabilities(signal?: AbortSignal): Promise<Capability[]> {
   );
 }
 
-export function setCapabilityEnabled(
+export function setCapabilitySelectedProvider(
   name: CapabilityName,
-  enabled: boolean,
+  selectedProvider: string | null,
   signal?: AbortSignal
 ): Promise<Capability> {
   return httpPut<Capability>(
-    capabilitiesEndpoints.setCapabilityEnabled(name),
-    { enabled },
+    capabilitiesEndpoints.setCapabilitySelectedProvider(name),
+    { selected_provider: selectedProvider },
     signal
   );
 }

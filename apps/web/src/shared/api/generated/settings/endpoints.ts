@@ -12,4 +12,5 @@ export const settingsEndpoints = {
   setSkillModeDefaults: () => "/settings/skill-mode-defaults",
   getLocalModelCatalog: () => "/settings/local-model/models",
   getGitProvidersStatus: () => "/settings/git-providers/status",
+  setGitLabHost: () => "/settings/git-providers/gitlab/host",
 } as const;

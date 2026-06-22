@@ -1,13 +1,12 @@
-using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 
 namespace Throne.Infrastructure.Git.GitLabCli;
 
-internal sealed class GlabPullRequestActions(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed class GlabPullRequestActions(GlabCliInvoker glab, IGitLabHostProvider hostProvider)
 {
     public async Task<PullRequestSnapshot?> GetAsync(string owner, string repo, int number, CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var result = await glab.RunAsync(
             ["api", $"projects/{project}/merge_requests/{number}"],
@@ -29,7 +28,7 @@ internal sealed class GlabPullRequestActions(GlabCliInvoker glab, IOptions<GitLa
         int number,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var result = await glab.RunAsync(
             ["api", $"projects/{project}/merge_requests/{number}/discussions", "--paginate"],
@@ -44,13 +43,5 @@ internal sealed class GlabPullRequestActions(GlabCliInvoker glab, IOptions<GitLa
 
         var comments = GlabPullRequestCommentsParser.Parse(result.StandardOutput);
         return new PullRequestCommentsPage.Fresh(comments, Etag: null);
-    }
-
-    private string ReadHost()
-    {
-        var host = settings.Value.Host?.Trim();
-        return string.IsNullOrWhiteSpace(host)
-            ? throw new GitProviderException(GitProviderErrorKind.CliFailure, "Throne:GitLab:Host is not configured.")
-            : host;
     }
 }

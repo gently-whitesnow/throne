@@ -7,17 +7,13 @@ import { createTestQueryClient } from "@/app/test-utils";
 
 import { useThroneReadiness } from "./use-throne-readiness";
 
-const fetchCapabilities = vi.fn<() => Promise<unknown>>();
 const fetchGitProvidersStatus = vi.fn<() => Promise<unknown>>();
 const fetchTerminalVendorCatalog = vi.fn<() => Promise<unknown>>();
 const fetchWorkspaceSettings = vi.fn<() => Promise<unknown>>();
 
-vi.mock("@/entities/capability/api/capabilities-api", () => ({
-  fetchCapabilities: () => fetchCapabilities(),
-  setCapabilityEnabled: vi.fn()
-}));
 vi.mock("@/entities/git-provider-status/api/git-providers-status-api", () => ({
-  fetchGitProvidersStatus: () => fetchGitProvidersStatus()
+  fetchGitProvidersStatus: () => fetchGitProvidersStatus(),
+  setGitLabHost: vi.fn()
 }));
 vi.mock("@/entities/terminal-setting/api/terminal-vendor-catalog-api", () => ({
   fetchTerminalVendorCatalog: () => fetchTerminalVendorCatalog()
@@ -48,7 +44,6 @@ function wrapper({ children }: { children: ReactNode }) {
 
 describe("useThroneReadiness", () => {
   beforeEach(() => {
-    fetchCapabilities.mockReset();
     fetchGitProvidersStatus.mockReset();
     fetchTerminalVendorCatalog.mockReset();
     fetchWorkspaceSettings.mockReset();
@@ -58,10 +53,7 @@ describe("useThroneReadiness", () => {
     vi.clearAllMocks();
   });
 
-  it("ready=true когда все четыре критерия выполнены", async () => {
-    fetchCapabilities.mockResolvedValue([
-      { name: "terminal", title: "Terminal", detected: true, enabled: true }
-    ]);
+  it("ready=true когда все критерии выполнены", async () => {
     fetchGitProvidersStatus.mockResolvedValue({
       github: { authenticated: true, state: "ok" }
     });
@@ -81,13 +73,9 @@ describe("useThroneReadiness", () => {
   });
 
   it("ready=false когда вендор не залогинен", async () => {
-    fetchCapabilities.mockResolvedValue([
-      { name: "terminal", title: "Terminal", detected: true, enabled: true }
-    ]);
     fetchGitProvidersStatus.mockResolvedValue({
       github: { authenticated: true, state: "ok" }
     });
-    // только opencode «в разработке» — не считается за залогиненного вендора.
     fetchTerminalVendorCatalog.mockResolvedValue({
       default_vendor: "claude",
       vendors: [vendor("in_development", false)]

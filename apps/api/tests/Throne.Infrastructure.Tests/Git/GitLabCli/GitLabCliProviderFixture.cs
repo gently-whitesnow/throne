@@ -11,7 +11,8 @@ internal sealed class GitLabCliProviderFixture
     public GitLabCliProviderFixture()
     {
         Launcher = Substitute.For<IProcessLauncher>();
-        var settings = Options.Create(new GitLabSettings { Host = Host });
+        var hostProvider = Substitute.For<IGitLabHostProvider>();
+        hostProvider.GetHostAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(Host));
         var options = Options.Create(new GitLabCliOptions
         {
             ExecutablePath = "glab",
@@ -19,13 +20,15 @@ internal sealed class GitLabCliProviderFixture
             PageSize = 50,
         });
         var invoker = new GlabCliInvoker(Launcher, options);
-        var searcher = new GlabRepoSearcher(invoker, settings);
-        var actions = new GlabRepoActions(invoker, settings, options, Launcher);
-        var probe = new GlabAuthProbe(invoker, settings);
-        var prActions = new GlabPullRequestActions(invoker, settings);
-        var refListers = new GlabRefListers(new GlabBranchLister(invoker, settings), new GlabPullRequestLister(invoker, settings));
-        var reviewWorkspace = new GlabReviewWorkspaceActions(invoker, settings);
-        var merge = new GlabMergeActions(invoker, settings);
+        var searcher = new GlabRepoSearcher(invoker, hostProvider);
+        var actions = new GlabRepoActions(invoker, hostProvider, options, Launcher);
+        var probe = new GlabAuthProbe(invoker, hostProvider);
+        var prActions = new GlabPullRequestActions(invoker, hostProvider);
+        var refListers = new GlabRefListers(
+            new GlabBranchLister(invoker, hostProvider),
+            new GlabPullRequestLister(invoker, hostProvider));
+        var reviewWorkspace = new GlabReviewWorkspaceActions(invoker, hostProvider);
+        var merge = new GlabMergeActions(invoker, hostProvider);
         Provider = new GitLabCliProvider(searcher, actions, probe, prActions, refListers, reviewWorkspace, merge);
     }
 

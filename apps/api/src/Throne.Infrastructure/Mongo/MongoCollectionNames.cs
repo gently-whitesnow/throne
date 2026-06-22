@@ -18,6 +18,7 @@ public static class MongoCollectionNames
     public const string RepositoryArtifactVersions = "repository_artifact_versions";
     public const string PullRequestArtifacts = "pull_request_artifacts";
     public const string Settings = "settings";
+    public const string GitLabHostSettings = "gitlab_host_settings";
     public const string PromptParts = "prompt_parts";
     public const string TerminalLaunches = "terminal_launches";
     public const string SkillModeDefaults = "skill_mode_defaults";

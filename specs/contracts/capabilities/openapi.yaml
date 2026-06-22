@@ -1,21 +1,23 @@
 openapi: "3.1.0"
 info:
   title: Throne Capabilities
-  version: "1.0.0"
+  version: "2.0.0"
   x-csharp-namespace: Throne.Capabilities.Contracts.Generated
+  description: >
+    Carrier-feature surface. A capability has multiple interchangeable providers
+    and the operator picks one (e.g. «Открыть в IDE» → VS Code vs Cursor). Plain
+    «фичи» that are not multi-provider are not capabilities — their availability
+    is observed via the relevant probe surface, not gated by an opt-in toggle.
 paths:
   /api/v1/settings/capabilities:
     get:
       operationId: listCapabilities
       tags: [Capabilities]
-      summary: List feature capabilities with prerequisite detection status and current toggle.
+      summary: List carrier capabilities with available providers and selected provider.
       description: >
-        Returns every capability Throne knows about. Each entry combines static metadata
-        (`title`, `description`, `prerequisite_hint`) with runtime detection
-        (`detected`, `detection_detail`) and the persisted toggle (`enabled`). New
-        capabilities default to `enabled=false`: explicit opt-in is required per Slice 2.
-        Detection is a TTL-cached health-check (`tmux --version`, `code --version`,
-        `gh auth status` etc.) and does NOT auto-enable the toggle.
+        Each entry exposes static metadata (`title`, `description`), the list of
+        candidate providers with their live detection status and the currently
+        `selected_provider` (null when no provider is selected/detected).
       responses:
         '200':
           description: OK
@@ -25,16 +27,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CapabilityDto'
-  /api/v1/settings/capabilities/{name}:
+  /api/v1/settings/capabilities/{name}/selected-provider:
     put:
-      operationId: setCapabilityEnabled
+      operationId: setCapabilitySelectedProvider
       tags: [Capabilities]
-      summary: Toggle a capability on or off.
+      summary: Select the active provider for a carrier capability.
       description: >
-        Persists the `enabled` flag for the capability identified by `name`. Toggling on
-        without a satisfied prerequisite is permitted — UI surfaces a red marker so the
-        operator can install the missing tool later. Toggling off is immediate and hides
-        the corresponding UI surfaces without touching any persisted user data.
+        Persists `selected_provider` for the capability identified by `name`.
+        Pass `null` to clear the selection — the UI falls back to «whichever
+        provider is detected» when only one candidate is available.
       parameters:
         - in: path
           name: name
@@ -46,7 +47,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SetCapabilityEnabledRequest'
+              $ref: '#/components/schemas/SetCapabilityProviderRequest'
       responses:
         '200':
           description: OK
@@ -55,7 +56,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CapabilityDto'
         '404':
-          description: Unknown capability name.
+          description: Unknown capability name or unknown provider for this capability.
           content:
             application/problem+json:
               schema:
@@ -65,59 +66,66 @@ components:
     CapabilityName:
       type: string
       enum:
-        - repositories
-        - gitlab
-        - terminal
-        - vscode
-        - opencode
+        - open_in_ide
       description: >
-        Closed set of capability keys exposed in settings.
+        Closed set of carrier capability keys. New entries are added only when a
+        feature has multiple interchangeable providers.
+    CapabilityProviderDto:
+      type: object
+      required:
+        - name
+        - title
+        - detected
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Stable provider key (e.g. `vscode`, `cursor`).
+        title:
+          type: string
+          minLength: 1
+          description: Human label rendered in the radio.
+        prerequisite_hint:
+          type: string
+          description: Operator-facing instruction for installing the missing prerequisite.
+        detected:
+          type: boolean
+          description: True when the provider's prerequisite is satisfied on this host.
+        detection_detail:
+          type: string
+          nullable: true
+          description: Short free-form note from the detector (`code 1.95.3`, `cursor not found`).
     CapabilityDto:
       type: object
       required:
         - name
         - title
         - description
-        - prerequisite_hint
-        - detected
-        - enabled
+        - providers
       properties:
         name:
           $ref: '#/components/schemas/CapabilityName'
         title:
           type: string
           minLength: 1
-          description: Short human-readable label rendered as the card title in `/settings`.
         description:
           type: string
           minLength: 1
-          description: One-to-two sentence summary of what this capability unlocks in Throne.
-        prerequisite_hint:
-          type: string
-          minLength: 1
-          description: >
-            Operator-facing instruction for installing the missing prerequisite
-            (e.g. `brew install tmux`, `gh auth login`). Rendered next to the toggle.
-        detected:
-          type: boolean
-          description: >
-            True when the prerequisite health-check succeeded on the last detection pass.
-            Detection alone never flips `enabled` — the operator opts in explicitly.
-        detection_detail:
+        selected_provider:
           type: string
           nullable: true
           description: >
-            Short free-form note from the detector (`tmux 3.5a`, `gh: not authenticated`,
-            `code CLI not found`). Useful for the UI to expose alongside the red/green dot.
-        enabled:
-          type: boolean
-          description: >
-            Persisted toggle from the singleton `capabilities` document. Defaults to
-            `false` for every new capability — see Slice 2 ADR.
-    SetCapabilityEnabledRequest:
+            Operator-selected provider name. Null when nothing is persisted —
+            consumers fall back to the single detected provider when only one
+            candidate exists.
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CapabilityProviderDto'
+    SetCapabilityProviderRequest:
       type: object
-      required:
-        - enabled
       properties:
-        enabled:
-          type: boolean
+        selected_provider:
+          type: string
+          nullable: true
+          description: Provider name to persist as selected. Pass null to clear.

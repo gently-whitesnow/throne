@@ -9,16 +9,22 @@ const render = (ui: React.ReactElement) =>
   renderWithQuery(ui, { withBridge: false });
 
 const fetchGitProvidersStatus = vi.fn<() => Promise<unknown>>();
+const setGitLabHost = vi.fn<(host: string) => Promise<{ host: string }>>();
 
 // The hook imports its API from a relative path, so we mock that path —
 // the public barrel keeps re-exporting the real selectors / meta / hook.
 vi.mock("@/entities/git-provider-status/api/git-providers-status-api", () => ({
-  fetchGitProvidersStatus: () => fetchGitProvidersStatus()
+  fetchGitProvidersStatus: () => fetchGitProvidersStatus(),
+  setGitLabHost: (host: string) => setGitLabHost(host)
 }));
 
 describe("GitProvidersCard", () => {
   beforeEach(() => {
     fetchGitProvidersStatus.mockReset();
+    setGitLabHost.mockReset();
+    setGitLabHost.mockImplementation((host: string) =>
+      Promise.resolve({ host })
+    );
   });
 
   afterEach(() => {
@@ -148,6 +154,79 @@ describe("GitProvidersCard", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toMatch(/boom/);
     });
+  });
+
+  it("сохраняет новый GitLab host по кнопке «Сохранить»", async () => {
+    fetchGitProvidersStatus.mockResolvedValue({
+      github: { authenticated: true, state: "authenticated", login: "octocat" },
+      gitlab: {
+        authenticated: true,
+        state: "authenticated",
+        host: "gitlab.com",
+        login: "me"
+      }
+    });
+
+    render(<GitProvidersCard />);
+
+    const input =
+      await screen.findByTestId<HTMLInputElement>("gitlab-host-input");
+    expect(input.value).toBe("gitlab.com");
+
+    fireEvent.change(input, { target: { value: "gitlab.example.com" } });
+    fireEvent.click(screen.getByTestId("gitlab-host-save"));
+
+    await waitFor(() => {
+      expect(setGitLabHost).toHaveBeenCalledWith("gitlab.example.com");
+    });
+  });
+
+  it("inline-ошибка валидации при пустом host'е и mutation не дёргается", async () => {
+    fetchGitProvidersStatus.mockResolvedValue({
+      github: { authenticated: true, state: "authenticated", login: "octocat" },
+      gitlab: {
+        authenticated: true,
+        state: "authenticated",
+        host: "gitlab.com"
+      }
+    });
+
+    render(<GitProvidersCard />);
+
+    const input =
+      await screen.findByTestId<HTMLInputElement>("gitlab-host-input");
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.click(screen.getByTestId("gitlab-host-save"));
+
+    expect(screen.getByTestId("gitlab-host-error").textContent).toMatch(
+      /Введите имя хоста/
+    );
+    expect(setGitLabHost).not.toHaveBeenCalled();
+  });
+
+  it("inline-ошибка валидации при host'е со схемой", async () => {
+    fetchGitProvidersStatus.mockResolvedValue({
+      github: { authenticated: true, state: "authenticated", login: "octocat" },
+      gitlab: {
+        authenticated: true,
+        state: "authenticated",
+        host: "gitlab.com"
+      }
+    });
+
+    render(<GitProvidersCard />);
+
+    const input =
+      await screen.findByTestId<HTMLInputElement>("gitlab-host-input");
+    fireEvent.change(input, {
+      target: { value: "https://gitlab.example.com" }
+    });
+    fireEvent.click(screen.getByTestId("gitlab-host-save"));
+
+    expect(screen.getByTestId("gitlab-host-error").textContent).toMatch(
+      /без схемы/
+    );
+    expect(setGitLabHost).not.toHaveBeenCalled();
   });
 
   it("ссылка «Как настроить gh» ведёт на docs.github.com и открывается в новой вкладке", async () => {

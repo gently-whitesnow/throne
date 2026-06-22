@@ -9,10 +9,14 @@ export {
   providerHealthKey,
   describeProviderSession
 } from "./model/selectors";
-export { fetchGitProvidersStatus } from "./api/git-providers-status-api";
+export {
+  fetchGitProvidersStatus,
+  setGitLabHost
+} from "./api/git-providers-status-api";
 export {
   gitProvidersStatusQueryKeys,
-  useGitProvidersStatusQuery
+  useGitProvidersStatusQuery,
+  useSetGitLabHost
 } from "./api/git-providers-status-queries";
 export {
   useGitProvidersStatus,

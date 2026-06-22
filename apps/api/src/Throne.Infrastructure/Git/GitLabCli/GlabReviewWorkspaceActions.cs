@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Options;
 using Throne.Application.Git;
 
 namespace Throne.Infrastructure.Git.GitLabCli;
@@ -11,7 +10,7 @@ namespace Throne.Infrastructure.Git.GitLabCli;
 /// <see cref="SubmitReviewCommentAsync"/> from
 /// <see cref="GetPullRequestDiffAsync"/> output.
 /// </summary>
-internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IOptions<GitLabSettings> settings)
+internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IGitLabHostProvider hostProvider)
 {
     public async Task<PullRequestDiff?> GetPullRequestDiffAsync(
         string owner,
@@ -19,7 +18,7 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         int number,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var mrJson = await ApiAsync(host, $"projects/{project}/merge_requests/{number}", ct);
         if (mrJson is null)
@@ -46,7 +45,7 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         string commitSha,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var commitJson = await ApiAsync(host, $"projects/{project}/repository/commits/{commitSha}", ct);
         if (commitJson is null)
@@ -72,7 +71,7 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         int number,
         CancellationToken ct)
     {
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var json = await ApiAsync(host, $"projects/{project}/merge_requests/{number}/commits", ct, paginate: true);
         return json is null ? null : GlabPullRequestCommitsParser.Parse(json);
@@ -86,7 +85,7 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var host = ReadHost();
+        var host = await hostProvider.GetHostAsync(ct);
         var project = GlabProjectPath.ApiId(owner, repo);
         var apiPath = $"projects/{project}/merge_requests/{number}/discussions";
         var body = BuildSubmitBody(request);
@@ -176,11 +175,4 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IO
         throw GlabExceptions.FromExit($"api {apiPath}", result);
     }
 
-    private string ReadHost()
-    {
-        var host = settings.Value.Host?.Trim();
-        return string.IsNullOrWhiteSpace(host)
-            ? throw new GitProviderException(GitProviderErrorKind.CliFailure, "Throne:GitLab:Host is not configured.")
-            : host;
-    }
 }

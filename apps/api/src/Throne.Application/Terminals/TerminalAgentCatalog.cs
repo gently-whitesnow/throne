@@ -93,7 +93,6 @@ public static class TerminalAgentCatalog
         DefaultEffort: null,
         ModelSource: ModelSourceLocal,
         BuildBaseArgs: static _ => [],
-        RequiredCapability: Throne.Domain.Capabilities.CapabilityNames.Opencode,
         // Pinned to local models (Throne:LocalModel, ADR-0042); local models are temporarily
         // unsupported, so opencode is surfaced as `in_development` — visible but not launchable
         // and excluded from the readiness check. Full rework tracked as a child intent.

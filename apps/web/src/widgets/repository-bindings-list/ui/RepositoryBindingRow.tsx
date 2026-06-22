@@ -22,7 +22,7 @@ import {
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { AttachPullRequestControl } from "@/features/attach-pull-request";
-import { OpenBindingInVscodeButton } from "@/features/open-in-vscode";
+import { OpenBindingInIdeButton } from "@/features/open-in-ide";
 import { errorMessage, httpErrorStatus } from "@/shared/lib";
 
 import { BindingRowMenu } from "./BindingRowMenu";
@@ -199,7 +199,7 @@ export function RepositoryBindingRow({
           ) : null}
 
           <BindingRowMenu label={fullName}>
-            <OpenBindingInVscodeButton
+            <OpenBindingInIdeButton
               intentId={intentId}
               bindingId={binding.id}
               fullName={fullName}
