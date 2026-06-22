@@ -31,6 +31,7 @@ public sealed partial class TmuxPromptSubmitConfirmer(
         string intentId,
         ISessionHookAdapter adapter,
         string? submittedPrompt,
+        TerminalPromptSubmitSignals.SubmitRegistration? submitSignal,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
@@ -46,7 +47,7 @@ public sealed partial class TmuxPromptSubmitConfirmer(
         while (true)
         {
             var (confirmed, snapshot, attempts) = await PollOnceAsync(
-                intentId, adapter, submittedPrompt, pollTimeout, poll, ct);
+                intentId, adapter, submittedPrompt, submitSignal, pollTimeout, poll, ct);
             if (confirmed)
             {
                 LogConfirmed(log, intentId, adapter.Vendor, retries, attempts);
@@ -73,6 +74,7 @@ public sealed partial class TmuxPromptSubmitConfirmer(
         string intentId,
         ISessionHookAdapter adapter,
         string? submittedPrompt,
+        TerminalPromptSubmitSignals.SubmitRegistration? submitSignal,
         TimeSpan timeout,
         TimeSpan poll,
         CancellationToken ct)
@@ -83,6 +85,13 @@ public sealed partial class TmuxPromptSubmitConfirmer(
         while (true)
         {
             ct.ThrowIfCancellationRequested();
+            // Authoritative path: the UserPromptSubmit hook fired, so the agent accepted the prompt.
+            // Beats the pane scrape, which Claude muddies by echoing the pasted prompt back.
+            if (submitSignal?.Submitted.IsCompleted == true)
+            {
+                return (true, snapshot, attempts);
+            }
+
             attempts++;
             snapshot = await tmux.CapturePaneAsync(intentId, ct);
             if (adapter.IsPromptSubmitted(snapshot))
@@ -104,12 +113,24 @@ public sealed partial class TmuxPromptSubmitConfirmer(
 
             var remaining = deadline - clock.GetUtcNow();
             var delay = remaining < poll ? remaining : poll;
-            if (delay <= TimeSpan.Zero)
+            if (delay > TimeSpan.Zero)
             {
-                continue;
+                await WaitNextPollAsync(submitSignal, delay, ct);
             }
-            await Task.Delay(delay, clock, ct);
         }
+    }
+
+    // Sleep one poll interval, but wake immediately if the UserPromptSubmit hook fires meanwhile.
+    private async Task WaitNextPollAsync(
+        TerminalPromptSubmitSignals.SubmitRegistration? submitSignal, TimeSpan delay, CancellationToken ct)
+    {
+        var delayTask = Task.Delay(delay, clock, ct);
+        if (submitSignal is null)
+        {
+            await delayTask;
+            return;
+        }
+        await Task.WhenAny(submitSignal.Submitted, delayTask);
     }
 
     private static bool PromptStillVisible(string snapshot, string? submittedPrompt)

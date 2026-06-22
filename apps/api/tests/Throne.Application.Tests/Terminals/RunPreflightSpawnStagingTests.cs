@@ -116,21 +116,12 @@ public class RunPreflightSpawnStagingTests
         var preparer = new RunPreflightWorkspacePreparer(
             Substitute.For<IWorkspaceTrust>(), new WorkspaceAttachmentDumper(attachments));
         var hookAdapters = new ISessionHookAdapter[] { new StubAdapter() };
-        var submitGate = new TmuxPromptSubmitGate(
-            hookAdapters,
-            new TmuxPromptSubmitConfirmer(
-                tmux, options, TimeProvider.System,
-                NullLogger<TmuxPromptSubmitConfirmer>.Instance),
-            options);
         return new RunPreflightSpawn(
             tmux,
             new WorkspaceRoot(workspaceRoot),
             preparer,
             hookAdapters,
-            new TmuxTuiReadinessWaiter(
-                tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
-                NullLogger<TmuxTuiReadinessWaiter>.Instance),
-            submitGate,
+            Substitute.For<IRunPreflightPromptDelivery>(),
             options,
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
