@@ -234,7 +234,6 @@ components:
         - status
         - operation
         - patch_text
-        - evidence_card_ids
         - rationale
         - base_version
         - created_at
@@ -264,10 +263,6 @@ components:
         applied_text:
           type: string
           description: What the user actually applied (may differ from patch_text).
-        evidence_card_ids:
-          type: array
-          items:
-            type: string
         rationale:
           type: string
           maxLength: 500
@@ -298,7 +293,6 @@ components:
         - target_scope
         - target_key
         - patch_text
-        - evidence_card_ids
         - rationale
         - base_version
       properties:
@@ -310,10 +304,6 @@ components:
         patch_text:
           type: string
           description: Whole new text for replace_text/create; empty for structural operations.
-        evidence_card_ids:
-          type: array
-          items:
-            type: string
         rationale:
           type: string
           maxLength: 500

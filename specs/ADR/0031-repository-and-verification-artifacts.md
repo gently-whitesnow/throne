@@ -6,6 +6,8 @@ Accepted
 Date: 2026-06-06
 Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0030](0030-mcp-surface-policy-cli-first.md), [ADR-0008](0008-realtime-contract-first-events.md), [ADR-0006](0006-openapi-contract-first-codegen.md), [ADR-0002](0002-domain-model-and-text-versioning.md)
 
+**Update 2026-06-21:** retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) в части MCP. Отсылки к MCP-surface / [ADR-0030](0030-mcp-surface-policy-cli-first.md) историчны — MCP удалён, агент ходит через CLI-скиллы. Сами два контракта (repository-знание и PR-верификация) из этого ADR в силе.
+
 ## Context
 
 Эпик «единое окно цикла разработки» порождает производное знание, которому негде жить как durable-данным: карта схемы БД репозитория (Slice 3) и выходы верификации работы агента над PR (статанализ, описание тестов/шагов, покрытие, диаграммы вызовов/классов/взаимодействия, AI-рекомендации по порядку чтения файлов на ревью). Сегодня это либо не существует, либо рискует осесть в `Intent.text` (шумит историю, [ADR-0019](0019-intent-events-unified-history.md)) или в одноразовых полях агрегата.

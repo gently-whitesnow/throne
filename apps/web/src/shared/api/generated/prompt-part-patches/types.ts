@@ -110,7 +110,6 @@ export interface components {
             mode_roles?: components["schemas"]["PromptPartModeRoleDto"][];
             /** @description What the user actually applied (may differ from patch_text). */
             applied_text?: string;
-            evidence_card_ids: string[];
             rationale: string;
             /** @description Required when status=rejected; ≥10 chars after trimming. */
             reject_comment?: string;
@@ -131,7 +130,6 @@ export interface components {
             target_key: string;
             /** @description Whole new text for replace_text/create; empty for structural operations. */
             patch_text: string;
-            evidence_card_ids: string[];
             rationale: string;
             /** Format: int32 */
             base_version: number;

@@ -9,12 +9,10 @@ internal static class PromptPartPatchBudgets
 {
     public static void EnsureAll(
         string patchText,
-        IReadOnlyList<string> evidenceCardIds,
         string rationale,
         int baseVersion)
     {
         EnsurePatchTextWithinBudget(patchText);
-        EnsureEvidenceWithinBudget(evidenceCardIds);
         EnsureRationaleWithinBudget(rationale);
         EnsureBaseVersionPositive(baseVersion);
     }
@@ -26,20 +24,6 @@ internal static class PromptPartPatchBudgets
             throw new ArgumentException(
                 $"patch_text must be at most {PromptPartPatch.MaxPatchTextLength} characters.",
                 nameof(patchText));
-        }
-    }
-
-    private static void EnsureEvidenceWithinBudget(IReadOnlyList<string> evidenceCardIds)
-    {
-        if (evidenceCardIds.Count > PromptPartPatch.MaxEvidenceCardIds)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(evidenceCardIds),
-                $"evidence_card_ids must contain at most {PromptPartPatch.MaxEvidenceCardIds} entries.");
-        }
-        for (var i = 0; i < evidenceCardIds.Count; i++)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(evidenceCardIds[i], nameof(evidenceCardIds));
         }
     }
 

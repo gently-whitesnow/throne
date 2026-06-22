@@ -24,7 +24,6 @@ public sealed class PromptPartPatch
     public const int MinRejectCommentLength = 10;
     public const int MaxRationaleLength = 500;
     public const int MaxPatchTextLength = 32_000;
-    public const int MaxEvidenceCardIds = 50;
 
     public enum ApplyResult
     {
@@ -46,7 +45,6 @@ public sealed class PromptPartPatch
         string operation,
         string patchText,
         IReadOnlyList<PromptPartModeRole>? modeRoles,
-        IReadOnlyList<string> evidenceCardIds,
         string rationale)
     {
         Identity = identity;
@@ -54,7 +52,6 @@ public sealed class PromptPartPatch
         Operation = operation;
         PatchText = patchText;
         ModeRoles = modeRoles is null ? null : [.. modeRoles];
-        EvidenceCardIds = evidenceCardIds;
         Rationale = rationale;
     }
 
@@ -62,7 +59,6 @@ public sealed class PromptPartPatch
     public string Operation { get; }
     public string PatchText { get; }
     public IReadOnlyList<PromptPartModeRole>? ModeRoles { get; }
-    public IReadOnlyList<string> EvidenceCardIds { get; }
     public string Rationale { get; }
     public PromptPartPatchState State { get; private set; }
 
@@ -73,17 +69,15 @@ public sealed class PromptPartPatch
         string operation,
         string patchText,
         IReadOnlyList<PromptPartModeRole>? modeRoles,
-        IReadOnlyList<string> evidenceCardIds,
         string rationale,
         int baseVersion,
         DateTimeOffset now)
     {
         EnsureRequiredStringsForCreate(id, targetScope, targetKey, rationale);
         ArgumentNullException.ThrowIfNull(patchText);
-        ArgumentNullException.ThrowIfNull(evidenceCardIds);
         EnsurePatchableScope(targetScope);
         EnsureOperationPayload(operation, patchText, modeRoles);
-        PromptPartPatchBudgets.EnsureAll(patchText, evidenceCardIds, rationale, baseVersion);
+        PromptPartPatchBudgets.EnsureAll(patchText, rationale, baseVersion);
 
         var identity = new PromptPartPatchIdentity(id, targetScope, targetKey, baseVersion, now);
         return new PromptPartPatch(
@@ -92,7 +86,6 @@ public sealed class PromptPartPatch
             operation,
             patchText,
             modeRoles,
-            [.. evidenceCardIds],
             rationale);
     }
 
@@ -101,7 +94,6 @@ public sealed class PromptPartPatch
         string targetScope,
         string targetKey,
         string patchText,
-        IReadOnlyList<string> evidenceCardIds,
         string rationale,
         int baseVersion,
         DateTimeOffset now) =>
@@ -112,7 +104,6 @@ public sealed class PromptPartPatch
             PromptPartPatchOperationNames.ReplaceText,
             patchText,
             modeRoles: null,
-            evidenceCardIds,
             rationale,
             baseVersion,
             now);
@@ -123,7 +114,6 @@ public sealed class PromptPartPatch
         string? operation,
         string patchText,
         IReadOnlyList<PromptPartModeRole>? modeRoles,
-        IReadOnlyList<string> evidenceCardIds,
         string rationale)
     {
         ArgumentNullException.ThrowIfNull(identity);
@@ -136,16 +126,15 @@ public sealed class PromptPartPatch
             ? PromptPartPatchOperationNames.ReplaceText
             : operation;
         EnsureOperationPayload(restoredOperation, patchText, modeRoles);
-        return new PromptPartPatch(identity, state, restoredOperation, patchText, modeRoles, [.. evidenceCardIds], rationale);
+        return new PromptPartPatch(identity, state, restoredOperation, patchText, modeRoles, rationale);
     }
 
     public static PromptPartPatch Restore(
         PromptPartPatchIdentity identity,
         PromptPartPatchState state,
         string patchText,
-        IReadOnlyList<string> evidenceCardIds,
         string rationale) =>
-        Restore(identity, state, null, patchText, null, evidenceCardIds, rationale);
+        Restore(identity, state, null, patchText, null, rationale);
 
     /// <summary>
     /// User-driven apply transition. Verbatim apply (<paramref name="editedText"/>

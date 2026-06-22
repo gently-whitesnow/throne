@@ -127,7 +127,6 @@ public class MongoPromptPartPatchRepositoryTests(MongoFixture fixture)
             targetScope: PromptPartScopeNames.User,
             targetKey: "work",
             patchText: "patch payload",
-            evidenceCardIds: ["card-1"],
             rationale: "rationale",
             baseVersion: 5,
             now: Now);
