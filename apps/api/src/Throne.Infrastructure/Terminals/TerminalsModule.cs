@@ -68,6 +68,12 @@ public static class TerminalsModule
         services.AddSingleton<ICapabilityProbe, OpencodeCapabilityProbe>();
         services.AddSingleton<ICapabilityDetectionCache, CapabilityDetectionCache>();
 
+        // Per-vendor login probes feed the vendor-card status and the readiness check
+        // (`GET /terminal/vendors` → login_status). opencode has no probe — it is surfaced
+        // statically as `in_development` by the catalog mapper.
+        services.AddSingleton<IAgentVendorLoginProbe, ClaudeLoginProbe>();
+        services.AddSingleton<IAgentVendorLoginProbe, CodexLoginProbe>();
+
         return services;
     }
 }

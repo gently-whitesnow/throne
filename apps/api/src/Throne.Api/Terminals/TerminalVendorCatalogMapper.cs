@@ -12,28 +12,30 @@ namespace Throne.Api.Terminals;
 /// <see cref="TerminalVendorDescriptor.Models"/> is empty and the live list is fetched via the
 /// matching <see cref="IVendorModelCatalog"/>.
 ///
-/// Descriptors whose <see cref="TerminalVendorDescriptor.RequiredCapability"/> is not currently
-/// available (capability toggle off or its prerequisite probe undetected) are dropped from the
-/// response — the frontend cannot select what the catalog does not advertise, mirroring the
-/// pattern used for the GitLab provider (ADR-0032 § 8). The default vendor falls back to the
-/// catalog default when the persisted one was filtered out.
+/// Every registered descriptor is returned. Each carries a <c>login_status</c> (probed CLI
+/// login via <see cref="IAgentVendorLoginProbe"/>) and a <c>selectable</c> flag: the settings
+/// vendor cards render all vendors with their status, while the launch dropdowns keep only
+/// <c>selectable=true</c>. A vendor is non-selectable when it is <c>in_development</c>
+/// (currently <c>opencode</c>) or its <see cref="TerminalVendorDescriptor.RequiredCapability"/>
+/// is unavailable (capability toggle off or prerequisite probe undetected) — mirroring the
+/// GitLab pattern from ADR-0032 § 8.
 /// </summary>
 public sealed class TerminalVendorCatalogMapper(
     IEnumerable<IVendorModelCatalog> dynamicCatalogs,
+    IEnumerable<IAgentVendorLoginProbe> loginProbes,
     ICapabilityAvailability capabilities)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
         dynamicCatalogs.ToDictionary(c => c.Vendor, StringComparer.Ordinal);
+
+    private readonly Dictionary<string, IAgentVendorLoginProbe> _loginProbes =
+        loginProbes.ToDictionary(p => p.Vendor, StringComparer.Ordinal);
 
     public async Task<TerminalVendorCatalogResponse> ToDtoAsync(CancellationToken ct)
     {
         var vendors = new List<TerminalVendorMetadataDto>(TerminalAgentCatalog.Descriptors.Count);
         foreach (var descriptor in TerminalAgentCatalog.Descriptors)
         {
-            if (!await IsAvailableAsync(descriptor, ct))
-            {
-                continue;
-            }
             vendors.Add(await ToVendorDtoAsync(descriptor, ct));
         }
         return new TerminalVendorCatalogResponse
@@ -43,14 +45,36 @@ public sealed class TerminalVendorCatalogMapper(
         };
     }
 
-    private async Task<bool> IsAvailableAsync(TerminalVendorDescriptor descriptor, CancellationToken ct) =>
-        descriptor.RequiredCapability is null
-        || await capabilities.IsAvailableAsync(descriptor.RequiredCapability, ct);
+    private async Task<bool> IsSelectableAsync(TerminalVendorDescriptor descriptor, CancellationToken ct)
+    {
+        if (descriptor.InDevelopment)
+        {
+            return false;
+        }
+        return descriptor.RequiredCapability is null
+            || await capabilities.IsAvailableAsync(descriptor.RequiredCapability, ct);
+    }
+
+    private async Task<(TerminalVendorLoginStatus Status, string? Detail)> ResolveLoginAsync(
+        TerminalVendorDescriptor descriptor, CancellationToken ct)
+    {
+        if (descriptor.InDevelopment)
+        {
+            return (TerminalVendorLoginStatus.In_development, "в разработке");
+        }
+        if (_loginProbes.TryGetValue(descriptor.Vendor, out var probe))
+        {
+            var result = await probe.ProbeAsync(ct);
+            return (ParseLoginStatus(result.Status), result.Detail);
+        }
+        return (TerminalVendorLoginStatus.Logged_out, null);
+    }
 
     private async Task<TerminalVendorMetadataDto> ToVendorDtoAsync(
         TerminalVendorDescriptor descriptor, CancellationToken ct)
     {
         var models = await ResolveModelsAsync(descriptor, ct);
+        var login = await ResolveLoginAsync(descriptor, ct);
         return new TerminalVendorMetadataDto
         {
             Vendor = ParseVendor(descriptor.Vendor),
@@ -65,8 +89,19 @@ public sealed class TerminalVendorCatalogMapper(
             Efforts = descriptor.Efforts.ToArray(),
             Default_effort = descriptor.DefaultEffort is { } effort ? ParseEffort(effort) : null,
             Model_source = ParseModelSource(descriptor.ModelSource),
+            Login_status = login.Status,
+            Login_detail = login.Detail,
+            Selectable = await IsSelectableAsync(descriptor, ct),
         };
     }
+
+    private static TerminalVendorLoginStatus ParseLoginStatus(AgentVendorLoginStatus status) => status switch
+    {
+        AgentVendorLoginStatus.Ready => TerminalVendorLoginStatus.Ready,
+        AgentVendorLoginStatus.LoggedOut => TerminalVendorLoginStatus.Logged_out,
+        AgentVendorLoginStatus.Missing => TerminalVendorLoginStatus.Missing,
+        _ => TerminalVendorLoginStatus.Logged_out,
+    };
 
     private async Task<IList<string>> ResolveModelsAsync(
         TerminalVendorDescriptor descriptor, CancellationToken ct)

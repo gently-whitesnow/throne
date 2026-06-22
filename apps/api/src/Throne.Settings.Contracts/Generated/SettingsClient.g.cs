@@ -262,6 +262,13 @@ namespace Throne.Settings.Contracts.Generated
         public string Root { get; set; }
 
         /// <summary>
+        /// Whether `root` currently exists and is writable (probed by creating and deleting a throw-away file). Feeds the «Throne готов» readiness check — a non-writable workspace root blocks clones into intent workspaces.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("writable")]
+        public bool Writable { get; set; }
+
+        /// <summary>
         /// Optional host-side path for the workspace, configured via `Throne:Workspace:HostRoot`. Relevant only when the API runs inside a container whose `root` is a bind-mount, so the UI can show where clones live on the operator's machine. Empty in the native host-backend mode (ADR-0027), where `root` is already the real host path.
         /// <br/>
         /// </summary>

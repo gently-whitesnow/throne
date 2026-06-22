@@ -26,6 +26,22 @@ public static class CapabilityNames
         Opencode,
     };
 
+    /// <summary>
+    /// Essential capabilities for Throne's embedded-only contour (git via <see cref="Repositories"/>,
+    /// agent terminal via <see cref="Terminal"/>). These are detection-ready: an installed,
+    /// authenticated prerequisite is treated as enabled without an explicit opt-in toggle —
+    /// ADR-0026 § 9 amendment, rationale embedded-only. Optional features (`vscode`, `gitlab`,
+    /// `opencode`) keep the original explicit opt-in semantics.
+    /// </summary>
+    private static readonly HashSet<string> EssentialNames = new(StringComparer.Ordinal)
+    {
+        Repositories,
+        Terminal,
+    };
+
     public static bool IsKnown(string name) =>
         !string.IsNullOrEmpty(name) && Known.Contains(name);
+
+    public static bool IsEssential(string name) =>
+        !string.IsNullOrEmpty(name) && EssentialNames.Contains(name);
 }

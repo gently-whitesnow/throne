@@ -41,13 +41,19 @@ public sealed class CapabilitiesService(
     public async Task<bool> IsAvailableAsync(string name, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var stored = await persistence.GetAsync(ct);
-        if (stored is null || !stored.IsEnabled(name))
-        {
-            return false;
-        }
         var probe = await detection.GetAsync(name, ct);
-        return probe?.Detected ?? false;
+        var detected = probe?.Detected ?? false;
+
+        // Essentials are detection-ready: an installed prerequisite is treated as enabled
+        // without an explicit opt-in toggle (ADR-0026 § 9, embedded-only). Optional features
+        // still require the stored toggle AND detection.
+        if (Throne.Domain.Capabilities.CapabilityNames.IsEssential(name))
+        {
+            return detected;
+        }
+
+        var stored = await persistence.GetAsync(ct);
+        return stored is not null && stored.IsEnabled(name) && detected;
     }
 
     public async Task<CapabilityView> ToggleAsync(string name, bool enabled, CancellationToken ct)
@@ -65,14 +71,19 @@ public sealed class CapabilitiesService(
         CapabilitiesAggregate? stored,
         CancellationToken ct)
     {
-        var enabled = stored is not null && stored.IsEnabled(descriptor.Name);
         var probe = await detection.GetAsync(descriptor.Name, ct);
+        var detected = probe?.Detected ?? false;
+        // Essentials report enabled=detected (auto-ready, ADR-0026 § 9): the UI no longer
+        // surfaces a toggle for them. Optional features reflect the persisted opt-in.
+        var enabled = Throne.Domain.Capabilities.CapabilityNames.IsEssential(descriptor.Name)
+            ? detected
+            : stored is not null && stored.IsEnabled(descriptor.Name);
         return new CapabilityView(
             Name: descriptor.Name,
             Title: descriptor.Title,
             Description: descriptor.Description,
             PrerequisiteHint: descriptor.PrerequisiteHint,
-            Detected: probe?.Detected ?? false,
+            Detected: detected,
             DetectionDetail: probe?.Detail,
             Enabled: enabled);
     }

@@ -7,6 +7,7 @@ import { ImprovementsSectionPage } from "@/pages/improvements-section";
 import { IntentDetailPage } from "@/pages/intent-detail";
 import { IntentsSectionPage } from "@/pages/intents-section";
 import { InstructionsSectionPage } from "@/pages/instructions-section";
+import { LaunchSkillsPage } from "@/pages/launch-skills";
 import { RepositoryDetailPage } from "@/pages/repository-detail";
 import { RepositoriesSectionPage } from "@/pages/repositories-section";
 import { SettingsPage } from "@/pages/settings";
@@ -42,6 +43,7 @@ export function App() {
             />
             <Route path="/instructions" element={<InstructionsSectionPage />} />
             <Route path="/improvements" element={<ImprovementsSectionPage />} />
+            <Route path="/launch-skills" element={<LaunchSkillsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
