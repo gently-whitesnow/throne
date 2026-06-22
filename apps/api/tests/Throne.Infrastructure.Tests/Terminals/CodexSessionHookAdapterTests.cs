@@ -82,8 +82,8 @@ public class CodexSessionHookAdapterTests
         args.Should().Contain(t => t.Contains("/hooks/Stop?mode=interview'"));
     }
 
-    [Fact(DisplayName = "Codex review: стейджит artifact writer и hint в developer profile")]
-    public async Task Review_writes_artifact_script_and_profile_hint()
+    [Fact(DisplayName = "Codex review: стейджит artifact writer, canonical skill и .agents pointer")]
+    public async Task Review_writes_artifact_script_and_native_skill_pointer()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
         var home = NewHome();
@@ -94,20 +94,25 @@ public class CodexSessionHookAdapterTests
             skillPackages: [new ReviewSessionSkillPackage(ReviewTarget())],
             CancellationToken.None);
 
-        args.Should().ContainInOrder("-p", "throne-intent-1");
+        args.Should().NotContain("-p");
         var scriptPath = Path.Combine(root, "skills", "review", "bin", "throne-review");
         var script = await File.ReadAllTextAsync(scriptPath);
         script.Should().NotContain("binding-1");
         script.Should().Contain("THRONE_REPOSITORY_BINDING_ID");
         AssertExecutable(scriptPath);
 
-        var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
-        profile.Should().Contain("review_recommendation");
-        profile.Should().Contain("skills/review/bin/throne-review write");
+        File.Exists(Path.Combine(home, "throne-intent-1.config.toml")).Should().BeFalse();
+        var canonical = await File.ReadAllTextAsync(Path.Combine(root, "skills", "review", "SKILL.md"));
+        canonical.Should().Contain("review_recommendation");
+        canonical.Should().Contain("skills/review/bin/throne-review write");
+        var pointer = await File.ReadAllTextAsync(Path.Combine(root, ".agents", "skills", "review", "SKILL.md"));
+        pointer.Should().Contain("skills/review/SKILL.md");
+        pointer.Should().Contain("skills/review/bin/");
+        pointer.Should().NotContain("Payload shape");
     }
 
-    [Fact(DisplayName = "Codex interview: пишет статический intent script и hint-profile")]
-    public async Task Interview_writes_intent_operations_script_and_profile_hint()
+    [Fact(DisplayName = "Codex interview: пишет статический intent script, canonical skill и .agents pointer")]
+    public async Task Interview_writes_intent_operations_script_and_native_skill_pointer()
     {
         var root = Path.Combine(Path.GetTempPath(), $"throne-codex-{Guid.NewGuid():N}");
         var home = NewHome();
@@ -121,15 +126,19 @@ public class CodexSessionHookAdapterTests
             skillPackages: [new IntentSessionSkillPackage()],
             CancellationToken.None);
 
-        args.Should().ContainInOrder("-p", "throne-intent-1");
+        args.Should().NotContain("-p");
         var script = await File.ReadAllTextAsync(
             Path.Combine(root, "skills", "intent", "bin", "throne-intent"));
         script.Should().NotContain("intent-1");
         script.Should().Contain("THRONE_INTENT_ID");
 
-        var profile = await File.ReadAllTextAsync(Path.Combine(home, "throne-intent-1.config.toml"));
-        profile.Should().Contain("Throne Intent Operations");
-        profile.Should().Contain("replace-text --old-file");
+        File.Exists(Path.Combine(home, "throne-intent-1.config.toml")).Should().BeFalse();
+        var canonical = await File.ReadAllTextAsync(Path.Combine(root, "skills", "intent", "SKILL.md"));
+        canonical.Should().Contain("Throne Intent Operations");
+        canonical.Should().Contain("replace-text --old-file");
+        var pointer = await File.ReadAllTextAsync(Path.Combine(root, ".agents", "skills", "intent", "SKILL.md"));
+        pointer.Should().Contain("skills/intent/SKILL.md");
+        pointer.Should().NotContain("replace-text --old-file");
     }
 
     [Theory(DisplayName = "Codex IsTuiReady распознаёт композёр по input-row маркеру и игнорирует splash")]

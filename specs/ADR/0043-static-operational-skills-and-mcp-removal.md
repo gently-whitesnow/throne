@@ -46,10 +46,12 @@ The session skill catalog exposes exactly `intent`, `review`, and `dream`. Defau
 
 The operator can still add or remove any of the three skills on any run; mode continues to affect only system-prompt composition.
 
-Vendor adapters materialize the same source skills into vendor-specific locations:
+Vendor adapters materialize the same source skills into a workspace-local canonical location
+and vendor-specific discovery files:
 
-- Claude: `.claude/skills/<id>/SKILL.md`
-- Codex: inline developer-profile hints
+- Canonical source for the session: `skills/<id>/SKILL.md`
+- Claude pointer: `.claude/skills/<id>/SKILL.md`
+- Codex pointer: `.agents/skills/<id>/SKILL.md`
 - OpenCode: `throne-session.<id>.md` instruction files
 
 ## MCP Retirement
