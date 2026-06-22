@@ -14,6 +14,9 @@ internal static class TerminalRealtimeMapper
         TerminalSessionStopped stopped => new RealtimeEventEnvelope(
             RealtimeEventNames.TerminalSessionStopped,
             new { intent_id = stopped.IntentId }),
+        TerminalPromptSubmitUnconfirmed unconfirmed => new RealtimeEventEnvelope(
+            RealtimeEventNames.TerminalPromptSubmitUnconfirmed,
+            new { intent_id = unconfirmed.IntentId }),
         _ => null,
     };
 }

@@ -20,10 +20,12 @@ public class TerminalHookStatusAckTests
             Substitute.For<IUnitOfWork>(),
             TimeProvider.System);
         var signals = new TerminalReadinessSignals();
+        var submitSignals = new TerminalPromptSubmitSignals();
         using var readiness = signals.Arm("intent-1");
         var ack = new TerminalHookStatusAck(
             new TerminalHookStatusHandler(repository, status),
             signals,
+            submitSignals,
             NullLogger<TerminalHookStatusAck>.Instance);
 
         await ack.HandleAsync(
@@ -35,5 +37,31 @@ public class TerminalHookStatusAckTests
         readiness.Ready.IsCompletedSuccessfully.Should().BeTrue();
         await repository.DidNotReceiveWithAnyArgs()
             .GetByIdAsync(default!, default);
+    }
+
+    [Fact(DisplayName = "UserPromptSubmit hook завершает submit latch")]
+    public async Task User_prompt_submit_signals_submit_latch()
+    {
+        var repository = Substitute.For<IIntentRepository>();
+        var status = new SetIntentStatusHandler(
+            repository,
+            Substitute.For<IUnitOfWork>(),
+            TimeProvider.System);
+        var signals = new TerminalReadinessSignals();
+        var submitSignals = new TerminalPromptSubmitSignals();
+        using var submit = submitSignals.Arm("intent-1");
+        var ack = new TerminalHookStatusAck(
+            new TerminalHookStatusHandler(repository, status),
+            signals,
+            submitSignals,
+            NullLogger<TerminalHookStatusAck>.Instance);
+
+        await ack.HandleAsync(
+            "intent-1",
+            Event.UserPromptSubmit,
+            TerminalRunMode.Work,
+            CancellationToken.None);
+
+        submit.Submitted.IsCompletedSuccessfully.Should().BeTrue();
     }
 }

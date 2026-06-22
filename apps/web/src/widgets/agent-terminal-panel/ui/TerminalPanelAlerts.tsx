@@ -1,4 +1,4 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 
 import type { RepositoryBinding } from "@/entities/repository-binding";
 
@@ -8,12 +8,14 @@ interface TerminalPanelAlertsProps {
   metadataError: boolean;
   notReadyBindings: readonly RepositoryBinding[];
   sessionError: string | null;
+  submitUnconfirmed: boolean;
 }
 
 export function TerminalPanelAlerts({
   metadataError,
   notReadyBindings,
-  sessionError
+  sessionError,
+  submitUnconfirmed
 }: TerminalPanelAlertsProps) {
   return (
     <>
@@ -57,6 +59,24 @@ export function TerminalPanelAlerts({
             className="mt-0.5"
           />
           <span>{sessionError}</span>
+        </p>
+      ) : null}
+
+      {submitUnconfirmed ? (
+        <p
+          role="status"
+          className="m-0 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning"
+        >
+          <AlertTriangle
+            aria-hidden
+            size={14}
+            strokeWidth={2}
+            className="mt-0.5"
+          />
+          <span>
+            Похоже, стартовый промпт не отправился автоматически. Проверьте поле
+            ввода в терминале ниже и при необходимости нажмите Enter.
+          </span>
         </p>
       ) : null}
     </>

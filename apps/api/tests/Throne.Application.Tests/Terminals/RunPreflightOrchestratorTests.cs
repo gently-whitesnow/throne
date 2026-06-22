@@ -78,26 +78,18 @@ public partial class RunPreflightOrchestratorTests
                 && r.Arguments.Contains("high")
                 // Neither the rules block nor the user task ride the spawn argv anymore — rules
                 // come in via the adapter's file-backed reference (here the stub's --settings),
-                // the task is pasted after spawn via PasteFileAsSubmittedPromptAsync.
+                // the task is delivered after spawn by the detached prompt-delivery seam.
                 && r.Arguments.Contains("--settings")
                 && r.Arguments.Contains(SettingsPath)
                 && !r.Arguments.Contains("TASK")
                 && r.WorkingDirectory.EndsWith($"intents/{IntentIdValue}")),
             Arg.Any<CancellationToken>());
-        await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
-            IntentIdValue,
-            Arg.Is<string>(p => p.EndsWith($"intents/{IntentIdValue}/throne-session.user-prompt.txt")),
-            Arg.Any<CancellationToken>());
-        Received.InOrder(() =>
-        {
-            fixture.Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
-            // Readiness gate before paste: composer marker must render.
-            fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
-            fixture.Tmux.PasteFileAsSubmittedPromptAsync(
-                IntentIdValue, Arg.Any<string>(), Arg.Any<CancellationToken>());
-            // Submit-confirmation gate after paste: working footer must render to confirm Enter.
-            fixture.Tmux.CapturePaneAsync(IntentIdValue, Arg.Any<CancellationToken>());
-        });
+        // Spawn returns Running immediately and hands the user task to the detached delivery task.
+        fixture.Delivery.Received(1).Kick(Arg.Is<TerminalPromptDeliveryRequest>(r =>
+            r.IntentId == IntentIdValue
+            && r.UserPrompt == "TASK"
+            && r.Vendor == TerminalAgentCatalog.VendorClaude
+            && r.Mode == TerminalRunModes.Work));
         await fixture.Intents.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
             IntentStatusNames.Work,
@@ -128,10 +120,8 @@ public partial class RunPreflightOrchestratorTests
                 r.Command == "claude"
                 && r.Arguments.SequenceEqual(ClaudeBareArgs)),
             Arg.Any<CancellationToken>());
-        await fixture.Tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await fixture.Tmux.DidNotReceive().SendLiteralTextAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        // Empty task → boot bare, no prompt delivery kicked.
+        fixture.Delivery.DidNotReceive().Kick(Arg.Any<TerminalPromptDeliveryRequest>());
         await fixture.Intents.Received(1).SetStatusAsync(
             Arg.Any<IntentId>(),
             IntentStatusNames.Work,
@@ -143,8 +133,8 @@ public partial class RunPreflightOrchestratorTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Большой UserPrompt не валит спавн — задача доставляется paste-ом из файла")]
-    public async Task Run_large_user_prompt_delivered_via_paste()
+    [Fact(DisplayName = "Большой UserPrompt не валит спавн — задача доставляется фоновой delivery-задачей")]
+    public async Task Run_large_user_prompt_delivered_via_background_delivery()
     {
         var hugePrompt = new string('Я', 25_000);
         var bigPrompt = new TerminalSpawnPrompt(SystemPrompt: "RULES", UserPrompt: hugePrompt, null, null);
@@ -162,10 +152,9 @@ public partial class RunPreflightOrchestratorTests
         await fixture.Tmux.Received(1).SpawnAsync(
             Arg.Is<TmuxSpawnRequest>(r => r.Arguments.All(a => a.Length < 1000)),
             Arg.Any<CancellationToken>());
-        await fixture.Tmux.Received(1).PasteFileAsSubmittedPromptAsync(
-            IntentIdValue,
-            Arg.Is<string>(p => p.EndsWith("throne-session.user-prompt.txt")),
-            Arg.Any<CancellationToken>());
+        // The huge prompt never rides the spawn argv — it is handed to the detached delivery task.
+        fixture.Delivery.Received(1).Kick(Arg.Is<TerminalPromptDeliveryRequest>(r =>
+            r.UserPrompt.Length == 25_000));
     }
 
     [Fact(DisplayName = "Run с broken-binding возвращает blocked и не спавнит tmux")]
@@ -189,29 +178,6 @@ public partial class RunPreflightOrchestratorTests
         await fixture.LaunchStore.DidNotReceive().SaveAsync(
             Arg.Any<string>(), Arg.Any<TerminalLaunchRecord>(), Arg.Any<CancellationToken>());
         await fixture.Tmux.DidNotReceive().SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact(DisplayName = "TUI так и не нарисовал composer → terminal.tui_readiness_timeout, paste не вызывается")]
-    public async Task Run_tui_readiness_timeout_blocks_paste()
-    {
-        var fixture = new Fixture().Setup(
-            capabilityEnabled: true,
-            intentExists: true,
-            hasSession: false,
-            bindings: [NewBinding(cloneStatus: CloneStatusNames.Ready)],
-            spawn: new TmuxSpawnResult(TmuxSessionName.For(IntentIdValue), IsAlive: true, Detail: null));
-        // Override the default capture-pane stub: pane stays empty forever, so neither the
-        // vendor marker nor the screen-stability fallback fires and the waiter must time out.
-        fixture.Tmux.CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(string.Empty);
-
-        var act = () => fixture.Orchestrator.RunAsync(
-            IntentIdValue, TerminalRunModes.Work, DefaultLaunch, CuratedPrompt, restart: false, CancellationToken.None);
-
-        var ex = await act.Should().ThrowAsync<ApiException>();
-        ex.Which.Code.Should().Be(TerminalErrorCodes.TuiReadinessTimeout);
-        await fixture.Tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Run при живой сессии без restart=true бросает terminal.session_already_running")]

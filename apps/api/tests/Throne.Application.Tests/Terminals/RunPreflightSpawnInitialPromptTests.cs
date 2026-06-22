@@ -35,21 +35,13 @@ public class RunPreflightSpawnInitialPromptTests
             TuiReadinessPollIntervalMilliseconds = 20,
         };
         var hookAdapters = new ISessionHookAdapter[] { adapter };
-        var submitGate = new TmuxPromptSubmitGate(
-            hookAdapters,
-            new TmuxPromptSubmitConfirmer(
-                tmux, options, TimeProvider.System,
-                NullLogger<TmuxPromptSubmitConfirmer>.Instance),
-            options);
+        var delivery = Substitute.For<IRunPreflightPromptDelivery>();
         var sut = new RunPreflightSpawn(
             tmux,
             new WorkspaceRoot(workspaceRoot),
             TerminalSpawnTestDoubles.EmptyWorkspacePreparer(),
             hookAdapters,
-            new TmuxTuiReadinessWaiter(
-                tmux, options, TimeProvider.System, new TerminalReadinessSignals(),
-                NullLogger<TmuxTuiReadinessWaiter>.Instance),
-            submitGate,
+            delivery,
             options,
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
@@ -72,6 +64,8 @@ public class RunPreflightSpawnInitialPromptTests
             await tmux.DidNotReceive().CapturePaneAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
             await tmux.DidNotReceive().PasteFileAsSubmittedPromptAsync(
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            // Native-session vendors deliver the prompt before spawn — no detached delivery kicked.
+            delivery.DidNotReceive().Kick(Arg.Any<TerminalPromptDeliveryRequest>());
         }
         finally
         {
