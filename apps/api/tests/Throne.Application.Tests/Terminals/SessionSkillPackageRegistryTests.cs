@@ -53,5 +53,5 @@ public class SessionSkillPackageRegistryTests
     }
 
     private static SessionSkillPackageRegistry NewRegistry() =>
-        new(new InMemorySessionSkillCatalog());
+        new(TerminalSpawnTestDoubles.SkillCatalog());
 }

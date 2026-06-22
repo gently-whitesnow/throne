@@ -72,7 +72,7 @@ public partial class RunPreflightOrchestratorTests
             SkillSelections = Substitute.For<IIntentSkillModeSelectionStore>();
             var skillPlanner = new RunPreflightSkillPlanner(
                 BuildSkillSelection(),
-                new SessionSkillPackageRegistry(new InMemorySessionSkillCatalog()),
+                new SessionSkillPackageRegistry(TerminalSpawnTestDoubles.SkillCatalog()),
                 SkillSelections);
             var launchPlanner = new RunPreflightLaunchPlanner(launchResolver, LaunchStore);
             Orchestrator = new RunPreflightOrchestrator(
@@ -128,13 +128,14 @@ public partial class RunPreflightOrchestratorTests
                 hookAdapters,
                 Delivery,
                 options,
+                TerminalSpawnTestDoubles.VendorCatalog(),
                 new SetIntentStatusHandler(Intents, uow, clock),
                 Substitute.For<IDomainEventDispatcher>());
         }
 
         private static SessionSkillSelectionService BuildSkillSelection()
         {
-            var catalog = new InMemorySessionSkillCatalog();
+            var catalog = TerminalSpawnTestDoubles.SkillCatalog();
             var defaults = Substitute.For<ISkillModeDefaultStore>();
             defaults.ListAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(SkillModeDefaultSeeds.Build(catalog)));
@@ -148,7 +149,7 @@ public partial class RunPreflightOrchestratorTests
             settingsStore.GetDefaultVendorAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(TerminalAgentCatalog.VendorClaude));
             return new TerminalLaunchResolver(
-                settingsStore, Array.Empty<IVendorModelCatalog>());
+                settingsStore, TerminalSpawnTestDoubles.VendorCatalog(), Array.Empty<IVendorModelCatalog>());
         }
 
         private RunPreflightPromptGate BuildPromptGate(TimeProvider clock, IUnitOfWork uow)

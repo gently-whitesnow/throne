@@ -168,7 +168,7 @@ public class IntentTerminalPreviewHandlerTests
 
     private static SessionSkillSelectionService NewSkillSelection()
     {
-        var catalog = new InMemorySessionSkillCatalog();
+        var catalog = TerminalSpawnTestDoubles.SkillCatalog();
         var defaults = Substitute.For<ISkillModeDefaultStore>();
         defaults.ListAsync(Arg.Any<CancellationToken>())
             .Returns(SkillModeDefaultSeeds.Build(catalog));

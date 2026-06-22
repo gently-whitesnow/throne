@@ -156,7 +156,7 @@ public class AttachIntentTerminalSkillsHandlerTests
         public IIntentRepository Intents { get; } = Substitute.For<IIntentRepository>();
         public IIntentRepositoryBindingRepository Bindings { get; } = Substitute.For<IIntentRepositoryBindingRepository>();
         public IIntentTerminalLaunchStore Launches { get; } = Substitute.For<IIntentTerminalLaunchStore>();
-        public ISessionSkillCatalog Catalog { get; } = new InMemorySessionSkillCatalog();
+        public ISessionSkillCatalog Catalog { get; } = TerminalSpawnTestDoubles.SkillCatalog();
         public ITmuxSessionManager Tmux { get; } = Substitute.For<ITmuxSessionManager>();
         public ISessionSkillHotAttachWriter Writer { get; } = new TestSkillWriter();
 
@@ -184,7 +184,8 @@ public class AttachIntentTerminalSkillsHandlerTests
                 Substitute.For<ISkillModeDefaultStore>(),
                 Substitute.For<IIntentSkillModeSelectionStore>());
             Handler = new AttachIntentTerminalSkillsHandler(
-                Intents, Bindings, Launches, Catalog, selection, Tmux, Writer);
+                Intents, Bindings, Launches, Catalog, TerminalSpawnTestDoubles.VendorCatalog(),
+                selection, Tmux, Writer);
             return this;
         }
     }

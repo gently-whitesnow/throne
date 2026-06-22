@@ -10,7 +10,7 @@ public class AgentSpawnCommandTests
     {
         var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorClaude, "opus", "high");
 
-        var invocation = AgentSpawnCommand.Build(options);
+        var invocation = AgentSpawnCommand.Build(TerminalVendorDescriptors.Claude, options);
 
         invocation.Command.Should().Be("claude");
         invocation.Arguments.Should().Equal("--model", "opus", "--effort", "high");
@@ -22,6 +22,7 @@ public class AgentSpawnCommandTests
         var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorClaude, "opus", "high");
 
         var invocation = AgentSpawnCommand.Build(
+            TerminalVendorDescriptors.Claude,
             options,
             preparedArgs: ["--settings", "/tmp/settings.json", "--append-system-prompt-file", "/tmp/sp.txt"]);
 
@@ -36,7 +37,7 @@ public class AgentSpawnCommandTests
     {
         var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorCodex, "gpt-5.5", "medium");
 
-        var invocation = AgentSpawnCommand.Build(options);
+        var invocation = AgentSpawnCommand.Build(TerminalVendorDescriptors.Codex, options);
 
         invocation.Command.Should().Be("codex");
         invocation.Arguments.Should().Equal(

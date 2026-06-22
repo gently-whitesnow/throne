@@ -29,6 +29,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
     IIntentRepositoryBindingRepository bindings,
     IIntentTerminalLaunchStore launches,
     ISessionSkillCatalog catalog,
+    ITerminalVendorCatalog vendors,
     SessionSkillSelectionService selection,
     ITmuxSessionManager tmux,
     ISessionSkillHotAttachWriter writer)
@@ -71,7 +72,7 @@ public sealed class AttachIntentTerminalSkillsHandler(
                 "Hot-attach requires a previously spawned session for this intent.",
                 new Dictionary<string, object?> { ["intent_id"] = request.IntentId });
 
-        if (!SupportsNativeHotAttach(launch.Vendor))
+        if (!(vendors.Find(launch.Vendor)?.SupportsNativeHotAttach ?? false))
         {
             throw new ApiException(
                 TerminalErrorCodes.SessionSkillVendorUnsupported,
@@ -119,8 +120,4 @@ public sealed class AttachIntentTerminalSkillsHandler(
                 ex.Extensions);
         }
     }
-
-    private static bool SupportsNativeHotAttach(string vendor) =>
-        string.Equals(vendor, TerminalAgentCatalog.VendorClaude, StringComparison.Ordinal)
-        || string.Equals(vendor, TerminalAgentCatalog.VendorCodex, StringComparison.Ordinal);
 }

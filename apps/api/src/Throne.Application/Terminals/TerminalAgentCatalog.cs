@@ -1,11 +1,12 @@
 namespace Throne.Application.Terminals;
 
 /// <summary>
-/// Provider-neutral agent axis for the embedded terminal. Holds the closed effort set and
-/// the per-vendor <see cref="TerminalVendorDescriptor"/>s (label, curated model whitelist,
-/// effort capability + native default, spawn-argv builder). Curated lists are hardcoded in
-/// the descriptors and updated by editing this file — there is no free-text model entry on
-/// the launch surface, and no new vendor is registered at runtime.
+/// Stable wire tokens for the provider-neutral agent axis: vendor names, the closed effort set,
+/// model-source provenance and the default vendor. The per-vendor
+/// <see cref="TerminalVendorDescriptor"/>s live in <see cref="TerminalVendorDescriptors"/> and are
+/// resolved at runtime through the DI-registered <see cref="ITerminalVendorCatalog"/> (ADR-0045) —
+/// not from a static list here. The effort set is provider-neutral and closed, so it stays a
+/// constant on this token holder rather than a per-vendor extension point.
 /// </summary>
 public static class TerminalAgentCatalog
 {
@@ -39,83 +40,12 @@ public static class TerminalAgentCatalog
     /// <summary>Vendor used when neither the request nor settings pin one.</summary>
     public const string DefaultVendor = VendorClaude;
 
-    // Closed effort set, ordered low → xhigh; shared across effort-capable vendors.
-    private static readonly IReadOnlyList<string> SharedEfforts =
+    /// <summary>Closed effort set, ordered low → xhigh; shared across effort-capable vendors.</summary>
+    public static readonly IReadOnlyList<string> SharedEfforts =
         [EffortLow, EffortMedium, EffortHigh, EffortXhigh];
 
     private static readonly HashSet<string> KnownEfforts =
         new(SharedEfforts, StringComparer.Ordinal);
-
-    private static readonly TerminalVendorDescriptor Claude = new(
-        Vendor: VendorClaude,
-        Label: "Claude",
-        Models: ["opus", "sonnet", "haiku"],
-        SupportsEffort: true,
-        Efforts: SharedEfforts,
-        DefaultEffort: EffortHigh,
-        ModelSource: ModelSourceStatic,
-        BuildBaseArgs: static options => ["--model", options.Model, "--effort", options.Effort!]);
-
-    private static readonly TerminalVendorDescriptor Codex = new(
-        Vendor: VendorCodex,
-        Label: "Codex",
-        Models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
-        SupportsEffort: true,
-        Efforts: SharedEfforts,
-        DefaultEffort: EffortMedium,
-        ModelSource: ModelSourceStatic,
-        // codex launches with --dangerously-bypass-approvals-and-sandbox (alias --yolo): the
-        // operator presses run and walks away, so mid-task approval prompts on routine work
-        // (git fetch / branch from a remote ref, dependency install — all blocked by the
-        // default workspace-write sandbox's no-network policy) would strand the session.
-        // tmux passes the argv straight to execvp, so the -c value is a raw unquoted token.
-        BuildBaseArgs: static options =>
-        [
-            "-m", options.Model,
-            "-c", $"model_reasoning_effort={options.Effort}",
-            "--dangerously-bypass-approvals-and-sandbox",
-        ]);
-
-    // OpenCode reads its top-level provider/model from the workspace-local `opencode.json` that
-    // the session-hook adapter writes (npm = "@ai-sdk/openai-compatible", baseURL = local /v1
-    // endpoint, models map = live discovery). The spawn argv carries no model/effort flag: the
-    // agent loop runs in a shared `opencode serve`, not in this pane, and the model is pinned
-    // server-side on the prompt (`prompt_async` model={providerID,modelID}) by the session-hook
-    // adapter. The pane only runs `opencode attach <url> --session <id>` — the adapter supplies
-    // that whole argv as prepared args, so BuildBaseArgs is empty. No effort axis either:
-    // OpenCode does not surface reasoning-effort tiers (SupportsEffort=false).
-    private static readonly TerminalVendorDescriptor Opencode = new(
-        Vendor: VendorOpencode,
-        Label: "OpenCode",
-        Models: [],
-        SupportsEffort: false,
-        Efforts: [],
-        DefaultEffort: null,
-        ModelSource: ModelSourceLocal,
-        BuildBaseArgs: static _ => [],
-        // Pinned to local models (Throne:LocalModel, ADR-0042); local models are temporarily
-        // unsupported, so opencode is surfaced as `in_development` — visible but not launchable
-        // and excluded from the readiness check. Full rework tracked as a child intent.
-        InDevelopment: true);
-
-    /// <summary>Descriptors in catalog (display) order; drives the launch-surface dropdown.</summary>
-    public static readonly IReadOnlyList<TerminalVendorDescriptor> Descriptors = [Claude, Codex, Opencode];
-
-    private static readonly Dictionary<string, TerminalVendorDescriptor> ByVendor =
-        new(StringComparer.Ordinal)
-        {
-            [VendorClaude] = Claude,
-            [VendorCodex] = Codex,
-            [VendorOpencode] = Opencode,
-        };
-
-    public static TerminalVendorDescriptor DescriptorFor(string vendor) =>
-        ByVendor.TryGetValue(vendor, out var descriptor)
-            ? descriptor
-            : throw new ArgumentOutOfRangeException(nameof(vendor), $"Unknown terminal vendor '{vendor}'.");
-
-    public static bool IsKnownVendor(string vendor) =>
-        !string.IsNullOrEmpty(vendor) && ByVendor.ContainsKey(vendor);
 
     public static bool IsKnownEffort(string effort) =>
         !string.IsNullOrEmpty(effort) && KnownEfforts.Contains(effort);

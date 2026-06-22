@@ -17,7 +17,14 @@ public class TerminalVendorCatalogMapperTests
             new StubLoginProbe(TerminalAgentCatalog.VendorClaude, claudeLogin),
             new StubLoginProbe(TerminalAgentCatalog.VendorCodex, codexLogin),
         ];
+        var catalog = new TerminalVendorCatalog(
+        [
+            TerminalVendorDescriptors.Claude,
+            TerminalVendorDescriptors.Codex,
+            TerminalVendorDescriptors.Opencode,
+        ]);
         return new TerminalVendorCatalogMapper(
+            catalog,
             dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
             probes);
     }

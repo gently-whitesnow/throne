@@ -123,6 +123,7 @@ public class RunPreflightSpawnStagingTests
             hookAdapters,
             Substitute.For<IRunPreflightPromptDelivery>(),
             options,
+            TerminalSpawnTestDoubles.VendorCatalog(),
             new SetIntentStatusHandler(intents, new PassthroughUnitOfWork(), TimeProvider.System),
             Substitute.For<IDomainEventDispatcher>());
     }

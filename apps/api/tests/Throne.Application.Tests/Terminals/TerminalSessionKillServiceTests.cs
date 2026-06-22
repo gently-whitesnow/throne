@@ -96,6 +96,7 @@ public class TerminalSessionKillServiceTests
                 Array.Empty<ISessionHookAdapter>(),
                 Substitute.For<IRunPreflightPromptDelivery>(),
                 options,
+                TerminalSpawnTestDoubles.VendorCatalog(),
                 new SetIntentStatusHandler(Intents, new PassthroughUnitOfWork(), new FixedClock(Now)),
                 Substitute.For<IDomainEventDispatcher>());
             var guards = new RunPreflightGuards(Intents, Detection, spawn);
