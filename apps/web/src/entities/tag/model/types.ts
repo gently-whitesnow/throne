@@ -7,4 +7,6 @@ export type TagDetail = TagsComponents["schemas"]["TagDetailDto"];
 export type TagDefaultRepository =
   TagsComponents["schemas"]["TagDefaultRepositoryDto"];
 
+export type TagUsage = TagsComponents["schemas"]["TagUsageDto"];
+
 export type TagRef = IntentsComponents["schemas"]["TagRefDto"];
