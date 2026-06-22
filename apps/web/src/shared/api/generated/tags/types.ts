@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List all tags ordered by name. */
+        /**
+         * List tags (cursor-paginated, usage-desc) with inline intents_count.
+         * @description Returns a single page of tags ordered by usage (`usage_count desc, id asc`) so the most-used tags surface first. Each item carries `intents_count` inline (read from the denormalized counter — no per-tag usage round-trip). Pagination is opaque-cursor; `next_cursor` is absent on the final page. `search` is a case-insensitive substring filter on the normalized name. Default page size is 50, capped at 100.
+         */
         get: operations["listTags"];
         put?: never;
         /**
@@ -103,6 +106,28 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        TagListItemDto: {
+            /** @description Tag identifier (32 hex chars). */
+            id: string;
+            /** @description Normalized hashtag-shaped slug (a-z, 0-9, '-', '_'). */
+            name: string;
+            /** Format: int32 */
+            current_version: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /**
+             * Format: int32
+             * @description Number of intents currently referencing this tag (denormalized counter).
+             */
+            intents_count: number;
+        };
+        TagListPageDto: {
+            items: components["schemas"]["TagListItemDto"][];
+            /** @description Opaque continuation token; absent on the final page. */
+            next_cursor?: string;
+        };
         CreateTagRequest: {
             name: string;
         };
@@ -172,7 +197,14 @@ export type $defs = Record<string, never>;
 export interface operations {
     listTags: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Opaque continuation cursor returned by the previous page. */
+                cursor?: string;
+                /** @description Page size, default 50, capped at 100. */
+                limit?: number;
+                /** @description Case-insensitive substring filter against the tag name. */
+                search?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -185,7 +217,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TagDto"][];
+                    "application/json": components["schemas"]["TagListPageDto"];
                 };
             };
         };

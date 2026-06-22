@@ -8,16 +8,43 @@ paths:
     get:
       operationId: listTags
       tags: [Tags]
-      summary: List all tags ordered by name.
+      summary: List tags (cursor-paginated, usage-desc) with inline intents_count.
+      description: >
+        Returns a single page of tags ordered by usage (`usage_count desc, id asc`) so the
+        most-used tags surface first. Each item carries `intents_count` inline (read from the
+        denormalized counter — no per-tag usage round-trip). Pagination is opaque-cursor;
+        `next_cursor` is absent on the final page. `search` is a case-insensitive substring
+        filter on the normalized name. Default page size is 50, capped at 100.
+      parameters:
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+          description: Opaque continuation cursor returned by the previous page.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+          description: Page size, default 50, capped at 100.
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            minLength: 1
+          description: Case-insensitive substring filter against the tag name.
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/TagDto'
+                $ref: '#/components/schemas/TagListPageDto'
     post:
       operationId: createTag
       tags: [Tags]
@@ -253,6 +280,50 @@ components:
         updated_at:
           type: string
           format: date-time
+    TagListItemDto:
+      type: object
+      required:
+        - id
+        - name
+        - current_version
+        - created_at
+        - updated_at
+        - intents_count
+      properties:
+        id:
+          type: string
+          description: Tag identifier (32 hex chars).
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: Normalized hashtag-shaped slug (a-z, 0-9, '-', '_').
+        current_version:
+          type: integer
+          format: int32
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        intents_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of intents currently referencing this tag (denormalized counter).
+    TagListPageDto:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagListItemDto'
+        next_cursor:
+          type: string
+          description: Opaque continuation token; absent on the final page.
     CreateTagRequest:
       type: object
       required:

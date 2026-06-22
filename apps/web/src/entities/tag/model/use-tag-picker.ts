@@ -4,8 +4,7 @@ import { useCallback, useMemo } from "react";
 import { HttpError } from "@/shared/api";
 
 import { createTag } from "../api/tags-api";
-import { tagsQueryKeys, useTags } from "../api/tags-queries";
-import type { Tag } from "./types";
+import { tagsQueryKeys, useAllTags } from "../api/tags-queries";
 
 interface TagPickerState {
   availableTags: string[];
@@ -14,7 +13,7 @@ interface TagPickerState {
 }
 
 export function useTagPicker(): TagPickerState {
-  const tagsQuery = useTags();
+  const tagsQuery = useAllTags();
   const queryClient = useQueryClient();
 
   const loadError = useMemo(() => {
@@ -29,13 +28,9 @@ export function useTagPicker(): TagPickerState {
     async (slug: string): Promise<string> => {
       try {
         const created = await createTag({ name: slug });
-        // Оптимистичный апдейт кеша: realtime tag.created долетит позже и
-        // повторно инвалидирует, но UI не ждёт сети.
-        queryClient.setQueryData<Tag[]>(tagsQueryKeys.list(), (prev) => {
-          if (!prev) return prev;
-          if (prev.some((t) => t.id === created.id)) return prev;
-          return [...prev, created];
-        });
+        // Свежесозданный тег появится в списке после рефетча; realtime
+        // tag.created тоже инвалидирует ключ, но не ждём сети — инвалидируем сразу.
+        void queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
         return created.name;
       } catch (err: unknown) {
         if (err instanceof HttpError && err.status === 409) {

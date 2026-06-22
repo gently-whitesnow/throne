@@ -16,9 +16,32 @@ import type {
 
 type CreateTagBody = TagsComponents["schemas"]["CreateTagRequest"];
 type RenameTagBody = TagsComponents["schemas"]["RenameTagRequest"];
+type TagListPage = TagsComponents["schemas"]["TagListPageDto"];
 
-export function fetchTags(signal?: AbortSignal): Promise<Tag[]> {
-  return httpGet<Tag[]>(tagsEndpoints.listTags(), signal);
+export interface TagListParams {
+  search?: string;
+  limit?: number;
+}
+
+function buildTagsListUrl(
+  params: TagListParams,
+  cursor: string | undefined
+): string {
+  const qs = new URLSearchParams();
+  if (cursor) qs.set("cursor", cursor);
+  if (params.limit !== undefined) qs.set("limit", String(params.limit));
+  if (params.search) qs.set("search", params.search);
+  const base = tagsEndpoints.listTags();
+  const suffix = qs.toString();
+  return suffix.length > 0 ? `${base}?${suffix}` : base;
+}
+
+export function fetchTagsPage(
+  params: TagListParams,
+  cursor: string | undefined,
+  signal?: AbortSignal
+): Promise<TagListPage> {
+  return httpGet<TagListPage>(buildTagsListUrl(params, cursor), signal);
 }
 
 export function createTag(

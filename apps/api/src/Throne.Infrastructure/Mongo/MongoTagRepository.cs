@@ -1,5 +1,6 @@
 using MongoDB.Driver;
 using Throne.Application.Ports;
+using Throne.Application.Tags;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
@@ -13,11 +14,13 @@ internal sealed class MongoTagRepository : MongoRepositoryBase<TagDocument, stri
     // Secondary collection (intent fan-out for tag-detach + usage count) lives here
     // as a plain field — only the primary `tags` collection goes through the base.
     private readonly IMongoCollection<IntentDocument> _intents;
+    private readonly MongoTagListReader _listReader;
 
     public MongoTagRepository(IMongoDatabase database, MongoSessionAccessor sessions)
         : base(database, MongoCollectionNames.Tags, sessions)
     {
         _intents = database.GetCollection<IntentDocument>(MongoCollectionNames.Intents);
+        _listReader = new MongoTagListReader(database, sessions);
     }
 
     protected override FilterDefinition<TagDocument> ById(string id) =>
@@ -33,6 +36,9 @@ internal sealed class MongoTagRepository : MongoRepositoryBase<TagDocument, stri
         }
         return result;
     }
+
+    public Task<TagListPage> ListPageAsync(TagListSpec spec, CancellationToken ct) =>
+        _listReader.ListPageAsync(spec, ct);
 
     public async Task<Tag?> GetByIdAsync(TagId id, CancellationToken ct)
     {
