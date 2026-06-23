@@ -73,6 +73,7 @@ internal sealed class ServiceFixture
         Probe = new StubWorkspaceProbe();
         Queue = new RecordingCloneQueue();
         BranchReader = Substitute.For<ILocalGitBranchReader>();
+        WorkspaceSync = Substitute.For<ILocalGitWorkspaceSync>();
         var workspace = new StubWorkspaceRoot(RepositoryBindingTestData.WorkspaceRoot);
         var unitOfWork = new PassthroughUnitOfWork();
         var clock = new FixedClock(RepositoryBindingTestData.Now);
@@ -99,6 +100,7 @@ internal sealed class ServiceFixture
         Service = new RepositoryBindingService(
             resolver, persistence, syncWorkflow, cloneWriter, Queue, autoBind, visitor,
             NullLogger<RepositoryBindingService>.Instance);
+        SyncBranchUseCase = new SyncRepositoryBranchUseCase(resolver, persistence, WorkspaceSync);
     }
 
     public IIntentRepository Intents { get; }
@@ -109,7 +111,9 @@ internal sealed class ServiceFixture
     public StubWorkspaceProbe Probe { get; }
     public RecordingCloneQueue Queue { get; }
     public ILocalGitBranchReader BranchReader { get; }
+    public ILocalGitWorkspaceSync WorkspaceSync { get; }
     public RepositoryBindingService Service { get; }
+    public SyncRepositoryBranchUseCase SyncBranchUseCase { get; }
 }
 
 /// <summary>

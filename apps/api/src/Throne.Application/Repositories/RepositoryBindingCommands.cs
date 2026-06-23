@@ -27,6 +27,15 @@ public sealed record UnbindRepositoryCommand(string IntentId, string BindingId);
 public sealed record RefreshRepositoryBindingCommand(string IntentId, string BindingId);
 
 /// <summary>
+/// «Синхронизировать ветку»: hard-sync the local clone's current branch to its remote tip
+/// (<c>git fetch</c> + <c>git reset --hard origin/{branch}</c>). Separate from «Обновить» —
+/// this is the only action that touches the working tree, and the reset discards
+/// uncommitted local changes (the UI confirm warns about it). Requires a ready clone whose
+/// folder is present on disk.
+/// </summary>
+public sealed record SyncRepositoryBranchCommand(string IntentId, string BindingId);
+
+/// <summary>
 /// Manual PR-comment refresh (ADR-0024 § 6). Synchronous on purpose — the response
 /// carries the freshly observed comments back to the UI in the same request.
 /// Background polling still pushes per-comment fanout for other open clients.

@@ -17,6 +17,8 @@ const listIntentRepositories =
   vi.fn<(intentId: string) => Promise<RepositoryBinding[]>>();
 const refreshIntentRepository =
   vi.fn<(intentId: string, bindingId: string) => Promise<RepositoryBinding>>();
+const syncIntentRepositoryBranch =
+  vi.fn<(intentId: string, bindingId: string) => Promise<RepositoryBinding>>();
 
 // Hook reads through the relative path inside the entity layer; mocking the
 // API module keeps selectors / hook / meta exported by the public barrel.
@@ -25,6 +27,8 @@ vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
     listIntentRepositories(intentId),
   refreshIntentRepository: (intentId: string, bindingId: string) =>
     refreshIntentRepository(intentId, bindingId),
+  syncIntentRepositoryBranch: (intentId: string, bindingId: string) =>
+    syncIntentRepositoryBranch(intentId, bindingId),
   unbindIntentRepository: vi.fn().mockResolvedValue(undefined),
   bindIntentRepository: vi.fn()
 }));
@@ -81,6 +85,7 @@ describe("RepositoryBindingsList", () => {
   beforeEach(() => {
     listIntentRepositories.mockReset();
     refreshIntentRepository.mockReset();
+    syncIntentRepositoryBranch.mockReset();
     for (const k of Object.keys(realtimeHandlers)) {
       realtimeHandlers[k] = [];
     }
@@ -222,6 +227,57 @@ describe("RepositoryBindingsList", () => {
       const pill = screen.getByTestId("binding-clone-status-b1");
       expect(pill.getAttribute("data-status")).toBe("pending");
     });
+  });
+
+  it("«Синхронизировать ветку» подтверждается и дёргает sync-branch-эндпоинт", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    listIntentRepositories.mockResolvedValue([
+      makeBinding({ clone_status: "ready" })
+    ]);
+    syncIntentRepositoryBranch.mockResolvedValue(
+      makeBinding({ clone_status: "ready" })
+    );
+    renderList();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("binding-clone-status-b1")).toBeTruthy();
+    });
+
+    fireEvent.click(
+      screen.getByLabelText(/Ещё действия — octocat\/hello-world/)
+    );
+    fireEvent.click(
+      screen.getByLabelText(/Синхронизировать ветку octocat\/hello-world/)
+    );
+
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(syncIntentRepositoryBranch).toHaveBeenCalledWith("intent-1", "b1");
+    });
+    confirmSpy.mockRestore();
+  });
+
+  it("«Синхронизировать ветку»: отмена в confirm не дёргает эндпоинт", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    listIntentRepositories.mockResolvedValue([
+      makeBinding({ clone_status: "ready" })
+    ]);
+    renderList();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("binding-clone-status-b1")).toBeTruthy();
+    });
+
+    fireEvent.click(
+      screen.getByLabelText(/Ещё действия — octocat\/hello-world/)
+    );
+    fireEvent.click(
+      screen.getByLabelText(/Синхронизировать ветку octocat\/hello-world/)
+    );
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(syncIntentRepositoryBranch).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it("intent.repository_bound добавляет новую строку", async () => {
