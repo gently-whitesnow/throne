@@ -15,8 +15,11 @@ Choose by what you were asked to do — do not inspect the environment first.
 
 - **Create an intent** — asked to create one, or there is no current intent → `create`. It needs no
   `THRONE_INTENT_ID` and works in a bare/standalone shell.
-- **Work with the current intent** — read, refine, or link children → `get`, `replace-text`,
-  `link`. These act on the current `THRONE_INTENT_ID`.
+- **Refine the current intent** → `replace-text` (it re-reads the intent itself for concurrency).
+- **Decompose the current intent** → `create` + `link`.
+
+You usually already have the current `Intent.text` in your session context — do not call `get` just
+to read it. Reach for `get` only when you genuinely lack the text and need to fetch it.
 
 Anti-pattern: do not run `get` as a connectivity smoke test when there is no current intent — it
 will correctly fail with `THRONE_INTENT_ID is required`. If the task is to create an intent, just
