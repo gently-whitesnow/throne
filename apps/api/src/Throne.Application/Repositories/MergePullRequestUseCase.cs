@@ -30,7 +30,7 @@ public sealed class MergePullRequestUseCase(
     /// provider merge fires, so once the sync tick observes the merge the intent is left open (and
     /// its agent session alive) instead of being auto-closed to <c>done</c>. When false (default)
     /// the binding is left untouched and the merge auto-closes the intent as before. The
-    /// teardown-on-done gate (<c>CleanupLocalStateOnDone</c>) is no longer touched here — it is
+    /// teardown-on-close gate (<c>CleanupLocalStateOnClose</c>) is no longer touched here — it is
     /// owned by the intent and edited via the intents cleanup-on-done endpoint.
     /// </param>
     public async Task<PullRequestMergeResult> MergeAsync(

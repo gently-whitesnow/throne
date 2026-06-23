@@ -108,19 +108,19 @@ public sealed class Intent
     }
 
     /// <summary>
-    /// Sets the gate that decides whether reaching <c>done</c> wipes the intent's local
-    /// state (agent trust entries + workspace folder). Idempotent — returns <c>false</c>
+    /// Sets the gate that decides whether closing the intent (<c>done</c> or <c>reject</c>) wipes
+    /// its local state (agent trust entries + workspace folder). Idempotent — returns <c>false</c>
     /// when the flag already matches. Metadata, like tag membership: bumps
     /// <see cref="IntentState.UpdatedAt"/> but not <see cref="IntentState.CurrentVersion"/>.
     /// </summary>
     public bool SetCleanupLocalStateOnDone(bool value, DateTimeOffset now)
     {
-        if (State.CleanupLocalStateOnDone == value)
+        if (State.CleanupLocalStateOnClose == value)
         {
             return false;
         }
 
-        State = State with { CleanupLocalStateOnDone = value, UpdatedAt = now };
+        State = State with { CleanupLocalStateOnClose = value, UpdatedAt = now };
         return true;
     }
 
