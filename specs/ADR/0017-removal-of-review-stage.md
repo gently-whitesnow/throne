@@ -6,6 +6,17 @@ Accepted
 Date: 2026-05-08
 Supersedes (in part): [ADR-0002](0002-domain-model-and-text-versioning.md), [ADR-0003](0003-mcp-text-editing-semantics.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md)
 
+## Amendment (2026-06-23): статус `ready_for_review` выпилен
+
+§ 2 этого ADR сохранял `ready_for_review` как явный агентский сигнал «работа закончена». После [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) (standalone MCP retired) и [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) § 5 (embedded-хуки паркуют конец прохода в `awaiting_operator`) никто не эмитит `ready_for_review` автоматически, а ручной пик из дропдауна на практике не использовался. Два инбокс-статуса путали «какой именно ход за оператором», поэтому статус выпилен целиком:
+
+- `IntentStatusNames.ReadyForReview`, ветка маппинга в `IntentStatusDtoMapper`, `IntentStatus.ready_for_review` в OpenAPI-enum и поле `inbox_review` в `IntentContextCountsDto` удалены.
+- `INBOX_STATUSES` схлопнут до одного значения `awaiting_operator`; рейл инбокса показывает одну секцию.
+- Quick-action «Завершить» в `SetIntentStatusForm` теперь висит на `awaiting_operator → done`.
+- Миграция данных и алиас не вводятся (по аналогии с § 7 [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) — внешних потребителей у local-first ядра нет; живых интентов в статусе не было).
+
+Где ниже по тексту сказано «`ready_for_review` сохраняется» / «явное агентское действие» — читать как историю до 2026-06-23.
+
 ## Контекст
 
 ADR-0002/0003 ввели training-only коллекции `intent_qa` и `intent_review` плюс соответствующие MCP-инструменты `add_intent_qa` / `add_intent_review` / `mark_ready_for_review` / `mark_ready_for_work`. Их назначение — собирать «инсайты из диалога» (interview-вопросы и post-work правки), чтобы потом dream выводил из них правила в user-инструкциях.

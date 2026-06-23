@@ -73,7 +73,7 @@ public sealed class TerminalRunningContextTests
     {
         var repo = Substitute.For<IIntentRepository>();
         repo.GetContextCountsAsync(Arg.Any<IReadOnlyList<string>>(), Arg.Any<CancellationToken>())
-            .Returns(new IntentContextCounts(0, 0, 0, 0, 0, 0, 0, 0, [], [], [], TerminalRunning: 1));
+            .Returns(new IntentContextCounts(0, 0, 0, 0, 0, 0, 0, [], [], [], TerminalRunning: 1));
         var tmux = Substitute.For<ITmuxSessionManager>();
         tmux.ListThroneSessionsAsync(Arg.Any<CancellationToken>())
             .Returns<IReadOnlyList<string>>(["throne-aaa"]);

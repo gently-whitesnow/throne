@@ -21,7 +21,7 @@ public class PullRequestStateRefresherTests
         var binding = Binding(PullRequestStateNames.Merged);
         fixture.SeedPullRequestSnapshot(binding, PullRequestStateNames.Merged);
         fixture.SeedSiblings(binding);
-        fixture.SeedIntent(IntentStatusNames.ReadyForReview);
+        fixture.SeedIntent(IntentStatusNames.AwaitingOperator);
 
         var refreshed = await fixture.Refresher.RefreshAsync(binding, fixture.Provider, CancellationToken.None);
 

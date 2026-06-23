@@ -9,6 +9,17 @@ Related: [ADR-0008](0008-realtime-contract-first-events.md), [ADR-0014](0014-mcp
 
 **Update 2026-06-21:** amended by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md). The standalone MCP contour is retired; embedded terminal plus static operational skills is the supported execution contour.
 
+## Amendment (2026-06-23): единственный инбокс-статус — `awaiting_operator`
+
+§ 5 разводил два инбокс-статуса, § 7 переименовывал `needs_help` → `awaiting_operator` и обещал, что `ready_for_review` остаётся явным standalone-действием. После [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) standalone-контура нет, embedded-хуки и `awaiting_operator` поглотили всё «жду оператора», а `set_intent_status(ready_for_review)` в режимах `work`/`free` агенты не зовут (§ 6/§ 7). Соответственно:
+
+- `INBOX_STATUSES = {awaiting_operator}` — один статус, одна секция в рейле инбокса.
+- Quick-action «Завершить» в `SetIntentStatusForm` переключена с `ready_for_review → done` на `awaiting_operator → done`: оператор закрывает интент одним кликом из единственного инбокс-статуса.
+- Доменный `IntentStatusNames.ReadyForReview`, маппинг, OpenAPI-enum, `IntentContextCountsDto.inbox_review` и all upstream UI-секции «Жду ревью» удалены без миграции и алиаса (по аналогии с § 7-rename `needs_help`).
+- Сноска в § 6 про `[Description]` MCP-тула `set_intent_status` — историческая: тул retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md).
+
+Где § 5/§ 7 говорят «два инбокс-статуса» / «`ready_for_review` остаётся явным действием» — читать как историю до 2026-06-23. См. также amendment в [ADR-0017](0017-removal-of-review-stage.md).
+
 ## Amendment (2026-06-19): standalone = knowledge base, bundle removed
 
 Решение признавало два контура: embedded на хуках и standalone «на бандлах» (§ 2). Standalone-контур **перестал быть контуром исполнения интента**: bundle-обвязка доставки плейбука выпилена целиком (MCP-тул `get_prompt_bundle`, его авто-переходы статуса, `bundles-tree`). Действующая граница:

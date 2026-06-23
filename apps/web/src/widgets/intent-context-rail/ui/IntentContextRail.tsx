@@ -9,7 +9,6 @@ import {
   ARCHIVE_CONTEXT,
   FRIDGE_CONTEXT,
   INBOX_HELP_CONTEXT,
-  INBOX_REVIEW_CONTEXT,
   UNTAGGED_CONTEXT,
   errorMessage
 } from "@/shared/lib";
@@ -77,22 +76,19 @@ export function IntentContextRail() {
     fridgeCount,
     fridgeTagRows,
     fridgeUntaggedCount,
-    inboxReviewCount,
     inboxHelpCount,
     terminalRunningCount
   } = useContextRows(contextsQuery.data);
 
   const currentContext = params.get("context");
-  const inboxTotal = inboxReviewCount + inboxHelpCount;
 
   // Auto-pick a default context once data is available.
   useEffect(() => {
     if (!contextsQuery.isSuccess) return;
     if (currentContext) return;
     let next: string | null = null;
-    if (inboxTotal > 0) {
-      next = inboxReviewCount > 0 ? INBOX_REVIEW_CONTEXT : INBOX_HELP_CONTEXT;
-    } else if (tagRows.length > 0) next = tagRows[0].key;
+    if (inboxHelpCount > 0) next = INBOX_HELP_CONTEXT;
+    else if (tagRows.length > 0) next = tagRows[0].key;
     else if (untaggedCount > 0) next = UNTAGGED_CONTEXT;
     else if (fridgeCount > 0) next = FRIDGE_CONTEXT;
     else if (archiveCount > 0) next = ARCHIVE_CONTEXT;
@@ -105,8 +101,6 @@ export function IntentContextRail() {
     currentContext,
     fridgeCount,
     inboxHelpCount,
-    inboxReviewCount,
-    inboxTotal,
     contextsQuery.isSuccess,
     params,
     setParams,
@@ -129,9 +123,8 @@ export function IntentContextRail() {
       aria-label="Контексты Intents"
     >
       {contextsQuery.isSuccess &&
-      (inboxTotal > 0 || terminalRunningCount > 0) ? (
+      (inboxHelpCount > 0 || terminalRunningCount > 0) ? (
         <InboxWidget
-          reviewCount={inboxReviewCount}
           helpCount={inboxHelpCount}
           terminalRunningCount={terminalRunningCount}
           activeContext={currentContext}

@@ -13,7 +13,6 @@ public sealed record IntentTagCount(string TagId, int Count);
 /// tmux session set with the owner's intents) — the repository leaves it 0.
 /// </summary>
 public sealed record IntentContextCounts(
-    int InboxReview,
     int InboxHelp,
     int Fridge,
     int Archive,

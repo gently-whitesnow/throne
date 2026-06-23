@@ -20,7 +20,6 @@ public sealed class GetIntentContextsEndpoint(GetIntentContextsHandler handler, 
 
         return new OkObjectResult(new IntentContextCountsDto
         {
-            Inbox_review = counts.InboxReview,
             Inbox_help = counts.InboxHelp,
             Fridge = counts.Fridge,
             Archive = counts.Archive,

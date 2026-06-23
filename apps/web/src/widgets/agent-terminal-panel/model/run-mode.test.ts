@@ -16,7 +16,6 @@ describe("defaultRunModeForStatus", () => {
   it.each<IntentStatus>([
     "interview",
     "work",
-    "ready_for_review",
     "awaiting_operator",
     "done",
     "reject",
