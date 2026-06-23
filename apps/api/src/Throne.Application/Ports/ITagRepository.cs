@@ -1,3 +1,4 @@
+using Throne.Application.Tags;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Ports;
@@ -5,6 +6,13 @@ namespace Throne.Application.Ports;
 public interface ITagRepository
 {
     Task<IReadOnlyList<Tag>> ListAllAsync(CancellationToken ct);
+
+    /// <summary>
+    /// One keyset page ordered by <c>usage_count desc, _id asc</c> with an optional
+    /// case-insensitive substring filter on the name. Each item carries the
+    /// denormalized <c>intents_count</c> inline (no usage round-trip).
+    /// </summary>
+    Task<TagListPage> ListPageAsync(TagListSpec spec, CancellationToken ct);
 
     Task<Tag?> GetByIdAsync(TagId id, CancellationToken ct);
 
