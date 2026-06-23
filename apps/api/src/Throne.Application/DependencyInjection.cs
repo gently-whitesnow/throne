@@ -135,6 +135,7 @@ public static class DependencyInjection
         services.AddSingleton<SessionSkillPackageRegistry>();
         services.AddSingleton<SessionSkillSelectionService>();
         services.AddSingleton<RunPreflightSkillPlanner>();
+        services.AddSingleton<RunPreflightTagNames>();
         services.AddSingleton<RunPreflightLaunchPlanner>();
         services.AddSingleton<SkillModeDefaultsService>();
         services.AddSingleton<TagDefaultsUnion>();

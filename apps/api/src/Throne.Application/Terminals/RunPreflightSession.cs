@@ -29,6 +29,17 @@ internal static class RunPreflightSession
             .Select(b => b.Id.Value)
             .ToArray();
 
+    /// <summary>
+    /// Absolute clone paths of the intent's ready repos — the workspace map handed to the agent so
+    /// it reads real paths instead of guessing the clone sub-dir name. Non-ready bindings already
+    /// blocked the spawn, so in practice this is every binding; the filter keeps it honest.
+    /// </summary>
+    public static IReadOnlyList<string> CollectReadyRepoPaths(IReadOnlyList<IntentRepositoryBinding> bindings) =>
+        bindings
+            .Where(b => b.State.CloneStatus is CloneStatusNames.Ready)
+            .Select(b => b.WorkspacePath)
+            .ToArray();
+
     public static RunPreflightResult BuildResult(
         string intentId,
         string sessionName,

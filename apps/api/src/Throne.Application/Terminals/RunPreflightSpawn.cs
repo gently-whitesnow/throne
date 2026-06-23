@@ -3,6 +3,7 @@ using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
+using Throne.Domain.Tags;
 
 namespace Throne.Application.Terminals;
 
@@ -33,6 +34,8 @@ public sealed class RunPreflightSpawn(
         TerminalLaunchOptions launch,
         TerminalSpawnPrompt prompt,
         IReadOnlyList<SessionSkillPackage> skillPackages,
+        IReadOnlyList<string> repoPaths,
+        IReadOnlyList<TagId> tagIds,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(prompt);
@@ -92,7 +95,7 @@ public sealed class RunPreflightSpawn(
         if (adapter is not INativeSessionInitializer && !string.IsNullOrWhiteSpace(prompt.UserPrompt))
         {
             promptDelivery.Kick(new TerminalPromptDeliveryRequest(
-                intentId.Value, mode, launch.Vendor, adapter, workspacePath, prompt.UserPrompt));
+                intentId.Value, mode, launch.Vendor, adapter, workspacePath, repoPaths, tagIds, prompt.UserPrompt));
         }
     }
 
