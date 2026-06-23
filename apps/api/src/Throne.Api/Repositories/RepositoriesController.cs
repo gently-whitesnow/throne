@@ -6,34 +6,14 @@ using Throne.Repositories.Contracts.Generated;
 namespace Throne.Api.Repositories;
 
 /// <summary>
-/// HTTP surface over the <c>Repository</c> registry and <c>RepositoryArtifact</c> knowledge
-/// pages (ADR-0031). This controller maps requests onto the existing application ports.
+/// HTTP surface over the <c>Repository</c> registry and <c>PullRequestArtifact</c> verification
+/// artifacts (ADR-0031). This controller maps requests onto the existing application ports.
 /// </summary>
 public sealed class RepositoriesController(
-    ListRepositoryDocumentsEndpoint listDocumentsEndpoint,
-    GetRepositoryDocumentEndpoint getDocumentEndpoint,
-    PutRepositoryDocumentEndpoint putDocumentEndpoint,
-    ListRepositoryDocumentVersionsEndpoint listVersionsEndpoint,
     ListPullRequestArtifactsEndpoint listPrArtifactsEndpoint,
     GetPullRequestArtifactEndpoint getPrArtifactEndpoint,
     PutPullRequestArtifactEndpoint putPrArtifactEndpoint) : RepositoriesControllerBase
 {
-    public override Task<ActionResult<ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments(
-        string provider, string owner, string repo) =>
-        listDocumentsEndpoint.RunAsync(provider, owner, repo, HttpContext.RequestAborted);
-
-    public override Task<ActionResult<RepositoryDocumentDto>> GetRepositoryDocument(
-        string provider, string owner, string repo, string slug) =>
-        getDocumentEndpoint.RunAsync(provider, owner, repo, slug, HttpContext.RequestAborted);
-
-    public override Task<ActionResult<RepositoryDocumentDto>> PutRepositoryDocument(
-        string provider, string owner, string repo, string slug, PutRepositoryDocumentRequest body) =>
-        putDocumentEndpoint.RunAsync(provider, owner, repo, slug, body, HttpContext.RequestAborted);
-
-    public override Task<ActionResult<ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions(
-        string provider, string owner, string repo, string slug) =>
-        listVersionsEndpoint.RunAsync(provider, owner, repo, slug, HttpContext.RequestAborted);
-
     public override Task<ActionResult<ICollection<PullRequestArtifactDto>>> ListPullRequestArtifacts(string binding_id) =>
         listPrArtifactsEndpoint.RunAsync(binding_id, HttpContext.RequestAborted);
 

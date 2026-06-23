@@ -246,43 +246,6 @@ namespace Throne.Api.Generated
     public abstract class RepositoriesControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
-        /// List the knowledge pages of a repository (no bodies).
-        /// </summary>
-        /// <remarks>
-        /// Summary cards for each `RepositoryArtifact` page anchored to the coordinate (ADR-0031), ordered by slug. The markdown `document` body is deliberately omitted here — fetch a single page via `getRepositoryDocument`. An unknown coordinate yields an empty array.
-        /// </remarks>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents", Name = "listRepositoryDocuments")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentSummaryDto>>> ListRepositoryDocuments([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo);
-
-        /// <summary>
-        /// Get a single knowledge page with its markdown body.
-        /// </summary>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "getRepositoryDocument")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> GetRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
-
-        /// <summary>
-        /// Create or update a knowledge page (manual edit).
-        /// </summary>
-        /// <remarks>
-        /// User-driven knowledge-page write path (ADR-0031). Upsert: the first write (`expected_version` absent or 0) creates version 1; an update requires `expected_version == current` or fails with `409`. Optimistic concurrency via `expected_version`.
-        /// </remarks>
-        /// <returns>OK — the page after this write.</returns>
-        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}", Name = "putRepositoryDocument")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryDocumentDto>> PutRepositoryDocument([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] PutRepositoryDocumentRequest body);
-
-        /// <summary>
-        /// Version history timeline of a knowledge page.
-        /// </summary>
-        /// <remarks>
-        /// Append-only full snapshots of the page (ADR-0031), ordered by `version` ASC, for the history timeline. Each entry carries the body at that revision.
-        /// </remarks>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/repositories/{provider}/{owner}/{repo}/documents/{slug}/versions", Name = "listRepositoryDocumentVersions")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<RepositoryDocumentVersionDto>>> ListRepositoryDocumentVersions([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string provider, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string owner, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string repo, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string slug);
-
-        /// <summary>
         /// List latest pull request artifacts for a repository binding.
         /// </summary>
         /// <remarks>

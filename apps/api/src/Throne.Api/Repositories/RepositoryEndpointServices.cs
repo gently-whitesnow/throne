@@ -43,10 +43,6 @@ internal static class RepositoryEndpointServices
         services.AddSingleton<GetIntentRepositoryPullRequestMergeStatusEndpoint>();
         services.AddSingleton<MergeIntentRepositoryPullRequestEndpoint>();
 
-        services.AddSingleton<ListRepositoryDocumentsEndpoint>();
-        services.AddSingleton<GetRepositoryDocumentEndpoint>();
-        services.AddSingleton<PutRepositoryDocumentEndpoint>();
-        services.AddSingleton<ListRepositoryDocumentVersionsEndpoint>();
         services.AddSingleton<ListPullRequestArtifactsEndpoint>();
         services.AddSingleton<GetPullRequestArtifactEndpoint>();
         services.AddSingleton<PutPullRequestArtifactEndpoint>();

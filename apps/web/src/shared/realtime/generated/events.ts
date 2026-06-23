@@ -35,7 +35,6 @@ export interface RealtimeEventMap {
   "prompt_part_patch.rejected": PromptPartPatchesComponents["schemas"]["PromptPartPatchDto"];
   "prompt_part_patch.superseded": PromptPartPatchesComponents["schemas"]["PromptPartPatchDto"];
   "pull_request.artifact_updated": { binding_id: string; pull_request_number: number; type: string; head_sha?: string; produced_at: string };
-  "repository.document_updated": { provider: string; owner: string; repo: string; slug: string; version: number };
   "tag.created": TagsComponents["schemas"]["TagDto"];
   "tag.deleted": { tag_id: string };
   "tag.updated": TagsComponents["schemas"]["TagDto"];
@@ -70,7 +69,6 @@ export const realtimeEventNames: readonly RealtimeEventName[] = [
   "prompt_part_patch.rejected",
   "prompt_part_patch.superseded",
   "pull_request.artifact_updated",
-  "repository.document_updated",
   "tag.created",
   "tag.deleted",
   "tag.updated",
