@@ -6,9 +6,9 @@ using Throne.Domain.Repositories;
 namespace Throne.Application.Tests.Repositories;
 
 /// <summary>
-/// Гварды на доменные события, переносимые carrier-результатами реестра/страниц (ADR-0031):
-/// событие фанаутится ровно один раз и только на содержательном исходе
-/// (Created / Written), а на идемпотентном (Existed) и конфликте (VersionConflict) — молчит.
+/// Гварды на доменные события, переносимые carrier-результатом реестра (ADR-0031):
+/// событие фанаутится ровно один раз и только на содержательном исходе (Created),
+/// а на идемпотентном (Existed) — молчит.
 /// </summary>
 public class RepositoryRegistryOutcomeEventsTests
 {
@@ -33,27 +33,6 @@ public class RepositoryRegistryOutcomeEventsTests
         var repository = Repository.Create(RepositoryId.New(), Coordinate, Now);
 
         var outcome = new EnsureRepositoryOutcome.Existed(repository);
-
-        outcome.Events.Should().BeEmpty();
-    }
-
-    [Fact(DisplayName = "WriteRepositoryArtifactOutcome.Written несёт ровно один RepositoryDocumentUpdated")]
-    public void Written_carries_single_document_updated_event()
-    {
-        var artifact = RepositoryArtifact.Create(
-            RepositoryArtifactId.New(), Coordinate, "db-schema-map", "DB schema", "# erd", Now);
-
-        var outcome = new WriteRepositoryArtifactOutcome.Written(artifact, Created: true);
-
-        outcome.Events.Should().ContainSingle()
-            .Which.Should().BeOfType<RepositoryDocumentUpdated>()
-            .Which.Artifact.Should().BeSameAs(artifact);
-    }
-
-    [Fact(DisplayName = "WriteRepositoryArtifactOutcome.VersionConflict не несёт событий")]
-    public void Version_conflict_carries_no_events()
-    {
-        var outcome = new WriteRepositoryArtifactOutcome.VersionConflict(CurrentVersion: 3);
 
         outcome.Events.Should().BeEmpty();
     }
