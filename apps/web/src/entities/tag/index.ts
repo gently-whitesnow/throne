@@ -21,8 +21,8 @@ export {
 export {
   useTag,
   useInfiniteTags,
-  useAllTags,
+  useTagsTypeahead,
   useTagUsage,
   tagsQueryKeys,
-  type UseAllTagsResult
+  type UseTagsTypeaheadResult
 } from "./api/tags-queries";

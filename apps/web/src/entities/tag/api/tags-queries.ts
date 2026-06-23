@@ -4,7 +4,6 @@ import {
   type UseInfiniteQueryResult,
   type UseQueryResult
 } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
 
 import type { TagsComponents } from "@/shared/api";
 
@@ -19,11 +18,15 @@ import {
 type TagListPage = TagsComponents["schemas"]["TagListPageDto"];
 
 const TAGS_STALE_TIME_MS = 5 * 60_000;
+const TYPEAHEAD_STALE_TIME_MS = 60_000;
 
 export const tagsQueryKeys = {
   all: ["tags"] as const,
   lists: () => [...tagsQueryKeys.all, "list"] as const,
   list: (search?: string) => [...tagsQueryKeys.lists(), search ?? ""] as const,
+  typeaheads: () => [...tagsQueryKeys.all, "typeahead"] as const,
+  typeahead: (search: string, limit: number) =>
+    [...tagsQueryKeys.typeaheads(), search, limit] as const,
   detail: (id: string) => [...tagsQueryKeys.all, "detail", id] as const,
   usage: (id: string) => [...tagsQueryKeys.all, "usage", id] as const
 };
@@ -53,33 +56,37 @@ export function useInfiniteTags(
   });
 }
 
-export interface UseAllTagsResult {
-  data: TagListItem[] | undefined;
+export interface UseTagsTypeaheadResult {
+  data: TagListItem[];
+  isFetching: boolean;
   isError: boolean;
   error: unknown;
 }
 
 /**
- * Плоский фасад поверх курсорной пагинации: подсасывает все страницы и отдаёт
- * `TagListItem[]`. Для потребителей, которым нужна полная картина (пикер тегов
- * с клиентским автокомплитом). Борд использует `useInfiniteTags` напрямую.
+ * Первая страница серверной выдачи под typeahead-пикер: substring-поиск по
+ * имени + сортировка `usage desc, id asc` живут на сервере, отдельный
+ * typeahead-эндпоинт не заводим. Пустой `search` отдаёт топ самых используемых.
  */
-export function useAllTags(): UseAllTagsResult {
-  const query = useInfiniteTags();
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
-
-  useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, query.data]);
-
-  const items = useMemo(
-    () => query.data?.pages.flatMap((p) => p.items),
-    [query.data]
-  );
-
-  return { data: items, isError: query.isError, error: query.error };
+export function useTagsTypeahead(
+  search: string,
+  limit: number
+): UseTagsTypeaheadResult {
+  const trimmed = search.trim();
+  const effective = trimmed.length > 0 ? trimmed : undefined;
+  const query = useQuery({
+    queryKey: tagsQueryKeys.typeahead(trimmed, limit),
+    queryFn: ({ signal }) =>
+      fetchTagsPage({ search: effective, limit }, undefined, signal),
+    staleTime: TYPEAHEAD_STALE_TIME_MS,
+    placeholderData: (prev) => prev
+  });
+  return {
+    data: query.data?.items ?? [],
+    isFetching: query.isFetching,
+    isError: query.isError,
+    error: query.error
+  };
 }
 
 /**

@@ -1,19 +1,28 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { HttpError } from "@/shared/api";
+import { useDebouncedValue } from "@/shared/lib";
 
 import { createTag } from "../api/tags-api";
-import { tagsQueryKeys, useAllTags } from "../api/tags-queries";
+import { tagsQueryKeys, useTagsTypeahead } from "../api/tags-queries";
+import type { TagListItem } from "./types";
 
 interface TagPickerState {
-  availableTags: string[];
+  query: string;
+  setQuery: (next: string) => void;
+  candidates: readonly TagListItem[];
   loadError: string | null;
   createTag: (slug: string) => Promise<string>;
 }
 
+const TYPEAHEAD_DEBOUNCE_MS = 200;
+const TYPEAHEAD_LIMIT = 25;
+
 export function useTagPicker(): TagPickerState {
-  const tagsQuery = useAllTags();
+  const [query, setQuery] = useState("");
+  const debounced = useDebouncedValue(query.trim(), TYPEAHEAD_DEBOUNCE_MS);
+  const tagsQuery = useTagsTypeahead(debounced, TYPEAHEAD_LIMIT);
   const queryClient = useQueryClient();
 
   const loadError = useMemo(() => {
@@ -28,8 +37,6 @@ export function useTagPicker(): TagPickerState {
     async (slug: string): Promise<string> => {
       try {
         const created = await createTag({ name: slug });
-        // Свежесозданный тег появится в списке после рефетча; realtime
-        // tag.created тоже инвалидирует ключ, но не ждём сети — инвалидируем сразу.
         void queryClient.invalidateQueries({ queryKey: tagsQueryKeys.all });
         return created.name;
       } catch (err: unknown) {
@@ -44,13 +51,10 @@ export function useTagPicker(): TagPickerState {
     [queryClient]
   );
 
-  const availableTags = useMemo(
-    () => (tagsQuery.data ?? []).map((t) => t.name),
-    [tagsQuery.data]
-  );
-
   return {
-    availableTags,
+    query,
+    setQuery,
+    candidates: tagsQuery.data,
     loadError,
     createTag: createOrAdopt
   };
