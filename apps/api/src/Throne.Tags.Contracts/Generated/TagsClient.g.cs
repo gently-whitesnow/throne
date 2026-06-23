@@ -69,6 +69,80 @@ namespace Throne.Tags.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TagListItemDto
+    {
+
+        /// <summary>
+        /// Tag identifier (32 hex chars).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; }
+
+        /// <summary>
+        /// Normalized hashtag-shaped slug (a-z, 0-9, '-', '_').
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(40, MinimumLength = 1)]
+        public string Name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("current_version")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+        public int Current_version { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Created_at { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Updated_at { get; set; }
+
+        /// <summary>
+        /// Number of intents currently referencing this tag (denormalized counter).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intents_count")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Intents_count { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TagListPageDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TagListItemDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<TagListItemDto>();
+
+        /// <summary>
+        /// Opaque continuation token; absent on the final page.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("next_cursor")]
+        public string Next_cursor { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateTagRequest
     {
 

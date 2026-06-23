@@ -30,11 +30,17 @@ namespace Throne.Api.Generated
     public abstract class TagsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
-        /// List all tags ordered by name.
+        /// List tags (cursor-paginated, usage-desc) with inline intents_count.
         /// </summary>
+        /// <remarks>
+        /// Returns a single page of tags ordered by usage (`usage_count desc, id asc`) so the most-used tags surface first. Each item carries `intents_count` inline (read from the denormalized counter — no per-tag usage round-trip). Pagination is opaque-cursor; `next_cursor` is absent on the final page. `search` is a case-insensitive substring filter on the normalized name. Default page size is 50, capped at 100.
+        /// </remarks>
+        /// <param name="cursor">Opaque continuation cursor returned by the previous page.</param>
+        /// <param name="limit">Page size, default 50, capped at 100.</param>
+        /// <param name="search">Case-insensitive substring filter against the tag name.</param>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/tags", Name = "listTags")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<System.Collections.Generic.ICollection<TagDto>>> ListTags();
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TagListPageDto>> ListTags([Microsoft.AspNetCore.Mvc.FromQuery] string cursor = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = null, [Microsoft.AspNetCore.Mvc.FromQuery] string search = null);
 
         /// <summary>
         /// Create a new tag (user-driven).

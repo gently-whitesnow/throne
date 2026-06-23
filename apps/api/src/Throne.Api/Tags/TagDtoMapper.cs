@@ -1,3 +1,4 @@
+using Throne.Application.Tags;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
 using Throne.Tags.Contracts.Generated;
@@ -13,6 +14,16 @@ internal static class TagDtoMapper
         Current_version = tag.CurrentVersion,
         Created_at = tag.CreatedAt,
         Updated_at = tag.UpdatedAt,
+    };
+
+    public static TagListItemDto ToListItemDto(TagListItem item) => new()
+    {
+        Id = item.Tag.Id.Value,
+        Name = item.Tag.Name,
+        Current_version = item.Tag.CurrentVersion,
+        Created_at = item.Tag.CreatedAt,
+        Updated_at = item.Tag.UpdatedAt,
+        Intents_count = item.IntentsCount,
     };
 
     public static TagDetailDto ToDetailDto(Tag tag)

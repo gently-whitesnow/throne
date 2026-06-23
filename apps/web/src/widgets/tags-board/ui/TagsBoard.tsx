@@ -1,8 +1,8 @@
 import { Plus, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { type Tag, createTag, useTagUsages, useTags } from "@/entities/tag";
-import { errorMessage } from "@/shared/lib";
+import { type Tag, createTag, useInfiniteTags } from "@/entities/tag";
+import { errorMessage, useDebouncedValue } from "@/shared/lib";
 import { Button, normalizeTagSlug, TAG_NAME_MAX_LENGTH } from "@/shared/ui";
 
 import { DeleteTagDialog } from "./DeleteTagDialog";
@@ -13,22 +13,44 @@ interface TagsBoardProps {
   onSelectTag: (tagId: string | null) => void;
 }
 
+const SEARCH_DEBOUNCE_MS = 250;
+
 export function TagsBoard({ selectedTagId, onSelectTag }: TagsBoardProps) {
-  const tagsQuery = useTags();
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
+
+  const tagsQuery = useInfiniteTags({ search: debouncedSearch });
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = tagsQuery;
+
   const [newName, setNewName] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Tag | null>(null);
 
-  const tags = useMemo(() => tagsQuery.data ?? [], [tagsQuery.data]);
-  const tagIds = useMemo(() => tags.map((tag) => tag.id), [tags]);
-  const usageByTag = useTagUsages(tagIds);
+  const tags = useMemo(
+    () => tagsQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [tagsQuery.data]
+  );
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return tags;
-    return tags.filter((tag) => tag.name.toLowerCase().includes(q));
-  }, [tags, search]);
+  const activeSearch = debouncedSearch.length > 0;
+  const hasResults = tags.length > 0;
+  // Прячем поиск только на «холодном» пустом борде; при активном запросе вход
+  // остаётся, даже если выдача пуста.
+  const showSearch = hasResults || activeSearch;
+
+  const sentinelRef = useRef<HTMLLIElement | null>(null);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasNextPage) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, tags.length]);
 
   const createSlug = normalizeTagSlug(newName);
   const canCreate = createSlug.valid;
@@ -51,8 +73,6 @@ export function TagsBoard({ selectedTagId, onSelectTag }: TagsBoardProps) {
     if (selectedTagId === tagId) onSelectTag(null);
   };
 
-  const hasTags = tagsQuery.isSuccess && tags.length > 0;
-
   return (
     <section
       className="flex min-w-0 flex-col border-base-300 bg-base-100 max-md:border-b md:border-r"
@@ -62,14 +82,15 @@ export function TagsBoard({ selectedTagId, onSelectTag }: TagsBoardProps) {
         <h2 className="m-0 text-[13px] font-bold uppercase tracking-wider text-base-content/60">
           Теги
         </h2>
-        {hasTags && (
+        {hasResults && (
           <span className="text-[12px] tabular-nums text-base-content/40">
             {String(tags.length)}
+            {hasNextPage ? "+" : ""}
           </span>
         )}
       </div>
 
-      {hasTags && (
+      {showSearch && (
         <div className="flex items-center gap-2 border-b border-base-300 px-3.5 py-2 text-base-content/60 focus-within:text-base-content">
           <Search aria-hidden size={14} strokeWidth={2} />
           <input
@@ -135,28 +156,34 @@ export function TagsBoard({ selectedTagId, onSelectTag }: TagsBoardProps) {
             })}
           </p>
         )}
-        {tagsQuery.isSuccess && tags.length === 0 && (
+        {tagsQuery.isSuccess && !hasResults && !activeSearch && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
             Нет тегов. Создайте первый выше.
           </p>
         )}
-        {hasTags && filtered.length === 0 && (
+        {tagsQuery.isSuccess && !hasResults && activeSearch && (
           <p className="m-0 px-3.5 py-4 text-[13px] text-base-content/60">
-            Ничего не найдено по «{search.trim()}».
+            Ничего не найдено по «{debouncedSearch}».
           </p>
         )}
-        {hasTags && filtered.length > 0 && (
+        {hasResults && (
           <ul className="m-0 flex list-none flex-col p-0">
-            {filtered.map((tag) => (
+            {tags.map((tag) => (
               <TagRow
                 key={tag.id}
                 tag={tag}
                 selected={tag.id === selectedTagId}
-                intentsCount={usageByTag.get(tag.id)}
+                intentsCount={tag.intents_count}
                 onSelect={onSelectTag}
                 onRequestDelete={setDeleteTarget}
               />
             ))}
+            <li ref={sentinelRef} aria-hidden className="h-px" />
+            {isFetchingNextPage && (
+              <li className="m-0 px-3.5 py-3 text-[12px] text-base-content/50">
+                Загрузка…
+              </li>
+            )}
           </ul>
         )}
       </div>

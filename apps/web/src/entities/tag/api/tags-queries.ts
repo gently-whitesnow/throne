@@ -1,32 +1,85 @@
 import {
-  useQueries,
+  useInfiniteQuery,
   useQuery,
+  type UseInfiniteQueryResult,
   type UseQueryResult
 } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
 
-import type { Tag, TagDetail, TagUsage } from "../model/types";
-import { fetchTag, fetchTags, fetchTagUsage } from "./tags-api";
+import type { TagsComponents } from "@/shared/api";
+
+import type { TagDetail, TagListItem, TagUsage } from "../model/types";
+import {
+  fetchTag,
+  fetchTagsPage,
+  fetchTagUsage,
+  type TagListParams
+} from "./tags-api";
+
+type TagListPage = TagsComponents["schemas"]["TagListPageDto"];
 
 const TAGS_STALE_TIME_MS = 5 * 60_000;
 
 export const tagsQueryKeys = {
   all: ["tags"] as const,
-  list: () => [...tagsQueryKeys.all, "list"] as const,
+  lists: () => [...tagsQueryKeys.all, "list"] as const,
+  list: (search?: string) => [...tagsQueryKeys.lists(), search ?? ""] as const,
   detail: (id: string) => [...tagsQueryKeys.all, "detail", id] as const,
   usage: (id: string) => [...tagsQueryKeys.all, "usage", id] as const
 };
 
 /**
- * Список всех тегов рабочего пространства. Теги меняются редко — staleTime
- * поднят до 5 минут, реальные мутации приходят realtime'ом и инвалидируют ключ
- * через RealtimeQueryBridge.
+ * Курсорно-пагинированный список тегов (сортировка `usage desc, id asc`).
+ * Поиск и пагинация считаются на сервере — `intents_count` едет инлайн в каждом
+ * item'е, отдельного per-tag usage-запроса нет. Виджеты сами решают, когда
+ * `fetchNextPage` (скролл-сентинел в борде).
  */
-export function useTags(): UseQueryResult<Tag[]> {
-  return useQuery({
-    queryKey: tagsQueryKeys.list(),
-    queryFn: ({ signal }) => fetchTags(signal),
+export function useInfiniteTags(
+  params: TagListParams = {}
+): UseInfiniteQueryResult<{
+  pages: TagListPage[];
+  pageParams: (string | undefined)[];
+}> {
+  const trimmed = params.search?.trim();
+  const search =
+    trimmed !== undefined && trimmed.length > 0 ? trimmed : undefined;
+  return useInfiniteQuery({
+    queryKey: tagsQueryKeys.list(search),
+    queryFn: ({ pageParam, signal }) =>
+      fetchTagsPage({ search, limit: params.limit }, pageParam, signal),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
     staleTime: TAGS_STALE_TIME_MS
   });
+}
+
+export interface UseAllTagsResult {
+  data: TagListItem[] | undefined;
+  isError: boolean;
+  error: unknown;
+}
+
+/**
+ * Плоский фасад поверх курсорной пагинации: подсасывает все страницы и отдаёт
+ * `TagListItem[]`. Для потребителей, которым нужна полная картина (пикер тегов
+ * с клиентским автокомплитом). Борд использует `useInfiniteTags` напрямую.
+ */
+export function useAllTags(): UseAllTagsResult {
+  const query = useInfiniteTags();
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, query.data]);
+
+  const items = useMemo(
+    () => query.data?.pages.flatMap((p) => p.items),
+    [query.data]
+  );
+
+  return { data: items, isError: query.isError, error: query.error };
 }
 
 /**
@@ -43,31 +96,8 @@ export function useTag(id: string | null): UseQueryResult<TagDetail> {
 }
 
 /**
- * Число привязанных интентов для каждого тега. Bulk-эндпоинта нет, поэтому
- * дёргаем per-tag `GET /tags/{id}/usage` через useQueries с тем же ключом, что и
- * `useTagUsage` — модалка удаления переиспользует кеш без повторного запроса.
- * Числа меняются редко: staleTime 5 минут, инвалидируются realtime'ом.
- */
-export function useTagUsages(ids: readonly string[]): Map<string, number> {
-  const results = useQueries({
-    queries: ids.map((id) => ({
-      queryKey: tagsQueryKeys.usage(id),
-      queryFn: ({ signal }) => fetchTagUsage(id, signal),
-      staleTime: TAGS_STALE_TIME_MS
-    }))
-  });
-  const counts = new Map<string, number>();
-  results.forEach((result, index) => {
-    if (result.data) {
-      counts.set(ids[index], result.data.intents_count);
-    }
-  });
-  return counts;
-}
-
-/**
- * Usage одного тега для модалки удаления. Делит ключ с `useTagUsages`, поэтому
- * при открытии модалки запрос обычно уже в кеше.
+ * Usage одного тега для модалки удаления. На борде число едет инлайн в item'е,
+ * но диалог открывается из любого места и подтягивает свежий счёт точечно.
  */
 export function useTagUsage(id: string | null): UseQueryResult<TagUsage> {
   return useQuery({

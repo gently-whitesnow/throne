@@ -21,6 +21,9 @@ internal sealed class MongoIntentStatusMutator(
     private readonly IMongoCollection<IntentStatusChangeDocument> _statusChanges =
         database.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges);
 
+    private readonly IMongoCollection<TagDocument> _tags =
+        database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
+
     public async Task<SetIntentStatusOutcome> SetStatusAsync(
         IntentId id,
         string status,
@@ -235,14 +238,16 @@ internal sealed class MongoIntentStatusMutator(
         }
 
         var intent = IntentDocumentMapper.ToDomain(document);
+        var oldTagIds = document.TagIds;
         var changed = intent.SetTags(tagIds, now);
         if (!changed)
         {
             return new SetIntentTagsOutcome.Updated(intent, Changed: false);
         }
 
+        var newTagIds = intent.TagIds.Select(t => t.Value).ToList();
         var update = Builders<IntentDocument>.Update
-            .Set(d => d.TagIds, intent.TagIds.Select(t => t.Value).ToList())
+            .Set(d => d.TagIds, newTagIds)
             .Set(d => d.UpdatedAt, intent.State.UpdatedAt.UtcDateTime);
 
         var updateFilter = Builders<IntentDocument>.Filter.And(
@@ -257,6 +262,11 @@ internal sealed class MongoIntentStatusMutator(
                 ? new SetIntentTagsOutcome.NotFound()
                 : new SetIntentTagsOutcome.VersionConflict(fresh.CurrentVersion);
         }
+
+        var added = newTagIds.Where(t => !oldTagIds.Contains(t)).ToList();
+        var removed = oldTagIds.Where(t => !newTagIds.Contains(t)).ToList();
+        await MongoTagUsageCounter.ApplyAsync(_tags, session, added, delta: +1, ct);
+        await MongoTagUsageCounter.ApplyAsync(_tags, session, removed, delta: -1, ct);
 
         return new SetIntentTagsOutcome.Updated(intent, Changed: true);
     }

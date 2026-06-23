@@ -42,11 +42,19 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
             cancellationToken: cancellationToken);
 
         var tags = database.GetCollection<TagDocument>(MongoCollectionNames.Tags);
-        await tags.Indexes.CreateOneAsync(
-            new CreateIndexModel<TagDocument>(
-                Builders<TagDocument>.IndexKeys.Ascending(x => x.Name),
-                new CreateIndexOptions { Unique = true, Name = "name_unique" }),
-            cancellationToken: cancellationToken);
+        await tags.Indexes.CreateManyAsync(
+            [
+                new CreateIndexModel<TagDocument>(
+                    Builders<TagDocument>.IndexKeys.Ascending(x => x.Name),
+                    new CreateIndexOptions { Unique = true, Name = "name_unique" }),
+                // Powers the board's `usage_count desc, _id asc` keyset pagination.
+                new CreateIndexModel<TagDocument>(
+                    Builders<TagDocument>.IndexKeys
+                        .Descending(x => x.UsageCount)
+                        .Ascending(x => x.Id),
+                    new CreateIndexOptions { Name = "usage_count_id" }),
+            ],
+            cancellationToken);
 
         var promptParts = database.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
         await promptParts.Indexes.CreateOneAsync(
@@ -96,6 +104,7 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
         await MongoDreamSessionIndexes.CreateAsync(database, cancellationToken);
 
         await MongoIntentLinkMigration.RunAsync(database, cancellationToken);
+        await MongoTagUsageBackfill.RunAsync(database, cancellationToken);
         await CreateIntentLinkIndexesAsync(cancellationToken);
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);

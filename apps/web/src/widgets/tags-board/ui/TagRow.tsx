@@ -8,8 +8,8 @@ import { normalizeTagSlug, TAG_NAME_MAX_LENGTH } from "@/shared/ui";
 interface TagRowProps {
   tag: Tag;
   selected: boolean;
-  /** Число привязанных интентов; `undefined`, пока usage не загрузился. */
-  intentsCount: number | undefined;
+  /** Число привязанных интентов — едет инлайн в item'е страницы. */
+  intentsCount: number;
   onSelect: (tagId: string) => void;
   onRequestDelete: (tag: Tag) => void;
 }
@@ -149,18 +149,16 @@ export function TagRow({
           #{tag.name}
         </span>
       </button>
-      {typeof intentsCount === "number" && (
-        <span
-          title={`Привязан к ${String(intentsCount)} ${intentsCount === 1 ? "интенту" : "интентам"}`}
-          className={`shrink-0 rounded-md px-1.5 text-[11px] tabular-nums ${
-            intentsCount > 0
-              ? "bg-base-200 text-base-content/70"
-              : "text-base-content/40"
-          }`}
-        >
-          {intentsCount}
-        </span>
-      )}
+      <span
+        title={`Привязан к ${String(intentsCount)} ${intentsCount === 1 ? "интенту" : "интентам"}`}
+        className={`shrink-0 rounded-md px-1.5 text-[11px] tabular-nums ${
+          intentsCount > 0
+            ? "bg-base-200 text-base-content/70"
+            : "text-base-content/40"
+        }`}
+      >
+        {intentsCount}
+      </span>
       <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button
           type="button"
