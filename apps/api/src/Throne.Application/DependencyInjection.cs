@@ -93,14 +93,14 @@ public static class DependencyInjection
         services.AddSingleton<PullRequestAutoBindWorkflow>();
         services.AddTerminalServices();
         services.AddSingleton<TerminalHookStatusHandler>();
-        // ADR-0026 § 8: tmux session is torn down when an intent reaches `done`. The handler
-        // takes ITmuxSessionManager via Lazy to break the dispatcher↔handler resolution cycle
+        // ADR-0026 § 8: tmux session is torn down when an intent is closed (`done` or `reject`). The
+        // handler takes ITmuxSessionManager via Lazy to break the dispatcher↔handler resolution cycle
         // (TmuxSessionManager → IDomainEventDispatcher → IEnumerable<IDomainEventHandler>).
         services.AddSingleton(sp => new Lazy<ITmuxSessionManager>(sp.GetRequiredService<ITmuxSessionManager>));
-        services.AddSingleton<IDomainEventHandler, TerminalKillOnIntentDoneHandler>();
-        // Reaching `done` also wipes the intent's local state (trust entries + workspace folder),
-        // gated by the intent's CleanupLocalStateOnDone flag. Best-effort, sibling to the kill above.
-        services.AddSingleton<IDomainEventHandler, IntentLocalStateCleanupOnDoneHandler>();
+        services.AddSingleton<IDomainEventHandler, TerminalKillOnIntentCloseHandler>();
+        // Closing an intent also wipes its local state (trust entries + workspace folder),
+        // gated by the intent's CleanupLocalStateOnClose flag. Best-effort, sibling to the kill above.
+        services.AddSingleton<IDomainEventHandler, IntentLocalStateCleanupOnCloseHandler>();
         services.AddSingleton<SetTagDefaultRepositoriesHandler>();
         services.AddSingleton<GetTagHandler>();
         // Open-in-IDE (ADR-0026 § 7 + carrier-capability ADR): a single carrier

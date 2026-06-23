@@ -6,4 +6,4 @@ public sealed record IntentState(
     int CurrentVersion,
     string SortKey,
     DateTimeOffset UpdatedAt,
-    bool CleanupLocalStateOnDone = true);
+    bool CleanupLocalStateOnClose = true);

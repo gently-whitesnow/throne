@@ -176,14 +176,14 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
 
         var created = await repo.GetByIdAsync(id, CancellationToken.None);
-        created!.State.CleanupLocalStateOnDone.Should().BeTrue("по умолчанию очистка включена");
+        created!.State.CleanupLocalStateOnClose.Should().BeTrue("по умолчанию очистка включена");
 
         await uow.ExecuteAsync(
             ct => repo.SetCleanupLocalStateOnDoneAsync(id, false, Now.AddMinutes(1), ct),
             CancellationToken.None);
 
         var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
-        fetched!.State.CleanupLocalStateOnDone.Should().BeFalse();
+        fetched!.State.CleanupLocalStateOnClose.Should().BeFalse();
         fetched.State.CurrentVersion.Should().Be(1);
 
         var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
@@ -213,7 +213,7 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
 
         var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
 
-        fetched!.State.CleanupLocalStateOnDone.Should().BeTrue();
+        fetched!.State.CleanupLocalStateOnClose.Should().BeTrue();
     }
 
     [Fact(DisplayName = "CreateAsync вне UoW бросает InvalidOperationException")]

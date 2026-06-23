@@ -27,7 +27,7 @@ internal sealed class OpencodeServeGateway(
 
     // Lazy<ITmuxSessionManager>: the manager depends on IDomainEventDispatcher → the full handler
     // fan-out → ISessionHookAdapter (this gateway's owner), so eager injection would close that
-    // resolution cycle. Same guard as TerminalKillOnIntentDoneHandler.
+    // resolution cycle. Same guard as TerminalKillOnIntentCloseHandler.
     private ITmuxSessionManager Tmux => tmux.Value;
 
     public void Dispose() => _gate.Dispose();

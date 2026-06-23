@@ -22,7 +22,7 @@ namespace Throne.Application.Repositories;
 /// with no HTTP user, hence the owner-agnostic <see cref="IIntentRepository.GetByIdForSystemAsync"/>
 /// / <see cref="IIntentRepository.SetStatusBySystemAsync"/> path. The resulting
 /// <c>IntentStatusChanged</c> event drives realtime fan-out and the tmux teardown
-/// (<c>TerminalKillOnIntentDoneHandler</c>, ADR-0026 § 8).
+/// (<c>TerminalKillOnIntentCloseHandler</c>, ADR-0026 § 8).
 /// </summary>
 public sealed partial class IntentMergeAutoCloser(
     IIntentRepositoryBindingRepository bindings,
