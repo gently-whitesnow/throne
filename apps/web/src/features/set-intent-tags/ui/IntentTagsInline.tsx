@@ -71,7 +71,9 @@ export function IntentTagsInline({ intent, onSaved }: IntentTagsInlineProps) {
       <TagMultiSelect
         value={draft}
         onChange={handleChange}
-        availableTags={tagPicker.availableTags}
+        candidates={tagPicker.candidates}
+        query={tagPicker.query}
+        onQueryChange={tagPicker.setQuery}
         onRequestCreate={tagPicker.createTag}
         loadError={tagPicker.loadError}
         disabled={busy}
