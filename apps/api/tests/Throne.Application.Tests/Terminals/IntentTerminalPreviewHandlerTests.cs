@@ -119,7 +119,7 @@ public class IntentTerminalPreviewHandlerTests
             && !s.Selected);
     }
 
-    [Fact(DisplayName = "WorkspaceMap несёт корень, repo-пути с пометкой неготовых клонов и теги")]
+    [Fact(DisplayName = "WorkspaceMap несёт корень, все repo-пути (без статуса клона) и теги")]
     public async Task Workspace_map_lists_root_repos_and_tags()
     {
         var intentId = IntentId.New();
@@ -155,7 +155,9 @@ public class IntentTerminalPreviewHandlerTests
 
         preview.WorkspaceMap.Should().Contain($"Корень workspace: /ws/intents/{intentId.Value}");
         preview.WorkspaceMap.Should().Contain("- /ws/intents/repo-ready\n");
-        preview.WorkspaceMap.Should().Contain($"- /ws/intents/repo-cloning  (клон: {CloneStatusNames.Cloning})");
+        // Неготовый клон тоже в списке — без пометки статуса: к спавну он будет склонирован.
+        preview.WorkspaceMap.Should().Contain("- /ws/intents/repo-cloning");
+        preview.WorkspaceMap.Should().NotContain("клон:");
         preview.WorkspaceMap.Should().Contain("Теги интента: throne");
         // Карта самодостаточна — тело сюда не вкладываем (иначе на доставке оно дублируется).
         preview.WorkspaceMap.Should().NotContain("тело");
