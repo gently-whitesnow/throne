@@ -8,7 +8,6 @@ public sealed record ProposePromptPartPatchCommand(
     string TargetScope,
     string TargetKey,
     string PatchText,
-    IReadOnlyList<string> EvidenceCardIds,
     string Rationale,
     int BaseVersion,
     string? IdempotencyKey = null,
@@ -181,7 +180,6 @@ internal static class ProposePromptPartPatchFactory
                 operation: command.Operation,
                 patchText: command.PatchText,
                 modeRoles: command.ModeRoles,
-                evidenceCardIds: command.EvidenceCardIds ?? [],
                 rationale: command.Rationale ?? string.Empty,
                 baseVersion: command.BaseVersion,
                 now: now);

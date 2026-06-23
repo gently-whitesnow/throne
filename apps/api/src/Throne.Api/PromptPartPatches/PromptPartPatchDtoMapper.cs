@@ -24,7 +24,6 @@ public static class PromptPartPatchDtoMapper
             Patch_text = patch.PatchText,
             Mode_roles = patch.ModeRoles?.Select(ToRoleDto).ToList(),
             Applied_text = patch.State.AppliedText,
-            Evidence_card_ids = patch.EvidenceCardIds.ToList(),
             Rationale = patch.Rationale,
             Reject_comment = patch.State.RejectComment,
             Base_version = patch.Identity.BaseVersion,

@@ -63,9 +63,6 @@ export function PatchDetailPanel({ detail, onChanged }: PatchDetailPanelProps) {
         {!detail.base_version_matches_current ? (
           <span className="badge badge-soft badge-warning">needs rebase</span>
         ) : null}
-        <span className="ml-auto text-xs text-base-content/60">
-          {detail.patch.evidence_card_ids.length} evidence cards
-        </span>
       </header>
 
       {detail.patch.rationale ? (

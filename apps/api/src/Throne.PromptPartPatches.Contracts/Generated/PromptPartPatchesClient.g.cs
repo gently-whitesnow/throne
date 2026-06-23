@@ -161,10 +161,6 @@ namespace Throne.PromptPartPatches.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("applied_text")]
         public string Applied_text { get; set; }
 
-        [System.Text.Json.Serialization.JsonPropertyName("evidence_card_ids")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Evidence_card_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
-
         [System.Text.Json.Serialization.JsonPropertyName("rationale")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.ComponentModel.DataAnnotations.StringLength(500)]
@@ -228,10 +224,6 @@ namespace Throne.PromptPartPatches.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("patch_text")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Patch_text { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("evidence_card_ids")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<string> Evidence_card_ids { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         [System.Text.Json.Serialization.JsonPropertyName("rationale")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

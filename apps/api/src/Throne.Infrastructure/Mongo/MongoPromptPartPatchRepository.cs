@@ -206,7 +206,6 @@ internal sealed class MongoPromptPartPatchRepository
             Order = r.Order,
         }).ToList(),
         AppliedText = patch.State.AppliedText,
-        EvidenceCardIds = patch.EvidenceCardIds.ToList(),
         Rationale = patch.Rationale,
         RejectComment = patch.State.RejectComment,
         BaseVersion = patch.Identity.BaseVersion,
@@ -233,7 +232,6 @@ internal sealed class MongoPromptPartPatchRepository
         operation: doc.Operation,
         patchText: doc.PatchText,
         modeRoles: doc.ModeRoles?.Select(r => new PromptPartModeRole(r.Mode, r.Role, r.Order)).ToList(),
-        evidenceCardIds: doc.EvidenceCardIds ?? new List<string>(),
         rationale: doc.Rationale ?? string.Empty);
 
     private static DateTimeOffset ToUtcOffset(DateTime utc) =>

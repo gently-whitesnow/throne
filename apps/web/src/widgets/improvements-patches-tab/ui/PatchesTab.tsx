@@ -122,9 +122,6 @@ function PatchList({
                 <span className="badge badge-soft badge-neutral text-[10px]">
                   {p.operation}
                 </span>
-                <span className="ml-auto text-[10px] text-base-content/60">
-                  {p.evidence_card_ids.length} ev.
-                </span>
               </div>
               <p className="m-0 line-clamp-2 text-xs text-base-content/70">
                 {firstLine(p.rationale) || firstLine(p.patch_text) || p.id}

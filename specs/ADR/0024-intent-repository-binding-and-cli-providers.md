@@ -6,6 +6,8 @@ Accepted
 Date: 2026-05-23
 Related: [ADR-0006](0006-openapi-contract-first-codegen.md), [ADR-0008](0008-realtime-contract-first-events.md), [ADR-0014](0014-mcp-initialize-instructions-routing.md)
 
+**Update 2026-06-21:** retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md) в части MCP. Решение по MCP-surface (вопрос 6, read-only MCP) историчное — MCP-сервер удалён, агент ходит через CLI-скиллы. Workspace layout, git-provider shell-out и доставка PR-комментариев из этого ADR в силе.
+
 ## Context
 
 Throne расширяется до «единого окна цикла разработки»: к интенту привязывается один или несколько GitHub-репозиториев, под каждый bind создаётся локальный workspace, и в карточке интента отображается PR с лентой review-комментариев. Этот ADR закрепляет архитектурные решения, на которых стоит вся последующая реализация: workspace layout, провайдеры, доставка PR-комментариев и MCP-surface.
