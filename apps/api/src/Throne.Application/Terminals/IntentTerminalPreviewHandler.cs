@@ -77,24 +77,20 @@ public sealed class IntentTerminalPreviewHandler(
 
     /// <summary>
     /// Renders the workspace map exactly as delivery does (<see cref="WorkspaceMapPrompt"/>), but with
-    /// an empty body so the returned string is the map alone. Unlike delivery — which runs after the
-    /// clone-wait and lists only <c>ready</c> repos — preview runs before it, so every binding is
-    /// listed with its current clone status flagged when not yet ready. The trailing separator/body
-    /// gap is trimmed; the front renders the result read-only.
+    /// an empty body so the returned string is the map alone. Repos are listed by their (immutable)
+    /// clone path without a status marker: clone paths are known the moment a binding exists and every
+    /// repo is cloned by the time the agent actually reads this map at spawn, so a "still cloning" note
+    /// would only be transient noise in the preview. The trailing separator/body gap is trimmed; the
+    /// front renders the result read-only.
     /// </summary>
     private async Task<string> ComposeWorkspaceMapAsync(
         Intent intent, IReadOnlyList<IntentRepositoryBinding> bindings, CancellationToken ct)
     {
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intent.Id.Value);
-        var repoPaths = bindings.Select(RenderRepoEntry).ToArray();
+        var repoPaths = bindings.Select(b => b.WorkspacePath).ToArray();
         var tags = await tagNames.ResolveAsync(intent.TagIds, ct);
         return WorkspaceMapPrompt.Compose(workspacePath, repoPaths, tags, userPrompt: "").TrimEnd();
     }
-
-    private static string RenderRepoEntry(IntentRepositoryBinding binding) =>
-        binding.State.CloneStatus == CloneStatusNames.Ready
-            ? binding.WorkspacePath
-            : $"{binding.WorkspacePath}  (клон: {binding.State.CloneStatus})";
 
     private static string ComposeUserPrompt(string intentText, IReadOnlyList<IntentAttachment> attachments)
     {
