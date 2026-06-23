@@ -85,6 +85,10 @@ function removeListItem(qc: QueryClient, intentId: string): void {
   );
 }
 
+function invalidateTags(qc: QueryClient): void {
+  void qc.invalidateQueries({ queryKey: tagsQueryKeys.all });
+}
+
 function upsertPin(
   pins: IntentListItem["pinned_in"],
   contextTagId: string,
@@ -104,13 +108,13 @@ export function RealtimeQueryBridge() {
   useRepositoryRealtimeEvents(qc);
 
   useRealtimeEvent("tag.created", () => {
-    void qc.invalidateQueries({ queryKey: tagsQueryKeys.all });
+    invalidateTags(qc);
   });
   useRealtimeEvent("tag.updated", () => {
-    void qc.invalidateQueries({ queryKey: tagsQueryKeys.all });
+    invalidateTags(qc);
   });
   useRealtimeEvent("tag.deleted", () => {
-    void qc.invalidateQueries({ queryKey: tagsQueryKeys.all });
+    invalidateTags(qc);
   });
 
   useRealtimeEvent("prompt_part_patch.proposed", () => {
@@ -136,11 +140,13 @@ export function RealtimeQueryBridge() {
   useRealtimeEvent("intent.created", () => {
     void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
     void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
+    invalidateTags(qc);
   });
   useRealtimeEvent("intent.deleted", (payload) => {
     removeListItem(qc, payload.intent_id);
     qc.removeQueries({ queryKey: intentsQueryKeys.detail(payload.intent_id) });
     void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
+    invalidateTags(qc);
   });
   useRealtimeEvent("intent.text_changed", (payload) => {
     patchListItem(qc, payload.id, (it) => ({
@@ -178,6 +184,7 @@ export function RealtimeQueryBridge() {
     qc.setQueryData(intentsQueryKeys.detail(payload.id), payload);
     void qc.invalidateQueries({ queryKey: intentsQueryKeys.lists() });
     void qc.invalidateQueries({ queryKey: intentContextsQueryKeys.all });
+    invalidateTags(qc);
   });
   useRealtimeEvent("intent.pinned", (payload) => {
     patchListItem(qc, payload.intent_id, (it) => ({
