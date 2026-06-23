@@ -25,7 +25,13 @@ public static class IntentStatusNames
 
     public static readonly IReadOnlyList<string> Terminal = [Done, Reject, Fridge];
 
+    // Closing = terminal минус fridge: done|reject завершают интент и триггерят teardown
+    // (kill tmux + снос локального состояния); fridge — пауза, состояние живёт (ADR-0026 § 8).
+    public static readonly IReadOnlyList<string> Closing = [Done, Reject];
+
     public static bool IsKnown(string status) => All.Contains(status, StringComparer.Ordinal);
 
     public static bool IsTerminal(string status) => Terminal.Contains(status, StringComparer.Ordinal);
+
+    public static bool IsClosing(string status) => Closing.Contains(status, StringComparer.Ordinal);
 }
