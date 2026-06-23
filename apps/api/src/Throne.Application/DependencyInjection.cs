@@ -73,10 +73,8 @@ public static class DependencyInjection
         services.AddSingleton<RepositoryPullRequestSyncWorkflow>();
         services.AddSingleton<RepositoryBindingService>();
         services.AddSingleton<WorkspaceCleanupService>();
-        services.AddSingleton<RepositoryArtifactWriter>();
         services.AddSingleton<PullRequestArtifactWriter>();
         services.AddSingleton<IPullRequestArtifactSink>(sp => sp.GetRequiredService<PullRequestArtifactWriter>());
-        services.AddSingleton<GetRepositoryDocumentHandler>();
         services.AddSingleton<GetPullRequestArtifactHandler>();
         services.AddSingleton<ListPullRequestArtifactsHandler>();
         services.AddSingleton<IIntentRepositoryBindingReader, IntentRepositoryBindingReader>();

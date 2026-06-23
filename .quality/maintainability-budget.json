@@ -101,7 +101,7 @@
           }
         },
         {
-          "_comment": "ADR-0040: Throne.Domain включён в size/CC-бюджет (rich-DDD стиль через ADR-0025 + DomainEncapsulationRulesTests). Лимиты дают воздух для агрегатов (Intent 331 LOC, IntentRepositoryBinding 321, DreamSession.Create 109/CC 20, PromptPart/RepositoryArtifact ctor=9 data fields) при сохранении сигнала на дальнейшее разрастание. record-DTO и encapsulation охраняет NetArchTest, не budget.",
+          "_comment": "ADR-0040: Throne.Domain включён в size/CC-бюджет (rich-DDD стиль через ADR-0025 + DomainEncapsulationRulesTests). Лимиты дают воздух для агрегатов (Intent 331 LOC, IntentRepositoryBinding 321, DreamSession.Create 109/CC 20, PromptPart ctor=9 data fields) при сохранении сигнала на дальнейшее разрастание. record-DTO и encapsulation охраняет NetArchTest, не budget.",
           "glob": "**/Throne.Domain/**.cs",
           "limits": {
             "fileMaxLoc": 500,
