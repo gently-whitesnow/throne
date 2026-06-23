@@ -23,4 +23,11 @@ Rules:
 - Do not write intent status from the agent. Throne derives status from session hooks.
 - For `replace-text`, the old fragment must occur exactly once in current `Intent.text`.
 - Use `--blocking true` only for a hard dependency edge; otherwise keep it `false`.
-- Use `--tag <name>` on `create` only when the child should start with explicit tags.
+- An intent tag is **not** a free-form label. It carries exactly one meaning: the bare repository
+  name in its native form (e.g. `throne`). This is identical for intents created from scratch and
+  for child intents.
+  - Do not use the workspace slug (`gently-whitesnow__throne`) — only the clean repo name (`throne`).
+  - Do not invent arbitrary, thematic, or feature tags.
+  - You determine the repository name yourself from the working context.
+- Pass `--tag <repo-name>` on `create` to set this tag; omit it when the repository is already
+  unambiguous from the parent. Never pass more than the repository-name tag.
