@@ -382,6 +382,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/repositories/{binding_id}/sync-branch:
+    post:
+      operationId: syncIntentRepositoryBranch
+      tags: [IntentRepositories]
+      summary: Hard-sync the local clone's current branch to its remote tip.
+      description: >
+        «Синхронизировать ветку» — the only action that touches the working tree (separate
+        from «Обновить», which is PR-metadata + disk-recovery). Runs `git fetch` plus
+        `git reset --hard origin/{current-branch}` against the existing clone, so the local
+        branch lands exactly on the remote tip and **uncommitted local changes are discarded**
+        (the UI confirm warns about this). Requires `clone_status=ready` and the folder
+        present on disk; otherwise 409. The binding record is unchanged and returned verbatim.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: binding_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK — the (unchanged) binding after the local branch was reset to remote.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryBindingDto'
+        '404':
+          description: Intent or binding not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Clone is not ready or its local folder is missing.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '500':
+          description: The git fetch/reset failed (network, detached HEAD, missing git).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request:
     post:
       operationId: attachIntentRepositoryPullRequest
