@@ -1,29 +1,111 @@
 ---
 name: dream
-description: Available for reading Throne dream sources and recent dream sessions to pull conversation context for the current host, and for proposing user prompt-part patches plus recording dream sessions through skills/dream/bin/throne-dream.
+description: Запуск dream-прохода — улучшение НАБОРА user-частей промпта (scope=user) по реальным диалогам оператора с агентами. Данные Throne берём через skills/dream/bin/throne-dream, диалоги читаем локально. Output — PromptPartPatch'и; apply/edit/reject делает оператор в UI /improvements.
 ---
 
 # Throne Dream Operations
 
-Use `skills/dream/bin/throne-dream` for dream-mode memory and user prompt-part patch proposals. The script reads `THRONE_API_BASE`.
+Цель — улучшить набор user-частей промпта (`scope=user`) на основе анализа реальных
+диалогов. После ADR-0036 user-инструкция — это не пара {work, interview}, а множество
+`prompt_part` с ролями по режимам: ядро (`common`, `work`, `interview`, `dream`) и
+модульные/опциональные части (`dotnet`, `contracts`, `tests`, `commit`, `postgres`,
+`mongo`, `frontend`, …). Думай структурой частей: не «какую строку дописать в work», а
+«в какой части должно жить правило, не дублируется ли оно, не пора ли часть схлопнуть/
+вынести». Throne не хранит диалогов — читаешь их локально через Read/Glob по путям из
+`sources`. См. ADR-0036 (PromptPart, роли, композиция), ADR-0022 (dream-flow).
 
-Commands:
+Объём выбирает оператор — не подтягивай больше, чем явно попросили («посмотри 10» = 10).
+
+## CLI (`skills/dream/bin/throne-dream`, читает `THRONE_API_BASE`)
 
 ```bash
-skills/dream/bin/throne-dream sources
+skills/dream/bin/throne-dream sources                       # {vendor → path, hint} для локального чтения
+skills/dream/bin/throne-dream parts                         # КАРТА частей: scope/key, version, роли по режимам
 skills/dream/bin/throne-dream sessions --host "$(hostname)" --limit 5
 skills/dream/bin/throne-dream current-part --scope user --key work
-skills/dream/bin/throne-dream patches --scope user --key work --limit 50
-skills/dream/bin/throne-dream propose-patch < /tmp/prompt-part-patch.json
-skills/dream/bin/throne-dream record-session < /tmp/dream-session.json
+skills/dream/bin/throne-dream patches --status applied --limit 20
+skills/dream/bin/throne-dream get-patch <id>
+skills/dream/bin/throne-dream propose-patch  < /tmp/patch.json
+skills/dream/bin/throne-dream record-session < /tmp/session.json
 ```
 
-Workflow:
+## Плейбук
 
-1. Read dream sources, then inspect local conversations from those paths.
-2. List recent dream sessions for the current host before selecting the next conversation frontier.
-3. Read current user prompt parts before proposing patches. Use the returned `current_version` as `base_version`.
-4. Propose PromptPartPatch records for user parts only. The operator applies, edits, or rejects them in the UI.
-5. Record a DreamSession with processed conversation ids, summary, reflection, and proposed patch ids.
+1. **Карта частей — ГЕЙТ перед любыми патчами.** Строй карту из `parts` (source of truth
+   по ролям — `mode_roles` в БД), НЕ из прозы в хвосте `work`: тот хвост дрейфует и врёт
+   про роли. Для каждой части — key, scope, current_version (нужна как `base_version`),
+   роли по режимам (mandatory / default_on / default_off). Прочитай тексты релевантных
+   частей (`current-part`), не только work/interview. Карту покажи оператору ДО предложения
+   патчей — страховка от «по умолчанию ушёл в work/interview».
 
-Do not patch system prompt parts. Do not write user parts directly; propose patches and leave final decisions to the operator.
+2. **Рефлексия по прошлым правкам — ВСЕГДА перед поиском нового.** `patches --status applied`
+   + при нужде `get-patch <id>`: какие правила оператор принял и когда. Прочитай несколько
+   свежих диалогов (после applied_at) — прижилось правило (оператор перестал повторять
+   поправку) или нет (повторяет → формулировка не считывается). Доложи компактно «прижилось /
+   не прижилось и почему».
+   - Самозагрязнение поиска: текст инструкции инжектится в диалог, поэтому grep по ключевику
+     даёт ложный рецидив (часть `commit` буквально содержит свои примеры). При проверке
+     рецидива ИСКЛЮЧАЙ совпадения, которые и есть инжектнутый текст части; смотри реальные
+     tool-вызовы агента и реплики оператора, а не инжект.
+
+3. **Vendor и период для нового разбора** уточни у оператора. Список vendor — СТРОГО из
+   `sources`, не предлагай отсутствующих. Период парси из естественного вида сам.
+
+4. **Найди и прочитай диалоги локально** (Read/Glob по путям из `sources`, фильтр по mtime/
+   timestamp). Исключи conversation-id из `processed_conversation_ids` недавних сессий.
+   - Объём: при сотнях диалогов сырьём не прочитать. Извлекай операторские реплики в дайджест
+     и делегируй тяжёлое чтение саб-агентам, возвращая только цитаты-цеплялки (≤3 строки) —
+     совпадает с privacy-инвариантом и общим work-правилом про саб-агентов. Сначала проходись
+     компактно, глубоко читай только содержательное.
+
+5. **Что ищем — операторские сигналы:** правила, которые оператор повторяет/формулирует
+   («всегда X», «не делай Y», «предпочитай Z», «сначала спроси W»); корректирующие реплики;
+   паттерны, закреплённые после нескольких итераций. Не сигнал: разовые баги, узкие
+   технические решения, эмоции.
+
+6. **Для КАЖДОГО сигнала сначала выбери НОСИТЕЛЬ, потом формулируй правку.** Развилка:
+   - `user:work` / `user:interview` — кросс-проектное правило исполнения / прояснения постановки;
+   - существующая спец-часть (`commit`, `tests`, `dotnet`, `contracts`, `mongo`, `postgres`,
+     `frontend`, …) — правило про конкретный стек/контур; не тащи в ядро;
+   - новая optional-часть под `free`-режим — правило, подключаемое по требованию (пример:
+     research-gate). Патчем с `base_version=0` создаёшь только ТЕКСТ; роль навешивает оператор
+     в UI — так ему и скажи;
+   - ADR / проектная документация — сигнал Throne-specific или для одного репозитория (пример:
+     codex parity). Здесь dream НЕ патчит — говорит «этому место в ADR проекта»;
+   - no-op — уже покрыто существующей частью либо разовый случай.
+
+7. **Проверь дубли и разрастание ПЕРЕД добавлением.** Нет ли правила уже в ядре/модульной
+   части; не повторяется ли в нескольких; не разрослось ли ядро стек-специфичным. Структурная
+   правка (схлопнуть дубль / вынести из ядра в спец-часть или наоборот) — полноценный output
+   dream наравне с добавлением правила.
+
+8. **Обсуди находки интерактивно:** каждую — 1-2 строками: цитата-цеплялка (≤3 строки) +
+   выбранный носитель. Согласуй формулировки и носители.
+
+9. **Сформулируй патчи** через `propose-patch < payload.json`:
+   - `target_scope` — всегда `"user"`; `target_key` — ключ носителя (любая user-часть; для
+     новой optional-части — её новый ключ). system-части не патчи;
+   - `base_version` — current_version носителя из карты (шаг 1); для НОВОЙ части — 0;
+   - `patch_text` — полное новое содержимое части целиком (сервер не мёржит);
+   - `rationale` — 1-3 предложения, ≤500 символов;
+   - `idempotency_key` — ОБЯЗАТЕЛЬНО уникальный на каждый логический патч (≤64), напр.
+     `dream-{vendor}-{date_to}-{target_key}-{seq}`. Без него повтор HTTP создаст дубль в /improvements.
+
+10. **В конце ОБЯЗАТЕЛЬНО** `record-session < session.json` — ОТДЕЛЬНАЯ session на КАЖДЫЙ
+    разобранный vendor (frontier пер-vendor): `vendor`, `date_from`/`date_to`, `host`
+    (hostname текущей машины — по нему сервер отделяет frontier разных машин), `summary`,
+    `reflection` (оценка applied-патчей из шага 2), `processed_conversation_ids` (что реально
+    прочитал — иначе следующий проход пересмотрит впустую), `proposed_patch_ids`. Даже если
+    ничего не нашёл — запиши session с пустым `proposed_patch_ids` и `processed_conversation_ids`.
+
+## Жёсткие инварианты
+
+- Карту частей показывай ДО патчей; рефлексию делай ВСЕГДА перед поиском нового.
+- Не применяй патчи сам — apply/edit/reject исключительно user-action в UI `/improvements`.
+- Не патчи `system`-части: они manifest-managed (`specs/manifest/throne-skills.yaml`), меняются
+  только PR к манифесту, вне объёма dream.
+- dream сам не пишет код и не правит ADR — но вправе РЕКОМЕНДОВАТЬ носителем сигнала ADR.
+- Не предлагай rule с toxic absolutism («никогда», «всегда без исключений»), если есть
+  смысловые исключения.
+- Не намекай на vendor, которого нет в `sources`. Не публикуй в чат сырые тексты чужих
+  диалогов — только цитаты-цеплялки (≤3 строки). Не превышай заказанный объём.
