@@ -1,14 +1,9 @@
 import { CircleAlert, Inbox, Terminal } from "lucide-react";
 
 import { intentStatusMeta } from "@/entities/intent";
-import {
-  INBOX_HELP_CONTEXT,
-  INBOX_REVIEW_CONTEXT,
-  TERMINAL_RUNNING_CONTEXT
-} from "@/shared/lib";
+import { INBOX_HELP_CONTEXT, TERMINAL_RUNNING_CONTEXT } from "@/shared/lib";
 
 interface InboxWidgetProps {
-  reviewCount: number;
   helpCount: number;
   terminalRunningCount: number;
   activeContext: string | null;
@@ -16,13 +11,11 @@ interface InboxWidgetProps {
 }
 
 export function InboxWidget({
-  reviewCount,
   helpCount,
   terminalRunningCount,
   activeContext,
   onSelect
 }: InboxWidgetProps) {
-  const reviewMeta = intentStatusMeta.ready_for_review;
   const helpMeta = intentStatusMeta.awaiting_operator;
   // A live terminal is an agent actively working — reuse the purple `work` token so the
   // bucket reads as "work in progress" and stays in lock-step with the status colour.
@@ -37,21 +30,6 @@ export function InboxWidget({
         Inbox
       </h3>
       <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-        {reviewCount > 0 ? (
-          <li>
-            <InboxRow
-              label="Жду ревью"
-              count={reviewCount}
-              ink={reviewMeta.ink}
-              surface={reviewMeta.surface}
-              icon={<Inbox aria-hidden size={14} strokeWidth={2} />}
-              active={activeContext === INBOX_REVIEW_CONTEXT}
-              onSelect={() => {
-                onSelect(INBOX_REVIEW_CONTEXT);
-              }}
-            />
-          </li>
-        ) : null}
         {helpCount > 0 ? (
           <li>
             <InboxRow

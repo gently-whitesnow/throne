@@ -98,7 +98,7 @@ export function SetIntentStatusForm({
   const showRejectInput = pendingStatus === "reject";
   const canSubmitReject = rejectReason.trim().length > 0;
 
-  const showFinishQuickAction = intent.status === "ready_for_review" && !open;
+  const showFinishQuickAction = intent.status === "awaiting_operator" && !open;
 
   return (
     <div

@@ -43,7 +43,7 @@ public class IntentMergeAutoCloserTests
         var fixture = new Fixture();
         var merged = Binding(pr: 7, prState: PullRequestStateNames.Merged);
         fixture.SeedSiblings(merged, Binding(pr: null, prState: null));
-        fixture.SeedIntent(IntentStatusNames.ReadyForReview);
+        fixture.SeedIntent(IntentStatusNames.AwaitingOperator);
 
         await fixture.Closer.OnBindingMergedAsync(merged, CancellationToken.None);
 
