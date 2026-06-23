@@ -19,7 +19,9 @@ vi.mock("@/shared/api", () => ({
 
 vi.mock("@/entities/tag", () => ({
   useTagPicker: () => ({
-    availableTags: [],
+    query: "",
+    setQuery: vi.fn(),
+    candidates: [],
     loadError: null,
     createTag: vi.fn().mockResolvedValue("")
   })

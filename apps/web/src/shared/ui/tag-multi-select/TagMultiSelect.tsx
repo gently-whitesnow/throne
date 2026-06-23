@@ -1,4 +1,4 @@
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -9,13 +9,20 @@ import {
 } from "react";
 
 import { normalizeTagSlug, TAG_NAME_MAX_LENGTH } from "./normalize";
+import {
+  TagOptionsList,
+  type TagPickerOption
+} from "./TagOptionsList";
 
 interface TagMultiSelectProps {
   value: string[];
   onChange: (next: string[]) => void;
-  /** All tag names known to the system (slugs). */
-  availableTags: readonly string[];
-  /** Optional creation handler. Returns the canonical slug to add on success. */
+  /** Серверно-отсортированные кандидаты (usage desc) под текущий query. */
+  candidates: readonly TagPickerOption[];
+  /** Текущий ввод; владеет им внешний пикер (useTagPicker). */
+  query: string;
+  onQueryChange: (next: string) => void;
+  /** Создание тега на лету. Возвращает каноничный slug для добавления. */
   onRequestCreate?: (slug: string) => Promise<string>;
   loadError?: string | null;
   disabled?: boolean;
@@ -28,7 +35,9 @@ interface TagMultiSelectProps {
 export function TagMultiSelect({
   value,
   onChange,
-  availableTags,
+  candidates,
+  query,
+  onQueryChange,
   onRequestCreate,
   loadError,
   disabled = false,
@@ -37,7 +46,6 @@ export function TagMultiSelect({
   autoFocusInput = false,
   className
 }: TagMultiSelectProps) {
-  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -62,16 +70,13 @@ export function TagMultiSelect({
 
   const slug = useMemo(() => normalizeTagSlug(query), [query]);
 
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length === 0) return [...availableTags];
-    return availableTags.filter((name) => name.toLowerCase().includes(q));
-  }, [availableTags, query]);
-
-  const exactExisting = useMemo(() => {
-    if (!slug.valid) return null;
-    return availableTags.find((name) => name === slug.slug) ?? null;
-  }, [availableTags, slug]);
+  const exactExisting = useMemo(
+    () =>
+      slug.valid
+        ? (candidates.find((c) => c.name === slug.slug) ?? null)
+        : null,
+    [candidates, slug]
+  );
 
   const canCreate =
     Boolean(onRequestCreate) &&
@@ -79,7 +84,7 @@ export function TagMultiSelect({
     !exactExisting &&
     !value.includes(slug.slug);
 
-  const optionCount = matches.length + (canCreate ? 1 : 0);
+  const optionCount = candidates.length + (canCreate ? 1 : 0);
 
   useEffect(() => {
     if (activeIndex >= optionCount) {
@@ -91,14 +96,14 @@ export function TagMultiSelect({
     (name: string) => {
       if (!name) return;
       if (value.includes(name)) {
-        setQuery("");
+        onQueryChange("");
         return;
       }
       onChange([...value, name]);
-      setQuery("");
+      onQueryChange("");
       setActiveIndex(0);
     },
-    [onChange, value]
+    [onChange, onQueryChange, value]
   );
 
   const removeTag = useCallback(
@@ -125,13 +130,13 @@ export function TagMultiSelect({
   }, [addTag, canCreate, creating, onRequestCreate, slug.slug]);
 
   const commitActiveOption = useCallback(() => {
-    if (activeIndex < matches.length) {
-      const name = matches[activeIndex];
+    if (activeIndex < candidates.length) {
+      const name = candidates[activeIndex].name;
       addTag(name);
       return;
     }
     if (canCreate) void handleCreate();
-  }, [activeIndex, addTag, canCreate, handleCreate, matches]);
+  }, [activeIndex, addTag, canCreate, candidates, handleCreate]);
 
   const onInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Backspace" && query.length === 0 && value.length > 0) {
@@ -156,7 +161,7 @@ export function TagMultiSelect({
     } else if (event.key === "Escape") {
       event.preventDefault();
       setOpen(false);
-      setQuery("");
+      onQueryChange("");
     }
   };
 
@@ -170,6 +175,14 @@ export function TagMultiSelect({
     }
     return null;
   }, [query, slug]);
+
+  const handleOptionClick = (name: string) => {
+    if (value.includes(name)) {
+      removeTag(name);
+    } else {
+      addTag(name);
+    }
+  };
 
   return (
     <div
@@ -212,7 +225,7 @@ export function TagMultiSelect({
           autoFocus={autoFocusInput}
           disabled={disabled}
           onChange={(e) => {
-            setQuery(e.target.value);
+            onQueryChange(e.target.value);
             setOpen(true);
             setActiveIndex(0);
             setCreateError(null);
@@ -237,81 +250,21 @@ export function TagMultiSelect({
         </p>
       ) : null}
       {open ? (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label="Доступные теги"
-          className="absolute left-0 right-0 top-full z-30 mt-1 flex max-h-64 flex-col overflow-y-auto rounded-md border border-base-300 bg-base-100 py-1 shadow-lg"
-        >
-          {matches.length === 0 && !canCreate ? (
-            <li className="px-3 py-2 text-[12px] text-base-content/60">
-              {query.trim().length > 0 ? "Нет совпадений." : "Тегов пока нет."}
-            </li>
-          ) : null}
-          {matches.map((name, idx) => {
-            const selected = value.includes(name);
-            const active = idx === activeIndex;
-            return (
-              <li
-                key={name}
-                role="option"
-                aria-selected={selected}
-                className={[
-                  "flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 text-[13px]",
-                  active ? "bg-primary/10" : "hover:bg-base-200"
-                ].join(" ")}
-                onMouseEnter={() => {
-                  setActiveIndex(idx);
-                }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  if (selected) {
-                    removeTag(name);
-                  } else {
-                    addTag(name);
-                  }
-                }}
-              >
-                <span className="truncate text-base-content">#{name}</span>
-                {selected ? (
-                  <span className="text-[10px] uppercase tracking-wider text-primary">
-                    выбран
-                  </span>
-                ) : null}
-              </li>
-            );
-          })}
-          {canCreate ? (
-            <li
-              role="option"
-              aria-selected={false}
-              className={[
-                "flex cursor-pointer items-center gap-2 border-t border-base-300 px-3 py-1.5 text-[13px]",
-                activeIndex === matches.length
-                  ? "bg-primary/10"
-                  : "hover:bg-base-200"
-              ].join(" ")}
-              onMouseEnter={() => {
-                setActiveIndex(matches.length);
-              }}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                void handleCreate();
-              }}
-            >
-              <Plus aria-hidden size={14} strokeWidth={2} />
-              <span className="truncate">
-                Создать тег{" "}
-                <span className="font-mono text-primary">#{slug.slug}</span>
-              </span>
-              {creating ? (
-                <span className="ml-auto text-[10px] uppercase tracking-wider text-base-content/60">
-                  создаём…
-                </span>
-              ) : null}
-            </li>
-          ) : null}
-        </ul>
+        <TagOptionsList
+          listboxId={listboxId}
+          query={query}
+          candidates={candidates}
+          selected={value}
+          activeIndex={activeIndex}
+          onHover={setActiveIndex}
+          onPick={handleOptionClick}
+          canCreate={canCreate}
+          createSlug={slug.slug}
+          creating={creating}
+          onCreate={() => {
+            void handleCreate();
+          }}
+        />
       ) : null}
     </div>
   );
