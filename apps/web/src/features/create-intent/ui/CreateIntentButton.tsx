@@ -178,7 +178,9 @@ export function CreateIntentButton({
         <TagMultiSelect
           value={tags}
           onChange={setTags}
-          availableTags={tagPicker.availableTags}
+          candidates={tagPicker.candidates}
+          query={tagPicker.query}
+          onQueryChange={tagPicker.setQuery}
           onRequestCreate={tagPicker.createTag}
           loadError={tagPicker.loadError}
           disabled={busy}
