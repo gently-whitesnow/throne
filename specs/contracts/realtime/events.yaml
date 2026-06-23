@@ -151,28 +151,6 @@ events:
           type: string
         comment:
           $ref: 'repositories#/components/schemas/PullRequestCommentDto'
-  repository.document_updated:
-    description: >
-      A RepositoryArtifact knowledge page was written (create or update).
-      Pointer-only: the markdown body and the version timeline are refetched by
-      the client, so the frame carries just the coordinate + slug + new version
-      (ADR-0031, ADR-0008).
-    payload:
-      type: object
-      required: [provider, owner, repo, slug, version]
-      properties:
-        provider:
-          type: string
-        owner:
-          type: string
-        repo:
-          type: string
-        slug:
-          type: string
-        version:
-          type: integer
-          format: int32
-          minimum: 1
   pull_request.artifact_updated:
     description: >
       A PullRequestArtifact was written for a repository binding (ADR-0031). Latest-wins:

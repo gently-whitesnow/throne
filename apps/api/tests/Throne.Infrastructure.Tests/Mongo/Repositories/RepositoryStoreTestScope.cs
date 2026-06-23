@@ -6,14 +6,13 @@ using Throne.Infrastructure.Mongo.Repositories;
 namespace Throne.Infrastructure.Tests.Mongo.Repositories;
 
 /// <summary>
-/// Per-test scope: fresh database + the registry / artifact stores wired against the same
+/// Per-test scope: fresh database + the registry / PR-artifact stores wired against the same
 /// indexes the production <c>MongoIndexInitializer</c> builds, so the unique-index drift
 /// guards run against the real schema.
 /// </summary>
 internal sealed record RepositoryStoreTestScope(
     IMongoDatabase Database,
     IRepositoryRegistry Registry,
-    IRepositoryArtifactRepository Artifacts,
     IPullRequestArtifactRepository PullRequestArtifacts,
     IUnitOfWork UnitOfWork)
 {
@@ -24,14 +23,12 @@ internal sealed record RepositoryStoreTestScope(
         var db = fixture.Client.GetDatabase(name);
 
         await MongoRepositoryIndexes.CreateAsync(db, CancellationToken.None);
-        await MongoRepositoryArtifactIndexes.CreateAsync(db, CancellationToken.None);
         await MongoPullRequestArtifactIndexes.CreateAsync(db, CancellationToken.None);
 
         var sessions = new MongoSessionAccessor();
         var registry = new MongoRepositoryRegistry(db, sessions);
-        var artifacts = new MongoRepositoryArtifactStore(db, sessions);
         var pullRequestArtifacts = new MongoPullRequestArtifactStore(db, sessions);
         var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return new RepositoryStoreTestScope(db, registry, artifacts, pullRequestArtifacts, uow);
+        return new RepositoryStoreTestScope(db, registry, pullRequestArtifacts, uow);
     }
 }

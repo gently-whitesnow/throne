@@ -110,7 +110,6 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
         await CreateIntentPinIndexesAsync(cancellationToken);
         await MongoIntentRepositoryBindingIndexes.CreateAsync(database, cancellationToken);
         await MongoRepositoryIndexes.CreateAsync(database, cancellationToken);
-        await MongoRepositoryArtifactIndexes.CreateAsync(database, cancellationToken);
         await MongoPullRequestArtifactIndexes.CreateAsync(database, cancellationToken);
     }
 
