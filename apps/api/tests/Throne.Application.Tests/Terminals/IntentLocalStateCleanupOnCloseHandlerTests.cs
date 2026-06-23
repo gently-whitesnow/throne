@@ -9,46 +9,51 @@ using Throne.Domain.Intents;
 namespace Throne.Application.Tests.Terminals;
 
 /// <summary>
-/// Reaching <c>done</c> wipes the intent's local state (agent trust entries + workspace folder),
-/// gated solely by the intent's <c>CleanupLocalStateOnDone</c> flag and best-effort so a cleanup
-/// failure never escapes the event fan-out. The folder is resolved from the workspace root.
+/// Closing an intent — <c>done</c> or <c>reject</c> — wipes its local state (agent trust entries +
+/// workspace folder), gated solely by the intent's <c>CleanupLocalStateOnClose</c> flag and
+/// best-effort so a cleanup failure never escapes the event fan-out. <c>fridge</c> is a pause, not a
+/// close, so its state survives. The folder is resolved from the workspace root.
 /// </summary>
-public class IntentLocalStateCleanupOnDoneHandlerTests
+public class IntentLocalStateCleanupOnCloseHandlerTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 5, 12, 0, 0, TimeSpan.Zero);
     private const string IntentIdValue = "intent-1";
     private const string Root = "/ws";
     private static readonly string IntentDir = System.IO.Path.Combine(Root, "intents", IntentIdValue);
 
-    [Fact(DisplayName = "done + флаг true: чистит trust обоих вендоров и удаляет папку интента")]
-    public async Task Cleans_trust_and_folder_on_done_when_flag_set()
+    [Theory(DisplayName = "close (done|reject) + флаг true: чистит trust обоих вендоров и удаляет папку")]
+    [InlineData(IntentStatusNames.Done)]
+    [InlineData(IntentStatusNames.Reject)]
+    public async Task Cleans_trust_and_folder_on_close_when_flag_set(string status)
     {
         var fixture = new Fixture();
 
-        await fixture.Handler.HandleAsync(StatusEvent(IntentStatusNames.Done, cleanup: true), CancellationToken.None);
+        await fixture.Handler.HandleAsync(StatusEvent(status, cleanup: true), CancellationToken.None);
 
         await fixture.Trust.Received(1).RemoveTrustedUnderAsync(IntentDir, Arg.Any<CancellationToken>());
         await fixture.SpawnAdapter.Received(1).CleanupAsync(IntentIdValue, Arg.Any<CancellationToken>());
         await fixture.Directories.Received(1).RemoveAsync(IntentDir, Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "done + флаг false: ничего не чистит")]
-    public async Task Skips_cleanup_when_flag_cleared()
+    [Theory(DisplayName = "close (done|reject) + флаг false: ничего не чистит")]
+    [InlineData(IntentStatusNames.Done)]
+    [InlineData(IntentStatusNames.Reject)]
+    public async Task Skips_cleanup_when_flag_cleared(string status)
     {
         var fixture = new Fixture();
 
-        await fixture.Handler.HandleAsync(StatusEvent(IntentStatusNames.Done, cleanup: false), CancellationToken.None);
+        await fixture.Handler.HandleAsync(StatusEvent(status, cleanup: false), CancellationToken.None);
 
         await fixture.Trust.DidNotReceive().RemoveTrustedUnderAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         await fixture.Directories.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
-    [Fact(DisplayName = "Не-done статус не трогает локальное состояние")]
-    public async Task Skips_cleanup_on_non_done_status()
+    [Fact(DisplayName = "fridge (заморозка) не трогает локальное состояние")]
+    public async Task Skips_cleanup_on_fridge_status()
     {
         var fixture = new Fixture();
 
-        await fixture.Handler.HandleAsync(StatusEvent(IntentStatusNames.Reject, cleanup: true), CancellationToken.None);
+        await fixture.Handler.HandleAsync(StatusEvent(IntentStatusNames.Fridge, cleanup: true), CancellationToken.None);
 
         await fixture.Trust.DidNotReceive().RemoveTrustedUnderAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         await fixture.Directories.DidNotReceive().RemoveAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -98,14 +103,14 @@ public class IntentLocalStateCleanupOnDoneHandlerTests
             root.ResolvedRoot.Returns(Root);
             SpawnAdapter = Substitute.For<ISessionHookAdapter>();
             SpawnAdapter.Vendor.Returns(TerminalAgentCatalog.VendorCodex);
-            Handler = new IntentLocalStateCleanupOnDoneHandler(
+            Handler = new IntentLocalStateCleanupOnCloseHandler(
                 Trust, Directories, root, [SpawnAdapter],
-                NullLogger<IntentLocalStateCleanupOnDoneHandler>.Instance);
+                NullLogger<IntentLocalStateCleanupOnCloseHandler>.Instance);
         }
 
         public IWorkspaceTrust Trust { get; }
         public IWorkspaceDirectoryRemover Directories { get; }
         public ISessionHookAdapter SpawnAdapter { get; }
-        public IntentLocalStateCleanupOnDoneHandler Handler { get; }
+        public IntentLocalStateCleanupOnCloseHandler Handler { get; }
     }
 }

@@ -18,7 +18,7 @@ internal static class IntentDocumentMapper
         SortKey = intent.State.SortKey,
         CreatedAt = intent.CreatedAt.UtcDateTime,
         UpdatedAt = intent.State.UpdatedAt.UtcDateTime,
-        CleanupLocalStateOnDone = intent.State.CleanupLocalStateOnDone,
+        CleanupLocalStateOnDone = intent.State.CleanupLocalStateOnClose,
     };
 
     public static IntentStatusChangeDocument ToDocument(IntentStatusChange change) => new()
