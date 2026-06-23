@@ -32,6 +32,7 @@ public static class ErrorCodes
     public const string RepositoryBlobNotFound = "repository.blob_not_found";
     public const string RepositoryPullRequestMergeRejected = "repository_binding.pull_request.merge_rejected";
     public const string RepositoryWorkspaceRemovalFailed = "repository_binding.workspace_removal_failed";
+    public const string RepositoryBranchSyncFailed = "repository_binding.branch_sync_failed";
     public const string PullRequestArtifactNotFound = "pull_request_artifact.not_found";
     public const string RepositoryCoordinateInvalid = "repository.coordinate_invalid";
     public const string CapabilityNotFound = "capability.not_found";

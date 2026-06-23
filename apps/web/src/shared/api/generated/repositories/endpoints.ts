@@ -13,6 +13,7 @@ export const repositoriesEndpoints = {
   unbindIntentRepository: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}`,
   syncIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/sync`,
   refreshIntentRepository: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/refresh`,
+  syncIntentRepositoryBranch: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/sync-branch`,
   attachIntentRepositoryPullRequest: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request`,
   listIntentRepositoryPullRequestComments: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/pull-request/comments`,
   getIntentRepositoryReviewDiff: (intent_id: string, binding_id: string) => `/intents/${intent_id}/repositories/${binding_id}/review/diff`,

@@ -10,7 +10,7 @@ public sealed class IntentRepositoriesController(
     BindIntentRepositoryEndpoint bindEndpoint,
     UnbindIntentRepositoryEndpoint unbindEndpoint,
     RefreshIntentRepositoryEndpoint refreshEndpoint,
-    SyncIntentRepositoryPullRequestEndpoint syncEndpoint,
+    RepositorySyncEndpoints syncEndpoints,
     AttachIntentRepositoryPullRequestEndpoint attachPrEndpoint,
     ListIntentRepositoryPullRequestCommentsEndpoint listCommentsEndpoint,
     ReviewWorkspaceReadEndpoints reviewReadEndpoints,
@@ -41,7 +41,12 @@ public sealed class IntentRepositoriesController(
     public override Task<ActionResult<PullRequestSyncResultDto>> SyncIntentRepositoryPullRequest(
         string intent_id,
         string binding_id) =>
-        syncEndpoint.RunAsync(intent_id, binding_id, HttpContext.RequestAborted);
+        syncEndpoints.SyncPullRequestAsync(intent_id, binding_id, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<RepositoryBindingDto>> SyncIntentRepositoryBranch(
+        string intent_id,
+        string binding_id) =>
+        syncEndpoints.SyncBranchAsync(intent_id, binding_id, HttpContext.RequestAborted);
 
     public override Task<ActionResult<RepositoryBindingDto>> AttachIntentRepositoryPullRequest(
         string intent_id,

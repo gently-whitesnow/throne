@@ -168,6 +168,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/repositories/{binding_id}/sync-branch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hard-sync the local clone's current branch to its remote tip.
+         * @description «Синхронизировать ветку» — the only action that touches the working tree (separate from «Обновить», which is PR-metadata + disk-recovery). Runs `git fetch` plus `git reset --hard origin/{current-branch}` against the existing clone, so the local branch lands exactly on the remote tip and **uncommitted local changes are discarded** (the UI confirm warns about this). Requires `clone_status=ready` and the folder present on disk; otherwise 409. The binding record is unchanged and returned verbatim.
+         */
+        post: operations["syncIntentRepositoryBranch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/repositories/{binding_id}/pull-request": {
         parameters: {
             query?: never;
@@ -1174,6 +1194,56 @@ export interface operations {
             };
             /** @description Intent or binding not found. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    syncIntentRepositoryBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+                binding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK — the (unchanged) binding after the local branch was reset to remote. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RepositoryBindingDto"];
+                };
+            };
+            /** @description Intent or binding not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Clone is not ready or its local folder is missing. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The git fetch/reset failed (network, detached HEAD, missing git). */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

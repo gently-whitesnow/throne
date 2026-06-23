@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  DownloadCloud,
   GitBranch,
   GitPullRequest,
   Loader2,
@@ -7,7 +8,6 @@ import {
   RefreshCw,
   Trash2
 } from "lucide-react";
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import {
@@ -16,15 +16,13 @@ import {
   isCloneTransient,
   pullRequestStateMeta,
   pullRequestUrl,
-  refreshIntentRepository,
   repositoryFullName,
-  unbindIntentRepository,
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { AttachPullRequestControl } from "@/features/attach-pull-request";
 import { OpenBindingInIdeButton } from "@/features/open-in-ide";
-import { errorMessage, httpErrorStatus } from "@/shared/lib";
 
+import { useBindingRowActions } from "../model/use-binding-row-actions";
 import { BindingRowMenu } from "./BindingRowMenu";
 
 interface RepositoryBindingRowProps {
@@ -48,11 +46,17 @@ interface RepositoryBindingRowProps {
  *    выполняется одна per-binding попытка auto-bind, чтобы не ждать общий поллер.
  *    Строка обновляется из ответа, дальше статус догоняет realtime-событие
  *    `intent.repository_clone_progress`.
+ *  - Sync branch — the only action that touches the working tree: server runs
+ *    `git fetch` + `git reset --hard origin/{branch}`, so the local clone lands on
+ *    the remote tip and uncommitted changes are discarded (confirm warns about it).
+ *    Available only for a `ready` clone. Separate from Refresh on purpose.
  *  - Delete — removes the binding AND its on-disk workspace folder via DELETE,
  *    after a confirm that spells out the data loss. The realtime
  *    `intent.repository_unbound` event keeps other clients in sync; the local
  *    list also drops the row optimistically via `onUnbound` so the user sees
  *    immediate feedback even before the SSE round-trip.
+ *
+ * The action handlers + their loading/error state live in `useBindingRowActions`.
  */
 export function RepositoryBindingRow({
   intentId,
@@ -60,57 +64,28 @@ export function RepositoryBindingRow({
   onRefreshed,
   onUnbound
 }: RepositoryBindingRowProps) {
-  const [unbinding, setUnbinding] = useState(false);
-  const [unbindError, setUnbindError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshError, setRefreshError] = useState<string | null>(null);
-
   const status = cloneStatusMeta[binding.clone_status];
   const pending = isCloneTransient(binding.clone_status);
   const fullName = repositoryFullName(binding);
   const hasPr = hasPullRequest(binding);
   const prUrl = pullRequestUrl(binding);
 
-  async function handleRefresh() {
-    setRefreshing(true);
-    setRefreshError(null);
-    try {
-      onRefreshed(await refreshIntentRepository(intentId, binding.id));
-    } catch (err) {
-      setRefreshError(
-        errorMessage(err, {
-          base: "Не удалось обновить",
-          fallback: "Не удалось обновить репозиторий."
-        })
-      );
-    } finally {
-      setRefreshing(false);
-    }
-  }
-
-  async function handleUnbind() {
-    const confirmed = window.confirm(
-      `Удалить репозиторий ${fullName}?\n\n` +
-        "Рабочая папка этого репозитория будет удалена с диска без возможности " +
-        "восстановления. Несохранённые изменения, локальные ветки и файлы, " +
-        "которых нет на GitHub, пропадут.\n\nПродолжить удаление?"
-    );
-    if (!confirmed) return;
-    setUnbinding(true);
-    setUnbindError(null);
-    try {
-      await unbindIntentRepository(intentId, binding.id);
-      onUnbound(binding.id);
-    } catch (err) {
-      const status = httpErrorStatus(err);
-      setUnbindError(
-        status !== undefined
-          ? `Не удалось удалить (${String(status)}). Папка могла быть занята — закройте процессы и повторите.`
-          : "Не удалось удалить репозиторий."
-      );
-      setUnbinding(false);
-    }
-  }
+  const {
+    refresh,
+    syncBranch,
+    unbind,
+    refreshing,
+    syncingBranch,
+    unbinding,
+    busy,
+    error: actionError
+  } = useBindingRowActions({
+    intentId,
+    binding,
+    fullName,
+    onRefreshed,
+    onUnbound
+  });
 
   return (
     <li
@@ -210,9 +185,9 @@ export function RepositoryBindingRow({
               type="button"
               role="menuitem"
               aria-label={`Обновить ${fullName}`}
-              disabled={unbinding || refreshing}
+              disabled={busy}
               onClick={() => {
-                void handleRefresh();
+                void refresh();
               }}
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-base-content hover:bg-base-200 disabled:opacity-60"
             >
@@ -224,14 +199,32 @@ export function RepositoryBindingRow({
               />
               {refreshing ? "Обновляем…" : "Обновить"}
             </button>
+            <button
+              type="button"
+              role="menuitem"
+              aria-label={`Синхронизировать ветку ${fullName}`}
+              disabled={busy || binding.clone_status !== "ready"}
+              onClick={() => {
+                void syncBranch();
+              }}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-base-content hover:bg-base-200 disabled:opacity-60"
+            >
+              <DownloadCloud
+                aria-hidden
+                size={14}
+                strokeWidth={2}
+                className={syncingBranch ? "animate-pulse" : undefined}
+              />
+              {syncingBranch ? "Синхронизируем…" : "Синхронизировать ветку"}
+            </button>
             <div role="separator" className="my-1 border-t border-base-300" />
             <button
               type="button"
               role="menuitem"
               aria-label={`Удалить ${fullName}`}
-              disabled={unbinding || refreshing}
+              disabled={busy}
               onClick={() => {
-                void handleUnbind();
+                void unbind();
               }}
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-error hover:bg-error/10 disabled:opacity-60"
             >
@@ -242,15 +235,9 @@ export function RepositoryBindingRow({
         </div>
       </div>
 
-      {unbindError ? (
+      {actionError ? (
         <p role="alert" className="m-0 text-xs text-error">
-          {unbindError}
-        </p>
-      ) : null}
-
-      {refreshError ? (
-        <p role="alert" className="m-0 text-xs text-error">
-          {refreshError}
+          {actionError}
         </p>
       ) : null}
     </li>

@@ -126,6 +126,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryBindingDto>> RefreshIntentRepository([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
 
         /// <summary>
+        /// Hard-sync the local clone's current branch to its remote tip.
+        /// </summary>
+        /// <remarks>
+        /// «Синхронизировать ветку» — the only action that touches the working tree (separate from «Обновить», which is PR-metadata + disk-recovery). Runs `git fetch` plus `git reset --hard origin/{current-branch}` against the existing clone, so the local branch lands exactly on the remote tip and **uncommitted local changes are discarded** (the UI confirm warns about this). Requires `clone_status=ready` and the folder present on disk; otherwise 409. The binding record is unchanged and returned verbatim.
+        /// </remarks>
+        /// <returns>OK — the (unchanged) binding after the local branch was reset to remote.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/repositories/{binding_id}/sync-branch", Name = "syncIntentRepositoryBranch")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RepositoryBindingDto>> SyncIntentRepositoryBranch([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string binding_id);
+
+        /// <summary>
         /// Attach a pull request to an already-bound repository.
         /// </summary>
         /// <remarks>
