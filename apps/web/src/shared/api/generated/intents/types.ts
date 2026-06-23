@@ -37,7 +37,7 @@ export interface paths {
         };
         /**
          * Aggregate intent counts per context bucket (rail sidebar).
-         * @description Single-shot aggregate for the context rail: counts per inbox status, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+         * @description Single-shot aggregate for the context rail: counts for the inbox bucket, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
          */
         get: operations["getIntentContexts"];
         put?: never;
@@ -427,10 +427,10 @@ export interface components {
             name: string;
         };
         /**
-         * @description Current workflow status of the intent. `ready_for_review` and `awaiting_operator` together form the «inbox»: agent finished successfully (`ready_for_review`) or stopped mid-pass and waits for operator input (`awaiting_operator`). `fridge` is the user-only «later» bucket.
+         * @description Current workflow status of the intent. `awaiting_operator` is the single «inbox» bucket — the next move belongs to the operator. `fridge` is the user-only «later» bucket.
          * @enum {string}
          */
-        IntentStatus: "draft" | "interview" | "ready_for_work" | "work" | "ready_for_review" | "awaiting_operator" | "done" | "reject" | "fridge";
+        IntentStatus: "draft" | "interview" | "ready_for_work" | "work" | "awaiting_operator" | "done" | "reject" | "fridge";
         SetIntentStatusRequest: {
             status: components["schemas"]["IntentStatus"];
             /** @description Optional free-text reason for the transition. Recorded in the status-change log. Required when status=reject — in that case the value is also appended to the end of Intent.text as the rejection reason. */
@@ -482,11 +482,6 @@ export interface components {
             count: number;
         };
         IntentContextCountsDto: {
-            /**
-             * Format: int32
-             * @description Intents in status `ready_for_review` (inbox «жду ревью»).
-             */
-            inbox_review: number;
             /**
              * Format: int32
              * @description Intents in status `awaiting_operator` (inbox «жду ответа»).

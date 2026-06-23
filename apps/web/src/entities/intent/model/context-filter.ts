@@ -1,7 +1,6 @@
 import {
   ARCHIVE_CONTEXT,
   INBOX_HELP_CONTEXT,
-  INBOX_REVIEW_CONTEXT,
   PINNED_CONTEXT,
   TERMINAL_RUNNING_CONTEXT,
   UNTAGGED_CONTEXT,
@@ -28,7 +27,6 @@ const ACTIVE_STATUSES: IntentStatus[] = [
   "interview",
   "ready_for_work",
   "work",
-  "ready_for_review",
   "awaiting_operator"
 ];
 
@@ -65,8 +63,6 @@ export function matchesContext(
     return item.tags.some((t) => t.name === subTag);
   }
   if (isInboxContext(context)) {
-    if (context === INBOX_REVIEW_CONTEXT)
-      return item.status === "ready_for_review";
     if (context === INBOX_HELP_CONTEXT)
       return item.status === "awaiting_operator";
     return false;
@@ -104,8 +100,6 @@ export function contextToParams(context: string | null): IntentListParams {
     return { status: [FRIDGE_STATUS], tag: subTag };
   }
   if (isInboxContext(context)) {
-    if (context === INBOX_REVIEW_CONTEXT)
-      return { status: ["ready_for_review"] };
     if (context === INBOX_HELP_CONTEXT)
       return { status: ["awaiting_operator"] };
     return {};
@@ -130,7 +124,6 @@ export function contextTitle(context: string | null): string {
     if (subTag === UNTAGGED_CONTEXT) return "Холодильник · Без тегов";
     return `Холодильник · # ${subTag}`;
   }
-  if (context === INBOX_REVIEW_CONTEXT) return "Жду ревью";
   if (context === INBOX_HELP_CONTEXT) return "Жду ответа";
   if (context === TERMINAL_RUNNING_CONTEXT) return "Терминал запущен";
   if (context === UNTAGGED_CONTEXT) return "Без тегов";

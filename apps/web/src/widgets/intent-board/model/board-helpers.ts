@@ -1,7 +1,6 @@
 import type { IntentListItem } from "@/entities/intent";
 import {
   INBOX_HELP_CONTEXT,
-  INBOX_REVIEW_CONTEXT,
   PINNED_CONTEXT,
   UNTAGGED_CONTEXT,
   isArchiveContext,
@@ -19,8 +18,6 @@ export function emptyMessage(context: string | null, total: number): string {
   if (isArchiveContext(context)) return "В архиве пусто.";
   if (isFridgeContext(context))
     return "В холодильнике пусто — отложите сюда intents «на потом».";
-  if (context === INBOX_REVIEW_CONTEXT)
-    return "Нет intents, ждущих ревью. Хороший момент.";
   if (context === INBOX_HELP_CONTEXT)
     return "Нет intents, где агент просит помощи.";
   if (context === UNTAGGED_CONTEXT) {
