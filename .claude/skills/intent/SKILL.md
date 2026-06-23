@@ -10,8 +10,9 @@ Thin wrapper, not a copy. The skill body is canonical in `skills/intent/SKILL.md
 constraints — they are not duplicated here so the two never drift.
 
 Pick the command for the task — do not inspect the environment first. To create an intent use
-`create` (no `THRONE_INTENT_ID` needed — it works in a bare shell); to read or refine the current
-intent use `get` / `replace-text` / `link`. The script degrades gracefully: `THRONE_API_BASE`
-defaults to the local backend `http://localhost:5008`, and an unset `THRONE_INTENT_ID` simply means
-there is no current intent (so `create`, not `get`). See `skills/intent/SKILL.md` for the full
-picture.
+`create` (no `THRONE_INTENT_ID` needed — it works in a bare shell); to refine the current intent use
+`replace-text`; to decompose it use `create` + `link`. You usually already have the current
+`Intent.text` in context — do not call `get` just to read it. The script degrades gracefully:
+`THRONE_API_BASE` defaults to the local backend `http://localhost:5008`, and an unset
+`THRONE_INTENT_ID` simply means there is no current intent (so `create`). See
+`skills/intent/SKILL.md` for the full picture.
