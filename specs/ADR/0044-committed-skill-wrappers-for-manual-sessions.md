@@ -35,11 +35,14 @@ tool registers the command, then points at the canon `skills/<name>/SKILL.md` an
 entry points only. Because the `SKILL.md` format is shared between Claude and Codex, the two
 wrappers for a given skill are byte-identical and differ only by directory.
 
-Each wrapper opens with a runtime-context check so it **degrades legibly**: outside a Throne spawn
-there is no `THRONE_API_BASE` / `THRONE_INTENT_ID` (and, in arbitrary clones, possibly no
-`bin/throne-*`). The wrapper tells the agent it is outside the Throne runtime and what to set,
-rather than letting the underlying script fail silently. In the mono-repo the `bin/throne-*`
-scripts are present, but env is still unset — the wrapper says so.
+Each wrapper carries a short **graceful-degradation note** so a non-spawn session knows what to
+expect: `THRONE_API_BASE` defaults to the local backend, and an unset `THRONE_INTENT_ID` simply
+means there is no current intent. The note is framed as *pick the command for the task* (e.g.
+`create` when there is no intent), not as a pre-call environment inspection. An earlier draft told
+the agent to "check the runtime context" before invoking and report to the operator if env was
+unset; that framing made agents stall on the env instead of acting (e.g. running `create`, which
+needs no `THRONE_INTENT_ID`), so it was dropped in favour of task-first guidance that matches the
+canon.
 
 ## Coexistence With The Runtime
 
@@ -61,7 +64,8 @@ Wrappers are written by hand for now. When a new operational skill is added unde
 1. Add `.claude/skills/<name>/SKILL.md` and `.agents/skills/<name>/SKILL.md`.
 2. Keep both byte-identical; never copy the canon body into them — point at
    `skills/<name>/SKILL.md` and `skills/<name>/bin/throne-*`.
-3. Include the runtime-context degradation note.
+3. Include the task-first graceful-degradation note (pick the command for the task; defaults and
+   optional env), not a pre-call environment inspection.
 
 Auto-generating wrappers from `skills/` (so a new skill yields both wrappers without editing three
 places) is the intended evolution but is not part of this slice.

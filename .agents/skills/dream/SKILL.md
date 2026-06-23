@@ -9,12 +9,8 @@ Thin wrapper, not a copy. The skill body is canonical in `skills/dream/SKILL.md`
 `skills/dream/bin/throne-dream`. Read the canon for the commands and workflow — they are not
 duplicated here so the two never drift.
 
-Before invoking the script, check the runtime context:
-
-- If `THRONE_API_BASE` is unset, you are **outside a Throne-spawned session**. The Throne runtime
-  injects it on spawn; a manual dev session does not. The script targets that HTTP API and cannot
-  reach a live Throne without it. Say so to the operator instead of letting the call fail blindly.
-  To proceed, point `THRONE_API_BASE` at a running local Throne API. Dream is not intent-scoped, so
-  it needs only `THRONE_API_BASE`.
-
-Then follow `skills/dream/SKILL.md`.
+Just run the commands the canon describes — do not inspect the environment first. Dream is not
+intent-scoped; it needs only `THRONE_API_BASE`, which defaults to the local backend
+`http://localhost:5008`. If your local Throne API is not running the calls fail with a connection
+error — point `THRONE_API_BASE` at a running Throne and retry. See `skills/dream/SKILL.md` for the
+full picture.
