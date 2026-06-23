@@ -25,7 +25,7 @@ internal static class IntentDtoMapper
                 ? new System.Collections.ObjectModel.Collection<IntentLinkViewDto>()
                 : new System.Collections.ObjectModel.Collection<IntentLinkViewDto>([.. links]),
             Pinned_in = IntentPinDtoMapper.ToPinnedContexts(pinnedIn),
-            Cleanup_local_state_on_done = intent.State.CleanupLocalStateOnDone,
+            Cleanup_local_state_on_done = intent.State.CleanupLocalStateOnClose,
         };
 
     public static IntentListItemDto ToListDto(

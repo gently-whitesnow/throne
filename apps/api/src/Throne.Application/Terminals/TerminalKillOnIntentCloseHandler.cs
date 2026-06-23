@@ -5,15 +5,16 @@ using Throne.Domain.Intents;
 namespace Throne.Application.Terminals;
 
 /// <summary>
-/// Kills the per-intent tmux session when an intent transitions to <c>done</c> (ADR-0026 § 8,
-/// which supersedes the original § 7 «no status → kill tmux» decision). Fires for both the
-/// PR-merge auto-close and the operator's manual «закрыть как готово» — both land on the
-/// same <see cref="IntentStatusChanged"/> event. <c>reject</c>/<c>fridge</c> are left alone.
+/// Kills the per-intent tmux session when an intent is closed — <c>done</c> or <c>reject</c>
+/// (ADR-0026 § 8, which supersedes the original § 7 «no status → kill tmux» decision). Fires for
+/// the PR-merge auto-close, the operator's manual «закрыть как готово», and a manual reject — all
+/// land on the same <see cref="IntentStatusChanged"/> event. <c>fridge</c> is a pause, not a close,
+/// so its session is left alone.
 ///
-/// Gated by <see cref="IntentState.CleanupLocalStateOnDone"/> (default true) so terminal-stop is
-/// one half of a single teardown-on-done decision, the sibling of the workspace/trust wipe in
-/// <c>IntentLocalStateCleanupOnDoneHandler</c>: clearing the gate keeps both the session and the
-/// local state alive past <c>done</c>, regardless of which path reached it.
+/// Gated by <see cref="IntentState.CleanupLocalStateOnClose"/> (default true) so terminal-stop is
+/// one half of a single teardown-on-close decision, the sibling of the workspace/trust wipe in
+/// <c>IntentLocalStateCleanupOnCloseHandler</c>: clearing the gate keeps both the session and the
+/// local state alive past close, regardless of which path reached it.
 ///
 /// Best-effort and idempotent: a missing session is a silent no-op, and a tmux failure is
 /// swallowed so it never aborts the post-commit event fan-out. tmux remains the single source
@@ -24,20 +25,26 @@ namespace Throne.Application.Terminals;
 /// <c>IEnumerable&lt;IDomainEventHandler&gt;</c> — eager injection here would close that
 /// resolution cycle (same pattern as <c>Lazy&lt;IUnitOfWork&gt;</c> in the composition root).
 /// </summary>
-public sealed partial class TerminalKillOnIntentDoneHandler(
+public sealed partial class TerminalKillOnIntentCloseHandler(
     Lazy<ITmuxSessionManager> tmux,
-    ILogger<TerminalKillOnIntentDoneHandler> logger) : IDomainEventHandler
+    ILogger<TerminalKillOnIntentCloseHandler> logger) : IDomainEventHandler
 {
     public async Task HandleAsync(IDomainEvent evt, CancellationToken ct)
     {
-        if (evt is not IntentStatusChanged changed ||
-            !string.Equals(changed.Intent.State.Status, IntentStatusNames.Done, StringComparison.Ordinal))
+        if (evt is not IntentStatusChanged changed)
+        {
+            return;
+        }
+
+        var status = changed.Intent.State.Status;
+        if (!string.Equals(status, IntentStatusNames.Done, StringComparison.Ordinal) &&
+            !string.Equals(status, IntentStatusNames.Reject, StringComparison.Ordinal))
         {
             return;
         }
 
         var intentId = changed.Intent.Id.Value;
-        if (!changed.Intent.State.CleanupLocalStateOnDone)
+        if (!changed.Intent.State.CleanupLocalStateOnClose)
         {
             LogSkipDisabled(logger, intentId);
             return;
@@ -47,11 +54,11 @@ public sealed partial class TerminalKillOnIntentDoneHandler(
         {
             var manager = tmux.Value;
             var preAlive = await manager.HasSessionAsync(intentId, ct);
-            LogInvoked(logger, intentId, changed.Intent.State.Status, preAlive);
+            LogInvoked(logger, intentId, status, preAlive);
             var killed = await manager.KillSessionAsync(intentId, ct);
             if (killed)
             {
-                LogKilled(logger, intentId);
+                LogKilled(logger, intentId, status);
             }
             else
             {
@@ -71,27 +78,27 @@ public sealed partial class TerminalKillOnIntentDoneHandler(
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
-        Message = "TerminalKillOnIntentDone: killed tmux session for intent {IntentId} (status -> done).")]
-    private static partial void LogKilled(ILogger logger, string intentId);
+        Message = "TerminalKillOnIntentClose: killed tmux session for intent {IntentId} (status -> {Status}).")]
+    private static partial void LogKilled(ILogger logger, string intentId, string status);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
-        Message = "TerminalKillOnIntentDone: no tmux session killed for intent {IntentId} "
+        Message = "TerminalKillOnIntentClose: no tmux session killed for intent {IntentId} "
             + "(pre_alive={PreAlive}) — either none existed or `tmux kill-session` returned non-zero. "
-            + "Intent reached done but its session may still be alive — see tmux kill-session log "
+            + "Intent reached a closing status but its session may still be alive — see tmux kill-session log "
             + "with same intent id for exit_code / stderr / post_alive.")]
     private static partial void LogNoSession(ILogger logger, string intentId, bool preAlive);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
-        Message = "TerminalKillOnIntentDone: tmux kill threw for intent {IntentId} — "
+        Message = "TerminalKillOnIntentClose: tmux kill threw for intent {IntentId} — "
             + "swallowed (best-effort), session may still be alive.")]
     private static partial void LogKillFailed(ILogger logger, string intentId, Exception ex);
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Information,
-        Message = "TerminalKillOnIntentDone: invoked for intent {IntentId} (status={Status}, pre_alive={PreAlive}).")]
+        Message = "TerminalKillOnIntentClose: invoked for intent {IntentId} (status={Status}, pre_alive={PreAlive}).")]
     private static partial void LogInvoked(ILogger logger, string intentId, string status, bool preAlive);
 
     [LoggerMessage(EventId = 5, Level = LogLevel.Information,
-        Message = "TerminalKillOnIntentDone: intent {IntentId} terminal kill skipped — gate off "
+        Message = "TerminalKillOnIntentClose: intent {IntentId} terminal kill skipped — gate off "
             + "(cleanup_local_state_on_done=false).")]
     private static partial void LogSkipDisabled(ILogger logger, string intentId);
 }
