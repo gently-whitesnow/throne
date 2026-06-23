@@ -9,10 +9,7 @@ import {
 } from "react";
 
 import { normalizeTagSlug, TAG_NAME_MAX_LENGTH } from "./normalize";
-import {
-  TagOptionsList,
-  type TagPickerOption
-} from "./TagOptionsList";
+import { TagOptionsList, type TagPickerOption } from "./TagOptionsList";
 
 interface TagMultiSelectProps {
   value: string[];
