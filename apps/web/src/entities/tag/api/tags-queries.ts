@@ -41,7 +41,8 @@ export function useInfiniteTags(
   pageParams: (string | undefined)[];
 }> {
   const trimmed = params.search?.trim();
-  const search = trimmed !== undefined && trimmed.length > 0 ? trimmed : undefined;
+  const search =
+    trimmed !== undefined && trimmed.length > 0 ? trimmed : undefined;
   return useInfiniteQuery({
     queryKey: tagsQueryKeys.list(search),
     queryFn: ({ pageParam, signal }) =>
