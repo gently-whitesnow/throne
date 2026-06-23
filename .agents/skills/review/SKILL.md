@@ -9,12 +9,9 @@ Thin wrapper, not a copy. The skill body is canonical in `skills/review/SKILL.md
 `skills/review/bin/throne-review`. Read the canon for the payload shape and rules — they are not
 duplicated here so the two never drift.
 
-Before invoking the script, check the runtime context:
-
-- If `THRONE_INTENT_ID` or `THRONE_API_BASE` is unset, you are **outside a Throne-spawned
-  session**. The Throne runtime injects these on spawn; a manual dev session does not. Without them
-  the script cannot resolve the intent or its repository binding. Say so to the operator instead of
-  letting the call fail blindly. To proceed, point `THRONE_API_BASE` at a running local Throne API,
-  export the target `THRONE_INTENT_ID`, and supply `--binding-id` (or `THRONE_REPOSITORY_BINDING_ID`).
-
-Then follow `skills/review/SKILL.md`.
+Review acts on the PR/MR of the current intent, so it needs `THRONE_INTENT_ID` and a repository
+binding — supply them and run the `write` command from the canon; do not inspect the environment
+first. `THRONE_API_BASE` defaults to the local backend `http://localhost:5008`. In a manual session
+export the target `THRONE_INTENT_ID`, then either set `THRONE_REPOSITORY_BINDING_ID` / pass
+`--binding-id`, or run `skills/review/bin/throne-review bindings` to discover it. See
+`skills/review/SKILL.md` for the payload shape and rules.
