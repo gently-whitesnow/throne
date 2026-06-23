@@ -3,11 +3,20 @@ import { useId, useState } from "react";
 
 interface PreflightSummaryProps {
   systemPrompt: string;
+  workspaceMap: string;
   userPrompt: string;
   freeInput: string;
 }
 
-function SummaryBlock({ label, value }: { label: string; value: string }) {
+function SummaryBlock({
+  label,
+  value,
+  hint
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   const text = value.trim();
   return (
     <div className="flex flex-col gap-1">
@@ -23,17 +32,25 @@ function SummaryBlock({ label, value }: { label: string; value: string }) {
           пусто
         </p>
       )}
+      {hint ? (
+        <span className="text-[10px] leading-snug text-base-content/40">
+          {hint}
+        </span>
+      ) : null}
     </div>
   );
 }
 
 /**
- * Сворачиваемое превью собранного итога (system / user / free) — то, что реально
- * уйдёт агенту. Пересобирается живьём из текущих частей и зоны задачи. По
- * умолчанию свёрнуто, чтобы не съедать высоту, пока оператор правит части.
+ * Сворачиваемое превью собранного итога (workspace map / system / user / free) — то,
+ * что реально уйдёт агенту. Карта workspace дописывается доставкой поверх user-промпта
+ * на спавне и здесь показана отдельным read-only блоком (в тело её не вкладываем, иначе
+ * на доставке карта прибавится дважды). По умолчанию свёрнуто, чтобы не съедать высоту,
+ * пока оператор правит части.
  */
 export function PreflightSummary({
   systemPrompt,
+  workspaceMap,
   userPrompt,
   freeInput
 }: PreflightSummaryProps) {
@@ -69,6 +86,11 @@ export function PreflightSummary({
           data-testid="agent-terminal-preflight-summary"
           className="flex flex-col gap-3 px-2 pb-2"
         >
+          <SummaryBlock
+            label="workspace map"
+            value={workspaceMap}
+            hint="Дописывается доставкой поверх user-промпта на спавне; к запуску все репозитории уже склонированы."
+          />
           <SummaryBlock label="system" value={systemPrompt} />
           <SummaryBlock label="user" value={userPrompt} />
           <SummaryBlock label="free" value={freeInput} />
