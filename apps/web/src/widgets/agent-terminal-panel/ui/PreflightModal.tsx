@@ -104,6 +104,7 @@ export function PreflightModal({
           />
           <PreflightSummary
             systemPrompt={preview.systemPrompt}
+            workspaceMap={preview.workspaceMap}
             userPrompt={preview.body}
             freeInput={preview.freeInput}
           />
