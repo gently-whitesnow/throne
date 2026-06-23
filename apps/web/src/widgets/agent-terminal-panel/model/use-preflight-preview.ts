@@ -19,6 +19,7 @@ export interface PreflightPreview {
   parts: PromptPartPreview[];
   skills: AvailableSessionSkill[];
   systemPrompt: string;
+  workspaceMap: string;
   body: string;
   freeInput: string;
   saveIntentText: boolean;
@@ -85,6 +86,7 @@ export function usePreflightPreview(
   const [parts, setParts] = useState<PromptPartPreview[]>([]);
   const [skills, setSkills] = useState<AvailableSessionSkill[]>([]);
   const [body, setBodyState] = useState("");
+  const [workspaceMap, setWorkspaceMap] = useState("");
   const [freeInput, setFreeInput] = useState("");
   const [intentVersion, setIntentVersion] = useState(0);
   const [saveIntentText, setSaveIntentTextState] = useState(false);
@@ -99,6 +101,7 @@ export function usePreflightPreview(
       originalBodyRef.current = response.user_prompt;
       saveTouchedRef.current = false;
       setBodyState(response.user_prompt);
+      setWorkspaceMap(response.workspace_map);
       setFreeInput("");
       setIntentVersion(response.intent_version);
       setSaveIntentTextState(false);
@@ -210,6 +213,7 @@ export function usePreflightPreview(
     parts,
     skills,
     systemPrompt,
+    workspaceMap,
     body,
     freeInput,
     saveIntentText,

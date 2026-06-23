@@ -353,6 +353,8 @@ export interface components {
             system_prompt: string;
             /** @description Intent body draft for the task zone (first user message). */
             user_prompt: string;
+            /** @description Read-only preview of the workspace map prepended to the delivered prompt at spawn: workspace root, mounted repo clone paths, session-metadata note and intent tags. Reflects clone state at preview time — repos still cloning are marked and may differ from the ready-only map produced at delivery. Shown verbatim, never folded into `user_prompt`. */
+            workspace_map: string;
         };
         ProblemDetails: {
             type: string;
