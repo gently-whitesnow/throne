@@ -32,14 +32,7 @@ public sealed partial class IntentLocalStateCleanupOnCloseHandler(
 {
     public async Task HandleAsync(IDomainEvent evt, CancellationToken ct)
     {
-        if (evt is not IntentStatusChanged changed)
-        {
-            return;
-        }
-
-        var status = changed.Intent.State.Status;
-        if (!string.Equals(status, IntentStatusNames.Done, StringComparison.Ordinal) &&
-            !string.Equals(status, IntentStatusNames.Reject, StringComparison.Ordinal))
+        if (evt is not IntentStatusChanged changed || !IntentStatusNames.IsClosing(changed.Intent.State.Status))
         {
             return;
         }
