@@ -1,6 +1,7 @@
 using FluentAssertions;
 using NSubstitute;
 using Throne.Application.Errors;
+using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
@@ -9,6 +10,7 @@ using Throne.Application.Tests.Manifest;
 using Throne.Domain.Intents;
 using Throne.Domain.PromptParts;
 using Throne.Domain.Repositories;
+using Throne.Domain.Tags;
 
 namespace Throne.Application.Tests.Terminals;
 
@@ -81,7 +83,9 @@ public class IntentTerminalPreviewHandlerTests
             NewBindings([]),
             NewLaunches(),
             NewResolver(),
-            NewSkillSelection());
+            NewSkillSelection(),
+            NewWorkspaceRoot(),
+            NewTagNames());
 
         var act = () => handler.HandleAsync(
             new IntentTerminalPreviewQuery("missing-id", PromptPartModeNames.Free, null),
@@ -115,6 +119,65 @@ public class IntentTerminalPreviewHandlerTests
             && !s.Selected);
     }
 
+    [Fact(DisplayName = "WorkspaceMap несёт корень, repo-пути с пометкой неготовых клонов и теги")]
+    public async Task Workspace_map_lists_root_repos_and_tags()
+    {
+        var intentId = IntentId.New();
+        var tag = Tag.Create(TagId.New(), "throne", Now);
+        var intent = Intent.Restore(
+            intentId, "тело", IntentStatusNames.Work, 1, [tag.Id], Now, Now);
+
+        var intents = Substitute.For<IIntentRepository>();
+        intents.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>()).Returns(intent);
+        var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
+        attachmentRepo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+
+        var bindings = new[]
+        {
+            Binding("/ws/intents/repo-ready", CloneStatusNames.Ready),
+            Binding("/ws/intents/repo-cloning", CloneStatusNames.Cloning),
+        };
+
+        var handler = new IntentTerminalPreviewHandler(
+            intents,
+            attachmentRepo,
+            NewBindings(bindings),
+            NewLaunches(),
+            NewResolver(),
+            NewSkillSelection(),
+            NewWorkspaceRoot("/ws"),
+            NewTagNames(tag));
+
+        var preview = await handler.HandleAsync(
+            new IntentTerminalPreviewQuery(intentId.Value, PromptPartModeNames.Free, null),
+            CancellationToken.None);
+
+        preview.WorkspaceMap.Should().Contain($"Корень workspace: /ws/intents/{intentId.Value}");
+        preview.WorkspaceMap.Should().Contain("- /ws/intents/repo-ready\n");
+        preview.WorkspaceMap.Should().Contain($"- /ws/intents/repo-cloning  (клон: {CloneStatusNames.Cloning})");
+        preview.WorkspaceMap.Should().Contain("Теги интента: throne");
+        // Карта самодостаточна — тело сюда не вкладываем (иначе на доставке оно дублируется).
+        preview.WorkspaceMap.Should().NotContain("тело");
+    }
+
+    private static IntentRepositoryBinding Binding(string workspacePath, string cloneStatus) =>
+        IntentRepositoryBinding.Restore(new IntentRepositoryBindingSnapshot(
+            Id: new BindingId(workspacePath),
+            IntentId: new IntentId("intent-1"),
+            Coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "repo"),
+            WorkspacePath: workspacePath,
+            DefaultBranch: "main",
+            CloneStatus: cloneStatus,
+            CloneError: null,
+            PullRequestNumber: null,
+            PullRequestState: null,
+            ReviewCommentsEtag: null,
+            LastSeenReviewCommentAt: null,
+            LastSyncedAt: null,
+            CreatedAt: Now,
+            UpdatedAt: Now));
+
     private static IntentTerminalPreviewHandler NewHandler(
         string intentText,
         IReadOnlyList<IntentAttachment> attachments,
@@ -137,7 +200,26 @@ public class IntentTerminalPreviewHandlerTests
             NewBindings([]),
             NewLaunches(),
             NewResolver(),
-            NewSkillSelection());
+            NewSkillSelection(),
+            NewWorkspaceRoot(),
+            NewTagNames());
+    }
+
+    private static IWorkspaceRootProvider NewWorkspaceRoot(string root = "/ws")
+    {
+        var provider = Substitute.For<IWorkspaceRootProvider>();
+        provider.ResolvedRoot.Returns(root);
+        return provider;
+    }
+
+    private static RunPreflightTagNames NewTagNames(params Tag[] tags)
+    {
+        var repo = Substitute.For<ITagRepository>();
+        foreach (var tag in tags)
+        {
+            repo.GetByIdAsync(tag.Id, Arg.Any<CancellationToken>()).Returns(tag);
+        }
+        return new RunPreflightTagNames(repo);
     }
 
     private static IIntentTerminalLaunchStore NewLaunches()

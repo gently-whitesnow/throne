@@ -111,7 +111,8 @@ function previewResponse(): IntentTerminalPreviewResponse {
     available_skills_for_mode: [],
     selected_part_ids: [],
     system_prompt: "RULES",
-    user_prompt: "BODY"
+    user_prompt: "BODY",
+    workspace_map: "=== Карта workspace ==="
   };
 }
 

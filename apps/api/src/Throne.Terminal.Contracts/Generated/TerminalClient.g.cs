@@ -820,6 +820,14 @@ namespace Throne.Terminal.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string User_prompt { get; set; }
 
+        /// <summary>
+        /// Read-only preview of the workspace map prepended to the delivered prompt at spawn: workspace root, mounted repo clone paths, session-metadata note and intent tags. Reflects clone state at preview time — repos still cloning are marked and may differ from the ready-only map produced at delivery. Shown verbatim, never folded into `user_prompt`.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workspace_map")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Workspace_map { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

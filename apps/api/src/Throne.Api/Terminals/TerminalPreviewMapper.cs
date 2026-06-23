@@ -47,6 +47,7 @@ internal static class TerminalPreviewMapper
             Selected_part_ids = composition.SelectedPartIds.ToList(),
             System_prompt = composition.SystemPrompt,
             User_prompt = composition.UserPrompt,
+            Workspace_map = preview.WorkspaceMap,
         };
     }
 }

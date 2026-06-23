@@ -71,7 +71,8 @@ function preview(): IntentTerminalPreviewResponse {
     available_skills_for_mode: [],
     selected_part_ids: ["m1"],
     system_prompt: "mandatory text",
-    user_prompt: "BODY"
+    user_prompt: "BODY",
+    workspace_map: "=== Карта workspace ==="
   };
 }
 
