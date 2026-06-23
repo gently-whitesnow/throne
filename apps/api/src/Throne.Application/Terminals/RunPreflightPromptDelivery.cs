@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Throne.Application.Events;
+using Throne.Domain.Tags;
 
 namespace Throne.Application.Terminals;
 
@@ -29,6 +30,7 @@ public sealed partial class RunPreflightPromptDelivery(
     TmuxPromptSubmitConfirmer confirmer,
     TerminalPromptSubmitSignals submitSignals,
     IDomainEventDispatcher events,
+    RunPreflightTagNames tagNames,
     ILogger<RunPreflightPromptDelivery>? log = null) : IRunPreflightPromptDelivery
 {
     private const string UserPromptFileName = "throne-session.user-prompt.txt";
@@ -64,8 +66,14 @@ public sealed partial class RunPreflightPromptDelivery(
     {
         Directory.CreateDirectory(request.WorkspacePath);
         var promptPath = Path.Combine(request.WorkspacePath, UserPromptFileName);
-        await File.WriteAllTextAsync(promptPath, request.UserPrompt, ct);
-        LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, request.UserPrompt.Length, promptPath);
+        // Prepend the workspace map so the agent reads the real repo paths instead of guessing the
+        // clone sub-dir name. Pasted verbatim — confirmation matches against the composed body. Tag
+        // names are resolved here, off the pre-flight critical path, since this task is detached.
+        var tags = await tagNames.ResolveAsync(request.TagIds, ct);
+        var composedPrompt = WorkspaceMapPrompt.Compose(
+            request.WorkspacePath, request.RepoPaths, tags, request.UserPrompt);
+        await File.WriteAllTextAsync(promptPath, composedPrompt, ct);
+        LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, composedPrompt.Length, promptPath);
 
         // Unknown vendors have no adapter (no readiness glyph, no submit hook) — paste best-effort and
         // leave confirmation to the operator watching the live pane.
@@ -90,7 +98,7 @@ public sealed partial class RunPreflightPromptDelivery(
         LogSubmitCommandReturned(_log, request.IntentId, request.Mode, request.Vendor, promptPath);
 
         var confirmation = await confirmer.ConfirmAsync(
-            request.IntentId, request.Adapter, request.UserPrompt, submitSignal, ct);
+            request.IntentId, request.Adapter, composedPrompt, submitSignal, ct);
         if (!confirmation.IsConfirmed)
         {
             await DispatchUnconfirmedAsync(request.IntentId, "submit_not_acknowledged", ct);
@@ -141,7 +149,9 @@ public sealed partial class RunPreflightPromptDelivery(
 
 /// <summary>
 /// Inputs for a detached post-spawn prompt delivery. <see cref="Adapter"/> is null for unknown
-/// vendors (best-effort paste, no readiness/confirm gates).
+/// vendors (best-effort paste, no readiness/confirm gates). <see cref="RepoPaths"/> are the absolute
+/// clone paths of the intent's ready repos and <see cref="TagIds"/> its tags (resolved to names at
+/// delivery), rendered as a workspace map atop the pasted prompt.
 /// </summary>
 public sealed record TerminalPromptDeliveryRequest(
     string IntentId,
@@ -149,4 +159,6 @@ public sealed record TerminalPromptDeliveryRequest(
     string Vendor,
     ISessionHookAdapter? Adapter,
     string WorkspacePath,
+    IReadOnlyList<string> RepoPaths,
+    IReadOnlyList<TagId> TagIds,
     string UserPrompt);
