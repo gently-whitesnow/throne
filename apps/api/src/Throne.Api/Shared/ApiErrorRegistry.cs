@@ -67,6 +67,7 @@ internal static class ApiErrorRegistry
         [LinkErrorCodes.SelfLink] = StatusCodes.Status422UnprocessableEntity,
 
         [ErrorCodes.RepositoryWorkspaceRemovalFailed] = StatusCodes.Status500InternalServerError,
+        [ErrorCodes.RepositoryBranchSyncFailed] = StatusCodes.Status500InternalServerError,
     };
 
     public static int GetStatus(string code) =>

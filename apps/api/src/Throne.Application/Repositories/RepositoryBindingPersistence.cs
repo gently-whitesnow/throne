@@ -29,12 +29,20 @@ public sealed class RepositoryBindingPersistence(
     /// goes stale across machines / a runtime-model switch (same reasoning as DeleteAsync,
     /// ADR-0027). Backs the «Обновить» disk-recovery path (ADR-0024).
     /// </summary>
-    public bool LocalCloneExists(IntentRepositoryBinding binding)
+    public bool LocalCloneExists(IntentRepositoryBinding binding) =>
+        workspaceProbe.Exists(ResolveWorkspacePath(binding));
+
+    /// <summary>
+    /// The binding's live on-disk clone path. Recomputed against the current
+    /// <see cref="IWorkspaceRootProvider.ResolvedRoot"/> rather than the stored
+    /// <c>binding.WorkspacePath</c>, which embeds the clone-time root and goes stale across
+    /// machines / a runtime-model switch (ADR-0027) — same reasoning as DeleteAsync.
+    /// </summary>
+    public string ResolveWorkspacePath(IntentRepositoryBinding binding)
     {
         ArgumentNullException.ThrowIfNull(binding);
-        var workspacePath = WorkspacePathLayout.Compute(
+        return WorkspacePathLayout.Compute(
             workspace.ResolvedRoot, binding.IntentId, binding.Coordinate);
-        return workspaceProbe.Exists(workspacePath);
     }
 
     public IntentRepositoryBinding BuildPendingBinding(
