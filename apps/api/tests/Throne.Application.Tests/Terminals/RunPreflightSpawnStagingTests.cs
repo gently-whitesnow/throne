@@ -56,6 +56,8 @@ public class RunPreflightSpawnStagingTests
                 new TerminalLaunchOptions(TerminalAgentCatalog.VendorClaude, "sonnet", Effort: null),
                 new TerminalSpawnPrompt("RULES", "TASK", null, null),
                 skillPackages: [],
+                repoPaths: [],
+                tagIds: [],
                 CancellationToken.None);
 
             var dumped = Path.Combine(workspacePath, ".throne", "attachments", "att-9-diagram.png");

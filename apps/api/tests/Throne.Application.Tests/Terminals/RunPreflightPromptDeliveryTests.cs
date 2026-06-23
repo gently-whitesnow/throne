@@ -2,7 +2,9 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Events;
+using Throne.Application.Ports;
 using Throne.Application.Terminals;
+using Throne.Domain.Tags;
 
 namespace Throne.Application.Tests.Terminals;
 
@@ -122,8 +124,48 @@ public class RunPreflightPromptDeliveryTests
         }
     }
 
+    [Fact(DisplayName = "Карта workspace (root + пути репо + теги) допишется в начало задачи перед paste")]
+    public async Task Prepends_workspace_map_with_repo_paths_above_the_task()
+    {
+        var tmux = Substitute.For<ITmuxSessionManager>();
+        var events = Substitute.For<IDomainEventDispatcher>();
+        var throne = TagId.New();
+        var must = TagId.New();
+        var tagRepo = Substitute.For<ITagRepository>();
+        tagRepo.GetByIdAsync(throne, Arg.Any<CancellationToken>())
+            .Returns(Tag.Create(throne, "throne", DateTimeOffset.UnixEpoch));
+        tagRepo.GetByIdAsync(must, Arg.Any<CancellationToken>())
+            .Returns(Tag.Create(must, "must", DateTimeOffset.UnixEpoch));
+        var (sut, workspace) = NewDelivery(tmux, events, tagRepo);
+        var repo = Path.Combine(workspace, "octo__widget");
+
+        try
+        {
+            await sut.DeliverAsync(
+                NewRequest(
+                    workspace, adapter: null, userPrompt: "do the thing",
+                    repoPaths: [repo], tagIds: [throne, must]),
+                CancellationToken.None);
+
+            var delivered = await File.ReadAllTextAsync(
+                Path.Combine(workspace, "throne-session.user-prompt.txt"));
+            delivered.Should().Contain("Карта workspace");
+            delivered.Should().Contain(workspace);
+            delivered.Should().Contain(repo);
+            delivered.Should().Contain("Теги интента: throne, must");
+            delivered.Should().Contain("не угадывай имя клон-сабдира");
+            // Map sits above the original task, not appended after it.
+            delivered.IndexOf("Карта workspace", StringComparison.Ordinal)
+                .Should().BeLessThan(delivered.IndexOf("do the thing", StringComparison.Ordinal));
+        }
+        finally
+        {
+            CleanUp(workspace);
+        }
+    }
+
     private static (RunPreflightPromptDelivery Delivery, string Workspace) NewDelivery(
-        ITmuxSessionManager tmux, IDomainEventDispatcher events)
+        ITmuxSessionManager tmux, IDomainEventDispatcher events, ITagRepository? tagRepo = null)
     {
         var workspace = Path.Combine(Path.GetTempPath(), $"throne-delivery-{Guid.NewGuid():N}");
         var options = new RunPreflightOptions
@@ -140,13 +182,18 @@ public class RunPreflightPromptDeliveryTests
             tmux, options, TimeProvider.System, NullLogger<TmuxPromptSubmitConfirmer>.Instance);
         var delivery = new RunPreflightPromptDelivery(
             tmux, readinessWaiter, confirmer, new TerminalPromptSubmitSignals(), events,
+            new RunPreflightTagNames(tagRepo ?? Substitute.For<ITagRepository>()),
             NullLogger<RunPreflightPromptDelivery>.Instance);
         return (delivery, workspace);
     }
 
     private static TerminalPromptDeliveryRequest NewRequest(
-        string workspace, ISessionHookAdapter? adapter, string userPrompt = "TASK") =>
-        new(IntentId, TerminalRunModes.Work, Vendor, adapter, workspace, userPrompt);
+        string workspace,
+        ISessionHookAdapter? adapter,
+        string userPrompt = "TASK",
+        IReadOnlyList<string>? repoPaths = null,
+        IReadOnlyList<TagId>? tagIds = null) =>
+        new(IntentId, TerminalRunModes.Work, Vendor, adapter, workspace, repoPaths ?? [], tagIds ?? [], userPrompt);
 
     private static void CleanUp(string workspace)
     {
