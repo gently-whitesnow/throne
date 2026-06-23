@@ -34,7 +34,6 @@ export const intentStatusOrder: IntentStatus[] = [
   "interview",
   "ready_for_work",
   "work",
-  "ready_for_review",
   "awaiting_operator",
   "done",
   "reject",
@@ -64,11 +63,6 @@ export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
     ink: "var(--color-status-progress-ink)",
     surface: "var(--color-status-progress-surface)"
   },
-  ready_for_review: {
-    label: "Жду ревью",
-    ink: "var(--color-status-review-ink)",
-    surface: "var(--color-status-review-surface)"
-  },
   awaiting_operator: {
     label: "Жду ответа",
     ink: "var(--color-status-attention-ink)",
@@ -92,12 +86,10 @@ export const intentStatusMeta: Record<IntentStatus, IntentStatusMeta> = {
 };
 
 /**
- * Statuses that signal the operator is expected to act:
- * agent finished the pass (`ready_for_review`) or stopped mid-pass (`awaiting_operator`).
- * Drives the cross-context Inbox widget in the sidebar.
+ * Statuses that signal the operator is expected to act: agent stopped mid-pass
+ * (`awaiting_operator`). Drives the cross-context Inbox widget in the sidebar.
  */
 export const INBOX_STATUSES: ReadonlySet<IntentStatus> = new Set([
-  "ready_for_review",
   "awaiting_operator"
 ]);
 

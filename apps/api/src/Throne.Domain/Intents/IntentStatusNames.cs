@@ -6,7 +6,6 @@ public static class IntentStatusNames
     public const string Interview = "interview";
     public const string ReadyForWork = "ready_for_work";
     public const string Work = "work";
-    public const string ReadyForReview = "ready_for_review";
     public const string AwaitingOperator = "awaiting_operator";
     public const string Done = "done";
     public const string Reject = "reject";
@@ -18,7 +17,6 @@ public static class IntentStatusNames
         Interview,
         ReadyForWork,
         Work,
-        ReadyForReview,
         AwaitingOperator,
         Done,
         Reject,

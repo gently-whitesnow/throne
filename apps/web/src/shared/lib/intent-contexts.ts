@@ -1,7 +1,6 @@
 export const ARCHIVE_CONTEXT = "__archive";
 export const UNTAGGED_CONTEXT = "__untagged";
 export const FRIDGE_CONTEXT = "__fridge";
-export const INBOX_REVIEW_CONTEXT = "__inbox_review";
 export const INBOX_HELP_CONTEXT = "__inbox_help";
 export const TERMINAL_RUNNING_CONTEXT = "__terminal_running";
 export const PINNED_CONTEXT = "__pinned";
@@ -54,7 +53,7 @@ export function fridgeContextTag(context: string | null): string | null {
 }
 
 export function isInboxContext(context: string | null): boolean {
-  return context === INBOX_REVIEW_CONTEXT || context === INBOX_HELP_CONTEXT;
+  return context === INBOX_HELP_CONTEXT;
 }
 
 /**

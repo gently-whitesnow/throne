@@ -24,7 +24,7 @@ internal sealed class MongoIntentContextReader(
     private static readonly string[] ActiveStatuses =
     [
         IntentStatusNames.Draft, IntentStatusNames.Interview, IntentStatusNames.ReadyForWork,
-        IntentStatusNames.Work, IntentStatusNames.ReadyForReview, IntentStatusNames.AwaitingOperator,
+        IntentStatusNames.Work, IntentStatusNames.AwaitingOperator,
     ];
 
     private static readonly string[] ArchiveStatuses =
@@ -73,13 +73,12 @@ internal sealed class MongoIntentContextReader(
 
         if (facet is null)
         {
-            return new IntentContextCounts(0, 0, 0, 0, pinned, 0, 0, 0, [], [], [], terminalRunning);
+            return new IntentContextCounts(0, 0, 0, pinned, 0, 0, 0, [], [], [], terminalRunning);
         }
 
         var byStatus = ReadStatusCounts(facet["byStatus"].AsBsonArray);
 
         return new IntentContextCounts(
-            InboxReview: Lookup(byStatus, IntentStatusNames.ReadyForReview),
             InboxHelp: Lookup(byStatus, IntentStatusNames.AwaitingOperator),
             Fridge: Lookup(byStatus, IntentStatusNames.Fridge),
             Archive: Lookup(byStatus, IntentStatusNames.Done) + Lookup(byStatus, IntentStatusNames.Reject),

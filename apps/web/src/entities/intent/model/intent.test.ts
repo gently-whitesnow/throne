@@ -15,7 +15,6 @@ describe("intentStatusMeta", () => {
       "draft",
       "fridge",
       "interview",
-      "ready_for_review",
       "ready_for_work",
       "reject",
       "work"
@@ -24,11 +23,8 @@ describe("intentStatusMeta", () => {
 });
 
 describe("status groupings", () => {
-  it("INBOX_STATUSES covers exactly ready_for_review and awaiting_operator", () => {
-    expect([...INBOX_STATUSES].sort()).toEqual([
-      "awaiting_operator",
-      "ready_for_review"
-    ]);
+  it("INBOX_STATUSES covers exactly awaiting_operator", () => {
+    expect([...INBOX_STATUSES].sort()).toEqual(["awaiting_operator"]);
   });
 
   it("ARCHIVE_STATUSES covers exactly done and reject", () => {

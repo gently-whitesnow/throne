@@ -16,7 +16,7 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 {
     // ACTIVE bucket statuses (non-archive, non-fridge) used by the "untagged" / tag contexts.
     private const string ActiveStatusQuery =
-        "status=draft&status=interview&status=ready_for_work&status=work&status=ready_for_review&status=awaiting_operator";
+        "status=draft&status=interview&status=ready_for_work&status=work&status=awaiting_operator";
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
@@ -59,7 +59,6 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
     {
         var counts = await GetContextsAsync();
 
-        counts.InboxReview.Should().Be(0);
         counts.InboxHelp.Should().Be(0);
         counts.Fridge.Should().Be(0);
         counts.Archive.Should().Be(0);
@@ -79,8 +78,6 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
         await CreateAsync("a2", ["alpha", "beta"]);
         await CreateAsync("a3", []);
 
-        var review = await CreateAsync("r1", []);
-        await SetStatusAsync(review.Id, "ready_for_review");
         var help = await CreateAsync("h1", []);
         await SetStatusAsync(help.Id, "awaiting_operator");
         var fridge = await CreateAsync("f1", []);
@@ -98,12 +95,11 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 
         var counts = await GetContextsAsync();
 
-        counts.InboxReview.Should().Be(1);
         counts.InboxHelp.Should().Be(1);
         counts.Fridge.Should().Be(2); // f1 + f2
         counts.Archive.Should().Be(2);
         counts.Pinned.Should().Be(1);
-        counts.Untagged.Should().Be(3); // a3 + r1 + h1 (active, no tags)
+        counts.Untagged.Should().Be(2); // a3 + h1 (active, no tags)
         counts.ArchiveUntagged.Should().Be(1); // x1
         counts.FridgeUntagged.Should().Be(1); // f1
         counts.Tags.Should().BeEquivalentTo(
@@ -115,7 +111,6 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
             new[] { new TagCountView { Tag = "delta", Count = 1 } });
 
         // Definition of done: every bucket equals what LIST returns with the matching context filter.
-        (await ListCountAsync("status=ready_for_review")).Should().Be(counts.InboxReview);
         (await ListCountAsync("status=awaiting_operator")).Should().Be(counts.InboxHelp);
         (await ListCountAsync("status=fridge")).Should().Be(counts.Fridge);
         (await ListCountAsync("status=done&status=reject")).Should().Be(counts.Archive);
@@ -192,9 +187,6 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 
     private sealed class ContextCountsView
     {
-        [JsonPropertyName("inbox_review")]
-        public int InboxReview { get; init; }
-
         [JsonPropertyName("inbox_help")]
         public int InboxHelp { get; init; }
 

@@ -271,7 +271,7 @@ namespace Throne.Intents.Contracts.Generated
     }
 
     /// <summary>
-    /// Current workflow status of the intent. `ready_for_review` and `awaiting_operator` together form the «inbox»: agent finished successfully (`ready_for_review`) or stopped mid-pass and waits for operator input (`awaiting_operator`). `fridge` is the user-only «later» bucket.
+    /// Current workflow status of the intent. `awaiting_operator` is the single «inbox» bucket — the next move belongs to the operator. `fridge` is the user-only «later» bucket.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -294,25 +294,21 @@ namespace Throne.Intents.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"work")]
         Work = 3,
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"ready_for_review")]
-        [System.Runtime.Serialization.EnumMember(Value = @"ready_for_review")]
-        Ready_for_review = 4,
-
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"awaiting_operator")]
         [System.Runtime.Serialization.EnumMember(Value = @"awaiting_operator")]
-        Awaiting_operator = 5,
+        Awaiting_operator = 4,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"done")]
         [System.Runtime.Serialization.EnumMember(Value = @"done")]
-        Done = 6,
+        Done = 5,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"reject")]
         [System.Runtime.Serialization.EnumMember(Value = @"reject")]
-        Reject = 7,
+        Reject = 6,
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"fridge")]
         [System.Runtime.Serialization.EnumMember(Value = @"fridge")]
-        Fridge = 8,
+        Fridge = 7,
 
     }
 
@@ -519,13 +515,6 @@ namespace Throne.Intents.Contracts.Generated
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentContextCountsDto
     {
-
-        /// <summary>
-        /// Intents in status `ready_for_review` (inbox «жду ревью»).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("inbox_review")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Inbox_review { get; set; }
 
         /// <summary>
         /// Intents in status `awaiting_operator` (inbox «жду ответа»).
