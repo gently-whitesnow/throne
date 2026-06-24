@@ -14,17 +14,16 @@ namespace Throne.Infrastructure.Mongo;
 internal sealed class MongoIntentTerminalLaunchStore(IMongoDatabase database, MongoSessionAccessor sessions)
     : IIntentTerminalLaunchStore
 {
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> EmptySelections =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+
     private readonly IMongoCollection<IntentTerminalLaunchDocument> _collection =
         database.GetCollection<IntentTerminalLaunchDocument>(MongoCollectionNames.TerminalLaunches);
 
     public async Task<TerminalLaunchRecord?> GetAsync(string intentId, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
-        var session = sessions.Current;
-        var doc = session is null
-            ? await _collection.Find(d => d.Id == intentId).FirstOrDefaultAsync(ct)
-            : await _collection.Find(session, d => d.Id == intentId).FirstOrDefaultAsync(ct);
-
+        var doc = await FindAsync(intentId, ct);
         if (doc is null)
         {
             return null;
@@ -32,7 +31,13 @@ internal sealed class MongoIntentTerminalLaunchStore(IMongoDatabase database, Mo
         var attached = doc.AttachedSkillIds is { Count: > 0 }
             ? (IReadOnlyList<string>)doc.AttachedSkillIds.ToArray()
             : Array.Empty<string>();
-        return new TerminalLaunchRecord(doc.Mode, doc.Vendor, doc.Model, doc.Effort, attached);
+        var selections = doc.SelectedSkillIdsByMode is { Count: > 0 }
+            ? doc.SelectedSkillIdsByMode.ToDictionary(
+                kv => kv.Key,
+                kv => (IReadOnlyList<string>)kv.Value.ToArray(),
+                StringComparer.Ordinal)
+            : EmptySelections;
+        return new TerminalLaunchRecord(doc.Mode, doc.Vendor, doc.Model, doc.Effort, attached, selections);
     }
 
     public async Task SaveAsync(string intentId, TerminalLaunchRecord record, CancellationToken ct)
@@ -51,35 +56,74 @@ internal sealed class MongoIntentTerminalLaunchStore(IMongoDatabase database, Mo
         update = record.Effort is { } effort
             ? update.Set(d => d.Effort, effort)
             : update.Unset(d => d.Effort);
-        // attached_skill_ids is intentionally NOT touched here: the run pipeline does not
-        // overwrite hot-attached skills — they live independently via SetAttachedSkillIdsAsync.
-        var options = new UpdateOptions { IsUpsert = true };
+        // attached_skill_ids / selected_skill_ids_by_mode are intentionally NOT touched here:
+        // the run pipeline never overwrites hot-attached skills or per-mode selection through
+        // SaveAsync — those have their own dedicated methods.
 
-        var session = sessions.Current;
-        if (session is null)
-        {
-            await _collection.UpdateOneAsync(d => d.Id == intentId, update, options, ct);
-        }
-        else
-        {
-            await _collection.UpdateOneAsync(session, d => d.Id == intentId, update, options, ct);
-        }
+        await UpdateOneAsync(intentId, update, isUpsert: true, ct);
+    }
+
+    public async Task SaveSelectedSkillIdsAsync(
+        string intentId,
+        string mode,
+        IReadOnlyList<string> selectedSkillIds,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
+        ArgumentNullException.ThrowIfNull(selectedSkillIds);
+
+        var path = SelectionFieldPath(mode);
+        var update = Builders<IntentTerminalLaunchDocument>.Update
+            .Set(path, selectedSkillIds.Distinct(StringComparer.Ordinal).ToList());
+
+        await UpdateOneAsync(intentId, update, isUpsert: true, ct);
     }
 
     public async Task SetAttachedSkillIdsAsync(
         string intentId,
+        string mode,
         IReadOnlyList<string> attachedSkillIds,
         CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
         ArgumentNullException.ThrowIfNull(attachedSkillIds);
 
         var builder = Builders<IntentTerminalLaunchDocument>.Update;
-        var update = attachedSkillIds.Count == 0
-            ? builder.Unset(d => d.AttachedSkillIds)
-            : builder.Set(d => d.AttachedSkillIds, attachedSkillIds.ToList());
-        var options = new UpdateOptions { IsUpsert = false };
+        UpdateDefinition<IntentTerminalLaunchDocument> update;
+        if (attachedSkillIds.Count == 0)
+        {
+            update = builder.Unset(d => d.AttachedSkillIds);
+        }
+        else
+        {
+            var deduped = attachedSkillIds.Distinct(StringComparer.Ordinal).ToList();
+            update = builder.Combine(
+                builder.Set(d => d.AttachedSkillIds, deduped),
+                builder.AddToSetEach(SelectionFieldPath(mode), deduped));
+        }
 
+        await UpdateOneAsync(intentId, update, isUpsert: false, ct);
+    }
+
+    private static string SelectionFieldPath(string mode) => $"selected_skill_ids_by_mode.{mode}";
+
+    private async Task<IntentTerminalLaunchDocument?> FindAsync(string intentId, CancellationToken ct)
+    {
+        var session = sessions.Current;
+        return session is null
+            ? await _collection.Find(d => d.Id == intentId).FirstOrDefaultAsync(ct)
+            : await _collection.Find(session, d => d.Id == intentId).FirstOrDefaultAsync(ct);
+    }
+
+    private async Task UpdateOneAsync(
+        string intentId,
+        UpdateDefinition<IntentTerminalLaunchDocument> update,
+        bool isUpsert,
+        CancellationToken ct)
+    {
+        var options = new UpdateOptions { IsUpsert = isUpsert };
         var session = sessions.Current;
         if (session is null)
         {

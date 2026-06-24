@@ -20,5 +20,4 @@ public static class MongoCollectionNames
     public const string PromptParts = "prompt_parts";
     public const string TerminalLaunches = "terminal_launches";
     public const string SkillModeDefaults = "skill_mode_defaults";
-    public const string SkillModeSelections = "skill_mode_selections";
 }
