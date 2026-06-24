@@ -13,7 +13,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
     [Fact(DisplayName = "SkillModeDefault: UpsertMissingAsync сидит только отсутствующие значения")]
     public async Task Default_store_upserts_only_missing_values()
     {
-        var (db, defaults, _) = await NewScopeAsync();
+        var (db, defaults) = await NewScopeAsync();
         await defaults.ReplaceAsync(
             [new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.Intent, true)],
             CancellationToken.None);
@@ -38,7 +38,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
     [Fact(DisplayName = "SkillModeDefault: ReplaceAsync перезаписывает значение ключа mode+skill_id")]
     public async Task Default_store_replaces_existing_values()
     {
-        var (_, defaults, _) = await NewScopeAsync();
+        var (_, defaults) = await NewScopeAsync();
         var key = new SkillModeDefault(TerminalRunModes.Interview, SessionSkillPackageIds.Intent, true);
         await defaults.ReplaceAsync([key], CancellationToken.None);
 
@@ -52,7 +52,7 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
     [Fact(DisplayName = "SkillModeDefault tolerant read: лишние persisted-поля игнорируются")]
     public async Task Default_store_tolerant_read_ignores_unknown_fields()
     {
-        var (db, defaults, _) = await NewScopeAsync();
+        var (db, defaults) = await NewScopeAsync();
         await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeDefaults).InsertOneAsync(
             new BsonDocument
             {
@@ -68,81 +68,13 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
             .Which.Should().Be(new SkillModeDefault(TerminalRunModes.Work, "legacy-skill", true));
     }
 
-    [Fact(DisplayName = "SkillModeSelection: SaveAsync хранит выбор по mode в одном документе интента")]
-    public async Task Selection_store_keeps_per_mode_choices_in_one_intent_document()
-    {
-        var (db, _, selections) = await NewScopeAsync();
-
-        await selections.SaveAsync(
-            "intent-1",
-            TerminalRunModes.Work,
-            [SessionSkillPackageIds.Intent, SessionSkillPackageIds.Intent],
-            CancellationToken.None);
-        await selections.SaveAsync(
-            "intent-1",
-            TerminalRunModes.Review,
-            [SessionSkillPackageIds.Review],
-            CancellationToken.None);
-
-        (await selections.GetAsync("intent-1", TerminalRunModes.Work, CancellationToken.None))
-            .Should().Equal(SessionSkillPackageIds.Intent);
-        (await selections.GetAsync("intent-1", TerminalRunModes.Review, CancellationToken.None))
-            .Should().Equal(SessionSkillPackageIds.Review);
-        var count = await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeSelections)
-            .CountDocumentsAsync(Builders<BsonDocument>.Filter.Eq("_id", "intent-1"), cancellationToken: CancellationToken.None);
-        count.Should().Be(1);
-    }
-
-    [Fact(DisplayName = "SkillModeSelection tolerant read: лишние persisted-поля игнорируются")]
-    public async Task Selection_store_tolerant_read_ignores_unknown_fields()
-    {
-        var (db, _, selections) = await NewScopeAsync();
-        await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeSelections).InsertOneAsync(
-            new BsonDocument
-            {
-                ["_id"] = "intent-legacy",
-                ["mode_selections"] = new BsonArray
-                {
-                    new BsonDocument
-                    {
-                        ["mode"] = TerminalRunModes.Work,
-                        ["selected_skill_ids"] = new BsonArray { SessionSkillPackageIds.Intent },
-                        ["legacy"] = "ignored",
-                    },
-                },
-                ["legacy_root"] = true,
-            },
-            cancellationToken: CancellationToken.None);
-
-        (await selections.GetAsync("intent-legacy", TerminalRunModes.Work, CancellationToken.None))
-            .Should().Equal(SessionSkillPackageIds.Intent);
-    }
-
-    [Fact(DisplayName = "SkillModeSelection: GetAsync для отсутствующего mode возвращает null")]
-    public async Task Selection_store_missing_mode_returns_null()
-    {
-        var (_, _, selections) = await NewScopeAsync();
-
-        await selections.SaveAsync(
-            "intent-2",
-            TerminalRunModes.Work,
-            [SessionSkillPackageIds.Intent],
-            CancellationToken.None);
-
-        (await selections.GetAsync("intent-2", TerminalRunModes.Free, CancellationToken.None))
-            .Should().BeNull();
-    }
-
-    private async Task<(IMongoDatabase Db, MongoSkillModeDefaultStore Defaults, MongoIntentSkillModeSelectionStore Selections)>
+    private async Task<(IMongoDatabase Db, MongoSkillModeDefaultStore Defaults)>
         NewScopeAsync()
     {
         var name = $"throne_skill_mode_{Guid.NewGuid():N}";
         await fixture.Client.DropDatabaseAsync(name);
         var db = fixture.Client.GetDatabase(name);
         var sessions = new MongoSessionAccessor();
-        return (
-            db,
-            new MongoSkillModeDefaultStore(db, sessions),
-            new MongoIntentSkillModeSelectionStore(db, sessions));
+        return (db, new MongoSkillModeDefaultStore(db, sessions));
     }
 }

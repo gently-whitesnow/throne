@@ -33,6 +33,20 @@ The backend is the single source of truth for the launch axis. On every successf
 not the session's atomic invariant, so the write is best-effort and runs outside the spawn's
 unit-of-work.
 
+The same record carries two skill-selection fields that share its lifecycle, so the launch
+modal has one source of truth for «what the operator wants to run next»:
+
+- `attached_skill_ids` — runtime indicator of skills hot-attached into the live tmux session
+  (drives the live-session badges).
+- `selected_skill_ids_by_mode` — per-mode skill selection persisted on each successful spawn
+  and merged on hot-attach for the live session's mode. The next preflight in that mode
+  pre-fills with the same set, so a hot-attached skill survives a respawn as default-on
+  without a parallel store. Other modes' entries are preserved across writes.
+
+This replaces the earlier `skill_mode_selections` collection — splitting «remembered skills»
+across two stores meant hot-attach was invisible to the preview composer when a remembered
+set already existed, and the operator's runtime intent was lost on respawn.
+
 Because there is at most one tmux session per intent, the single persisted record serves both
 roles: while a session is live it *is* that session's real axis; with no live session it is the
 intent's last-used choice. `RunIntentTerminalResponse` and the status probe carry it back in a
@@ -62,6 +76,10 @@ The lock-while-live behaviour is unchanged: parameters change only through a new
   nothing about the session» to «persists no session *state*, but does persist the launch axis».
 - The record is not cleaned up on intent `done` (the workspace sweep ignores it); a stale row is
   harmless and overwritten on the next launch.
+- Per-mode skill selection lives as a map alongside a single-valued mode/vendor/model/effort.
+  The asymmetry is intentional — the launch axis itself is one value (the last spawn's mode), but
+  skill defaults are mode-specific by design, so the same intent can carry different remembered
+  sets for work vs review and switching mode in the modal flips to the right one.
 
 ### Deferred
 

@@ -69,11 +69,10 @@ public partial class RunPreflightOrchestratorTests
             var launchResolver = BuildLaunchResolver();
             var promptGate = BuildPromptGate(clock, uow);
             LaunchStore = Substitute.For<IIntentTerminalLaunchStore>();
-            SkillSelections = Substitute.For<IIntentSkillModeSelectionStore>();
             var skillPlanner = new RunPreflightSkillPlanner(
                 BuildSkillSelection(),
                 new SessionSkillPackageRegistry(TerminalSpawnTestDoubles.SkillCatalog()),
-                SkillSelections);
+                LaunchStore);
             var launchPlanner = new RunPreflightLaunchPlanner(launchResolver, LaunchStore);
             Orchestrator = new RunPreflightOrchestrator(
                 guards, autoBind, queue, cloneWait, spawn, promptGate, skillPlanner, launchPlanner);
@@ -139,8 +138,7 @@ public partial class RunPreflightOrchestratorTests
             var defaults = Substitute.For<ISkillModeDefaultStore>();
             defaults.ListAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult(SkillModeDefaultSeeds.Build(catalog)));
-            var selections = Substitute.For<IIntentSkillModeSelectionStore>();
-            return new SessionSkillSelectionService(catalog, defaults, selections);
+            return new SessionSkillSelectionService(catalog, defaults);
         }
 
         private static TerminalLaunchResolver BuildLaunchResolver()
@@ -169,7 +167,6 @@ public partial class RunPreflightOrchestratorTests
         public ITmuxSessionManager Tmux { get; }
         public IRunPreflightPromptDelivery Delivery { get; private set; } = default!;
         public IIntentTerminalLaunchStore LaunchStore { get; }
-        public IIntentSkillModeSelectionStore SkillSelections { get; }
         public RunPreflightOrchestrator Orchestrator { get; }
 
         public Fixture Setup(

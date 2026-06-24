@@ -25,7 +25,7 @@ public class AttachIntentTerminalSkillsHandlerTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(TerminalErrorCodes.SessionNotLive);
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
-        await fixture.Launches.DidNotReceiveWithAnyArgs().SetAttachedSkillIdsAsync(default!, default!, default);
+        await fixture.Launches.DidNotReceiveWithAnyArgs().SetAttachedSkillIdsAsync(default!, default!, default!, default);
     }
 
     [Fact(DisplayName = "Unknown skill id → SessionSkillUnknown 422")]
@@ -47,7 +47,8 @@ public class AttachIntentTerminalSkillsHandlerTests
     public async Task Attach_codex_vendor_materializes_native_skill_and_persists()
     {
         var codexLaunch = new TerminalLaunchRecord(
-            TerminalRunModes.Work, TerminalAgentCatalog.VendorCodex, "gpt-5.5", "high", Array.Empty<string>());
+            TerminalRunModes.Work, TerminalAgentCatalog.VendorCodex, "gpt-5.5", "high",
+            Array.Empty<string>(), EmptySelections);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: codexLaunch);
 
         var result = await fixture.Handler.HandleAsync(
@@ -65,7 +66,8 @@ public class AttachIntentTerminalSkillsHandlerTests
     public async Task Attach_opencode_vendor_throws_422()
     {
         var opencodeLaunch = new TerminalLaunchRecord(
-            TerminalRunModes.Work, TerminalAgentCatalog.VendorOpencode, "llama-4", null, Array.Empty<string>());
+            TerminalRunModes.Work, TerminalAgentCatalog.VendorOpencode, "llama-4", null,
+            Array.Empty<string>(), EmptySelections);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: opencodeLaunch);
 
         var act = () => fixture.Handler.HandleAsync(
@@ -112,6 +114,7 @@ public class AttachIntentTerminalSkillsHandlerTests
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
         await fixture.Launches.Received(1).SetAttachedSkillIdsAsync(
             IntentIdValue,
+            TerminalRunModes.Work,
             Arg.Is<IReadOnlyList<string>>(ids =>
                 ids.Count == 2
                 && ids.Contains(SessionSkillPackageIds.Intent)
@@ -138,18 +141,23 @@ public class AttachIntentTerminalSkillsHandlerTests
         result.AttachedSkillIds.Should().BeEquivalentTo(new[] { SessionSkillPackageIds.Intent });
         await fixture.Launches.Received(1).SetAttachedSkillIdsAsync(
             IntentIdValue,
+            TerminalRunModes.Work,
             Arg.Is<IReadOnlyList<string>>(ids =>
                 ids.Count == 1 && ids[0] == SessionSkillPackageIds.Intent),
             Arg.Any<CancellationToken>());
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
     }
 
+    private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> EmptySelections =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+
     private static TerminalLaunchRecord ClaudeLaunch(IReadOnlyList<string>? previousAttached = null) =>
         new(TerminalRunModes.Work,
             TerminalAgentCatalog.VendorClaude,
             "opus",
             "high",
-            previousAttached ?? Array.Empty<string>());
+            previousAttached ?? Array.Empty<string>(),
+            EmptySelections);
 
     private sealed class Fixture
     {
@@ -181,8 +189,7 @@ public class AttachIntentTerminalSkillsHandlerTests
 
             var selection = new SessionSkillSelectionService(
                 Catalog,
-                Substitute.For<ISkillModeDefaultStore>(),
-                Substitute.For<IIntentSkillModeSelectionStore>());
+                Substitute.For<ISkillModeDefaultStore>());
             Handler = new AttachIntentTerminalSkillsHandler(
                 Intents, Bindings, Launches, Catalog, TerminalSpawnTestDoubles.VendorCatalog(),
                 selection, Tmux, Writer);
