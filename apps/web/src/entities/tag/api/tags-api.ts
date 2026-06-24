@@ -7,12 +7,7 @@ import {
   tagsEndpoints
 } from "@/shared/api";
 
-import type {
-  Tag,
-  TagDefaultRepository,
-  TagDetail,
-  TagUsage
-} from "../model/types";
+import type { Tag, TagDefaultRepository, TagDetail } from "../model/types";
 
 type CreateTagBody = TagsComponents["schemas"]["CreateTagRequest"];
 type RenameTagBody = TagsComponents["schemas"]["RenameTagRequest"];
@@ -70,13 +65,6 @@ export async function renameTag(
     );
   }
   return (await response.json()) as Tag;
-}
-
-export function fetchTagUsage(
-  id: string,
-  signal?: AbortSignal
-): Promise<TagUsage> {
-  return httpGet<TagUsage>(tagsEndpoints.getTagUsage(id), signal);
 }
 
 export async function deleteTag(

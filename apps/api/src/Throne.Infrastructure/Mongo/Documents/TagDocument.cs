@@ -19,12 +19,9 @@ internal sealed class TagDocument
     [BsonElement("updated_at")]
     public DateTime UpdatedAt { get; set; }
 
-    // Denormalized counter-cache: number of intents referencing this tag. Maintained
-    // transactionally on the intent write-path; powers the usage-desc keyset sort and
-    // the inline intents_count. Legacy docs without the field read back as 0; the
-    // startup backfill seeds the real count once.
-    [BsonElement("usage_count")]
-    public int UsageCount { get; set; }
+    [BsonElement("last_attached_at")]
+    [BsonIgnoreIfNull]
+    public DateTime? LastAttachedAt { get; set; }
 
     [BsonElement("default_repositories")]
     public List<TagDefaultRepositoryDocument> DefaultRepositories { get; set; } = [];

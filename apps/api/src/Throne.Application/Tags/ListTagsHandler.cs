@@ -3,11 +3,10 @@ using Throne.Domain.Tags;
 
 namespace Throne.Application.Tags;
 
-/// <summary>Keyset cursor for the fixed <c>usage_count desc, _id asc</c> order.</summary>
-public sealed record TagListCursor(int UsageCount, string Id);
+/// <summary>Keyset cursor for the fixed <c>last_attached_at desc, _id asc</c> order.</summary>
+public sealed record TagListCursor(DateTime LastAttachedAt, string Id);
 
-/// <summary>A tag plus its denormalized usage count (intents currently referencing it).</summary>
-public sealed record TagListItem(Tag Tag, int IntentsCount);
+public sealed record TagListItem(Tag Tag);
 
 public sealed record TagListPage(IReadOnlyList<TagListItem> Items, TagListCursor? NextCursor);
 

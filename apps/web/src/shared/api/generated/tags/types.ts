@@ -12,8 +12,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List tags (cursor-paginated, usage-desc) with inline intents_count.
-         * @description Returns a single page of tags ordered by usage (`usage_count desc, id asc`) so the most-used tags surface first. Each item carries `intents_count` inline (read from the denormalized counter — no per-tag usage round-trip). Pagination is opaque-cursor; `next_cursor` is absent on the final page. `search` is a case-insensitive substring filter on the normalized name. Default page size is 50, capped at 100.
+         * List tags (cursor-paginated, ordered by recency of last attachment).
+         * @description Returns a single page of tags ordered by recency of last attachment (`last_attached_at desc, id asc`, falling back to `created_at` when a tag has never been attached). Pagination is opaque-cursor; `next_cursor` is absent on the final page. `search` is a case-insensitive substring filter on the normalized name. Default page size is 50, capped at 100.
          */
         get: operations["listTags"];
         put?: never;
@@ -51,23 +51,6 @@ export interface paths {
         head?: never;
         /** Rename a tag. */
         patch: operations["renameTag"];
-        trace?: never;
-    };
-    "/api/v1/tags/{id}/usage": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Count of intents currently referencing the tag. */
-        get: operations["getTagUsage"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/api/v1/tags/{id}/default-repositories": {
@@ -117,11 +100,6 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
-            /**
-             * Format: int32
-             * @description Number of intents currently referencing this tag (denormalized counter).
-             */
-            intents_count: number;
         };
         TagListPageDto: {
             items: components["schemas"]["TagListItemDto"][];
@@ -135,11 +113,6 @@ export interface components {
             name: string;
             /** Format: int32 */
             expected_version: number;
-        };
-        TagUsageDto: {
-            tag_id: string;
-            /** Format: int32 */
-            intents_count: number;
         };
         DeleteTagResponse: {
             tag_id: string;
@@ -382,37 +355,6 @@ export interface operations {
             };
             /** @description Invalid tag name */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    getTagUsage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TagUsageDto"];
-                };
-            };
-            /** @description Not found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

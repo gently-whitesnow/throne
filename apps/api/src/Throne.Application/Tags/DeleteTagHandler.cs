@@ -24,17 +24,13 @@ public sealed class DeleteTagHandler(
 
         if (!command.ConfirmDetach)
         {
-            var usage = await repository.GetUsageAsync(id, ct);
-            if (usage.IntentsCount > 0)
+            var intentsCount = await repository.CountAttachedIntentsAsync(id, ct);
+            if (intentsCount > 0)
             {
                 throw new ApiException(
                     ErrorCodes.TagInUse,
-                    $"Tag '{tag.Name}' is still attached to {usage.IntentsCount} intent(s). Pass detach=true to confirm.",
-                    new Dictionary<string, object?>
-                    {
-                        ["tag_id"] = command.TagId,
-                        ["intents_count"] = usage.IntentsCount,
-                    });
+                    $"Tag '{tag.Name}' is still attached to intent(s). Pass detach=true to confirm.",
+                    new Dictionary<string, object?> { ["tag_id"] = command.TagId });
             }
         }
 

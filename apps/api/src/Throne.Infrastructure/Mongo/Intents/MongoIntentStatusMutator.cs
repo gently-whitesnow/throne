@@ -264,9 +264,7 @@ internal sealed class MongoIntentStatusMutator(
         }
 
         var added = newTagIds.Where(t => !oldTagIds.Contains(t)).ToList();
-        var removed = oldTagIds.Where(t => !newTagIds.Contains(t)).ToList();
-        await MongoTagUsageCounter.ApplyAsync(_tags, session, added, delta: +1, ct);
-        await MongoTagUsageCounter.ApplyAsync(_tags, session, removed, delta: -1, ct);
+        await MongoTagAttachmentToucher.TouchAsync(_tags, session, added, now, ct);
 
         return new SetIntentTagsOutcome.Updated(intent, Changed: true);
     }

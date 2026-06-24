@@ -15,12 +15,12 @@ namespace Throne.Infrastructure.Tests.Mongo.Tags;
 
 [Collection(nameof(MongoIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoTagUsageCounterTests(MongoFixture fixture)
+public class MongoTagLastAttachedAtTests(MongoFixture fixture)
 {
     private static readonly DateTimeOffset Base = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "usage_count двигается консистентно при create / set-tags / delete интентов")]
-    public async Task Usage_count_stays_consistent_across_write_path()
+    [Fact(DisplayName = "last_attached_at двигается только при привязке тега к интенту")]
+    public async Task Last_attached_at_updates_only_on_attach()
     {
         var ctx = await NewContextAsync();
         var a = await CreateTagAsync(ctx, "alpha");
@@ -30,81 +30,82 @@ public class MongoTagUsageCounterTests(MongoFixture fixture)
         var intent1 = await SeedIntentAsync(ctx, "first", [a, b]);
         await SeedIntentAsync(ctx, "second", [a]);
 
-        (await UsageAsync(ctx, a)).Should().Be(2);
-        (await UsageAsync(ctx, b)).Should().Be(1);
-        (await UsageAsync(ctx, c)).Should().Be(0);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, b)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, c)).Should().BeNull();
 
-        // Replace [a,b] with [b,c]: a drops, c gains, b unchanged.
+        // Replace [a,b] with [b,c]: c is newly attached, a is detached, b is unchanged.
         var outcome = await ctx.Uow.ExecuteAsync(
             ct => ctx.Intents.SetTagsAsync(intent1.Id, intent1.State.CurrentVersion, [b, c], Base.AddMinutes(1), ct),
             CancellationToken.None);
         outcome.Should().BeOfType<SetIntentTagsOutcome.Updated>();
 
-        (await UsageAsync(ctx, a)).Should().Be(1);
-        (await UsageAsync(ctx, b)).Should().Be(1);
-        (await UsageAsync(ctx, c)).Should().Be(1);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, b)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, c)).Should().Be(Base.AddMinutes(1).UtcDateTime);
 
-        // Delete intent2 (carries only a): a drops to 0.
         var second = await SeedIntentAsync(ctx, "third", [a]);
-        (await UsageAsync(ctx, a)).Should().Be(2);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
         await ctx.Uow.ExecuteAsync(ct => ctx.Intents.DeleteAsync(second.Id, ct), CancellationToken.None);
-        (await UsageAsync(ctx, a)).Should().Be(1);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
     }
 
-    [Fact(DisplayName = "ListPageAsync сортирует по usage desc, ищет по подстроке и пагинирует курсором")]
-    public async Task ListPage_orders_by_usage_desc_with_search_and_cursor()
+    [Fact(DisplayName = "ListPageAsync сортирует по последней привязке, ищет по подстроке и пагинирует курсором")]
+    public async Task ListPage_orders_by_last_attach_recency_with_search_and_cursor()
     {
         var ctx = await NewContextAsync();
-        var hot = await CreateTagAsync(ctx, "hot-topic");
-        var warm = await CreateTagAsync(ctx, "warm-topic");
+        var older = await CreateTagAsync(ctx, "older-topic", Base.AddMinutes(-10));
+        var fallback = await CreateTagAsync(ctx, "fallback-topic", Base.AddMinutes(-5));
         var cold = await CreateTagAsync(ctx, "cold");
 
-        await SeedIntentAsync(ctx, "i1", [hot, warm]);
-        await SeedIntentAsync(ctx, "i2", [hot, warm]);
-        await SeedIntentAsync(ctx, "i3", [hot]);
-        // usage: hot=3, warm=2, cold=0
+        await SeedIntentAsync(ctx, "i1", [older], Base);
+        await SeedIntentAsync(ctx, "i2", [cold], Base.AddMinutes(2));
 
         var page = await ctx.Tags.ListPageAsync(new TagListSpec(Search: null, Limit: 50, Cursor: null), CancellationToken.None);
-        page.Items.Select(i => i.Tag.Id.Value).Should().Equal(hot.Value, warm.Value, cold.Value);
-        page.Items.Select(i => i.IntentsCount).Should().Equal(3, 2, 0);
+        page.Items.Select(i => i.Tag.Id.Value).Should().Equal(cold.Value, older.Value, fallback.Value);
         page.NextCursor.Should().BeNull();
 
         var searched = await ctx.Tags.ListPageAsync(new TagListSpec(Search: "topic", Limit: 50, Cursor: null), CancellationToken.None);
-        searched.Items.Select(i => i.Tag.Id.Value).Should().Equal(hot.Value, warm.Value);
+        searched.Items.Select(i => i.Tag.Id.Value).Should().Equal(older.Value, fallback.Value);
 
         var first = await ctx.Tags.ListPageAsync(new TagListSpec(Search: null, Limit: 2, Cursor: null), CancellationToken.None);
-        first.Items.Select(i => i.Tag.Id.Value).Should().Equal(hot.Value, warm.Value);
+        first.Items.Select(i => i.Tag.Id.Value).Should().Equal(cold.Value, older.Value);
         first.NextCursor.Should().NotBeNull();
 
         var second = await ctx.Tags.ListPageAsync(new TagListSpec(Search: null, Limit: 2, Cursor: first.NextCursor), CancellationToken.None);
-        second.Items.Select(i => i.Tag.Id.Value).Should().Equal(cold.Value);
+        second.Items.Select(i => i.Tag.Id.Value).Should().Equal(fallback.Value);
         second.NextCursor.Should().BeNull();
     }
 
-    private static async Task<int> UsageAsync(TestContext ctx, TagId id)
+    private static async Task<DateTime?> LastAttachedAtAsync(TestContext ctx, TagId id)
     {
         var doc = await ctx.Database
             .GetCollection<TagDocument>(MongoCollectionNames.Tags)
             .Find(d => d.Id == id.Value)
             .FirstOrDefaultAsync();
-        return doc!.UsageCount;
+        return doc!.LastAttachedAt;
     }
 
-    private static async Task<TagId> CreateTagAsync(TestContext ctx, string name)
+    private static async Task<TagId> CreateTagAsync(TestContext ctx, string name, DateTimeOffset? now = null)
     {
-        var created = await ctx.Uow.ExecuteAsync(ct => ctx.Tags.CreateAsync(name, Base, ct), CancellationToken.None);
+        var created = await ctx.Uow.ExecuteAsync(ct => ctx.Tags.CreateAsync(name, now ?? Base, ct), CancellationToken.None);
         return ((CreateTagOutcome.Created)created).Tag.Id;
     }
 
-    private static async Task<Intent> SeedIntentAsync(TestContext ctx, string text, IReadOnlyList<TagId> tagIds)
+    private static async Task<Intent> SeedIntentAsync(
+        TestContext ctx,
+        string text,
+        IReadOnlyList<TagId> tagIds,
+        DateTimeOffset? now = null)
     {
+        var createdAt = now ?? Base;
         var id = IntentId.New();
-        var intent = Intent.Create(id, text, tagIds, Base);
+        var intent = Intent.Create(id, text, tagIds, createdAt);
         var version = TextVersion.CreateSnapshot(
-            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, Base, TextVersionAuthor.Agent);
+            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value, text, createdAt, TextVersionAuthor.Agent);
         var statusChange = IntentStatusChange.Create(
             Guid.NewGuid().ToString("N"), id, intent.State.CurrentVersion,
-            intent.State.Status, intent.State.Status, "test:create", Base, IntentTrainingAuthor.Agent);
+            intent.State.Status, intent.State.Status, "test:create", createdAt, IntentTrainingAuthor.Agent);
         await ctx.Uow.ExecuteAsync(
             ct => ctx.Intents.CreateAsync(intent, version, statusChange, Array.Empty<Tag>(), ct),
             CancellationToken.None);

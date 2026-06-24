@@ -14,7 +14,7 @@ import { TagOptionsList, type TagPickerOption } from "./TagOptionsList";
 interface TagMultiSelectProps {
   value: string[];
   onChange: (next: string[]) => void;
-  /** Серверно-отсортированные кандидаты (usage desc) под текущий query. */
+  /** Серверно-отсортированные кандидаты по последней привязке под текущий query. */
   candidates: readonly TagPickerOption[];
   /** Текущий ввод; владеет им внешний пикер (useTagPicker). */
   query: string;
