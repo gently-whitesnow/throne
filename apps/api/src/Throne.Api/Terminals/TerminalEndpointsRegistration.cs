@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Throne.Application.Terminals;
 using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Terminals;
@@ -13,6 +14,10 @@ public static class TerminalEndpointsRegistration
     public static IServiceCollection AddThroneTerminalEndpoints(this IServiceCollection services)
     {
         services.AddSingleton<TerminalWebSocketEndpoint>();
+        services.AddSingleton<InMemoryTerminalHookBus>();
+        services.AddSingleton<ITerminalHookBus>(sp => sp.GetRequiredService<InMemoryTerminalHookBus>());
+        services.AddSingleton<ITerminalHookEventReader>(sp => sp.GetRequiredService<InMemoryTerminalHookBus>());
+        services.AddHostedService<TerminalHookConsumerService>();
         services.AddSingleton<TerminalHookStatusAck>();
         services.AddSingleton<TerminalVendorCatalogMapper>();
         return services;

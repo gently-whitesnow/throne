@@ -17,8 +17,12 @@ namespace Throne.Application.Terminals;
 /// firing on every tool call is harmless.
 /// </summary>
 public sealed class TerminalHookStatusHandler(IIntentRepository repository, SetIntentStatusHandler setStatus)
+    : ITerminalHookSubscriber
 {
     private const string SourcePrefix = "hook:terminal:";
+
+    public Task HandleAsync(TerminalHookEvent hook, CancellationToken ct) =>
+        HandleAsync(hook.IntentId, hook.Event, hook.Mode, ct);
 
     public async Task HandleAsync(string intentId, string hookEvent, string? mode, CancellationToken ct)
     {
