@@ -7,11 +7,7 @@ import {
   tagsEndpoints
 } from "@/shared/api";
 
-import type {
-  Tag,
-  TagDefaultRepository,
-  TagDetail
-} from "../model/types";
+import type { Tag, TagDefaultRepository, TagDetail } from "../model/types";
 
 type CreateTagBody = TagsComponents["schemas"]["CreateTagRequest"];
 type RenameTagBody = TagsComponents["schemas"]["RenameTagRequest"];
