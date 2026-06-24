@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   listGitProviderRepositories,
-  searchGitProviderRepositories,
-  type GitProvider,
-  type GitRepositoryRef
-} from "@/entities/repository-binding";
+  searchGitProviderRepositories
+} from "../api/repository-bindings-api";
+import type { GitProvider, GitRepositoryRef } from "./types";
 
 /** UX wants typing to feel reactive but not hammer `gh` on every keystroke. */
 const DEBOUNCE_MS = 350;

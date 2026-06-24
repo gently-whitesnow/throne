@@ -1,16 +1,17 @@
 import { Search } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 
-import {
-  gitProviderEntries,
-  useGitProvidersStatus
-} from "@/entities/git-provider-status";
-import type { GitProvider } from "@/entities/repository-binding";
-
+import type { GitProvider } from "../model/types";
 import type { SearchScope } from "../model/use-repository-search";
 
-interface BindRepositorySearchControlsProps {
+interface RepositorySearchControlsProps {
   provider: GitProvider;
+  /**
+   * Список доступных провайдеров (отфильтрованных по authenticated). Pure-prop —
+   * picker сам в `git-provider-status` не ходит, чтобы не тянуть cross-entity
+   * зависимость (FSD).
+   */
+  selectableProviders: readonly GitProvider[];
   onProviderChange: (provider: GitProvider) => void;
   query: string;
   onQueryChange: (value: string) => void;
@@ -27,28 +28,16 @@ interface BindRepositorySearchControlsProps {
  *  - `involved` — explicitly opted-in via the checkbox so the operator
  *    accepts the wider `gh api /user/repos?affiliation=...` round-trip.
  */
-export function BindRepositorySearchControls({
+export function RepositorySearchControls({
   provider,
+  selectableProviders,
   onProviderChange,
   query,
   onQueryChange,
   scope,
   onScopeChange,
   disabled
-}: BindRepositorySearchControlsProps) {
-  // GitLab availability is detection-only: hide the option until `glab` is
-  // authenticated against the configured host.
-  const { status } = useGitProvidersStatus();
-  const selectableProviders = useMemo(
-    () =>
-      status === null
-        ? ["github"]
-        : gitProviderEntries(status)
-            .filter((entry) => entry.status.authenticated)
-            .map((entry) => entry.provider),
-    [status]
-  );
-
+}: RepositorySearchControlsProps) {
   // Provider logout / host change while selected → fall back to the first
   // authenticated provider so search does not keep hitting an unavailable key.
   useEffect(() => {
@@ -75,7 +64,7 @@ export function BindRepositorySearchControls({
               onProviderChange(entryProvider);
             }}
             disabled={disabled}
-            data-testid={`bind-repository-provider-${entryProvider}`}
+            data-testid={`repository-picker-provider-${entryProvider}`}
           >
             {providerLabel(entryProvider)}
           </button>
@@ -105,7 +94,7 @@ export function BindRepositorySearchControls({
             onScopeChange(e.target.checked ? "involved" : "mine");
           }}
           disabled={disabled}
-          data-testid="bind-repository-scope-involved"
+          data-testid="repository-picker-scope-involved"
         />
         Где я участвовал (collaborator / org-member)
       </label>

@@ -19,7 +19,7 @@ interface TagDefaultRepositoriesSectionProps {
 
 /**
  * Секция «Default repositories» в детальном представлении тега. Используется
- * Run pre-flight'ом (Slice 2): union по тегам интента, auto-bind недостающего,
+ * Run pre-flight'ом: union по тегам интента, auto-bind недостающего,
  * параллельный partial clone. Whole-list replace через
  * `PUT /api/v1/tags/{id}/default-repositories` с `expected_version`.
  */
@@ -50,33 +50,35 @@ export function TagDefaultRepositoriesSection({
   const mutateError =
     mutation.error instanceof Error ? mutation.error.message : null;
 
-  const handlePicked = (pick: TagDefaultRepository) => {
-    if (isDuplicate(repos, pick)) return;
-    const next: TagDefaultRepository[] = [...repos, pick];
-    submit(tag, next);
+  const handleConfirm = (picks: TagDefaultRepository[]) => {
+    const next = appendUniqueRepositories(repos, picks);
+    if (next.length === repos.length) {
+      setModalOpen(false);
+      return;
+    }
+    submit(tag, next, () => {
+      setModalOpen(false);
+    });
   };
 
   const handleRemove = (repo: TagDefaultRepository) => {
-    const next = repos.filter(
-      (r) =>
-        !(
-          r.provider === repo.provider &&
-          r.owner === repo.owner &&
-          r.repo === repo.repo
-        )
-    );
+    const next = repos.filter((r) => !sameRepository(r, repo));
     submit(tag, next);
   };
 
   const submit = (
     current: TagDetail,
-    defaultRepositories: TagDefaultRepository[]
+    defaultRepositories: TagDefaultRepository[],
+    onDone?: () => void
   ) => {
-    mutation.mutate({
-      tagId: current.id,
-      expectedVersion: current.current_version,
-      defaultRepositories
-    });
+    mutation.mutate(
+      {
+        tagId: current.id,
+        expectedVersion: current.current_version,
+        defaultRepositories
+      },
+      { onSuccess: () => onDone?.() }
+    );
   };
 
   return (
@@ -173,20 +175,28 @@ export function TagDefaultRepositoriesSection({
         onClose={() => {
           setModalOpen(false);
         }}
-        onPicked={handlePicked}
+        onConfirm={handleConfirm}
+        submitting={mutation.isPending}
       />
     </section>
   );
 }
 
-function isDuplicate(
-  repos: readonly TagDefaultRepository[],
-  pick: Pick<TagDefaultRepository, "provider" | "owner" | "repo">
+function sameRepository(
+  a: Pick<TagDefaultRepository, "provider" | "owner" | "repo">,
+  b: Pick<TagDefaultRepository, "provider" | "owner" | "repo">
 ): boolean {
-  return repos.some(
-    (r) =>
-      r.provider === pick.provider &&
-      r.owner === pick.owner &&
-      r.repo === pick.repo
-  );
+  return a.provider === b.provider && a.owner === b.owner && a.repo === b.repo;
+}
+
+function appendUniqueRepositories(
+  existing: readonly TagDefaultRepository[],
+  additions: readonly TagDefaultRepository[]
+): TagDefaultRepository[] {
+  const next = [...existing];
+  for (const pick of additions) {
+    if (next.some((r) => sameRepository(r, pick))) continue;
+    next.push(pick);
+  }
+  return next;
 }
