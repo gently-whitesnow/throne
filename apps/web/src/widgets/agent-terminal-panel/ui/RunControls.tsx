@@ -72,7 +72,7 @@ export function RunControls({
 }: RunControlsProps) {
   const dropdownDisabled = sessionLive || metadataLoading || metadataError;
 
-  const selectClass = "select select-xs";
+  const selectClass = "select select-xs w-auto";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
