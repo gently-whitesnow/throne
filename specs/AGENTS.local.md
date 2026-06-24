@@ -38,6 +38,17 @@ bash scripts/quality/verify.sh --scope backend|frontend    # одна сторо
 - **Operational skills** ([ADR-0043](ADR/0043-static-operational-skills-and-mcp-removal.md)): не генерируй per-intent `SKILL.md` из C# и не возвращай MCP tools. Новые агентские операции добавляются как статический repo skill + `skills/<id>/bin/throne-*` CLI поверх HTTP, только если это действительно operational surface.
 - **Inheritance depth / Maintainability Index** (Roslyn analyzers `CA1501` + `CA1505`): пороги живут в [apps/api/CodeMetricsConfig.txt](../apps/api/CodeMetricsConfig.txt), severity `warning` в [apps/api/.editorconfig](../apps/api/.editorconfig). Из-за `TreatWarningsAsErrors=true` любое **новое** нарушение валит `backend-build`. Cyclomatic (`CA1502`) и class coupling (`CA1506`) сюда не входят — выведены в `.quality` budget ([ADR-0028](ADR/0028-quality-harness-recalibration.md)).
 
+## Subdomain map (volatility frame)
+
+DDD-классификация модулей и зависимостей — общий язык для аргументов «здесь прагматика OK / здесь не OK». Core несёт инварианты и плотные контракты; supporting может быть проще; generic выбирается по impl-volatility (sticky → инвестируем в интеграцию, volatile → прячем за портом). При значимом ADR проверяй классификацию затрагиваемой области и при необходимости обнови таблицу.
+
+| Subdomain | Throne модули / зависимости | Тип | Rationale |
+|---|---|---|---|
+| Core | `Intents`, `Dreams`, `PromptParts`, `PromptPartPatches`, `IntentLinks`, frontier dream flow ([ADR-0022](ADR/0022-frontier-driven-dream-flow.md)), structural patches ([ADR-0038](ADR/0038-structural-prompt-part-proposals.md)) | core, high volatility | Продуктовая суть Throne; здесь живут rich-DDD агрегаты ([ADR-0025](ADR/0025-domain-aggregate-style-rich-ddd.md)) и большая часть итераций по требованиям. |
+| Supporting | `Tags`, `Capabilities`, `Settings`, `TextVersions` history | supporting | Обслуживают core, своя бизнес-логика мала; допустимы более тонкие модели и прагматичные решения. |
+| Generic, impl-volatile | git-провайдеры (gh / GitLab — [ADR-0032](ADR/0032-gitlab-provider.md)), terminal vendors (claude / codex / opencode — [ADR-0042](ADR/0042-opencode-shared-serve-and-attach-front.md)), IDE openers, tmux, extension axes ([ADR-0045](ADR/0045-throne-extension-pattern.md), [ADR-0046](ADR/0046-open-wire-keys-for-extension-axes.md)) | generic, высокая impl-volatility | Внешние инструменты меняются и заменяются; обязательно через порт + адаптер, без протечки vendor-специфики в core. |
+| Generic, sticky | MongoDB, OpenAPI / realtime contract-first tooling, .NET ecosystem | generic, низкая impl-volatility | Замена маловероятна; OK инвестировать в идиоматичную интеграцию вместо ещё одного слоя абстракции. |
+
 ## Maintainability gate (ratchet) и duplicate gate (advisory)
 
 **`backend-maintainability` — ratchet, blocking на новых нарушениях.** Лимиты: [.quality/maintainability-budget.json](../.quality/maintainability-budget.json), профиль `strict`. Baseline: [.quality/maintainability-baseline.json](../.quality/maintainability-baseline.json). Любое **новое** нарушение vs baseline = fail без обсуждения. Это единый source-of-truth для cyclomatic (per-method ≤10) и coupling (file fan-out ≤15); калибровка лимитов — [ADR-0028](ADR/0028-quality-harness-recalibration.md).
