@@ -5,9 +5,8 @@ using Throne.Terminal.Contracts.Generated;
 namespace Throne.Api.Terminals;
 
 public sealed class TerminalHookStatusAck(
-    TerminalHookStatusHandler hookStatus,
-    TerminalReadinessSignals readinessSignals,
-    TerminalPromptSubmitSignals submitSignals,
+    ITerminalHookBus hookBus,
+    TimeProvider clock,
     ILogger<TerminalHookStatusAck> logger
 )
 {
@@ -21,17 +20,9 @@ public sealed class TerminalHookStatusAck(
         var domainMode = mode is null ? null : TerminalRunResponseMapper.ToDomainMode(mode.Value);
         try
         {
-            await hookStatus.HandleAsync(intentId, ToHookEvent(@event), domainMode, ct);
-            if (@event == Event.SessionReady)
-            {
-                readinessSignals.TrySignal(intentId);
-            }
-            else if (@event == Event.UserPromptSubmit)
-            {
-                // Authoritative confirmation that the agent accepted the (just-pasted) prompt — wakes
-                // the post-spawn delivery's confirm gate. No-op if nothing is armed (later turns).
-                submitSignals.TrySignal(intentId);
-            }
+            await hookBus.PublishAsync(
+                new TerminalHookEvent(intentId, ToHookEvent(@event), domainMode, clock.GetUtcNow()),
+                ct);
         }
         catch (ApiException ex)
         {

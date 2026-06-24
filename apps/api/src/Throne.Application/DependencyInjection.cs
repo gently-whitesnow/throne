@@ -90,8 +90,13 @@ public static class DependencyInjection
         services.AddSingleton<PullRequestSyncBindingVisitor>();
         services.AddSingleton<PullRequestSyncTickWorkflow>();
         services.AddSingleton<PullRequestAutoBindWorkflow>();
+        services.AddSingleton<PullRequestAutoBindOnStopSubscriber>();
+        services.AddSingleton<ITerminalHookSubscriber>(sp =>
+            sp.GetRequiredService<PullRequestAutoBindOnStopSubscriber>());
         services.AddTerminalServices();
         services.AddSingleton<TerminalHookStatusHandler>();
+        services.AddSingleton<ITerminalHookSubscriber>(sp =>
+            sp.GetRequiredService<TerminalHookStatusHandler>());
         // ADR-0026 § 8: tmux session is torn down when an intent is closed (`done` or `reject`). The
         // handler takes ITmuxSessionManager via Lazy to break the dispatcher↔handler resolution cycle
         // (TmuxSessionManager → IDomainEventDispatcher → IEnumerable<IDomainEventHandler>).
@@ -141,6 +146,12 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightCloneWait>();
         services.AddSingleton<TerminalReadinessSignals>();
         services.AddSingleton<TerminalPromptSubmitSignals>();
+        services.AddSingleton<TerminalReadinessSignalSubscriber>();
+        services.AddSingleton<ITerminalHookSubscriber>(sp =>
+            sp.GetRequiredService<TerminalReadinessSignalSubscriber>());
+        services.AddSingleton<TerminalPromptSubmitSignalSubscriber>();
+        services.AddSingleton<ITerminalHookSubscriber>(sp =>
+            sp.GetRequiredService<TerminalPromptSubmitSignalSubscriber>());
         services.AddSingleton<TmuxTuiReadinessWaiter>();
         services.AddSingleton<TmuxPromptSubmitConfirmer>();
         services.AddSingleton<IRunPreflightPromptDelivery, RunPreflightPromptDelivery>();
