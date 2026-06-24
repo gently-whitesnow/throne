@@ -30,10 +30,10 @@ namespace Throne.Api.Generated
     public abstract class TagsControllerBase : Microsoft.AspNetCore.Mvc.ControllerBase
     {
         /// <summary>
-        /// List tags (cursor-paginated, usage-desc) with inline intents_count.
+        /// List tags (cursor-paginated, ordered by recency of last attachment).
         /// </summary>
         /// <remarks>
-        /// Returns a single page of tags ordered by usage (`usage_count desc, id asc`) so the most-used tags surface first. Each item carries `intents_count` inline (read from the denormalized counter — no per-tag usage round-trip). Pagination is opaque-cursor; `next_cursor` is absent on the final page. `search` is a case-insensitive substring filter on the normalized name. Default page size is 50, capped at 100.
+        /// Returns a single page of tags ordered by recency of last attachment (`last_attached_at desc, id asc`, falling back to `created_at` when a tag has never been attached). Pagination is opaque-cursor; `next_cursor` is absent on the final page. `search` is a case-insensitive substring filter on the normalized name. Default page size is 50, capped at 100.
         /// </remarks>
         /// <param name="cursor">Opaque continuation cursor returned by the previous page.</param>
         /// <param name="limit">Page size, default 50, capped at 100.</param>
@@ -79,13 +79,6 @@ namespace Throne.Api.Generated
         /// <returns>Deleted</returns>
         [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/tags/{id}", Name = "deleteTag")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<DeleteTagResponse>> DeleteTag([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromQuery] bool? detach = false);
-
-        /// <summary>
-        /// Count of intents currently referencing the tag.
-        /// </summary>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/tags/{id}/usage", Name = "getTagUsage")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TagUsageDto>> GetTagUsage([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
         /// <summary>
         /// Replace the tag's default repositories list.

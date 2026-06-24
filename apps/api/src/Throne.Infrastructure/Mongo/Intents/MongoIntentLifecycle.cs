@@ -56,8 +56,8 @@ internal sealed class MongoIntentLifecycle(
             ct);
         await _intents.InsertOneAsync(session, IntentDocumentMapper.ToDocument(intent), options: null, ct);
         await _statusChanges.InsertOneAsync(session, IntentDocumentMapper.ToDocument(initialStatusChange), options: null, ct);
-        await MongoTagUsageCounter.ApplyAsync(
-            _tags, session, intent.TagIds.Select(t => t.Value).ToList(), delta: +1, ct);
+        await MongoTagAttachmentToucher.TouchAsync(
+            _tags, session, intent.TagIds.Select(t => t.Value).ToList(), intent.CreatedAt, ct);
         return new CreateIntentOutcome(intent, upsertedTags);
     }
 
@@ -69,15 +69,11 @@ internal sealed class MongoIntentLifecycle(
 
         var byId = IntentCollectionFilters.ById(id.Value);
 
-        // FindOneAndDelete (not DeleteOne) so we learn the dead intent's tags and can
-        // decrement their usage_count in the same transaction.
         var deleted = await _intents.FindOneAndDeleteAsync(session, byId, options: null, ct);
         if (deleted is null)
         {
             return new DeleteIntentOutcome.NotFound();
         }
-
-        await MongoTagUsageCounter.ApplyAsync(_tags, session, deleted.TagIds, delta: -1, ct);
 
         // Cascade events: drop the unified history of the dead intent (both as
         // primary subject and as peer of any link event).

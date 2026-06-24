@@ -2,7 +2,7 @@ using Throne.Application.Tags;
 
 namespace Throne.Api.Tags;
 
-// Opaque base64 keyset cursor `usageCount|id` for the fixed usage-desc tag order.
+// Opaque base64 keyset cursor `lastAttachedAt|id` for the fixed recency-desc tag order.
 // Same convention as IntentListCursorCodec.
 internal static class TagListCursorCodec
 {
@@ -12,7 +12,7 @@ internal static class TagListCursorCodec
         {
             return null;
         }
-        var raw = $"{cursor.UsageCount}|{cursor.Id}";
+        var raw = $"{cursor.LastAttachedAt.ToUniversalTime():O}|{cursor.Id}";
         return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw));
     }
 
@@ -35,12 +35,17 @@ internal static class TagListCursorCodec
 
         var parts = decoded.Split('|');
         if (parts.Length != 2
-            || !int.TryParse(parts[0], System.Globalization.CultureInfo.InvariantCulture, out var usageCount)
+            || !DateTime.TryParse(
+                parts[0],
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AdjustToUniversal
+                    | System.Globalization.DateTimeStyles.AssumeUniversal,
+                out var lastAttachedAt)
             || string.IsNullOrEmpty(parts[1]))
         {
             throw new ArgumentException("cursor payload is malformed.", nameof(cursor));
         }
 
-        return new TagListCursor(usageCount, parts[1]);
+        return new TagListCursor(DateTime.SpecifyKind(lastAttachedAt, DateTimeKind.Utc), parts[1]);
     }
 }

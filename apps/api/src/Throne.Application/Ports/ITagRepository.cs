@@ -8,9 +8,8 @@ public interface ITagRepository
     Task<IReadOnlyList<Tag>> ListAllAsync(CancellationToken ct);
 
     /// <summary>
-    /// One keyset page ordered by <c>usage_count desc, _id asc</c> with an optional
-    /// case-insensitive substring filter on the name. Each item carries the
-    /// denormalized <c>intents_count</c> inline (no usage round-trip).
+    /// One keyset page ordered by <c>last_attached_at desc, _id asc</c> with an
+    /// optional case-insensitive substring filter on the name.
     /// </summary>
     Task<TagListPage> ListPageAsync(TagListSpec spec, CancellationToken ct);
 
@@ -37,7 +36,7 @@ public interface ITagRepository
         DateTimeOffset now,
         CancellationToken ct);
 
-    Task<TagUsage> GetUsageAsync(TagId id, CancellationToken ct);
+    Task<int> CountAttachedIntentsAsync(TagId id, CancellationToken ct);
 
     /// <summary>
     /// Detach the tag from every intent currently referencing it and return the affected intents
@@ -46,5 +45,3 @@ public interface ITagRepository
     /// </summary>
     Task<DeleteTagOutcome> DeleteAsync(TagId id, DateTimeOffset now, CancellationToken ct);
 }
-
-public sealed record TagUsage(int IntentsCount);

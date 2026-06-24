@@ -10,8 +10,7 @@ import {
 import type {
   Tag,
   TagDefaultRepository,
-  TagDetail,
-  TagUsage
+  TagDetail
 } from "../model/types";
 
 type CreateTagBody = TagsComponents["schemas"]["CreateTagRequest"];
@@ -70,13 +69,6 @@ export async function renameTag(
     );
   }
   return (await response.json()) as Tag;
-}
-
-export function fetchTagUsage(
-  id: string,
-  signal?: AbortSignal
-): Promise<TagUsage> {
-  return httpGet<TagUsage>(tagsEndpoints.getTagUsage(id), signal);
 }
 
 export async function deleteTag(
