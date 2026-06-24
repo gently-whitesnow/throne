@@ -2,7 +2,6 @@ import { Plus } from "lucide-react";
 
 export interface TagPickerOption {
   name: string;
-  intents_count: number;
 }
 
 interface TagOptionsListProps {
@@ -67,14 +66,6 @@ export function TagOptionsList({
           >
             <span className="truncate text-base-content">#{option.name}</span>
             <span className="flex shrink-0 items-center gap-2">
-              {option.intents_count > 0 ? (
-                <span
-                  className="text-[10px] tabular-nums text-base-content/50"
-                  aria-label={`Использований: ${String(option.intents_count)}`}
-                >
-                  {String(option.intents_count)}
-                </span>
-              ) : null}
               {isSelected ? (
                 <span className="text-[10px] uppercase tracking-wider text-primary">
                   выбран

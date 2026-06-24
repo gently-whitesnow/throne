@@ -11,7 +11,7 @@ namespace Throne.Infrastructure.Mongo;
 
 internal sealed class MongoTagRepository : MongoRepositoryBase<TagDocument, string>, ITagRepository
 {
-    // Secondary collection (intent fan-out for tag-detach + usage count) lives here
+    // Secondary collection (intent fan-out for tag-detach + delete guard) lives here
     // as a plain field — only the primary `tags` collection goes through the base.
     private readonly IMongoCollection<IntentDocument> _intents;
     private readonly MongoTagListReader _listReader;
@@ -223,14 +223,14 @@ internal sealed class MongoTagRepository : MongoRepositoryBase<TagDocument, stri
         return new SetTagDefaultRepositoriesOutcome.Updated(tag);
     }
 
-    public async Task<TagUsage> GetUsageAsync(TagId id, CancellationToken ct)
+    public async Task<int> CountAttachedIntentsAsync(TagId id, CancellationToken ct)
     {
         var session = Sessions.Current;
         var filter = Builders<IntentDocument>.Filter.AnyEq(d => d.TagIds, id.Value);
         var count = session is null
             ? await _intents.CountDocumentsAsync(filter, options: null, ct)
             : await _intents.CountDocumentsAsync(session, filter, options: null, ct);
-        return new TagUsage((int)count);
+        return (int)count;
     }
 
     public async Task<DeleteTagOutcome> DeleteAsync(TagId id, DateTimeOffset now, CancellationToken ct)

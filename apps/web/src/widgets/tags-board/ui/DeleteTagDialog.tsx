@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useId, useState } from "react";
 
-import { deleteTag, useTagUsage, type Tag } from "@/entities/tag";
+import { deleteTag, type Tag } from "@/entities/tag";
 import { errorMessage } from "@/shared/lib";
 import { Modal } from "@/shared/ui";
 
@@ -11,11 +11,6 @@ interface DeleteTagDialogProps {
   onDeleted: (tagId: string) => void;
 }
 
-/**
- * Подтверждение удаления тега в стиле приложения вместо `window.confirm`. Сразу
- * показывает, к скольким интентам привязан тег (тот же usage-кеш, что и в
- * списке), и при необходимости предлагает «открепить и удалить».
- */
 export function DeleteTagDialog({
   tag,
   onClose,
@@ -23,20 +18,15 @@ export function DeleteTagDialog({
 }: DeleteTagDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
-  const usageQuery = useTagUsage(tag.id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const intentsCount = usageQuery.data?.intents_count ?? 0;
-  const detach = intentsCount > 0;
-  const loadingUsage = usageQuery.isPending;
 
   const handleConfirm = () => {
     setBusy(true);
     setError(null);
     void (async () => {
       try {
-        await deleteTag(tag.id, detach);
+        await deleteTag(tag.id, true);
         onDeleted(tag.id);
         onClose();
       } catch (err: unknown) {
@@ -68,11 +58,8 @@ export function DeleteTagDialog({
             id={descriptionId}
             className="m-0 text-sm leading-relaxed text-base-content/70"
           >
-            {loadingUsage
-              ? "Проверяем привязки…"
-              : detach
-                ? `Тег привязан к ${String(intentsCount)} ${intentsCount === 1 ? "интенту" : "интентам"}. Он будет откреплён от них и удалён без возможности восстановления.`
-                : "Тег нигде не используется. Действие необратимо."}
+            Тег будет удалён, все привязки к интентам сняты. Действие
+            необратимо.
           </p>
           {error !== null && (
             <p role="alert" className="m-0 text-sm text-error">
@@ -94,9 +81,9 @@ export function DeleteTagDialog({
           type="button"
           className="btn btn-sm btn-error"
           onClick={handleConfirm}
-          disabled={busy || loadingUsage}
+          disabled={busy}
         >
-          {busy ? "Удаляем…" : detach ? "Открепить и удалить" : "Удалить"}
+          {busy ? "Удаляем…" : "Удалить"}
         </button>
       </div>
     </Modal>

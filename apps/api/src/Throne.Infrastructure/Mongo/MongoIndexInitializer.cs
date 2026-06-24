@@ -47,12 +47,20 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
                 new CreateIndexModel<TagDocument>(
                     Builders<TagDocument>.IndexKeys.Ascending(x => x.Name),
                     new CreateIndexOptions { Unique = true, Name = "name_unique" }),
-                // Powers the board's `usage_count desc, _id asc` keyset pagination.
                 new CreateIndexModel<TagDocument>(
                     Builders<TagDocument>.IndexKeys
-                        .Descending(x => x.UsageCount)
+                        .Descending(x => x.LastAttachedAt)
                         .Ascending(x => x.Id),
-                    new CreateIndexOptions { Name = "usage_count_id" }),
+                    new CreateIndexOptions<TagDocument>
+                    {
+                        Name = "last_attached_at_id",
+                        PartialFilterExpression = Builders<TagDocument>.Filter.Exists(x => x.LastAttachedAt, true),
+                    }),
+                new CreateIndexModel<TagDocument>(
+                    Builders<TagDocument>.IndexKeys
+                        .Descending(x => x.CreatedAt)
+                        .Ascending(x => x.Id),
+                    new CreateIndexOptions { Name = "created_at_id" }),
             ],
             cancellationToken);
 
@@ -104,7 +112,6 @@ internal sealed class MongoIndexInitializer(IMongoDatabase database) : Backgroun
         await MongoDreamSessionIndexes.CreateAsync(database, cancellationToken);
 
         await MongoIntentLinkMigration.RunAsync(database, cancellationToken);
-        await MongoTagUsageBackfill.RunAsync(database, cancellationToken);
         await CreateIntentLinkIndexesAsync(cancellationToken);
         await CreateIntentEventIndexesAsync(cancellationToken);
         await CreateIntentPinIndexesAsync(cancellationToken);

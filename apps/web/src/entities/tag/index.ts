@@ -3,8 +3,7 @@ export type {
   TagDefaultRepository,
   TagDetail,
   TagListItem,
-  TagRef,
-  TagUsage
+  TagRef
 } from "./model/types";
 export { TagBadge } from "./ui/TagBadge";
 export { useTagPicker } from "./model/use-tag-picker";
@@ -14,7 +13,6 @@ export {
   createTag,
   renameTag,
   deleteTag,
-  fetchTagUsage,
   setTagDefaultRepositories,
   type TagListParams
 } from "./api/tags-api";
@@ -22,7 +20,6 @@ export {
   useTag,
   useInfiniteTags,
   useTagsTypeahead,
-  useTagUsage,
   tagsQueryKeys,
   type UseTagsTypeaheadResult
 } from "./api/tags-queries";
