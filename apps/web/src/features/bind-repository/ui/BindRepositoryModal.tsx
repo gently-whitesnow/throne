@@ -1,26 +1,21 @@
 import { X } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useMemo } from "react";
 
 import {
   findGitProviderStatus,
+  gitProviderEntries,
   useGitProvidersStatus
 } from "@/entities/git-provider-status";
 import {
+  RepositoryPickerPanel,
   type GitProvider,
   type RepositoryBinding
 } from "@/entities/repository-binding";
 import { Button, Modal } from "@/shared/ui";
 
-import { refKey, selectionIssue } from "../model/selection";
+import { selectionIssue } from "../model/selection";
 import { useBindSelections } from "../model/use-bind-selections";
-import {
-  useRepositorySearch,
-  type SearchScope
-} from "../model/use-repository-search";
-import { BindRepositorySearchControls } from "./BindRepositorySearchControls";
-import { ManualSshUrlInput } from "./ManualSshUrlInput";
-import { RepositorySearchList } from "./RepositorySearchList";
-import { SelectedRepositoriesList } from "./SelectedRepositoriesList";
+import { BindRepositoryChip } from "./BindRepositoryChip";
 
 interface BindRepositoryModalProps {
   intentId: string;
@@ -28,8 +23,6 @@ interface BindRepositoryModalProps {
   onClose: () => void;
   onBound?: (binding: RepositoryBinding) => void;
 }
-
-const DEFAULT_PROVIDER: GitProvider = "github";
 
 /**
  * Multi-select picker for `POST /intents/{id}/repositories`.
@@ -68,15 +61,11 @@ function BindRepositoryModalBody({
   onClose,
   onBound
 }: Omit<BindRepositoryModalProps, "open">) {
-  const [query, setQuery] = useState("");
-  const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
-  const [scope, setScope] = useState<SearchScope>("mine");
   const titleId = useId();
 
   const {
     selections,
     busy,
-    has,
     toggleSearch,
     addManual,
     remove,
@@ -89,12 +78,13 @@ function BindRepositoryModalBody({
   const { status: providerStatus } = useGitProvidersStatus();
   const gitlabHost =
     findGitProviderStatus(providerStatus, "gitlab")?.host ?? null;
-
-  const {
-    results,
-    isLoading,
-    error: searchError
-  } = useRepositorySearch(query, scope, true, provider);
+  const selectableProviders = useMemo<readonly GitProvider[]>(
+    () =>
+      gitProviderEntries(providerStatus)
+        .filter((entry) => entry.status.authenticated)
+        .map((entry) => entry.provider),
+    [providerStatus]
+  );
 
   const closeIfIdle = () => {
     if (!busy) onClose();
@@ -104,12 +94,6 @@ function BindRepositoryModalBody({
     (s) => selectionIssue(s, gitlabHost) === null
   ).length;
   const canSubmit = !busy && bindableCount > 0;
-
-  function changeProvider(nextProvider: GitProvider) {
-    // Keep already-selected repos — only the active search surface changes.
-    setProvider(nextProvider);
-    setQuery("");
-  }
 
   async function handleSubmit() {
     const done = await submit(gitlabHost, onBound);
@@ -149,40 +133,36 @@ function BindRepositoryModalBody({
         }}
         className="flex flex-col gap-4"
       >
-        <BindRepositorySearchControls
-          provider={provider}
-          onProviderChange={changeProvider}
-          query={query}
-          onQueryChange={setQuery}
-          scope={scope}
-          onScopeChange={setScope}
+        <RepositoryPickerPanel
+          selections={selections}
           disabled={busy}
-        />
-
-        <RepositorySearchList
-          results={results}
-          isLoading={isLoading}
-          error={searchError}
-          isSelected={(repo) => has(refKey(repo))}
-          onSelect={toggleSearch}
-        />
-
-        <ManualSshUrlInput
-          disabled={busy}
-          onAdd={(ref) => {
+          selectableProviders={selectableProviders}
+          gitlabHost={gitlabHost}
+          onToggleSearch={toggleSearch}
+          onAddManual={(ref) => {
             const result = addManual(ref);
             return result.ok ? null : (result.reason ?? null);
           }}
-        />
-
-        <SelectedRepositoriesList
-          selections={selections}
-          gitlabHost={gitlabHost}
-          disabled={busy}
           onRemove={remove}
-          onBranch={setBranch}
-          onPrNumber={setPrNumber}
-          onSelectedPr={setSelectedPr}
+          renderSelection={(selection) => (
+            <BindRepositoryChip
+              selection={selection}
+              gitlabHost={gitlabHost}
+              disabled={busy}
+              onRemove={() => {
+                remove(selection.key);
+              }}
+              onBranch={(value) => {
+                setBranch(selection.key, value);
+              }}
+              onPrNumber={(value) => {
+                setPrNumber(selection.key, value);
+              }}
+              onSelectedPr={(pr) => {
+                setSelectedPr(selection.key, pr);
+              }}
+            />
+          )}
         />
 
         <div className="flex justify-end gap-2">
