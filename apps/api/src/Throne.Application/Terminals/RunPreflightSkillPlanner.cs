@@ -6,7 +6,7 @@ namespace Throne.Application.Terminals;
 public sealed class RunPreflightSkillPlanner(
     SessionSkillSelectionService selection,
     SessionSkillPackageRegistry registry,
-    IIntentSkillModeSelectionStore store)
+    IIntentTerminalLaunchStore launches)
 {
     public RunPreflightSkillPlan Build(
         string intentId,
@@ -25,7 +25,7 @@ public sealed class RunPreflightSkillPlanner(
     }
 
     public Task SaveAsync(string intentId, string mode, RunPreflightSkillPlan plan, CancellationToken ct) =>
-        store.SaveAsync(intentId, mode, plan.SelectedSkillIds, ct);
+        launches.SaveSelectedSkillIdsAsync(intentId, mode, plan.SelectedSkillIds, ct);
 }
 
 public sealed record RunPreflightSkillPlan(

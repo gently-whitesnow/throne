@@ -73,7 +73,6 @@ public static class DependencyInjection
         services.AddSingleton<ITerminalSettingsStore, MongoTerminalSettingsStore>();
         services.AddSingleton<IIntentTerminalLaunchStore, MongoIntentTerminalLaunchStore>();
         services.AddSingleton<ISkillModeDefaultStore, MongoSkillModeDefaultStore>();
-        services.AddSingleton<IIntentSkillModeSelectionStore, MongoIntentSkillModeSelectionStore>();
         services.AddHostedService<MongoIndexInitializer>();
         services.AddHostedService<SkillModeDefaultSeeder>();
 

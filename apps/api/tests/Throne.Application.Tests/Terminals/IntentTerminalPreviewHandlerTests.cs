@@ -256,9 +256,6 @@ public class IntentTerminalPreviewHandlerTests
         var defaults = Substitute.For<ISkillModeDefaultStore>();
         defaults.ListAsync(Arg.Any<CancellationToken>())
             .Returns(SkillModeDefaultSeeds.Build(catalog));
-        var selections = Substitute.For<IIntentSkillModeSelectionStore>();
-        selections.GetAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((IReadOnlyList<string>?)null);
-        return new SessionSkillSelectionService(catalog, defaults, selections);
+        return new SessionSkillSelectionService(catalog, defaults);
     }
 }
