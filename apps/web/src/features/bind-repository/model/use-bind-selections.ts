@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 
 import {
   bindIntentRepository,
+  refKey,
   type BindRepositoryRequest,
   type GitPullRequestRef,
   type GitRepositoryRef,
@@ -13,7 +14,6 @@ import { parsePrNumber } from "./pr-number";
 import {
   createManualSelection,
   createSearchSelection,
-  refKey,
   selectionIssue,
   type RepoSelection
 } from "./selection";

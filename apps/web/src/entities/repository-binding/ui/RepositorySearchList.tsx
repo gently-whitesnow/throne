@@ -1,6 +1,6 @@
 import { Check, Loader2, Lock } from "lucide-react";
 
-import type { GitRepositoryRef } from "@/entities/repository-binding";
+import type { GitRepositoryRef } from "../model/types";
 
 interface RepositorySearchListProps {
   results: GitRepositoryRef[];
@@ -28,7 +28,7 @@ export function RepositorySearchList({
       <div
         role="alert"
         className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-sm text-error"
-        data-testid="bind-repository-search-error"
+        data-testid="repository-picker-search-error"
       >
         Не удалось загрузить репозитории: {error.message}
       </div>
@@ -39,7 +39,7 @@ export function RepositorySearchList({
     return (
       <div
         className="flex h-40 items-center justify-center text-sm text-base-content/60"
-        data-testid="bind-repository-search-loading"
+        data-testid="repository-picker-search-loading"
       >
         <Loader2 aria-hidden size={16} className="mr-2 animate-spin" />
         Ищем репозитории…
@@ -51,7 +51,7 @@ export function RepositorySearchList({
     return (
       <div
         className="flex h-40 items-center justify-center text-center text-sm text-base-content/60"
-        data-testid="bind-repository-search-empty"
+        data-testid="repository-picker-search-empty"
       >
         Ничего не найдено. Проверьте, что `gh` авторизован и у пользователя есть
         доступ к нужным репозиториям.
@@ -62,7 +62,7 @@ export function RepositorySearchList({
   return (
     <ul
       className="m-0 flex max-h-72 list-none flex-col gap-1 overflow-y-auto p-0"
-      data-testid="bind-repository-search-list"
+      data-testid="repository-picker-search-list"
       aria-busy={isLoading}
     >
       {results.map((repo) => {
@@ -75,7 +75,7 @@ export function RepositorySearchList({
               onClick={() => {
                 onSelect(repo);
               }}
-              data-testid={`bind-repository-row-${fullName}`}
+              data-testid={`repository-picker-row-${fullName}`}
               aria-pressed={selected}
               className={`flex w-full items-start justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors ${
                 selected

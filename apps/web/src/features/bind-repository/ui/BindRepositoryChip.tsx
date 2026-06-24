@@ -1,10 +1,13 @@
 import { Link2, Loader2, X } from "lucide-react";
 import { useId } from "react";
 
-import type { GitPullRequestRef } from "@/entities/repository-binding";
+import {
+  manualHostError,
+  type GitPullRequestRef
+} from "@/entities/repository-binding";
 
 import { parsePrNumber } from "../model/pr-number";
-import { manualHostError, type RepoSelection } from "../model/selection";
+import { type RepoSelection } from "../model/selection";
 import { BranchCombobox } from "./BranchCombobox";
 import { PullRequestCombobox } from "./PullRequestCombobox";
 
@@ -38,8 +41,8 @@ export function BindRepositoryChip({
   const branchLocked = selection.selectedPr !== null;
 
   return (
-    <li
-      className="m-0 flex flex-col gap-2 rounded-md border border-base-300 bg-base-100 p-3"
+    <div
+      className="flex flex-col gap-2 rounded-md border border-base-300 bg-base-100 p-3"
       data-testid={`bind-repository-chip-${ref.full_name}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -128,7 +131,7 @@ export function BindRepositoryChip({
           {selection.error}
         </span>
       ) : null}
-    </li>
+    </div>
   );
 }
 

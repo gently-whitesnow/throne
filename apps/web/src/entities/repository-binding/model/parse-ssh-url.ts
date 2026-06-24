@@ -1,13 +1,10 @@
-import type {
-  GitProvider,
-  GitRepositoryRef
-} from "@/entities/repository-binding";
+import type { GitProvider, GitRepositoryRef } from "./types";
 
 /**
  * Parse an SSH remote into a bindable coordinate. Used by the manual-entry path
  * when the autocomplete cannot surface a repository the operator has git access
  * to but no membership in. The result is bound through the regular `gh`/`glab`
- * flow (see slice decision Q2) — there is no raw `git clone <url>` path.
+ * flow — there is no raw `git clone <url>` path.
  *
  * Provider is derived from the host: `github.com` → github, anything else →
  * gitlab. Host/provider compatibility (github fixed to github.com, gitlab must

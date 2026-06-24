@@ -1,9 +1,8 @@
 import { Plus } from "lucide-react";
 import { useId, useState } from "react";
 
-import type { GitRepositoryRef } from "@/entities/repository-binding";
-
 import { parseSshUrl } from "../model/parse-ssh-url";
+import type { GitRepositoryRef } from "../model/types";
 
 interface ManualSshUrlInputProps {
   disabled: boolean;
@@ -53,7 +52,7 @@ export function ManualSshUrlInput({ disabled, onAdd }: ManualSshUrlInputProps) {
           value={value}
           disabled={disabled}
           aria-invalid={error !== null}
-          data-testid="bind-repository-ssh-url"
+          data-testid="repository-picker-ssh-url"
           onChange={(e) => {
             setValue(e.target.value);
             if (error !== null) setError(null);
@@ -70,7 +69,7 @@ export function ManualSshUrlInput({ disabled, onAdd }: ManualSshUrlInputProps) {
           className="btn btn-sm"
           onClick={add}
           disabled={disabled || value.trim().length === 0}
-          data-testid="bind-repository-ssh-add"
+          data-testid="repository-picker-ssh-add"
         >
           <Plus aria-hidden size={14} strokeWidth={2} />
           Добавить
@@ -80,7 +79,7 @@ export function ManualSshUrlInput({ disabled, onAdd }: ManualSshUrlInputProps) {
         <span
           role="alert"
           className="text-xs text-error"
-          data-testid="bind-repository-ssh-error"
+          data-testid="repository-picker-ssh-error"
         >
           {error}
         </span>
