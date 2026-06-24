@@ -120,7 +120,7 @@ export function SkillsAttachControl({
         <div
           role="dialog"
           aria-label="Догрузить скилы в сессию"
-          className="absolute left-0 top-full z-20 mt-1 flex w-72 flex-col gap-2 rounded-md border border-base-300 bg-base-100 p-2 shadow-lg"
+          className="absolute right-0 top-full z-20 mt-1 flex w-72 flex-col gap-2 rounded-md border border-base-300 bg-base-100 p-2 shadow-lg"
         >
           {isLoadingAvailable ? (
             <span className="text-[11px] text-base-content/60">
