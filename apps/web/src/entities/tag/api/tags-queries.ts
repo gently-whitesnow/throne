@@ -8,11 +8,7 @@ import {
 import type { TagsComponents } from "@/shared/api";
 
 import type { TagDetail, TagListItem } from "../model/types";
-import {
-  fetchTag,
-  fetchTagsPage,
-  type TagListParams
-} from "./tags-api";
+import { fetchTag, fetchTagsPage, type TagListParams } from "./tags-api";
 
 type TagListPage = TagsComponents["schemas"]["TagListPageDto"];
 
