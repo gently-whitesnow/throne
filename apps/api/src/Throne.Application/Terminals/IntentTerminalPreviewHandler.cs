@@ -64,11 +64,15 @@ public sealed class IntentTerminalPreviewHandler(
         var composition = await resolver.ResolveAsync(
             new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, userPrompt),
             ct);
-        // Pull the hot-attached skill ids from the persisted launch record so they survive a
-        // respawn as default-on selections in the modal (see SessionSkillSelectionService).
+        // Pull the per-mode «remembered» selection from the persisted launch record so the
+        // modal pre-fills with the last spawn's curated set (the hot-attach handler merges
+        // newly attached skills into the same map for the live session's mode).
         var launch = await launches.GetAsync(intent.Id.Value, ct);
-        var skills = await skillSelection.PreviewAsync(
-            intent.Id.Value, query.Mode, bindingList, launch?.AttachedSkillIds, ct);
+        var remembered = launch?.SelectedSkillIdsByMode is { Count: > 0 } map
+            && map.TryGetValue(query.Mode, out var ids)
+                ? ids
+                : null;
+        var skills = await skillSelection.PreviewAsync(query.Mode, bindingList, remembered, ct);
 
         var workspaceMap = await ComposeWorkspaceMapAsync(intent, bindingList, ct);
         return new IntentTerminalPreview(

@@ -6,52 +6,33 @@ namespace Throne.Application.Terminals;
 
 public sealed class SessionSkillSelectionService(
     ISessionSkillCatalog catalog,
-    ISkillModeDefaultStore defaults,
-    IIntentSkillModeSelectionStore selections)
+    ISkillModeDefaultStore defaults)
 {
-    public Task<IReadOnlyList<AvailableSessionSkill>> PreviewAsync(
-        string intentId,
-        string mode,
-        IReadOnlyList<IntentRepositoryBinding> bindings,
-        CancellationToken ct) =>
-        PreviewAsync(intentId, mode, bindings, attachedSkillIds: null, ct);
-
     /// <summary>
-    /// Preview the effective skill selection for the launch modal. <paramref name="attachedSkillIds"/>
-    /// carries the set of skills currently hot-attached to the live session
-    /// (<c>terminal_launches.attached_skill_ids</c>): a hot-attached skill is treated as
-    /// default-on for the next preflight so the operator's intent survives a respawn even when
-    /// the original mode-default would have it off.
+    /// Preview the effective skill selection for the launch modal. <paramref name="rememberedSkillIds"/>
+    /// carries the per-mode selection persisted on the previous successful spawn (and merged with
+    /// any hot-attach), drawn from <c>terminal_launches.selected_skill_ids_by_mode[mode]</c>: when
+    /// present, it wins over the mode default so the operator's last intent survives a respawn.
     /// </summary>
     public async Task<IReadOnlyList<AvailableSessionSkill>> PreviewAsync(
-        string intentId,
         string mode,
         IReadOnlyList<IntentRepositoryBinding> bindings,
-        IReadOnlyList<string>? attachedSkillIds,
+        IReadOnlyList<string>? rememberedSkillIds,
         CancellationToken ct)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
         ArgumentNullException.ThrowIfNull(bindings);
 
         var defaultMap = await DefaultMapAsync(mode, ct);
-        var remembered = await selections.GetAsync(intentId, mode, ct);
-        var selected = remembered is null ? null : new HashSet<string>(remembered, StringComparer.Ordinal);
-        var attached = attachedSkillIds is null
+        var remembered = rememberedSkillIds is null
             ? null
-            : new HashSet<string>(attachedSkillIds, StringComparer.Ordinal);
+            : new HashSet<string>(rememberedSkillIds, StringComparer.Ordinal);
 
         return catalog.List().Select(skill =>
         {
             var materialization = MaterializationFor(skill.Id, bindings);
-            var modeDefault = defaultMap.TryGetValue(skill.Id, out var enabled) && enabled;
-            // Hot-attached skills become default-on on the next preflight: they were explicitly
-            // loaded into a live session and the next spawn should preserve that selection by
-            // default. `default_enabled` keeps reflecting the user-level setting; the attach
-            // override only widens the effective default used for the «remembered» fallback.
-            var attachDefault = attached?.Contains(skill.Id) ?? false;
-            var defaultEnabled = modeDefault || attachDefault;
-            var requested = selected?.Contains(skill.Id) ?? defaultEnabled;
+            var defaultEnabled = defaultMap.TryGetValue(skill.Id, out var enabled) && enabled;
+            var requested = remembered?.Contains(skill.Id) ?? defaultEnabled;
             return new AvailableSessionSkill(
                 skill.Id,
                 skill.Source,

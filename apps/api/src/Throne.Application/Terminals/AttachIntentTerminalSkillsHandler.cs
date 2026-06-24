@@ -96,7 +96,9 @@ public sealed class AttachIntentTerminalSkillsHandler(
 
         var previous = launch.AttachedSkillIds ?? Array.Empty<string>();
         var merged = previous.Concat(requestedIds).Distinct(StringComparer.Ordinal).ToArray();
-        await launches.SetAttachedSkillIdsAsync(request.IntentId, merged, ct);
+        // Mode comes from the live session's persisted axis: the same value the next preflight
+        // will look up when sourcing «remembered» from selected_skill_ids_by_mode.
+        await launches.SetAttachedSkillIdsAsync(request.IntentId, launch.Mode, merged, ct);
 
         return new AttachIntentTerminalSkillsResult(merged);
     }
