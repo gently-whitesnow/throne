@@ -1,68 +1,90 @@
 import { X } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId, useMemo } from "react";
 
 import {
-  BindRepositorySearchControls,
-  RepositorySearchList,
-  useRepositorySearch,
-  type SearchScope
-} from "@/features/bind-repository";
-import type { GitProvider } from "@/entities/repository-binding";
+  findGitProviderStatus,
+  gitProviderEntries,
+  useGitProvidersStatus
+} from "@/entities/git-provider-status";
+import {
+  manualHostError,
+  RepositoryPickerPanel,
+  usePickerSelections,
+  type GitProvider,
+  type PickerSelection
+} from "@/entities/repository-binding";
+import type { TagDefaultRepository } from "@/entities/tag";
 import { Button, Modal } from "@/shared/ui";
 
 interface AddDefaultRepositoryModalProps {
   open: boolean;
   onClose: () => void;
-  onPicked: (pick: {
-    provider: GitProvider;
-    host?: string;
-    owner: string;
-    repo: string;
-    project_id?: number | null;
-    default_branch: string;
-  }) => void;
+  /**
+   * Append-режим: вызывается со списком выбранных репозиториев одним подтверждением.
+   * Виджет сам делает dedup относительно текущих default-репозиториев тега.
+   */
+  onConfirm: (picks: TagDefaultRepository[]) => void;
+  /** Lock the confirm button during the parent PUT. */
+  submitting?: boolean;
 }
 
-const DEFAULT_PROVIDER: GitProvider = "github";
-
 /**
- * Модалка добавления репозитория в `Tag.default_repositories`. Переиспользует
- * Slice 1 search-стек (`useRepositorySearch` + `BindRepositorySearchControls` +
- * `RepositorySearchList`); собственного branch/PR-поля нет — фиксируем upstream
- * default branch выбранного репозитория, чтобы Run pre-flight binding не падал на
- * угаданный `main` для репозитория с trunk `master` (ADR-0024 § 1).
+ * Multi-select модалка добавления репозиториев в `Tag.default_repositories`.
+ * Общий picker (`RepositoryPickerPanel`) с табами GitHub/GitLab, поиском, manual
+ * SSH-вводом и chip'ами. На подтверждение отдаёт массив координат
+ * `TagDefaultRepository` родителю — тот делает append + PUT с `expected_version`.
  */
 export function AddDefaultRepositoryModal({
   open,
   onClose,
-  onPicked
+  onConfirm,
+  submitting = false
 }: AddDefaultRepositoryModalProps) {
-  const [provider, setProvider] = useState<GitProvider>(DEFAULT_PROVIDER);
-  const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<SearchScope>("mine");
-  const titleId = useId();
+  if (!open) return null;
+  return (
+    <AddDefaultRepositoryModalBody
+      onClose={onClose}
+      onConfirm={onConfirm}
+      submitting={submitting}
+    />
+  );
+}
 
-  const { results, isLoading, error } = useRepositorySearch(
-    query,
-    scope,
-    open,
-    provider
+function AddDefaultRepositoryModalBody({
+  onClose,
+  onConfirm,
+  submitting
+}: Omit<AddDefaultRepositoryModalProps, "open"> & { submitting: boolean }) {
+  const titleId = useId();
+  const { selections, toggleSearch, addManual, remove } = usePickerSelections();
+  const { status: providerStatus } = useGitProvidersStatus();
+  const gitlabHost =
+    findGitProviderStatus(providerStatus, "gitlab")?.host ?? null;
+  const selectableProviders = useMemo<readonly GitProvider[]>(
+    () =>
+      gitProviderEntries(providerStatus)
+        .filter((entry) => entry.status.authenticated)
+        .map((entry) => entry.provider),
+    [providerStatus]
   );
 
-  useEffect(() => {
-    if (open) return;
-    setProvider(DEFAULT_PROVIDER);
-    setQuery("");
-    setScope("mine");
-  }, [open]);
+  const validCount = selections.filter(
+    (s) => selectionIssue(s, gitlabHost) === null
+  ).length;
+  const canSubmit = !submitting && validCount > 0;
 
-  if (!open) return null;
+  function handleSubmit() {
+    const picks = selections
+      .filter((s) => selectionIssue(s, gitlabHost) === null)
+      .map(toDefaultRepository);
+    onConfirm(picks);
+  }
 
   return (
     <Modal
-      onClose={onClose}
+      onClose={submitting ? () => undefined : onClose}
       labelledBy={titleId}
-      boxClassName="max-h-[min(720px,calc(100vh-32px))] w-full max-w-2xl"
+      boxClassName="max-h-[min(960px,calc(100vh-32px))] w-full max-w-2xl"
     >
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
@@ -70,53 +92,84 @@ export function AddDefaultRepositoryModal({
             Default repository
           </p>
           <h3 id={titleId} className="m-0 text-lg font-semibold leading-tight">
-            Выберите репозиторий
+            Выберите репозитории
           </h3>
           <p className="m-0 text-xs text-base-content/60">
-            Будет добавлен в default-список тега. На Run pre-flight'е каждый
-            интент с этим тегом получит binding к этому репозиторию.
+            Будут добавлены в default-список тега. На Run pre-flight'е каждый
+            интент с этим тегом получит binding к этим репозиториям.
           </p>
         </div>
         <button
           type="button"
           className="btn btn-sm btn-circle btn-ghost"
           onClick={onClose}
+          disabled={submitting}
           aria-label="Закрыть"
         >
           <X aria-hidden size={16} strokeWidth={2} />
         </button>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <BindRepositorySearchControls
-          provider={provider}
-          onProviderChange={setProvider}
-          query={query}
-          onQueryChange={setQuery}
-          scope={scope}
-          onScopeChange={setScope}
-          disabled={false}
-        />
-        <RepositorySearchList
-          results={results}
-          isLoading={isLoading}
-          error={error}
-          onSelect={(repo) => {
-            onPicked({
-              provider: repo.provider,
-              host: repo.host,
-              owner: repo.owner,
-              repo: repo.repo,
-              project_id: repo.project_id,
-              default_branch: repo.default_branch
-            });
-            onClose();
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        className="flex flex-col gap-4"
+      >
+        <RepositoryPickerPanel
+          selections={selections}
+          disabled={submitting}
+          selectableProviders={selectableProviders}
+          gitlabHost={gitlabHost}
+          onToggleSearch={toggleSearch}
+          onAddManual={(ref) => {
+            const result = addManual(ref);
+            return result.ok ? null : (result.reason ?? null);
           }}
+          onRemove={remove}
         />
-        <div className="flex justify-end">
-          <Button onClick={onClose}>Закрыть</Button>
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={onClose} disabled={submitting}>
+            Отмена
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!canSubmit}
+            data-testid="tag-default-repositories-submit"
+          >
+            {submitting
+              ? "Сохраняем…"
+              : validCount > 0
+                ? `Добавить (${String(validCount)})`
+                : "Добавить"}
+          </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
+}
+
+function selectionIssue(
+  selection: PickerSelection,
+  gitlabHost: string | null
+): string | null {
+  if (selection.source === "manual") {
+    return manualHostError(selection.ref, gitlabHost);
+  }
+  return null;
+}
+
+function toDefaultRepository(selection: PickerSelection): TagDefaultRepository {
+  const { ref } = selection;
+  return {
+    provider: ref.provider,
+    host: ref.host,
+    owner: ref.owner,
+    repo: ref.repo,
+    project_id: ref.project_id,
+    default_branch: ref.default_branch.length > 0 ? ref.default_branch : null
+  };
 }

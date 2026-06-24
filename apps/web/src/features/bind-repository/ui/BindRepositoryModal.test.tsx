@@ -173,9 +173,9 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     await flushDebounce();
 
     fireEvent.click(
-      screen.getByTestId("bind-repository-row-octocat/hello-world")
+      screen.getByTestId("repository-picker-row-octocat/hello-world")
     );
-    fireEvent.click(screen.getByTestId("bind-repository-row-octocat/spoon"));
+    fireEvent.click(screen.getByTestId("repository-picker-row-octocat/spoon"));
 
     expect(
       screen.getByTestId("bind-repository-chip-octocat/hello-world")
@@ -220,9 +220,9 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     await flushDebounce();
 
     fireEvent.click(
-      screen.getByTestId("bind-repository-row-octocat/hello-world")
+      screen.getByTestId("repository-picker-row-octocat/hello-world")
     );
-    fireEvent.click(screen.getByTestId("bind-repository-row-octocat/spoon"));
+    fireEvent.click(screen.getByTestId("repository-picker-row-octocat/spoon"));
     fireEvent.click(screen.getByTestId("bind-repository-submit"));
 
     await waitFor(() => {
@@ -257,9 +257,9 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     await flushDebounce();
 
     fireEvent.click(
-      screen.getByTestId("bind-repository-row-octocat/hello-world")
+      screen.getByTestId("repository-picker-row-octocat/hello-world")
     );
-    fireEvent.click(screen.getByTestId("bind-repository-row-octocat/spoon"));
+    fireEvent.click(screen.getByTestId("repository-picker-row-octocat/spoon"));
     fireEvent.click(screen.getByTestId("bind-repository-submit"));
 
     await waitFor(() => {
@@ -286,10 +286,10 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     );
     await flushDebounce();
 
-    fireEvent.change(screen.getByTestId("bind-repository-ssh-url"), {
+    fireEvent.change(screen.getByTestId("repository-picker-ssh-url"), {
       target: { value: "git@gitlab.ati.st:trucks/bugget/bugget-ui.git" }
     });
-    fireEvent.click(screen.getByTestId("bind-repository-ssh-add"));
+    fireEvent.click(screen.getByTestId("repository-picker-ssh-add"));
 
     expect(
       screen.getByTestId("bind-repository-chip-trucks/bugget/bugget-ui")
@@ -318,10 +318,10 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     );
     await flushDebounce();
 
-    fireEvent.change(screen.getByTestId("bind-repository-ssh-url"), {
+    fireEvent.change(screen.getByTestId("repository-picker-ssh-url"), {
       target: { value: "git@gitlab.othercorp.com:foo/bar.git" }
     });
-    fireEvent.click(screen.getByTestId("bind-repository-ssh-add"));
+    fireEvent.click(screen.getByTestId("repository-picker-ssh-add"));
 
     expect(
       screen.getByTestId("bind-repository-chip-host-error-foo/bar").textContent
@@ -339,13 +339,13 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     );
     await flushDebounce();
 
-    fireEvent.change(screen.getByTestId("bind-repository-ssh-url"), {
+    fireEvent.change(screen.getByTestId("repository-picker-ssh-url"), {
       target: { value: "https://github.com/owner/repo" }
     });
-    fireEvent.click(screen.getByTestId("bind-repository-ssh-add"));
+    fireEvent.click(screen.getByTestId("repository-picker-ssh-add"));
 
-    expect(screen.getByTestId("bind-repository-ssh-error")).toBeTruthy();
-    expect(screen.queryByTestId("bind-repository-selected-list")).toBe(null);
+    expect(screen.getByTestId("repository-picker-ssh-error")).toBeTruthy();
+    expect(screen.queryByTestId("repository-picker-selected-list")).toBe(null);
   });
 
   it("submit без выбранных репозиториев недоступен", async () => {
@@ -367,14 +367,14 @@ describe("BindRepositoryModal (мультивыбор)", () => {
     await flushDebounce();
 
     fireEvent.click(
-      screen.getByTestId("bind-repository-row-octocat/hello-world")
+      screen.getByTestId("repository-picker-row-octocat/hello-world")
     );
     expect(
       screen.getByTestId("bind-repository-chip-octocat/hello-world")
     ).toBeTruthy();
 
     fireEvent.click(
-      screen.getByTestId("bind-repository-row-octocat/hello-world")
+      screen.getByTestId("repository-picker-row-octocat/hello-world")
     );
     expect(
       screen.queryByTestId("bind-repository-chip-octocat/hello-world")
