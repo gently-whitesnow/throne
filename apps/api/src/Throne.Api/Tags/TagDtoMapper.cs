@@ -23,7 +23,6 @@ internal static class TagDtoMapper
         Current_version = item.Tag.CurrentVersion,
         Created_at = item.Tag.CreatedAt,
         Updated_at = item.Tag.UpdatedAt,
-        Intents_count = item.IntentsCount,
     };
 
     public static TagDetailDto ToDetailDto(Tag tag)

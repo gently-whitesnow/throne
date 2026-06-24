@@ -99,13 +99,6 @@ namespace Throne.Tags.Contracts.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset Updated_at { get; set; }
 
-        /// <summary>
-        /// Number of intents currently referencing this tag (denormalized counter).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("intents_count")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Intents_count { get; set; }
-
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -172,29 +165,6 @@ namespace Throne.Tags.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
         public int Expected_version { get; set; }
-
-        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class TagUsageDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("tag_id")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Tag_id { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("intents_count")]
-        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
-        public int Intents_count { get; set; }
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 

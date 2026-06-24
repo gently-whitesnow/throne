@@ -12,7 +12,6 @@ public sealed class TagsController(
     CreateTagHandler createHandler,
     RenameTagHandler renameHandler,
     DeleteTagHandler deleteHandler,
-    GetTagUsageHandler usageHandler,
     GetTagHandler getHandler,
     SetTagDefaultRepositoriesHandler setDefaultsHandler
 ) : TagsControllerBase
@@ -41,7 +40,7 @@ public sealed class TagsController(
             HttpContext.RequestAborted
         );
         var dto = TagDtoMapper.ToDto(tag);
-        return CreatedAtAction(nameof(GetTagUsage), new { id = tag.Id.Value }, dto);
+        return CreatedAtAction(nameof(GetTag), new { id = tag.Id.Value }, dto);
     }
 
     public override async Task<ActionResult<TagDto>> RenameTag(string id, RenameTagRequest body)
@@ -64,15 +63,6 @@ public sealed class TagsController(
             HttpContext.RequestAborted
         );
         return Ok(new DeleteTagResponse { Tag_id = id, Intents_detached = result.IntentsDetached });
-    }
-
-    public override async Task<ActionResult<TagUsageDto>> GetTagUsage(string id)
-    {
-        var usage = await usageHandler.HandleAsync(
-            new GetTagUsageQuery(id),
-            HttpContext.RequestAborted
-        );
-        return Ok(new TagUsageDto { Tag_id = id, Intents_count = usage.IntentsCount });
     }
 
     public override async Task<ActionResult<TagDetailDto>> GetTag(string id)

@@ -8,13 +8,13 @@ paths:
     get:
       operationId: listTags
       tags: [Tags]
-      summary: List tags (cursor-paginated, usage-desc) with inline intents_count.
+      summary: List tags (cursor-paginated, ordered by recency of last attachment).
       description: >
-        Returns a single page of tags ordered by usage (`usage_count desc, id asc`) so the
-        most-used tags surface first. Each item carries `intents_count` inline (read from the
-        denormalized counter — no per-tag usage round-trip). Pagination is opaque-cursor;
-        `next_cursor` is absent on the final page. `search` is a case-insensitive substring
-        filter on the normalized name. Default page size is 50, capped at 100.
+        Returns a single page of tags ordered by recency of last attachment
+        (`last_attached_at desc, id asc`, falling back to `created_at` when a tag has never
+        been attached). Pagination is opaque-cursor; `next_cursor` is absent on the final
+        page. `search` is a case-insensitive substring filter on the normalized name.
+        Default page size is 50, capped at 100.
       parameters:
         - in: query
           name: cursor
@@ -180,30 +180,6 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-  /api/v1/tags/{id}/usage:
-    get:
-      operationId: getTagUsage
-      tags: [Tags]
-      summary: Count of intents currently referencing the tag.
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TagUsageDto'
-        '404':
-          description: Not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/tags/{id}/default-repositories:
     put:
       operationId: setTagDefaultRepositories
@@ -288,7 +264,6 @@ components:
         - current_version
         - created_at
         - updated_at
-        - intents_count
       properties:
         id:
           type: string
@@ -308,11 +283,6 @@ components:
         updated_at:
           type: string
           format: date-time
-        intents_count:
-          type: integer
-          format: int32
-          minimum: 0
-          description: Number of intents currently referencing this tag (denormalized counter).
     TagListPageDto:
       type: object
       required: [items]
@@ -345,18 +315,6 @@ components:
           type: integer
           format: int32
           minimum: 1
-    TagUsageDto:
-      type: object
-      required:
-        - tag_id
-        - intents_count
-      properties:
-        tag_id:
-          type: string
-        intents_count:
-          type: integer
-          format: int32
-          minimum: 0
     DeleteTagResponse:
       type: object
       required:

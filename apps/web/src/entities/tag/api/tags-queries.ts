@@ -7,13 +7,8 @@ import {
 
 import type { TagsComponents } from "@/shared/api";
 
-import type { TagDetail, TagListItem, TagUsage } from "../model/types";
-import {
-  fetchTag,
-  fetchTagsPage,
-  fetchTagUsage,
-  type TagListParams
-} from "./tags-api";
+import type { TagDetail, TagListItem } from "../model/types";
+import { fetchTag, fetchTagsPage, type TagListParams } from "./tags-api";
 
 type TagListPage = TagsComponents["schemas"]["TagListPageDto"];
 
@@ -27,14 +22,12 @@ export const tagsQueryKeys = {
   typeaheads: () => [...tagsQueryKeys.all, "typeahead"] as const,
   typeahead: (search: string, limit: number) =>
     [...tagsQueryKeys.typeaheads(), search, limit] as const,
-  detail: (id: string) => [...tagsQueryKeys.all, "detail", id] as const,
-  usage: (id: string) => [...tagsQueryKeys.all, "usage", id] as const
+  detail: (id: string) => [...tagsQueryKeys.all, "detail", id] as const
 };
 
 /**
- * Курсорно-пагинированный список тегов (сортировка `usage desc, id asc`).
- * Поиск и пагинация считаются на сервере — `intents_count` едет инлайн в каждом
- * item'е, отдельного per-tag usage-запроса нет. Виджеты сами решают, когда
+ * Курсорно-пагинированный список тегов (последняя привязка desc, id asc).
+ * Поиск и пагинация считаются на сервере. Виджеты сами решают, когда делать
  * `fetchNextPage` (скролл-сентинел в борде).
  */
 export function useInfiniteTags(
@@ -65,8 +58,9 @@ export interface UseTagsTypeaheadResult {
 
 /**
  * Первая страница серверной выдачи под typeahead-пикер: substring-поиск по
- * имени + сортировка `usage desc, id asc` живут на сервере, отдельный
- * typeahead-эндпоинт не заводим. Пустой `search` отдаёт топ самых используемых.
+ * имени + сортировка по последней привязке живут на сервере, отдельный
+ * typeahead-эндпоинт не заводим. Пустой `search` отдаёт самые недавно
+ * использованные теги.
  */
 export function useTagsTypeahead(
   search: string,
@@ -97,19 +91,6 @@ export function useTag(id: string | null): UseQueryResult<TagDetail> {
   return useQuery({
     queryKey: tagsQueryKeys.detail(id ?? ""),
     queryFn: ({ signal }) => fetchTag(id ?? "", signal),
-    enabled: id !== null && id.length > 0,
-    staleTime: TAGS_STALE_TIME_MS
-  });
-}
-
-/**
- * Usage одного тега для модалки удаления. На борде число едет инлайн в item'е,
- * но диалог открывается из любого места и подтягивает свежий счёт точечно.
- */
-export function useTagUsage(id: string | null): UseQueryResult<TagUsage> {
-  return useQuery({
-    queryKey: tagsQueryKeys.usage(id ?? ""),
-    queryFn: ({ signal }) => fetchTagUsage(id ?? "", signal),
     enabled: id !== null && id.length > 0,
     staleTime: TAGS_STALE_TIME_MS
   });

@@ -173,7 +173,6 @@ export function TagsBoard({ selectedTagId, onSelectTag }: TagsBoardProps) {
                 key={tag.id}
                 tag={tag}
                 selected={tag.id === selectedTagId}
-                intentsCount={tag.intents_count}
                 onSelect={onSelectTag}
                 onRequestDelete={setDeleteTarget}
               />

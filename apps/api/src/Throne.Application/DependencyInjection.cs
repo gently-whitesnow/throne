@@ -31,7 +31,6 @@ public static class DependencyInjection
         services.AddSingleton<CreateTagHandler>();
         services.AddSingleton<RenameTagHandler>();
         services.AddSingleton<DeleteTagHandler>();
-        services.AddSingleton<GetTagUsageHandler>();
         // Prompt parts (ADR-0036): single unified entity. The embedded composition reads
         // prompt_parts in manifest-include order.
         services.AddSingleton<ListPromptPartVersionsHandler>();
