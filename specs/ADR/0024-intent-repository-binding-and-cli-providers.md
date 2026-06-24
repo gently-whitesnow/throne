@@ -59,7 +59,7 @@ Wrapper `ProcessRunner` — единая точка запуска внешни�
 
 ### 4. Polling-only доставка PR-комментариев
 
-Webhook'ов нет — Throne работает локально и не имеет публичного endpoint'а, на который GitHub мог бы постучаться. Background-сервис `PullRequestSyncService` раз в `Throne:Pr:PollIntervalSeconds` (default 60) ходит по всем активным binding'ам с `pull_request_state == open` через `gh api -H "If-None-Match: {etag}"` и фанаутит новые комменты как `intent.pr_comment_added` (ADR-0008).
+Webhook'ов нет — Throne работает локально и не имеет публичного endpoint'а, на который GitHub мог бы постучаться. Background-сервис `PullRequestSyncService` раз в `Throne:Pr:PollIntervalSeconds` (default 120) ходит по всем активным binding'ам с `pull_request_state == open` через `gh api -H "If-None-Match: {etag}"` и фанаутит новые комменты как `intent.pr_comment_added` (ADR-0008).
 
 - Closed/merged PR не поллятся вообще (экономия rate-limit), но manual refresh всё равно доступен.
 - Сохраняем `review_comments_etag` per binding для conditional GET — 304 не тратит rate-limit.

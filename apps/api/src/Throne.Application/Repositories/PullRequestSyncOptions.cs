@@ -10,7 +10,7 @@ public sealed class PullRequestSyncOptions
 {
     public const string SectionName = "Throne:Pr";
 
-    public int PollIntervalSeconds { get; set; } = 60;
+    public int PollIntervalSeconds { get; set; } = 120;
 
     public int BackoffInitialSeconds { get; set; } = 30;
 
