@@ -149,12 +149,6 @@ export function AgentTerminalPanel({
       data-testid="agent-terminal-panel"
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"
     >
-      <header className="flex items-center justify-between gap-3">
-        <h2 className="m-0 text-sm font-semibold text-base-content">
-          Запустить агента
-        </h2>
-      </header>
-
       <div className="flex flex-wrap items-center gap-3">
         <RunControls
           mode={effectiveMode}

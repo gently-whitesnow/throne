@@ -72,91 +72,85 @@ export function RunControls({
 }: RunControlsProps) {
   const dropdownDisabled = sessionLive || metadataLoading || metadataError;
 
+  const selectClass = "select select-xs";
+
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <label className="flex items-center gap-2 text-xs text-base-content/70">
-        <span>Режим</span>
-        <select
-          aria-label="Режим запуска агента"
-          data-testid="agent-terminal-mode"
-          className="select select-sm select-bordered"
-          value={mode}
-          disabled={sessionLive}
-          onChange={(event) => {
-            onModeChange(event.target.value as TerminalRunMode);
-          }}
-        >
-          {modes.map((m) => (
-            <option key={m} value={m}>
-              {RUN_MODE_LABEL[m]}
-            </option>
-          ))}
-        </select>
-      </label>
+      <select
+        aria-label="Режим запуска агента"
+        title="Режим запуска агента"
+        data-testid="agent-terminal-mode"
+        className={selectClass}
+        value={mode}
+        disabled={sessionLive}
+        onChange={(event) => {
+          onModeChange(event.target.value as TerminalRunMode);
+        }}
+      >
+        {modes.map((m) => (
+          <option key={m} value={m}>
+            {RUN_MODE_LABEL[m]}
+          </option>
+        ))}
+      </select>
 
-      <label className="flex items-center gap-2 text-xs text-base-content/70">
-        <span>Агент</span>
-        <select
-          aria-label="Агент терминала"
-          data-testid="agent-terminal-vendor"
-          className="select select-sm select-bordered"
-          value={vendor}
-          disabled={dropdownDisabled}
-          onChange={(event) => {
-            onVendorChange(event.target.value);
-          }}
-        >
-          {vendor === "" ? <option value="" disabled hidden /> : null}
-          {vendors.map((v) => (
-            <option key={v.vendor} value={v.vendor}>
-              {v.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <select
+        aria-label="Агент терминала"
+        title="Агент терминала"
+        data-testid="agent-terminal-vendor"
+        className={selectClass}
+        value={vendor}
+        disabled={dropdownDisabled}
+        onChange={(event) => {
+          onVendorChange(event.target.value);
+        }}
+      >
+        {vendor === "" ? <option value="" disabled hidden /> : null}
+        {vendors.map((v) => (
+          <option key={v.vendor} value={v.vendor}>
+            {v.label}
+          </option>
+        ))}
+      </select>
 
-      <label className="flex items-center gap-2 text-xs text-base-content/70">
-        <span>Модель</span>
-        <select
-          aria-label="Модель агента"
-          data-testid="agent-terminal-model"
-          className="select select-sm select-bordered"
-          value={model}
-          disabled={dropdownDisabled}
-          onChange={(event) => {
-            onModelChange(event.target.value);
-          }}
-        >
-          {model === "" ? <option value="" disabled hidden /> : null}
-          {models.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </label>
+      <select
+        aria-label="Модель агента"
+        title="Модель агента"
+        data-testid="agent-terminal-model"
+        className={selectClass}
+        value={model}
+        disabled={dropdownDisabled}
+        onChange={(event) => {
+          onModelChange(event.target.value);
+        }}
+      >
+        {model === "" ? <option value="" disabled hidden /> : null}
+        {models.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
 
       {supportsEffort ? (
-        <label className="flex items-center gap-2 text-xs text-base-content/70">
-          <span>Усилие</span>
-          <select
-            aria-label="Уровень усилия (reasoning)"
-            data-testid="agent-terminal-effort"
-            className="select select-sm select-bordered"
-            value={effort}
-            disabled={dropdownDisabled}
-            onChange={(event) => {
-              onEffortChange(event.target.value as TerminalReasoningEffort);
-            }}
-          >
-            {effort === "" ? <option value="" disabled hidden /> : null}
-            {efforts.map((e) => (
-              <option key={e} value={e}>
-                {EFFORT_LABEL[e]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <select
+          aria-label="Уровень усилия (reasoning)"
+          title="Уровень усилия (reasoning)"
+          data-testid="agent-terminal-effort"
+          className={selectClass}
+          value={effort}
+          disabled={dropdownDisabled}
+          onChange={(event) => {
+            onEffortChange(event.target.value as TerminalReasoningEffort);
+          }}
+        >
+          {effort === "" ? <option value="" disabled hidden /> : null}
+          {efforts.map((e) => (
+            <option key={e} value={e}>
+              {EFFORT_LABEL[e]}
+            </option>
+          ))}
+        </select>
       ) : null}
 
       {metadataLoading ? (
