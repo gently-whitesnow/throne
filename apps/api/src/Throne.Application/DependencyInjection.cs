@@ -113,6 +113,8 @@ public static class DependencyInjection
         // IIdeOpener implementations are registered by Infrastructure.
         services.AddSingleton<IIdeOpenerRegistry, IdeOpenerRegistry>();
         services.AddSingleton<OpenInIdeService>();
+        services.AddSingleton<ITerminalOpenerRegistry, TerminalOpenerRegistry>();
+        services.AddSingleton<OpenInTerminalService>();
         return services;
     }
 

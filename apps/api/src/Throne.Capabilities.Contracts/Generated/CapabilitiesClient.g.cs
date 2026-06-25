@@ -38,6 +38,10 @@ namespace Throne.Capabilities.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"open_in_ide")]
         Open_in_ide = 0,
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"open_in_terminal")]
+        [System.Runtime.Serialization.EnumMember(Value = @"open_in_terminal")]
+        Open_in_terminal = 1,
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]

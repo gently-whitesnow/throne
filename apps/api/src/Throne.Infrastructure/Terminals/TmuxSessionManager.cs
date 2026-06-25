@@ -87,6 +87,12 @@ internal sealed class TmuxSessionManager(
         return true;
     }
 
+    public async Task StopPipeAsync(string intentId, CancellationToken ct)
+    {
+        var sessionName = TmuxSessionName.For(intentId);
+        await tmux.RunAsync(["pipe-pane", "-t", sessionName], ct);
+    }
+
     public async Task<IReadOnlyList<string>> ListThroneSessionsAsync(CancellationToken ct)
     {
         var outcome = await tmux.RunAsync(["list-sessions", "-F", "#S"], ct);

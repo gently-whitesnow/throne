@@ -7,3 +7,4 @@ export type CapabilityProvider =
   CapabilitiesComponents["schemas"]["CapabilityProviderDto"];
 
 export const OPEN_IN_IDE: CapabilityName = "open_in_ide";
+export const OPEN_IN_TERMINAL: CapabilityName = "open_in_terminal";

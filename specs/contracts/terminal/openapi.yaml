@@ -146,6 +146,50 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/terminal/open-native:
+    post:
+      operationId: openNativeIntentTerminal
+      tags: [Terminal]
+      summary: Open the live tmux session in the selected native terminal.
+      description: >
+        Launches the operator-selected provider from carrier capability
+        `open_in_terminal` and attaches it to the already-running
+        `throne-{intent_id}` tmux session with `tmux attach -d`. This endpoint
+        never runs pre-flight and never creates a session; it is only a viewer
+        switch for a live session. Provider resolution mirrors `open_in_ide`:
+        use persisted `open_in_terminal.selected_provider`, otherwise fall back
+        to the single detected provider.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Native terminal launch accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenNativeTerminalResponse'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: No live tmux session exists for this intent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: No native terminal provider is available.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{intent_id}/terminal/kill:
     post:
       operationId: killIntentTerminal
@@ -461,6 +505,20 @@ components:
           items:
             $ref: '#/components/schemas/TerminalVendorMetadataDto'
           description: Every registered vendor, in catalog order.
+    OpenNativeTerminalResponse:
+      type: object
+      required:
+        - provider
+        - session_name
+      properties:
+        provider:
+          type: string
+          minLength: 1
+          description: Native terminal provider that was actually invoked.
+        session_name:
+          type: string
+          minLength: 1
+          description: Deterministic tmux session name passed to the provider.
     TerminalRunMode:
       type: string
       enum:

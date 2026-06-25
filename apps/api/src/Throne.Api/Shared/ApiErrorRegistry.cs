@@ -63,6 +63,7 @@ internal static class ApiErrorRegistry
         [TerminalErrorCodes.SessionSkillUnknown] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.SessionSkillNotMaterializable] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.SessionSkillVendorUnsupported] = StatusCodes.Status422UnprocessableEntity,
+        [TerminalErrorCodes.NativeProviderUnavailable] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.PromptPartTextMatchFailed] = StatusCodes.Status422UnprocessableEntity,
         [LinkErrorCodes.SelfLink] = StatusCodes.Status422UnprocessableEntity,
 

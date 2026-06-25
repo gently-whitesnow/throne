@@ -3,6 +3,7 @@ import { httpGet, httpPost, terminalEndpoints } from "@/shared/api";
 import type {
   AttachIntentTerminalSkillsResponse,
   IntentTerminalPreviewResponse,
+  OpenNativeTerminalResponse,
   RunIntentTerminalResponse,
   TerminalRunMode,
   TerminalRunPayload
@@ -64,6 +65,17 @@ export function killIntentTerminal(
 ): Promise<RunIntentTerminalResponse> {
   return httpPost<RunIntentTerminalResponse>(
     terminalEndpoints.killIntentTerminal(intentId),
+    undefined,
+    signal
+  );
+}
+
+export function openNativeIntentTerminal(
+  intentId: string,
+  signal?: AbortSignal
+): Promise<OpenNativeTerminalResponse> {
+  return httpPost<OpenNativeTerminalResponse>(
+    terminalEndpoints.openNativeIntentTerminal(intentId),
     undefined,
     signal
   );

@@ -52,7 +52,7 @@ export interface components {
          * @description Closed set of carrier capability keys. New entries are added only when a feature has multiple interchangeable providers.
          * @enum {string}
          */
-        CapabilityName: "open_in_ide";
+        CapabilityName: "open_in_ide" | "open_in_terminal";
         CapabilityProviderDto: {
             /** @description Stable provider key (e.g. `vscode`, `cursor`). */
             name: string;

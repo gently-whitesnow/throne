@@ -22,8 +22,8 @@ public class CapabilitiesServiceTests
 
         var views = await fixture.Service.ListAsync(CancellationToken.None);
 
-        views.Select(v => v.Name).Should().Equal(CapabilityNames.OpenInIde);
-        var view = views.Single();
+        views.Select(v => v.Name).Should().Contain([CapabilityNames.OpenInIde, CapabilityNames.OpenInTerminal]);
+        var view = views.Single(v => v.Name == CapabilityNames.OpenInIde);
         view.SelectedProvider.Should().BeNull();
         view.Providers.Select(p => p.Name).Should().Contain(["vscode", "cursor"]);
         view.Providers.Single(p => p.Name == "vscode").Detected.Should().BeTrue();
@@ -41,7 +41,7 @@ public class CapabilitiesServiceTests
 
         var views = await fixture.Service.ListAsync(CancellationToken.None);
 
-        views.Single().SelectedProvider.Should().Be("cursor");
+        views.Single(v => v.Name == CapabilityNames.OpenInIde).SelectedProvider.Should().Be("cursor");
     }
 
     [Fact(DisplayName = "SetSelectedProvider with unknown capability throws capability.not_found")]

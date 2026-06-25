@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Throne.Application.Terminals;
@@ -56,12 +57,14 @@ internal static class TerminalAttachSteps
 
     public static async Task FlushScrollbackAsync(
         TmuxCli tmux,
+        TmuxOptions options,
         string sessionName,
         ITerminalSocket connection,
         CancellationToken ct)
     {
+        var lines = Math.Max(0, options.InitialScrollbackLines);
         var scrollback = await tmux.RunAsync(
-            ["capture-pane", "-p", "-e", "-t", sessionName, "-S", "-10000"],
+            ["capture-pane", "-p", "-e", "-t", sessionName, "-S", "-" + lines.ToString(CultureInfo.InvariantCulture)],
             ct);
         if (scrollback.IsSuccess && !string.IsNullOrEmpty(scrollback.Result?.StandardOutput))
         {

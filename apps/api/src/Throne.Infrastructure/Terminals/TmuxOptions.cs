@@ -23,6 +23,12 @@ public sealed class TmuxOptions
     public TimeSpan CommandTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
+    /// Number of history lines sent to a freshly attached embedded viewer.
+    /// Kept bounded so reconnecting to a long-running session does not flood xterm.
+    /// </summary>
+    public int InitialScrollbackLines { get; set; } = 2000;
+
+    /// <summary>
     /// Directory holding the per-connection FIFO that <c>tmux pipe-pane</c> writes into.
     /// The bridge creates and deletes its own fifo under this root; the directory is
     /// created lazily on first use.

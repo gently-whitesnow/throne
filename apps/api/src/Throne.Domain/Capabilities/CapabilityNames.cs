@@ -9,10 +9,12 @@ namespace Throne.Domain.Capabilities;
 public static class CapabilityNames
 {
     public const string OpenInIde = "open_in_ide";
+    public const string OpenInTerminal = "open_in_terminal";
 
     private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
     {
         OpenInIde,
+        OpenInTerminal,
     };
 
     public static bool IsKnown(string name) =>

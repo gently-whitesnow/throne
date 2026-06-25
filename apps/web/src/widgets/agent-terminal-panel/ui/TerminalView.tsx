@@ -53,6 +53,8 @@ type IncomingFrame = OutputFrame;
 const MIN_TERMINAL_HEIGHT = 200;
 const MAX_TERMINAL_HEIGHT = 1000;
 const DEFAULT_TERMINAL_HEIGHT = 576;
+const RESIZE_THROTTLE_MS = 100;
+const MAX_PENDING_OUTPUT_CHARS = 1_000_000;
 
 /**
  * Тонкая обёртка над xterm.js + WebSocket-bridge'ом к
@@ -130,14 +132,62 @@ export function TerminalView({
     const socket = new WebSocket(toWebSocketUrl(intentId));
     socket.binaryType = "arraybuffer";
 
-    const sendResize = () => {
+    let disposed = false;
+    let lastResize = { cols: 0, rows: 0 };
+    let resizeTimer: number | null = null;
+    let pendingOutput = "";
+    let writeFrame: number | null = null;
+
+    const sendResize = (force = false) => {
       if (socket.readyState !== WebSocket.OPEN) return;
+      if (
+        !force &&
+        lastResize.cols === term.cols &&
+        lastResize.rows === term.rows
+      ) {
+        return;
+      }
+      lastResize = { cols: term.cols, rows: term.rows };
       const frame: ResizeFrame = {
         type: "resize",
         cols: term.cols,
         rows: term.rows
       };
       socket.send(JSON.stringify(frame));
+    };
+
+    const scheduleResize = () => {
+      if (resizeTimer !== null) return;
+      resizeTimer = window.setTimeout(() => {
+        resizeTimer = null;
+        try {
+          fitAddon.fit();
+          sendResize();
+        } catch {
+          // ResizeObserver may fire before terminal layout settles.
+        }
+      }, RESIZE_THROTTLE_MS);
+    };
+
+    const flushOutput = () => {
+      writeFrame = null;
+      if (disposed || pendingOutput.length === 0) return;
+      const data = pendingOutput;
+      pendingOutput = "";
+      term.write(data);
+    };
+
+    const scheduleOutputWrite = () => {
+      if (writeFrame !== null) return;
+      writeFrame = window.requestAnimationFrame(flushOutput);
+    };
+
+    const enqueueOutput = (data: string) => {
+      if (pendingOutput.length + data.length > MAX_PENDING_OUTPUT_CHARS) {
+        pendingOutput = pendingOutput.slice(-MAX_PENDING_OUTPUT_CHARS / 2);
+      }
+      pendingOutput += data;
+      scheduleOutputWrite();
     };
 
     const inputDisposable = term.onData((data) => {
@@ -147,28 +197,22 @@ export function TerminalView({
     });
 
     const resizeObserver = new ResizeObserver(() => {
-      try {
-        fitAddon.fit();
-        sendResize();
-      } catch {
-        // ResizeObserver may fire before terminal layout settles.
-      }
+      scheduleResize();
     });
     resizeObserver.observe(container);
 
     socket.addEventListener("open", () => {
       fitAddon.fit();
-      sendResize();
+      sendResize(true);
     });
 
     socket.addEventListener("message", (event) => {
       const frame = parseFrame(event.data);
       if (frame === null) return;
-      term.write(frame.data);
+      enqueueOutput(frame.data);
     });
 
     let closedSignalled = false;
-    let disposed = false;
     const signalClosed = (code: number) => {
       // Плановый teardown (cleanup эффекта) сам закрывает сокет — его close
       // не означает конец tmux-сессии, поэтому не сигналим наружу.
@@ -187,6 +231,12 @@ export function TerminalView({
 
     return () => {
       disposed = true;
+      if (resizeTimer !== null) {
+        window.clearTimeout(resizeTimer);
+      }
+      if (writeFrame !== null) {
+        window.cancelAnimationFrame(writeFrame);
+      }
       inputDisposable.dispose();
       resizeObserver.disconnect();
       if (
@@ -197,8 +247,6 @@ export function TerminalView({
       }
       term.dispose();
     };
-    // attempt участвует как nonce — при инкременте монтируется свежий
-    // терминал и сокет, чтобы reattach был чистый.
   }, [intentId, attempt, onClosed]);
 
   return (

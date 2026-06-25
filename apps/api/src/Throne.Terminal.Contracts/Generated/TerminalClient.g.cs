@@ -199,6 +199,35 @@ namespace Throne.Terminal.Contracts.Generated
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class OpenNativeTerminalResponse
+    {
+
+        /// <summary>
+        /// Native terminal provider that was actually invoked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("provider")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Provider { get; set; }
+
+        /// <summary>
+        /// Deterministic tmux session name passed to the provider.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("session_name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Session_name { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     /// <summary>
     /// Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. Session skills are selected separately in the launch window and materialised only when their spawn identity is available.
     /// <br/>
