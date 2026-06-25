@@ -7,6 +7,7 @@ import {
   attachIntentTerminalSkills,
   getIntentTerminalSession,
   killIntentTerminal,
+  openNativeIntentTerminal,
   runIntentTerminal
 } from "../api/agent-terminal-api";
 
@@ -39,10 +40,13 @@ export interface TerminalSessionView {
   isStarting: boolean;
   isStopping: boolean;
   isAttachingSkills: boolean;
+  isOpeningNative: boolean;
   startedAt: TerminalSessionStartedAt | null;
   start: (payload: TerminalRunPayload) => Promise<void>;
   /** Kill the live tmux session without respawning. */
   kill: () => Promise<void>;
+  /** Open the live tmux session in the selected native terminal viewer. */
+  openNative: () => Promise<void>;
   /** Hot-attach extra session skills into the live tmux session. */
   attachSkills: (skillIds: string[]) => Promise<void>;
   /** Local-only signal that the WebSocket bridge observed a clean close. */
@@ -73,6 +77,7 @@ export function useTerminalSession(
   const [isStarting, setIsStarting] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
   const [isAttachingSkills, setIsAttachingSkills] = useState(false);
+  const [isOpeningNative, setIsOpeningNative] = useState(false);
   // The axis prefill must wait for the probe so it seeds from the intent's persisted launch
   // rather than racing it with the catalog default. Tracks only the enabled-path probe: it
   // flips to true when the probe resolves. The capability-off case is handled by the caller
@@ -217,6 +222,28 @@ export function useTerminalSession(
     [intentId]
   );
 
+  const openNative = useCallback(async () => {
+    setIsOpeningNative(true);
+    try {
+      await openNativeIntentTerminal(intentId);
+      setInternal((prev) => ({ ...prev, error: null }));
+    } catch (err) {
+      setInternal((prev) => ({
+        ...prev,
+        error: errorMessage(err, {
+          base: "Не удалось открыть нативный терминал",
+          byStatus: {
+            409: "Сессия не запущена — нативный терминал можно открыть только для живой сессии.",
+            422: "Нативный терминал не настроен или не найден на этом хосте.",
+            404: "Интент не найден."
+          }
+        })
+      }));
+    } finally {
+      setIsOpeningNative(false);
+    }
+  }, [intentId]);
+
   const markSessionEnded = useCallback(() => {
     setInternal((prev) =>
       prev.state === "idle"
@@ -235,8 +262,10 @@ export function useTerminalSession(
     isStarting,
     isStopping,
     isAttachingSkills,
+    isOpeningNative,
     start,
     kill,
+    openNative,
     attachSkills,
     markSessionEnded
   };

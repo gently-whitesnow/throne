@@ -77,7 +77,7 @@ export function SettingsPage() {
         icon={ToggleRight}
         description="Carrier-фичи: выберите конкретного провайдера или оставьте «Авто», чтобы Throne подобрал доступного локально."
       >
-        <CapabilitiesCard only={["open_in_ide"]} />
+        <CapabilitiesCard only={["open_in_ide", "open_in_terminal"]} />
         <p className="m-0 flex items-center gap-1.5 text-xs leading-relaxed text-base-content/60">
           <ShieldCheck aria-hidden size={13} strokeWidth={2} />
           Новые провайдеры (JetBrains и др.) появятся в этом списке по мере

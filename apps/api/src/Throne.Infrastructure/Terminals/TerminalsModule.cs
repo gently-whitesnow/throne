@@ -77,6 +77,13 @@ public static class TerminalsModule
         services.AddSingleton<IIdeOpener, VsCodeOpener>();
         services.AddSingleton<IIdeOpener, CursorOpener>();
 
+        services.AddSingleton<WezTermOpener>();
+        services.AddSingleton<ITerminalOpener>(sp => sp.GetRequiredService<WezTermOpener>());
+        services.AddSingleton<ICapabilityProbe>(sp => sp.GetRequiredService<WezTermOpener>());
+        services.AddSingleton<AppleTerminalOpener>();
+        services.AddSingleton<ITerminalOpener>(sp => sp.GetRequiredService<AppleTerminalOpener>());
+        services.AddSingleton<ICapabilityProbe>(sp => sp.GetRequiredService<AppleTerminalOpener>());
+
         // Per-vendor login probes feed the vendor-card status and the readiness check
         // (`GET /terminal/vendors` → login_status). opencode has no probe — it is surfaced
         // statically as `in_development` by the catalog mapper.

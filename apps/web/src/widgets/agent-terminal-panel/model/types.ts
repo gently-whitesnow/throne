@@ -46,6 +46,9 @@ export type AvailableSessionSkill =
 export type AttachIntentTerminalSkillsResponse =
   TerminalComponents["schemas"]["AttachIntentTerminalSkillsResponse"];
 
+export type OpenNativeTerminalResponse =
+  TerminalComponents["schemas"]["OpenNativeTerminalResponse"];
+
 export type IntentTextUpdate =
   TerminalComponents["schemas"]["IntentTextUpdate"];
 

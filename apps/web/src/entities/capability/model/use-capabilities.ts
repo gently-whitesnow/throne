@@ -1,5 +1,10 @@
 import { useCapabilitiesQuery } from "../api/capabilities-queries";
-import { OPEN_IN_IDE, type Capability, type CapabilityName } from "./types";
+import {
+  OPEN_IN_IDE,
+  OPEN_IN_TERMINAL,
+  type Capability,
+  type CapabilityName
+} from "./types";
 
 export interface CapabilitiesState {
   capabilities: readonly Capability[];
@@ -49,7 +54,20 @@ export function selectedIdeProvider(
 export function detectedIdeProviders(
   capabilities: readonly Capability[]
 ): readonly string[] {
-  const cap = selectCapability(capabilities, OPEN_IN_IDE);
+  return detectedProviders(capabilities, OPEN_IN_IDE);
+}
+
+export function detectedTerminalProviders(
+  capabilities: readonly Capability[]
+): readonly string[] {
+  return detectedProviders(capabilities, OPEN_IN_TERMINAL);
+}
+
+function detectedProviders(
+  capabilities: readonly Capability[],
+  name: CapabilityName
+): readonly string[] {
+  const cap = selectCapability(capabilities, name);
   if (cap === undefined) return EMPTY_NAMES;
   return cap.providers.filter((p) => p.detected).map((p) => p.name);
 }
@@ -64,4 +82,9 @@ export function useSelectedIdeProvider(): string | null {
 export function useDetectedIdeProviders(): readonly string[] {
   const { capabilities } = useCapabilities();
   return detectedIdeProviders(capabilities);
+}
+
+export function useDetectedTerminalProviders(): readonly string[] {
+  const { capabilities } = useCapabilities();
+  return detectedTerminalProviders(capabilities);
 }

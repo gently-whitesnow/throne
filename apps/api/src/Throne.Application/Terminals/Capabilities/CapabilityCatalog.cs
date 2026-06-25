@@ -26,6 +26,21 @@ public static class CapabilityCatalog
                     Title: "Cursor",
                     PrerequisiteHint: "Cursor → Command Palette → Shell Command: Install 'cursor' command in PATH"),
             ]),
+        new CapabilityDescriptor(
+            Name: CapabilityNames.OpenInTerminal,
+            Title: "Открыть в нативном терминале",
+            Description: "Кнопка-вьюер живой tmux-сессии интента. Открывает ту же сессию агента в выбранном терминальном эмуляторе без нового Run.",
+            Providers:
+            [
+                new CapabilityProviderDescriptor(
+                    Name: "wezterm",
+                    Title: "WezTerm",
+                    PrerequisiteHint: "Установите WezTerm CLI `wezterm` и убедитесь, что он доступен в PATH"),
+                new CapabilityProviderDescriptor(
+                    Name: "apple_terminal",
+                    Title: "Terminal.app",
+                    PrerequisiteHint: "Доступно на macOS через Terminal.app и osascript"),
+            ]),
     ];
 
     public static CapabilityDescriptor? FindByName(string name) =>

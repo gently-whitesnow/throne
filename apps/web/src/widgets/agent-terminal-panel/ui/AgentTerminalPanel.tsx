@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Monitor, TerminalSquare } from "lucide-react";
+
+import { useDetectedTerminalProviders } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
 import {
   isCloneReady,
@@ -7,6 +10,7 @@ import {
 } from "@/entities/repository-binding";
 
 import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
+import { Button } from "@/shared/ui";
 
 import { useAttachableSkills } from "../model/use-attachable-skills";
 import { useLaunchAxis } from "../model/use-launch-axis";
@@ -105,6 +109,9 @@ export function AgentTerminalPanel({
           : null;
 
   const [preflightOpen, setPreflightOpen] = useState(false);
+  const [embeddedVisible, setEmbeddedVisible] = useState(false);
+  const nativeSwitchRef = useRef(false);
+  const terminalProviders = useDetectedTerminalProviders();
 
   const launchArgs = axis.launchArgs(effectiveMode);
 
@@ -114,6 +121,7 @@ export function AgentTerminalPanel({
   // сокет на любом постороннем ре-рендере панели.
   const {
     start: startSession,
+    openNative: openNativeSession,
     attachSkills: attachSessionSkills,
     markSessionEnded
   } = session;
@@ -133,8 +141,24 @@ export function AgentTerminalPanel({
     void session.kill();
   }, [session]);
 
+  const handleOpenNative = useCallback(() => {
+    nativeSwitchRef.current = true;
+    setEmbeddedVisible(false);
+    void openNativeSession();
+  }, [openNativeSession]);
+
+  useEffect(() => {
+    if (!sessionLive) {
+      setEmbeddedVisible(false);
+    }
+  }, [sessionLive]);
+
   const handleTerminalClosed = useCallback(
     (code: number) => {
+      if (nativeSwitchRef.current) {
+        nativeSwitchRef.current = false;
+        return;
+      }
       markSessionEnded();
       if (code === 1008 || code === 1011) {
         // Server-side rejection — keep error visible until next user action.
@@ -193,6 +217,33 @@ export function AgentTerminalPanel({
         />
       </div>
 
+      {sessionLive ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            aria-label="Показать встроенный терминал"
+            data-testid="agent-terminal-open-embedded"
+            disabled={embeddedVisible}
+            icon={<Monitor aria-hidden size={14} strokeWidth={2} />}
+            onClick={() => {
+              setEmbeddedVisible(true);
+            }}
+          >
+            {embeddedVisible ? "Встроенный открыт" : "Встроенный терминал"}
+          </Button>
+          {terminalProviders.length > 0 ? (
+            <Button
+              aria-label="Открыть нативный терминал"
+              data-testid="agent-terminal-open-native"
+              disabled={session.isOpeningNative}
+              icon={<TerminalSquare aria-hidden size={14} strokeWidth={2} />}
+              onClick={handleOpenNative}
+            >
+              {session.isOpeningNative ? "Открываем…" : "Нативный терминал"}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {effectiveMode === "review" ? (
         <ReviewTargetSelect
           targets={reviewSelection.reviewTargets}
@@ -209,7 +260,7 @@ export function AgentTerminalPanel({
         submitUnconfirmed={sessionLive && session.submitUnconfirmed}
       />
 
-      {session.startedAt !== null ? (
+      {embeddedVisible && session.startedAt !== null ? (
         <TerminalView
           intentId={intentId}
           attempt={session.startedAt.attempt}
