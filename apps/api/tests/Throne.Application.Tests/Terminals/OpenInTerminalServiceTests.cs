@@ -82,7 +82,7 @@ public class OpenInTerminalServiceTests
 
     private sealed class Fixture
     {
-        public Fixture()
+        internal Fixture()
         {
             Intents = Substitute.For<IIntentRepository>();
             Capabilities = Substitute.For<ICapabilitiesRepository>();
@@ -102,15 +102,15 @@ public class OpenInTerminalServiceTests
                 Tmux);
         }
 
-        public IIntentRepository Intents { get; }
-        public ICapabilitiesRepository Capabilities { get; }
-        public ICapabilityDetectionCache Detection { get; }
-        public ITmuxSessionManager Tmux { get; }
-        public FakeOpener WezTerm { get; }
-        public FakeOpener AppleTerminal { get; }
-        public OpenInTerminalService Service { get; }
+        internal IIntentRepository Intents { get; }
+        internal ICapabilitiesRepository Capabilities { get; }
+        internal ICapabilityDetectionCache Detection { get; }
+        internal ITmuxSessionManager Tmux { get; }
+        internal FakeOpener WezTerm { get; }
+        internal FakeOpener AppleTerminal { get; }
+        internal OpenInTerminalService Service { get; }
 
-        public void IntentExists()
+        internal void IntentExists()
         {
             var intent = Intent.Restore(
                 new IntentId(IntentIdValue), "x", IntentStatusNames.Work, 1, [], Now, Now);
@@ -118,21 +118,21 @@ public class OpenInTerminalServiceTests
                 .Returns(Task.FromResult<Intent?>(intent));
         }
 
-        public void LiveSession(bool live) =>
+        internal void LiveSession(bool live) =>
             Tmux.HasSessionAsync(IntentIdValue, Arg.Any<CancellationToken>()).Returns(live);
 
-        public void NoPersisted() =>
+        internal void NoPersisted() =>
             Capabilities.GetAsync(Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult<CapabilitiesAggregate?>(null));
 
-        public void SelectedProvider(string provider)
+        internal void SelectedProvider(string provider)
         {
             var stored = CapabilitiesAggregate.CreateEmpty(Now);
             stored.SetSelectedProvider(CapabilityNames.OpenInTerminal, provider, Now);
             Capabilities.GetAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<CapabilitiesAggregate?>(stored));
         }
 
-        public void DetectionFor(string provider, bool detected) =>
+        internal void DetectionFor(string provider, bool detected) =>
             Detection.GetAsync(provider, Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult<CapabilityProbeResult?>(
                     new CapabilityProbeResult(detected, detected ? "ok" : "missing")));
