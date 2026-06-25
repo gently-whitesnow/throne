@@ -41,6 +41,7 @@ vi.mock("../api/agent-terminal-api", () => ({
     mode: TerminalRunMode,
     selectedPartIds: string[] | null
   ) => previewIntentTerminal(intentId, mode, selectedPartIds),
+  openNativeIntentTerminal: vi.fn(),
   killIntentTerminal: vi.fn(),
   attachIntentTerminalSkills: vi.fn()
 }));
@@ -68,6 +69,11 @@ vi.mock("@/entities/terminal-setting/api/terminal-vendor-catalog-api", () => ({
 vi.mock("@/entities/terminal-setting/api/terminal-settings-api", () => ({
   fetchTerminalSettings: () => Promise.resolve({ default_vendor: "claude" }),
   setDefaultTerminalVendor: vi.fn()
+}));
+
+vi.mock("@/entities/capability/api/capabilities-api", () => ({
+  fetchCapabilities: () => Promise.resolve([]),
+  setCapabilitySelectedProvider: vi.fn()
 }));
 
 function vendorCatalog() {

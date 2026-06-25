@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TerminalView } from "./TerminalView";
 
 // xterm трогает DOM/Canvas, которых нет в jsdom — подменяем тонкими заглушками.
+const terminalWrites: string[] = [];
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 vi.mock("@xterm/xterm", () => ({
   Terminal: class {
@@ -18,8 +19,8 @@ vi.mock("@xterm/xterm", () => ({
     onData() {
       return { dispose: vi.fn() };
     }
-    write() {
-      /* noop */
+    write(data: string) {
+      terminalWrites.push(data);
     }
     dispose() {
       /* noop */
@@ -75,9 +76,18 @@ function lastSocket(): FakeWebSocket {
 }
 
 describe("TerminalView", () => {
+  let rafCallbacks: FrameRequestCallback[] = [];
+
   beforeEach(() => {
     FakeWebSocket.instances = [];
+    terminalWrites.length = 0;
+    rafCallbacks = [];
     vi.stubGlobal("WebSocket", FakeWebSocket);
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      rafCallbacks.push(cb);
+      return rafCallbacks.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
     vi.stubGlobal(
       "ResizeObserver",
       class {
@@ -118,5 +128,18 @@ describe("TerminalView", () => {
     lastSocket().emit("close", { code: 1006 });
 
     expect(onClosed).toHaveBeenCalledWith(1006);
+  });
+
+  it("склеивает несколько output frames в один term.write на animation frame", () => {
+    render(<TerminalView intentId="i1" attempt={1} onClosed={vi.fn()} />);
+
+    const socket = lastSocket();
+    socket.emit("message", { data: '{"type":"output","data":"a"}' });
+    socket.emit("message", { data: '{"type":"output","data":"b"}' });
+
+    expect(terminalWrites).toEqual([]);
+    rafCallbacks.shift()?.(16);
+
+    expect(terminalWrites).toEqual(["ab"]);
   });
 });

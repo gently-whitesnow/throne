@@ -79,6 +79,16 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<RunIntentTerminalResponse>> GetIntentTerminalSession([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
 
         /// <summary>
+        /// Open the live tmux session in the selected native terminal.
+        /// </summary>
+        /// <remarks>
+        /// Launches the operator-selected provider from carrier capability `open_in_terminal` and attaches it to the already-running `throne-{intent_id}` tmux session with `tmux attach -d`. This endpoint never runs pre-flight and never creates a session; it is only a viewer switch for a live session. Provider resolution mirrors `open_in_ide`: use persisted `open_in_terminal.selected_provider`, otherwise fall back to the single detected provider.
+        /// </remarks>
+        /// <returns>Native terminal launch accepted.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{intent_id}/terminal/open-native", Name = "openNativeIntentTerminal")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<OpenNativeTerminalResponse>> OpenNativeIntentTerminal([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string intent_id);
+
+        /// <summary>
         /// Kill the live tmux session without respawning.
         /// </summary>
         /// <remarks>

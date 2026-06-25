@@ -67,6 +67,7 @@ components:
       type: string
       enum:
         - open_in_ide
+        - open_in_terminal
       description: >
         Closed set of carrier capability keys. New entries are added only when a
         feature has multiple interchangeable providers.

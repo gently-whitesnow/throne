@@ -3,7 +3,7 @@ export type {
   CapabilityName,
   CapabilityProvider
 } from "./model/types";
-export { OPEN_IN_IDE } from "./model/types";
+export { OPEN_IN_IDE, OPEN_IN_TERMINAL } from "./model/types";
 export {
   fetchCapabilities,
   setCapabilitySelectedProvider
@@ -17,8 +17,10 @@ export {
   selectCapability,
   selectedIdeProvider,
   detectedIdeProviders,
+  detectedTerminalProviders,
   useCapabilities,
   useSelectedIdeProvider,
   useDetectedIdeProviders,
+  useDetectedTerminalProviders,
   type CapabilitiesState
 } from "./model/use-capabilities";

@@ -10,6 +10,7 @@ public sealed class TerminalController(
     RunPreflightOrchestrator orchestrator,
     TerminalSessionStatusService statusService,
     TerminalSessionKillService killService,
+    OpenInTerminalService openInTerminalService,
     TerminalHookStatusAck hookStatusAck,
     IntentTerminalPreviewHandler previewHandler,
     AttachIntentTerminalSkillsHandler attachHandler,
@@ -72,6 +73,18 @@ public sealed class TerminalController(
     {
         var result = await killService.KillAsync(intent_id, HttpContext.RequestAborted);
         return Ok(TerminalRunResponseMapper.ToDto(result));
+    }
+
+    public override async Task<ActionResult<OpenNativeTerminalResponse>> OpenNativeIntentTerminal(
+        string intent_id
+    )
+    {
+        var result = await openInTerminalService.OpenAsync(intent_id, HttpContext.RequestAborted);
+        return Accepted(new OpenNativeTerminalResponse
+        {
+            Provider = result.ProviderName,
+            Session_name = result.SessionName,
+        });
     }
 
     public override async Task<IActionResult> ReceiveIntentTerminalHook(

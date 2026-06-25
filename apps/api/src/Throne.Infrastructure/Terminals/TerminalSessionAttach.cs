@@ -29,7 +29,7 @@ internal sealed class TerminalSessionAttach(TmuxCli tmux, IOptions<TmuxOptions> 
             return null;
         }
 
-        await TerminalAttachSteps.FlushScrollbackAsync(tmux, sessionName, connection, ct);
+        await TerminalAttachSteps.FlushScrollbackAsync(tmux, options.Value, sessionName, connection, ct);
         TerminalsLog.BridgeAttached(log, sessionName, fifo.Path);
         return fifo;
     }
