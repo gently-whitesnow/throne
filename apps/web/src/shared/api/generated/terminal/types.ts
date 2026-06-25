@@ -83,6 +83,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{intent_id}/terminal/open-native": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open the live tmux session in the selected native terminal.
+         * @description Launches the operator-selected provider from carrier capability `open_in_terminal` and attaches it to the already-running `throne-{intent_id}` tmux session with `tmux attach -d`. This endpoint never runs pre-flight and never creates a session; it is only a viewer switch for a live session. Provider resolution mirrors `open_in_ide`: use persisted `open_in_terminal.selected_provider`, otherwise fall back to the single detected provider.
+         */
+        post: operations["openNativeIntentTerminal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{intent_id}/terminal/kill": {
         parameters: {
             query?: never;
@@ -204,6 +224,12 @@ export interface components {
             default_vendor: components["schemas"]["TerminalAgentVendor"];
             /** @description Every registered vendor, in catalog order. */
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
+        };
+        OpenNativeTerminalResponse: {
+            /** @description Native terminal provider that was actually invoked. */
+            provider: string;
+            /** @description Deterministic tmux session name passed to the provider. */
+            session_name: string;
         };
         /**
          * @description Embedded run mode. Drives which mandatory parts the pre-flight preview projects (`work`/`interview`/`review` from the matching manifest bundle; `free` curates everything by hand) and the spawn phase the status hooks return to. The embedded contour injects the operator-curated `system_prompt`/`user_prompt` upfront (ADR-0034) — it does not ask the agent to read a bundle. Session skills are selected separately in the launch window and materialised only when their spawn identity is available.
@@ -479,6 +505,55 @@ export interface operations {
                 };
             };
             /** @description Capability `terminal` disabled. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    openNativeIntentTerminal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Native terminal launch accepted. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenNativeTerminalResponse"];
+                };
+            };
+            /** @description Intent not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description No live tmux session exists for this intent. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description No native terminal provider is available. */
             422: {
                 headers: {
                     [name: string]: unknown;

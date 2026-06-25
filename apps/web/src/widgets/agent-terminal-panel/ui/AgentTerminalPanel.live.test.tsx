@@ -1,10 +1,10 @@
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { renderWithQuery } from "@/app/test-utils";
+
 import type {
-  IntentTerminalPreviewResponse,
   RunIntentTerminalResponse,
-  TerminalRunMode,
   TerminalRunPayload
 } from "../model/types";
 
@@ -19,13 +19,9 @@ const runIntentTerminal =
       payload: TerminalRunPayload
     ) => Promise<RunIntentTerminalResponse>
   >();
-const previewIntentTerminal =
+const openNativeIntentTerminal =
   vi.fn<
-    (
-      intentId: string,
-      mode: TerminalRunMode,
-      selectedPartIds: string[] | null
-    ) => Promise<IntentTerminalPreviewResponse>
+    (intentId: string) => Promise<{ provider: string; session_name: string }>
   >();
 const listIntentRepositories = vi.fn<() => Promise<unknown[]>>();
 
@@ -34,18 +30,23 @@ vi.mock("../api/agent-terminal-api", () => ({
     getIntentTerminalSession(intentId),
   runIntentTerminal: (intentId: string, payload: TerminalRunPayload) =>
     runIntentTerminal(intentId, payload),
-  previewIntentTerminal: (
-    intentId: string,
-    mode: TerminalRunMode,
-    selectedPartIds: string[] | null
-  ) => previewIntentTerminal(intentId, mode, selectedPartIds),
-  openNativeIntentTerminal: vi.fn(),
+  previewIntentTerminal: () =>
+    Promise.resolve({ available_skills_for_mode: [] }),
+  openNativeIntentTerminal: (intentId: string) =>
+    openNativeIntentTerminal(intentId),
   killIntentTerminal: vi.fn(),
   attachIntentTerminalSkills: vi.fn()
 }));
 
+type RealtimeHandlers = Record<string, ((payload: unknown) => void)[]>;
+const realtimeHandlers: RealtimeHandlers = {};
+
 vi.mock("@/shared/realtime", () => ({
-  useRealtimeEvent: vi.fn()
+  useRealtimeEvent: (name: string, handler: (payload: unknown) => void) => {
+    const list = realtimeHandlers[name] ?? [];
+    list.push(handler);
+    realtimeHandlers[name] = list;
+  }
 }));
 
 vi.mock("./TerminalView", () => ({
@@ -78,7 +79,16 @@ vi.mock("@/entities/terminal-setting/api/terminal-settings-api", () => ({
 }));
 
 vi.mock("@/entities/capability/api/capabilities-api", () => ({
-  fetchCapabilities: () => Promise.resolve([]),
+  fetchCapabilities: () =>
+    Promise.resolve([
+      {
+        name: "open_in_terminal",
+        title: "Открыть в нативном терминале",
+        description: "x",
+        selected_provider: null,
+        providers: [{ name: "wezterm", title: "WezTerm", detected: true }]
+      }
+    ]),
   setCapabilitySelectedProvider: vi.fn()
 }));
 
@@ -129,126 +139,102 @@ function sessionResponse(
   };
 }
 
-function previewResponse(): IntentTerminalPreviewResponse {
-  return {
-    intent_id: "intent-1",
-    intent_version: 2,
-    mode: "free",
-    parts: [
-      {
-        part_id: "m1",
-        key: "common",
-        scope: "system",
-        role: "mandatory",
-        order: 0,
-        editable: false,
-        present: true,
-        selected: true,
-        text: "RULES"
-      }
-    ],
-    available_skills_for_mode: [],
-    selected_part_ids: ["m1"],
-    system_prompt: "RULES",
-    user_prompt: "BODY",
-    workspace_map: "=== Карта workspace ==="
-  };
+function render() {
+  return renderWithQuery(
+    <AgentTerminalPanel intentId="intent-1" intentStatus="work" />,
+    { withBridge: false }
+  );
 }
 
-const render = () =>
-  renderWithQuery(
-    <AgentTerminalPanel intentId="intent-1" intentStatus="work" />,
-    {
-      withBridge: false
-    }
-  );
-
-describe("AgentTerminalPanel", () => {
+describe("AgentTerminalPanel live viewers", () => {
   beforeEach(() => {
     getIntentTerminalSession.mockReset();
     runIntentTerminal.mockReset();
-    previewIntentTerminal.mockReset();
-    previewIntentTerminal.mockResolvedValue(previewResponse());
+    openNativeIntentTerminal.mockReset();
+    openNativeIntentTerminal.mockResolvedValue({
+      provider: "wezterm",
+      session_name: "throne-intent-1"
+    });
     listIntentRepositories.mockReset();
     listIntentRepositories.mockResolvedValue([]);
+    for (const k of Object.keys(realtimeHandlers)) realtimeHandlers[k] = [];
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("Run открывает модалку, а /run уходит только после подтверждения с собранным payload", async () => {
-    getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
-    previewIntentTerminal.mockResolvedValue(previewResponse());
-    runIntentTerminal.mockResolvedValue(sessionResponse("running"));
-
+  it("показывает вьюер-кнопки и не рисует xterm до клика", async () => {
+    getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
     render();
 
-    const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: "Агент терминала"
-    });
-    await waitFor(() => {
-      expect(vendor.disabled).toBe(false);
-    });
-    fireEvent.change(vendor, { target: { value: "codex" } });
+    const embedded = await screen.findByTestId("agent-terminal-open-embedded");
+    expect(screen.queryByTestId("terminal-view")).toBeNull();
 
-    fireEvent.click(screen.getByTestId("agent-terminal-run"));
+    fireEvent.click(embedded);
+
+    expect(
+      (await screen.findByTestId("terminal-view")).getAttribute("data-attempt")
+    ).toBe("1");
+    expect(screen.getByTestId("agent-terminal-kill")).toBeTruthy();
+    expect(screen.getByTestId("agent-terminal-open-native")).toBeTruthy();
+    expect(screen.queryByTestId("agent-terminal-run")).toBeNull();
     expect(runIntentTerminal).not.toHaveBeenCalled();
-
-    const launch = await screen.findByTestId("agent-terminal-preflight-launch");
-    await waitFor(() => {
-      expect(previewIntentTerminal).toHaveBeenCalledWith(
-        "intent-1",
-        "free",
-        null
-      );
-    });
-
-    fireEvent.click(launch);
-
-    await waitFor(() => {
-      expect(runIntentTerminal).toHaveBeenCalledTimes(1);
-    });
-    expect(runIntentTerminal).toHaveBeenCalledWith("intent-1", {
-      launch: {
-        mode: "free",
-        vendor: "codex",
-        model: "gpt-5.5",
-        effort: "medium"
-      },
-      reviewBindingId: null,
-      selectedPartIds: [],
-      selectedSkillIds: [],
-      systemPrompt: "RULES",
-      userPrompt: "BODY",
-      intentTextUpdate: null
-    });
   });
 
-  it("без живой сессии префиллит ось из last-used интента, а не из дефолта каталога", async () => {
-    getIntentTerminalSession.mockResolvedValue(
-      sessionResponse("exited", {
-        mode: "work",
-        vendor: "codex",
-        model: "gpt-5.3-codex",
-        effort: "high"
-      })
-    );
-
+  it("открывает native viewer для текущей live-сессии", async () => {
+    getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
     render();
 
+    fireEvent.click(await screen.findByTestId("agent-terminal-open-native"));
+
     await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+      expect(openNativeIntentTerminal).toHaveBeenCalledWith("intent-1");
     });
+    expect(screen.queryByTestId("terminal-view")).toBeNull();
+  });
+
+  it("показывает submit-unconfirmed подсказку для live-сессии", async () => {
+    getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
+    render();
+    await screen.findByTestId("agent-terminal-open-embedded");
+
+    realtimeHandlers["terminal.prompt_submit_unconfirmed"].forEach((fn) => {
+      fn({ intent_id: "intent-1" });
+    });
+
+    expect(
+      await screen.findByText(/стартовый промпт не отправился/i)
+    ).toBeTruthy();
+  });
+
+  it("показывает фактическую ось live-сессии вместо дефолта каталога", async () => {
+    getIntentTerminalSession.mockResolvedValue(
+      sessionResponse("running", {
+        mode: "interview",
+        vendor: "codex",
+        model: "gpt-5.4",
+        effort: "low"
+      })
+    );
+    render();
+    await screen.findByTestId("agent-terminal-open-embedded");
+
     const vendor = screen.getByTestId<HTMLSelectElement>(
       "agent-terminal-vendor"
     );
-    const model = screen.getByTestId<HTMLSelectElement>("agent-terminal-model");
-
     await waitFor(() => {
       expect(vendor.value).toBe("codex");
     });
-    expect(model.value).toBe("gpt-5.3-codex");
-    expect(vendor.disabled).toBe(false);
+    expect(
+      screen.getByTestId<HTMLSelectElement>("agent-terminal-model").value
+    ).toBe("gpt-5.4");
+    expect(
+      screen.getByTestId<HTMLSelectElement>("agent-terminal-effort").value
+    ).toBe("low");
+    expect(
+      screen.getByTestId<HTMLSelectElement>("agent-terminal-mode").value
+    ).toBe("interview");
+    expect(vendor.disabled).toBe(true);
   });
 });

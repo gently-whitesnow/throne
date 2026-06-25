@@ -35,6 +35,13 @@ public interface ITmuxSessionManager
     Task<bool> KillSessionAsync(string intentId, CancellationToken ct);
 
     /// <summary>
+    /// <c>tmux pipe-pane -t throne-{intent_id}</c>: stop the current embedded output pipe
+    /// for this session. Used before handing the session to a native terminal viewer.
+    /// No-op when no pipe is active.
+    /// </summary>
+    Task StopPipeAsync(string intentId, CancellationToken ct);
+
+    /// <summary>
     /// <c>tmux ls -F '#S'</c>. Returns the set of currently-alive Throne sessions
     /// (filtered to the <see cref="TmuxSessionName.Prefix"/>). Empty when tmux is not
     /// running a server or the binary is missing.

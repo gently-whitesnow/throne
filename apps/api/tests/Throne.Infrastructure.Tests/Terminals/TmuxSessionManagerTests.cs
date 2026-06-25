@@ -243,6 +243,19 @@ public class TmuxSessionManagerTests
         snapshot.Should().BeEmpty();
     }
 
+    [Fact(DisplayName = "StopPipeAsync шеллится в tmux pipe-pane -t throne-<id>")]
+    public async Task Stop_pipe_stops_current_pipe_pane()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        SetupLauncherSuccess(launcher);
+        var sut = NewManager(launcher);
+
+        await sut.StopPipeAsync(IntentId, CancellationToken.None);
+
+        var argv = (ProcessRunRequest)launcher.ReceivedCalls().Single().GetArguments()[0]!;
+        argv.Arguments.Should().Equal("pipe-pane", "-t", "throne-intent-abc");
+    }
+
     [Fact(DisplayName = "ListThroneSessions фильтрует список по префиксу 'throne-'")]
     public async Task ListThroneSessions_filters_prefix()
     {

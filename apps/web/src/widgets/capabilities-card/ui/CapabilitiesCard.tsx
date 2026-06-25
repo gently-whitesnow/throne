@@ -139,7 +139,7 @@ function ProviderRadioGroup({
       className="m-0 flex flex-col gap-2 p-0"
       data-testid={`capability-providers-${capability}`}
     >
-      <legend className="sr-only">Выберите IDE-провайдер</legend>
+      <legend className="sr-only">Выберите провайдера</legend>
       <ProviderRadioOption
         groupName={groupName}
         value=""
