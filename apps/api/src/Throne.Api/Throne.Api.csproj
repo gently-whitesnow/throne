@@ -17,6 +17,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Design-time only: enables `dotnet ef` against ThroneDbContext (startup project). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <!--
       Skill manifest is the runtime source of truth (see ADR-0014). It must travel
       with the published binary, otherwise the API fails to boot in environments
