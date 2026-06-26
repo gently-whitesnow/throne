@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Monitor, TerminalSquare } from "lucide-react";
+import { TerminalSquare } from "lucide-react";
 
 import { useDetectedTerminalProviders } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
@@ -10,7 +10,7 @@ import {
 } from "@/entities/repository-binding";
 
 import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
-import { Button } from "@/shared/ui";
+import { Button, SessionLiveBadge } from "@/shared/ui";
 
 import { useAttachableSkills } from "../model/use-attachable-skills";
 import { useLaunchAxis } from "../model/use-launch-axis";
@@ -109,7 +109,9 @@ export function AgentTerminalPanel({
           : null;
 
   const [preflightOpen, setPreflightOpen] = useState(false);
-  const [embeddedVisible, setEmbeddedVisible] = useState(false);
+  // Хэндофф во внешний терминал: встроенный гасим (StopPipe на бэке), сессия
+  // живёт. Из этого состояния возвращаемся кнопкой «Вернуться во встроенный».
+  const [nativeActive, setNativeActive] = useState(false);
   const nativeSwitchRef = useRef(false);
   const terminalProviders = useDetectedTerminalProviders();
 
@@ -142,15 +144,28 @@ export function AgentTerminalPanel({
 
   const handleOpenNative = useCallback(() => {
     nativeSwitchRef.current = true;
-    setEmbeddedVisible(false);
+    setNativeActive(true);
     void openNativeSession();
   }, [openNativeSession]);
 
+  // Возврат во встроенный: размонтирование/монтирование TerminalView само
+  // переоткрывает WebSocket, а тот заново ставит pipe-pane (re-attach) — отдельный
+  // бэкенд-вызов не нужен.
+  const handleReturnEmbedded = useCallback(() => {
+    // Снимаем «взвод» хэндоффа: после возврата любой close встроенного снова
+    // значимый (иначе первый реальный обрыв проглотился бы как плановый).
+    nativeSwitchRef.current = false;
+    setNativeActive(false);
+  }, []);
+
   useEffect(() => {
     if (!sessionLive) {
-      setEmbeddedVisible(false);
+      setNativeActive(false);
     }
   }, [sessionLive]);
+
+  // Встроенный открывается автоматически, пока сессия live и не отдана наружу.
+  const embeddedVisible = sessionLive && !nativeActive;
 
   const handleTerminalClosed = useCallback(
     (code: number) => {
@@ -172,6 +187,14 @@ export function AgentTerminalPanel({
       data-testid="agent-terminal-panel"
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"
     >
+      {sessionLive ? (
+        <SessionLiveBadge
+          testId="agent-terminal-live-badge"
+          label="Сессия запущена"
+          className="text-[12px] font-medium text-success"
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <RunControls
           mode={effectiveMode}
@@ -219,30 +242,17 @@ export function AgentTerminalPanel({
         />
       </div>
 
-      {sessionLive ? (
+      {sessionLive && terminalProviders.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            aria-label="Показать встроенный терминал"
-            data-testid="agent-terminal-open-embedded"
-            disabled={embeddedVisible}
-            icon={<Monitor aria-hidden size={14} strokeWidth={2} />}
-            onClick={() => {
-              setEmbeddedVisible(true);
-            }}
+            aria-label="Открыть нативный терминал"
+            data-testid="agent-terminal-open-native"
+            disabled={session.isOpeningNative || nativeActive}
+            icon={<TerminalSquare aria-hidden size={14} strokeWidth={2} />}
+            onClick={handleOpenNative}
           >
-            {embeddedVisible ? "Встроенный открыт" : "Встроенный терминал"}
+            {session.isOpeningNative ? "Открываем…" : "Нативный терминал"}
           </Button>
-          {terminalProviders.length > 0 ? (
-            <Button
-              aria-label="Открыть нативный терминал"
-              data-testid="agent-terminal-open-native"
-              disabled={session.isOpeningNative}
-              icon={<TerminalSquare aria-hidden size={14} strokeWidth={2} />}
-              onClick={handleOpenNative}
-            >
-              {session.isOpeningNative ? "Открываем…" : "Нативный терминал"}
-            </Button>
-          ) : null}
         </div>
       ) : null}
 
@@ -268,6 +278,22 @@ export function AgentTerminalPanel({
           attempt={session.startedAt.attempt}
           onClosed={handleTerminalClosed}
         />
+      ) : null}
+
+      {sessionLive && nativeActive ? (
+        <div
+          data-testid="agent-terminal-native-active"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-base-300 bg-base-200 px-3 py-2 text-[13px] text-base-content/70"
+        >
+          <span>Открыто во внешнем терминале.</span>
+          <Button
+            data-testid="agent-terminal-return-embedded"
+            icon={<TerminalSquare aria-hidden size={14} strokeWidth={2} />}
+            onClick={handleReturnEmbedded}
+          >
+            Вернуться во встроенный
+          </Button>
+        </div>
       ) : null}
 
       {session.state === "exited" && session.startedAt === null ? (

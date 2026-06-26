@@ -30,6 +30,8 @@ export interface EntityListRow {
   trailing?: ReactNode;
   /** When true, renders a pin marker next to the title. Bookmarks the row in some context. */
   pinned?: boolean;
+  /** When true, renders a live-session dot — the intent has a running terminal session. */
+  live?: boolean;
 }
 
 /**

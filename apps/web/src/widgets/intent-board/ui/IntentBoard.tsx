@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { intentsQueryKeys, useLinksSummary } from "@/entities/intent";
+import {
+  intentsQueryKeys,
+  useLinksSummary,
+  useRunningTerminalIds
+} from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 import { moveIntent } from "@/features/move-intent";
 import { type IntentsComponents } from "@/shared/api";
@@ -149,12 +153,14 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     ]);
   }, [hoveredId, linksSummary]);
 
+  const runningTerminalIds = useRunningTerminalIds();
   const rows = useBoardRows({
     visibleItems,
     linksSummary,
     stepRanks,
     familyTints,
-    hoverPeerIds
+    hoverPeerIds,
+    runningTerminalIds
   });
 
   const invalidateList = useCallback(() => {

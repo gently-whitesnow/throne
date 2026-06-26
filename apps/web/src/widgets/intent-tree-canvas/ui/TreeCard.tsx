@@ -2,6 +2,7 @@ import { Pin } from "lucide-react";
 import { memo, type MouseEvent, type PointerEvent } from "react";
 
 import { intentStatusMeta } from "@/entities/intent";
+import { SessionLiveBadge } from "@/shared/ui";
 
 import { CARD_H, CARD_W, type LayoutPosition } from "../model/layout";
 import type { CanvasCardIntent } from "../model/tree-data";
@@ -16,6 +17,8 @@ interface TreeCardProps {
   unrelated: boolean;
   /** Resolved (done) neighbour shown via the «show resolved» toggle — rendered as a muted «ghost». */
   resolved: boolean;
+  /** True when the intent has a running terminal session — surfaces a live dot in the header. */
+  live: boolean;
   onSelect: (id: string) => void;
 }
 
@@ -30,6 +33,7 @@ function TreeCardImpl({
   related,
   unrelated,
   resolved,
+  live,
   onSelect
 }: TreeCardProps) {
   const status = intentStatusMeta[intent.status];
@@ -79,8 +83,11 @@ function TreeCardImpl({
         <span className="truncate text-[10px] font-semibold uppercase tracking-wide">
           {status.label}
         </span>
-        <span className="shrink-0 text-[10px] tabular-nums opacity-70">
-          v{String(intent.current_version)}
+        <span className="flex shrink-0 items-center gap-1.5">
+          {live ? <SessionLiveBadge /> : null}
+          <span className="text-[10px] tabular-nums opacity-70">
+            v{String(intent.current_version)}
+          </span>
         </span>
       </span>
 
