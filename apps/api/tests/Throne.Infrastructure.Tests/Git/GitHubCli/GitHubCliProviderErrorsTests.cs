@@ -23,7 +23,7 @@ public class GitHubCliProviderErrorsTests
     {
         _fx.OnRun(_ => GitHubCliProviderFixture.Fail(exit: 1, stderr: "HTTP 404: Not Found (repos/x/y)"));
 
-        var act = async () => await _fx.Provider.CloneRepositoryAsync("x", "y", "/tmp/x", default);
+        var act = async () => await _fx.Provider.CloneRepositoryAsync("x", "y", "/tmp/x", CloneCheckout.None, default);
 
         var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
         ex.Kind.Should().Be(GitProviderErrorKind.NotFound);
@@ -34,7 +34,7 @@ public class GitHubCliProviderErrorsTests
     {
         _fx.OnRun(_ => GitHubCliProviderFixture.Fail(exit: 1, stderr: "HTTP 401: Bad credentials"));
 
-        var act = async () => await _fx.Provider.CloneRepositoryAsync("x", "y", "/tmp/x", default);
+        var act = async () => await _fx.Provider.CloneRepositoryAsync("x", "y", "/tmp/x", CloneCheckout.None, default);
 
         var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
         ex.Kind.Should().Be(GitProviderErrorKind.AuthFailed);
@@ -46,7 +46,7 @@ public class GitHubCliProviderErrorsTests
         _fx.Launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new TimeoutException("slow"));
 
-        var act = async () => await _fx.Provider.CloneRepositoryAsync("x", "y", "/tmp/x", default);
+        var act = async () => await _fx.Provider.CloneRepositoryAsync("x", "y", "/tmp/x", CloneCheckout.None, default);
 
         var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
         ex.Kind.Should().Be(GitProviderErrorKind.NetworkError);
