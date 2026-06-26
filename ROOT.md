@@ -14,6 +14,10 @@
 
 Таблица навигации по проекту — [readme.md → «Где что искать»](readme.md#где-что-искать). Проектные правила для агентов — [specs/AGENTS.local.md](specs/AGENTS.local.md).
 
+## Поднять свой throne для дебага
+
+Throne теперь один процесс (UI+API+SQLite), поэтому в сессии можно поднять изолированный инстанс и продебажить сделанное, не трогая рабочий инстанс пользователя — сменой home + порта: `THRONE_HOME=$PWD/.throne-agent ./throne -p 5009` (своя база/pid/workspaces; non-TTY ⇒ браузер не откроется), остановка — `THRONE_HOME=$PWD/.throne-agent ./throne stop`. Полная поверхность CLI и модель инстансов — [readme → Запустить](readme.md#2-запустить) и [ADR-0049](specs/ADR/0049-cli-daemon-and-home-instances.md).
+
 ## Frontend / UI
 
 Перед любой разработкой `apps/web` или UI-компонентов прочитай [DESIGN.md](DESIGN.md) и используй его как проектную дизайн-систему.
