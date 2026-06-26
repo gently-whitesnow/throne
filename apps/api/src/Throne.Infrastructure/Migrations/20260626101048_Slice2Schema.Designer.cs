@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Throne.Infrastructure.EfCore;
 
@@ -10,9 +11,11 @@ using Throne.Infrastructure.EfCore;
 namespace Throne.Infrastructure.Migrations
 {
     [DbContext(typeof(ThroneDbContext))]
-    partial class ThroneDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260626101048_Slice2Schema")]
+    partial class Slice2Schema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");

@@ -75,3 +75,9 @@ dotnet_diagnostic.CA1707.severity = none
 [**/Throne.Domain/**.cs]
 dotnet_diagnostic.CA1501.severity = none
 dotnet_diagnostic.CA1505.severity = none
+
+# EF Core migrations are tool-generated (dotnet ef). The scaffolder emits inline
+# `new[] { ... }` argument arrays which trip CA1861 — we never hand-edit these files,
+# so suppress the analyzer in the migrations folder only.
+[**/Migrations/*.cs]
+dotnet_diagnostic.CA1861.severity = none

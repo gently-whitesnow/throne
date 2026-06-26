@@ -6,9 +6,7 @@ namespace Throne.Infrastructure.EfCore;
 /// EF Core context for the SQLite backend. Entity mappings live in
 /// <see cref="IEntityTypeConfiguration{TEntity}"/> classes discovered via
 /// <see cref="ModelBuilder.ApplyConfigurationsFromAssembly"/>; the context itself stays
-/// free of inline configuration. Slice 1 ships with no configurations yet (the
-/// repository ports and their mappings arrive in slice 2), so the model is empty and
-/// the initial migration is empty by design.
+/// free of inline configuration.
 /// </summary>
 public sealed class ThroneDbContext(DbContextOptions<ThroneDbContext> options) : DbContext(options)
 {

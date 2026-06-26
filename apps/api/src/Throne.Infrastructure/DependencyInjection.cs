@@ -46,8 +46,8 @@ public static class DependencyInjection
     }
 
     // Persistence:Provider selects the storage backend. Default (mongo) keeps the
-    // existing wiring untouched; sqlite swaps in the EF Core unit of work / context
-    // factory / schema initializer. The repository ports for sqlite arrive in slice 2.
+    // existing wiring; sqlite swaps in the EF Core unit of work, context factory, schema
+    // initializer and every repository port.
     private static void AddPersistence(IServiceCollection services, IConfiguration configuration)
     {
         if (PersistenceProvider.IsSqlite(configuration))
