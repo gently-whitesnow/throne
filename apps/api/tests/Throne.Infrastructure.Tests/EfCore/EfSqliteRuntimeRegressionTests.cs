@@ -197,7 +197,6 @@ public sealed class EfSqliteRuntimeRegressionTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [PersistenceProvider.Key] = PersistenceProvider.Sqlite,
                 [$"{EfPersistenceOptions.SectionName}:DataSource"] = DbPath,
             })
             .Build();

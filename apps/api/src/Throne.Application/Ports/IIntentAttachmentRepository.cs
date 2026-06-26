@@ -25,11 +25,11 @@ public interface IIntentAttachmentRepository
 
     Task<IReadOnlyList<PendingCompressionItem>> ListPendingCompressionAsync(int batchSize, CancellationToken ct);
 
-    Task<Stream?> OpenRawContentAsync(string gridFsId, CancellationToken ct);
+    Task<Stream?> OpenRawContentAsync(string contentId, CancellationToken ct);
 
     Task ApplyCompressionAsync(
         string attachmentId,
-        string previousGridFsId,
+        string previousContentId,
         DownscaledImage compressed,
         CancellationToken ct);
 }

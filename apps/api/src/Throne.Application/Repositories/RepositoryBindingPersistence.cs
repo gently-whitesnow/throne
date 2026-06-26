@@ -10,7 +10,7 @@ namespace Throne.Application.Repositories;
 /// <summary>
 /// Persistence-orchestration helper. Owns construction of fresh bindings
 /// (workspace-path layout, factory invocation, clock) and the create/delete/save/find
-/// roundtrips through the unit-of-work + Mongo port. Delete also removes the binding's
+/// roundtrips through the unit-of-work + persistence port. Delete also removes the binding's
 /// on-disk workspace directory — the folder is part of the binding's lifecycle.
 /// </summary>
 public sealed class RepositoryBindingPersistence(

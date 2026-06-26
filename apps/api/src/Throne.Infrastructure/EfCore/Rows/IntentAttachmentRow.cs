@@ -1,13 +1,10 @@
 namespace Throne.Infrastructure.EfCore.Rows;
 
 /// <summary>
-/// Persistence POCO for the <c>intent_attachments</c> table. The Mongo backend keeps two
-/// physical objects (a metadata document and a GridFS file). SQLite collapses both into a
-/// single row: the BLOB payload lives in <see cref="ContentBytes"/>. When the compression
-/// worker downsamples an image we overwrite the BLOB in place and flip
-/// <see cref="CompressionState"/> to <c>ready</c>; the pre-compression bytes are not
-/// retained — same as the Mongo flow, which drops the original GridFS file after the
-/// replacement succeeds.
+/// Persistence POCO for the <c>intent_attachments</c> table. The BLOB payload lives in
+/// <see cref="ContentBytes"/>. When the compression worker downsamples an image we
+/// overwrite the BLOB in place and flip <see cref="CompressionState"/> to <c>ready</c>;
+/// the pre-compression bytes are not retained.
 /// </summary>
 internal sealed class IntentAttachmentRow
 {

@@ -29,7 +29,7 @@ const GLAB_SETUP_DOCS_URL = "https://docs.gitlab.com/cli/auth/login/";
  * Settings → «Провайдеры Git».
  *
  * GitHub + GitLab CLI auth status (`gh`, `glab`). The GitLab card carries an
- * inline editor for the persisted `gitlab.host` — Mongo singleton (no env-var
+ * inline editor for the persisted `gitlab.host` singleton (no env-var
  * fallback). Saving invalidates the providers-status query so the auth probe
  * runs against the new host on next refresh.
  */

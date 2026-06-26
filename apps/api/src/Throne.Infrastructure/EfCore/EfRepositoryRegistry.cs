@@ -77,7 +77,7 @@ internal sealed class EfRepositoryRegistry(
 
     private static IQueryable<RepositoryRow> FindRowQuery(ThroneDbContext ctx, RepoCoordinate coordinate)
     {
-        // Lookup mirrors the Mongo (provider, owner, repo) match: host is implied by the
+        // Lookup matches on (provider, owner, repo): host is implied by the
         // domain normalization and is here only to scope GitLab self-hosted instances.
         var provider = coordinate.Provider;
         var owner = coordinate.Owner;

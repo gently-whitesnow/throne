@@ -1,6 +1,5 @@
 # Контейнерный режим (дефолт): весь стек в контейнере, host-capabilities выключены.
-# Профили: только MongoDB — `--profile db`; API + веб + Mongo — `--profile full`.
-# Mongo в replica set rs0 (нужно для транзакций, см. readme).
+# Профили: API + веб — `--profile full`; только веб — `--profile ui`.
 #
 # Host-фичи (terminal / Run / vscode / repositories) требуют доступа к хосту,
 # которого у контейнера нет, поэтому в этом режиме они OFF (capability default,
@@ -17,6 +16,3 @@ services:
       - "8080:80"
     depends_on:
       - api
-
-volumes:
-  mongo_data:

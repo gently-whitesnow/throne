@@ -7,7 +7,7 @@ namespace Throne.Infrastructure.Tests.Git;
 
 /// <summary>
 /// Тестовый in-memory store binding'ов для прогонов
-/// <see cref="Throne.Infrastructure.Git.RepositoryCloneService"/> без MongoDB.
+/// <see cref="Throne.Infrastructure.Git.RepositoryCloneService"/> без внешней БД.
 /// Поддерживает только методы, которыми реально пользуются workflow + recovery.
 /// </summary>
 internal sealed class InMemoryIntentRepositoryBindingRepository : IIntentRepositoryBindingRepository

@@ -88,7 +88,7 @@ public sealed partial class PullRequestAutoBindWorkflow(
 
         // Recompute against the live root, not binding.WorkspacePath: the persisted path
         // embeds the root in effect at clone-time and goes stale across machines (shared
-        // Mongo) or a runtime model switch (ADR-0027) — same reasoning as DeleteAsync /
+        // persistence) or a runtime model switch (ADR-0027) — same reasoning as DeleteAsync /
         // RepositoryCloneWorkflow. Reading the branch via the stale path leaves the «Обновить»
         // button silently unable to bind an open PR.
         var workspacePath = WorkspacePathLayout.Compute(

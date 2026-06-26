@@ -9,15 +9,13 @@ using Throne.Infrastructure.EfCore.Rows;
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// SQLite/EF Core port for intent attachments. Replaces Mongo's split metadata document
-/// + GridFS file with a single row carrying the payload in the <c>content_bytes</c> BLOB
-/// column. Per-intent limits and content-type validation live in the use case; the
-/// repository assumes a pre-validated payload and only persists what it is given.
-/// Upload/delete writes still demand the ambient context — callers route them through
-/// <c>IUnitOfWork.ExecuteOutsideTransactionAsync</c>, mirroring the Mongo path where
-/// GridFS uploads run outside the transaction. Whole-intent cleanup and background
-/// compression also tolerate a transient context because their application callers are
-/// intentionally sessionless.
+/// SQLite/EF Core port for intent attachments. The payload lives in the
+/// <c>content_bytes</c> BLOB column. Per-intent limits and content-type validation live
+/// in the use case; the repository assumes a pre-validated payload and only persists
+/// what it is given. Upload/delete writes still demand the ambient context via
+/// <c>IUnitOfWork.ExecuteOutsideTransactionAsync</c>. Whole-intent cleanup and
+/// background compression also tolerate a transient context because their application
+/// callers are intentionally sessionless.
 /// </summary>
 internal sealed class EfIntentAttachmentRepository(
     IDbContextFactory<ThroneDbContext> contextFactory,
@@ -156,14 +154,14 @@ internal sealed class EfIntentAttachmentRepository(
         }, ct);
     }
 
-    public Task<Stream?> OpenRawContentAsync(string gridFsId, CancellationToken ct) =>
+    public Task<Stream?> OpenRawContentAsync(string contentId, CancellationToken ct) =>
         ReadAsync<Stream?>(async (ctx, c) =>
         {
             // In the EF backend the «storage key» the worker holds is just the attachment
             // id (see ListPendingCompressionAsync); the original BLOB is whatever lives in
             // content_bytes until ApplyCompressionAsync overwrites it.
             var bytes = await ctx.Set<IntentAttachmentRow>().AsNoTracking()
-                .Where(r => r.Id == gridFsId)
+                .Where(r => r.Id == contentId)
                 .Select(r => r.ContentBytes)
                 .FirstOrDefaultAsync(c);
             return bytes is null ? null : new MemoryStream(bytes, writable: false);
@@ -171,12 +169,13 @@ internal sealed class EfIntentAttachmentRepository(
 
     public async Task ApplyCompressionAsync(
         string attachmentId,
-        string previousGridFsId,
+        string previousContentId,
         DownscaledImage compressed,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(compressed);
         ArgumentException.ThrowIfNullOrWhiteSpace(attachmentId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(previousContentId);
 
         await WithWriteContextAsync(
             async (ctx, c) =>

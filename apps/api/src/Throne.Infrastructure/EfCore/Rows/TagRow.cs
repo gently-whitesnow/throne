@@ -18,7 +18,7 @@ internal sealed class TagRow
 
 /// <summary>
 /// JSON shape for one entry inside <c>tags.default_repositories</c>. Field names match the
-/// Mongo subdocument 1:1 so a SQLite dump reads identically against the OpenAPI contract.
+/// JSON subdocument 1:1 so a SQLite dump reads identically against the OpenAPI contract.
 /// </summary>
 internal sealed class TagDefaultRepositoryPayload
 {

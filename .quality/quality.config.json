@@ -47,7 +47,7 @@
       "scope": "backend",
       "enabled": true,
       "slow": true,
-      "description": "dotnet test --filter Category=Integration. Testcontainers MongoDB (replSet rs0), требует Docker."
+      "description": "dotnet test --filter Category=Integration. SQLite-backed integration tests; Docker is not required for persistence."
     },
     {
       "id": "backend-maintainability",

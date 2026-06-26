@@ -15,7 +15,7 @@ public interface IRepositoryCloneRequests
     /// <summary>
     /// Enqueue a freshly created binding for cloning. Must be called after the
     /// persistence write commits — otherwise the worker could pick the id up before the
-    /// binding is visible in Mongo. The implementation is non-blocking.
+    /// binding is visible in persistence. The implementation is non-blocking.
     /// </summary>
     ValueTask EnqueueAsync(BindingId bindingId, CancellationToken ct);
 }

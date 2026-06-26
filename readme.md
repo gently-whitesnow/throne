@@ -37,10 +37,10 @@ cd throne
 docker compose --profile full up --build -d
 ```
 
-**Host-backend режим (продвинутый).** Контейнер поднимает только web + Mongo, а API запускается нативно на хосте — тогда он наследует хостовый PATH, спавнит `code`/`claude`/`gh`/`git`/`tmux` напрямую, ходит в OS keychain через сами CLI (без plaintext-экспорта токенов) и использует реальный `ssh-agent`. Host-фичи в Settings загораются. Две независимые команды:
+**Host-backend режим (продвинутый).** Контейнер поднимает только web, а API запускается нативно на хосте — тогда он наследует хостовый PATH, спавнит `code`/`claude`/`gh`/`git`/`tmux` напрямую, ходит в OS keychain через сами CLI (без plaintext-экспорта токенов) и использует реальный `ssh-agent`. Host-фичи в Settings загораются. Две независимые команды:
 
 ```bash
-# 1. web + mongo в контейнере
+# 1. web в контейнере
 docker compose -f docker-compose.host.yml up --build -d
 
 # 2. нативный API на хосте (нужен .NET 10 SDK)
@@ -48,13 +48,7 @@ docker compose -f docker-compose.host.yml up --build -d
 ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
 ```
 
-Дефолты host-режима подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, Mongo — `localhost:27017`, workspace — `~/.throne/workspaces`.
-
-Только MongoDB (replica set `rs0`, порт `27017`):
-
-```bash
-docker compose --profile db up -d
-```
+Дефолты host-режима подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, SQLite — `~/.throne/throne.db`, workspace — `~/.throne/workspaces`.
 
 ### 2. Работать через embedded-терминал
 
@@ -159,11 +153,11 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 ## Технологии
 
 - .NET 10
-- MongoDB (replica set обязателен — write paths используют multi-document transactions; локально: `mongod --replSet rs0` + `rs.initiate()` или docker-compose с `--replSet rs0`, в connection string добавить `?replicaSet=rs0`)
+- SQLite через EF Core (`~/.throne/throne.db` по умолчанию)
 - GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; нативный хостовый `gh auth`, см. host-backend режим)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
-- xUnit + FluentAssertions + Testcontainers
+- xUnit + FluentAssertions
 - Central Package Management (`Directory.Packages.props`)
 
 ## Где что искать

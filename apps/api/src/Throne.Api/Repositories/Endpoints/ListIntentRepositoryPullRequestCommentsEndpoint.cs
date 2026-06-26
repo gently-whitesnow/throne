@@ -7,7 +7,7 @@ namespace Throne.Api.Repositories.Endpoints;
 
 /// <summary>
 /// Server is pointer-only: this endpoint proxies <c>gh api .../pulls/{n}/comments</c>
-/// through the binding's provider and never reads from Mongo. The <c>since</c>
+/// through the binding's provider and never reads from persistence. The <c>since</c>
 /// filter is honoured against the upstream-fresh feed; pagination is intentionally
 /// absent.
 /// </summary>

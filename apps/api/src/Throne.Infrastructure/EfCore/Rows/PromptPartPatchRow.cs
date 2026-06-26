@@ -4,7 +4,7 @@ namespace Throne.Infrastructure.EfCore.Rows;
 /// Persistence POCO for the <c>prompt_part_patches</c> table. Mirrors
 /// <c>PromptPartPatchDocument</c> field-for-field; <c>mode_roles</c> is materialized as a
 /// nullable JSON array so non-role operations leave the column NULL — symmetric with the
-/// Mongo <c>BsonIgnoreIfNull</c> behavior.
+/// Null values stay absent from JSON payloads when serialized.
 /// </summary>
 internal sealed class PromptPartPatchRow
 {

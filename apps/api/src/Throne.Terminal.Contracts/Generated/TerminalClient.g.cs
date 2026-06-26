@@ -668,7 +668,7 @@ namespace Throne.Terminal.Contracts.Generated
     {
 
         /// <summary>
-        /// Mongo id of the prompt part (ADR-0036).
+        /// storage id of the prompt part (ADR-0036).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("part_id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

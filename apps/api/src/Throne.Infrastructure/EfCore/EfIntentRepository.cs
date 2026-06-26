@@ -13,7 +13,7 @@ namespace Throne.Infrastructure.EfCore;
 /// Composite EF Core repository that fronts <see cref="IIntentRepository"/>,
 /// <see cref="IIntentOrderingRepository"/> and <see cref="ISystemIntentStatusWriter"/>.
 /// All actual work is delegated to per-concern services living in <c>Intents/</c> so each
-/// file stays well under the per-type budget and mirrors the Mongo decomposition.
+/// file stays well under the per-type budget.
 /// The bulk of the surface is implemented via EXPLICIT interface members — three ports
 /// crowd the same class and explicit impls keep the type's public-member count under the
 /// maintainability budget without faking artificial sub-interfaces.

@@ -8,8 +8,8 @@ namespace Throne.Infrastructure.EfCore.Bindings;
 
 /// <summary>
 /// Read-only surface for <see cref="IntentRepositoryBinding"/> rows: per-id, per-intent,
-/// per-clone-status, per-PR-state filtered listings. Ordering mirrors the Mongo store so the
-/// «oldest poll wins» and «recovery is stable across restarts» semantics are identical.
+/// per-clone-status, per-PR-state filtered listings. Ordering keeps «oldest poll wins»
+/// and «recovery is stable across restarts» semantics intact.
 /// </summary>
 internal sealed class EfBindingReader(
     IDbContextFactory<ThroneDbContext> contextFactory,
@@ -49,7 +49,7 @@ internal sealed class EfBindingReader(
     public Task<IReadOnlyList<IntentRepositoryBinding>> FindOpenForSyncAsync(CancellationToken ct) =>
         ReadAsync<IReadOnlyList<IntentRepositoryBinding>>(async (ctx, c) =>
         {
-            // Ascending by LastSyncedAt: SQLite sorts NULLs first (same as Mongo), so bindings
+            // Ascending by LastSyncedAt: SQLite sorts NULLs first, so bindings
             // that have never been polled go first — matches the «oldest poll wins» policy.
             var rows = await ctx.Set<IntentRepositoryBindingRow>().AsNoTracking()
                 .Where(r => r.CloneStatus == CloneStatusNames.Ready
