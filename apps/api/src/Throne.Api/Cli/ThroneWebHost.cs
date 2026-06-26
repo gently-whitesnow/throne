@@ -15,7 +15,7 @@ namespace Throne.Api.Cli;
 /// </summary>
 public static class ThroneWebHost
 {
-    public static async Task RunAsync(string[] args)
+    public static async Task RunAsync(string[] args, Action? onStarted = null)
     {
         // ContentRoot must be the binary's directory, not the launch CWD: the
         // single-file bundle ships wwwroot/ and appsettings.json next to the
@@ -48,6 +48,11 @@ public static class ThroneWebHost
         // 404s as an API call instead of silently returning index.html.
         app.MapFallback("/api/{**slug}", () => Results.NotFound());
         app.MapFallbackToFile("index.html");
+
+        if (onStarted is not null)
+        {
+            app.Lifetime.ApplicationStarted.Register(onStarted);
+        }
 
         await app.RunAsync();
     }
