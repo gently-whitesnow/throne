@@ -46,9 +46,8 @@ internal sealed class EfIntentTerminalLaunchStore(
             // Effort-less vendors (opencode) carry no effort: drop the field so a later
             // switch to an effort vendor never reads a stale value.
             row.Effort = record.Effort;
-            // attached_skill_ids / selected_skill_ids_by_mode are intentionally NOT touched:
-            // hot-attached skills and per-mode selection survive a respawn until explicitly
-            // updated via the dedicated methods.
+            // selected_skill_ids_by_mode is intentionally NOT touched: the per-mode selection
+            // survives a respawn until explicitly updated via SaveSelectedSkillIdsAsync.
             await ctx.SaveChangesAsync(c);
         }, ct);
     }
@@ -69,51 +68,6 @@ internal sealed class EfIntentTerminalLaunchStore(
             row.SelectedSkillIdsByMode ??= new Dictionary<string, List<string>>(StringComparer.Ordinal);
             row.SelectedSkillIdsByMode[mode] = selectedSkillIds
                 .Distinct(StringComparer.Ordinal).ToList();
-            await ctx.SaveChangesAsync(c);
-        }, ct);
-    }
-
-    public Task SetAttachedSkillIdsAsync(
-        string intentId,
-        string mode,
-        IReadOnlyList<string> attachedSkillIds,
-        CancellationToken ct)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(mode);
-        ArgumentNullException.ThrowIfNull(attachedSkillIds);
-
-        return ExecuteAsync(async (ctx, c) =>
-        {
-            // upsert=false here: when no row exists, attach is meaningless (a session must
-            // have been spawned first). Mirrors the persistence store's targeted-$set behavior.
-            var row = await ctx.Set<IntentTerminalLaunchRow>()
-                .FirstOrDefaultAsync(r => r.Id == intentId, c);
-            if (row is null)
-            {
-                return;
-            }
-            if (attachedSkillIds.Count == 0)
-            {
-                // Empty list = tear down the live indicator without changing the
-                // remembered next-preflight selection.
-                row.AttachedSkillIds = null;
-            }
-            else
-            {
-                var deduped = attachedSkillIds.Distinct(StringComparer.Ordinal).ToList();
-                row.AttachedSkillIds = deduped;
-                row.SelectedSkillIdsByMode ??= new Dictionary<string, List<string>>(StringComparer.Ordinal);
-                if (row.SelectedSkillIdsByMode.TryGetValue(mode, out var current))
-                {
-                    var merged = current.Union(deduped, StringComparer.Ordinal).ToList();
-                    row.SelectedSkillIdsByMode[mode] = merged;
-                }
-                else
-                {
-                    row.SelectedSkillIdsByMode[mode] = new List<string>(deduped);
-                }
-            }
             await ctx.SaveChangesAsync(c);
         }, ct);
     }
@@ -147,15 +101,12 @@ internal sealed class EfIntentTerminalLaunchStore(
 
     private static TerminalLaunchRecord MapToRecord(IntentTerminalLaunchRow row)
     {
-        var attached = row.AttachedSkillIds is { Count: > 0 }
-            ? (IReadOnlyList<string>)row.AttachedSkillIds.ToArray()
-            : Array.Empty<string>();
         var selections = row.SelectedSkillIdsByMode is { Count: > 0 }
             ? row.SelectedSkillIdsByMode.ToDictionary(
                 kv => kv.Key,
                 kv => (IReadOnlyList<string>)kv.Value.ToArray(),
                 StringComparer.Ordinal)
             : EmptySelections;
-        return new TerminalLaunchRecord(row.Mode, row.Vendor, row.Model, row.Effort, attached, selections);
+        return new TerminalLaunchRecord(row.Mode, row.Vendor, row.Model, row.Effort, selections);
     }
 }

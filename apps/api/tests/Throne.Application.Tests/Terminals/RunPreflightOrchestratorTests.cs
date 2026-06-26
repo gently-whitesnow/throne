@@ -64,7 +64,7 @@ public partial class RunPreflightOrchestratorTests
         result.Launch.Vendor.Should().Be(TerminalAgentCatalog.VendorClaude);
         result.Launch.Model.Should().Be("opus");
         result.Launch.Effort.Should().Be("high");
-        result.Launch.AttachedSkillIds.Should().BeEmpty();
+        result.Launch.SelectedSkillIdsByMode.Should().BeEmpty();
         await fixture.LaunchStore.Received(1).SaveAsync(
             IntentIdValue,
             Arg.Is<TerminalLaunchRecord>(r =>

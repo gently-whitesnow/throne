@@ -25,7 +25,7 @@ public class AttachIntentTerminalSkillsHandlerTests
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(TerminalErrorCodes.SessionNotLive);
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
-        await fixture.Launches.DidNotReceiveWithAnyArgs().SetAttachedSkillIdsAsync(default!, default!, default!, default);
+        await fixture.Launches.DidNotReceiveWithAnyArgs().SaveSelectedSkillIdsAsync(default!, default!, default!, default);
     }
 
     [Fact(DisplayName = "Unknown skill id → SessionSkillUnknown 422")]
@@ -48,7 +48,7 @@ public class AttachIntentTerminalSkillsHandlerTests
     {
         var codexLaunch = new TerminalLaunchRecord(
             TerminalRunModes.Work, TerminalAgentCatalog.VendorCodex, "gpt-5.5", "high",
-            Array.Empty<string>(), EmptySelections);
+            EmptySelections);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: codexLaunch);
 
         var result = await fixture.Handler.HandleAsync(
@@ -67,7 +67,7 @@ public class AttachIntentTerminalSkillsHandlerTests
     {
         var opencodeLaunch = new TerminalLaunchRecord(
             TerminalRunModes.Work, TerminalAgentCatalog.VendorOpencode, "llama-4", null,
-            Array.Empty<string>(), EmptySelections);
+            EmptySelections);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: opencodeLaunch);
 
         var act = () => fixture.Handler.HandleAsync(
@@ -87,7 +87,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             Directory.Delete(workspacePath, recursive: true);
         }
         Directory.CreateDirectory(workspacePath);
-        var launch = ClaudeLaunch(previousAttached: [SessionSkillPackageIds.Dream]);
+        var launch = ClaudeLaunch(previousSelected: [SessionSkillPackageIds.Dream]);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: launch);
 
         var result = await fixture.Handler.HandleAsync(
@@ -95,7 +95,7 @@ public class AttachIntentTerminalSkillsHandlerTests
                 [SessionSkillPackageIds.Intent, SessionSkillPackageIds.Dream]),
             CancellationToken.None);
 
-        // Union = previous {dream} ∪ requested {intent, dream}
+        // Union = previous selection {dream} ∪ requested {intent, dream}
         result.AttachedSkillIds.Should().BeEquivalentTo(
             new[] { SessionSkillPackageIds.Dream, SessionSkillPackageIds.Intent });
 
@@ -112,7 +112,7 @@ public class AttachIntentTerminalSkillsHandlerTests
         AssertExecutable(scriptPath);
 
         await fixture.Tmux.DidNotReceiveWithAnyArgs().PasteFileAsSubmittedPromptAsync(default!, default!, default);
-        await fixture.Launches.Received(1).SetAttachedSkillIdsAsync(
+        await fixture.Launches.Received(1).SaveSelectedSkillIdsAsync(
             IntentIdValue,
             TerminalRunModes.Work,
             Arg.Is<IReadOnlyList<string>>(ids =>
@@ -131,7 +131,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             Directory.Delete(workspacePath, recursive: true);
         }
         Directory.CreateDirectory(workspacePath);
-        var launch = ClaudeLaunch(previousAttached: [SessionSkillPackageIds.Intent]);
+        var launch = ClaudeLaunch(previousSelected: [SessionSkillPackageIds.Intent]);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: launch);
 
         var result = await fixture.Handler.HandleAsync(
@@ -139,7 +139,7 @@ public class AttachIntentTerminalSkillsHandlerTests
             CancellationToken.None);
 
         result.AttachedSkillIds.Should().BeEquivalentTo(new[] { SessionSkillPackageIds.Intent });
-        await fixture.Launches.Received(1).SetAttachedSkillIdsAsync(
+        await fixture.Launches.Received(1).SaveSelectedSkillIdsAsync(
             IntentIdValue,
             TerminalRunModes.Work,
             Arg.Is<IReadOnlyList<string>>(ids =>
@@ -151,13 +151,17 @@ public class AttachIntentTerminalSkillsHandlerTests
     private static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> EmptySelections =
         new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
 
-    private static TerminalLaunchRecord ClaudeLaunch(IReadOnlyList<string>? previousAttached = null) =>
+    private static TerminalLaunchRecord ClaudeLaunch(IReadOnlyList<string>? previousSelected = null) =>
         new(TerminalRunModes.Work,
             TerminalAgentCatalog.VendorClaude,
             "opus",
             "high",
-            previousAttached ?? Array.Empty<string>(),
-            EmptySelections);
+            previousSelected is null
+                ? EmptySelections
+                : new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+                {
+                    [TerminalRunModes.Work] = previousSelected,
+                });
 
     private sealed class Fixture
     {

@@ -19,9 +19,10 @@ public sealed record AttachIntentTerminalSkillsResult(IReadOnlyList<string> Atta
 ///   <item>Writes the canonical <c>skills/{id}/SKILL.md</c> and active vendor pointer via
 ///         <see cref="ISessionSkillHotAttachWriter"/>. Claude and Codex discover those files
 ///         natively in the live session.</item>
-///   <item>Persists the union with the previously hot-attached set via
-///         <see cref="IIntentTerminalLaunchStore.SetAttachedSkillIdsAsync"/> and echoes the
-///         resulting full set back. Idempotent for the persisted set.</item>
+///   <item>Unions the requested skills into the live session's per-mode selection via
+///         <see cref="IIntentTerminalLaunchStore.SaveSelectedSkillIdsAsync"/> — the single
+///         «what is loaded» source — and echoes the resulting full set back. Idempotent for
+///         the persisted set.</item>
 /// </list>
 /// </summary>
 public sealed class AttachIntentTerminalSkillsHandler(
@@ -94,11 +95,15 @@ public sealed class AttachIntentTerminalSkillsHandler(
                 validated.ReviewArtifact),
             ct);
 
-        var previous = launch.AttachedSkillIds ?? Array.Empty<string>();
+        // «What is loaded» is the live session's per-mode selection: union the just-attached
+        // skills into selected_skill_ids_by_mode[liveMode] (which already holds the spawn-time
+        // selection) so the badges and the next preflight see one set. Mode comes from the live
+        // session's persisted axis — the same value the next preflight will look up.
+        var previous = launch.SelectedSkillIdsByMode.TryGetValue(launch.Mode, out var current)
+            ? current
+            : Array.Empty<string>();
         var merged = previous.Concat(requestedIds).Distinct(StringComparer.Ordinal).ToArray();
-        // Mode comes from the live session's persisted axis: the same value the next preflight
-        // will look up when sourcing «remembered» from selected_skill_ids_by_mode.
-        await launches.SetAttachedSkillIdsAsync(request.IntentId, launch.Mode, merged, ct);
+        await launches.SaveSelectedSkillIdsAsync(request.IntentId, launch.Mode, merged, ct);
 
         return new AttachIntentTerminalSkillsResult(merged);
     }
