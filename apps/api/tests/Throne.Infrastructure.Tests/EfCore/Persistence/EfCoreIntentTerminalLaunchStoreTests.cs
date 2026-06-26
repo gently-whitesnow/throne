@@ -29,8 +29,7 @@ public class EfCoreIntentTerminalLaunchStoreTests(SqliteFixture fixture)
         var loaded = await store.GetAsync("i-1", CancellationToken.None);
         loaded.Should().NotBeNull();
         AssertAxis(loaded!, "work", "claude", "opus", "high");
-        loaded!.AttachedSkillIds.Should().BeEmpty();
-        loaded.SelectedSkillIdsByMode.Should().BeEmpty();
+        loaded!.SelectedSkillIdsByMode.Should().BeEmpty();
     }
 
     [Fact(DisplayName = "Повторный SaveAsync перезаписывает последний выбор (один документ на интент)")]
@@ -89,34 +88,6 @@ public class EfCoreIntentTerminalLaunchStoreTests(SqliteFixture fixture)
         (await store.GetAsync("i-missing", CancellationToken.None)).Should().BeNull();
     }
 
-    [Fact(DisplayName = "SetAttachedSkillIdsAsync не трогает mode/vendor/model/effort и пишет union в выбор режима")]
-    public async Task SetAttachedSkillIds_preserves_launch_axis_and_unions_into_mode_selection()
-    {
-        var (_, store) = await NewScopeAsync();
-        await store.SaveAsync("i-attach", Launch("work", "claude", "opus", "high"), CancellationToken.None);
-
-        await store.SetAttachedSkillIdsAsync("i-attach", Work, IntentDream, CancellationToken.None);
-
-        var loaded = await store.GetAsync("i-attach", CancellationToken.None);
-        AssertAxis(loaded!, "work", "claude", "opus", "high");
-        loaded!.AttachedSkillIds.Should().BeEquivalentTo(IntentDream);
-        loaded.SelectedSkillIdsByMode.Should().ContainKey(Work);
-        loaded.SelectedSkillIdsByMode[Work].Should().BeEquivalentTo(IntentDream);
-    }
-
-    [Fact(DisplayName = "SetAttachedSkillIdsAsync делает $addToSet — не дублирует существующий выбор")]
-    public async Task SetAttachedSkillIds_addToSet_does_not_duplicate()
-    {
-        var (_, store) = await NewScopeAsync();
-        await store.SaveAsync("i-union", Launch("work", "claude", "opus", "high"), CancellationToken.None);
-        await store.SaveSelectedSkillIdsAsync("i-union", Work, IntentOnly, CancellationToken.None);
-
-        await store.SetAttachedSkillIdsAsync("i-union", Work, IntentDream, CancellationToken.None);
-
-        var loaded = await store.GetAsync("i-union", CancellationToken.None);
-        loaded!.SelectedSkillIdsByMode[Work].Should().BeEquivalentTo(IntentDream);
-    }
-
     [Fact(DisplayName = "SaveSelectedSkillIdsAsync хранит выбор раздельно по режимам и перезаписывает свой режим")]
     public async Task SaveSelectedSkillIds_per_mode_and_replaces_own_mode()
     {
@@ -132,41 +103,22 @@ public class EfCoreIntentTerminalLaunchStoreTests(SqliteFixture fixture)
         loaded.SelectedSkillIdsByMode[Review].Should().BeEquivalentTo(IntentOnly);
     }
 
-    [Fact(DisplayName = "SaveAsync после hot-attach не сбрасывает attached_skill_ids и выбор по режимам")]
-    public async Task Save_after_attach_keeps_runtime_and_selection()
+    [Fact(DisplayName = "SaveAsync (рестарт оси) не сбрасывает выбор по режимам")]
+    public async Task Save_keeps_per_mode_selection()
     {
         var (_, store) = await NewScopeAsync();
         await store.SaveAsync("i-keep", Launch("work", "claude", "opus", "high"), CancellationToken.None);
-        await store.SetAttachedSkillIdsAsync("i-keep", Work, IntentOnly, CancellationToken.None);
+        await store.SaveSelectedSkillIdsAsync("i-keep", Work, IntentOnly, CancellationToken.None);
 
-        // Restart-style overwrite: new launch axis, no attached/selection change requested.
+        // Restart-style overwrite: new launch axis, no selection change requested.
         await store.SaveAsync("i-keep", Launch("review", "claude", "sonnet", "medium"), CancellationToken.None);
 
         var loaded = await store.GetAsync("i-keep", CancellationToken.None);
         AssertAxis(loaded!, "review", "claude", "sonnet", "medium");
-        loaded!.AttachedSkillIds.Should().BeEquivalentTo(IntentOnly);
-        loaded.SelectedSkillIdsByMode[Work].Should().BeEquivalentTo(IntentOnly);
+        loaded!.SelectedSkillIdsByMode[Work].Should().BeEquivalentTo(IntentOnly);
     }
 
-    [Fact(DisplayName = "SetAttachedSkillIdsAsync с пустым списком убирает attached, не трогая выбор режима")]
-    public async Task SetAttachedSkillIds_empty_unsets_runtime_only()
-    {
-        var (db, store) = await NewScopeAsync();
-        await store.SaveAsync("i-clear", Launch("work", "claude", "opus", "high"), CancellationToken.None);
-        await store.SetAttachedSkillIdsAsync("i-clear", Work, IntentOnly, CancellationToken.None);
-
-        await store.SetAttachedSkillIdsAsync("i-clear", Work, Array.Empty<string>(), CancellationToken.None);
-
-        var raw = await FindRowAsync(db, "i-clear");
-        raw!.AttachedSkillIds.Should().BeNull();
-        var loaded = await store.GetAsync("i-clear", CancellationToken.None);
-        loaded!.AttachedSkillIds.Should().BeEmpty();
-        // Per-mode selection is the operator's «next-preflight» intent — clearing the runtime
-        // indicator does NOT touch it.
-        loaded.SelectedSkillIdsByMode[Work].Should().BeEquivalentTo(IntentOnly);
-    }
-
-    [Fact(DisplayName = "Row без attached_skill_ids/selected_skill_ids_by_mode читается как пустой")]
+    [Fact(DisplayName = "Row без selected_skill_ids_by_mode читается как пустой")]
     public async Task Row_without_skill_columns_returns_empty_collections()
     {
         var (db, store) = await NewScopeAsync();
@@ -184,23 +136,11 @@ public class EfCoreIntentTerminalLaunchStoreTests(SqliteFixture fixture)
         }
 
         var loaded = await store.GetAsync("i-legacy-attach", CancellationToken.None);
-        loaded!.AttachedSkillIds.Should().BeEmpty();
-        loaded.SelectedSkillIdsByMode.Should().BeEmpty();
-    }
-
-    [Fact(DisplayName = "SetAttachedSkillIdsAsync с upsert=false: на несуществующий интент → no-op")]
-    public async Task SetAttachedSkillIds_missing_doc_is_noop()
-    {
-        var (db, store) = await NewScopeAsync();
-
-        await store.SetAttachedSkillIdsAsync("i-ghost", Work, IntentOnly, CancellationToken.None);
-
-        var count = await CountRowsAsync(db, "i-ghost");
-        count.Should().Be(0);
+        loaded!.SelectedSkillIdsByMode.Should().BeEmpty();
     }
 
     private static TerminalLaunchRecord Launch(string mode, string vendor, string model, string? effort) =>
-        new(mode, vendor, model, effort, Array.Empty<string>(), EmptySelections);
+        new(mode, vendor, model, effort, EmptySelections);
 
     private static void AssertAxis(
         TerminalLaunchRecord record, string mode, string vendor, string model, string? effort)

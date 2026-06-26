@@ -134,7 +134,7 @@ export interface paths {
         put?: never;
         /**
          * Hot-attach session skills into a live tmux session.
-         * @description Loads the requested skill packages into a running agent session without a respawn when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is persisted in `terminal_launches.attached_skill_ids` and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
+         * @description Loads the requested skill packages into a running agent session without a respawn when the persisted launch vendor has native skill hot-reload (Claude or Codex). The handler writes the canonical `SKILL.md` to `skills/{id}/SKILL.md` and a thin vendor pointer to `.claude/skills/{id}/SKILL.md` for Claude or `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages into the live tmux pane; the agent discovers the file change natively. The selection is unioned into `terminal_launches.selected_skill_ids_by_mode[mode]` for the live session's mode and re-applied on the next preflight preview as default-on. Idempotent: re-attaching an already attached skill is a no-op for the persisted set.
          */
         post: operations["attachIntentTerminalSkills"];
         delete?: never;
@@ -310,8 +310,6 @@ export interface components {
             model: string;
             /** @description Resolved reasoning effort; null for a vendor with no effort axis. */
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;
-            /** @description Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время). */
-            attached_skill_ids?: string[] | null;
         };
         AttachIntentTerminalSkillsRequest: {
             /** @description Skill ids from the session skill catalog to hot-attach to the live session. */

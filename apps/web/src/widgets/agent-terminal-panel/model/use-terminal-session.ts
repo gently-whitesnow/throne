@@ -189,21 +189,11 @@ export function useTerminalSession(
       if (skillIds.length === 0) return;
       setIsAttachingSkills(true);
       try {
-        const response = await attachIntentTerminalSkills(intentId, skillIds);
-        setInternal((prev) => {
-          if (prev.lastResponse === null) return prev;
-          const launch = prev.lastResponse.launch
-            ? {
-                ...prev.lastResponse.launch,
-                attached_skill_ids: response.attached_skill_ids
-              }
-            : prev.lastResponse.launch;
-          return {
-            ...prev,
-            error: null,
-            lastResponse: { ...prev.lastResponse, launch }
-          };
-        });
+        // «What is loaded» now lives in selected_skill_ids_by_mode (echoed via the preview's
+        // `selected`), so the panel reloads the preview after attach instead of threading the
+        // response set back through the launch axis.
+        await attachIntentTerminalSkills(intentId, skillIds);
+        setInternal((prev) => ({ ...prev, error: null }));
       } catch (err) {
         setInternal((prev) => ({
           ...prev,

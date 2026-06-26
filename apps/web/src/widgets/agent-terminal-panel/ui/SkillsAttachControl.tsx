@@ -6,7 +6,6 @@ import { Button } from "@/shared/ui";
 import type { AvailableSessionSkill } from "../model/types";
 
 interface SkillsAttachControlProps {
-  attachedSkillIds: readonly string[];
   available: readonly AvailableSessionSkill[];
   /** True when a live tmux session can accept hot-attach. */
   sessionLive: boolean;
@@ -18,13 +17,13 @@ interface SkillsAttachControlProps {
 }
 
 /**
- * Скилы, догруженные в живую сессию через POST /skills/attach. Бейджи активных
- * рендерим всегда (источник — `launch.attached_skill_ids`), кнопка-попап «Скилы»
- * активна только при live-сессии: уже приложенный скил появляется в попапе как
- * disabled + checked (снять нельзя — append-only по дизайну).
+ * Скилы, загруженные в живую сессию текущего режима. Единственный источник
+ * «загружено» — `skill.selected` из preview (== selected_skill_ids_by_mode[mode]):
+ * сюда попадает и выбор на спавне, и hot-attach. Бейджи рисуем по выбранным
+ * скилам, кнопка-попап «Скилы» активна только при live-сессии: уже загруженный
+ * скил появляется в попапе как disabled + checked (снять нельзя — append-only).
  */
 export function SkillsAttachControl({
-  attachedSkillIds,
   available,
   sessionLive,
   isLoadingAvailable,
@@ -35,9 +34,9 @@ export function SkillsAttachControl({
   const [selectedNew, setSelectedNew] = useState<string[]>([]);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
-  const attachedSet = useMemo(
-    () => new Set(attachedSkillIds),
-    [attachedSkillIds]
+  const loadedSkills = useMemo(
+    () => available.filter((s) => s.selected),
+    [available]
   );
 
   useEffect(() => {
@@ -59,12 +58,6 @@ export function SkillsAttachControl({
       setSelectedNew([]);
     }
   }, [sessionLive]);
-
-  const titleFor = useCallback(
-    (skillId: string) =>
-      available.find((s) => s.skill_id === skillId)?.title ?? skillId,
-    [available]
-  );
 
   const toggleNew = useCallback((skillId: string) => {
     setSelectedNew((prev) =>
@@ -92,14 +85,14 @@ export function SkillsAttachControl({
       className="relative flex flex-wrap items-center gap-1.5"
       data-testid="agent-terminal-skills-attach"
     >
-      {attachedSkillIds.map((skillId) => (
+      {loadedSkills.map((skill) => (
         <span
-          key={skillId}
+          key={skill.skill_id}
           className="badge badge-sm badge-outline gap-1 text-[11px]"
-          data-testid={`agent-terminal-skill-badge-${skillId}`}
-          title="Скил приложен к сессии"
+          data-testid={`agent-terminal-skill-badge-${skill.skill_id}`}
+          title="Скил загружен в сессию"
         >
-          {titleFor(skillId)}
+          {skill.title}
         </span>
       ))}
 
@@ -133,12 +126,12 @@ export function SkillsAttachControl({
           ) : (
             <ul className="flex flex-col gap-1.5">
               {available.map((skill) => {
-                const alreadyAttached = attachedSet.has(skill.skill_id);
+                const alreadyAttached = skill.selected;
                 const checked =
                   alreadyAttached || selectedNew.includes(skill.skill_id);
                 const disabled = alreadyAttached || !skill.materializable;
                 const reason = alreadyAttached
-                  ? "Скил уже приложен к сессии (снять нельзя)."
+                  ? "Скил уже загружен в сессию (снять нельзя)."
                   : !skill.materializable
                     ? (skill.reason ?? "Скил недоступен для текущего интента.")
                     : skill.description;
@@ -160,7 +153,7 @@ export function SkillsAttachControl({
                           {skill.title}
                           {alreadyAttached ? (
                             <span className="ml-1 text-[10px] text-base-content/50">
-                              · приложен
+                              · загружен
                             </span>
                           ) : null}
                         </span>
