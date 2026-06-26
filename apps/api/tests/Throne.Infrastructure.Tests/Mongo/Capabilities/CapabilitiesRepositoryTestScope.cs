@@ -1,23 +1,19 @@
-using MongoDB.Driver;
 using Throne.Application.Ports;
-using Throne.Infrastructure.Mongo;
+using Throne.Infrastructure.EfCore;
 
 namespace Throne.Infrastructure.Tests.Mongo.Capabilities;
 
 internal sealed record CapabilitiesRepositoryTestScope(
-    IMongoDatabase Database,
+    SqliteTestDatabase Database,
     ICapabilitiesRepository Repository,
     IUnitOfWork Uow)
 {
-    public static async Task<CapabilitiesRepositoryTestScope> CreateAsync(MongoFixture fixture)
+    public static async Task<CapabilitiesRepositoryTestScope> CreateAsync(SqliteFixture fixture)
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-
-        var sessions = new MongoSessionAccessor();
-        var repo = new MongoCapabilitiesRepository(db, sessions);
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return new CapabilitiesRepositoryTestScope(db, repo, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return new CapabilitiesRepositoryTestScope(
+            db,
+            db.GetRequiredService<ICapabilitiesRepository>(),
+            db.GetRequiredService<IUnitOfWork>());
     }
 }

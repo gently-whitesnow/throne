@@ -2,17 +2,14 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 using Throne.Api.Tests.Infrastructure;
 
 namespace Throne.Api.Tests.Intents;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncLifetime
+public sealed class GetIntentContextsEndpointTests(SqliteFixture sqlite) : IAsyncLifetime
 {
     // ACTIVE bucket statuses (non-archive, non-fridge) used by the "untagged" / tag contexts.
     private const string ActiveStatusQuery =
@@ -20,30 +17,12 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
+    private SqliteTestDatabase _database = null!;
 
     public Task InitializeAsync()
     {
-        var connectionString = mongo.ConnectionString;
-        var dbName = $"throne_api_{Guid.NewGuid():N}";
-
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Production");
-            builder.UseDefaultServiceProvider(o =>
-            {
-                o.ValidateScopes = false;
-                o.ValidateOnBuild = false;
-            });
-            builder.ConfigureAppConfiguration((_, cfg) =>
-            {
-                cfg.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Mongo:ConnectionString"] = connectionString,
-                    ["Mongo:Database"] = dbName,
-                });
-            });
-        });
-
+        _database = sqlite.CreateDatabase();
+        _factory = SqliteTestHost.Create(_database);
         _client = _factory.CreateClient();
         return Task.CompletedTask;
     }
@@ -52,6 +31,7 @@ public sealed class GetIntentContextsEndpointTests(MongoFixture mongo) : IAsyncL
     {
         _client.Dispose();
         await _factory.DisposeAsync();
+        await _database.DisposeAsync();
     }
 
     [Fact(DisplayName = "GET /api/v1/intents/contexts отдаёт нули на пустом наборе")]

@@ -1,15 +1,13 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
 
 namespace Throne.Infrastructure.Tests.Mongo.IntentRepositoryBindings;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
+public class MongoIntentRepositoryBindingSyncTests(SqliteFixture fixture)
 {
     [Fact(DisplayName = "FindOpenForSyncAsync возвращает ready + PR + state=open/null, отсортированные по last_synced_at ASC")]
     public async Task FindOpenForSync_filters_and_orders()
@@ -61,36 +59,56 @@ public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
     public async Task Unique_index_present()
     {
         var scope = await IntentRepositoryBindingTestScope.CreateAsync(fixture);
-        var indexes = await scope.Database
-            .GetCollection<IntentRepositoryBindingDocument>(MongoCollectionNames.IntentRepositoryBindings)
-            .Indexes.List()
-            .ToListAsync();
 
-        var unique = indexes.Single(i => i["name"].AsString == "intent_coordinate_unique");
-        unique["unique"].AsBoolean.Should().BeTrue();
-        var keys = unique["key"].AsBsonDocument;
-        keys.ElementCount.Should().Be(4);
-        keys.GetElement(0).Name.Should().Be("intent_id");
-        keys.GetElement(1).Name.Should().Be("provider");
-        keys.GetElement(2).Name.Should().Be("owner");
-        keys.GetElement(3).Name.Should().Be("repo");
+        (await IndexIsUniqueAsync(scope.Database, "intent_coordinate_unique")).Should().BeTrue();
+        (await IndexColumnsAsync(scope.Database, "intent_coordinate_unique"))
+            .Should().Equal("intent_id", "provider", "host", "owner", "repo");
     }
 
     [Fact(DisplayName = "Индексы intent_id и pr_state_last_synced_at созданы")]
     public async Task Secondary_indexes_present()
     {
         var scope = await IntentRepositoryBindingTestScope.CreateAsync(fixture);
-        var indexes = await scope.Database
-            .GetCollection<IntentRepositoryBindingDocument>(MongoCollectionNames.IntentRepositoryBindings)
-            .Indexes.List()
-            .ToListAsync();
 
-        indexes.Should().Contain(i => i["name"].AsString == "intent_id");
-        var sync = indexes.Single(i => i["name"].AsString == "pr_state_last_synced_at");
-        var keys = sync["key"].AsBsonDocument;
-        keys.ElementCount.Should().Be(2);
-        keys.GetElement(0).Name.Should().Be("pull_request_state");
-        keys.GetElement(1).Name.Should().Be("last_synced_at");
+        (await IndexColumnsAsync(scope.Database, "intent_id")).Should().Equal("intent_id");
+        (await IndexColumnsAsync(scope.Database, "pr_state_last_synced_at"))
+            .Should().Equal("pull_request_state", "last_synced_at");
+    }
+
+    private static async Task<bool> IndexIsUniqueAsync(SqliteTestDatabase database, string indexName)
+    {
+        await using var ctx = await database.CreateContextAsync();
+        var connection = ctx.Database.GetDbConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA index_list('intent_repository_bindings');";
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            if (reader.GetString(1) == indexName)
+            {
+                return reader.GetInt32(2) == 1;
+            }
+        }
+        return false;
+    }
+
+    private static async Task<IReadOnlyList<string>> IndexColumnsAsync(
+        SqliteTestDatabase database,
+        string indexName)
+    {
+        await using var ctx = await database.CreateContextAsync();
+        var connection = ctx.Database.GetDbConnection();
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA index_info('{indexName}');";
+        await using var reader = await command.ExecuteReaderAsync();
+        var columns = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            columns.Add(reader.GetString(2));
+        }
+        return columns;
     }
 
     private static async Task<string> PersistReadyOpenAsync(
@@ -146,7 +164,9 @@ public class MongoIntentRepositoryBindingSyncTests(MongoFixture fixture)
         {
             binding.RecordSync(etag: "W/\"abc\"", lastSeenReviewCommentAt: null, lastSyncedAt.Value);
         }
-        await scope.Repository.CreateAsync(binding, CancellationToken.None);
+        await scope.UnitOfWork.ExecuteAsync(
+            ct => scope.Repository.CreateAsync(binding, ct),
+            CancellationToken.None);
         return binding.Id.Value;
     }
 }

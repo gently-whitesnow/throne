@@ -1,34 +1,24 @@
-using MongoDB.Driver;
 using Throne.Application.Ports;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Repositories;
 
 namespace Throne.Infrastructure.Tests.Mongo.Repositories;
 
 /// <summary>
-/// Per-test scope: fresh database + the registry / PR-artifact stores wired against the same
-/// indexes the production <c>MongoIndexInitializer</c> builds, so the unique-index drift
-/// guards run against the real schema.
+/// Per-test scope: fresh migrated SQLite database + the registry / PR-artifact stores
+/// wired through the production EF Core module.
 /// </summary>
 internal sealed record RepositoryStoreTestScope(
-    IMongoDatabase Database,
+    SqliteTestDatabase Database,
     IRepositoryRegistry Registry,
     IPullRequestArtifactRepository PullRequestArtifacts,
     IUnitOfWork UnitOfWork)
 {
-    public static async Task<RepositoryStoreTestScope> CreateAsync(MongoFixture fixture)
+    public static async Task<RepositoryStoreTestScope> CreateAsync(SqliteFixture fixture)
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-
-        await MongoRepositoryIndexes.CreateAsync(db, CancellationToken.None);
-        await MongoPullRequestArtifactIndexes.CreateAsync(db, CancellationToken.None);
-
-        var sessions = new MongoSessionAccessor();
-        var registry = new MongoRepositoryRegistry(db, sessions);
-        var pullRequestArtifacts = new MongoPullRequestArtifactStore(db, sessions);
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return new RepositoryStoreTestScope(db, registry, pullRequestArtifacts, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return new RepositoryStoreTestScope(
+            db,
+            db.GetRequiredService<IRepositoryRegistry>(),
+            db.GetRequiredService<IPullRequestArtifactRepository>(),
+            db.GetRequiredService<IUnitOfWork>());
     }
 }

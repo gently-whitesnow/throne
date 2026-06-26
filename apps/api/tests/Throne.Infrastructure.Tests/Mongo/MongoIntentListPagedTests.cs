@@ -1,19 +1,17 @@
 using FluentAssertions;
-using MongoDB.Driver;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
-using Throne.Infrastructure.Mongo;
 using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoIntentListPagedTests(MongoFixture fixture)
+public class MongoIntentListPagedTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Base = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
@@ -99,14 +97,11 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
     [Fact(DisplayName = "ListPagedAsync с pinned=true возвращает только закреплённые интенты")]
     public async Task Filters_pinned()
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        var repo = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        var tags = new MongoTagRepository(db, sessions);
-        var pins = new MongoIntentPinRepository(db, sessions);
+        var db = await fixture.CreateDatabaseAsync();
+        var repo = db.GetRequiredService<IIntentRepository>();
+        var uow = db.GetRequiredService<IUnitOfWork>();
+        var tags = db.GetRequiredService<ITagRepository>();
+        var pins = db.GetRequiredService<IIntentPinRepository>();
 
         var pinned = await Seed(repo, uow, "pinned", Base);
         await Seed(repo, uow, "loose", Base.AddMinutes(1));
@@ -125,7 +120,7 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
     }
 
     private static async Task<Intent> Seed(
-        MongoIntentRepository repo,
+        IIntentRepository repo,
         IUnitOfWork uow,
         string text,
         DateTimeOffset at,
@@ -153,14 +148,9 @@ public class MongoIntentListPagedTests(MongoFixture fixture)
             at,
             IntentTrainingAuthor.Agent);
 
-    private async Task<(MongoIntentRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
+    private async Task<(IIntentRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        var repo = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return (repo, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return (db.GetRequiredService<IIntentRepository>(), db.GetRequiredService<IUnitOfWork>());
     }
 }
