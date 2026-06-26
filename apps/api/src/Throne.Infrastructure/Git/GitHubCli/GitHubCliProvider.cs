@@ -47,8 +47,13 @@ internal sealed class GitHubCliProvider(
         CancellationToken ct) =>
         refListers.PullRequests.ListAsync(owner, repo, query, limit, ct);
 
-    public Task CloneRepositoryAsync(string owner, string repo, string targetPath, CancellationToken ct) =>
-        actions.CloneAsync(owner, repo, targetPath, ct);
+    public Task CloneRepositoryAsync(
+        string owner, string repo, string targetPath, CloneCheckout checkout, CancellationToken ct) =>
+        actions.CloneAsync(owner, repo, targetPath, checkout, ct);
+
+    public Task CheckoutAsync(
+        string owner, string repo, string workspacePath, CloneCheckout checkout, CancellationToken ct) =>
+        actions.CheckoutAsync(owner, repo, workspacePath, checkout, ct);
 
     public Task SyncRepositoryAsync(string workspacePath, CancellationToken ct) =>
         actions.SyncAsync(workspacePath, ct);

@@ -114,6 +114,7 @@ public sealed class RepositoryCloneWorkflow(
                 binding.Coordinate.Owner,
                 binding.Coordinate.Repo,
                 workspacePath,
+                new CloneCheckout(binding.State.DefaultBranch, binding.State.PullRequestNumber),
                 ct);
             return null;
         }
