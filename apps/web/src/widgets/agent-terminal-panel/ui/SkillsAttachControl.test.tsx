@@ -48,9 +48,7 @@ describe("SkillsAttachControl", () => {
     expect(
       screen.getByTestId("agent-terminal-skill-badge-beta").textContent
     ).toBe("Beta");
-    expect(
-      screen.queryByTestId("agent-terminal-skill-badge-gamma")
-    ).toBeNull();
+    expect(screen.queryByTestId("agent-terminal-skill-badge-gamma")).toBeNull();
   });
 
   it("кнопка «Скилы» disabled когда сессия не живая", () => {
@@ -99,7 +97,11 @@ describe("SkillsAttachControl", () => {
     const onAttach = vi.fn();
     render(
       <SkillsAttachControl
-        available={[skill("alpha", { selected: true }), skill("beta"), skill("gamma")]}
+        available={[
+          skill("alpha", { selected: true }),
+          skill("beta"),
+          skill("gamma")
+        ]}
         sessionLive
         isLoadingAvailable={false}
         isAttaching={false}
