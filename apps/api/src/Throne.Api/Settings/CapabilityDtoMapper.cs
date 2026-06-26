@@ -31,12 +31,14 @@ internal static class CapabilityDtoMapper
     public static string ToDomainName(CapabilityName name) => name switch
     {
         CapabilityName.Open_in_ide => CapabilityNames.OpenInIde,
+        CapabilityName.Open_in_terminal => CapabilityNames.OpenInTerminal,
         _ => throw new ArgumentOutOfRangeException(nameof(name), $"Unknown capability name '{name}'."),
     };
 
     private static CapabilityName ParseName(string domain) => domain switch
     {
         CapabilityNames.OpenInIde => CapabilityName.Open_in_ide,
+        CapabilityNames.OpenInTerminal => CapabilityName.Open_in_terminal,
         _ => throw new InvalidOperationException(
             $"Capability '{domain}' is not exposed in the OpenAPI contract (extend `CapabilityName` first)."),
     };
