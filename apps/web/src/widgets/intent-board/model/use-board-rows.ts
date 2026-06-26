@@ -16,6 +16,7 @@ interface BuildRowsArgs {
   stepRanks: ReadonlyMap<string, number>;
   familyTints: ReadonlyMap<string, string>;
   hoverPeerIds: ReadonlySet<string>;
+  runningTerminalIds: ReadonlySet<string>;
 }
 
 /**
@@ -28,7 +29,8 @@ export function useBoardRows({
   linksSummary,
   stepRanks,
   familyTints,
-  hoverPeerIds
+  hoverPeerIds,
+  runningTerminalIds
 }: BuildRowsArgs): EntityListRow[] {
   const [params] = useSearchParams();
   return useMemo<EntityListRow[]>(() => {
@@ -62,7 +64,8 @@ export function useBoardRows({
           ? "outline outline-2 outline-primary/40 outline-offset-[-2px] z-10"
           : undefined,
         tint: familyTints.get(i.id),
-        pinned: i.pinned_in.length > 0
+        pinned: i.pinned_in.length > 0,
+        live: runningTerminalIds.has(i.id)
       };
     });
   }, [
@@ -70,6 +73,7 @@ export function useBoardRows({
     hoverPeerIds,
     linksSummary,
     params,
+    runningTerminalIds,
     stepRanks,
     visibleItems
   ]);

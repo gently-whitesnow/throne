@@ -2,7 +2,7 @@ import { Move } from "lucide-react";
 import { useCallback, useMemo, useRef, type ReactNode } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { contextTitle } from "@/entities/intent";
+import { contextTitle, useRunningTerminalIds } from "@/entities/intent";
 import { CreateIntentButton } from "@/features/create-intent";
 
 import { useCanvasViewport } from "../model/use-canvas-viewport";
@@ -25,6 +25,7 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
 
   const [showResolved, toggleResolved] = useShowResolved();
   const state = useTreeData(context, showResolved);
+  const runningTerminalIds = useRunningTerminalIds();
   const stageRef = useRef<HTMLDivElement | null>(null);
 
   const worldBounds = state.kind === "ready" ? state.model.bounds : null;
@@ -189,6 +190,7 @@ export function IntentTreeCanvas({ headerAction }: IntentTreeCanvasProps = {}) {
                   related={!isActive && inRelated}
                   unrelated={relatedIds !== null && !inRelated}
                   resolved={node.resolved}
+                  live={runningTerminalIds.has(node.id)}
                   onSelect={openIntent}
                 />
               );
