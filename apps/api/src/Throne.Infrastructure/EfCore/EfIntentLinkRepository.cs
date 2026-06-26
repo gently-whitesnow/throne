@@ -130,7 +130,7 @@ internal sealed class EfIntentLinkRepository(
                 var (cursorTimeUtc, cursorId) = IntentLinkCursor.Decode(cursor);
                 var cursorTime = new DateTimeOffset(DateTime.SpecifyKind(cursorTimeUtc, DateTimeKind.Utc));
                 query = query.Where(r => r.CreatedAt > cursorTime
-                    || (r.CreatedAt == cursorTime && string.Compare(r.Id, cursorId, StringComparison.Ordinal) > 0));
+                    || (r.CreatedAt == cursorTime && r.Id.CompareTo(cursorId) > 0));
             }
 
             var pageSize = limit + 1;

@@ -109,7 +109,7 @@ internal sealed class EfPromptPartPatchLifecycle(
                 query = query.Where(r =>
                     r.CreatedAt < pivotCreatedAt
                     || (r.CreatedAt == pivotCreatedAt
-                        && string.Compare(r.Id, pivotId, StringComparison.Ordinal) < 0));
+                        && r.Id.CompareTo(pivotId) < 0));
             }
 
             var rows = await query

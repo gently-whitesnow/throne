@@ -17,6 +17,7 @@ namespace Throne.Infrastructure.EfCore;
 internal abstract class EfRepositoryBase(IDbContextFactory<ThroneDbContext> contextFactory, EfSessionAccessor sessions)
 {
     protected EfSessionAccessor Sessions { get; } = sessions;
+    protected IDbContextFactory<ThroneDbContext> ContextFactory { get; } = contextFactory;
 
     /// <summary>
     /// Runs a read against the ambient context, or a transient one disposed afterwards.
@@ -33,7 +34,7 @@ internal abstract class EfRepositoryBase(IDbContextFactory<ThroneDbContext> cont
             return await read(ambient, ct);
         }
 
-        await using var context = await contextFactory.CreateDbContextAsync(ct);
+        await using var context = await ContextFactory.CreateDbContextAsync(ct);
         return await read(context, ct);
     }
 

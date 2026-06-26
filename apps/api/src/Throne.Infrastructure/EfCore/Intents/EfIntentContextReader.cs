@@ -42,10 +42,11 @@ internal sealed class EfIntentContextReader(
                 .GroupBy(r => r.Status)
                 .Select(g => new { Status = g.Key, Count = g.Count() })
                 .ToListAsync(c);
-            var statusMap = byStatus.ToDictionary(
-                x => string.IsNullOrEmpty(x.Status) ? IntentStatusNames.Draft : x.Status,
-                x => x.Count,
-                StringComparer.Ordinal);
+            var statusMap = byStatus
+                .GroupBy(
+                    x => string.IsNullOrEmpty(x.Status) ? IntentStatusNames.Draft : x.Status,
+                    StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Count), StringComparer.Ordinal);
 
             var (activeUntagged, activeTagCounts) = await CountBucketAsync(ctx, ActiveStatuses, c);
             var (archiveUntagged, archiveTagCounts) = await CountBucketAsync(ctx, ArchiveStatuses, c);
@@ -84,53 +85,27 @@ internal sealed class EfIntentContextReader(
         string[] statuses,
         CancellationToken ct)
     {
-        // Materialize just the JSON tag-ids strings for rows in the bucket — text payload
-        // stays in SQLite. We rely on the fact that tag_ids is a JSON-array column whose
-        // empty form is the literal "[]".
+        // Materialize just the tag ids for rows in the bucket — text payload stays in
+        // SQLite and the configured converter handles the JSON column.
+        var includeDraft = statuses.Contains(IntentStatusNames.Draft, StringComparer.Ordinal);
         var rows = await ctx.Set<IntentRow>()
-            .Where(r => statuses.Contains(r.Status))
-            .Select(r => EF.Property<string>(r, "tag_ids"))
+            .Where(r => statuses.Contains(r.Status) || (includeDraft && r.Status == string.Empty))
+            .Select(r => r.TagIds)
             .ToListAsync(ct);
 
         var untagged = 0;
         var tagCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var json in rows)
+        foreach (var tagIds in rows)
         {
-            if (string.IsNullOrEmpty(json) || string.Equals(json, "[]", StringComparison.Ordinal))
+            if (tagIds.Count == 0)
             {
                 untagged++;
                 continue;
             }
 
-            // tag_ids is a JSON array of strings. We avoid System.Text.Json here — the
-            // payload is a strict array shape produced by IntentRowConfiguration, so a tiny
-            // tokenizer keeps the hot path allocation-light. Each id is a GUID hex (no
-            // embedded quotes), so a quoted-substring scan is sound.
-            var hasAny = false;
-            var idx = 0;
-            while (true)
+            foreach (var id in tagIds.Where(id => !string.IsNullOrEmpty(id)))
             {
-                var openQuote = json.IndexOf('"', idx);
-                if (openQuote < 0)
-                {
-                    break;
-                }
-                var closeQuote = json.IndexOf('"', openQuote + 1);
-                if (closeQuote < 0)
-                {
-                    break;
-                }
-                var id = json[(openQuote + 1)..closeQuote];
-                if (!string.IsNullOrEmpty(id))
-                {
-                    tagCounts[id] = tagCounts.TryGetValue(id, out var n) ? n + 1 : 1;
-                    hasAny = true;
-                }
-                idx = closeQuote + 1;
-            }
-            if (!hasAny)
-            {
-                untagged++;
+                tagCounts[id] = tagCounts.TryGetValue(id, out var n) ? n + 1 : 1;
             }
         }
 
