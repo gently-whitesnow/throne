@@ -22,7 +22,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
     private static partial void LogTickFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
-        Message = "IntentAttachmentCompressionWorker: pending attachment {AttachmentId} has no GridFS blob, skipping.")]
+        Message = "IntentAttachmentCompressionWorker: pending attachment {AttachmentId} has no stored content, skipping.")]
     private static partial void LogMissingBlob(ILogger logger, string attachmentId);
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Warning,
@@ -100,7 +100,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
     {
         try
         {
-            await using var raw = await repo.OpenRawContentAsync(item.GridFsId, ct);
+            await using var raw = await repo.OpenRawContentAsync(item.ContentId, ct);
             if (raw is null)
             {
                 LogMissingBlob(logger, item.AttachmentId);
@@ -108,7 +108,7 @@ internal sealed partial class IntentAttachmentCompressionWorker(
             }
 
             var compressed = await downscaler.DownscaleAsync(raw, item.ContentType, settings.MaxDimension, settings.JpegQuality, ct);
-            await repo.ApplyCompressionAsync(item.AttachmentId, item.GridFsId, compressed, ct);
+            await repo.ApplyCompressionAsync(item.AttachmentId, item.ContentId, compressed, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

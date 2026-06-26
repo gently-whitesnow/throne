@@ -6,8 +6,8 @@ using Throne.Infrastructure.EfCore.Rows;
 namespace Throne.Infrastructure.EfCore.Intents;
 
 /// <summary>
-/// Read-only aggregator for the context rail. Mirrors <c>MongoIntentContextReader</c>'s
-/// surface but executes as a handful of GROUP BY queries plus an in-memory unwind of the
+/// Read-only aggregator for the context rail. Executes as a handful of GROUP BY queries
+/// plus an in-memory unwind of the
 /// JSON <c>tag_ids</c> column for tag counts — SQLite has no first-class array column,
 /// and EF's LINQ translation can't push a JSON-array unwind into the provider.
 /// </summary>

@@ -7,8 +7,7 @@ namespace Throne.Infrastructure.EfCore.Tags;
 
 /// <summary>
 /// Keyset-paged tag reader. Sort key is <c>last_attached_at ?? created_at</c> descending
-/// with <c>id</c> ascending as tiebreaker — same shape as Mongo's
-/// <c>__sort_attached_at</c> computed field, projected into SQLite via
+/// with <c>id</c> ascending as tiebreaker, projected into SQLite via
 /// <see cref="DateTimeOffset?"/> coalescing in the LINQ expression.
 /// </summary>
 internal sealed class EfTagListReader(
@@ -47,7 +46,7 @@ internal sealed class EfTagListReader(
         }
         // Substring match against the stored (already lowercased) name. Tag names
         // are always normalized to lowercase slugs so a plain LIKE matches what the
-        // Mongo regex-with-i flag yields on identical inputs.
+        // case-insensitive search-with-i flag yields on identical inputs.
         var probe = $"%{Escape(spec.Search)}%";
         return query.Where(r => EF.Functions.Like(r.Name, probe));
     }

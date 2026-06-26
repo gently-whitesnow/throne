@@ -141,7 +141,7 @@ internal sealed class EfBindingLifecycle(
         RepoCoordinate coordinate,
         CancellationToken ct)
     {
-        // Mirror the Mongo lookup: match on (intent, provider, owner, repo). Host is implied
+        // match on (intent, provider, owner, repo). Host is implied
         // by RepoCoordinate normalization and only scopes self-hosted GitLab instances.
         var intent = intentId.Value;
         var provider = coordinate.Provider;

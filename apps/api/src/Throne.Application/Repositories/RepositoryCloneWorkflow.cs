@@ -27,7 +27,7 @@ namespace Throne.Application.Repositories;
 /// </list>
 ///
 /// Outcomes are typed (<see cref="RunAsync"/> returns <see cref="CloneRunResult"/>)
-/// so callers can log / react without re-reading the binding from Mongo.
+/// so callers can log / react without re-reading the binding from persistence.
 /// </summary>
 public sealed class RepositoryCloneWorkflow(
     IIntentRepositoryBindingRepository bindings,
@@ -87,7 +87,7 @@ public sealed class RepositoryCloneWorkflow(
     {
         // Recompute against the live root, not binding.WorkspacePath: the persisted path
         // embeds the root in effect at clone-time and goes stale across machines (shared
-        // Mongo) or a runtime model switch (ADR-0027) — same reasoning as DeleteAsync /
+        // persistence) or a runtime model switch (ADR-0027) — same reasoning as DeleteAsync /
         // LocalCloneExists. Cloning into the stale parent fails with "Permission denied".
         var workspacePath = WorkspacePathLayout.Compute(
             workspace.ResolvedRoot, binding.IntentId, binding.Coordinate);

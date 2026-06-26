@@ -37,7 +37,7 @@ export interface paths {
         };
         /**
          * Aggregate intent counts per context bucket (rail sidebar).
-         * @description Single-shot aggregate for the context rail: counts for the inbox bucket, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+         * @description Single-shot aggregate for the context rail: counts for the inbox bucket, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (server-side aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
          */
         get: operations["getIntentContexts"];
         put?: never;

@@ -109,7 +109,7 @@ public sealed record IntentPrCommentAdded(
 /// Embedded-terminal liveness hints (Slice 2, ADR-0026). tmux is the single source of
 /// truth for whether a session is alive; these events are best-effort so the
 /// "terminal running" sidebar bucket updates without polling. Unlike the rest of the
-/// realtime events they are NOT carried by a Mongo write outcome — the spawn / kill /
+/// realtime events they are NOT carried by a persistence write outcome — the spawn / kill /
 /// natural-exit paths dispatch them directly via <see cref="IDomainEventDispatcher"/>.
 /// A lost event self-heals: <c>/intents/contexts</c> re-queries tmux on every refresh.
 /// </summary>

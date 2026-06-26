@@ -12,8 +12,7 @@ namespace Throne.Infrastructure.EfCore;
 /// <summary>
 /// EF Core persistence for <see cref="DreamSession"/>. Sessions are append-only —
 /// no update / delete methods. List pagination is descending by <c>created_at</c>
-/// with <c>id</c> tiebreaker; cursor format matches the Mongo backend so cross-backend
-/// dumps and HTTP integrations are byte-stable.
+/// with <c>id</c> tiebreaker; cursor format is stable for dumps and HTTP integrations.
 /// </summary>
 internal sealed class EfDreamSessionRepository(
     IDbContextFactory<ThroneDbContext> contextFactory,
@@ -101,7 +100,7 @@ internal sealed class EfDreamSessionRepository(
 }
 
 /// <summary>
-/// Opaque base64 cursor (created_at_ticks|id). Wire format matches the Mongo dream
+/// Opaque base64 cursor (created_at_ticks|id). Wire format matches the persistence dream
 /// session cursor so clients can pass cursors between backends without recoding.
 /// </summary>
 internal static class DreamSessionCursorCodec

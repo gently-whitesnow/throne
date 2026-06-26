@@ -11,13 +11,13 @@ using static Throne.Application.Tests.Repositories.RepositoryBindingTestData;
 namespace Throne.Application.Tests.Repositories;
 
 /// <summary>
-/// «Обновить» disk-recovery (ADR-0024): the trigger is the on-disk folder, the Mongo
+/// «Обновить» disk-recovery (ADR-0024): the trigger is the on-disk folder, the SQLite
 /// <c>clone_status</c> is ignored. Folder gone → re-queue the clone in <c>pending</c>;
 /// folder present → no-op. Shares <see cref="ServiceFixture"/> with the other binding-service tests.
 /// </summary>
 public class RepositoryBindingServiceRefreshTests
 {
-    [Theory(DisplayName = "Refresh: папки нет → binding в pending и enqueue в clone-очередь (статус Mongo игнорируем)")]
+    [Theory(DisplayName = "Refresh: папки нет → binding в pending и enqueue в clone-очередь (статус persistence игнорируем)")]
     [InlineData(CloneStatusNames.Ready)]
     [InlineData(CloneStatusNames.Failed)]
     [InlineData(CloneStatusNames.Broken)]

@@ -3,7 +3,7 @@ namespace Throne.Domain.Capabilities;
 /// <summary>
 /// Singleton aggregate that persists, for each carrier capability, the operator-selected
 /// provider (e.g. <c>open_in_ide → vscode</c>). Detection of provider prerequisites lives
-/// in an in-memory TTL cache in Application — only the chosen-provider mapping ends up in Mongo.
+/// in an in-memory TTL cache in Application — only the chosen-provider mapping ends up in persistence.
 ///
 /// Absence from <see cref="Selections"/> means «no explicit selection»; consumers fall back
 /// to «whichever provider is detected» when only one candidate exists.

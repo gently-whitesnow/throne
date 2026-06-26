@@ -60,7 +60,7 @@ namespace Throne.Api.Generated
         /// Aggregate intent counts per context bucket (rail sidebar).
         /// </summary>
         /// <remarks>
-        /// Single-shot aggregate for the context rail: counts for the inbox bucket, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (Mongo aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
+        /// Single-shot aggregate for the context rail: counts for the inbox bucket, fridge, archive, pinned and untagged buckets plus per-tag breakdowns for the active, archive and fridge scopes. Computed server-side (server-side aggregation) so the rail never pulls the full intent list just to render counters. Bucket semantics mirror the `status` / `tag` / `untagged` / `pinned` filters of `listIntents`.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/contexts", Name = "getIntentContexts")]

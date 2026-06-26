@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// Shared scaffolding for EF Core repositories, mirroring <c>MongoRepositoryBase</c>'s
-/// session-awareness split:
+/// Shared scaffolding for EF Core repositories:
 /// <list type="bullet">
 /// <item>Reads run on the ambient unit-of-work context when one is active, otherwise on
 /// a short-lived transient context created per call (and disposed here) — so queries

@@ -327,7 +327,7 @@ export interface components {
             selected_part_ids?: string[] | null;
         };
         PromptPartPreviewDto: {
-            /** @description Mongo id of the prompt part (ADR-0036). */
+            /** @description storage id of the prompt part (ADR-0036). */
             part_id: string;
             /** @description Part key, unique within scope. */
             key: string;

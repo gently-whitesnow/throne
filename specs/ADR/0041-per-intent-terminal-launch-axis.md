@@ -85,3 +85,10 @@ The lock-while-live behaviour is unchanged: parameters change only through a new
 
 - A global per-user last-used (the choice is per-intent).
 - Editing a live session's parameters without a restart (lock-while-live retained).
+
+## Amendment — ADR-0047 SQLite persistence (2026-06-26)
+
+[ADR-0047](0047-sqlite-ef-core-persistence.md) supersedes the storage details for
+`terminal_launches`: launches are stored in the EF Core `terminal_launches` table.
+Open extension payloads (`vendor_model`, `allowed_tools`) remain JSON columns using the
+shared EF JSON policy.

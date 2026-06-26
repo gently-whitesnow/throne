@@ -10,7 +10,7 @@ namespace Throne.Application.Repositories;
 /// Reuses <see cref="RepositoryBindingPersistence.DeleteAsync"/> per binding so each removal
 /// stays consistent (clone folder + binding record + <c>IntentRepositoryUnbound</c> event)
 /// and never leaves an orphaned (folder-less) record. Touches only per-intent things —
-/// the <see cref="Repository"/> registry and its artifacts live in Mongo, off-disk, and are
+/// the <see cref="Repository"/> registry and its artifacts live in persistence, off-disk, and are
 /// never cascaded.
 /// </summary>
 public sealed class WorkspaceCleanupService(

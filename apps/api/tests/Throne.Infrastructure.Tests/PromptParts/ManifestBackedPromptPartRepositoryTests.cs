@@ -12,7 +12,7 @@ public class ManifestBackedPromptPartRepositoryTests
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 21, 12, 0, 0, TimeSpan.Zero);
 
-    [Fact(DisplayName = "List возвращает system из манифеста и user из store, скрывая orphan Mongo-system")]
+    [Fact(DisplayName = "List возвращает system из манифеста и user из store, скрывая orphan persisted-system")]
     public async Task List_merges_manifest_system_with_store_user_only()
     {
         var store = new RecordingPromptPartRepository(

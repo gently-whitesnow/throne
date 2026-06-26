@@ -27,7 +27,7 @@ internal sealed class EfIntentLifecycle(EfSessionAccessor sessions, IIntentEvent
 
         var ctx = RequireContext(nameof(CreateAsync));
 
-        // Order matches Mongo: event first (caller's transactional invariant is that the
+        // Event first (caller's transactional invariant is that the
         // unified history exists before the aggregate is committed), aggregate, status change,
         // tag toucher.
         await intentEvents.AppendAsync(

@@ -4,7 +4,7 @@ namespace Throne.Domain.Repositories;
 
 /// <summary>
 /// Persistence-shaped snapshot used by <see cref="IntentRepositoryBinding.Restore"/>.
-/// Wire DTO that mirrors the Mongo document; the aggregate re-validates every
+/// Wire DTO that mirrors the persistence row; the aggregate re-validates every
 /// enum-like field on rehydration.
 /// </summary>
 public sealed record IntentRepositoryBindingSnapshot(

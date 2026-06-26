@@ -20,7 +20,7 @@ public sealed class RunPreflightOptions
 
     /// <summary>
     /// Polling interval (milliseconds) used while waiting for clones to finish.
-    /// Small enough to feel responsive in the UI, large enough not to hammer Mongo.
+    /// Small enough to feel responsive in the UI, large enough not to hammer storage.
     /// </summary>
     public int PollIntervalMilliseconds { get; set; } = 500;
 
