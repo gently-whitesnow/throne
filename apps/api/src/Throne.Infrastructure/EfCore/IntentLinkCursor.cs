@@ -5,7 +5,7 @@ namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
 /// Base64-encoded (created_at|id) cursor for the intent-link page; identical wire format
-/// to the Mongo backend so existing cursors stay portable across providers.
+///.
 /// </summary>
 internal static class IntentLinkCursor
 {

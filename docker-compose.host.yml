@@ -1,16 +1,15 @@
-# Host-backend режим (ADR-0027): в контейнере живут только web + mongo, а API
+# Host-backend режим (ADR-0027): в контейнере живёт только web, а API
 # запускается нативно на хосте (dotnet run) — тогда он наследует хостовый PATH,
 # спавнит code/claude/gh/git/tmux напрямую, ходит в OS keychain и ssh-agent сам
 # через CLI, и host-capabilities (terminal / Run / vscode / repositories) загораются.
 #
 # Запуск (две независимые команды, без оркестрации — см. интент-решение):
-#   1) контейнеры web + mongo:
+#   1) контейнер web:
 #        docker compose -f docker-compose.host.yml up --build -d
 #   2) нативный API на хосте (из корня репо):
 #        ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
 #      0.0.0.0 обязателен: web-контейнер ходит в API через host.docker.internal,
 #      это не loopback. Ядро single-operator local-first без auth-гейта,
-#      Mongo — localhost:27017,
 #      Throne:Workspace:Root — ~/.throne/workspaces (реальный хостовый путь,
 #      без HostRoot-трансляции — она контейнерный артефакт).
 #
@@ -29,6 +28,3 @@ services:
     # host.docker.internal на Docker Desktop резолвится сам; на Linux нужен маппинг.
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-volumes:
-  mongo_data:

@@ -59,8 +59,7 @@ internal static class EfIntentListQueryBuilder
             return query;
         }
         var statuses = spec.Statuses;
-        // Legacy rows may have empty status — treat them as "draft" the same way the
-        // Mongo filter does so the two backends list identically.
+        // Legacy rows may have empty status — treat them as "draft".
         var includeDraft = statuses.Contains(IntentStatusNames.Draft, StringComparer.Ordinal);
         return includeDraft
             ? query.Where(r => statuses.Contains(r.Status) || r.Status == string.Empty)
@@ -134,8 +133,7 @@ internal static class EfIntentListQueryBuilder
         {
             return query;
         }
-        // AND of per-token LIKE %word%. Tokenisation is whitespace-split + non-empty,
-        // matching the Mongo regex's «every whitespace-separated chunk must match».
+        // AND of per-token LIKE %word%. Tokenisation is whitespace-split + non-empty.
         foreach (var token in TokenizeQuery(spec.Query))
         {
             var pattern = $"%{Escape(token)}%";

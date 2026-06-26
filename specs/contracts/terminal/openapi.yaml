@@ -815,7 +815,7 @@ components:
       properties:
         part_id:
           type: string
-          description: Mongo id of the prompt part (ADR-0036).
+          description: storage id of the prompt part (ADR-0036).
         key:
           type: string
           description: Part key, unique within scope.

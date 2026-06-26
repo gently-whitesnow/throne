@@ -162,8 +162,8 @@ internal sealed class EfPromptPartPatchLifecycle(
 }
 
 /// <summary>
-/// Opaque list cursor: base64 of (created_at ticks, id). Symmetric with the Mongo
-/// <c>PromptPartPatchCursor</c> shape so the two backends interoperate at the API edge.
+/// Opaque list cursor: base64 of (created_at ticks, id). Persistent cursor uses the
+/// <c>PromptPartPatchCursor</c> shape.
 /// </summary>
 internal static class PromptPartPatchEfCursor
 {

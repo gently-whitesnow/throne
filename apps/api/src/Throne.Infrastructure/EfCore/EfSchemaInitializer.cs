@@ -6,9 +6,9 @@ using Microsoft.Extensions.Options;
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// SQLite equivalent of <c>MongoIndexInitializer</c>: brings the schema up to date on
-/// startup via <see cref="RelationalDatabaseFacadeExtensions.MigrateAsync"/>. Unlike the
-/// Mongo variant it runs on the startup critical path (<see cref="StartAsync"/>, not a
+/// Brings the schema up to date on startup via
+/// <see cref="RelationalDatabaseFacadeExtensions.MigrateAsync"/>. It runs on the
+/// startup critical path (<see cref="StartAsync"/>, not a
 /// background loop) — the local file migrates in milliseconds and requests must not hit a
 /// schema that does not exist yet. It also ensures the parent directory exists and puts
 /// the database into WAL journal mode (a persistent, one-time property of the file).

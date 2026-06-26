@@ -10,7 +10,7 @@
 # `bundles[]` declares the ordered mandatory composition per mode. It is consumed
 # by the operator UI + run pre-flight system-prompt composition.
 #
-# User-scope prompt parts are runtime data in Mongo. Their texts are not stored
+# User-scope prompt parts are runtime data in local persistence. Their texts are not stored
 # here — only the fact that the corresponding key participates in a mode (via
 # `bundles[].includes` with `scope: user`).
 #
@@ -51,8 +51,8 @@ system_instructions:
       Цель review — провести агентское ревью attached PR/MR и записать единственный артефакт `review_recommendation`.
 
       Правила:
-      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`, не из Mongo.
-      - Артефакт `review_recommendation` записывай только через статический скрипт `skills/review/bin/throne-review` в workspace сессии. Не пиши PR-артефакты напрямую в Mongo или через provider-specific реализацию.
+      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`, не из persistence.
+      - Артефакт `review_recommendation` записывай только через статический скрипт `skills/review/bin/throne-review` в workspace сессии. Не пиши PR-артефакты напрямую в persistence или через provider-specific реализацию.
       - Payload скрипта соответствует `PutPullRequestArtifactRequest` из `specs/contracts/repositories/openapi.yaml`: `render`, `content`, `summary`, `source`, `source_refs`, `head_sha`, `review_recommendation`, `produced_at`. Для review используй `source="agent"`, обычно `render="markdown"` (markdown-тело рекомендации в `content`).
       - Заполняй типизированный `review_recommendation` (схема `ReviewRecommendationContent` в контракте): сейчас в схеме только `file_order[{path, reason, risk}]` — упорядочи его от самых рисковых/корневых файлов к листьям (это порядок чтения на ревью; `risk` ∈ `high|medium|low`). Импакт/провенанс будут добавлены в схему, когда появится UI-консьюмер; пока их не выдумывай.
       - Проставляй `head_sha` — head-sha PR/MR, который ты ревьюил (`gh pr view --json headRefOid` / `glab` / `git rev-parse HEAD` в workspace): по нему UI помечает артефакт устаревшим, когда PR уезжает вперёд.

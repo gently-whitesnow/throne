@@ -16,6 +16,6 @@ internal static class SkillModeDefaultRowMapper
     public static SkillModeDefault ToDomain(SkillModeDefaultRow row) =>
         new(row.Mode, row.SkillId, row.Enabled);
 
-    // Matches MongoSkillModeDefaultStore.IdOf so a cross-backend export stays byte-stable.
+    // Keep the persisted composite id stable for exports.
     public static string IdOf(string mode, string skillId) => $"{mode}:{skillId}";
 }

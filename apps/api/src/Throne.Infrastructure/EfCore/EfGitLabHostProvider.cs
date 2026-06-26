@@ -5,7 +5,7 @@ using Throne.Infrastructure.EfCore.Rows;
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// EF Core mirror of <c>MongoGitLabHostProvider</c>. Lazy-materialises
+/// EF Core mirror of <c>previous GitLab host provider</c>. Lazy-materialises
 /// <see cref="GitLabHostNormalizer.Default"/> on first read if the singleton row does not
 /// exist, then caches the value in-process. Cache is invalidated on every successful
 /// <see cref="SetHostAsync"/>. No <c>IConfiguration</c> / env-var fallback. Operates

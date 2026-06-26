@@ -1,9 +1,9 @@
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// Ambient <see cref="ThroneDbContext"/> for the current async flow — the EF mirror of
-/// <c>MongoSessionAccessor</c>. A unit of work opens exactly one context, publishes it
-/// here for the duration of the work, and repositories pick it up transparently.
+/// Ambient <see cref="ThroneDbContext"/> for the current async flow. A unit of work opens
+/// exactly one context, publishes it here for the duration of the work, and repositories
+/// pick it up transparently.
 /// Nested scopes are rejected: a reentrant <c>ExecuteAsync</c> must join the ambient
 /// context, not open a second one.
 /// </summary>

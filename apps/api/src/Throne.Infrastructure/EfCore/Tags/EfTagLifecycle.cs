@@ -12,8 +12,7 @@ namespace Throne.Infrastructure.EfCore.Tags;
 /// Tag read + insert surface (Find/Get/Ensure/Create). Rename and SetDefaultRepositories
 /// live in <see cref="EfTagMutator"/> so neither type bumps into the per-type LOC budget.
 /// Duplicate-name races are resolved by catching SQLite UNIQUE conflict (error code
-/// <see cref="SqliteUniqueErrorCode"/>) and re-reading the row, matching Mongo's
-/// duplicate-key recovery path.
+/// <see cref="SqliteUniqueErrorCode"/>) and re-reading the row.
 /// </summary>
 internal sealed class EfTagLifecycle(
     IDbContextFactory<ThroneDbContext> contextFactory,

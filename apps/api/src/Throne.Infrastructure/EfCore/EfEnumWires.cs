@@ -4,10 +4,8 @@ using Throne.Domain.TextVersions;
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// Wire strings for persistence-agnostic enums. Duplicated from <c>MongoEnumNames</c>
-/// rather than referenced cross-namespace so the SQLite backend stays self-contained and
-/// the Mongo namespace remains free to evolve independently. The string values themselves
-/// MUST stay identical across backends — they are the on-disk and on-the-wire contract.
+/// Wire strings for persistence-agnostic enums. The string values are the on-disk and
+/// on-the-wire contract.
 /// </summary>
 internal static class EfEnumWires
 {

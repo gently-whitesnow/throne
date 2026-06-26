@@ -56,3 +56,14 @@ Accepted
 - `ModelContextProtocol` SDK в preview — версия может ломаться. Мы фиксируем версию в `Directory.Packages.props` и обновляем осознанно.
 - Maintainability baseline пока не сгенерирован — пройдёт первой реальной проходкой после появления доменного кода.
 - Testcontainers требует Docker на машине разработчика и в CI.
+
+## Amendment — ADR-0047 SQLite persistence (2026-06-26)
+
+[ADR-0047](0047-sqlite-ef-core-persistence.md) supersedes the original MongoDB stack
+choice in this foundation ADR:
+
+- `Throne.Application` still owns ports and remains storage-agnostic.
+- `Throne.Infrastructure` now implements persistence with SQLite/EF Core, not MongoDB.
+- The active tech stack is .NET 10, EF Core SQLite, Central Package Management, xUnit
+  and FluentAssertions. Testcontainers are no longer required for persistence tests.
+- The original MCP SDK assumption was already retired by [ADR-0043](0043-static-operational-skills-and-mcp-removal.md).

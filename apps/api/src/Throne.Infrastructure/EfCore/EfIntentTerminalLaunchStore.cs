@@ -9,7 +9,7 @@ namespace Throne.Infrastructure.EfCore;
 /// EF Core <see cref="IIntentTerminalLaunchStore"/> (ADR-0041). One row per intent;
 /// upserted on every successful spawn. The save axis (mode/vendor/model/effort) is
 /// auxiliary UI-prefill state, so the store does not require an ambient unit of work and
-/// opens a one-shot context when called outside one — matching the Mongo store's behavior.
+/// opens a one-shot context when called outside one — matching the persistence store's behavior.
 /// </summary>
 internal sealed class EfIntentTerminalLaunchStore(
     IDbContextFactory<ThroneDbContext> contextFactory,
@@ -86,7 +86,7 @@ internal sealed class EfIntentTerminalLaunchStore(
         return ExecuteAsync(async (ctx, c) =>
         {
             // upsert=false here: when no row exists, attach is meaningless (a session must
-            // have been spawned first). Mirrors the Mongo store's targeted-$set behavior.
+            // have been spawned first). Mirrors the persistence store's targeted-$set behavior.
             var row = await ctx.Set<IntentTerminalLaunchRow>()
                 .FirstOrDefaultAsync(r => r.Id == intentId, c);
             if (row is null)

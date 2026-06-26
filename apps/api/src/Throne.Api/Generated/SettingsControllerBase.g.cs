@@ -43,7 +43,7 @@ namespace Throne.Api.Generated
         /// Bulk-remove intent repository clones from the workspace root.
         /// </summary>
         /// <remarks>
-        /// Mass unbind: deletes the on-disk clones under `Throne:Workspace:Root` AND their `IntentRepositoryBinding` records, so no orphaned (folder-less) bindings remain. `mode=all` clears the whole root (every clone, including active intents) and drops every binding; `mode=closed_only` touches only intents in `done` / `reject` / `fridge`. Repo-level metadata (the `Repository` registry and its artifacts) lives in Mongo, not on disk, and is never cascaded. With `dry_run=true` nothing is deleted — the response is the preview (`removed_clones` / `freed_bytes` that *would* be removed) for the confirm dialog.
+        /// Mass unbind: deletes the on-disk clones under `Throne:Workspace:Root` AND their `IntentRepositoryBinding` records, so no orphaned (folder-less) bindings remain. `mode=all` clears the whole root (every clone, including active intents) and drops every binding; `mode=closed_only` touches only intents in `done` / `reject` / `fridge`. Repo-level metadata (the `Repository` registry and its artifacts) lives in persistence, not on disk, and is never cascaded. With `dry_run=true` nothing is deleted — the response is the preview (`removed_clones` / `freed_bytes` that *would* be removed) for the confirm dialog.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/workspace/clean", Name = "cleanWorkspace")]
@@ -113,7 +113,7 @@ namespace Throne.Api.Generated
         /// Persist the GitLab host used by `glab` (e.g. `gitlab.com`, `gitlab.example.com`).
         /// </summary>
         /// <remarks>
-        /// Replaces the singleton GitLab host setting in Mongo. There is no env-var fallback; the very first read materialises the default `gitlab.com`. Takes effect on the next `glab` invocation (auth probe, repo search, clone) without restart.
+        /// Replaces the singleton GitLab host setting in persistence. There is no env-var fallback; the very first read materialises the default `gitlab.com`. Takes effect on the next `glab` invocation (auth probe, repo search, clone) without restart.
         /// </remarks>
         /// <returns>OK</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/git-providers/gitlab/host", Name = "setGitLabHost")]

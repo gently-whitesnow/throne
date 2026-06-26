@@ -98,7 +98,6 @@ internal static class SqliteTestHost
         {
             var values = new Dictionary<string, string?>
             {
-                ["Persistence:Provider"] = "sqlite",
                 [$"{EfPersistenceOptions.SectionName}:DataSource"] = dataSource,
             };
             if (extraConfiguration is not null)

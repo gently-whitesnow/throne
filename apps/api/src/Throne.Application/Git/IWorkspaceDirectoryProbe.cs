@@ -3,7 +3,7 @@ namespace Throne.Application.Git;
 /// <summary>
 /// Existence check for a binding's on-disk workspace directory. Implemented in
 /// Infrastructure — the filesystem probe must not leak into Application/Domain.
-/// Backs the «Обновить» disk-recovery path (ADR-0024): a binding may exist in Mongo
+/// Backs the «Обновить» disk-recovery path (ADR-0024): a binding may exist in persistence
 /// while its local clone folder is absent on the current machine.
 /// </summary>
 public interface IWorkspaceDirectoryProbe

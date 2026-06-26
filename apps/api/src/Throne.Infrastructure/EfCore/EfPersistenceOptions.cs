@@ -3,7 +3,7 @@ using Throne.Infrastructure.Git;
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// SQLite backend settings (active only when <c>Persistence:Provider=sqlite</c>).
+/// SQLite backend settings.
 /// <para>
 /// Default <see cref="DataSource"/> is <c>~/.throne/throne.db</c> — a single local file
 /// under the operator's home, matching the local-first runtime (ADR-0027/0029). The

@@ -11,15 +11,15 @@ using Throne.Infrastructure.EfCore.Bindings;
 using Throne.Infrastructure.EfCore.Intents;
 using Throne.Infrastructure.EfCore.PromptParts;
 using Throne.Infrastructure.EfCore.Tags;
-using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.PromptParts;
+using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// SQLite/EF Core persistence wiring (active when <c>Persistence:Provider=sqlite</c>).
-/// Registers the unit of work, ambient-context accessor, pooled context factory, the
-/// startup schema initializer and every repository port. The whole graph is Singleton:
+/// SQLite/EF Core persistence wiring. Registers the unit of work,
+/// ambient-context accessor, pooled context factory, the startup schema initializer and
+/// every repository port. The whole graph is Singleton:
 /// <see cref="ThroneDbContext"/> instances are pulled from the Singleton
 /// <see cref="IDbContextFactory{TContext}"/> into the ambient <c>AsyncLocal</c>, never
 /// injected directly.
@@ -94,13 +94,9 @@ internal static class EfCoreModule
         services.AddSingleton<ITerminalSettingsStore, EfTerminalSettingsStore>();
         services.AddSingleton<IIntentTerminalLaunchStore, EfIntentTerminalLaunchStore>();
         services.AddSingleton<ISkillModeDefaultStore, EfSkillModeDefaultStore>();
-        // IGitLabHostProvider is owned by the persistence backend; SQLite uses its own
-        // EF Core variant so the operator-configured glab host survives a Mongo-less boot.
         services.AddSingleton<IGitLabHostProvider, EfGitLabHostProvider>();
 
         services.AddHostedService<EfSchemaInitializer>();
-        // SkillModeDefaultSeeder is storage-agnostic (depends on ISkillModeDefaultStore only),
-        // so the SQLite branch reuses the same hosted service as Mongo.
         services.AddHostedService<SkillModeDefaultSeeder>();
 
         return services;
