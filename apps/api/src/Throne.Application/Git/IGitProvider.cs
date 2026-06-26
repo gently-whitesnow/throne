@@ -39,12 +39,23 @@ public interface IGitProvider
     /// Clone the repository into <paramref name="targetPath"/>. Caller owns
     /// directory placement (see <c>WorkspaceRootInitializer</c> and the
     /// <c>{root}/intents/{intent_id}/{owner}__{repo}/</c> layout from ADR-0024).
+    /// After the clone the working tree is moved onto <paramref name="checkout"/>:
+    /// a PR is switched through the provider CLI (handles fork-PRs), otherwise the
+    /// branch is switched through plain git — see <see cref="CloneCheckout"/> for the
+    /// placeholder-vs-real-ref semantics.
     /// </summary>
     Task CloneRepositoryAsync(
         string owner,
         string repo,
         string targetPath,
+        CloneCheckout checkout,
         CancellationToken ct);
+
+    /// <summary>
+    /// Применить <paramref name="checkout"/> к уже склонированному <paramref name="workspacePath"/>
+    /// (оператор привязал PR к готовому биндингу). Семантика — как у post-clone шага CloneRepositoryAsync.
+    /// </summary>
+    Task CheckoutAsync(string owner, string repo, string workspacePath, CloneCheckout checkout, CancellationToken ct);
 
     /// <summary>
     /// Synchronize an already-cloned <paramref name="workspacePath"/> using the provider CLI.
