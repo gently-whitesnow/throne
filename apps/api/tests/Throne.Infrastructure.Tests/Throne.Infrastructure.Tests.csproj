@@ -11,6 +11,7 @@
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Testcontainers.MongoDb" />
     <PackageReference Include="MongoDB.Driver" />
   </ItemGroup>
