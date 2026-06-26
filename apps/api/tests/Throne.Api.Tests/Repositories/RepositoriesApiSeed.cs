@@ -9,7 +9,7 @@ using Throne.Domain.TextVersions;
 namespace Throne.Api.Tests.Repositories;
 
 /// <summary>
-/// Shared Mongo seeding for the intent-repositories integration tests (controller +
+/// Shared SQLite seeding for the intent-repositories integration tests (controller +
 /// refresh suites). Keeps the create-intent / create-ready-binding choreography in one
 /// place instead of duplicating it per test class.
 /// </summary>

@@ -1,17 +1,16 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
 using Throne.Domain.Tags;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Tests.Mongo.Tags;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoTagDefaultRepositoriesTests(MongoFixture fixture)
+public class MongoTagDefaultRepositoriesTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 27, 12, 0, 0, TimeSpan.Zero);
 
@@ -37,10 +36,7 @@ public class MongoTagDefaultRepositoriesTests(MongoFixture fixture)
         updated.DefaultRepositories.Should().HaveCount(2);
         updated.CurrentVersion.Should().Be(tag.CurrentVersion + 1);
 
-        var stored = await scope.Database
-            .GetCollection<TagDocument>(MongoCollectionNames.Tags)
-            .Find(d => d.Id == tag.Id.Value)
-            .FirstOrDefaultAsync();
+        var stored = await FindTagRowAsync(scope.Database, tag.Id);
         stored.Should().NotBeNull();
         stored!.DefaultRepositories.Should().HaveCount(2);
         stored.DefaultRepositories[0].Owner.Should().Be("anthropics");
@@ -141,7 +137,9 @@ public class MongoTagDefaultRepositoriesTests(MongoFixture fixture)
 
     private static async Task<Tag> EnsureTagAsync(TagRepositoryTestScope scope, string name)
     {
-        var outcome = await scope.Repository.EnsureByNameAsync(name, Now, CancellationToken.None);
+        var outcome = await scope.Uow.ExecuteAsync(
+            ct => scope.Repository.EnsureByNameAsync(name, Now, ct),
+            CancellationToken.None);
         return outcome switch
         {
             EnsureTagOutcome.Created c => c.Value,
@@ -152,4 +150,10 @@ public class MongoTagDefaultRepositoriesTests(MongoFixture fixture)
 
     private static TagDefaultRepository Default(string owner, string repo, string? branch = null) =>
         new(new RepoCoordinate(GitProviderNames.GitHub, owner, repo), branch);
+
+    private static async Task<TagRow?> FindTagRowAsync(SqliteTestDatabase database, TagId id)
+    {
+        await using var ctx = await database.CreateContextAsync();
+        return await ctx.Set<TagRow>().AsNoTracking().FirstOrDefaultAsync(d => d.Id == id.Value);
+    }
 }

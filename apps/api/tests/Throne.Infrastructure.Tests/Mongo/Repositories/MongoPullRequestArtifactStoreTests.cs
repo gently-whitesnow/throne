@@ -1,15 +1,14 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.Mongo.Repositories;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
+public class MongoPullRequestArtifactStoreTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly BindingId BindingId = new("binding-1");
@@ -52,10 +51,11 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
         var first = ReviewRecommendation.Create([
             new ReviewFileOrderEntry("a.cs", "core", ReviewFileRisk.High),
         ]);
-        await scope.PullRequestArtifacts.UpsertAsync(
+        await UpsertAsync(
+            scope,
             BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
             "# review", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now,
-            "sha-1", first, CancellationToken.None);
+            "sha-1", first);
 
         var stored = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
         stored!.HeadSha.Should().Be("sha-1");
@@ -65,10 +65,11 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
         var second = ReviewRecommendation.Create([
             new ReviewFileOrderEntry("b.cs", null, null),
         ]);
-        await scope.PullRequestArtifacts.UpsertAsync(
+        await UpsertAsync(
+            scope,
             BindingId, 42, "review_recommendation", PullRequestArtifactRenderNames.Markdown,
             "# review v2", "Review", PullRequestArtifactSourceNames.Agent, ["gh pr diff"], Now.AddMinutes(1),
-            "sha-2", second, CancellationToken.None);
+            "sha-2", second);
 
         var stored2 = await scope.PullRequestArtifacts.GetAsync(BindingId, "review_recommendation", CancellationToken.None);
         stored2!.HeadSha.Should().Be("sha-2");
@@ -81,24 +82,27 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
         await WriteAsync(scope, "# v1", Now);
-        var collection = scope.Database.GetCollection<PullRequestArtifactDocument>(
-            MongoCollectionNames.PullRequestArtifacts);
 
-        var act = async () => await collection.InsertOneAsync(new PullRequestArtifactDocument
+        var act = async () =>
         {
-            Id = Guid.NewGuid().ToString("N"),
-            BindingId = BindingId.Value,
-            PullRequestNumber = 42,
-            Type = "static_analysis",
-            Render = PullRequestArtifactRenderNames.Markdown,
-            Content = "dup",
-            Summary = "dup",
-            Source = PullRequestArtifactSourceNames.Static,
-            SourceRefs = [],
-            ProducedAt = Now.UtcDateTime,
-        });
+            await using var db = await scope.Database.CreateContextAsync();
+            db.Set<PullRequestArtifactRow>().Add(new PullRequestArtifactRow
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                BindingId = BindingId.Value,
+                PullRequestNumber = 42,
+                Type = "static_analysis",
+                Render = PullRequestArtifactRenderNames.Markdown,
+                Content = "dup",
+                Summary = "dup",
+                Source = PullRequestArtifactSourceNames.Static,
+                SourceRefs = [],
+                ProducedAt = Now,
+            });
+            await db.SaveChangesAsync(CancellationToken.None);
+        };
 
-        await act.Should().ThrowAsync<MongoWriteException>();
+        await act.Should().ThrowAsync<DbUpdateException>();
     }
 
     private static Task<WritePullRequestArtifactOutcome> WriteAsync(
@@ -106,7 +110,8 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
         string content,
         DateTimeOffset producedAt,
         string type = "static_analysis") =>
-        scope.PullRequestArtifacts.UpsertAsync(
+        UpsertAsync(
+            scope,
             BindingId,
             42,
             type,
@@ -117,6 +122,34 @@ public class MongoPullRequestArtifactStoreTests(MongoFixture fixture)
             ["sha:abc"],
             producedAt,
             null,
-            null,
+            null);
+
+    private static Task<WritePullRequestArtifactOutcome> UpsertAsync(
+        RepositoryStoreTestScope scope,
+        BindingId bindingId,
+        int pullRequestNumber,
+        string type,
+        string render,
+        string content,
+        string summary,
+        string source,
+        IReadOnlyList<string> sourceRefs,
+        DateTimeOffset producedAt,
+        string? headSha,
+        ReviewRecommendation? reviewRecommendation) =>
+        scope.UnitOfWork.ExecuteAsync(
+            ct => scope.PullRequestArtifacts.UpsertAsync(
+                bindingId,
+                pullRequestNumber,
+                type,
+                render,
+                content,
+                summary,
+                source,
+                sourceRefs,
+                producedAt,
+                headSha,
+                reviewRecommendation,
+                ct),
             CancellationToken.None);
 }

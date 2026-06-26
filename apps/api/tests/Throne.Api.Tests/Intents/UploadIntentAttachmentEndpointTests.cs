@@ -3,13 +3,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using MongoDB.Driver;
 using Throne.Api.Tests.Infrastructure;
 using Throne.Application.Errors;
 using Throne.Application.Intents;
@@ -20,42 +16,20 @@ using Throne.Domain.TextVersions;
 
 namespace Throne.Api.Tests.Intents;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IAsyncLifetime
+public sealed class UploadIntentAttachmentEndpointTests(SqliteFixture sqlite) : IAsyncLifetime
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
+    private SqliteTestDatabase _database = null!;
 
     public Task InitializeAsync()
     {
-        var connectionString = mongo.ConnectionString;
-        var dbName = $"throne_api_{Guid.NewGuid():N}";
-
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Production");
-            builder.UseDefaultServiceProvider(o =>
-            {
-                o.ValidateScopes = false;
-                o.ValidateOnBuild = false;
-            });
-            builder.ConfigureAppConfiguration(
-                (_, cfg) =>
-                {
-                    cfg.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["Mongo:ConnectionString"] = connectionString,
-                            ["Mongo:Database"] = dbName,
-                        }
-                    );
-                }
-            );
-        });
-
+        _database = sqlite.CreateDatabase();
+        _factory = SqliteTestHost.Create(_database);
         _client = _factory.CreateClient();
         return Task.CompletedTask;
     }
@@ -64,6 +38,7 @@ public sealed class UploadIntentAttachmentEndpointTests(MongoFixture mongo) : IA
     {
         _client.Dispose();
         await _factory.DisposeAsync();
+        await _database.DisposeAsync();
     }
 
     [Fact(DisplayName = "POST /api/v1/intents/{id}/attachments без intent возвращает 404")]

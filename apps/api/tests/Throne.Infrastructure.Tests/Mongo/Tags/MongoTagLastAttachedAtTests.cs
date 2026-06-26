@@ -1,5 +1,5 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.Tags;
@@ -7,15 +7,14 @@ using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Tests.Mongo.Tags;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoTagLastAttachedAtTests(MongoFixture fixture)
+public class MongoTagLastAttachedAtTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Base = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
@@ -30,8 +29,8 @@ public class MongoTagLastAttachedAtTests(MongoFixture fixture)
         var intent1 = await SeedIntentAsync(ctx, "first", [a, b]);
         await SeedIntentAsync(ctx, "second", [a]);
 
-        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
-        (await LastAttachedAtAsync(ctx, b)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base);
+        (await LastAttachedAtAsync(ctx, b)).Should().Be(Base);
         (await LastAttachedAtAsync(ctx, c)).Should().BeNull();
 
         // Replace [a,b] with [b,c]: c is newly attached, a is detached, b is unchanged.
@@ -40,14 +39,14 @@ public class MongoTagLastAttachedAtTests(MongoFixture fixture)
             CancellationToken.None);
         outcome.Should().BeOfType<SetIntentTagsOutcome.Updated>();
 
-        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
-        (await LastAttachedAtAsync(ctx, b)).Should().Be(Base.UtcDateTime);
-        (await LastAttachedAtAsync(ctx, c)).Should().Be(Base.AddMinutes(1).UtcDateTime);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base);
+        (await LastAttachedAtAsync(ctx, b)).Should().Be(Base);
+        (await LastAttachedAtAsync(ctx, c)).Should().Be(Base.AddMinutes(1));
 
         var second = await SeedIntentAsync(ctx, "third", [a]);
-        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base);
         await ctx.Uow.ExecuteAsync(ct => ctx.Intents.DeleteAsync(second.Id, ct), CancellationToken.None);
-        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base.UtcDateTime);
+        (await LastAttachedAtAsync(ctx, a)).Should().Be(Base);
     }
 
     [Fact(DisplayName = "ListPageAsync сортирует по последней привязке, ищет по подстроке и пагинирует курсором")]
@@ -77,13 +76,11 @@ public class MongoTagLastAttachedAtTests(MongoFixture fixture)
         second.NextCursor.Should().BeNull();
     }
 
-    private static async Task<DateTime?> LastAttachedAtAsync(TestContext ctx, TagId id)
+    private static async Task<DateTimeOffset?> LastAttachedAtAsync(TestContext ctx, TagId id)
     {
-        var doc = await ctx.Database
-            .GetCollection<TagDocument>(MongoCollectionNames.Tags)
-            .Find(d => d.Id == id.Value)
-            .FirstOrDefaultAsync();
-        return doc!.LastAttachedAt;
+        await using var db = await ctx.Database.CreateContextAsync();
+        var row = await db.Set<TagRow>().AsNoTracking().FirstOrDefaultAsync(d => d.Id == id.Value);
+        return row!.LastAttachedAt;
     }
 
     private static async Task<TagId> CreateTagAsync(TestContext ctx, string name, DateTimeOffset? now = null)
@@ -114,19 +111,17 @@ public class MongoTagLastAttachedAtTests(MongoFixture fixture)
 
     private async Task<TestContext> NewContextAsync()
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        var intents = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
-        var tags = new MongoTagRepository(db, sessions);
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return new TestContext(db, intents, tags, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return new TestContext(
+            db,
+            db.GetRequiredService<IIntentRepository>(),
+            db.GetRequiredService<ITagRepository>(),
+            db.GetRequiredService<IUnitOfWork>());
     }
 
     private sealed record TestContext(
-        IMongoDatabase Database,
-        MongoIntentRepository Intents,
-        MongoTagRepository Tags,
+        SqliteTestDatabase Database,
+        IIntentRepository Intents,
+        ITagRepository Tags,
         IUnitOfWork Uow);
 }

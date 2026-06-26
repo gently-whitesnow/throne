@@ -35,6 +35,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -n "$FILTER" ]]; then
-  exec dotnet test Throne.slnx -c Release --nologo --no-build --filter "$FILTER"
+  exec dotnet test Throne.slnx -c Release --nologo --filter "$FILTER"
 fi
-exec dotnet test Throne.slnx -c Release --nologo --no-build
+exec dotnet test Throne.slnx -c Release --nologo

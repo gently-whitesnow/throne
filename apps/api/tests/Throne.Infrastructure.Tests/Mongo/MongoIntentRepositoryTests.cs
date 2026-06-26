@@ -1,19 +1,18 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 using Tag = Throne.Domain.Tags.Tag;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoIntentRepositoryTests(MongoFixture fixture)
+public class MongoIntentRepositoryTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
@@ -31,16 +30,14 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
 
         await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored.Should().NotBeNull();
         stored!.Text.Should().Be("hello world");
         stored.Status.Should().Be(IntentStatusNames.Draft);
         stored.CurrentVersion.Should().Be(1);
         stored.TagIds.Should().Equal(tagId.Value);
 
-        var events = await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
-            .Find(x => x.IntentId == id.Value).ToListAsync();
+        var events = await ListEventsAsync(db, id);
         events.Should().HaveCount(1);
         events[0].Version.Should().Be(1);
         events[0].Kind.Should().Be("text_changed");
@@ -109,15 +106,11 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         updated.State.Status.Should().Be(IntentStatusNames.Work);
         updated.State.CurrentVersion.Should().Be(1);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored.Should().NotBeNull();
         stored!.Status.Should().Be(IntentStatusNames.Work);
 
-        var changes = await db.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges)
-            .Find(x => x.IntentId == id.Value)
-            .SortBy(x => x.CreatedAt)
-            .ToListAsync();
+        var changes = await ListStatusChangesAsync(db, id);
         changes.Should().HaveCount(2);
         changes[1].FromStatus.Should().Be(IntentStatusNames.Draft);
         changes[1].ToStatus.Should().Be(IntentStatusNames.Work);
@@ -150,14 +143,10 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
                 ct),
             CancellationToken.None);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored!.Text.Should().Be("body");
 
-        var changes = await db.GetCollection<IntentStatusChangeDocument>(MongoCollectionNames.IntentStatusChanges)
-            .Find(x => x.IntentId == id.Value)
-            .SortBy(x => x.CreatedAt)
-            .ToListAsync();
+        var changes = await ListStatusChangesAsync(db, id);
         changes.Should().HaveCount(2);
         changes[1].ToStatus.Should().Be(IntentStatusNames.AwaitingOperator);
         changes[1].Reason.Should().Be("нужен доступ к prod");
@@ -186,34 +175,8 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         fetched!.State.CleanupLocalStateOnClose.Should().BeFalse();
         fetched.State.CurrentVersion.Should().Be(1);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(x => x.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored!.CleanupLocalStateOnDone.Should().BeFalse();
-    }
-
-    [Fact(DisplayName = "Документ без поля cleanup_local_state_on_done читается как true (легаси-дефолт)")]
-    public async Task Legacy_document_without_flag_reads_true()
-    {
-        var (db, repo, _) = await NewScopeAsync();
-
-        var id = IntentId.New();
-        // Раздельный insert без поля — воспроизводит документ, записанный до появления гейта.
-        var raw = new MongoDB.Bson.BsonDocument
-        {
-            { "_id", id.Value },
-            { "text", "legacy" },
-            { "status", IntentStatusNames.Draft },
-            { "current_version", 1 },
-            { "tag_ids", new MongoDB.Bson.BsonArray() },
-            { "sort_key", "a1" },
-            { "created_at", Now.UtcDateTime },
-            { "updated_at", Now.UtcDateTime },
-        };
-        await db.GetCollection<MongoDB.Bson.BsonDocument>(MongoCollectionNames.Intents).InsertOneAsync(raw);
-
-        var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
-
-        fetched!.State.CleanupLocalStateOnClose.Should().BeTrue();
     }
 
     [Fact(DisplayName = "CreateAsync вне UoW бросает InvalidOperationException")]
@@ -230,15 +193,34 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
-    private async Task<(IMongoDatabase Db, MongoIntentRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
+    private async Task<(SqliteTestDatabase Db, IIntentRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        var repo = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return (db, repo, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return (db, db.GetRequiredService<IIntentRepository>(), db.GetRequiredService<IUnitOfWork>());
+    }
+
+    private static async Task<IntentRow?> FindIntentAsync(SqliteTestDatabase db, IntentId id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentRow>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id.Value);
+    }
+
+    private static async Task<List<IntentEventRow>> ListEventsAsync(SqliteTestDatabase db, IntentId id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentEventRow>().AsNoTracking()
+            .Where(x => x.IntentId == id.Value)
+            .OrderBy(x => x.Version)
+            .ToListAsync();
+    }
+
+    private static async Task<List<IntentStatusChangeRow>> ListStatusChangesAsync(SqliteTestDatabase db, IntentId id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentStatusChangeRow>().AsNoTracking()
+            .Where(x => x.IntentId == id.Value)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync();
     }
 
     private static IntentStatusChange InitialStatusChange(Intent intent) =>
@@ -251,9 +233,4 @@ public class MongoIntentRepositoryTests(MongoFixture fixture)
             "test:create",
             Now,
             IntentTrainingAuthor.Agent);
-}
-
-[CollectionDefinition(nameof(MongoIntegrationFixture))]
-public sealed class MongoIntegrationFixture : ICollectionFixture<MongoFixture>
-{
 }

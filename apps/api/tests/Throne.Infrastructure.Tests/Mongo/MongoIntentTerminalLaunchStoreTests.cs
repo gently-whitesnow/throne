@@ -1,14 +1,14 @@
 using FluentAssertions;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
+using Throne.Application.Ports;
 using Throne.Application.Terminals;
-using Throne.Infrastructure.Mongo;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
+public class MongoIntentTerminalLaunchStoreTests(SqliteFixture fixture)
 {
     private const string Work = "work";
     private const string Review = "review";
@@ -43,8 +43,7 @@ public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
 
         var loaded = await store.GetAsync("i-2", CancellationToken.None);
         AssertAxis(loaded!, "review", "codex", "gpt-5.5", "low");
-        var count = await db.GetCollection<BsonDocument>(MongoCollectionNames.TerminalLaunches)
-            .CountDocumentsAsync(Builders<BsonDocument>.Filter.Eq("_id", "i-2"), cancellationToken: CancellationToken.None);
+        var count = await CountRowsAsync(db, "i-2");
         count.Should().Be(1);
     }
 
@@ -57,26 +56,26 @@ public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
 
         var loaded = await store.GetAsync("i-3", CancellationToken.None);
         AssertAxis(loaded!, "work", "opencode", "throne-local/x", null);
-        var raw = await db.GetCollection<BsonDocument>(MongoCollectionNames.TerminalLaunches)
-            .Find(Builders<BsonDocument>.Filter.Eq("_id", "i-3")).FirstAsync(CancellationToken.None);
-        raw.Contains("effort").Should().BeFalse();
+        var raw = await FindRowAsync(db, "i-3");
+        raw!.Effort.Should().BeNull();
     }
 
-    [Fact(DisplayName = "Tolerant read: лишние persisted-поля не валят десериализацию")]
-    public async Task Tolerant_read_ignores_unknown_fields()
+    [Fact(DisplayName = "Direct row read восстанавливает launch axis")]
+    public async Task Direct_row_read_restores_axis()
     {
         var (db, store) = await NewScopeAsync();
-        await db.GetCollection<BsonDocument>(MongoCollectionNames.TerminalLaunches).InsertOneAsync(
-            new BsonDocument
+        await using (var ctx = await db.CreateContextAsync())
+        {
+            ctx.Set<IntentTerminalLaunchRow>().Add(new IntentTerminalLaunchRow
             {
-                ["_id"] = "i-legacy",
-                ["mode"] = "work",
-                ["vendor"] = "claude",
-                ["model"] = "sonnet",
-                ["effort"] = "medium",
-                ["legacy_started_at"] = "2026-01-01",
-            },
-            cancellationToken: CancellationToken.None);
+                Id = "i-legacy",
+                Mode = "work",
+                Vendor = "claude",
+                Model = "sonnet",
+                Effort = "medium",
+            });
+            await ctx.SaveChangesAsync(CancellationToken.None);
+        }
 
         var loaded = await store.GetAsync("i-legacy", CancellationToken.None);
         AssertAxis(loaded!, "work", "claude", "sonnet", "medium");
@@ -158,9 +157,8 @@ public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
 
         await store.SetAttachedSkillIdsAsync("i-clear", Work, Array.Empty<string>(), CancellationToken.None);
 
-        var raw = await db.GetCollection<BsonDocument>(MongoCollectionNames.TerminalLaunches)
-            .Find(Builders<BsonDocument>.Filter.Eq("_id", "i-clear")).FirstAsync(CancellationToken.None);
-        raw.Contains("attached_skill_ids").Should().BeFalse();
+        var raw = await FindRowAsync(db, "i-clear");
+        raw!.AttachedSkillIds.Should().BeNull();
         var loaded = await store.GetAsync("i-clear", CancellationToken.None);
         loaded!.AttachedSkillIds.Should().BeEmpty();
         // Per-mode selection is the operator's «next-preflight» intent — clearing the runtime
@@ -168,20 +166,22 @@ public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
         loaded.SelectedSkillIdsByMode[Work].Should().BeEquivalentTo(IntentOnly);
     }
 
-    [Fact(DisplayName = "Tolerant read: документ без attached_skill_ids/selected_skill_ids_by_mode читается как пустой")]
-    public async Task Tolerant_read_legacy_doc_returns_empty_collections()
+    [Fact(DisplayName = "Row без attached_skill_ids/selected_skill_ids_by_mode читается как пустой")]
+    public async Task Row_without_skill_columns_returns_empty_collections()
     {
         var (db, store) = await NewScopeAsync();
-        await db.GetCollection<BsonDocument>(MongoCollectionNames.TerminalLaunches).InsertOneAsync(
-            new BsonDocument
+        await using (var ctx = await db.CreateContextAsync())
+        {
+            ctx.Set<IntentTerminalLaunchRow>().Add(new IntentTerminalLaunchRow
             {
-                ["_id"] = "i-legacy-attach",
-                ["mode"] = "work",
-                ["vendor"] = "claude",
-                ["model"] = "sonnet",
-                ["effort"] = "medium",
-            },
-            cancellationToken: CancellationToken.None);
+                Id = "i-legacy-attach",
+                Mode = "work",
+                Vendor = "claude",
+                Model = "sonnet",
+                Effort = "medium",
+            });
+            await ctx.SaveChangesAsync(CancellationToken.None);
+        }
 
         var loaded = await store.GetAsync("i-legacy-attach", CancellationToken.None);
         loaded!.AttachedSkillIds.Should().BeEmpty();
@@ -195,9 +195,7 @@ public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
 
         await store.SetAttachedSkillIdsAsync("i-ghost", Work, IntentOnly, CancellationToken.None);
 
-        var count = await db.GetCollection<BsonDocument>(MongoCollectionNames.TerminalLaunches)
-            .CountDocumentsAsync(Builders<BsonDocument>.Filter.Eq("_id", "i-ghost"),
-                cancellationToken: CancellationToken.None);
+        var count = await CountRowsAsync(db, "i-ghost");
         count.Should().Be(0);
     }
 
@@ -213,12 +211,21 @@ public class MongoIntentTerminalLaunchStoreTests(MongoFixture fixture)
         record.Effort.Should().Be(effort);
     }
 
-    private async Task<(IMongoDatabase Db, MongoIntentTerminalLaunchStore Store)> NewScopeAsync()
+    private async Task<(SqliteTestDatabase Db, IIntentTerminalLaunchStore Store)> NewScopeAsync()
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var store = new MongoIntentTerminalLaunchStore(db, new MongoSessionAccessor());
-        return (db, store);
+        var db = await fixture.CreateDatabaseAsync();
+        return (db, db.GetRequiredService<IIntentTerminalLaunchStore>());
+    }
+
+    private static async Task<IntentTerminalLaunchRow?> FindRowAsync(SqliteTestDatabase db, string id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentTerminalLaunchRow>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    private static async Task<int> CountRowsAsync(SqliteTestDatabase db, string id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentTerminalLaunchRow>().AsNoTracking().CountAsync(x => x.Id == id);
     }
 }
