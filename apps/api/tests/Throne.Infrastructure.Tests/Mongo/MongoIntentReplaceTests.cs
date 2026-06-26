@@ -1,17 +1,16 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Training;
 using Throne.Domain.TextVersions;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoIntentReplaceTests(MongoFixture fixture)
+public class MongoIntentReplaceTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Created = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset Edited = new(2026, 5, 1, 13, 0, 0, TimeSpan.Zero);
@@ -45,13 +44,11 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var conflict = outcome.Should().BeOfType<ReplaceIntentTextOutcome.VersionConflict>().Subject;
         conflict.CurrentVersion.Should().Be(1);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(d => d.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored!.Text.Should().Be("hello world");
         stored.CurrentVersion.Should().Be(1);
 
-        var events = await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
-            .Find(d => d.IntentId == id.Value).ToListAsync();
+        var events = await ListEventsAsync(db, id);
         events.Should().HaveCount(1);
     }
 
@@ -66,11 +63,9 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
 
         outcome.Should().BeOfType<ReplaceIntentTextOutcome.MatchNotFound>();
 
-        var events = await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
-            .Find(d => d.IntentId == id.Value).ToListAsync();
+        var events = await ListEventsAsync(db, id);
         events.Should().HaveCount(1);
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(d => d.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored!.CurrentVersion.Should().Be(1);
     }
 
@@ -86,12 +81,10 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
         var ambiguous = outcome.Should().BeOfType<ReplaceIntentTextOutcome.MatchAmbiguous>().Subject;
         ambiguous.MatchesCount.Should().Be(3);
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(d => d.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored!.Text.Should().Be("foo\nfoo\nfoo");
         stored.CurrentVersion.Should().Be(1);
-        var events = await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
-            .Find(d => d.IntentId == id.Value).ToListAsync();
+        var events = await ListEventsAsync(db, id);
         events.Should().HaveCount(1);
     }
 
@@ -130,23 +123,18 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
 
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("boom");
 
-        var stored = await db.GetCollection<IntentDocument>(MongoCollectionNames.Intents)
-            .Find(d => d.Id == id.Value).FirstOrDefaultAsync();
+        var stored = await FindIntentAsync(db, id);
         stored!.Text.Should().Be("hello world");
         stored.CurrentVersion.Should().Be(1);
-        var events = await db.GetCollection<IntentEventDocument>(MongoCollectionNames.IntentEvents)
-            .Find(d => d.IntentId == id.Value).ToListAsync();
+        var events = await ListEventsAsync(db, id);
         events.Should().HaveCount(1);
     }
 
-    private async Task<(IMongoDatabase Db, MongoIntentRepository Repo, IUnitOfWork Uow, IntentId Id)> SeedAsync(string text)
+    private async Task<(SqliteTestDatabase Db, IIntentRepository Repo, IUnitOfWork Uow, IntentId Id)> SeedAsync(string text)
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        var repo = new MongoIntentRepository(db, sessions, new MongoIntentEventRepository(db, sessions));
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
+        var db = await fixture.CreateDatabaseAsync();
+        var repo = db.GetRequiredService<IIntentRepository>();
+        var uow = db.GetRequiredService<IUnitOfWork>();
 
         var id = IntentId.New();
         var intent = Intent.Create(id, text, null, Created);
@@ -156,6 +144,21 @@ public class MongoIntentReplaceTests(MongoFixture fixture)
             ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Throne.Domain.Tags.Tag>(), ct),
             CancellationToken.None);
         return (db, repo, uow, id);
+    }
+
+    private static async Task<IntentRow?> FindIntentAsync(SqliteTestDatabase db, IntentId id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentRow>().AsNoTracking().FirstOrDefaultAsync(d => d.Id == id.Value);
+    }
+
+    private static async Task<List<IntentEventRow>> ListEventsAsync(SqliteTestDatabase db, IntentId id)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentEventRow>().AsNoTracking()
+            .Where(d => d.IntentId == id.Value)
+            .OrderBy(d => d.Version)
+            .ToListAsync();
     }
 
     private static IntentStatusChange InitialStatusChange(Intent intent) =>

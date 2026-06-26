@@ -1,14 +1,14 @@
 using FluentAssertions;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
+using Throne.Application.Ports;
 using Throne.Application.Terminals;
-using Throne.Infrastructure.Mongo;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoSkillModeStoresTests(MongoFixture fixture)
+public class MongoSkillModeStoresTests(SqliteFixture fixture)
 {
     [Fact(DisplayName = "SkillModeDefault: UpsertMissingAsync сидит только отсутствующие значения")]
     public async Task Default_store_upserts_only_missing_values()
@@ -30,8 +30,8 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
                 new SkillModeDefault(TerminalRunModes.Work, SessionSkillPackageIds.Intent, true),
                 new SkillModeDefault(TerminalRunModes.Review, SessionSkillPackageIds.Review, true),
             ]);
-        var count = await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeDefaults)
-            .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty, cancellationToken: CancellationToken.None);
+        await using var ctx = await db.CreateContextAsync();
+        var count = await ctx.Set<SkillModeDefaultRow>().AsNoTracking().CountAsync(CancellationToken.None);
         count.Should().Be(2);
     }
 
@@ -49,32 +49,10 @@ public class MongoSkillModeStoresTests(MongoFixture fixture)
             .Which.Should().Be(key with { Enabled = false });
     }
 
-    [Fact(DisplayName = "SkillModeDefault tolerant read: лишние persisted-поля игнорируются")]
-    public async Task Default_store_tolerant_read_ignores_unknown_fields()
-    {
-        var (db, defaults) = await NewScopeAsync();
-        await db.GetCollection<BsonDocument>(MongoCollectionNames.SkillModeDefaults).InsertOneAsync(
-            new BsonDocument
-            {
-                ["_id"] = "work:legacy-skill",
-                ["mode"] = TerminalRunModes.Work,
-                ["skill_id"] = "legacy-skill",
-                ["enabled"] = true,
-                ["legacy"] = "ignored",
-            },
-            cancellationToken: CancellationToken.None);
-
-        (await defaults.ListAsync(CancellationToken.None)).Should().ContainSingle()
-            .Which.Should().Be(new SkillModeDefault(TerminalRunModes.Work, "legacy-skill", true));
-    }
-
-    private async Task<(IMongoDatabase Db, MongoSkillModeDefaultStore Defaults)>
+    private async Task<(SqliteTestDatabase Db, ISkillModeDefaultStore Defaults)>
         NewScopeAsync()
     {
-        var name = $"throne_skill_mode_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        return (db, new MongoSkillModeDefaultStore(db, sessions));
+        var db = await fixture.CreateDatabaseAsync();
+        return (db, db.GetRequiredService<ISkillModeDefaultStore>());
     }
 }

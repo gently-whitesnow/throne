@@ -1,14 +1,12 @@
 using FluentAssertions;
-using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.PromptParts;
-using Throne.Infrastructure.Mongo;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoPromptPartPatchRepositoryTests(MongoFixture fixture)
+public class MongoPromptPartPatchRepositoryTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 9, 12, 0, 0, TimeSpan.Zero);
 
@@ -73,8 +71,7 @@ public class MongoPromptPartPatchRepositoryTests(MongoFixture fixture)
     [Fact(DisplayName = "Idempotency: повторный Create с тем же ключом возвращает существующий patch (IsExisting=true), второй insert отсутствует")]
     public async Task Idempotency_returns_existing_on_retry()
     {
-        var (db, repo, uow) = await NewScopeAsync();
-        await EnsureIndexesAsync(db);
+        var (_, repo, uow) = await NewScopeAsync();
 
         var first = MakePatch("p-1");
         var firstOutcome = await uow.ExecuteOutsideTransactionAsync(
@@ -131,22 +128,9 @@ public class MongoPromptPartPatchRepositoryTests(MongoFixture fixture)
             baseVersion: 5,
             now: Now);
 
-    private static async Task EnsureIndexesAsync(IMongoDatabase db)
+    private async Task<(SqliteTestDatabase Db, IPromptPartPatchRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
     {
-        // Idempotency dedup relies on the sparse-unique index; integration tests
-        // don't boot MongoIndexInitializer, so create indexes for the test DB
-        // before exercising the retry race.
-        await MongoPromptPartPatchIndexes.CreateAsync(db, CancellationToken.None);
-    }
-
-    private async Task<(IMongoDatabase Db, MongoPromptPartPatchRepository Repo, MongoUnitOfWork Uow)> NewScopeAsync()
-    {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var session = new MongoSessionAccessor();
-        var uow = new MongoUnitOfWork(fixture.Client, session);
-        var repo = new MongoPromptPartPatchRepository(db, session);
-        return (db, repo, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return (db, db.GetRequiredService<IPromptPartPatchRepository>(), db.GetRequiredService<IUnitOfWork>());
     }
 }

@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -14,8 +13,8 @@ using Throne.Domain.Repositories;
 namespace Throne.Api.Tests.Repositories;
 
 /// <summary>
-/// Boots <see cref="WebApplicationFactory{TEntryPoint}"/> with a Testcontainers
-/// Mongo, a writable workspace under <see cref="System.IO.Path.GetTempPath"/>,
+/// Boots <see cref="WebApplicationFactory{TEntryPoint}"/> with an isolated SQLite
+/// database, a writable workspace under <see cref="System.IO.Path.GetTempPath"/>,
 /// a stub <see cref="IGitProvider"/> + matching <see cref="IGitProviderRegistry"/>,
 /// and the clone / PR-sync background hosts removed so binding-side effects
 /// don't run during HTTP-level tests.
@@ -23,20 +22,21 @@ namespace Throne.Api.Tests.Repositories;
 internal sealed class RepositoriesApiFixture : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
+    private readonly SqliteTestDatabase _database;
     private readonly string _workspaceRoot;
 
-    public RepositoriesApiFixture(MongoFixture mongo, IGitProvider provider)
+    public RepositoriesApiFixture(SqliteFixture sqlite, IGitProvider provider)
     {
-        ArgumentNullException.ThrowIfNull(mongo);
+        ArgumentNullException.ThrowIfNull(sqlite);
         ArgumentNullException.ThrowIfNull(provider);
 
         Provider = provider;
+        _database = sqlite.CreateDatabase();
         _workspaceRoot = Path.Combine(Path.GetTempPath(), $"throne-test-ws-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_workspaceRoot);
 
-        var dbName = $"throne_api_{Guid.NewGuid():N}";
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            RepositoriesTestHostConfigurator.Configure(builder, mongo.ConnectionString, dbName, _workspaceRoot, provider));
+            RepositoriesTestHostConfigurator.Configure(builder, _database.DataSource, _workspaceRoot, provider));
         Client = _factory.CreateClient();
     }
 
@@ -52,6 +52,7 @@ internal sealed class RepositoriesApiFixture : IAsyncDisposable
     {
         Client.Dispose();
         await _factory.DisposeAsync();
+        await _database.DisposeAsync();
         try
         {
             if (Directory.Exists(_workspaceRoot))
@@ -74,26 +75,14 @@ internal static class RepositoriesTestHostConfigurator
 {
     public static void Configure(
         IWebHostBuilder builder,
-        string mongoConnection,
-        string dbName,
+        string dataSource,
         string workspaceRoot,
         IGitProvider provider)
     {
-        builder.UseEnvironment("Production");
-        builder.UseDefaultServiceProvider(o =>
-        {
-            o.ValidateScopes = false;
-            o.ValidateOnBuild = false;
-        });
-        builder.ConfigureAppConfiguration((_, cfg) =>
-        {
-            cfg.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Mongo:ConnectionString"] = mongoConnection,
-                ["Mongo:Database"] = dbName,
-                ["Throne:Workspace:Root"] = workspaceRoot,
-            });
-        });
+        SqliteTestHost.Configure(
+            builder,
+            dataSource,
+            new Dictionary<string, string?> { ["Throne:Workspace:Root"] = workspaceRoot });
         builder.ConfigureTestServices(services =>
         {
             ReplaceGitProvider(services, provider);

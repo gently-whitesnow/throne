@@ -9,11 +9,11 @@ namespace Throne.Api.Tests.Repositories;
 /// <summary>
 /// HTTP-level coverage for <c>POST .../repositories/{binding_id}/refresh</c> (ADR-0024
 /// «Обновить» disk-recovery). Exercises the real on-disk probe + live path recompute +
-/// Mongo transition: folder missing → re-queued to <c>pending</c>, folder present → no-op.
+/// SQLite transition: folder missing → re-queued to <c>pending</c>, folder present → no-op.
 /// </summary>
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class IntentRepositoryRefreshControllerTests(MongoFixture mongo) : IAsyncLifetime, IDisposable
+public sealed class IntentRepositoryRefreshControllerTests(SqliteFixture sqlite) : IAsyncLifetime, IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 24, 12, 0, 0, TimeSpan.Zero);
 
@@ -21,7 +21,7 @@ public sealed class IntentRepositoryRefreshControllerTests(MongoFixture mongo) :
 
     public Task InitializeAsync()
     {
-        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create());
+        _fixture = new RepositoriesApiFixture(sqlite, TestGitProvider.Create());
         return Task.CompletedTask;
     }
 

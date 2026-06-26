@@ -1,16 +1,15 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.Capabilities;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 using DomainCapabilities = Throne.Domain.Capabilities.Capabilities;
 
 namespace Throne.Infrastructure.Tests.Mongo.Capabilities;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
+public class MongoCapabilitiesRepositoryTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 27, 12, 0, 0, TimeSpan.Zero);
 
@@ -35,10 +34,7 @@ public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
             ct => scope.Repository.SaveAsync(aggregate, ct),
             CancellationToken.None);
 
-        var stored = await scope.Database
-            .GetCollection<CapabilitiesDocument>(MongoCollectionNames.Settings)
-            .Find(d => d.Id == DomainCapabilities.SingletonId)
-            .FirstOrDefaultAsync();
+        var stored = await FindRowAsync(scope.Database);
         stored.Should().NotBeNull();
         stored!.Id.Should().Be(DomainCapabilities.SingletonId);
         stored.Selections.Should().ContainKey(CapabilityNames.OpenInIde).WhoseValue.Should().Be("vscode");
@@ -59,12 +55,18 @@ public class MongoCapabilitiesRepositoryTests(MongoFixture fixture)
         aggregate.SetSelectedProvider(CapabilityNames.OpenInIde, "cursor", Now.AddMinutes(2));
         await scope.Uow.ExecuteAsync(ct => scope.Repository.SaveAsync(aggregate, ct), CancellationToken.None);
 
-        var count = await scope.Database
-            .GetCollection<CapabilitiesDocument>(MongoCollectionNames.Settings)
-            .CountDocumentsAsync(FilterDefinition<CapabilitiesDocument>.Empty);
+        await using var ctx = await scope.Database.CreateContextAsync();
+        var count = await ctx.Set<CapabilitiesRow>().AsNoTracking().CountAsync(CancellationToken.None);
         count.Should().Be(1);
         var fetched = await scope.Repository.GetAsync(CancellationToken.None);
         fetched!.GetSelectedProvider(CapabilityNames.OpenInIde).Should().Be("cursor");
         fetched.CurrentVersion.Should().Be(aggregate.CurrentVersion);
+    }
+
+    private static async Task<CapabilitiesRow?> FindRowAsync(SqliteTestDatabase database)
+    {
+        await using var ctx = await database.CreateContextAsync();
+        return await ctx.Set<CapabilitiesRow>().AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == DomainCapabilities.SingletonId);
     }
 }
