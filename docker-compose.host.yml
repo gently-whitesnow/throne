@@ -17,39 +17,6 @@
 # UI: http://localhost:8080, API: http://localhost:5008.
 
 services:
-  mongo:
-    image: mongo:7
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 3s
-      timeout: 5s
-      retries: 20
-      start_period: 5s
-
-  mongo-init:
-    image: mongo:7
-    depends_on:
-      mongo:
-        condition: service_healthy
-    restart: on-failure
-    entrypoint: ["bash", "-c"]
-    command:
-      - |
-        set -e
-        mongosh "mongodb://mongo:27017" --quiet --eval 'try { rs.status(); } catch (e) { rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] }); }'
-        for i in $$(seq 1 40); do
-          ok=$$(mongosh "mongodb://mongo:27017" --quiet --eval "try { rs.status().ok } catch (e) { 0 }" | tr -d "[:space:]")
-          if [ "$$ok" = "1" ]; then exit 0; fi
-          sleep 1
-        done
-        echo "replica set not ready in time" >&2
-        exit 1
-
   web:
     build:
       context: ./apps/web
