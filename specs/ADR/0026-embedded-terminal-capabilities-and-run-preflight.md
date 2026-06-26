@@ -227,3 +227,26 @@ ADR:
   replacement still uses `expected_version`; `current_version` is configured as a
   concurrency token and repository writes use explicit CAS.
 - The terminal liveness source remains `tmux`, not persistence.
+
+## § 10. Амендмент (2026-06-26) — host-capabilities default-on по live probe
+
+Снимает исходное правило § 1 «explicit opt-in, detection **никогда** не флипает
+`enabled`, default `enabled=false`» полностью (не только для essentials, как § 9).
+Контекст — [ADR-0048](0048-single-binary-packaging.md): двухрежимная модель ([ADR-0027](0027-runtime-model-native-host-process.md))
+схлопнута в один self-contained host-only бинарь, контейнерного «фичи недоступны»-режима
+больше нет.
+
+**Решение.** host-фичи (embedded-терминал/`tmux`, Run, Open in IDE, `gh`/`git`)
+гейтятся **напрямую live-детектом тула в `PATH`** — фича включена тогда и только тогда,
+когда соответствующий CLI (`claude`/`codex`/`gh`/`git`/`tmux`/`code`) найден. Персистентного
+`enabled`-тогла «возможности» в `/settings` больше нет; страница показывает только
+«Готовность» (что детектится / что доустановить).
+
+«Capability» в текущей модели сужается до **выбора провайдера** действия —
+`open_in_ide` / `open_in_terminal` (см. `CapabilityNames`), — а не до on/off самой фичи.
+Сами фичи on/off-гейтятся детектом, не записью в реестре.
+
+Граница: правило § 1 (singleton-документ `capabilities` с per-key `enabled`, read-time
+materialization `false`) снято целиком; § 9 (essentials detection→ready) поглощён этим
+амендментом — теперь так работают все host-фичи, не только `{repositories, terminal}`.
+Историческое тело § 1–§ 9 сохранено как контекст эволюции.
