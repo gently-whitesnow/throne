@@ -9,7 +9,7 @@ internal sealed class IntentPinRowConfiguration : IEntityTypeConfiguration<Inten
     public void Configure(EntityTypeBuilder<IntentPinRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.IntentPins);
+        builder.ToTable(EfTableNames.Intents.IntentPins);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

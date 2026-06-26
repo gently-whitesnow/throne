@@ -9,7 +9,7 @@ internal sealed class IntentStatusChangeRowConfiguration : IEntityTypeConfigurat
     public void Configure(EntityTypeBuilder<IntentStatusChangeRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.IntentStatusChanges);
+        builder.ToTable(EfTableNames.Intents.IntentStatusChanges);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

@@ -3,7 +3,6 @@ using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Events;
 using Throne.Domain.Intents.Training;
-using Throne.Domain.Tags;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.EfCore.Mappers;
 using Throne.Infrastructure.EfCore.Rows;
@@ -26,14 +25,11 @@ internal sealed class EfIntentStatusMutator(EfSessionAccessor sessions, IIntentE
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
 
         var ctx = RequireContext(nameof(SetStatusAsync));
-        var wire = id.Value;
-
-        var row = await ctx.Set<IntentRow>().FirstOrDefaultAsync(r => r.Id == wire, ct);
+        var row = await LoadDetachedRowAsync(ctx, id, ct);
         if (row is null)
         {
             return new SetIntentStatusOutcome.NotFound();
         }
-        ctx.Entry(row).State = EntityState.Detached;
 
         var intent = IntentRowMapper.ToDomain(row);
         var originalVersion = intent.State.CurrentVersion;
@@ -46,32 +42,10 @@ internal sealed class EfIntentStatusMutator(EfSessionAccessor sessions, IIntentE
             return new SetIntentStatusOutcome.Updated(intent);
         }
 
-        // CAS: filter on both (current_version, status) — and accept empty Status when
-        // mapper normalised "" → "draft" so legacy rows still update.
-        var newText = intent.State.Text;
-        var newStatus = intent.State.Status;
-        var newVersion = intent.State.CurrentVersion;
-        var newUpdatedAt = intent.State.UpdatedAt;
-        var includeEmptyStatus = string.Equals(originalStatus, IntentStatusNames.Draft, StringComparison.Ordinal);
-
-        var affected = await ctx.Set<IntentRow>()
-            .Where(r => r.Id == wire
-                && r.CurrentVersion == originalVersion
-                && (r.Status == originalStatus || (includeEmptyStatus && r.Status == string.Empty)))
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.Text, newText)
-                .SetProperty(r => r.Status, newStatus)
-                .SetProperty(r => r.CurrentVersion, newVersion)
-                .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct);
-
-        if (affected == 0)
+        var conflict = await ApplyStatusCasAsync(ctx, id, intent, originalVersion, originalStatus, withTextUpdate: true, ct);
+        if (conflict is not null)
         {
-            var fresh = await ctx.Set<IntentRow>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == wire, ct);
-            return fresh is null
-                ? new SetIntentStatusOutcome.NotFound()
-                : new SetIntentStatusOutcome.Conflict(fresh.CurrentVersion, fresh.Status);
+            return conflict;
         }
 
         if (textVersion is not null)
@@ -87,18 +61,7 @@ internal sealed class EfIntentStatusMutator(EfSessionAccessor sessions, IIntentE
 
         if (statusChanged)
         {
-            var statusChange = IntentStatusChange.Create(
-                id: Guid.NewGuid().ToString("N"),
-                intentId: id,
-                intentVersionAtWrite: intent.State.CurrentVersion,
-                fromStatus: originalStatus,
-                toStatus: intent.State.Status,
-                source: source,
-                createdAt: now,
-                createdBy: changedBy,
-                reason: reason);
-            ctx.Set<IntentStatusChangeRow>().Add(IntentStatusChangeRowMapper.ToRow(statusChange));
-            await ctx.SaveChangesAsync(ct);
+            await RecordStatusChangeAsync(ctx, id, intent, originalStatus, changedBy, source, reason, now, ct);
         }
 
         return new SetIntentStatusOutcome.Updated(intent);
@@ -116,14 +79,11 @@ internal sealed class EfIntentStatusMutator(EfSessionAccessor sessions, IIntentE
         ArgumentException.ThrowIfNullOrWhiteSpace(source);
 
         var ctx = RequireContext(nameof(SetStatusBySystemAsync));
-        var wire = id.Value;
-
-        var row = await ctx.Set<IntentRow>().FirstOrDefaultAsync(r => r.Id == wire, ct);
+        var row = await LoadDetachedRowAsync(ctx, id, ct);
         if (row is null)
         {
             return new SetIntentStatusOutcome.NotFound();
         }
-        ctx.Entry(row).State = EntityState.Detached;
 
         var intent = IntentRowMapper.ToDomain(row);
         var originalStatus = intent.State.Status;
@@ -133,28 +93,83 @@ internal sealed class EfIntentStatusMutator(EfSessionAccessor sessions, IIntentE
             return new SetIntentStatusOutcome.Updated(intent);
         }
 
+        var conflict = await ApplyStatusCasAsync(ctx, id, intent, originalVersion, originalStatus, withTextUpdate: false, ct);
+        if (conflict is not null)
+        {
+            return conflict;
+        }
+
+        await RecordStatusChangeAsync(ctx, id, intent, originalStatus, IntentTrainingAuthor.System, source, reason, now, ct);
+        return new SetIntentStatusOutcome.Updated(intent);
+    }
+
+    private static async Task<IntentRow?> LoadDetachedRowAsync(ThroneDbContext ctx, IntentId id, CancellationToken ct)
+    {
+        var wire = id.Value;
+        var row = await ctx.Set<IntentRow>().FirstOrDefaultAsync(r => r.Id == wire, ct);
+        if (row is not null)
+        {
+            ctx.Entry(row).State = EntityState.Detached;
+        }
+        return row;
+    }
+
+    // CAS: filter on both (current_version, status) — and accept empty Status when the mapper
+    // normalised "" → "draft" so legacy rows still update. Returns the outcome envelope on
+    // conflict / disappearance, or null when the update succeeded.
+    private static async Task<SetIntentStatusOutcome?> ApplyStatusCasAsync(
+        ThroneDbContext ctx,
+        IntentId id,
+        Intent intent,
+        int originalVersion,
+        string originalStatus,
+        bool withTextUpdate,
+        CancellationToken ct)
+    {
+        var wire = id.Value;
+        var newText = intent.State.Text;
         var newStatus = intent.State.Status;
+        var newVersion = intent.State.CurrentVersion;
         var newUpdatedAt = intent.State.UpdatedAt;
         var includeEmptyStatus = string.Equals(originalStatus, IntentStatusNames.Draft, StringComparison.Ordinal);
 
-        var affected = await ctx.Set<IntentRow>()
+        var query = ctx.Set<IntentRow>()
             .Where(r => r.Id == wire
                 && r.CurrentVersion == originalVersion
-                && (r.Status == originalStatus || (includeEmptyStatus && r.Status == string.Empty)))
-            .ExecuteUpdateAsync(s => s
+                && (r.Status == originalStatus || (includeEmptyStatus && r.Status == string.Empty)));
+        var affected = withTextUpdate
+            ? await query.ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Text, newText)
+                .SetProperty(r => r.Status, newStatus)
+                .SetProperty(r => r.CurrentVersion, newVersion)
+                .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct)
+            : await query.ExecuteUpdateAsync(s => s
                 .SetProperty(r => r.Status, newStatus)
                 .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct);
 
-        if (affected == 0)
+        if (affected != 0)
         {
-            var fresh = await ctx.Set<IntentRow>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == wire, ct);
-            return fresh is null
-                ? new SetIntentStatusOutcome.NotFound()
-                : new SetIntentStatusOutcome.Conflict(fresh.CurrentVersion, fresh.Status);
+            return null;
         }
+        var fresh = await ctx.Set<IntentRow>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == wire, ct);
+        return fresh is null
+            ? new SetIntentStatusOutcome.NotFound()
+            : new SetIntentStatusOutcome.Conflict(fresh.CurrentVersion, fresh.Status);
+    }
 
+    private static async Task RecordStatusChangeAsync(
+        ThroneDbContext ctx,
+        IntentId id,
+        Intent intent,
+        string originalStatus,
+        IntentTrainingAuthor changedBy,
+        string source,
+        string? reason,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
         var statusChange = IntentStatusChange.Create(
             id: Guid.NewGuid().ToString("N"),
             intentId: id,
@@ -163,83 +178,10 @@ internal sealed class EfIntentStatusMutator(EfSessionAccessor sessions, IIntentE
             toStatus: intent.State.Status,
             source: source,
             createdAt: now,
-            createdBy: IntentTrainingAuthor.System,
+            createdBy: changedBy,
             reason: reason);
         ctx.Set<IntentStatusChangeRow>().Add(IntentStatusChangeRowMapper.ToRow(statusChange));
         await ctx.SaveChangesAsync(ct);
-
-        return new SetIntentStatusOutcome.Updated(intent);
-    }
-
-    public async Task<SetIntentTagsOutcome> SetTagsAsync(
-        IntentId id,
-        int expectedVersion,
-        IReadOnlyList<TagId> tagIds,
-        DateTimeOffset now,
-        CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(tagIds);
-
-        var ctx = RequireContext(nameof(SetTagsAsync));
-        var wire = id.Value;
-
-        var row = await ctx.Set<IntentRow>().FirstOrDefaultAsync(r => r.Id == wire, ct);
-        if (row is null)
-        {
-            return new SetIntentTagsOutcome.NotFound();
-        }
-        if (row.CurrentVersion != expectedVersion)
-        {
-            return new SetIntentTagsOutcome.VersionConflict(row.CurrentVersion);
-        }
-        ctx.Entry(row).State = EntityState.Detached;
-
-        var intent = IntentRowMapper.ToDomain(row);
-        var oldTagIds = row.TagIds;
-        var changed = intent.SetTags(tagIds, now);
-        if (!changed)
-        {
-            return new SetIntentTagsOutcome.Updated(intent, Changed: false);
-        }
-
-        var newTagIds = intent.TagIds.Select(t => t.Value).ToList();
-        var newUpdatedAt = intent.State.UpdatedAt;
-
-        var affected = await ctx.Set<IntentRow>()
-            .Where(r => r.Id == wire && r.CurrentVersion == expectedVersion)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.TagIds, newTagIds)
-                .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct);
-
-        if (affected == 0)
-        {
-            var fresh = await ctx.Set<IntentRow>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == wire, ct);
-            return fresh is null
-                ? new SetIntentTagsOutcome.NotFound()
-                : new SetIntentTagsOutcome.VersionConflict(fresh.CurrentVersion);
-        }
-
-        var added = newTagIds.Where(t => !oldTagIds.Contains(t)).ToList();
-        await EfTagAttachmentToucher.TouchAsync(ctx, added, now, ct);
-
-        return new SetIntentTagsOutcome.Updated(intent, Changed: true);
-    }
-
-    public async Task SetCleanupLocalStateOnDoneAsync(
-        IntentId id,
-        bool value,
-        DateTimeOffset now,
-        CancellationToken ct)
-    {
-        var ctx = RequireContext(nameof(SetCleanupLocalStateOnDoneAsync));
-        var wire = id.Value;
-        await ctx.Set<IntentRow>()
-            .Where(r => r.Id == wire)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.CleanupLocalStateOnDone, value)
-                .SetProperty(r => r.UpdatedAt, now), ct);
     }
 
     private static TextVersion? ApplyOptionalAppend(

@@ -13,6 +13,7 @@ namespace Throne.Infrastructure.EfCore;
 /// </summary>
 internal sealed class EfTagRepository(
     EfTagLifecycle lifecycle,
+    EfTagMutator mutator,
     EfTagListReader listReader,
     EfTagDeletion deletion)
     : ITagRepository
@@ -41,7 +42,7 @@ internal sealed class EfTagRepository(
         string rawName,
         DateTimeOffset now,
         CancellationToken ct) =>
-        lifecycle.RenameAsync(id, expectedVersion, rawName, now, ct);
+        mutator.RenameAsync(id, expectedVersion, rawName, now, ct);
 
     public Task<SetTagDefaultRepositoriesOutcome> SetDefaultRepositoriesAsync(
         TagId id,
@@ -49,7 +50,7 @@ internal sealed class EfTagRepository(
         IReadOnlyList<TagDefaultRepository> defaultRepositories,
         DateTimeOffset now,
         CancellationToken ct) =>
-        lifecycle.SetDefaultRepositoriesAsync(id, expectedVersion, defaultRepositories, now, ct);
+        mutator.SetDefaultRepositoriesAsync(id, expectedVersion, defaultRepositories, now, ct);
 
     public Task<int> CountAttachedIntentsAsync(TagId id, CancellationToken ct) =>
         deletion.CountAttachedIntentsAsync(id, ct);

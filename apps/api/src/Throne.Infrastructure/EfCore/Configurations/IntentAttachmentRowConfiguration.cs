@@ -9,7 +9,7 @@ internal sealed class IntentAttachmentRowConfiguration : IEntityTypeConfiguratio
     public void Configure(EntityTypeBuilder<IntentAttachmentRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.IntentAttachments);
+        builder.ToTable(EfTableNames.Intents.IntentAttachments);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

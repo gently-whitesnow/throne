@@ -9,7 +9,7 @@ internal sealed class RepositoryRowConfiguration : IEntityTypeConfiguration<Repo
     public void Configure(EntityTypeBuilder<RepositoryRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.Repositories);
+        builder.ToTable(EfTableNames.Repositories.Table);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

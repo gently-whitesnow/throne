@@ -11,7 +11,7 @@ internal sealed class CapabilitiesRowConfiguration : IEntityTypeConfiguration<Ca
     public void Configure(EntityTypeBuilder<CapabilitiesRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.Capabilities);
+        builder.ToTable(EfTableNames.Terminals.Capabilities);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

@@ -11,7 +11,7 @@ internal sealed class DreamSessionRowConfiguration : IEntityTypeConfiguration<Dr
     public void Configure(EntityTypeBuilder<DreamSessionRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.DreamSessions);
+        builder.ToTable(EfTableNames.Dreams.DreamSessions);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

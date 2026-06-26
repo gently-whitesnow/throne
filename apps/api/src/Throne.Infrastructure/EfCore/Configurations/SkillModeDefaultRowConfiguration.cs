@@ -9,7 +9,7 @@ internal sealed class SkillModeDefaultRowConfiguration : IEntityTypeConfiguratio
     public void Configure(EntityTypeBuilder<SkillModeDefaultRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.SkillModeDefaults);
+        builder.ToTable(EfTableNames.Terminals.SkillModeDefaults);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

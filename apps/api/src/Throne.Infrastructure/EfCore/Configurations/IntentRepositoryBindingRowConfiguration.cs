@@ -9,7 +9,7 @@ internal sealed class IntentRepositoryBindingRowConfiguration : IEntityTypeConfi
     public void Configure(EntityTypeBuilder<IntentRepositoryBindingRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.IntentRepositoryBindings);
+        builder.ToTable(EfTableNames.Repositories.IntentRepositoryBindings);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

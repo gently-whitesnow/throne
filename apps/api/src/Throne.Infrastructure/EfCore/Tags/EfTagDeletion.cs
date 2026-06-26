@@ -24,7 +24,7 @@ internal sealed class EfTagDeletion(
     : EfRepositoryBase(contextFactory, sessions)
 {
     private const string CountAttachedSql =
-        "SELECT COUNT(*) AS Value FROM " + EfTableNames.Intents + " i "
+        "SELECT COUNT(*) AS Value FROM " + EfTableNames.Intents.Table + " i "
         + "WHERE EXISTS (SELECT 1 FROM json_each(i.tag_ids) WHERE value = {0})";
 
     public Task<int> CountAttachedIntentsAsync(TagId id, CancellationToken ct) =>

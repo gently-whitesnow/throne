@@ -3,6 +3,7 @@ using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Intents.Events;
 using Throne.Domain.Intents.Linking;
+using Throne.Infrastructure.EfCore.Links;
 using Throne.Infrastructure.EfCore.Mappers;
 using Throne.Infrastructure.EfCore.Rows;
 
@@ -20,13 +21,13 @@ internal sealed class EfIntentLinkRepository(
         ArgumentNullException.ThrowIfNull(link);
         var ctx = RequireWriteContext(nameof(CreateAsync));
 
-        var missing = await FindMissingEndpointAsync(ctx, link.FromId, link.ToId, ct);
+        var missing = await EfIntentLinkQueries.FindMissingEndpointAsync(ctx, link.FromId, link.ToId, ct);
         if (missing is not null)
         {
             return new CreateIntentLinkOutcome.IntentNotFound(missing);
         }
 
-        var existing = await FindEdgeAsync(ctx, link.FromId, link.ToId, ct);
+        var existing = await EfIntentLinkQueries.FindEdgeAsync(ctx, link.FromId, link.ToId, ct);
         if (existing is not null)
         {
             return new CreateIntentLinkOutcome.Duplicate(IntentLinkRowMapper.ToDomain(existing));
@@ -45,7 +46,7 @@ internal sealed class EfIntentLinkRepository(
         CancellationToken ct)
     {
         var ctx = RequireWriteContext(nameof(DeleteAsync));
-        var existing = await FindEdgeAsync(ctx, fromId, toId, ct);
+        var existing = await EfIntentLinkQueries.FindEdgeAsync(ctx, fromId, toId, ct);
         if (existing is null)
         {
             return new DeleteIntentLinkOutcome.NotFound();
@@ -68,7 +69,7 @@ internal sealed class EfIntentLinkRepository(
                 .Where(r => r.FromId == id || r.ToId == id)
                 .OrderBy(r => r.CreatedAt)
                 .ToListAsync(c);
-            return await ProjectAsync(ctx, intentId, rows, c);
+            return await EfIntentLinkProjection.ProjectAsync(ctx, intentId, rows, c);
         }, ct);
 
     public Task<IReadOnlyDictionary<string, IReadOnlyList<IntentLinkView>>> ListByIntentsAsync(
@@ -90,42 +91,10 @@ internal sealed class EfIntentLinkRepository(
                 .OrderBy(r => r.CreatedAt)
                 .ToListAsync(c);
 
-            var peerIds = new HashSet<string>(StringComparer.Ordinal);
             var queriedSet = ids.ToHashSet(StringComparer.Ordinal);
-            foreach (var row in rows)
-            {
-                if (!queriedSet.Contains(row.FromId))
-                {
-                    peerIds.Add(row.FromId);
-                }
-                if (!queriedSet.Contains(row.ToId))
-                {
-                    peerIds.Add(row.ToId);
-                }
-            }
-            foreach (var id in ids)
-            {
-                peerIds.Add(id);
-            }
-
-            var peersById = await LoadPeersAsync(ctx, peerIds, c);
-            var grouped = new Dictionary<string, List<IntentLinkView>>(StringComparer.Ordinal);
-            foreach (var row in rows)
-            {
-                // Orphan edges (peer deleted) drop out of the projection.
-                if (!peersById.ContainsKey(row.FromId) || !peersById.ContainsKey(row.ToId))
-                {
-                    continue;
-                }
-                if (queriedSet.Contains(row.FromId))
-                {
-                    AppendView(grouped, row.FromId, IntentLinkRowMapper.ToDomain(row), IntentLinkDirection.Outgoing, IntentRowMapper.ToDomain(peersById[row.ToId]));
-                }
-                if (queriedSet.Contains(row.ToId))
-                {
-                    AppendView(grouped, row.ToId, IntentLinkRowMapper.ToDomain(row), IntentLinkDirection.Incoming, IntentRowMapper.ToDomain(peersById[row.FromId]));
-                }
-            }
+            var peerIds = CollectPeerIds(rows, queriedSet, ids);
+            var peersById = await EfIntentLinkProjection.LoadPeersAsync(ctx, peerIds, c);
+            var grouped = GroupByOwner(rows, queriedSet, peersById);
             foreach (var (key, list) in grouped)
             {
                 result[key] = list;
@@ -173,7 +142,7 @@ internal sealed class EfIntentLinkRepository(
 
             var hasMore = rows.Count > limit;
             var pageRows = hasMore ? rows.Take(limit).ToList() : rows;
-            var items = await ProjectAsync(ctx, intentId, pageRows, c);
+            var items = await EfIntentLinkProjection.ProjectAsync(ctx, intentId, pageRows, c);
 
             string? next = null;
             if (hasMore && pageRows.Count > 0)
@@ -184,104 +153,54 @@ internal sealed class EfIntentLinkRepository(
             return new IntentLinksPage(items, next);
         }, ct);
 
-    private static async Task<List<IntentLinkView>> ProjectAsync(
-        ThroneDbContext ctx,
-        IntentId intentId,
+    private static HashSet<string> CollectPeerIds(
         List<IntentLinkRow> rows,
-        CancellationToken ct)
+        HashSet<string> queriedSet,
+        List<string> ids)
     {
-        if (rows.Count == 0)
-        {
-            return [];
-        }
         var peerIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var r in rows)
+        foreach (var row in rows)
         {
-            peerIds.Add(string.Equals(r.FromId, intentId.Value, StringComparison.Ordinal) ? r.ToId : r.FromId);
-        }
-        var peersById = await LoadPeersAsync(ctx, peerIds, ct);
-        var result = new List<IntentLinkView>(rows.Count);
-        foreach (var r in rows)
-        {
-            var direction = string.Equals(r.FromId, intentId.Value, StringComparison.Ordinal)
-                ? IntentLinkDirection.Outgoing
-                : IntentLinkDirection.Incoming;
-            var peerId = direction == IntentLinkDirection.Outgoing ? r.ToId : r.FromId;
-            if (peersById.TryGetValue(peerId, out var peer))
+            if (!queriedSet.Contains(row.FromId))
             {
-                result.Add(new IntentLinkView(
-                    IntentLinkRowMapper.ToDomain(r),
-                    direction,
-                    IntentRowMapper.ToDomain(peer)));
+                peerIds.Add(row.FromId);
+            }
+            if (!queriedSet.Contains(row.ToId))
+            {
+                peerIds.Add(row.ToId);
             }
         }
-        return result;
+        foreach (var id in ids)
+        {
+            peerIds.Add(id);
+        }
+        return peerIds;
     }
 
-    private static async Task<Dictionary<string, IntentRow>> LoadPeersAsync(
-        ThroneDbContext ctx,
-        HashSet<string> peerIds,
-        CancellationToken ct)
+    private static Dictionary<string, List<IntentLinkView>> GroupByOwner(
+        List<IntentLinkRow> rows,
+        HashSet<string> queriedSet,
+        Dictionary<string, IntentRow> peersById)
     {
-        if (peerIds.Count == 0)
+        var grouped = new Dictionary<string, List<IntentLinkView>>(StringComparer.Ordinal);
+        foreach (var row in rows)
         {
-            return new Dictionary<string, IntentRow>(StringComparer.Ordinal);
+            // Orphan edges (peer deleted) drop out of the projection.
+            if (!peersById.ContainsKey(row.FromId) || !peersById.ContainsKey(row.ToId))
+            {
+                continue;
+            }
+            var link = IntentLinkRowMapper.ToDomain(row);
+            if (queriedSet.Contains(row.FromId))
+            {
+                EfIntentLinkProjection.AppendView(grouped, row.FromId, link, IntentLinkDirection.Outgoing, IntentRowMapper.ToDomain(peersById[row.ToId]));
+            }
+            if (queriedSet.Contains(row.ToId))
+            {
+                EfIntentLinkProjection.AppendView(grouped, row.ToId, link, IntentLinkDirection.Incoming, IntentRowMapper.ToDomain(peersById[row.FromId]));
+            }
         }
-        var rows = await ctx.Set<IntentRow>()
-            .Where(r => peerIds.Contains(r.Id))
-            .ToListAsync(ct);
-        return rows.ToDictionary(r => r.Id, r => r, StringComparer.Ordinal);
-    }
-
-    private static void AppendView(
-        Dictionary<string, List<IntentLinkView>> bucket,
-        string ownerId,
-        IntentLink link,
-        IntentLinkDirection direction,
-        Intent peer)
-    {
-        if (!bucket.TryGetValue(ownerId, out var list))
-        {
-            list = [];
-            bucket[ownerId] = list;
-        }
-        list.Add(new IntentLinkView(link, direction, peer));
-    }
-
-    private static async Task<string?> FindMissingEndpointAsync(
-        ThroneDbContext ctx,
-        IntentId fromId,
-        IntentId toId,
-        CancellationToken ct)
-    {
-        var from = fromId.Value;
-        var to = toId.Value;
-        var found = await ctx.Set<IntentRow>()
-            .Where(r => r.Id == from || r.Id == to)
-            .Select(r => r.Id)
-            .ToListAsync(ct);
-        var set = found.ToHashSet(StringComparer.Ordinal);
-        if (!set.Contains(from))
-        {
-            return from;
-        }
-        if (!set.Contains(to))
-        {
-            return to;
-        }
-        return null;
-    }
-
-    private static Task<IntentLinkRow?> FindEdgeAsync(
-        ThroneDbContext ctx,
-        IntentId fromId,
-        IntentId toId,
-        CancellationToken ct)
-    {
-        var from = fromId.Value;
-        var to = toId.Value;
-        return ctx.Set<IntentLinkRow>()
-            .FirstOrDefaultAsync(r => r.FromId == from && r.ToId == to, ct);
+        return grouped;
     }
 
     private ThroneDbContext RequireWriteContext(string method) =>

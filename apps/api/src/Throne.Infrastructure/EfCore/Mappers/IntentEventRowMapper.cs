@@ -3,10 +3,10 @@ using Throne.Domain.Intents.Events;
 using Throne.Domain.Intents.Linking;
 using Throne.Domain.TextVersions;
 using Throne.Infrastructure.EfCore.Rows;
-using DomainTextChange = Throne.Domain.Intents.Events.IntentEventTextChange;
 using DomainLinkPayload = Throne.Domain.Intents.Events.IntentEventLinkPayload;
-using RowTextChange = Throne.Infrastructure.EfCore.Rows.IntentEventTextChange;
+using DomainTextChange = Throne.Domain.Intents.Events.IntentEventTextChange;
 using RowLinkPayload = Throne.Infrastructure.EfCore.Rows.IntentEventLinkPayload;
+using RowTextChange = Throne.Infrastructure.EfCore.Rows.IntentEventTextChange;
 
 namespace Throne.Infrastructure.EfCore.Mappers;
 

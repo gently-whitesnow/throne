@@ -17,60 +17,15 @@ internal static class EfIntentListQueryBuilder
         CancellationToken ct)
     {
         var query = ctx.Set<IntentRow>().AsQueryable();
-
-        if (spec.Statuses is { Count: > 0 })
+        query = ApplyStatusFilter(query, spec);
+        query = ApplyTagFilters(query, spec);
+        query = ApplyIdFilter(query, spec);
+        var (afterPinned, empty) = await ApplyPinnedFilterAsync(ctx, query, spec, ct);
+        if (empty)
         {
-            var statuses = spec.Statuses;
-            // Legacy rows may have empty status — treat them as "draft" the same way the
-            // Mongo filter does so the two backends list identically.
-            var includeDraft = statuses.Contains(IntentStatusNames.Draft, StringComparer.Ordinal);
-            query = includeDraft
-                ? query.Where(r => statuses.Contains(r.Status) || r.Status == string.Empty)
-                : query.Where(r => statuses.Contains(r.Status));
+            return null;
         }
-
-        if (spec.TagId is not null)
-        {
-            // JSON array LIKE: tag ids are GUID hex (no quote chars), so a simple contains
-            // probe stays sound. Mirrors the Mongo AnyEq semantics without a join table.
-            var probe = $"%\"{spec.TagId.Value.Value}\"%";
-            query = query.Where(r => EF.Functions.Like(EF.Property<string>(r, "tag_ids"), probe));
-        }
-
-        if (spec.Untagged)
-        {
-            query = query.Where(r => EF.Property<string>(r, "tag_ids") == "[]");
-        }
-
-        if (spec.Ids is { Count: > 0 })
-        {
-            var ids = spec.Ids;
-            query = query.Where(r => ids.Contains(r.Id));
-        }
-
-        if (spec.Pinned)
-        {
-            var pinnedIds = await ctx.Set<IntentPinRow>()
-                .Select(p => p.IntentId)
-                .Distinct()
-                .ToListAsync(ct);
-            if (pinnedIds.Count == 0)
-            {
-                return null;
-            }
-            query = query.Where(r => pinnedIds.Contains(r.Id));
-        }
-
-        if (!string.IsNullOrEmpty(spec.Query))
-        {
-            // AND of per-token LIKE %word%. Tokenisation is whitespace-split + non-empty,
-            // matching the Mongo regex’s «every whitespace-separated chunk must match».
-            foreach (var token in TokenizeQuery(spec.Query))
-            {
-                var pattern = $"%{Escape(token)}%";
-                query = query.Where(r => EF.Functions.Like(r.Text, pattern));
-            }
-        }
+        query = ApplyQueryFilter(afterPinned, spec);
 
         if (spec.Cursor is not null)
         {
@@ -89,6 +44,82 @@ internal static class EfIntentListQueryBuilder
         _ => throw new InvalidOperationException($"Unknown sort: {sort}"),
     };
 
+    private static IQueryable<IntentRow> ApplyStatusFilter(IQueryable<IntentRow> query, IntentListSpec spec)
+    {
+        if (spec.Statuses is not { Count: > 0 })
+        {
+            return query;
+        }
+        var statuses = spec.Statuses;
+        // Legacy rows may have empty status — treat them as "draft" the same way the
+        // Mongo filter does so the two backends list identically.
+        var includeDraft = statuses.Contains(IntentStatusNames.Draft, StringComparer.Ordinal);
+        return includeDraft
+            ? query.Where(r => statuses.Contains(r.Status) || r.Status == string.Empty)
+            : query.Where(r => statuses.Contains(r.Status));
+    }
+
+    private static IQueryable<IntentRow> ApplyTagFilters(IQueryable<IntentRow> query, IntentListSpec spec)
+    {
+        if (spec.TagId is not null)
+        {
+            // JSON array LIKE: tag ids are GUID hex (no quote chars), so a simple contains
+            // probe stays sound. Mirrors the Mongo AnyEq semantics without a join table.
+            var probe = $"%\"{spec.TagId.Value.Value}\"%";
+            query = query.Where(r => EF.Functions.Like(EF.Property<string>(r, "tag_ids"), probe));
+        }
+        if (spec.Untagged)
+        {
+            query = query.Where(r => EF.Property<string>(r, "tag_ids") == "[]");
+        }
+        return query;
+    }
+
+    private static IQueryable<IntentRow> ApplyIdFilter(IQueryable<IntentRow> query, IntentListSpec spec)
+    {
+        if (spec.Ids is not { Count: > 0 })
+        {
+            return query;
+        }
+        var ids = spec.Ids;
+        return query.Where(r => ids.Contains(r.Id));
+    }
+
+    private static async Task<(IQueryable<IntentRow> Query, bool Empty)> ApplyPinnedFilterAsync(
+        ThroneDbContext ctx,
+        IQueryable<IntentRow> query,
+        IntentListSpec spec,
+        CancellationToken ct)
+    {
+        if (!spec.Pinned)
+        {
+            return (query, false);
+        }
+        var pinnedIds = await ctx.Set<IntentPinRow>()
+            .Select(p => p.IntentId)
+            .Distinct()
+            .ToListAsync(ct);
+        return pinnedIds.Count == 0
+            ? (query, true)
+            : (query.Where(r => pinnedIds.Contains(r.Id)), false);
+    }
+
+    private static IQueryable<IntentRow> ApplyQueryFilter(IQueryable<IntentRow> query, IntentListSpec spec)
+    {
+        if (string.IsNullOrEmpty(spec.Query))
+        {
+            return query;
+        }
+        // AND of per-token LIKE %word%. Tokenisation is whitespace-split + non-empty,
+        // matching the Mongo regex's «every whitespace-separated chunk must match».
+        foreach (var token in TokenizeQuery(spec.Query))
+        {
+            var pattern = $"%{Escape(token)}%";
+            query = query.Where(r => EF.Functions.Like(r.Text, pattern));
+        }
+        return query;
+    }
+
     private static IQueryable<IntentRow> ApplySort(IQueryable<IntentRow> query, IntentListSort sort) => sort switch
     {
         IntentListSort.SortKeyAsc => query.OrderBy(r => r.SortKey).ThenBy(r => r.Id),
@@ -101,27 +132,45 @@ internal static class EfIntentListQueryBuilder
     private static IQueryable<IntentRow> ApplyCursor(
         IQueryable<IntentRow> query,
         IntentListSort sort,
-        IntentListCursor cursor)
-    {
-        if (sort == IntentListSort.SortKeyAsc)
+        IntentListCursor cursor) => sort switch
         {
-            var sortKey = cursor.SortKey ?? string.Empty;
-            var id = cursor.Id;
-            return query.Where(r => string.Compare(r.SortKey, sortKey, StringComparison.Ordinal) > 0
-                || (r.SortKey == sortKey && string.Compare(r.Id, id, StringComparison.Ordinal) > 0));
-        }
-        var sortValue = cursor.SortValue;
-        var cid = cursor.Id;
-        return sort switch
-        {
-            IntentListSort.UpdatedDesc => query.Where(r => r.UpdatedAt < sortValue
-                || (r.UpdatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0)),
-            IntentListSort.CreatedDesc => query.Where(r => r.CreatedAt < sortValue
-                || (r.CreatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0)),
-            IntentListSort.CreatedAsc => query.Where(r => r.CreatedAt > sortValue
-                || (r.CreatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0)),
+            IntentListSort.SortKeyAsc => ApplySortKeyCursor(query, cursor),
+            IntentListSort.UpdatedDesc => ApplyUpdatedDescCursor(query, cursor),
+            IntentListSort.CreatedDesc => ApplyCreatedDescCursor(query, cursor),
+            IntentListSort.CreatedAsc => ApplyCreatedAscCursor(query, cursor),
             _ => throw new InvalidOperationException($"Unknown sort: {sort}"),
         };
+
+    private static IQueryable<IntentRow> ApplySortKeyCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
+    {
+        var sortKey = cursor.SortKey ?? string.Empty;
+        var id = cursor.Id;
+        return query.Where(r => string.Compare(r.SortKey, sortKey, StringComparison.Ordinal) > 0
+            || (r.SortKey == sortKey && string.Compare(r.Id, id, StringComparison.Ordinal) > 0));
+    }
+
+    private static IQueryable<IntentRow> ApplyUpdatedDescCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
+    {
+        var sortValue = cursor.SortValue;
+        var cid = cursor.Id;
+        return query.Where(r => r.UpdatedAt < sortValue
+            || (r.UpdatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0));
+    }
+
+    private static IQueryable<IntentRow> ApplyCreatedDescCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
+    {
+        var sortValue = cursor.SortValue;
+        var cid = cursor.Id;
+        return query.Where(r => r.CreatedAt < sortValue
+            || (r.CreatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0));
+    }
+
+    private static IQueryable<IntentRow> ApplyCreatedAscCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
+    {
+        var sortValue = cursor.SortValue;
+        var cid = cursor.Id;
+        return query.Where(r => r.CreatedAt > sortValue
+            || (r.CreatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0));
     }
 
     private static readonly char[] QueryWhitespace = [' ', '\t', '\r', '\n'];

@@ -9,7 +9,7 @@ internal sealed class IntentLinkRowConfiguration : IEntityTypeConfiguration<Inte
     public void Configure(EntityTypeBuilder<IntentLinkRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.IntentLinks);
+        builder.ToTable(EfTableNames.Intents.IntentLinks);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");
