@@ -62,8 +62,8 @@ if [[ "$MODE" == "publish" ]]; then
   echo "==> Publishing self-contained single-file binary ($RID)"
   dotnet publish apps/api/src/Throne.Api/Throne.Api.csproj -c Release -r "$RID" -o "$OUT" --nologo
   echo "==> Running $OUT/throne"
-  exec "$OUT/throne" serve "${PASSTHRU[@]}"
+  exec "$OUT/throne" serve "${PASSTHRU[@]+"${PASSTHRU[@]}"}"
 fi
 
 echo "==> Running host process (dotnet run)"
-exec dotnet run --project apps/api/src/Throne.Api -c Release -- serve "${PASSTHRU[@]}"
+exec dotnet run --project apps/api/src/Throne.Api -c Release -- serve "${PASSTHRU[@]+"${PASSTHRU[@]}"}"
