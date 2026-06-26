@@ -1,5 +1,42 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <!-- Single-binary packaging (Slice 6 / ADR-0048). The product ships as one
+         self-contained `throne` executable: API + web (Kestrel static files) +
+         SQLite in one process, no Docker / Node / .NET SDK at runtime. -->
+    <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RuntimeIdentifiers>osx-arm64;osx-x64;linux-x64;win-x64</RuntimeIdentifiers>
+    <!--
+      The SPA ships as plain files linked into wwwroot (from apps/web/dist), not as
+      a Razor Class Library. The StaticWebAssets manifest would point UseStaticFiles
+      at the project's source wwwroot/ (which doesn't physically exist) and crash on
+      startup. Disable it so static files are served straight from the physical
+      wwwroot next to the binary (ContentRoot = AppContext.BaseDirectory).
+    -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
+  </PropertyGroup>
+
+  <!-- Publish-only switches: gated on RuntimeIdentifier so plain `dotnet build`
+       and `dotnet test` (no RID, framework-dependent) keep working unchanged.
+       The release workflow passes `-r <rid>` which flips the whole bundle to a
+       self-contained single file named `throne`. Trimming stays OFF: ASP.NET +
+       EF Core reflection is not trim-safe. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <AssemblyName>throne</AssemblyName>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!--
+      Compression stays OFF: EnableCompressionInSingleFile corrupts memory and
+      crashes with AccessViolationException on osx-arm64 single-file apps
+      (dotnet/runtime#123324, reproduces on .NET 7–10). The few extra MB are worth
+      a binary that actually starts.
+    -->
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Throne.Application\Throne.Application.csproj" />
     <ProjectReference Include="..\Throne.Infrastructure\Throne.Infrastructure.csproj" />
@@ -44,6 +81,19 @@
              Link="bin/%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="Always" />
+    <!--
+      SPA bundle. Kestrel serves the web app as static files from wwwroot (Slice 6),
+      collapsing the former nginx/web container. The CI release step runs
+      `pnpm build` first; the produced apps/web/dist is linked into wwwroot so it
+      travels next to the single-file binary and is reachable via
+      AppContext.BaseDirectory/wwwroot. Guarded on Exists so backend-only builds
+      (dev, tests) don't require a prior web build.
+    -->
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\web\dist\**\*"
+             Link="wwwroot/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always"
+             Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\web\dist')" />
   </ItemGroup>
 
 </Project>

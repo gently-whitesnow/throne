@@ -235,7 +235,7 @@ namespace Throne.Settings.Contracts.Generated
     {
 
         /// <summary>
-        /// Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`). Inside docker this is the in-container mount point, not a host path.
+        /// Absolute path to `Throne:Workspace:Root` (default `~/.throne/workspaces`).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("root")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -247,14 +247,6 @@ namespace Throne.Settings.Contracts.Generated
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("writable")]
         public bool Writable { get; set; }
-
-        /// <summary>
-        /// Optional host-side path for the workspace, configured via `Throne:Workspace:HostRoot`. Relevant only when the API runs inside a container whose `root` is a bind-mount, so the UI can show where clones live on the operator's machine. Empty in the native host-backend mode (ADR-0027), where `root` is already the real host path.
-        /// <br/>
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("host_root")]
-        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
-        public string Host_root { get; set; }
 
         /// <summary>
         /// Aggregate disk usage of all intent workspaces under `root`. Omitted while `status=calculating`.

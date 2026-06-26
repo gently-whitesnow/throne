@@ -109,25 +109,12 @@ function WorkspaceBody({ isLoading, error, settings }: WorkspaceBodyProps) {
 
   const calculating = isWorkspaceCalculating(settings.status);
 
-  const hostRoot = settings.host_root?.trim();
-
   return (
     <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-2 text-sm">
       <dt className="text-base-content/60">Путь</dt>
       <dd className="m-0 break-all font-mono text-xs leading-relaxed">
         {settings.root}
       </dd>
-      {hostRoot ? (
-        <>
-          <dt className="text-base-content/60">На хосте</dt>
-          <dd
-            className="m-0 break-all font-mono text-xs leading-relaxed"
-            data-testid="workspace-host-root"
-          >
-            {hostRoot}
-          </dd>
-        </>
-      ) : null}
       <dt className="text-base-content/60">Размер</dt>
       <dd
         className="m-0 flex items-center gap-2"

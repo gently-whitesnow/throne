@@ -16,12 +16,4 @@ public sealed class WorkspaceOptions
     /// <see cref="WorkspaceRootInitializer"/>.
     /// </summary>
     public string Root { get; set; } = "~/.throne/workspaces";
-
-    /// <summary>
-    /// Optional host-side path for <see cref="Root"/>, surfaced by the UI so the operator
-    /// knows where clones live on their machine. Relevant only when the API runs inside a
-    /// container whose <see cref="Root"/> is a bind-mount; in the native host-backend mode
-    /// (ADR-0027) <see cref="Root"/> is already the real host path, so this stays empty.
-    /// </summary>
-    public string? HostRoot { get; set; }
 }
