@@ -13,6 +13,8 @@
     <PackageVersion Include="SharpCompress" Version="0.48.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.7" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7" />
+    <!-- Pin transitive: Microsoft.EntityFrameworkCore.Sqlite 10.0.7 → SQLitePCLRaw.lib.e_sqlite3 2.1.11 has GHSA-2m69-gcr7-jv3q (bundled SQLite < 3.50.2 memory corruption in aggregate handling). Patched in SQLite 3.50.2; lib package 3.50.3 ships it. Native-only package, C ABI is stable. -->
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.50.3" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
