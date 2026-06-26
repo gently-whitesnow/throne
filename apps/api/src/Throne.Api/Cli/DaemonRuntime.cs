@@ -2,10 +2,10 @@ namespace Throne.Api.Cli;
 
 /// <summary>
 /// Runs inside the detached child before the host boots. The launcher marks the
-/// child with <c>THRONE_DAEMON_LOG</c>; seeing it, the child detaches from the
-/// controlling terminal (<c>setsid</c>) and redirects console output to the log
-/// file. Redirection happens before the host is built so the console logger it
-/// constructs captures the file writer. A direct <c>throne serve</c> (no marker)
+/// child with <c>THRONE_DAEMON_LOG</c> and redirects its stdout/stderr to that log
+/// at the OS level via the spawning shell; the only thing left for the child is to
+/// detach from the controlling terminal (<c>setsid</c>) so closing the launching
+/// terminal (SIGHUP) does not take it down. A direct <c>throne serve</c> (no marker)
 /// is a no-op here and logs to the terminal as usual.
 /// </summary>
 internal static class DaemonRuntime
@@ -14,8 +14,7 @@ internal static class DaemonRuntime
 
     public static void BootstrapIfDaemon()
     {
-        var logPath = Environment.GetEnvironmentVariable(LogEnvVar);
-        if (string.IsNullOrEmpty(logPath))
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(LogEnvVar)))
         {
             return;
         }
@@ -24,16 +23,5 @@ internal static class DaemonRuntime
         {
             _ = UnixNative.Setsid();
         }
-
-        var directory = Path.GetDirectoryName(logPath);
-        if (!string.IsNullOrEmpty(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        var stream = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-        var writer = new StreamWriter(stream) { AutoFlush = true };
-        Console.SetOut(writer);
-        Console.SetError(writer);
     }
 }

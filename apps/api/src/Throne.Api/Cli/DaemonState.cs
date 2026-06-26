@@ -9,10 +9,17 @@ namespace Throne.Api.Cli;
 /// The on-disk record of the instance that owns a <see cref="ThroneHome"/>. The
 /// plain <c>throne.pid</c> file is the greppable source of truth for liveness/stop;
 /// <c>throne.daemon.json</c> carries the extras <c>status</c> needs (url, version,
-/// start time) without a live HTTP probe. Both are written together and cleared by
-/// <c>stop</c>; a stale file (pid no longer alive) is detected lazily and cleaned.
+/// start time) without a live HTTP probe, plus the resolved <see cref="HostArgs"/>
+/// so <c>restart</c>/<c>update --restart</c> can replay the instance's own launch
+/// config faithfully. Both files are written together and cleared by <c>stop</c>; a
+/// stale file (pid no longer alive) is detected lazily and cleaned.
 /// </summary>
-internal sealed record DaemonState(int Pid, string Url, string Version, DateTimeOffset StartedAt)
+internal sealed record DaemonState(
+    int Pid,
+    string Url,
+    string Version,
+    DateTimeOffset StartedAt,
+    IReadOnlyList<string> HostArgs)
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -43,7 +50,7 @@ internal sealed record DaemonState(int Pid, string Url, string Version, DateTime
             if (File.Exists(home.PidFile)
                 && int.TryParse(File.ReadAllText(home.PidFile).Trim(), out var pid) && pid > 0)
             {
-                return new DaemonState(pid, "", "", default);
+                return new DaemonState(pid, "", "", default, []);
             }
         }
         catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)

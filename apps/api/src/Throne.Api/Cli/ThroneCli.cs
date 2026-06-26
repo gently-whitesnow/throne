@@ -25,7 +25,7 @@ public static class ThroneCli
                 return CliHelp.PrintVersion();
 
             case CliCommand.Update:
-                return await UpdateCommand.RunAsync(request.Rest);
+                return await UpdateCommand.RunAsync(request);
 
             case CliCommand.Serve:
                 DaemonRuntime.BootstrapIfDaemon();

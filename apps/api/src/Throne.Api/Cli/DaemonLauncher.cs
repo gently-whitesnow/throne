@@ -24,7 +24,8 @@ internal static class DaemonLauncher
             return 1;
         }
 
-        DaemonState.Write(home, new DaemonState(child.Id, request.Url, ThroneVersion.Current, DateTimeOffset.UtcNow));
+        DaemonState.Write(home, new DaemonState(
+            child.Id, request.Url, ThroneVersion.Current, DateTimeOffset.UtcNow, request.HostArgs));
         Console.WriteLine($"Starting throne at {request.Url} …");
 
         var healthy = await HealthProbe.WaitHealthyAsync(
@@ -66,9 +67,17 @@ internal static class DaemonLauncher
         return 1;
     }
 
+    // Spawn through /bin/sh so the child's stdout/stderr are redirected to the log (and
+    // stdin to /dev/null) by the shell *before* exec: the launcher's inherited pipe is
+    // released, so `out=$(throne …)` / `throne … | …` get EOF instead of blocking on the
+    // long-lived daemon. `exec` preserves the pid, so child.Id is the throne process.
     private static ProcessStartInfo BuildStartInfo(string binary, CliRequest request)
     {
-        var info = new ProcessStartInfo(binary) { UseShellExecute = false };
+        var info = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
+        info.ArgumentList.Add("-c");
+        info.ArgumentList.Add("exec \"$@\" >>\"$THRONE_DAEMON_LOG\" 2>&1 </dev/null");
+        info.ArgumentList.Add("throne");
+        info.ArgumentList.Add(binary);
         info.ArgumentList.Add("serve");
         foreach (var arg in request.HostArgs)
         {

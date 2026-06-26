@@ -50,24 +50,35 @@ directory that defines one instance.
    current home's pid.
 
 2. **Detached daemon (unix-first).** Bare `throne` spawns a detached `throne serve` child,
-   records its pid/state, waits on `/health`, prints the URL and opens the browser. The
-   child `setsid`s itself (libc P/Invoke) so closing the launching terminal does not kill
-   it, and redirects console output to `throne.log`. `stop` sends SIGTERM (libc `kill`) with
-   a SIGKILL fallback. Double-start is refused with "already running at <url>". `-a/--attach`
-   keeps the host in the foreground (Ctrl-C stops); a foreground instance still registers its
-   pid/state so `status`/`stop` work against it. Windows and `dotnet run` fall back to
-   foreground (detached daemon is a later best-effort slice).
+   records its pid/state, waits on `/health`, prints the URL and opens the browser. The child
+   is spawned through `/bin/sh` so its stdout/stderr are redirected to `throne.log` (and stdin
+   to `/dev/null`) **before exec** — the launcher's inherited pipe is released, so a caller
+   that captures output (`out=$(throne …)` or `throne … | …`) gets EOF instead of blocking on
+   the long-lived daemon. The child `setsid`s itself (libc P/Invoke) so closing the launching
+   terminal does not kill it. `stop` sends SIGTERM (libc `kill`) with a SIGKILL fallback.
+   Double-start is refused with "already running at <url>". `-a/--attach` keeps the host in the
+   foreground (Ctrl-C stops); a foreground instance still registers its pid/state so
+   `status`/`stop` work against it. Windows and `dotnet run` fall back to foreground (detached
+   daemon is a later best-effort slice).
 
-3. **Human aliases over existing config.** `-p/--port` lowers onto `--urls`, `--db` onto
+3. **Faithful restart.** The instance persists its resolved launch config (host args) in
+   `throne.daemon.json`, so `throne restart` — and the relaunch behind `throne update --restart`
+   — replay the *original* port/db/workspace regardless of the flags passed to restart (an
+   explicit `-p` overrides just the port). `update --restart` thus restarts the running daemon
+   onto the freshly installed binary; the download/swap/asset logic (ADR-0048 §3) is unchanged.
+
+4. **Human aliases over existing config.** `-p/--port` lowers onto `--urls`, `--db` onto
    `Persistence:Sqlite:DataSource`, `--home` onto the pid/log/db/workspace defaults — all via
-   command-line config, which already wins over env/appsettings. No new config system.
+   command-line config, which already wins over env/appsettings. The lowering is idempotent so
+   the daemon child re-parsing already-resolved args never clobbers a custom `--db`. No new
+   config system.
 
-4. **Browser auto-open with an agent-safe detector.** The URL is always printed. The browser
+5. **Browser auto-open with an agent-safe detector.** The URL is always printed. The browser
    opens on start (bare and `-a`) **except** when stdout is not a TTY (the typical agent/pipe
    signature), `--no-browser`/`THRONE_NO_BROWSER` is set, or a known CI variable is present.
    A failed open never fails the launch.
 
-5. **Agent isolation recipe.** `THRONE_HOME=<repo>/.throne-agent throne -p 5009` brings up an
+6. **Agent isolation recipe.** `THRONE_HOME=<repo>/.throne-agent throne -p 5009` brings up an
    isolated instance (own db/pid/workspaces, non-TTY ⇒ no browser); `THRONE_HOME=… throne stop`
    tears it down. Documented in `readme.md`/`ROOT.md`.
 
@@ -94,4 +105,5 @@ directory that defines one instance.
 
 - Install as a system service (systemd/launchd/Windows service) — unchanged from ADR-0048.
 - Full Windows daemon parity.
-- Changes to `throne update` asset names or self-update logic (ADR-0048 §3 stands).
+- Changes to `throne update`'s download/swap/asset logic (ADR-0048 §3 stands); only its
+  `--restart` relaunch now goes through the daemon restart instead of a raw foreground serve.
