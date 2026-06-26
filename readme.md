@@ -45,6 +45,14 @@ dotnet publish apps/api/src/Throne.Api/Throne.Api.csproj -c Release -r <rid>
 
 Дефолты подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, SQLite — `~/.throne/throne.db`, workspace — `~/.throne/workspaces`.
 
+**Для разработки** — `scripts/run-dev.sh` (macOS; platform→RID диспетч заложен под другие платформы): собирает UI и поднимает хост-процесс одной командой.
+
+```bash
+./scripts/run-dev.sh              # pnpm build + dotnet run serve
+./scripts/run-dev.sh --no-web     # только бэкенд, переиспользует существующий wwwroot
+./scripts/run-dev.sh --publish    # собрать и запустить реальный single-file бинарь
+```
+
 ### 3. Самообновление
 
 ```bash
