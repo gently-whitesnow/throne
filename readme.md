@@ -38,10 +38,25 @@ dotnet publish apps/api/src/Throne.Api/Throne.Api.csproj -c Release -r <rid>
 ### 2. Запустить
 
 ```bash
-./throne          # или ./throne serve — поднимает UI+API+SQLite в одном процессе
+./throne                 # старт detached (демон) + открыть браузер + напечатать URL
+./throne -a, --attach    # старт в foreground, логи в консоль, Ctrl-C = стоп
+./throne stop            # остановить демон
+./throne restart         # stop + старт detached
+./throne status          # запущен ли, порт, pid, версия, путь к home
+./throne logs [-f]       # хвост логов демона
+./throne --help          # полная справка
 ```
 
-Открой `http://localhost:5008`. Порт переопределяется через `ASPNETCORE_URLS` или флаг `--urls` (например `./throne --urls http://localhost:9000`).
+Открой `http://localhost:5008` (URL печатается при старте). Человеческие алиасы поверх ASP.NET-конфига:
+
+```bash
+./throne -p 9000                 # порт (поверх Urls/--urls/ASPNETCORE_URLS)
+./throne --db /data/throne.db    # путь к базе (поверх Persistence:Sqlite:DataSource)
+./throne --home /srv/throne      # релокация всего state-каталога; env THRONE_HOME
+./throne --no-browser            # не открывать браузер (env THRONE_NO_BROWSER)
+```
+
+**Модель инстансов.** Один инстанс на state-каталог (home). Дефолтный home — `~/.throne`; под ним лежат `throne.db`, `throne.pid`, `throne.daemon.json`, `throne.log`, `workspaces/`. Изоляция — релокацией home целиком (`--home`/`THRONE_HOME`), как `GH_CONFIG_DIR`/`DOCKER_CONFIG`. `stop`/`restart`/`status`/`logs` работают с инстансом текущего home. Демон — unix-first; на Windows работает foreground (`-a`), полноценный detach — позже. Деталь — [ADR-0049](specs/ADR/0049-cli-daemon-and-home-instances.md). Raw-вход хоста — `./throne serve` (как раньше; используется демоном внутри).
 
 Дефолты подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, SQLite — `~/.throne/throne.db`, workspace — `~/.throne/workspaces`.
 
@@ -58,7 +73,7 @@ dotnet publish apps/api/src/Throne.Api/Throne.Api.csproj -c Release -r <rid>
 ```bash
 throne update              # latest из GitHub Releases → atomic swap install-каталога
 throne update --force      # обновиться даже если версия совпала
-throne update --restart    # после подмены перезапустить бинарь
+throne update --restart    # после подмены перезапустить демон на новом бинаре
 ```
 
 ### 4. Static operational skills для dogfooding
@@ -80,6 +95,15 @@ export THRONE_INTENT_ID=<intent-id>
 
 ```bash
 export THRONE_REPOSITORY_BINDING_ID=<binding-id>
+```
+
+**Агент поднимает свой инстанс.** Всё в одном процессе, поэтому агент в сессии может поднять изолированный throne и продебажить сделанное, не трогая рабочий инстанс пользователя — сменой home + порта:
+
+```bash
+THRONE_HOME=$PWD/.throne-agent ./throne -p 5009   # своя база/pid/workspaces; браузер не откроется (non-TTY)
+export THRONE_API_BASE=http://localhost:5009
+# … подебажить через curl / UI …
+THRONE_HOME=$PWD/.throne-agent ./throne stop       # остановить свой инстанс
 ```
 
 ### Host-фичи: репозитории, агент-терминал, VS Code

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Throne.Api.Cli;
@@ -6,15 +5,16 @@ namespace Throne.Api.Cli;
 /// <summary>
 /// <c>throne update</c>: compares the running build against the latest GitHub
 /// release for the current RID and, if newer, downloads and atomically swaps the
-/// install in place. With <c>--restart</c> it re-execs the freshly installed
-/// binary (a process cannot keep running its own replaced image).
+/// install in place. With <c>--restart</c> it restarts the running daemon onto the
+/// freshly installed binary (a process cannot keep running its own replaced image).
 /// </summary>
-public static class UpdateCommand
+internal static class UpdateCommand
 {
-    public static async Task<int> RunAsync(string[] args)
+    public static async Task<int> RunAsync(CliRequest request)
     {
-        var force = args.Contains("--force");
-        var restart = args.Contains("--restart");
+        ArgumentNullException.ThrowIfNull(request);
+        var force = request.Rest.Contains("--force");
+        var restart = request.Rest.Contains("--restart");
 
         var binaryPath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(binaryPath)
@@ -73,19 +73,13 @@ public static class UpdateCommand
 
         if (restart)
         {
-            return Restart(binaryPath);
+            // Replays the running daemon's launch config onto the new binary; with no
+            // instance running it simply starts one detached.
+            return await RestartCommand.RunAsync(request, CancellationToken.None);
         }
 
-        Console.WriteLine("Restart throne to run the new version.");
+        Console.WriteLine("Restart throne to run the new version (throne restart).");
         return 0;
-    }
-
-    private static int Restart(string binaryPath)
-    {
-        var psi = new ProcessStartInfo(binaryPath) { UseShellExecute = false };
-        psi.ArgumentList.Add("serve");
-        var process = Process.Start(psi);
-        return process is null ? 1 : 0;
     }
 
     private static string Normalize(string version) => version.Trim().TrimStart('v', 'V');

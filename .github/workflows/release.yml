@@ -12,6 +12,15 @@ on:
   push:
     tags:
       - "v*"
+  # Manual publish button in Actions: same build/bundle/release path, version comes
+  # from the input instead of the tag ref. action-gh-release creates the `v<version>`
+  # tag at the checked-out commit. Asset names and `throne update` are unchanged.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, e.g. 1.2.3 (no leading v)"
+        required: true
+        type: string
 
 # Required so action-gh-release can create the release and upload assets.
 permissions:
@@ -52,9 +61,15 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      # Tag push → strip the leading `v` from the ref; manual dispatch → take the input.
       - name: Compute version
         id: ver
-        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
 
       # -r <rid> flips the csproj to self-contained single-file `throne` (AssemblyName=throne).
       # Output dir holds: throne(.exe) + wwwroot + skills + specs/manifest + bin.
@@ -91,6 +106,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # Tag push → reuse the pushed tag; manual dispatch → `v<version>` (created by the release step).
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=v${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download all bundles
         uses: actions/download-artifact@v4
         with:
@@ -100,5 +125,6 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.tag.outputs.name }}
           files: dist/*
           fail_on_unmatched_files: true
