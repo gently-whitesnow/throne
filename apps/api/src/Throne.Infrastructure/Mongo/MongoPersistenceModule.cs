@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.Events;
+using Throne.Application.Git;
 using Throne.Application.Manifest;
 using Throne.Application.Ports;
 using Throne.Application.Repositories;
+using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Mongo.Repositories;
 using Throne.Infrastructure.PromptParts;
 
@@ -52,6 +54,9 @@ internal static class MongoPersistenceModule
         services.AddSingleton<ITerminalSettingsStore, MongoTerminalSettingsStore>();
         services.AddSingleton<IIntentTerminalLaunchStore, MongoIntentTerminalLaunchStore>();
         services.AddSingleton<ISkillModeDefaultStore, MongoSkillModeDefaultStore>();
+        // IGitLabHostProvider lives with the persistence module: the Mongo provider stores
+        // its singleton in Mongo, the SQLite branch wires its EF Core counterpart instead.
+        services.AddSingleton<IGitLabHostProvider, MongoGitLabHostProvider>();
         services.AddHostedService<MongoIndexInitializer>();
         services.AddHostedService<SkillModeDefaultSeeder>();
 

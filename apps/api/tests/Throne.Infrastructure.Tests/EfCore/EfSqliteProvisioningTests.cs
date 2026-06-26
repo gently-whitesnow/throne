@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Throne.Application.Events;
 using Throne.Application.Ports;
+using Throne.Application.Terminals;
 using Throne.Infrastructure.EfCore;
 
 namespace Throne.Infrastructure.Tests.EfCore;
@@ -63,6 +64,13 @@ public sealed class EfSqliteProvisioningTests : IDisposable
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Substitute.For<IDomainEventDispatcher>());
+        // SkillModeDefaultSeeder (hosted service) and EfTerminalSettingsStore depend on the
+        // operational-skill and vendor catalogs from Application — substitute them so the DI
+        // graph composes without the full Application module wired in.
+        var skillCatalog = Substitute.For<ISessionSkillCatalog>();
+        skillCatalog.List().Returns(System.Array.Empty<SessionSkillDescriptor>());
+        services.AddSingleton(skillCatalog);
+        services.AddSingleton(Substitute.For<ITerminalVendorCatalog>());
         services.AddThroneEfCore(configuration);
         return services.BuildServiceProvider();
     }
