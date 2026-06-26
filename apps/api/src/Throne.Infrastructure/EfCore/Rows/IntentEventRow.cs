@@ -3,7 +3,7 @@ namespace Throne.Infrastructure.EfCore.Rows;
 /// <summary>
 /// Append-only entry in <c>intent_events</c>. <c>text_change</c> and <c>link</c>
 /// subdocuments are stored as JSON columns: nothing queries inside them and keeping
-/// them opaque preserves the Mongo schema shape one-for-one.
+/// them opaque preserves the SQLite schema shape one-for-one.
 /// </summary>
 internal sealed class IntentEventRow
 {

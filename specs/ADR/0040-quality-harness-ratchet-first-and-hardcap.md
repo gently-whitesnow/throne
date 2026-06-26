@@ -106,3 +106,10 @@ snapshot — намеренно вынесены из этого ADR. Двуху
   `MongoIntentPinRepository` 313).
 - Двухуровневый бюджет (`limits` + `hardCap`) и/или `backend-duplicates` blocking-ratchet —
   отдельным ADR, когда станет ясно, что текущей дисциплины недостаточно.
+
+## Amendment — ADR-0047 SQLite persistence (2026-06-26)
+
+[ADR-0047](0047-sqlite-ef-core-persistence.md) removes the Mongo adapter quality
+override introduced here. The active budget now has an EF Core adapter override for
+repository/configuration/projection boilerplate plus a row-POCO public-member override.
+The `**/Migrations/**` generated-file exclusion remains.

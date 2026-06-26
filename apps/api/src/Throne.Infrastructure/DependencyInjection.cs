@@ -10,7 +10,6 @@ using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Imaging;
 using Throne.Infrastructure.LocalModels;
 using Throne.Infrastructure.Manifest;
-using Throne.Infrastructure.Mongo;
 using Throne.Infrastructure.Tokenization;
 
 namespace Throne.Infrastructure;
@@ -21,7 +20,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        AddPersistence(services, configuration);
+        services.AddThroneEfCore(configuration);
 
         services.AddOptions<SkillManifestOptions>()
             .Bind(configuration.GetSection(SkillManifestOptions.SectionName));
@@ -43,19 +42,5 @@ public static class DependencyInjection
         services.AddHostedService<IntentAttachmentCompressionWorker>();
 
         return services;
-    }
-
-    // Persistence:Provider selects the storage backend. Default (mongo) keeps the
-    // existing wiring; sqlite swaps in the EF Core unit of work, context factory, schema
-    // initializer and every repository port.
-    private static void AddPersistence(IServiceCollection services, IConfiguration configuration)
-    {
-        if (PersistenceProvider.IsSqlite(configuration))
-        {
-            services.AddThroneEfCore(configuration);
-            return;
-        }
-
-        services.AddThroneMongoPersistence(configuration);
     }
 }

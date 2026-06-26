@@ -22,8 +22,8 @@ bash scripts/quality/verify.sh --scope backend|frontend    # одна сторо
 Направление зависимостей (диаграмма — канон в [readme.md → «Архитектура»](../readme.md#архитектура)): строго внутрь, `Api → Application → Domain`, `Infrastructure → Application → Domain`, `Api → Infrastructure` только в `Program.cs` / DI wiring.
 
 - **Throne.Domain** — entities, value objects, доменные правила. Без внешних зависимостей.
-- **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про MongoDB.
-- **Throne.Infrastructure** — реализация портов (Mongo).
+- **Throne.Application** — use cases и порты (`IIntentRepository`, `IPromptPartRepository`). Не знает про конкретный storage.
+- **Throne.Infrastructure** — реализация портов (SQLite/EF Core, Git/CLI, terminal adapters).
 - **Throne.Api** — composition root + HTTP transport.
 
 Нарушение направления зависимостей провалит `Throne.Architecture.Tests`.
@@ -47,7 +47,7 @@ DDD-классификация модулей и зависимостей — о
 | Core | `Intents`, `Dreams`, `PromptParts`, `PromptPartPatches`, `IntentLinks`, frontier dream flow ([ADR-0022](ADR/0022-frontier-driven-dream-flow.md)), structural patches ([ADR-0038](ADR/0038-structural-prompt-part-proposals.md)) | core, high volatility | Продуктовая суть Throne; здесь живут rich-DDD агрегаты ([ADR-0025](ADR/0025-domain-aggregate-style-rich-ddd.md)) и большая часть итераций по требованиям. |
 | Supporting | `Tags`, `Capabilities`, `Settings`, `TextVersions` history | supporting | Обслуживают core, своя бизнес-логика мала; допустимы более тонкие модели и прагматичные решения. |
 | Generic, impl-volatile | git-провайдеры (gh / GitLab — [ADR-0032](ADR/0032-gitlab-provider.md)), terminal vendors (claude / codex / opencode — [ADR-0042](ADR/0042-opencode-shared-serve-and-attach-front.md)), IDE openers, tmux, extension axes ([ADR-0045](ADR/0045-throne-extension-pattern.md), [ADR-0046](ADR/0046-open-wire-keys-for-extension-axes.md)) | generic, высокая impl-volatility | Внешние инструменты меняются и заменяются; обязательно через порт + адаптер, без протечки vendor-специфики в core. |
-| Generic, sticky | MongoDB, OpenAPI / realtime contract-first tooling, .NET ecosystem | generic, низкая impl-volatility | Замена маловероятна; OK инвестировать в идиоматичную интеграцию вместо ещё одного слоя абстракции. |
+| Generic, sticky | SQLite/EF Core, OpenAPI / realtime contract-first tooling, .NET ecosystem | generic, низкая impl-volatility | Замена маловероятна; OK инвестировать в идиоматичную интеграцию вместо ещё одного слоя абстракции. |
 
 ## Maintainability gate (ratchet) и duplicate gate (advisory)
 
@@ -61,7 +61,7 @@ bash scripts/quality/maintainability-budget-check.sh \
   --write-baseline-snapshot .quality/maintainability-baseline.json
 ```
 
-**`backend-duplicates` — advisory-only.** Детектор лексический (нормализует identifiers/numbers/strings, скользит окно по логическим строкам, ловит cross-file совпадения). На текущем коде даёт много false-positive из-за идиоматических паттернов (Mongo-репозитории, Application-handlers, MVC-контроллеры). Поэтому печатает отчёт в выводе verify, но **не валит билд** и не имеет baseline. Если увидел реальную копи-пасту в отчёте — выноси в общий код по поводу, не «чтобы хэш ушёл».
+**`backend-duplicates` — advisory-only.** Детектор лексический (нормализует identifiers/numbers/strings, скользит окно по логическим строкам, ловит cross-file совпадения). На текущем коде даёт false-positive из-за идиоматических паттернов (EF Core repositories/configurations, Application-handlers, MVC-контроллеры). Поэтому печатает отчёт в выводе verify, но **не валит билд** и не имеет baseline. Если увидел реальную копи-пасту в отчёте — выноси в общий код по поводу, не «чтобы хэш ушёл».
 
 ## Suppression ratchet (`backend-suppressions`)
 
@@ -114,11 +114,11 @@ Server-to-client события описаны в [specs/contracts/realtime/even
 2. Регенерация: `bash scripts/quality/codegen-frontend.sh` обновит `Throne.Realtime.Contracts/Generated` и `apps/web/src/shared/realtime/generated`.
 3. Добавь record в [Throne.Application/Events/IntentEvents.cs](../apps/api/src/Throne.Application/Events/IntentEvents.cs) (имя — PascalCase от `<event.name>`, например `intent.text_changed` → `IntentTextChanged`).
 4. Сделай так, чтобы соответствующий **outcome** (или новый wrapper-outcome) возвращал этот event на success-ветке через `Events`.
-5. Mongo-репо положит event в outcome — никаких publish-вызовов писать не нужно.
+5. Репозиторий положит event в outcome — никаких publish-вызовов писать не нужно.
 6. Добавь case в [RealtimeDomainEventHandler.cs](../apps/api/src/Throne.Api/Realtime/RealtimeDomainEventHandler.cs), маппя domain event → `RealtimeEventNames.<PascalName>` + DTO.
 7. Подпишись через `useRealtimeEvent("<name>", handler)` хотя бы в одном месте `apps/web/src/`.
 
-Для не-транзакционных операций (GridFS upload/delete) используй `unitOfWork.ExecuteOutsideTransactionAsync(...)` — декоратор работает и для неё.
+Для операций вне основной транзакции используй `unitOfWork.ExecuteOutsideTransactionAsync(...)` — декоратор работает и для неё.
 
 Будущие подписчики на тот же поток (внешний брокер, история, denormalized read-models) подключаются как ещё один `IDomainEventHandler` в DI — handlers Application не меняются.
 

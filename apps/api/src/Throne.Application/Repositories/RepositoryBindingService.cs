@@ -77,7 +77,7 @@ public sealed partial class RepositoryBindingService(
 
     /// <summary>
     /// «Обновить» disk-recovery (ADR-0024) + on-demand PR auto-bind + on-demand PR poller
-    /// quantum. Disk path: trigger is purely the on-disk folder — the Mongo <c>clone_status</c>
+    /// quantum. Disk path: trigger is purely the on-disk folder — the persisted <c>clone_status</c>
     /// is ignored. Folder missing → flip the binding back to <c>pending</c> (unless already
     /// queued) and re-enqueue the clone; the worker's <c>pending → cloning</c> CAS de-dupes a
     /// double enqueue. Realtime <c>IntentRepositoryCloneProgress</c> (raised by the transition

@@ -16,7 +16,7 @@ namespace Throne.Application.Repositories;
 /// per-comment events are raised, and HTTP callers reuse their client-side cache.
 ///
 /// The server never persists comment bodies: <see cref="AllStored"/> is the
-/// upstream-fresh list from the provider call, not a Mongo projection. The
+/// upstream-fresh list from the provider call, not a persistence projection. The
 /// name is preserved for wire-shape continuity.
 ///
 /// The same carrier is returned by both the manual sync use-case

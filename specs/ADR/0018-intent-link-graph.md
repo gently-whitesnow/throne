@@ -138,3 +138,10 @@ DTO`:` `IntentLinkDto`, `IntentLinkPeerDto`, `IntentLinkViewDto`,
 - `relates` и `duplicate_of` удаляются.
 - При коллизии после разворота одно `(from_id,to_id)` ребро с `blocking=true`
   побеждает soft-ребро.
+
+### 2026-06-26: SQLite storage
+
+[ADR-0047](0047-sqlite-ef-core-persistence.md) supersedes the storage shape for
+`intent_links`: links are EF Core rows in the `intent_links` table with a uniqueness
+constraint on the directed edge. Deleting an intent cascades its link rows; duplicate
+link creation is handled by the repository conflict path instead of a collection index.

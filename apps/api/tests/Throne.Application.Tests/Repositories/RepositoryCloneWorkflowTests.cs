@@ -117,7 +117,7 @@ public class RepositoryCloneWorkflowTests
     public async Task RunAsync_clones_into_recomputed_path_not_stale_persisted()
     {
         var fixture = new WorkflowFixture();
-        // Persisted path embeds another machine's home (shared Mongo через туннель):
+        // Persisted path embeds another machine's home (shared persistence через туннель):
         // клонить по нему — Permission denied. Должен пересчитаться под живой root.
         var stalePath = $"/Users/someone-else/.throne/workspaces/intents/{IntentIdValue}/octo__hello";
         var binding = fixture.SeedBinding(cloneStatus: CloneStatusNames.Pending, workspacePath: stalePath);

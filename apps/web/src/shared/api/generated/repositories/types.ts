@@ -159,7 +159,7 @@ export interface paths {
         put?: never;
         /**
          * Restore the local clone of a binding whose workspace folder is missing.
-         * @description Disk-recovery for the «Обновить» button (ADR-0024). The binding lives in Mongo but its local workspace folder is gone — typically a second machine that never cloned it. The path is recomputed against the live workspace root (not the stored `workspace_path`, which may carry another machine's root), and existence is checked on disk only. Folder missing → the binding is flipped back to `pending` (regardless of its current `clone_status`) and re-enqueued onto the clone pipeline; the response carries the binding in `pending`/`cloning` and the UI follows `intent.repository_clone_progress` to `ready`. Folder present → no-op, the current binding is returned unchanged.
+         * @description Disk-recovery for the «Обновить» button (ADR-0024). The binding lives in persistence but its local workspace folder is gone — typically a second machine that never cloned it. The path is recomputed against the live workspace root (not the stored `workspace_path`, which may carry another machine's root), and existence is checked on disk only. Folder missing → the binding is flipped back to `pending` (regardless of its current `clone_status`) and re-enqueued onto the clone pipeline; the response carries the binding in `pending`/`cloning` and the UI follows `intent.repository_clone_progress` to `ready`. Folder present → no-op, the current binding is returned unchanged.
          */
         post: operations["refreshIntentRepository"];
         delete?: never;

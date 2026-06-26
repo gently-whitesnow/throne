@@ -43,7 +43,6 @@ public sealed class SqliteFixture : IAsyncLifetime
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [PersistenceProvider.Key] = PersistenceProvider.Sqlite,
                 [$"{EfPersistenceOptions.SectionName}:DataSource"] = dataSource,
             })
             .Build();

@@ -16,7 +16,7 @@ internal static class GitLabSettingsFailures
 }
 
 /// <summary>
-/// Normaliser shared by the wire-level setter and the Mongo provider's lazy seed.
+/// Normaliser shared by the wire-level setter and the persistence provider's lazy seed.
 /// Rejects empty / whitespace input and obvious scheme prefixes (the CLI wants a bare
 /// hostname; a URL silently corrupts <c>GITLAB_HOST</c>).
 /// </summary>

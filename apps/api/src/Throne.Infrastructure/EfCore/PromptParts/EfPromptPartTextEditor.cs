@@ -11,7 +11,7 @@ namespace Throne.Infrastructure.EfCore.PromptParts;
 /// ReplaceText + SetModeRoles for prompt parts. Replace performs a CAS update under the
 /// expected version and appends a text-version row; mode-roles is a sessionless write
 /// inside the UoW that bumps updated_at (and does NOT bump current_version — mirrors the
-/// Mongo behavior).
+/// persistence behavior).
 /// </summary>
 internal sealed class EfPromptPartTextEditor(EfSessionAccessor sessions)
 {

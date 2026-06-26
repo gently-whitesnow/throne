@@ -41,7 +41,7 @@
   },
   "profiles": {
     "strict": {
-      "description": "Default profile (blocking). constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (Mongo adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к intent или ADR. Throne.Domain включён в size/CC-бюджет (override ниже): rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest) на уровне инвариантов, а LOC/CC ловит разрастание агрегатов.",
+      "description": "Default profile (blocking). constructorMaxDependencies считается только по сервисным классам — record-DTO исключены чекером. methodLocToleranceFactor гасит boundary-friction на round-number LOC-лимитах. Architecturally-структурные surfaces легализованы через pathOverrides ниже (EF Core adapter layer, REST controllers, MCP tool surfaces) — каждый с rationale, привязанным к ADR. Throne.Domain включён в size/CC-бюджет (override ниже): rich-DDD стиль (ADR-0025) охраняется DomainEncapsulationRulesTests (NetArchTest) на уровне инвариантов, а LOC/CC ловит разрастание агрегатов.",
       "gateMode": "blocking",
       "limits": {
         "fileMaxLoc": 400,
@@ -70,8 +70,8 @@
           }
         },
         {
-          "_comment": "ADR-0040: Mongo adapter layer wraps Builders<TDoc> chains + atomic read-then-update sequences. После введения MongoRepositoryBase лимит fileMaxLoc понижен 800→500; per-method CC ≤20 still catches real complexity. Same precedent as REST controllers above.",
-          "glob": "**/Throne.Infrastructure/Mongo/**.cs",
+          "_comment": "ADR-0047: EF Core adapter layer contains entity configurations, row POCOs, projection mappers and repository fragments. Slightly wider per-method/type budgets cover LINQ projection/configuration boilerplate while keeping adapter complexity bounded.",
+          "glob": "**/Throne.Infrastructure/EfCore/**.cs",
           "limits": {
             "fileMaxLoc": 500,
             "typeMaxLoc": 400,
@@ -142,31 +142,17 @@
           }
         },
         {
-          "_comment": "TerminalAgentCatalog is a typed registry of vendor / effort / model-source discriminators + descriptor lookups; public surface == (vendors + efforts + model-sources + helpers). Same precedent as ErrorCodes/MongoCollectionNames — registry-like type, growth tracks supported vendor count.",
+          "_comment": "TerminalAgentCatalog is a typed registry of vendor / effort / model-source discriminators + descriptor lookups; public surface == (vendors + efforts + model-sources + helpers). Same precedent as ErrorCodes — registry-like type, growth tracks supported vendor count.",
           "glob": "**/Throne.Application/Terminals/TerminalAgentCatalog.cs",
           "limits": {
             "typeMaxPublicMembers": 20
           }
         },
         {
-          "_comment": "Mongo POCO documents fan out [BsonElement] properties; public surface = persisted field count.",
-          "glob": "**/Throne.Infrastructure/Mongo/Documents/*.cs",
-          "limits": {
-            "typeMaxPublicMembers": 20
-          }
-        },
-        {
-          "_comment": "EF Core row POCOs mirror persisted column count one-to-one (same precedent as Mongo Documents above); public surface == table column count.",
+          "_comment": "EF Core row POCOs mirror persisted column count one-to-one; public surface == table column count.",
           "glob": "**/Throne.Infrastructure/EfCore/Rows/*.cs",
           "limits": {
             "typeMaxPublicMembers": 20
-          }
-        },
-        {
-          "_comment": "MongoCollectionNames is a constant registry per Mongo collection (ADR-0009/0019/0021/0022).",
-          "glob": "**/Throne.Infrastructure/Mongo/MongoCollectionNames.cs",
-          "limits": {
-            "typeMaxPublicMembers": 30
           }
         },
         {

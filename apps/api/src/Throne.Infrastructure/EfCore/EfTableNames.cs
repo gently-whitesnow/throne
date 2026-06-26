@@ -1,8 +1,7 @@
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// Snake_case SQLite table names; mirrors <c>MongoCollectionNames</c> entry for entry so
-/// the two backends speak the same vocabulary in logs / migrations / ops tooling. The
+/// Snake_case SQLite table names used by logs / migrations / ops tooling. The
 /// constants are grouped into nested clusters (Intents/Tags/PromptParts/Repositories/
 /// Terminals/Dreams) to keep the per-type public-member budget happy. The «root» table
 /// inside each cluster is exposed as <c>Table</c> to avoid C# CS0542 (member-same-as-type).

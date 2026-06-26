@@ -7,10 +7,10 @@ namespace Throne.Application.Ports;
 /// dispatched after the work completes successfully. Handlers therefore never publish
 /// realtime / external events by hand — they simply return outcomes.
 ///
-/// Use <see cref="ExecuteAsync{T}"/> when the work needs an atomic Mongo transaction
-/// across collections. Use <see cref="ExecuteOutsideTransactionAsync{T}"/> for
-/// operations that cannot run in a transaction (GridFS uploads/deletes) but still
-/// need their domain events dispatched.
+/// Use <see cref="ExecuteAsync{T}"/> when the work needs one atomic persistence
+/// transaction. Use <see cref="ExecuteOutsideTransactionAsync{T}"/> for operations
+/// that cannot or should not be wrapped in that transaction but still need their
+/// domain events dispatched.
 /// </summary>
 public interface IUnitOfWork
 {

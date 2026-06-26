@@ -21,7 +21,7 @@ internal sealed class PromptPartRow
 
 /// <summary>
 /// JSON shape for one entry inside <c>prompt_parts.mode_roles</c>. Field names match the
-/// Mongo subdocument 1:1 so a SQLite dump reads identically against the OpenAPI contract.
+/// JSON subdocument 1:1 so a SQLite dump reads identically against the OpenAPI contract.
 /// </summary>
 internal sealed class PromptPartModeRolePayload
 {

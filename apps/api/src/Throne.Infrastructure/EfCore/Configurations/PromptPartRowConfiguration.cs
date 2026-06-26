@@ -48,8 +48,8 @@ internal sealed class PromptPartRowConfiguration : IEntityTypeConfiguration<Prom
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
 
-        // Unique on the (scope, key) identity tuple — mirrors Mongo's
-        // scope_key_unique index; conflict path returns CreatePromptPartOutcome.KeyConflict.
+        // Unique on the (scope, key) identity tuple; conflict path returns
+        // CreatePromptPartOutcome.KeyConflict.
         builder.HasIndex(x => new { x.Scope, x.Key })
             .IsUnique()
             .HasDatabaseName("scope_key_unique");

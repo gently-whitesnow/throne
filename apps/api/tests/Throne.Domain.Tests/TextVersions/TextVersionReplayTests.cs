@@ -91,7 +91,7 @@ public class TextVersionReplayTests
     [Fact(DisplayName = "Replace с пустым old_text после пустого snapshot — initial-fill, корректно подставляет new_text")]
     public void Replace_empty_old_text_initial_fill()
     {
-        // Reproduces the Mongo history shape recorded by InstructionRepository
+        // Reproduces the persistence history shape recorded by InstructionRepository
         // when a user instruction is created with empty text and the next patch
         // populates it: v1 = create(snapshot=""), v2 = replace(old="", new=…).
         // Instruction.ReplaceText allows this initial-fill shape; the replay

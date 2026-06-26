@@ -9,7 +9,7 @@ public sealed record IntentTagCount(string TagId, int Count);
 /// <summary>
 /// Aggregate counts powering the context rail. Tag breakdowns carry tag ids (not names);
 /// name resolution and final ordering happen in the API layer to match the list DTO mapping.
-/// <c>TerminalRunning</c> is computed outside the Mongo aggregation (it intersects the live
+/// <c>TerminalRunning</c> is computed outside the server-side aggregation (it intersects the live
 /// tmux session set with the owner's intents) — the repository leaves it 0.
 /// </summary>
 public sealed record IntentContextCounts(

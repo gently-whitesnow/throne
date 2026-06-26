@@ -8,7 +8,7 @@ namespace Throne.Infrastructure.EfCore;
 /// <summary>
 /// Composite EF Core repository that fronts <see cref="IPromptPartPatchRepository"/>.
 /// All actual work is delegated to per-concern services in <c>PromptParts/</c> so each
-/// file stays well under the per-type budget and mirrors the Mongo decomposition.
+/// file stays well under the per-type budget.
 /// </summary>
 internal sealed class EfPromptPartPatchRepository(
     EfPromptPartPatchLifecycle lifecycle,

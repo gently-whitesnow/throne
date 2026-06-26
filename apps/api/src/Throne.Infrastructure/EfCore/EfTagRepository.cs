@@ -9,7 +9,7 @@ namespace Throne.Infrastructure.EfCore;
 /// <summary>
 /// Composite EF Core repository that fronts <see cref="ITagRepository"/>. All actual work
 /// is delegated to per-concern services in <c>Tags/</c> so each file stays well under the
-/// per-type budget and mirrors the Mongo decomposition.
+/// per-type budget.
 /// </summary>
 internal sealed class EfTagRepository(
     EfTagLifecycle lifecycle,

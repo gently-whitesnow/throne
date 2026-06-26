@@ -62,3 +62,10 @@ Root cause — мутация шла в одном OS-процессе, а SSE-�
 - [ADR-0037](0037-direct-http-mcp-for-standalone-agents.md) — прямой HTTP MCP, удаление proxy.
 - [Throne.Api/Realtime/InMemoryRealtimeBroker.cs](../../apps/api/src/Throne.Api/Realtime/InMemoryRealtimeBroker.cs)
 - [Throne.Application/Events/DomainEventDispatchingUnitOfWork.cs](../../apps/api/src/Throne.Application/Events/DomainEventDispatchingUnitOfWork.cs)
+
+## Note — ADR-0047 SQLite persistence (2026-06-26)
+
+[ADR-0047](0047-sqlite-ef-core-persistence.md) changes the storage implementation, but
+the invariant from this ADR remains storage-agnostic: writes enter the API process, the
+unit-of-work decorator dispatches domain events after successful persistence, and the
+in-memory realtime broker fans out to connected clients.

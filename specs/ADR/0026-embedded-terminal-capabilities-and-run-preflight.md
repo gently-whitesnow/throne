@@ -215,3 +215,15 @@ detection==намерение. Граница узкая (два ключа), о
 
 Снимок «Negative / Risks → Capability `terminal` retrofit OFF после деплоя» этим амендментом
 снимается для `terminal`/`repositories`: тогл больше не нужен.
+
+## Amendment — ADR-0047 SQLite persistence (2026-06-26)
+
+[ADR-0047](0047-sqlite-ef-core-persistence.md) supersedes the storage details in this
+ADR:
+
+- `Capability` state is stored in the EF Core `capabilities` singleton row. The JSON
+  map stays the wire/storage shape; `version` is the concurrency token for updates.
+- `Tag.default_repositories` is stored as a JSON column on the `tags` row. Whole-list
+  replacement still uses `expected_version`; `current_version` is configured as a
+  concurrency token and repository writes use explicit CAS.
+- The terminal liveness source remains `tmux`, not persistence.
