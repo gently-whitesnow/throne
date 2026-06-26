@@ -572,13 +572,6 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TerminalReasoningEffort>))]
         public TerminalReasoningEffort? Effort { get; set; }
 
-        /// <summary>
-        /// Скилы, догруженные в живую сессию через POST /terminal/skills/attach. Persist в `terminal_launches`, на следующий preflight модалка пометит эти скилы как default-on. Не путать с `selected_skill_ids` в `RunIntentTerminalRequest` (выбор на спавн-время).
-        /// <br/>
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("attached_skill_ids")]
-        public System.Collections.Generic.ICollection<string> Attached_skill_ids { get; set; }
-
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

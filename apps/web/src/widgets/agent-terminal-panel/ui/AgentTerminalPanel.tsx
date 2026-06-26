@@ -126,7 +126,6 @@ export function AgentTerminalPanel({
     markSessionEnded
   } = session;
 
-  const attachedSkillIds = sessionLaunch?.attached_skill_ids ?? [];
   const attachable = useAttachableSkills(intentId, effectiveMode, sessionLive);
 
   const handleLaunch = useCallback(
@@ -206,13 +205,16 @@ export function AgentTerminalPanel({
           isStopping={session.isStopping}
         />
         <SkillsAttachControl
-          attachedSkillIds={attachedSkillIds}
           available={attachable.skills}
           sessionLive={sessionLive}
           isLoadingAvailable={attachable.status === "loading"}
           isAttaching={session.isAttachingSkills}
           onAttach={(ids) => {
-            void attachSessionSkills(ids);
+            // After hot-attach the backend unions the skills into the live mode's
+            // selection; reload the preview so `selected` (badges + checkboxes) refreshes.
+            void attachSessionSkills(ids).then(() => {
+              attachable.reload();
+            });
           }}
         />
       </div>
