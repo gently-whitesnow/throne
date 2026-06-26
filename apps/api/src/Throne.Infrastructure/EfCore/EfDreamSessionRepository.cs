@@ -72,7 +72,7 @@ internal sealed class EfDreamSessionRepository(
                 var cutId = decoded.Id;
                 query = query.Where(r =>
                     r.CreatedAt < cutCreatedAt
-                    || (r.CreatedAt == cutCreatedAt && string.Compare(r.Id, cutId, StringComparison.Ordinal) < 0));
+                    || (r.CreatedAt == cutCreatedAt && r.Id.CompareTo(cutId) < 0));
             }
 
             var rows = await query

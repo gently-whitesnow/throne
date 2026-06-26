@@ -64,7 +64,7 @@ internal sealed class EfTagListReader(
         return query.Where(r =>
             (r.LastAttachedAt ?? r.CreatedAt) < sortOffset
             || ((r.LastAttachedAt ?? r.CreatedAt) == sortOffset
-                && string.Compare(r.Id, cursorId, StringComparison.Ordinal) > 0));
+                && r.Id.CompareTo(cursorId) > 0));
     }
 
     private static TagListCursor? BuildNextCursor(bool hasMore, List<TagRow> pageRows)

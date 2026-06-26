@@ -7,6 +7,14 @@ namespace Throne.Infrastructure.EfCore.Intents;
 
 internal static class EfIntentListQueryBuilder
 {
+    private const string TaggedIntentIdsSql =
+        "SELECT i.id AS Value FROM " + EfTableNames.Intents.Table + " i "
+        + "WHERE EXISTS (SELECT 1 FROM json_each(i.tag_ids) WHERE value = {0})";
+
+    private const string UntaggedIntentIdsSql =
+        "SELECT i.id AS Value FROM " + EfTableNames.Intents.Table + " i "
+        + "WHERE NOT EXISTS (SELECT 1 FROM json_each(i.tag_ids))";
+
     /// <summary>
     /// Builds the ordered, filtered query for one page. Returns <c>null</c> when an
     /// upstream filter (notably the Pinned sub-query) has determined the page is empty.
@@ -18,7 +26,7 @@ internal static class EfIntentListQueryBuilder
     {
         var query = ctx.Set<IntentRow>().AsQueryable();
         query = ApplyStatusFilter(query, spec);
-        query = ApplyTagFilters(query, spec);
+        query = await ApplyTagFiltersAsync(ctx, query, spec, ct);
         query = ApplyIdFilter(query, spec);
         var (afterPinned, empty) = await ApplyPinnedFilterAsync(ctx, query, spec, ct);
         if (empty)
@@ -59,18 +67,34 @@ internal static class EfIntentListQueryBuilder
             : query.Where(r => statuses.Contains(r.Status));
     }
 
-    private static IQueryable<IntentRow> ApplyTagFilters(IQueryable<IntentRow> query, IntentListSpec spec)
+    private static async Task<IQueryable<IntentRow>> ApplyTagFiltersAsync(
+        ThroneDbContext ctx,
+        IQueryable<IntentRow> query,
+        IntentListSpec spec,
+        CancellationToken ct)
     {
+        if (spec.TagId is not null && spec.Untagged)
+        {
+            return query.Where(_ => false);
+        }
+
         if (spec.TagId is not null)
         {
-            // JSON array LIKE: tag ids are GUID hex (no quote chars), so a simple contains
-            // probe stays sound. Mirrors the Mongo AnyEq semantics without a join table.
-            var probe = $"%\"{spec.TagId.Value.Value}\"%";
-            query = query.Where(r => EF.Functions.Like(EF.Property<string>(r, "tag_ids"), probe));
+            var taggedIds = await ctx.Database
+                .SqlQueryRaw<string>(TaggedIntentIdsSql, spec.TagId.Value.Value)
+                .ToListAsync(ct);
+            return taggedIds.Count == 0
+                ? query.Where(_ => false)
+                : query.Where(r => taggedIds.Contains(r.Id));
         }
         if (spec.Untagged)
         {
-            query = query.Where(r => EF.Property<string>(r, "tag_ids") == "[]");
+            var untaggedIds = await ctx.Database
+                .SqlQueryRaw<string>(UntaggedIntentIdsSql)
+                .ToListAsync(ct);
+            return untaggedIds.Count == 0
+                ? query.Where(_ => false)
+                : query.Where(r => untaggedIds.Contains(r.Id));
         }
         return query;
     }
@@ -145,8 +169,8 @@ internal static class EfIntentListQueryBuilder
     {
         var sortKey = cursor.SortKey ?? string.Empty;
         var id = cursor.Id;
-        return query.Where(r => string.Compare(r.SortKey, sortKey, StringComparison.Ordinal) > 0
-            || (r.SortKey == sortKey && string.Compare(r.Id, id, StringComparison.Ordinal) > 0));
+        return query.Where(r => r.SortKey.CompareTo(sortKey) > 0
+            || (r.SortKey == sortKey && r.Id.CompareTo(id) > 0));
     }
 
     private static IQueryable<IntentRow> ApplyUpdatedDescCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
@@ -154,7 +178,7 @@ internal static class EfIntentListQueryBuilder
         var sortValue = cursor.SortValue;
         var cid = cursor.Id;
         return query.Where(r => r.UpdatedAt < sortValue
-            || (r.UpdatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0));
+            || (r.UpdatedAt == sortValue && r.Id.CompareTo(cid) > 0));
     }
 
     private static IQueryable<IntentRow> ApplyCreatedDescCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
@@ -162,7 +186,7 @@ internal static class EfIntentListQueryBuilder
         var sortValue = cursor.SortValue;
         var cid = cursor.Id;
         return query.Where(r => r.CreatedAt < sortValue
-            || (r.CreatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0));
+            || (r.CreatedAt == sortValue && r.Id.CompareTo(cid) > 0));
     }
 
     private static IQueryable<IntentRow> ApplyCreatedAscCursor(IQueryable<IntentRow> query, IntentListCursor cursor)
@@ -170,7 +194,7 @@ internal static class EfIntentListQueryBuilder
         var sortValue = cursor.SortValue;
         var cid = cursor.Id;
         return query.Where(r => r.CreatedAt > sortValue
-            || (r.CreatedAt == sortValue && string.Compare(r.Id, cid, StringComparison.Ordinal) > 0));
+            || (r.CreatedAt == sortValue && r.Id.CompareTo(cid) > 0));
     }
 
     private static readonly char[] QueryWhitespace = [' ', '\t', '\r', '\n'];

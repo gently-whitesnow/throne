@@ -27,6 +27,10 @@ internal sealed class EfTagDeletion(
         "SELECT COUNT(*) AS Value FROM " + EfTableNames.Intents.Table + " i "
         + "WHERE EXISTS (SELECT 1 FROM json_each(i.tag_ids) WHERE value = {0})";
 
+    private const string AttachedIntentIdsSql =
+        "SELECT i.id AS Value FROM " + EfTableNames.Intents.Table + " i "
+        + "WHERE EXISTS (SELECT 1 FROM json_each(i.tag_ids) WHERE value = {0})";
+
     public Task<int> CountAttachedIntentsAsync(TagId id, CancellationToken ct) =>
         ReadAsync(async (ctx, c) =>
         {
@@ -52,11 +56,16 @@ internal sealed class EfTagDeletion(
         }
 
         // Find every intent referencing this tag. JSON1 keeps the probe robust against future
-        // serializer-formatting changes (whitespace etc.) — we cannot rely on a LIKE pattern.
-        var probe = $"%\"{wire}\"%";
-        var attachedRows = await ctx.Set<IntentRow>()
-            .Where(r => EF.Functions.Like(EF.Property<string>(r, "tag_ids"), probe))
+        // serializer-formatting changes (whitespace etc.) and avoids relying on EF.Property
+        // against the provider column name.
+        var attachedIds = await ctx.Database
+            .SqlQueryRaw<string>(AttachedIntentIdsSql, wire)
             .ToListAsync(ct);
+        var attachedRows = attachedIds.Count == 0
+            ? new List<IntentRow>()
+            : await ctx.Set<IntentRow>()
+                .Where(r => attachedIds.Contains(r.Id))
+                .ToListAsync(ct);
 
         // Detach + apply the JSON mutation per row so each UPDATE goes through EF (the JSON
         // converter re-serializes List<string> back to canonical form). One bulk SQL would skip
