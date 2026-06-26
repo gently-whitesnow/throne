@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Monitor, TerminalSquare } from "lucide-react";
-
 import { useDetectedTerminalProviders } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
 import {
@@ -10,7 +8,7 @@ import {
 } from "@/entities/repository-binding";
 
 import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
-import { Button } from "@/shared/ui";
+import { SessionLiveBadge } from "@/shared/ui";
 
 import { useAttachableSkills } from "../model/use-attachable-skills";
 import { useLaunchAxis } from "../model/use-launch-axis";
@@ -23,8 +21,8 @@ import { PreflightModal } from "./PreflightModal";
 import { ReviewTargetSelect } from "./ReviewTargetSelect";
 import { RunControls } from "./RunControls";
 import { SkillsAttachControl } from "./SkillsAttachControl";
+import { TerminalLiveViewers } from "./TerminalLiveViewers";
 import { TerminalPanelAlerts } from "./TerminalPanelAlerts";
-import { TerminalView } from "./TerminalView";
 
 interface AgentTerminalPanelProps {
   intentId: string;
@@ -109,8 +107,6 @@ export function AgentTerminalPanel({
           : null;
 
   const [preflightOpen, setPreflightOpen] = useState(false);
-  const [embeddedVisible, setEmbeddedVisible] = useState(false);
-  const nativeSwitchRef = useRef(false);
   const terminalProviders = useDetectedTerminalProviders();
 
   const launchArgs = axis.launchArgs(effectiveMode);
@@ -140,38 +136,20 @@ export function AgentTerminalPanel({
     void session.kill();
   }, [session]);
 
-  const handleOpenNative = useCallback(() => {
-    nativeSwitchRef.current = true;
-    setEmbeddedVisible(false);
-    void openNativeSession();
-  }, [openNativeSession]);
-
-  useEffect(() => {
-    if (!sessionLive) {
-      setEmbeddedVisible(false);
-    }
-  }, [sessionLive]);
-
-  const handleTerminalClosed = useCallback(
-    (code: number) => {
-      if (nativeSwitchRef.current) {
-        nativeSwitchRef.current = false;
-        return;
-      }
-      markSessionEnded();
-      if (code === 1008 || code === 1011) {
-        // Server-side rejection — keep error visible until next user action.
-      }
-    },
-    [markSessionEnded]
-  );
-
   return (
     <section
       aria-label="Запустить агента"
       data-testid="agent-terminal-panel"
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"
     >
+      {sessionLive ? (
+        <SessionLiveBadge
+          testId="agent-terminal-live-badge"
+          label="Сессия запущена"
+          className="text-[12px] font-medium text-success"
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <RunControls
           mode={effectiveMode}
@@ -219,33 +197,6 @@ export function AgentTerminalPanel({
         />
       </div>
 
-      {sessionLive ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            aria-label="Показать встроенный терминал"
-            data-testid="agent-terminal-open-embedded"
-            disabled={embeddedVisible}
-            icon={<Monitor aria-hidden size={14} strokeWidth={2} />}
-            onClick={() => {
-              setEmbeddedVisible(true);
-            }}
-          >
-            {embeddedVisible ? "Встроенный открыт" : "Встроенный терминал"}
-          </Button>
-          {terminalProviders.length > 0 ? (
-            <Button
-              aria-label="Открыть нативный терминал"
-              data-testid="agent-terminal-open-native"
-              disabled={session.isOpeningNative}
-              icon={<TerminalSquare aria-hidden size={14} strokeWidth={2} />}
-              onClick={handleOpenNative}
-            >
-              {session.isOpeningNative ? "Открываем…" : "Нативный терминал"}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
       {effectiveMode === "review" ? (
         <ReviewTargetSelect
           targets={reviewSelection.reviewTargets}
@@ -262,13 +213,15 @@ export function AgentTerminalPanel({
         submitUnconfirmed={sessionLive && session.submitUnconfirmed}
       />
 
-      {embeddedVisible && session.startedAt !== null ? (
-        <TerminalView
-          intentId={intentId}
-          attempt={session.startedAt.attempt}
-          onClosed={handleTerminalClosed}
-        />
-      ) : null}
+      <TerminalLiveViewers
+        intentId={intentId}
+        sessionLive={sessionLive}
+        startedAt={session.startedAt}
+        isOpeningNative={session.isOpeningNative}
+        hasNativeProviders={terminalProviders.length > 0}
+        openNative={openNativeSession}
+        markSessionEnded={markSessionEnded}
+      />
 
       {session.state === "exited" && session.startedAt === null ? (
         <p className="m-0 text-xs text-base-content/60">

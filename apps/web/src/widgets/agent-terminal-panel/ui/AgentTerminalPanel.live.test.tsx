@@ -164,40 +164,44 @@ describe("AgentTerminalPanel live viewers", () => {
     cleanup();
   });
 
-  it("показывает вьюер-кнопки и не рисует xterm до клика", async () => {
+  it("авто-открывает встроенный для live-сессии без отдельной кнопки", async () => {
     getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
     render();
-
-    const embedded = await screen.findByTestId("agent-terminal-open-embedded");
-    expect(screen.queryByTestId("terminal-view")).toBeNull();
-
-    fireEvent.click(embedded);
 
     expect(
       (await screen.findByTestId("terminal-view")).getAttribute("data-attempt")
     ).toBe("1");
+    expect(screen.queryByTestId("agent-terminal-open-embedded")).toBeNull();
+    expect(screen.getByTestId("agent-terminal-live-badge")).toBeTruthy();
     expect(screen.getByTestId("agent-terminal-kill")).toBeTruthy();
     expect(screen.getByTestId("agent-terminal-open-native")).toBeTruthy();
     expect(screen.queryByTestId("agent-terminal-run")).toBeNull();
     expect(runIntentTerminal).not.toHaveBeenCalled();
   });
 
-  it("открывает native viewer для текущей live-сессии", async () => {
+  it("уходит во внешний (гасит встроенный) и возвращается обратно", async () => {
     getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
     render();
 
-    fireEvent.click(await screen.findByTestId("agent-terminal-open-native"));
+    await screen.findByTestId("terminal-view");
+    fireEvent.click(screen.getByTestId("agent-terminal-open-native"));
 
     await waitFor(() => {
       expect(openNativeIntentTerminal).toHaveBeenCalledWith("intent-1");
     });
     expect(screen.queryByTestId("terminal-view")).toBeNull();
+    expect(screen.getByTestId("agent-terminal-native-active")).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId("agent-terminal-return-embedded"));
+
+    expect(await screen.findByTestId("terminal-view")).toBeTruthy();
+    expect(screen.queryByTestId("agent-terminal-native-active")).toBeNull();
   });
 
   it("показывает submit-unconfirmed подсказку для live-сессии", async () => {
     getIntentTerminalSession.mockResolvedValue(sessionResponse("running"));
     render();
-    await screen.findByTestId("agent-terminal-open-embedded");
+    await screen.findByTestId("agent-terminal-live-badge");
 
     realtimeHandlers["terminal.prompt_submit_unconfirmed"].forEach((fn) => {
       fn({ intent_id: "intent-1" });
@@ -218,7 +222,7 @@ describe("AgentTerminalPanel live viewers", () => {
       })
     );
     render();
-    await screen.findByTestId("agent-terminal-open-embedded");
+    await screen.findByTestId("agent-terminal-live-badge");
 
     const vendor = screen.getByTestId<HTMLSelectElement>(
       "agent-terminal-vendor"
