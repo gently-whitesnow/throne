@@ -1,16 +1,16 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.PromptParts;
 using Throne.Domain.TextVersions;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoPromptPartRepositoryTests(MongoFixture fixture)
+public class MongoPromptPartRepositoryTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
 
@@ -30,16 +30,14 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
         var outcome = await uow.ExecuteAsync(ct => repo.CreateAsync(part, version, ct), CancellationToken.None);
         outcome.Should().BeOfType<CreatePromptPartOutcome.Created>();
 
-        var stored = await db.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts)
-            .Find(x => x.Id == part.Id.Value).FirstOrDefaultAsync();
+        var stored = await FindPartAsync(db, part.Id.Value);
         stored.Should().NotBeNull();
         stored!.Scope.Should().Be(PromptPartScopeNames.User);
         stored.Key.Should().Be("work");
         stored.Text.Should().Be("work text");
         stored.CurrentVersion.Should().Be(1);
 
-        var versions = await db.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions)
-            .Find(x => x.OwnerId == part.Id.Value).ToListAsync();
+        var versions = await ListVersionsAsync(db, part.Id.Value);
         versions.Should().ContainSingle();
         versions[0].OwnerKind.Should().Be("prompt_part");
         versions[0].Kind.Should().Be("create");
@@ -50,7 +48,6 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
     public async Task Create_duplicate_key_does_not_persist_orphan_version()
     {
         var (db, repo, uow) = await NewScopeAsync();
-        await EnsurePromptPartUniqueIndexAsync(db);
         var first = MakePart("work", "work text");
         var duplicate = PromptPart.Create(
             PromptPartId.New(),
@@ -67,9 +64,7 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
             CancellationToken.None);
 
         outcome.Should().BeOfType<CreatePromptPartOutcome.KeyConflict>();
-        var duplicateVersions = await db.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions)
-            .Find(x => x.OwnerId == duplicate.Id.Value)
-            .ToListAsync();
+        var duplicateVersions = await ListVersionsAsync(db, duplicate.Id.Value);
         duplicateVersions.Should().BeEmpty();
     }
 
@@ -115,16 +110,12 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
         replaced.Part.Text.Should().Be("edited text");
         replaced.Part.CurrentVersion.Should().Be(2);
 
-        var stored = await db.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts)
-            .Find(x => x.Id == part.Id.Value).FirstOrDefaultAsync();
+        var stored = await FindPartAsync(db, part.Id.Value);
         stored.Should().NotBeNull();
         stored!.Text.Should().Be("edited text");
         stored.CurrentVersion.Should().Be(2);
 
-        var versions = await db.GetCollection<TextVersionDocument>(MongoCollectionNames.TextVersions)
-            .Find(x => x.OwnerId == part.Id.Value)
-            .SortBy(x => x.Version)
-            .ToListAsync();
+        var versions = await ListVersionsAsync(db, part.Id.Value);
         versions.Should().HaveCount(2);
         versions[1].OwnerKind.Should().Be("prompt_part");
         versions[1].Version.Should().Be(2);
@@ -152,25 +143,24 @@ public class MongoPromptPartRepositoryTests(MongoFixture fixture)
             Now,
             TextVersionAuthor.System);
 
-    private async Task<(IMongoDatabase Db, MongoPromptPartRepository Repo, MongoUnitOfWork Uow)> NewScopeAsync()
+    private async Task<(SqliteTestDatabase Db, EfPromptPartRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
     {
-        var name = $"throne_prompt_part_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var sessions = new MongoSessionAccessor();
-        var repo = new MongoPromptPartRepository(db, sessions);
-        var uow = new MongoUnitOfWork(fixture.Client, sessions);
-        return (db, repo, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return (db, db.GetRequiredService<EfPromptPartRepository>(), db.GetRequiredService<IUnitOfWork>());
     }
 
-    private static Task EnsurePromptPartUniqueIndexAsync(IMongoDatabase db)
+    private static async Task<PromptPartRow?> FindPartAsync(SqliteTestDatabase db, string id)
     {
-        var promptParts = db.GetCollection<PromptPartDocument>(MongoCollectionNames.PromptParts);
-        return promptParts.Indexes.CreateOneAsync(
-            new CreateIndexModel<PromptPartDocument>(
-                Builders<PromptPartDocument>.IndexKeys
-                    .Ascending(x => x.Scope)
-                    .Ascending(x => x.Key),
-                new CreateIndexOptions { Unique = true, Name = "scope_key_unique" }));
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<PromptPartRow>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    private static async Task<List<TextVersionRow>> ListVersionsAsync(SqliteTestDatabase db, string ownerId)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<TextVersionRow>().AsNoTracking()
+            .Where(x => x.OwnerId == ownerId)
+            .OrderBy(x => x.Version)
+            .ToListAsync();
     }
 }

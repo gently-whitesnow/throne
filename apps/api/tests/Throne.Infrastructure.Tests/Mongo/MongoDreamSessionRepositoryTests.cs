@@ -1,14 +1,12 @@
 using FluentAssertions;
-using MongoDB.Driver;
 using Throne.Application.Ports;
 using Throne.Domain.Dreams;
-using Throne.Infrastructure.Mongo;
 
 namespace Throne.Infrastructure.Tests.Mongo;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
+public class MongoDreamSessionRepositoryTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 5, 11, 12, 0, 0, TimeSpan.Zero);
 
@@ -98,14 +96,9 @@ public class MongoDreamSessionRepositoryTests(MongoFixture fixture)
             reflection: null,
             proposedPatchIds: []);
 
-    private async Task<(IMongoDatabase Db, MongoDreamSessionRepository Repo, MongoUnitOfWork Uow)> NewScopeAsync()
+    private async Task<(SqliteTestDatabase Db, IDreamSessionRepository Repo, IUnitOfWork Uow)> NewScopeAsync()
     {
-        var name = $"throne_test_{Guid.NewGuid():N}";
-        await fixture.Client.DropDatabaseAsync(name);
-        var db = fixture.Client.GetDatabase(name);
-        var session = new MongoSessionAccessor();
-        var uow = new MongoUnitOfWork(fixture.Client, session);
-        var repo = new MongoDreamSessionRepository(db, session);
-        return (db, repo, uow);
+        var db = await fixture.CreateDatabaseAsync();
+        return (db, db.GetRequiredService<IDreamSessionRepository>(), db.GetRequiredService<IUnitOfWork>());
     }
 }

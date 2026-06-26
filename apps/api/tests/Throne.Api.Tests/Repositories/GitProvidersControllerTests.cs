@@ -9,15 +9,15 @@ using Throne.Domain.Repositories;
 
 namespace Throne.Api.Tests.Repositories;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class GitProvidersControllerTests(MongoFixture mongo) : IAsyncLifetime, IDisposable
+public sealed class GitProvidersControllerTests(SqliteFixture sqlite) : IAsyncLifetime, IDisposable
 {
     private RepositoriesApiFixture _fixture = null!;
 
     public Task InitializeAsync()
     {
-        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create());
+        _fixture = new RepositoriesApiFixture(sqlite, TestGitProvider.Create());
         return Task.CompletedTask;
     }
 
@@ -70,7 +70,7 @@ public sealed class GitProvidersControllerTests(MongoFixture mongo) : IAsyncLife
     public async Task Search_uses_provider_from_route()
     {
         await _fixture.DisposeAsync();
-        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create(
+        _fixture = new RepositoriesApiFixture(sqlite, TestGitProvider.Create(
             GitProviderNames.GitLab,
             "gitlab.example.com"));
         _fixture.Provider.SearchRepositoriesAsync(

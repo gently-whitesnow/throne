@@ -12,12 +12,12 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
-    <PackageReference Include="Testcontainers.MongoDb" />
-    <PackageReference Include="MongoDB.Driver" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Throne.Infrastructure.Tests" />
   </ItemGroup>
 
   <ItemGroup>

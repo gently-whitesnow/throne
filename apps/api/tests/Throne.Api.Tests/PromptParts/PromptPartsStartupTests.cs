@@ -1,44 +1,25 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using Microsoft.Data.Sqlite;
 using Throne.Api.Tests.Infrastructure;
 
 namespace Throne.Api.Tests.PromptParts;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class PromptPartsStartupTests(MongoFixture mongo)
+public sealed class PromptPartsStartupTests(SqliteFixture sqlite)
 {
-    [Fact(DisplayName = "Host стартует со stale system prompt_part в Mongo и list берёт system из манифеста")]
-    public async Task Host_starts_with_stale_system_prompt_part_in_mongo()
+    [Fact(DisplayName = "Host list игнорирует stale persisted system prompt_part и берёт system из манифеста")]
+    public async Task Host_ignores_stale_persisted_system_prompt_part()
     {
-        var dbName = $"throne_api_{Guid.NewGuid():N}";
-        await InsertStaleSystemPartAsync(dbName);
-
-        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Production");
-            builder.UseDefaultServiceProvider(o =>
-            {
-                o.ValidateScopes = false;
-                o.ValidateOnBuild = false;
-            });
-            builder.ConfigureAppConfiguration((_, cfg) =>
-            {
-                cfg.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Mongo:ConnectionString"] = mongo.ConnectionString,
-                    ["Mongo:Database"] = dbName,
-                });
-            });
-        });
+        await using var database = sqlite.CreateDatabase();
+        await using var factory = SqliteTestHost.Create(database);
         using var client = factory.CreateClient();
+        await InsertStaleSystemPartAsync(database.DataSource);
 
         var health = await client.GetAsync(new Uri("/health", UriKind.Relative));
         var list = await client.GetFromJsonAsync<JsonElement>(
@@ -52,29 +33,28 @@ public sealed class PromptPartsStartupTests(MongoFixture mongo)
         systemWork.GetProperty("text_short").GetString().Should().NotBe("stale system text");
     }
 
-    private async Task InsertStaleSystemPartAsync(string dbName)
+    private static async Task InsertStaleSystemPartAsync(string dataSource)
     {
-        var db = new MongoClient(mongo.ConnectionString).GetDatabase(dbName);
-        var promptParts = db.GetCollection<BsonDocument>("prompt_parts");
-        await promptParts.InsertOneAsync(new BsonDocument
-        {
-            ["_id"] = "system:work",
-            ["scope"] = "system",
-            ["key"] = "work",
-            ["text"] = "stale system text",
-            ["description"] = BsonNull.Value,
-            ["current_version"] = 1,
-            ["mode_roles"] = new BsonArray
-            {
-                new BsonDocument
-                {
-                    ["mode"] = "schema_map",
-                    ["role"] = "mandatory",
-                    ["order"] = 0,
-                },
-            },
-            ["created_at"] = DateTime.UtcNow,
-            ["updated_at"] = DateTime.UtcNow,
-        });
+        await using var connection = new SqliteConnection($"Data Source={dataSource}");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO prompt_parts
+                (id, scope, key, text, description, current_version, mode_roles, created_at, updated_at)
+            VALUES
+                ($id, $scope, $key, $text, NULL, $version, $modeRoles, $createdAt, $updatedAt);
+            """;
+        var now = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+        command.Parameters.AddWithValue("$id", "system:work");
+        command.Parameters.AddWithValue("$scope", "system");
+        command.Parameters.AddWithValue("$key", "work");
+        command.Parameters.AddWithValue("$text", "stale system text");
+        command.Parameters.AddWithValue("$version", 1);
+        command.Parameters.AddWithValue(
+            "$modeRoles",
+            """[{"mode":"schema_map","role":"mandatory","order":0}]""");
+        command.Parameters.AddWithValue("$createdAt", now);
+        command.Parameters.AddWithValue("$updatedAt", now);
+        await command.ExecuteNonQueryAsync();
     }
 }

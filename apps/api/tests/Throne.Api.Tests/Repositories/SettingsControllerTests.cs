@@ -9,15 +9,15 @@ using Throne.Domain.Repositories;
 
 namespace Throne.Api.Tests.Repositories;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class SettingsControllerTests(MongoFixture mongo) : IAsyncLifetime, IDisposable
+public sealed class SettingsControllerTests(SqliteFixture sqlite) : IAsyncLifetime, IDisposable
 {
     private RepositoriesApiFixture _fixture = null!;
 
     public Task InitializeAsync()
     {
-        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create());
+        _fixture = new RepositoriesApiFixture(sqlite, TestGitProvider.Create());
         return Task.CompletedTask;
     }
 

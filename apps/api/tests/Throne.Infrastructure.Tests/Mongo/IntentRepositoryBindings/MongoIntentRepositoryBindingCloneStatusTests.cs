@@ -5,9 +5,9 @@ using Throne.Domain.Repositories;
 
 namespace Throne.Infrastructure.Tests.Mongo.IntentRepositoryBindings;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoIntentRepositoryBindingCloneStatusTests(MongoFixture fixture)
+public class MongoIntentRepositoryBindingCloneStatusTests(SqliteFixture fixture)
 {
     [Fact(DisplayName = "FindByCloneStatusAsync(pending) возвращает только pending, по created_at ASC")]
     public async Task FindByCloneStatus_pending_returns_only_pending_ordered()
@@ -58,13 +58,13 @@ public class MongoIntentRepositoryBindingCloneStatusTests(MongoFixture fixture)
     {
         var scope = await IntentRepositoryBindingTestScope.CreateAsync(fixture);
         var binding = IntentRepositoryBindingTestFactory.NewBinding(IntentId.New());
-        await scope.Repository.CreateAsync(binding, CancellationToken.None);
+        await CreateAsync(scope, binding);
 
         // Same binding dequeued twice (auto-bind + Run-preflight). Both workers carry the
         // cloning state in-memory; the DB precondition `clone_status == pending` decides the winner.
         binding.MarkCloning(IntentRepositoryBindingTestFactory.Now);
-        var first = await scope.Repository.ClaimCloningAsync(binding, CancellationToken.None);
-        var second = await scope.Repository.ClaimCloningAsync(binding, CancellationToken.None);
+        var first = await ClaimCloningAsync(scope, binding);
+        var second = await ClaimCloningAsync(scope, binding);
 
         first.Should().BeOfType<SaveBindingOutcome.Saved>();
         second.Should().BeOfType<SaveBindingOutcome.NotFound>();
@@ -91,7 +91,21 @@ public class MongoIntentRepositoryBindingCloneStatusTests(MongoFixture fixture)
         {
             binding.MarkFailed("clone error", IntentRepositoryBindingTestFactory.Now);
         }
-        await scope.Repository.CreateAsync(binding, CancellationToken.None);
+        await CreateAsync(scope, binding);
         return binding.Id.Value;
     }
+
+    private static Task<CreateBindingOutcome> CreateAsync(
+        IntentRepositoryBindingTestScope scope,
+        IntentRepositoryBinding binding) =>
+        scope.UnitOfWork.ExecuteAsync(
+            ct => scope.Repository.CreateAsync(binding, ct),
+            CancellationToken.None);
+
+    private static Task<SaveBindingOutcome> ClaimCloningAsync(
+        IntentRepositoryBindingTestScope scope,
+        IntentRepositoryBinding binding) =>
+        scope.UnitOfWork.ExecuteAsync(
+            ct => scope.Repository.ClaimCloningAsync(binding, ct),
+            CancellationToken.None);
 }

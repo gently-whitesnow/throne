@@ -6,9 +6,9 @@ using Throne.Api.Tests.Infrastructure;
 
 namespace Throne.Api.Tests.Repositories;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class PullRequestArtifactsControllerTests(MongoFixture mongo) : IAsyncLifetime, IDisposable
+public sealed class PullRequestArtifactsControllerTests(SqliteFixture sqlite) : IAsyncLifetime, IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 18, 12, 0, 0, TimeSpan.Zero);
     private static readonly string[] FirstSourceRefs = ["sha:abc"];
@@ -18,7 +18,7 @@ public sealed class PullRequestArtifactsControllerTests(MongoFixture mongo) : IA
 
     public Task InitializeAsync()
     {
-        _fixture = new RepositoriesApiFixture(mongo, TestGitProvider.Create());
+        _fixture = new RepositoriesApiFixture(sqlite, TestGitProvider.Create());
         return Task.CompletedTask;
     }
 

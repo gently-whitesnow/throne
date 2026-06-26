@@ -12,7 +12,7 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-    <PackageReference Include="Testcontainers.MongoDb" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>

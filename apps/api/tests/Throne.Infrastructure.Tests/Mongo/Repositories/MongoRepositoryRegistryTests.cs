@@ -1,15 +1,14 @@
 using FluentAssertions;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
-using Throne.Infrastructure.Mongo;
-using Throne.Infrastructure.Mongo.Documents;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.Mongo.Repositories;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public class MongoRepositoryRegistryTests(MongoFixture fixture)
+public class MongoRepositoryRegistryTests(SqliteFixture fixture)
 {
     private static readonly DateTimeOffset Now = new(2026, 6, 6, 12, 0, 0, TimeSpan.Zero);
 
@@ -21,15 +20,12 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
 
-        var outcome = await scope.Registry.EnsureRepositoryAsync(Coordinate(), Now, CancellationToken.None);
+        var outcome = await EnsureAsync(scope, Coordinate(), Now);
 
         outcome.Should().BeOfType<EnsureRepositoryOutcome.Created>();
         var repository = outcome.Repository;
         repository.Coordinate.Should().Be(Coordinate());
-        var stored = await scope.Database
-            .GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories)
-            .Find(d => d.Id == repository.Id.Value)
-            .FirstOrDefaultAsync();
+        var stored = await FindRepositoryAsync(scope.Database, repository.Id.Value);
         stored.Should().NotBeNull();
         stored!.Provider.Should().Be(GitProviderNames.GitHub);
         stored.Owner.Should().Be("octo");
@@ -41,16 +37,14 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
 
-        var first = await scope.Registry.EnsureRepositoryAsync(Coordinate(), Now, CancellationToken.None);
-        var second = await scope.Registry.EnsureRepositoryAsync(
-            Coordinate(), Now.AddMinutes(1), CancellationToken.None);
+        var first = await EnsureAsync(scope, Coordinate(), Now);
+        var second = await EnsureAsync(scope, Coordinate(), Now.AddMinutes(1));
 
         first.Should().BeOfType<EnsureRepositoryOutcome.Created>();
         second.Should().BeOfType<EnsureRepositoryOutcome.Existed>();
         second.Repository.Id.Should().Be(first.Repository.Id);
-        var count = await scope.Database
-            .GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories)
-            .CountDocumentsAsync(FilterDefinition<RepositoryDocument>.Empty);
+        await using var ctx = await scope.Database.CreateContextAsync();
+        var count = await ctx.Set<RepositoryRow>().AsNoTracking().CountAsync(CancellationToken.None);
         count.Should().Be(1);
     }
 
@@ -59,8 +53,8 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
 
-        var a = await scope.Registry.EnsureRepositoryAsync(Coordinate("alpha"), Now, CancellationToken.None);
-        var b = await scope.Registry.EnsureRepositoryAsync(Coordinate("beta"), Now, CancellationToken.None);
+        var a = await EnsureAsync(scope, Coordinate("alpha"), Now);
+        var b = await EnsureAsync(scope, Coordinate("beta"), Now);
 
         b.Repository.Id.Should().NotBe(a.Repository.Id);
     }
@@ -69,20 +63,25 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
     public async Task Coordinate_index_is_unique()
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
-        var collection = scope.Database.GetCollection<RepositoryDocument>(MongoCollectionNames.Repositories);
-        await scope.Registry.EnsureRepositoryAsync(Coordinate(), Now, CancellationToken.None);
+        await EnsureAsync(scope, Coordinate(), Now);
 
-        var act = async () => await collection.InsertOneAsync(new RepositoryDocument
+        var act = async () =>
         {
-            Id = Guid.NewGuid().ToString("N"),
-            Provider = GitProviderNames.GitHub,
-            Owner = "octo",
-            Repo = "throne",
-            CreatedAt = Now.UtcDateTime,
-            UpdatedAt = Now.UtcDateTime,
-        });
+            await using var db = await scope.Database.CreateContextAsync();
+            db.Set<RepositoryRow>().Add(new RepositoryRow
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Provider = GitProviderNames.GitHub,
+                Host = GitProviderHostDefaults.GitHub,
+                Owner = "octo",
+                Repo = "throne",
+                CreatedAt = Now,
+                UpdatedAt = Now,
+            });
+            await db.SaveChangesAsync(CancellationToken.None);
+        };
 
-        await act.Should().ThrowAsync<MongoWriteException>();
+        await act.Should().ThrowAsync<DbUpdateException>();
     }
 
     [Fact(DisplayName = "FindByCoordinateAsync возвращает null до первого появления координаты")]
@@ -109,11 +108,25 @@ public class MongoRepositoryRegistryTests(MongoFixture fixture)
     public async Task List_returns_all_sorted()
     {
         var scope = await RepositoryStoreTestScope.CreateAsync(fixture);
-        await scope.Registry.EnsureRepositoryAsync(Coordinate("zeta"), Now, CancellationToken.None);
-        await scope.Registry.EnsureRepositoryAsync(Coordinate("alpha"), Now, CancellationToken.None);
+        await EnsureAsync(scope, Coordinate("zeta"), Now);
+        await EnsureAsync(scope, Coordinate("alpha"), Now);
 
         var all = await scope.Registry.ListAsync(CancellationToken.None);
 
         all.Select(r => r.Coordinate.Repo).Should().Equal("alpha", "zeta");
     }
+
+    private static async Task<RepositoryRow?> FindRepositoryAsync(SqliteTestDatabase database, string id)
+    {
+        await using var ctx = await database.CreateContextAsync();
+        return await ctx.Set<RepositoryRow>().AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
+    }
+
+    private static Task<EnsureRepositoryOutcome> EnsureAsync(
+        RepositoryStoreTestScope scope,
+        RepoCoordinate coordinate,
+        DateTimeOffset now) =>
+        scope.UnitOfWork.ExecuteAsync(
+            ct => scope.Registry.EnsureRepositoryAsync(coordinate, now, ct),
+            CancellationToken.None);
 }

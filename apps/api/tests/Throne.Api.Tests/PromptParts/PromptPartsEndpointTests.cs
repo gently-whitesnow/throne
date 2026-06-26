@@ -3,42 +3,25 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Throne.Api.Tests.Infrastructure;
 
 namespace Throne.Api.Tests.PromptParts;
 
-[Collection(nameof(MongoIntegrationFixture))]
+[Collection(nameof(SqliteIntegrationFixture))]
 [Trait("Category", "Integration")]
-public sealed class PromptPartsEndpointTests(MongoFixture mongo) : IAsyncLifetime
+public sealed class PromptPartsEndpointTests(SqliteFixture sqlite) : IAsyncLifetime
 {
     private static readonly Uri PromptPartsUri = new("/api/v1/prompt-parts", UriKind.Relative);
 
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _client = null!;
+    private SqliteTestDatabase _database = null!;
 
     public Task InitializeAsync()
     {
-        var dbName = $"throne_api_{Guid.NewGuid():N}";
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.UseEnvironment("Production");
-            builder.UseDefaultServiceProvider(o =>
-            {
-                o.ValidateScopes = false;
-                o.ValidateOnBuild = false;
-            });
-            builder.ConfigureAppConfiguration((_, cfg) =>
-            {
-                cfg.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Mongo:ConnectionString"] = mongo.ConnectionString,
-                    ["Mongo:Database"] = dbName,
-                });
-            });
-        });
+        _database = sqlite.CreateDatabase();
+        _factory = SqliteTestHost.Create(_database);
         _client = _factory.CreateClient();
         return Task.CompletedTask;
     }
@@ -47,6 +30,7 @@ public sealed class PromptPartsEndpointTests(MongoFixture mongo) : IAsyncLifetim
     {
         _client.Dispose();
         await _factory.DisposeAsync();
+        await _database.DisposeAsync();
     }
 
     [Fact(DisplayName = "POST /prompt-parts создаёт часть, GET /prompt-parts её возвращает")]
