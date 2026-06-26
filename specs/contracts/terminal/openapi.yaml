@@ -239,8 +239,9 @@ paths:
         `.claude/skills/{id}/SKILL.md` for Claude or
         `.agents/skills/{id}/SKILL.md` for Codex. It does not inject messages
         into the live tmux pane; the agent discovers the file change natively.
-        The selection is persisted in `terminal_launches.attached_skill_ids` and
-        re-applied on the next preflight preview as default-on. Idempotent:
+        The selection is unioned into
+        `terminal_launches.selected_skill_ids_by_mode[mode]` for the live session's
+        mode and re-applied on the next preflight preview as default-on. Idempotent:
         re-attaching an already attached skill is a no-op for the persisted set.
       parameters:
         - in: path
@@ -754,16 +755,6 @@ components:
           description: Resolved reasoning effort; null for a vendor with no effort axis.
           allOf:
             - $ref: '#/components/schemas/TerminalReasoningEffort'
-        attached_skill_ids:
-          type: array
-          nullable: true
-          items:
-            type: string
-          description: >
-            Скилы, догруженные в живую сессию через POST /terminal/skills/attach.
-            Persist в `terminal_launches`, на следующий preflight модалка
-            пометит эти скилы как default-on. Не путать с `selected_skill_ids` в
-            `RunIntentTerminalRequest` (выбор на спавн-время).
     AttachIntentTerminalSkillsRequest:
       type: object
       required: [skill_ids]

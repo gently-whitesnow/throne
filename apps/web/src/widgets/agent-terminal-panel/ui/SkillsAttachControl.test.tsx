@@ -27,13 +27,13 @@ afterEach(() => {
 });
 
 describe("SkillsAttachControl", () => {
-  it("рендерит бейдж по каждому уже приложенному скилу", () => {
+  it("рендерит бейдж по каждому загруженному (selected) скилу", () => {
     render(
       <SkillsAttachControl
-        attachedSkillIds={["alpha", "beta"]}
         available={[
-          skill("alpha", { title: "Alpha" }),
-          skill("beta", { title: "Beta" })
+          skill("alpha", { title: "Alpha", selected: true }),
+          skill("beta", { title: "Beta", selected: true }),
+          skill("gamma", { title: "Gamma", selected: false })
         ]}
         sessionLive
         isLoadingAvailable={false}
@@ -48,12 +48,14 @@ describe("SkillsAttachControl", () => {
     expect(
       screen.getByTestId("agent-terminal-skill-badge-beta").textContent
     ).toBe("Beta");
+    expect(
+      screen.queryByTestId("agent-terminal-skill-badge-gamma")
+    ).toBeNull();
   });
 
   it("кнопка «Скилы» disabled когда сессия не живая", () => {
     render(
       <SkillsAttachControl
-        attachedSkillIds={[]}
         available={[]}
         sessionLive={false}
         isLoadingAvailable={false}
@@ -66,12 +68,11 @@ describe("SkillsAttachControl", () => {
     expect(button.hasAttribute("disabled")).toBe(true);
   });
 
-  it("уже приложенный скил в попапе checked+disabled и не уходит в onAttach при попытке повторно", () => {
+  it("уже загруженный скил в попапе checked+disabled и не уходит в onAttach при попытке повторно", () => {
     const onAttach = vi.fn();
     render(
       <SkillsAttachControl
-        attachedSkillIds={["alpha"]}
-        available={[skill("alpha"), skill("beta")]}
+        available={[skill("alpha", { selected: true }), skill("beta")]}
         sessionLive
         isLoadingAvailable={false}
         isAttaching={false}
@@ -98,8 +99,7 @@ describe("SkillsAttachControl", () => {
     const onAttach = vi.fn();
     render(
       <SkillsAttachControl
-        attachedSkillIds={["alpha"]}
-        available={[skill("alpha"), skill("beta"), skill("gamma")]}
+        available={[skill("alpha", { selected: true }), skill("beta"), skill("gamma")]}
         sessionLive
         isLoadingAvailable={false}
         isAttaching={false}
@@ -124,7 +124,6 @@ describe("SkillsAttachControl", () => {
   it("неmaterializable скил недоступен для выбора и показывает reason", () => {
     render(
       <SkillsAttachControl
-        attachedSkillIds={[]}
         available={[
           skill("alpha", { materializable: false, reason: "нет файлов" })
         ]}
@@ -147,7 +146,6 @@ describe("SkillsAttachControl", () => {
   it("submit-кнопка disabled пока нет новых выбранных скилов", () => {
     render(
       <SkillsAttachControl
-        attachedSkillIds={[]}
         available={[skill("alpha")]}
         sessionLive
         isLoadingAvailable={false}
