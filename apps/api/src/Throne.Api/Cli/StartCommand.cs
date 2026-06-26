@@ -44,7 +44,7 @@ internal static class StartCommand
 
         var home = request.Home;
         DaemonState.Write(home, new DaemonState(
-            Environment.ProcessId, request.Url, ThroneVersion.Current, DateTimeOffset.UtcNow));
+            Environment.ProcessId, request.Url, ThroneVersion.Current, DateTimeOffset.UtcNow, request.HostArgs));
 
         try
         {

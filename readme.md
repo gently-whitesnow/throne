@@ -73,7 +73,7 @@ dotnet publish apps/api/src/Throne.Api/Throne.Api.csproj -c Release -r <rid>
 ```bash
 throne update              # latest из GitHub Releases → atomic swap install-каталога
 throne update --force      # обновиться даже если версия совпала
-throne update --restart    # после подмены перезапустить бинарь
+throne update --restart    # после подмены перезапустить демон на новом бинаре
 ```
 
 ### 4. Static operational skills для dogfooding

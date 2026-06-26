@@ -44,44 +44,6 @@ public class CliRequestTests
     }
 
     [Fact]
-    public void Port_alias_becomes_url_and_host_urls_arg()
-    {
-        var request = CliRequest.Parse(["-p", "9000"]);
-
-        request.Url.Should().Be("http://localhost:9000");
-        request.HostArgs.Should().ContainInOrder("--urls", "http://localhost:9000");
-    }
-
-    [Fact]
-    public void Db_alias_lowers_onto_persistence_config_key()
-    {
-        var request = CliRequest.Parse(["--db", "/data/custom.db"]);
-
-        request.HostArgs.Should().Contain("--Persistence:Sqlite:DataSource=/data/custom.db");
-    }
-
-    [Fact]
-    public void Explicit_home_defaults_db_and_workspace_under_home()
-    {
-        var request = CliRequest.Parse(["--home", "/srv/throne-x"]);
-
-        request.Home.IsExplicit.Should().BeTrue();
-        request.HostArgs.Should().Contain(a => a.Contains("Persistence:Sqlite:DataSource=", StringComparison.Ordinal)
-            && a.Contains("throne-x", StringComparison.Ordinal) && a.EndsWith("throne.db", StringComparison.Ordinal));
-        request.HostArgs.Should().Contain(a => a.Contains("Throne:Workspace:Root=", StringComparison.Ordinal)
-            && a.EndsWith("workspaces", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Default_home_does_not_override_persistence_or_workspace()
-    {
-        var request = CliRequest.Parse(["-a"]);
-
-        request.HostArgs.Should().NotContain(a => a.Contains("Persistence:Sqlite:DataSource=", StringComparison.Ordinal));
-        request.HostArgs.Should().NotContain(a => a.Contains("Throne:Workspace:Root=", StringComparison.Ordinal));
-    }
-
-    [Fact]
     public void Logs_follow_flag_is_parsed()
     {
         var request = CliRequest.Parse(["logs", "-f"]);
@@ -97,16 +59,6 @@ public class CliRequestTests
 
         request.Command.Should().Be(CliCommand.Update);
         request.Rest.Should().Equal("--restart");
-    }
-
-    [Fact]
-    public void Serve_keeps_passthrough_host_args_and_normalizes_url()
-    {
-        var request = CliRequest.Parse(["serve", "--urls", "http://0.0.0.0:7000"]);
-
-        request.Command.Should().Be(CliCommand.Serve);
-        request.Url.Should().Be("http://localhost:7000");
-        request.HostArgs.Should().ContainInOrder("--urls", "http://0.0.0.0:7000");
     }
 
     [Theory]

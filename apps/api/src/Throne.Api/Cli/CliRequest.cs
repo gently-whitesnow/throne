@@ -131,8 +131,14 @@ internal sealed record CliRequest(
             .Replace("://*", "://localhost", StringComparison.Ordinal);
     }
 
+    // Idempotent: a home-default override is only appended when the key is not already
+    // present. This matters for the daemon child, which re-parses already-resolved args
+    // (with THRONE_HOME set ⇒ home is explicit) and must not clobber an explicit
+    // `--db`/`--urls` the parent already lowered onto the config keys.
     private static string[] BuildHostArgs(string[] passthrough, string? port, string? db, ThroneHome home)
     {
+        const string dataSourceArg = "--Persistence:Sqlite:DataSource=";
+        const string workspaceArg = "--Throne:Workspace:Root=";
         var list = new List<string>(passthrough);
 
         if (port is not null)
@@ -143,20 +149,23 @@ internal sealed record CliRequest(
 
         if (db is not null)
         {
-            list.Add(FormattableString.Invariant($"--Persistence:Sqlite:DataSource={db}"));
+            list.Add(FormattableString.Invariant($"{dataSourceArg}{db}"));
         }
-        else if (home.IsExplicit)
+        else if (home.IsExplicit && !Has(passthrough, dataSourceArg))
         {
-            list.Add(FormattableString.Invariant($"--Persistence:Sqlite:DataSource={home.DbPath}"));
+            list.Add(FormattableString.Invariant($"{dataSourceArg}{home.DbPath}"));
         }
 
-        if (home.IsExplicit)
+        if (home.IsExplicit && !Has(passthrough, workspaceArg))
         {
-            list.Add(FormattableString.Invariant($"--Throne:Workspace:Root={home.WorkspacesRoot}"));
+            list.Add(FormattableString.Invariant($"{workspaceArg}{home.WorkspacesRoot}"));
         }
 
         return list.ToArray();
     }
+
+    private static bool Has(string[] passthrough, string argPrefix) =>
+        Array.Exists(passthrough, a => a.StartsWith(argPrefix, StringComparison.Ordinal));
 
     /// <summary>Validates the <c>-p</c>/<c>--port</c> alias when present; null when valid.</summary>
     public string? PortError()
