@@ -23,8 +23,26 @@ internal sealed class LocalGitWorkspaceSync(IProcessLauncher launcher) : ILocalG
         ArgumentException.ThrowIfNullOrWhiteSpace(workspacePath);
 
         var branch = await ReadCurrentBranchAsync(workspacePath, ct);
-        await RunAsync(workspacePath, ["fetch", "--prune", "origin"], FetchTimeout, "fetch", ct);
-        await RunAsync(workspacePath, ["reset", "--hard", $"origin/{branch}"], QuickTimeout, "reset", ct);
+        // fork-PR: ветка трекает upstream на remote форка, не на origin — поэтому тянем все
+        // remotes и сбрасываемся на upstream (`@{u}`), а не жёстко на `origin/{branch}`.
+        await RunAsync(workspacePath, ["fetch", "--prune", "--all"], FetchTimeout, "fetch", ct);
+        var resetTarget = await ResolveResetTargetAsync(workspacePath, branch, ct);
+        await RunAsync(workspacePath, ["reset", "--hard", resetTarget], QuickTimeout, "reset", ct);
+    }
+
+    /// <summary>
+    /// Куда жёстко сбрасывать рабочее дерево: upstream текущей ветки (`@{u}`, корректно для
+    /// fork-PR, где upstream живёт на remote форка). Если upstream не настроен, rev-parse
+    /// вернёт ненулевой код — это норма (обрабатываем по ExitCode, не кидаем), и мы
+    /// откатываемся к прежнему поведению `origin/{branch}`.
+    /// </summary>
+    private async Task<string> ResolveResetTargetAsync(string workspacePath, string branch, CancellationToken ct)
+    {
+        var upstream = await RunAllowingFailureAsync(
+            workspacePath, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], QuickTimeout, "rev-parse", ct);
+        return upstream.IsSuccess && upstream.StandardOutput.Trim().Length > 0
+            ? upstream.StandardOutput.Trim()
+            : $"origin/{branch}";
     }
 
     private async Task<string> ReadCurrentBranchAsync(string workspacePath, CancellationToken ct)
@@ -50,11 +68,34 @@ internal sealed class LocalGitWorkspaceSync(IProcessLauncher launcher) : ILocalG
         string label,
         CancellationToken ct)
     {
+        var result = await RunAllowingFailureAsync(workspacePath, operation, timeout, label, ct);
+        if (!result.IsSuccess)
+        {
+            throw new GitProviderException(
+                GitProviderErrorKind.CliFailure,
+                $"git {label} завершился с кодом {result.ExitCode}.",
+                result.StandardError.Trim());
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Запуск git без проверки кода возврата — для команд (rev-parse @{u}), где ненулевой
+    /// exit означает «upstream не настроен», а не сбой. Сбои самого процесса (таймаут / нет
+    /// executable) всё равно мапятся в <see cref="GitProviderException"/>.
+    /// </summary>
+    private async Task<ProcessRunResult> RunAllowingFailureAsync(
+        string workspacePath,
+        IReadOnlyList<string> operation,
+        TimeSpan timeout,
+        string label,
+        CancellationToken ct)
+    {
         string[] arguments = ["-C", workspacePath, .. operation];
-        ProcessRunResult result;
         try
         {
-            result = await launcher.RunAsync(
+            return await launcher.RunAsync(
                 new ProcessRunRequest(FileName: "git", Arguments: arguments, Timeout: timeout), ct);
         }
         catch (TimeoutException ex)
@@ -67,15 +108,5 @@ internal sealed class LocalGitWorkspaceSync(IProcessLauncher launcher) : ILocalG
             throw new GitProviderException(
                 GitProviderErrorKind.CliFailure, "git executable not found on PATH.", ex.Message, ex);
         }
-
-        if (!result.IsSuccess)
-        {
-            throw new GitProviderException(
-                GitProviderErrorKind.CliFailure,
-                $"git {label} завершился с кодом {result.ExitCode}.",
-                result.StandardError.Trim());
-        }
-
-        return result;
     }
 }

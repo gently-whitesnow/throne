@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Throne.Application.Errors;
 using Throne.Application.Events;
+using Throne.Application.Git;
 using Throne.Application.Ports;
 using Throne.Domain.Repositories;
 
@@ -180,7 +181,24 @@ public sealed partial class RepositoryBindingService(
             );
         }
 
-        return await persistence.AttachPullRequestAsync(binding, command.PullRequestNumber, ct);
+        var attached = await persistence.AttachPullRequestAsync(binding, command.PullRequestNumber, ct);
+
+        // Клон уже на диске и готов → checkout PR прямо сейчас, иначе оператор увидит
+        // upstream-дефолт вместо привязанного PR. Если клон ещё не ready —
+        // clone-workflow сам сделает checkout по уже проставленному PullRequestNumber.
+        if (persistence.LocalCloneExists(attached)
+            && attached.State.CloneStatus == CloneStatusNames.Ready)
+        {
+            var provider = resolver.ResolveProvider(attached.Coordinate.Provider);
+            await provider.CheckoutAsync(
+                attached.Coordinate.Owner,
+                attached.Coordinate.Repo,
+                persistence.ResolveWorkspacePath(attached),
+                new CloneCheckout(attached.State.DefaultBranch, command.PullRequestNumber),
+                ct);
+        }
+
+        return attached;
     }
 
     public async Task<SyncRepositoryPullRequestResult> SyncPullRequestAsync(
