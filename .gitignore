@@ -34,8 +34,6 @@ dist/
 .next/
 .turbo/
 
-mongo-dumps
-docker-compose.override.yml
 .claude/scheduled_tasks.lock
 
 local

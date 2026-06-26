@@ -18,43 +18,42 @@ Throne — кокпит цикла разработки для человека,
 
 ## Запуск
 
-Throne работает локально, без облака и без сетевой авторизации. Основной путь - embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст, прикладывает operational skills и ведёт lifecycle через hooks. Внешний MCP endpoint удалён; dogfooding вне UI делается теми же статическими skills из репозитория через `skills/<id>/bin/throne-*` CLI (см. [ADR-0043](specs/ADR/0043-static-operational-skills-and-mcp-removal.md)).
+Throne — это один self-contained бинарь `throne`: Kestrel в одном процессе отдаёт UI (SPA), API и SQLite. Никаких Docker/Mongo/Node/.NET SDK в рантайме. Throne работает локально, без облака и без сетевой авторизации. Основной путь — embedded-терминал в UI: Throne сам запускает агента, передаёт ему контекст, прикладывает operational skills и ведёт lifecycle через hooks. Внешний MCP endpoint удалён; dogfooding вне UI делается теми же статическими skills из репозитория через `skills/<id>/bin/throne-*` CLI (см. [ADR-0043](specs/ADR/0043-static-operational-skills-and-mcp-removal.md)). Упаковка — [ADR-0048](specs/ADR/0048-single-binary-packaging.md).
 
-### 1. Поднять Throne локально
+### 1. Получить бинарь
 
-У Throne два режима запуска (см. [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). Базовая работа с интентами и инструкциями одинакова в обоих; различие — где живёт backend и доступны ли host-фичи (терминал, Run, «Open in VS Code», репозитории).
+**Готовый.** Скачай `throne` под свою платформу из [GitHub Releases](https://github.com/gently-whitesnow/throne/releases) (ассеты `throne-<rid>.tar.gz`, для Windows — `throne-win-x64.zip`; RID: `osx-arm64`, `osx-x64`, `linux-x64`, `win-x64`), распакуй — внутри лежат бинарь и рядом `wwwroot`/`skills`/`specs`.
 
-UI: `http://localhost:8080`, API: `http://localhost:5008`.
+**Собрать самому.** Нужен .NET 10 SDK и pnpm только на сборку, не на запуск:
 
 ```bash
 git clone https://github.com/gently-whitesnow/throne
 cd throne
+pnpm -C apps/web build   # UI попадает в wwwroot рядом с бинарём
+dotnet publish apps/api/src/Throne.Api/Throne.Api.csproj -c Release -r <rid>
 ```
 
-**Контейнерный режим (дефолт).** Весь стек в контейнере, host-фичи выключены (им нужен доступ к хосту, которого у контейнера нет).
+`<rid>` — один из `osx-arm64` / `osx-x64` / `linux-x64` / `win-x64`. На выходе — single-file бинарь `throne` рядом с `wwwroot`/`skills`/`specs`.
+
+### 2. Запустить
 
 ```bash
-docker compose --profile full up --build -d
+./throne          # или ./throne serve — поднимает UI+API+SQLite в одном процессе
 ```
 
-**Host-backend режим (продвинутый).** Контейнер поднимает только web, а API запускается нативно на хосте — тогда он наследует хостовый PATH, спавнит `code`/`claude`/`gh`/`git`/`tmux` напрямую, ходит в OS keychain через сами CLI (без plaintext-экспорта токенов) и использует реальный `ssh-agent`. Host-фичи в Settings загораются. Две независимые команды:
+Открой `http://localhost:5008`. Порт переопределяется через `ASPNETCORE_URLS` или флаг `--urls` (например `./throne --urls http://localhost:9000`).
+
+Дефолты подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, SQLite — `~/.throne/throne.db`, workspace — `~/.throne/workspaces`.
+
+### 3. Самообновление
 
 ```bash
-# 1. web в контейнере
-docker compose -f docker-compose.host.yml up --build -d
-
-# 2. нативный API на хосте (нужен .NET 10 SDK)
-#    0.0.0.0 обязателен — web-контейнер ходит в API через host.docker.internal.
-ASPNETCORE_URLS=http://0.0.0.0:5008 dotnet run --project apps/api/src/Throne.Api
+throne update              # latest из GitHub Releases → atomic swap install-каталога
+throne update --force      # обновиться даже если версия совпала
+throne update --restart    # после подмены перезапустить бинарь
 ```
 
-Дефолты host-режима подобраны так, что ничего больше настраивать не нужно: ядро single-operator local-first без сетевого auth-гейта, SQLite — `~/.throne/throne.db`, workspace — `~/.throne/workspaces`.
-
-### 2. Работать через embedded-терминал
-
-Embedded-терминал - приоритетный контур. Он требует **host-backend режим**: нативный `Throne.Api` видит host CLI (`claude`, `codex`, `gh`, `git`, `tmux`, `code`) и может запускать агента в `tmux` из UI. Для этого поставь нужный CLI, залогинься в него на хосте и включи capability в `/settings`.
-
-### 3. Static operational skills для dogfooding
+### 4. Static operational skills для dogfooding
 
 Operational layer лежит в репозитории обычными файлами:
 
@@ -77,15 +76,13 @@ export THRONE_REPOSITORY_BINDING_ID=<binding-id>
 
 ### Host-фичи: репозитории, агент-терминал, VS Code
 
-Терминал агента, кнопка Run, «Open in VS Code» и привязка репозиториев требуют доступа к хосту, поэтому работают только в **host-backend режиме** (нативный API на хосте, см. шаг 2 и [ADR-0027](specs/ADR/0027-runtime-model-native-host-process.md)). В контейнерном режиме эти capability недетектятся и остаются выключены — секции «Репозитории» / «PR comments» / «Терминал» просто не появляются, остальное работает.
+`throne` — обычный хостовый процесс: он наследует твой PATH, спавнит `code`/`claude`/`gh`/`git`/`tmux` напрямую, ходит в OS keychain через сами CLI (без plaintext-выгрузки токенов) и использует реальный `ssh-agent`. Поэтому host-фичи **включаются автоматически** по live capability-probe: фича загорается, как только соответствующий CLI оказывается в PATH. Отдельного «host-backend режима» и тоглов в `/settings` больше нет — страница показывает только «Готовность» (что детектится / что доустановить).
 
-В host-режиме настройка тривиальна, потому что API — обычный хостовый процесс и пользуется CLI напрямую, без plaintext-выгрузки токенов:
-
-- **Репозитории и PR-комменты.** Поставь GitHub CLI (`brew install gh` / [install_linux.md](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)) и `gh auth login` как обычно — Keychain/secret-store подходит, нативный API ходит в `gh` сам. SSH-ключи работают через твой `ssh-agent` (запароленные тоже). Клоны ложатся в `~/.throne/workspaces`.
+- **Репозитории и PR-комменты.** Поставь GitHub CLI (`brew install gh` / [install_linux.md](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)) и `gh auth login` как обычно — Keychain/secret-store подходит, Throne ходит в `gh` сам. SSH-ключи работают через твой `ssh-agent` (запароленные тоже). Клоны ложатся в `~/.throne/workspaces`.
 - **Агент-терминал и Run.** Поставь `tmux` (`brew install tmux`) и залогинь Claude Code на хосте (`claude` → `/login`). Кнопка «Запустить агента» поднимает `tmux`-сессию `throne-{intent_id}` с `claude` под твоим аккаунтом и стримит её в браузер; сессия живёт в tmux-демоне и переживает рестарт Throne.
-- **Open in VS Code.** Поставь команду `code` в PATH (VS Code → Command Palette → «Shell Command: Install 'code' command in PATH»); capability `vscode` загорится.
+- **Open in VS Code.** Поставь команду `code` в PATH (VS Code → Command Palette → «Shell Command: Install 'code' command in PATH») — capability `vscode` загорится.
 
-Включаются фичи тоглами в `/settings` → «Возможности» (default OFF — explicit opt-in после установки соответствующего CLI).
+Если нужного CLI нет в PATH, соответствующая секция («Репозитории» / «PR comments» / «Терминал») просто не появляется, остальное работает. См. [ADR-0048](specs/ADR/0048-single-binary-packaging.md).
 
 ## Структура
 
@@ -154,7 +151,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 
 - .NET 10
 - SQLite через EF Core (`~/.throne/throne.db` по умолчанию)
-- GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; нативный хостовый `gh auth`, см. host-backend режим)
+- GitHub CLI `gh` + `git` (опционально — для секций «Репозитории» и «PR comments»; включаются автоматически, когда `gh`/`git` есть в PATH)
 - Vite + React + TypeScript
 - FSD 2.0 + Steiger
 - xUnit + FluentAssertions
