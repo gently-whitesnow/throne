@@ -10,7 +10,7 @@ internal sealed class IntentEventRowConfiguration : IEntityTypeConfiguration<Int
     public void Configure(EntityTypeBuilder<IntentEventRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.IntentEvents);
+        builder.ToTable(EfTableNames.Intents.IntentEvents);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

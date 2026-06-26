@@ -11,7 +11,7 @@ internal sealed class TagRowConfiguration : IEntityTypeConfiguration<TagRow>
     public void Configure(EntityTypeBuilder<TagRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.Tags);
+        builder.ToTable(EfTableNames.Tags.Table);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

@@ -55,6 +55,7 @@ internal static class EfCoreModule
         services.AddSingleton<EfIntentLifecycle>();
         services.AddSingleton<EfIntentTextEditor>();
         services.AddSingleton<EfIntentStatusMutator>();
+        services.AddSingleton<EfIntentTagsMutator>();
         services.AddSingleton<EfIntentOrderingMutator>();
         services.AddSingleton<EfIntentContextReader>();
         services.AddSingleton<EfIntentRepository>();
@@ -63,6 +64,7 @@ internal static class EfCoreModule
         services.AddSingleton<ISystemIntentStatusWriter>(sp => sp.GetRequiredService<EfIntentRepository>());
 
         services.AddSingleton<EfTagLifecycle>();
+        services.AddSingleton<EfTagMutator>();
         services.AddSingleton<EfTagListReader>();
         services.AddSingleton<EfTagDeletion>();
         services.AddSingleton<EfTagRepository>();

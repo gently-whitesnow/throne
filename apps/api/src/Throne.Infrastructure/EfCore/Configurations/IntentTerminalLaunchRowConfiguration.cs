@@ -11,7 +11,7 @@ internal sealed class IntentTerminalLaunchRowConfiguration : IEntityTypeConfigur
     public void Configure(EntityTypeBuilder<IntentTerminalLaunchRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.TerminalLaunches);
+        builder.ToTable(EfTableNames.Terminals.TerminalLaunches);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

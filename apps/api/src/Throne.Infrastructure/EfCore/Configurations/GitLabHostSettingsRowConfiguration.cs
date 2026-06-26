@@ -9,7 +9,7 @@ internal sealed class GitLabHostSettingsRowConfiguration : IEntityTypeConfigurat
     public void Configure(EntityTypeBuilder<GitLabHostSettingsRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.GitLabHostSettings);
+        builder.ToTable(EfTableNames.GitLab.GitLabHostSettings);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

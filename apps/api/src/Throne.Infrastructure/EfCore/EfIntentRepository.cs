@@ -14,17 +14,21 @@ namespace Throne.Infrastructure.EfCore;
 /// <see cref="IIntentOrderingRepository"/> and <see cref="ISystemIntentStatusWriter"/>.
 /// All actual work is delegated to per-concern services living in <c>Intents/</c> so each
 /// file stays well under the per-type budget and mirrors the Mongo decomposition.
+/// The bulk of the surface is implemented via EXPLICIT interface members — three ports
+/// crowd the same class and explicit impls keep the type's public-member count under the
+/// maintainability budget without faking artificial sub-interfaces.
 /// </summary>
 internal sealed class EfIntentRepository(
     EfIntentReader reader,
     EfIntentLifecycle lifecycle,
     EfIntentTextEditor textEditor,
     EfIntentStatusMutator statusMutator,
+    EfIntentTagsMutator tagsMutator,
     EfIntentOrderingMutator orderingMutator,
     EfIntentContextReader contextReader)
     : IIntentRepository, IIntentOrderingRepository, ISystemIntentStatusWriter
 {
-    public Task<CreateIntentOutcome> CreateAsync(
+    Task<CreateIntentOutcome> IIntentRepository.CreateAsync(
         Intent intent,
         TextVersion initialVersion,
         IntentStatusChange initialStatusChange,
@@ -32,13 +36,13 @@ internal sealed class EfIntentRepository(
         CancellationToken ct) =>
         lifecycle.CreateAsync(intent, initialVersion, initialStatusChange, upsertedTags, ct);
 
-    public Task<Intent?> GetByIdAsync(IntentId id, CancellationToken ct) =>
+    Task<Intent?> IIntentRepository.GetByIdAsync(IntentId id, CancellationToken ct) =>
         reader.GetByIdAsync(id, ct);
 
-    public Task<Intent?> GetByIdForSystemAsync(IntentId id, CancellationToken ct) =>
+    Task<Intent?> ISystemIntentStatusWriter.GetByIdForSystemAsync(IntentId id, CancellationToken ct) =>
         reader.GetByIdForSystemAsync(id, ct);
 
-    public Task<ReplaceIntentTextOutcome> ReplaceTextAsync(
+    Task<ReplaceIntentTextOutcome> IIntentRepository.ReplaceTextAsync(
         IntentId id,
         int expectedVersion,
         string oldText,
@@ -48,7 +52,7 @@ internal sealed class EfIntentRepository(
         CancellationToken ct) =>
         textEditor.ReplaceTextAsync(id, expectedVersion, oldText, newText, changedBy, now, ct);
 
-    public Task<InsertIntentTextAfterLineOutcome> InsertTextAfterLineAsync(
+    Task<InsertIntentTextAfterLineOutcome> IIntentRepository.InsertTextAfterLineAsync(
         IntentId id,
         int expectedVersion,
         int afterLine,
@@ -57,21 +61,21 @@ internal sealed class EfIntentRepository(
         CancellationToken ct) =>
         textEditor.InsertTextAfterLineAsync(id, expectedVersion, afterLine, insertText, now, ct);
 
-    public Task<IReadOnlyList<Intent>> ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct) =>
+    Task<IReadOnlyList<Intent>> IIntentRepository.ListAsync(IReadOnlyList<string>? statuses, CancellationToken ct) =>
         reader.ListAsync(statuses, ct);
 
-    public Task<IntentListPage> ListPagedAsync(IntentListSpec spec, CancellationToken ct) =>
+    Task<IntentListPage> IIntentRepository.ListPagedAsync(IntentListSpec spec, CancellationToken ct) =>
         reader.ListPagedAsync(spec, ct);
 
-    public Task<IntentContextCounts> GetContextCountsAsync(
+    Task<IntentContextCounts> IIntentRepository.GetContextCountsAsync(
         IReadOnlyList<string> runningTerminalIds,
         CancellationToken ct) =>
         contextReader.GetContextCountsAsync(runningTerminalIds, ct);
 
-    public Task<DeleteIntentOutcome> DeleteAsync(IntentId id, CancellationToken ct) =>
+    Task<DeleteIntentOutcome> IIntentRepository.DeleteAsync(IntentId id, CancellationToken ct) =>
         lifecycle.DeleteAsync(id, ct);
 
-    public Task<SetIntentStatusOutcome> SetStatusAsync(
+    Task<SetIntentStatusOutcome> IIntentRepository.SetStatusAsync(
         IntentId id,
         string status,
         string? appendText,
@@ -82,7 +86,7 @@ internal sealed class EfIntentRepository(
         CancellationToken ct) =>
         statusMutator.SetStatusAsync(id, status, appendText, reason, changedBy, source, now, ct);
 
-    public Task<SetIntentStatusOutcome> SetStatusBySystemAsync(
+    Task<SetIntentStatusOutcome> ISystemIntentStatusWriter.SetStatusBySystemAsync(
         IntentId id,
         string status,
         string? reason,
@@ -91,25 +95,25 @@ internal sealed class EfIntentRepository(
         CancellationToken ct) =>
         statusMutator.SetStatusBySystemAsync(id, status, reason, source, now, ct);
 
-    public Task<SetIntentTagsOutcome> SetTagsAsync(
+    Task<SetIntentTagsOutcome> IIntentRepository.SetTagsAsync(
         IntentId id,
         int expectedVersion,
         IReadOnlyList<TagId> tagIds,
         DateTimeOffset now,
         CancellationToken ct) =>
-        statusMutator.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
+        tagsMutator.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
 
-    public Task SetCleanupLocalStateOnDoneAsync(
+    Task IIntentRepository.SetCleanupLocalStateOnDoneAsync(
         IntentId id,
         bool value,
         DateTimeOffset now,
         CancellationToken ct) =>
-        statusMutator.SetCleanupLocalStateOnDoneAsync(id, value, now, ct);
+        tagsMutator.SetCleanupLocalStateOnDoneAsync(id, value, now, ct);
 
-    public Task<string?> GetMinSortKeyAsync(CancellationToken ct) =>
+    Task<string?> IIntentOrderingRepository.GetMinSortKeyAsync(CancellationToken ct) =>
         reader.GetMinSortKeyAsync(ct);
 
-    public Task<MoveIntentOutcome> MoveBetweenAsync(
+    Task<MoveIntentOutcome> IIntentOrderingRepository.MoveBetweenAsync(
         IntentId id,
         IntentId? beforeId,
         IntentId? afterId,

@@ -11,7 +11,7 @@ internal sealed class PullRequestArtifactRowConfiguration : IEntityTypeConfigura
     public void Configure(EntityTypeBuilder<PullRequestArtifactRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.PullRequestArtifacts);
+        builder.ToTable(EfTableNames.Repositories.PullRequestArtifacts);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

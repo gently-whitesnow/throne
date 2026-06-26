@@ -3,6 +3,7 @@ using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 using Throne.Infrastructure.EfCore.Mappers;
+using Throne.Infrastructure.EfCore.Pins;
 using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.EfCore;
@@ -22,26 +23,26 @@ internal sealed class EfIntentPinRepository(
     {
         var ctx = RequireWriteContext(nameof(PinAsync));
 
-        var intent = await LoadIntentAsync(ctx, intentId, ct);
+        var intent = await EfIntentPinQueries.LoadIntentAsync(ctx, intentId, ct);
         if (intent is null)
         {
             return new PinIntentOutcome.IntentNotFound();
         }
 
         var contextWire = contextTagId.Value;
-        var tagExists = await TagExistsAsync(ctx, contextWire, ct);
+        var tagExists = await EfIntentPinQueries.TagExistsAsync(ctx, contextWire, ct);
         if (!tagExists)
         {
             return new PinIntentOutcome.ContextTagNotFound(contextWire);
         }
 
-        var (beforeKey, afterKey, pivotMissing) = await ResolvePivotKeysAsync(ctx, contextTagId, beforeId, afterId, ct);
+        var (beforeKey, afterKey, pivotMissing) = await EfIntentPinQueries.ResolvePivotKeysAsync(ctx, contextTagId, beforeId, afterId, ct);
         if (pivotMissing is not null)
         {
             return new PinIntentOutcome.PivotNotFound(pivotMissing);
         }
 
-        var existing = await FindExistingPinAsync(ctx, intentId, contextTagId, ct);
+        var existing = await EfIntentPinQueries.FindExistingPinAsync(ctx, intentId, contextTagId, ct);
         var reorderRequested = beforeId is not null || afterId is not null;
 
         if (existing is not null && !reorderRequested)
@@ -57,7 +58,7 @@ internal sealed class EfIntentPinRepository(
         }
         else
         {
-            var maxKey = await GetTailKeyAsync(ctx, contextTagId, ct);
+            var maxKey = await EfIntentPinQueries.GetTailKeyAsync(ctx, contextTagId, ct);
             newKey = FractionalIndex.Between(maxKey, after: null);
         }
 
@@ -89,7 +90,7 @@ internal sealed class EfIntentPinRepository(
         CancellationToken ct)
     {
         var ctx = RequireWriteContext(nameof(UnpinAsync));
-        var intent = await LoadIntentAsync(ctx, intentId, ct);
+        var intent = await EfIntentPinQueries.LoadIntentAsync(ctx, intentId, ct);
         if (intent is null)
         {
             return new UnpinIntentOutcome.IntentNotFound();
@@ -116,19 +117,19 @@ internal sealed class EfIntentPinRepository(
         }
 
         var ctx = RequireWriteContext(nameof(MoveAsync));
-        var intent = await LoadIntentAsync(ctx, intentId, ct);
+        var intent = await EfIntentPinQueries.LoadIntentAsync(ctx, intentId, ct);
         if (intent is null)
         {
             return new MovePinOutcome.IntentNotFound();
         }
 
-        var existing = await FindExistingPinAsync(ctx, intentId, contextTagId, ct);
+        var existing = await EfIntentPinQueries.FindExistingPinAsync(ctx, intentId, contextTagId, ct);
         if (existing is null)
         {
             return new MovePinOutcome.PinNotFound();
         }
 
-        var (beforeKey, afterKey, pivotMissing) = await ResolvePivotKeysAsync(ctx, contextTagId, beforeId, afterId, ct);
+        var (beforeKey, afterKey, pivotMissing) = await EfIntentPinQueries.ResolvePivotKeysAsync(ctx, contextTagId, beforeId, afterId, ct);
         if (pivotMissing is not null)
         {
             return new MovePinOutcome.PivotNotFound(pivotMissing);
@@ -182,92 +183,6 @@ internal sealed class EfIntentPinRepository(
                 .ToListAsync(c);
             return rows.Select(IntentPinRowMapper.ToDomain).ToList();
         }, ct);
-
-    private static Task<IntentRow?> LoadIntentAsync(ThroneDbContext ctx, IntentId intentId, CancellationToken ct)
-    {
-        var id = intentId.Value;
-        return ctx.Set<IntentRow>().FirstOrDefaultAsync(r => r.Id == id, ct);
-    }
-
-    private static Task<bool> TagExistsAsync(ThroneDbContext ctx, string tagId, CancellationToken ct)
-    {
-        // Hand-rolled probe because the Tag aggregate's row type is owned by a later slice;
-        // the column shape (id) is a stable schema contract. SqlQuery (interpolated) makes
-        // `tagId` a SQL parameter while the table name stays a compile-time literal.
-        return ctx.Database
-            .SqlQuery<int>($"SELECT 1 AS Value FROM tags WHERE id = {tagId}")
-            .AnyAsync(ct);
-    }
-
-    private static Task<IntentPinRow?> FindExistingPinAsync(
-        ThroneDbContext ctx,
-        IntentId intentId,
-        TagId contextTagId,
-        CancellationToken ct)
-    {
-        var i = intentId.Value;
-        var c = contextTagId.Value;
-        return ctx.Set<IntentPinRow>()
-            .FirstOrDefaultAsync(r => r.IntentId == i && r.ContextTagId == c, ct);
-    }
-
-    private static async Task<(string? BeforeKey, string? AfterKey, string? Missing)> ResolvePivotKeysAsync(
-        ThroneDbContext ctx,
-        TagId contextTagId,
-        IntentId? beforeId,
-        IntentId? afterId,
-        CancellationToken ct)
-    {
-        if (beforeId is null && afterId is null)
-        {
-            return (null, null, null);
-        }
-
-        var ids = new List<string>(2);
-        if (beforeId is not null)
-        {
-            ids.Add(beforeId.Value.Value);
-        }
-        if (afterId is not null)
-        {
-            ids.Add(afterId.Value.Value);
-        }
-        var contextWire = contextTagId.Value;
-        var rows = await ctx.Set<IntentPinRow>()
-            .Where(r => r.ContextTagId == contextWire && ids.Contains(r.IntentId))
-            .Select(r => new { r.IntentId, r.PinSortKey })
-            .ToListAsync(ct);
-
-        string? Lookup(IntentId? id) => id is null
-            ? null
-            : rows.FirstOrDefault(d => d.IntentId == id.Value.Value)?.PinSortKey;
-
-        var beforeKey = Lookup(beforeId);
-        var afterKey = Lookup(afterId);
-        if (beforeId is not null && beforeKey is null)
-        {
-            return (null, null, beforeId.Value.Value);
-        }
-        if (afterId is not null && afterKey is null)
-        {
-            return (null, null, afterId.Value.Value);
-        }
-        return (beforeKey, afterKey, null);
-    }
-
-    private static async Task<string?> GetTailKeyAsync(
-        ThroneDbContext ctx,
-        TagId contextTagId,
-        CancellationToken ct)
-    {
-        var contextWire = contextTagId.Value;
-        var key = await ctx.Set<IntentPinRow>()
-            .Where(r => r.ContextTagId == contextWire)
-            .OrderByDescending(r => r.PinSortKey)
-            .Select(r => r.PinSortKey)
-            .FirstOrDefaultAsync(ct);
-        return string.IsNullOrEmpty(key) ? null : key;
-    }
 
     private ThroneDbContext RequireWriteContext(string method) =>
         Sessions.Current

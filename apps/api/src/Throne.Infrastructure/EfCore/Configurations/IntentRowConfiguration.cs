@@ -11,7 +11,7 @@ internal sealed class IntentRowConfiguration : IEntityTypeConfiguration<IntentRo
     public void Configure(EntityTypeBuilder<IntentRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.Intents);
+        builder.ToTable(EfTableNames.Intents.Table);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

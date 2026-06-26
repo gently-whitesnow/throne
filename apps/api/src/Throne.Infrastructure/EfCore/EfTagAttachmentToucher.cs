@@ -23,7 +23,7 @@ internal static class EfTagAttachmentToucher
         }
 
         var ids = tagIds.ToArray();
-        var table = EfTableNames.Tags;
+        var table = EfTableNames.Tags.Table;
         // Parameter array must be expanded into N positional placeholders; FormattableString
         // lets EF SQL-parameterize the timestamp + the id list safely.
         var placeholders = string.Join(",", Enumerable.Range(0, ids.Length).Select(i => $"{{{i + 1}}}"));

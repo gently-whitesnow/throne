@@ -9,7 +9,7 @@ internal sealed class TerminalSettingsRowConfiguration : IEntityTypeConfiguratio
     public void Configure(EntityTypeBuilder<TerminalSettingsRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.TerminalSettings);
+        builder.ToTable(EfTableNames.Terminals.TerminalSettings);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

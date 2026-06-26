@@ -9,7 +9,7 @@ internal sealed class TextVersionRowConfiguration : IEntityTypeConfiguration<Tex
     public void Configure(EntityTypeBuilder<TextVersionRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.TextVersions);
+        builder.ToTable(EfTableNames.Intents.TextVersions);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

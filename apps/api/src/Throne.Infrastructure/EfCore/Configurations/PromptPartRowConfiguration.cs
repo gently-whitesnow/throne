@@ -11,7 +11,7 @@ internal sealed class PromptPartRowConfiguration : IEntityTypeConfiguration<Prom
     public void Configure(EntityTypeBuilder<PromptPartRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.PromptParts);
+        builder.ToTable(EfTableNames.PromptParts.Table);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

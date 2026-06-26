@@ -9,7 +9,8 @@ using Tag = Throne.Domain.Tags.Tag;
 namespace Throne.Infrastructure.EfCore.Tags;
 
 /// <summary>
-/// Single-tag read + write surface (Find/Get/Ensure/Create/Rename/SetDefaultRepositories).
+/// Tag read + insert surface (Find/Get/Ensure/Create). Rename and SetDefaultRepositories
+/// live in <see cref="EfTagMutator"/> so neither type bumps into the per-type LOC budget.
 /// Duplicate-name races are resolved by catching SQLite UNIQUE conflict (error code
 /// <see cref="SqliteUniqueErrorCode"/>) and re-reading the row, matching Mongo's
 /// duplicate-key recovery path.
@@ -110,127 +111,6 @@ internal sealed class EfTagLifecycle(
                     $"Tag '{normalized}' UNIQUE conflict but lookup returned null.", ex);
             return new CreateTagOutcome.NameTaken(TagRowMapper.ToDomain(raced));
         }
-    }
-
-    public async Task<RenameTagOutcome> RenameAsync(
-        TagId id,
-        int expectedVersion,
-        string rawName,
-        DateTimeOffset now,
-        CancellationToken ct)
-    {
-        var ctx = RequireContext(nameof(RenameAsync));
-        var wire = id.Value;
-
-        var row = await ctx.Set<TagRow>().AsNoTracking().FirstOrDefaultAsync(r => r.Id == wire, ct);
-        if (row is null)
-        {
-            return new RenameTagOutcome.NotFound();
-        }
-        if (row.CurrentVersion != expectedVersion)
-        {
-            return new RenameTagOutcome.VersionConflict(row.CurrentVersion);
-        }
-
-        var tag = TagRowMapper.ToDomain(row);
-        var changed = tag.Rename(rawName, now);
-        if (!changed)
-        {
-            return new RenameTagOutcome.NoChange(tag);
-        }
-
-        var collision = await ctx.Set<TagRow>().AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Name == tag.Name && r.Id != wire, ct);
-        if (collision is not null)
-        {
-            return new RenameTagOutcome.NameTaken(TagRowMapper.ToDomain(collision));
-        }
-
-        var newName = tag.Name;
-        var newVersion = tag.CurrentVersion;
-        var newUpdatedAt = tag.UpdatedAt;
-
-        try
-        {
-            var affected = await ctx.Set<TagRow>()
-                .Where(r => r.Id == wire && r.CurrentVersion == expectedVersion)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(r => r.Name, newName)
-                    .SetProperty(r => r.CurrentVersion, newVersion)
-                    .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct);
-            if (affected == 0)
-            {
-                var fresh = await ctx.Set<TagRow>().AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.Id == wire, ct);
-                return fresh is null
-                    ? new RenameTagOutcome.NotFound()
-                    : new RenameTagOutcome.VersionConflict(fresh.CurrentVersion);
-            }
-        }
-        catch (DbUpdateException ex) when (IsUniqueConflict(ex))
-        {
-            var raced = await ctx.Set<TagRow>().AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Name == tag.Name && r.Id != wire, ct);
-            if (raced is not null)
-            {
-                return new RenameTagOutcome.NameTaken(TagRowMapper.ToDomain(raced));
-            }
-            throw;
-        }
-
-        return new RenameTagOutcome.Renamed(tag);
-    }
-
-    public async Task<SetTagDefaultRepositoriesOutcome> SetDefaultRepositoriesAsync(
-        TagId id,
-        int expectedVersion,
-        IReadOnlyList<TagDefaultRepository> defaultRepositories,
-        DateTimeOffset now,
-        CancellationToken ct)
-    {
-        ArgumentNullException.ThrowIfNull(defaultRepositories);
-        var ctx = RequireContext(nameof(SetDefaultRepositoriesAsync));
-        var wire = id.Value;
-
-        var row = await ctx.Set<TagRow>().AsNoTracking().FirstOrDefaultAsync(r => r.Id == wire, ct);
-        if (row is null)
-        {
-            return new SetTagDefaultRepositoriesOutcome.NotFound();
-        }
-        if (row.CurrentVersion != expectedVersion)
-        {
-            return new SetTagDefaultRepositoriesOutcome.VersionConflict(row.CurrentVersion);
-        }
-
-        var tag = TagRowMapper.ToDomain(row);
-        var changed = tag.ReplaceDefaultRepositories(defaultRepositories, now);
-        if (!changed)
-        {
-            return new SetTagDefaultRepositoriesOutcome.NoChange(tag);
-        }
-
-        var payload = tag.DefaultRepositories.Count == 0
-            ? new List<TagDefaultRepositoryPayload>()
-            : [.. tag.DefaultRepositories.Select(TagRowMapper.ToPayload)];
-        var newVersion = tag.CurrentVersion;
-        var newUpdatedAt = tag.UpdatedAt;
-
-        var affected = await ctx.Set<TagRow>()
-            .Where(r => r.Id == wire && r.CurrentVersion == expectedVersion)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.DefaultRepositories, payload)
-                .SetProperty(r => r.CurrentVersion, newVersion)
-                .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct);
-        if (affected == 0)
-        {
-            var fresh = await ctx.Set<TagRow>().AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == wire, ct);
-            return fresh is null
-                ? new SetTagDefaultRepositoriesOutcome.NotFound()
-                : new SetTagDefaultRepositoriesOutcome.VersionConflict(fresh.CurrentVersion);
-        }
-
-        return new SetTagDefaultRepositoriesOutcome.Updated(tag);
     }
 
     private ThroneDbContext RequireContext(string method) =>

@@ -10,7 +10,7 @@ internal sealed class PromptPartPatchRowConfiguration : IEntityTypeConfiguration
     public void Configure(EntityTypeBuilder<PromptPartPatchRow> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.ToTable(EfTableNames.PromptPartPatches);
+        builder.ToTable(EfTableNames.PromptParts.PromptPartPatches);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");

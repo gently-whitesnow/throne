@@ -156,6 +156,13 @@
           }
         },
         {
+          "_comment": "EF Core row POCOs mirror persisted column count one-to-one (same precedent as Mongo Documents above); public surface == table column count.",
+          "glob": "**/Throne.Infrastructure/EfCore/Rows/*.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
           "_comment": "MongoCollectionNames is a constant registry per Mongo collection (ADR-0009/0019/0021/0022).",
           "glob": "**/Throne.Infrastructure/Mongo/MongoCollectionNames.cs",
           "limits": {
