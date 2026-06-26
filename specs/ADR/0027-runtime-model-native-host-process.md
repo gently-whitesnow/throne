@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted
+Accepted — **Superseded by [ADR-0048](0048-single-binary-packaging.md)** (2026-06-26; см. амендмент в конце)
 Date: 2026-06-04
-Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0029](0029-local-first-invariant-and-legacy-auth.md) (local-first, `Auth:Mode=Disabled` дефолт; внутренняя авторизация — легаси)
+Related: [ADR-0024](0024-intent-repository-binding-and-cli-providers.md), [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md), [ADR-0029](0029-local-first-invariant-and-legacy-auth.md) (local-first, `Auth:Mode=Disabled` дефолт; внутренняя авторизация — легаси), [ADR-0048](0048-single-binary-packaging.md) (supersedes)
 
 ## Context
 
@@ -65,3 +65,26 @@ Web остаётся в контейнере и указывает на host-API
 - Tauri/desktop-приложение и упаковка API в global-tool/binary — `dotnet run` на хосте приемлем для продвинутой аудитории; отдельная упаковка — возможный будущий интент.
 - Windows-паритет встроенного терминала (`tmux` unix-only) — известный гэп, не решается здесь.
 - Замена Mongo на embedded-хранилище.
+
+## Amendment — Superseded by ADR-0048 (2026-06-26)
+
+[ADR-0048](0048-single-binary-packaging.md) **супершедит** этот ADR. Двухрежимная
+модель схлопнута в один self-contained host-only процесс:
+
+- **Контейнерный режим и host-backend режим удалены.** Остаётся один single-file
+  бинарь `throne`, где Kestrel в одном процессе отдаёт SPA (`wwwroot`) + API + SQLite.
+  «Откуда живёт backend» больше не ось выбора — он всегда нативный хостовый процесс.
+- **Docker/nginx/Mongo surface снесён:** `docker-compose*.yml`, оба Dockerfile,
+  nginx-шаблон с `envsubst`/`THRONE_API_UPSTREAM` и `Throne:Workspace:HostRoot`-трансляция
+  удалены. Они существовали только ради контейнерной доставки host-API, которой больше нет.
+  Mongo как store уже снят [ADR-0047](0047-sqlite-ef-core-persistence.md).
+- **host-capabilities — default-on по live probe** (детект CLI в `PATH`), а не opt-in
+  по рантайму. Settings-пометка §4 «терминал/Run/vscode требуют host-backend режима»
+  снята: режим один (см. также амендмент к [ADR-0026](0026-embedded-terminal-capabilities-and-run-preflight.md) от 2026-06-26).
+- **CORS/base-URL/nginx-proxy (§3) неактуальны:** браузер ходит на тот же origin
+  Kestrel, обратного прокси нет.
+
+Что **остаётся в силе:** CLI-proxy через `gh`/`glab`/`claude` ([ADR-0024](0024-intent-repository-binding-and-cli-providers.md)),
+нативный доступ к keychain/`ssh-agent`/хостовому PATH, local-first без auth-гейта,
+дефолтные пути `~/.throne/...`. Историческое тело ADR ниже сохранено как контекст
+перехода от контейнерной упаковки к нативному процессу; актуальная упаковка — ADR-0048.

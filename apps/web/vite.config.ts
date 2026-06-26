@@ -41,7 +41,11 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:5008",
-        changeOrigin: true
+        changeOrigin: true,
+        // Terminal bridge (/api/v1/intents/{id}/terminal/ws) is a WebSocket;
+        // without ws the dev proxy 426s the upgrade and the embedded terminal
+        // never connects under `pnpm dev`.
+        ws: true
       }
     }
   },

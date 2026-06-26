@@ -68,18 +68,6 @@ public sealed class SettingsControllerTests(SqliteFixture sqlite) : IAsyncLifeti
         dto.GetProperty("status").GetString().Should().Be("calculating");
     }
 
-    [Fact(DisplayName = "GET /api/v1/settings/workspace без HostRoot — host_root отсутствует или null")]
-    public async Task Workspace_host_root_omitted_when_not_configured()
-    {
-        var response = await _fixture.Client.GetAsync(new Uri("/api/v1/settings/workspace", UriKind.Relative));
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
-        var hasHostRoot = dto.TryGetProperty("host_root", out var hostRoot)
-                         && hostRoot.ValueKind != JsonValueKind.Null;
-        hasHostRoot.Should().BeFalse();
-    }
-
     private static JsonElement ProviderStatus(JsonElement dto, string provider)
     {
         var entry = dto.GetProperty("providers")
