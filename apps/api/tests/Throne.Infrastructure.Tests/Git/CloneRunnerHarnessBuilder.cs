@@ -47,7 +47,8 @@ internal static class CloneRunnerHarnessBuilder
         var provider = Substitute.For<IGitProvider>();
         provider.ProviderName.Returns(GitProviderNames.GitHub);
         provider.CloneRepositoryAsync(
-                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<CloneCheckout>(), Arg.Any<CancellationToken>())
             .Returns(_ => tracker.BeginAsync());
         return provider;
     }

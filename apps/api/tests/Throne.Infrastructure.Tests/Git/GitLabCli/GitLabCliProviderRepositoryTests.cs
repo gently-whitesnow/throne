@@ -83,7 +83,7 @@ public class GitLabCliProviderRepositoryTests
     {
         _fx.OnRun(_ => GitLabCliProviderFixture.Ok(string.Empty));
 
-        await _fx.Provider.CloneRepositoryAsync("group/sub", "throne", "/tmp/throne", default);
+        await _fx.Provider.CloneRepositoryAsync("group/sub", "throne", "/tmp/throne", CloneCheckout.None, default);
 
         var call = _fx.Calls.Single();
         call.FileName.Should().Be("glab");

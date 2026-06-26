@@ -32,7 +32,26 @@ public class RepositoryCloneWorkflowTests
         fixture.Events.OfType<IntentRepositoryCloneProgress>()
             .Select(e => e.Binding.Id).Should().AllBeEquivalentTo(binding.Id);
         await fixture.Provider.Received(1).CloneRepositoryAsync(
-            binding.Coordinate.Owner, binding.Coordinate.Repo, binding.WorkspacePath, Arg.Any<CancellationToken>());
+            binding.Coordinate.Owner, binding.Coordinate.Repo, binding.WorkspacePath,
+            Arg.Any<CloneCheckout>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "RunAsync: передаёт CloneCheckout с DefaultBranch и PullRequestNumber биндинга")]
+    public async Task RunAsync_passes_checkout_with_branch_and_pr()
+    {
+        var fixture = new WorkflowFixture();
+        var binding = fixture.SeedBinding(
+            cloneStatus: CloneStatusNames.Pending, defaultBranch: "release/7", pullRequestNumber: 7);
+
+        var result = await fixture.Workflow.RunAsync(binding.Id, CancellationToken.None);
+
+        result.Should().Be(CloneRunResult.Ready);
+        await fixture.Provider.Received(1).CloneRepositoryAsync(
+            binding.Coordinate.Owner,
+            binding.Coordinate.Repo,
+            binding.WorkspacePath,
+            Arg.Is<CloneCheckout>(c => c.Branch == "release/7" && c.PullRequestNumber == 7),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "RunAsync: исключение провайдера переводит binding в failed и эмитит cloning+failed")]
@@ -41,7 +60,9 @@ public class RepositoryCloneWorkflowTests
         var fixture = new WorkflowFixture();
         var binding = fixture.SeedPendingBinding();
         fixture.Provider
-            .CloneRepositoryAsync(binding.Coordinate.Owner, binding.Coordinate.Repo, binding.WorkspacePath, Arg.Any<CancellationToken>())
+            .CloneRepositoryAsync(
+                binding.Coordinate.Owner, binding.Coordinate.Repo, binding.WorkspacePath,
+                Arg.Any<CloneCheckout>(), Arg.Any<CancellationToken>())
             .Returns<Task>(_ => Task.FromException(new InvalidOperationException("gh exit 128: not found")));
 
         var result = await fixture.Workflow.RunAsync(binding.Id, CancellationToken.None);
@@ -66,7 +87,8 @@ public class RepositoryCloneWorkflowTests
 
         result.Should().Be(CloneRunResult.AlreadyProcessed);
         await fixture.Provider.DidNotReceive().CloneRepositoryAsync(
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<CloneCheckout>(), Arg.Any<CancellationToken>());
         await fixture.Bindings.DidNotReceive().SaveAsync(Arg.Any<IntentRepositoryBinding>(), Arg.Any<CancellationToken>());
         fixture.Events.OfType<IntentRepositoryCloneProgress>().Should().BeEmpty();
     }
@@ -127,9 +149,11 @@ public class RepositoryCloneWorkflowTests
         result.Should().Be(CloneRunResult.Ready);
         var expected = $"{WorkspaceRoot}/intents/{IntentIdValue}/octo__hello";
         await fixture.Provider.Received(1).CloneRepositoryAsync(
-            binding.Coordinate.Owner, binding.Coordinate.Repo, expected, Arg.Any<CancellationToken>());
+            binding.Coordinate.Owner, binding.Coordinate.Repo, expected,
+            Arg.Any<CloneCheckout>(), Arg.Any<CancellationToken>());
         await fixture.Provider.DidNotReceive().CloneRepositoryAsync(
-            Arg.Any<string>(), Arg.Any<string>(), stalePath, Arg.Any<CancellationToken>());
+            Arg.Any<string>(), Arg.Any<string>(), stalePath,
+            Arg.Any<CloneCheckout>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "MarkInterruptedAsync переводит cloning→failed(reason) и эмитит progress-событие")]
@@ -198,25 +222,32 @@ public class RepositoryCloneWorkflowTests
         public IntentRepositoryBinding SeedBinding(
             string intentId = IntentIdValue,
             string cloneStatus = CloneStatusNames.Pending,
-            string? workspacePath = null)
+            string? workspacePath = null,
+            string defaultBranch = "main",
+            int? pullRequestNumber = null)
         {
-            var binding = NewBinding(intentId, cloneStatus, workspacePath);
+            var binding = NewBinding(intentId, cloneStatus, workspacePath, defaultBranch, pullRequestNumber);
             Bindings.GetByIdAsync(binding.Id, Arg.Any<CancellationToken>()).Returns(Task.FromResult<IntentRepositoryBinding?>(binding));
             return binding;
         }
     }
 
-    private static IntentRepositoryBinding NewBinding(string intentId, string cloneStatus, string? workspacePath = null)
+    private static IntentRepositoryBinding NewBinding(
+        string intentId,
+        string cloneStatus,
+        string? workspacePath = null,
+        string defaultBranch = "main",
+        int? pullRequestNumber = null)
     {
         var snapshot = new IntentRepositoryBindingSnapshot(
             Id: BindingId.New(),
             IntentId: new IntentId(intentId),
             Coordinate: new RepoCoordinate(GitProviderNames.GitHub, "octo", "hello"),
             WorkspacePath: workspacePath ?? $"{WorkspaceRoot}/intents/{intentId}/octo__hello",
-            DefaultBranch: "main",
+            DefaultBranch: defaultBranch,
             CloneStatus: cloneStatus,
             CloneError: null,
-            PullRequestNumber: null,
+            PullRequestNumber: pullRequestNumber,
             PullRequestState: null,
             ReviewCommentsEtag: null,
             LastSeenReviewCommentAt: null,

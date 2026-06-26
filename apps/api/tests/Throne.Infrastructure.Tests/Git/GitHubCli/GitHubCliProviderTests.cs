@@ -86,7 +86,7 @@ public class GitHubCliProviderTests
     {
         _fx.OnRun(_ => GitHubCliProviderFixture.Ok(string.Empty));
 
-        await _fx.Provider.CloneRepositoryAsync("alice", "throne", "/tmp/x", default);
+        await _fx.Provider.CloneRepositoryAsync("alice", "throne", "/tmp/x", CloneCheckout.None, default);
 
         _fx.Calls.Single().Arguments.Should().BeEquivalentTo(CloneArgs);
     }
@@ -99,7 +99,7 @@ public class GitHubCliProviderTests
         Directory.CreateDirectory(Path.Combine(path, ".git"));
         try
         {
-            await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
+            await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, CloneCheckout.None, default);
             _fx.Calls.Should().BeEmpty("папка уже содержит .git — gh repo clone не должен вызываться");
         }
         finally
@@ -116,7 +116,7 @@ public class GitHubCliProviderTests
         Directory.CreateDirectory(path);
         try
         {
-            await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
+            await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, CloneCheckout.None, default);
             _fx.Calls.Single().Arguments.Should()
                 .ContainInOrder("repo", "clone", "alice/throne", path, "--", "--filter=blob:none");
         }
@@ -138,7 +138,7 @@ public class GitHubCliProviderTests
         await File.WriteAllTextAsync(Path.Combine(path, "stray.txt"), "x");
         try
         {
-            var act = async () => await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, default);
+            var act = async () => await _fx.Provider.CloneRepositoryAsync("alice", "throne", path, CloneCheckout.None, default);
             await act.Should().ThrowAsync<Throne.Application.Git.GitProviderException>()
                 .Where(ex => ex.Message.Contains("is not a git clone", StringComparison.Ordinal));
             _fx.Calls.Should().BeEmpty();

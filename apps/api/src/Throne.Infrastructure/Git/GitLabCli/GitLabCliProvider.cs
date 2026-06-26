@@ -27,8 +27,13 @@ internal sealed class GitLabCliProvider(
     public Task<IReadOnlyList<GitRepositoryRef>> ListUserRepositoriesAsync(int limit, CancellationToken ct) =>
         searcher.SearchAsync(RepositorySearchScope.Mine, query: null, limit, ct);
 
-    public Task CloneRepositoryAsync(string owner, string repo, string targetPath, CancellationToken ct) =>
-        actions.CloneAsync(owner, repo, targetPath, ct);
+    public Task CloneRepositoryAsync(
+        string owner, string repo, string targetPath, CloneCheckout checkout, CancellationToken ct) =>
+        actions.CloneAsync(owner, repo, targetPath, checkout, ct);
+
+    public Task CheckoutAsync(
+        string owner, string repo, string workspacePath, CloneCheckout checkout, CancellationToken ct) =>
+        actions.CheckoutAsync(owner, repo, workspacePath, checkout, ct);
 
     public Task SyncRepositoryAsync(string workspacePath, CancellationToken ct) =>
         actions.SyncAsync(workspacePath, ct);
