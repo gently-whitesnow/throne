@@ -13,12 +13,11 @@ namespace Throne.Infrastructure.EfCore;
 /// context: a mutation outside a unit of work is a programming error, not a sessionless
 /// fallback.</item>
 /// </list>
-/// Repository ports (and the per-entity <c>SaveChangesAsync</c> calls that surface
-/// Conflict/NotFound) arrive in slice 2; this base only owns context selection.
 /// </summary>
 internal abstract class EfRepositoryBase(IDbContextFactory<ThroneDbContext> contextFactory, EfSessionAccessor sessions)
 {
     protected EfSessionAccessor Sessions { get; } = sessions;
+    protected IDbContextFactory<ThroneDbContext> ContextFactory { get; } = contextFactory;
 
     /// <summary>
     /// Runs a read against the ambient context, or a transient one disposed afterwards.
@@ -35,7 +34,7 @@ internal abstract class EfRepositoryBase(IDbContextFactory<ThroneDbContext> cont
             return await read(ambient, ct);
         }
 
-        await using var context = await contextFactory.CreateDbContextAsync(ct);
+        await using var context = await ContextFactory.CreateDbContextAsync(ct);
         return await read(context, ct);
     }
 

@@ -55,7 +55,8 @@ internal static class GitInfrastructureModule
         services.AddSingleton<GhPullRequestLister>();
         services.AddSingleton<GhRefListers>();
         services.AddSingleton<IGitProvider, GitHubCliProvider>();
-        services.AddSingleton<IGitLabHostProvider, MongoGitLabHostProvider>();
+        // IGitLabHostProvider is wired by the persistence backend (Mongo / SQLite EF Core)
+        // because it owns the settings storage. Git infrastructure stays storage-agnostic.
         services.AddSingleton<GlabCliInvoker>();
         services.AddSingleton<GlabRepoSearcher>();
         services.AddSingleton<GlabRepoActions>();
