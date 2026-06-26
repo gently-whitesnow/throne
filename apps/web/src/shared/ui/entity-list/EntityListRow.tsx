@@ -1,6 +1,8 @@
 import { Pin } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
+import { SessionLiveBadge } from "../session-live/SessionLiveBadge";
+
 import type { EntityListRow as EntityListRowData } from "./EntityList";
 
 interface EntityListRowProps {
@@ -59,6 +61,7 @@ export function EntityListRowContent({ row }: EntityListRowProps) {
             </span>
           ) : null}
         </span>
+        {row.live ? <SessionLiveBadge className="flex-shrink-0" /> : null}
         {row.meta ? (
           <span className="flex-shrink-0 text-[11px] tabular-nums text-base-content/60">
             {row.meta}

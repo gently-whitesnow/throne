@@ -21,6 +21,7 @@ export {
   useIntentContexts,
   useInfiniteIntents
 } from "./api/intents-queries";
+export { useRunningTerminalIds } from "./api/use-running-terminal-ids";
 export type {
   IntentListParams,
   IntentListSort,
