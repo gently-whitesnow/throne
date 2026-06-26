@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Throne.Application.Git;
 using Throne.Application.Ports;
+using Throne.Infrastructure.Git;
 using Throne.Infrastructure.Git.GitLabCli;
 
 namespace Throne.Infrastructure.Tests.Git.GitLabCli;
@@ -21,7 +22,7 @@ internal sealed class GitLabCliProviderFixture
         });
         var invoker = new GlabCliInvoker(Launcher, options);
         var searcher = new GlabRepoSearcher(invoker, hostProvider);
-        var actions = new GlabRepoActions(invoker, hostProvider, options, Launcher);
+        var actions = new GlabRepoActions(invoker, hostProvider, options, Launcher, new GitCheckoutRunner(Launcher));
         var probe = new GlabAuthProbe(invoker, hostProvider);
         var prActions = new GlabPullRequestActions(invoker, hostProvider);
         var refListers = new GlabRefListers(
