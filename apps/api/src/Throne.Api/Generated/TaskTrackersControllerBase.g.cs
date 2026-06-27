@@ -49,6 +49,16 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/task-trackers/{tracker}", Name = "getTaskTracker")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerProviderDto>> GetTaskTracker([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
 
+        /// <summary>
+        /// Force-pull the linked tracker card for an intent (sync-on-open / «Обновить»).
+        /// </summary>
+        /// <remarks>
+        /// Synchronously fetches the linked card straight from the tracker and re-applies it to the mirror intent before the caller renders. A vanished/forbidden card (404/403) demotes the mirror to a stub instead of failing. Returns the resulting sync state; the refreshed intent content arrives over the realtime stream (intent.text_changed). An intent with no link returns `status=not_linked`.
+        /// </remarks>
+        /// <returns>The force-pull outcome.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/task-tracker/refresh", Name = "forceRefreshIntentTaskTrackerCard")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerCardSyncDto>> ForceRefreshIntentTaskTrackerCard([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
+
     }
 
     

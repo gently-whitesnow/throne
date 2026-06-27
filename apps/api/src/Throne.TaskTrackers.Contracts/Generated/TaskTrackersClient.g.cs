@@ -27,6 +27,49 @@ namespace Throne.TaskTrackers.Contracts.Generated
     
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerCardSyncDto
+    {
+
+        /// <summary>
+        /// `refreshed` — card re-applied; `stubbed` — card gone upstream, mirror kept without content; `unavailable` — tracker unreachable or not connected; `not_linked` — intent has no card link.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrackerCardSyncDtoStatus>))]
+        public TaskTrackerCardSyncDtoStatus Status { get; set; }
+
+        /// <summary>
+        /// Provider key of the link, when one exists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tracker")]
+        public string Tracker { get; set; }
+
+        /// <summary>
+        /// Linked card id, when one exists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_id")]
+        public string Card_id { get; set; }
+
+        /// <summary>
+        /// Resulting link lifecycle, when a link exists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrackerCardSyncDtoState>))]
+        public TaskTrackerCardSyncDtoState State { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TaskTrackerProviderDto
     {
 
@@ -105,6 +148,42 @@ namespace Throne.TaskTrackers.Contracts.Generated
             get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
             set { _additionalProperties = value; }
         }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TaskTrackerCardSyncDtoStatus
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"not_linked")]
+        [System.Runtime.Serialization.EnumMember(Value = @"not_linked")]
+        Not_linked = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"refreshed")]
+        [System.Runtime.Serialization.EnumMember(Value = @"refreshed")]
+        Refreshed = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"stubbed")]
+        [System.Runtime.Serialization.EnumMember(Value = @"stubbed")]
+        Stubbed = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unavailable")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unavailable")]
+        Unavailable = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TaskTrackerCardSyncDtoState
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"linked")]
+        [System.Runtime.Serialization.EnumMember(Value = @"linked")]
+        Linked = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"stub")]
+        [System.Runtime.Serialization.EnumMember(Value = @"stub")]
+        Stub = 1,
 
     }
 

@@ -44,10 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/task-tracker/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force-pull the linked tracker card for an intent (sync-on-open / «Обновить»).
+         * @description Synchronously fetches the linked card straight from the tracker and re-applies it to the mirror intent before the caller renders. A vanished/forbidden card (404/403) demotes the mirror to a stub instead of failing. Returns the resulting sync state; the refreshed intent content arrives over the realtime stream (intent.text_changed). An intent with no link returns `status=not_linked`.
+         */
+        post: operations["forceRefreshIntentTaskTrackerCard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TaskTrackerCardSyncDto: {
+            /**
+             * @description `refreshed` — card re-applied; `stubbed` — card gone upstream, mirror kept without content; `unavailable` — tracker unreachable or not connected; `not_linked` — intent has no card link.
+             * @enum {string}
+             */
+            status: "not_linked" | "refreshed" | "stubbed" | "unavailable";
+            /** @description Provider key of the link, when one exists. */
+            tracker?: string;
+            /** @description Linked card id, when one exists. */
+            card_id?: string;
+            /**
+             * @description Resulting link lifecycle, when a link exists.
+             * @enum {string}
+             */
+            state?: "linked" | "stub";
+        };
         /** @description Stable task-tracker provider key. Value set intentionally open (ADR-0046); supported providers are delivered by the backend registry and unknown values are rejected server-side. */
         TaskTrackerProvider: string;
         TaskTrackerProviderDto: {
@@ -125,6 +161,28 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    forceRefreshIntentTaskTrackerCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The force-pull outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerCardSyncDto"];
                 };
             };
         };
