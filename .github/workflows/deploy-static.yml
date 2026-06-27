@@ -1,0 +1,76 @@
+# Деплой статики throne-сайта на VPS по кнопке.
+# Actions → "Deploy site (static)" → Run workflow.
+#
+# Собирает Next.js как статический экспорт (out/) и атомарно заливает на сервер:
+# releases/<sha> → переключение симлинка current. Сервер ничего не собирает.
+#
+# Нужны секреты репозитория (Settings → Secrets and variables → Actions):
+#   DEPLOY_SSH_KEY — приватный deploy-ключ (его .pub доверен на VPS → ci_deploy_pubkeys)
+#   DEPLOY_HOST    — хост сервера
+name: Deploy site (static)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-throne-site
+  cancel-in-progress: false
+
+env:
+  SITE_NAME: throne          # = sites[].name на VPS → каталог /var/www/throne
+  SSH_USER: web              # = ci_deploy_user на VPS
+  KEEP_RELEASES: 5
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/landing/package-lock.json
+
+      - name: Build static export
+        working-directory: apps/landing
+        env:
+          BUILD_STATIC: 'true'
+          NEXT_PUBLIC_SITE_URL: https://throne.whitesnow.tech
+        run: |
+          npm ci
+          npm run build
+          test -d out || { echo "out/ не собрался — проверь экспорт"; exit 1; }
+          # as-needed + export не создаёт out/index.html (это делал middleware,
+          # а он при экспорте отключён). Генерим корневой редирект на локаль.
+          cat > out/index.html <<'HTML'
+          <!doctype html><html lang="ru"><head><meta charset="utf-8">
+          <title>throne</title>
+          <script>location.replace((navigator.language||'').toLowerCase().startsWith('en')?'/en/':'/ru/')</script>
+          <meta http-equiv="refresh" content="0; url=/ru/">
+          <link rel="canonical" href="https://throne.whitesnow.tech/ru/"></head>
+          <body>Redirecting… <a href="/ru/">throne</a></body></html>
+          HTML
+          test -f out/index.html
+
+      - name: Deploy via rsync
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id && chmod 600 ~/.ssh/id
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          BASE="/var/www/${SITE_NAME}"
+          REL="${BASE}/releases/${GITHUB_SHA}"
+          SSH="ssh -i ~/.ssh/id ${SSH_USER}@${HOST}"
+
+          $SSH "mkdir -p '${REL}'"
+          rsync -az --delete -e "ssh -i ~/.ssh/id" apps/landing/out/ "${SSH_USER}@${HOST}:${REL}/"
+          # атомарное переключение
+          $SSH "ln -sfn '${REL}' '${BASE}/current'"
+          # подчистить старые релизы, оставить KEEP_RELEASES
+          $SSH "ls -1dt ${BASE}/releases/*/ | tail -n +$((KEEP_RELEASES + 1)) | xargs -r rm -rf"
+          echo "Deployed ${GITHUB_SHA} → ${BASE}/current"

@@ -141,8 +141,9 @@ throne/
 │           ├── Throne.Infrastructure.Tests/
 │           ├── Throne.Api.Tests/
 │           └── Throne.Architecture.Tests/
-│   └── web/                 # Vite + React + TypeScript frontend
-│       └── src/             # FSD 2.0: app/pages/widgets/features/entities/shared
+│   ├── web/                 # Vite + React + TypeScript frontend
+│   │   └── src/             # FSD 2.0: app/pages/widgets/features/entities/shared
+│   └── landing/             # Next.js public landing (static export → VPS)
 ├── specs/
 │   ├── ADR/                 # Architecture Decision Records
 │   └── AGENTS.local.md
