@@ -136,7 +136,7 @@ function buildVendorItem(
     ok: false,
     detail: anyLoggedOut
       ? "Агент установлен, но вы не залогинены"
-      : "CLI агента не установлен — выберите claude или codex",
+      : "CLI агента не установлен, он нужен для работы с интентами",
     remedies
   };
 }
@@ -157,7 +157,8 @@ function buildTmuxItem(
     key: "tmux",
     label: "tmux установлен",
     ok: false,
-    detail: "tmux не найден — без него «Запустить агента» не получится",
+    detail:
+      "tmux не найден, он необходим для запуска агентов независимо от Throne",
     remedies: [
       { label: "tmux", command: "brew install tmux", hintHref: TMUX_DOC }
     ]
@@ -182,7 +183,8 @@ function buildGitItem(
     key: "git",
     label: "Git-провайдер авторизован",
     ok: false,
-    detail: "Авторизуйтесь в GitHub или GitLab CLI",
+    detail:
+      "Git-провайдер не авторизован, нужен для клонирования репозиториев и работы с PR/MR",
     remedies: GIT_REMEDIES
   };
 }
