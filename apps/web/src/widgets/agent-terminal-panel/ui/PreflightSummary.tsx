@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 
 interface PreflightSummaryProps {
   systemPrompt: string;
@@ -45,8 +45,8 @@ function SummaryBlock({
  * Сворачиваемое превью собранного итога (workspace map / system / user / free) — то,
  * что реально уйдёт агенту. Карта workspace дописывается доставкой поверх user-промпта
  * на спавне и здесь показана отдельным read-only блоком (в тело её не вкладываем, иначе
- * на доставке карта прибавится дважды). По умолчанию свёрнуто, кроме интентов со связями:
- * там контекст раскрыт сразу, чтобы оператор видел метаданные связей до запуска.
+ * на доставке карта прибавится дважды). По умолчанию свёрнуто, чтобы не съедать высоту,
+ * пока оператор правит части.
  */
 export function PreflightSummary({
   systemPrompt,
@@ -54,23 +54,14 @@ export function PreflightSummary({
   userPrompt,
   freeInput
 }: PreflightSummaryProps) {
-  const hasLinkContext = workspaceMap.includes("\nСвязи:\n");
   const [open, setOpen] = useState(false);
-  const [manualToggle, setManualToggle] = useState(false);
   const bodyId = useId();
-
-  useEffect(() => {
-    if (hasLinkContext && !manualToggle) {
-      setOpen(true);
-    }
-  }, [hasLinkContext, manualToggle]);
 
   return (
     <section className="flex flex-col gap-2 rounded-md border border-base-300 bg-base-100">
       <button
         type="button"
         onClick={() => {
-          setManualToggle(true);
           setOpen((value) => !value);
         }}
         aria-expanded={open}
