@@ -49,6 +49,16 @@ internal sealed class InboundFrameDispatcher(TmuxCli tmux, ILogger? log = null)
             TerminalsLog.TerminalControlInputFrame(_log, sessionName, data.Length, bytes.Length, controlHex);
         }
 
+        // send-keys -H spends ~3 argv bytes per input byte; tmux packs the whole command into a
+        // single imsg capped at MAX_IMSGSIZE (16384), so a large paste overflows it and the frame
+        // is dropped whole (see TmuxCommandLimit). Past the threshold route through a tmux buffer,
+        // whose argv stays tiny regardless of payload size.
+        if (bytes.Length > MaxInlineInputBytes)
+        {
+            await SendViaBufferAsync(sessionName, data, bytes.Length, controlHex, ct);
+            return;
+        }
+
         var args = new List<string>(capacity: 4 + bytes.Length)
         {
             "send-keys", "-t", sessionName, "-H",
@@ -69,6 +79,42 @@ internal sealed class InboundFrameDispatcher(TmuxCli tmux, ILogger? log = null)
                 TmuxOutcomeDetail.Extract(outcome) ?? "<empty>");
         }
     }
+
+    private async Task SendViaBufferAsync(
+        string sessionName,
+        string data,
+        int byteLength,
+        string controlHex,
+        CancellationToken ct)
+    {
+        // load-buffer reads the payload from stdin (argv carries only the buffer name), then
+        // paste-buffer injects it. -p emits bracketed-paste markers only if the pane's app asked
+        // for them, so embedded newlines arrive as paste content (no premature submit in claude/
+        // codex) while plain shells are unaffected. No trailing Enter — this is live input, not a
+        // submit. -d drops the buffer afterwards; input is serialized per session, so the fixed
+        // buffer name cannot collide with a concurrent paste.
+        var bufferName = sessionName + "-input";
+        var load = await tmux.RunAsync(["load-buffer", "-b", bufferName, "-"], ct, standardInput: data);
+        var paste = load.IsSuccess
+            ? await tmux.RunAsync(["paste-buffer", "-d", "-p", "-b", bufferName, "-t", sessionName], ct)
+            : load;
+
+        TerminalsLog.TerminalInputBuffered(_log, sessionName, data.Length, byteLength, bufferName, paste.IsSuccess);
+        if (!paste.IsSuccess)
+        {
+            TerminalsLog.TerminalInputSendFailed(
+                _log,
+                sessionName,
+                data.Length,
+                byteLength,
+                controlHex,
+                TmuxOutcomeDetail.Extract(paste) ?? "<empty>");
+        }
+    }
+
+    // Keeps the send-keys -H argv (~3 bytes/input byte plus framing) safely under tmux's
+    // ~16384-byte imsg ceiling; larger frames take the buffer path instead.
+    private const int MaxInlineInputBytes = 4096;
 
     private async Task SendResizeAsync(string sessionName, int cols, int rows, CancellationToken ct) =>
         await tmux.RunAsync(
