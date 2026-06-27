@@ -141,6 +141,8 @@ public static class DependencyInjection
         services.AddSingleton<SessionSkillSelectionService>();
         services.AddSingleton<RunPreflightSkillPlanner>();
         services.AddSingleton<RunPreflightTagNames>();
+        services.AddSingleton<IntentLinkPromptContextReader>();
+        services.AddSingleton<IntentWorkspaceMapComposer>();
         services.AddSingleton<RunPreflightLaunchPlanner>();
         services.AddSingleton<SkillModeDefaultsService>();
         services.AddSingleton<TagDefaultsUnion>();

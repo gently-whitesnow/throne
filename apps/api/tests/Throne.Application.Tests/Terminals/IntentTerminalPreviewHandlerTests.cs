@@ -84,8 +84,7 @@ public class IntentTerminalPreviewHandlerTests
             NewLaunches(),
             NewResolver(),
             NewSkillSelection(),
-            NewWorkspaceRoot(),
-            NewTagNames());
+            NewWorkspaceMap(NewLinks([])));
 
         var act = () => handler.HandleAsync(
             new IntentTerminalPreviewQuery("missing-id", PromptPartModeNames.Free, null),
@@ -146,8 +145,7 @@ public class IntentTerminalPreviewHandlerTests
             NewLaunches(),
             NewResolver(),
             NewSkillSelection(),
-            NewWorkspaceRoot("/ws"),
-            NewTagNames(tag));
+            NewWorkspaceMap(NewLinks([]), "/ws", tag));
 
         var preview = await handler.HandleAsync(
             new IntentTerminalPreviewQuery(intentId.Value, PromptPartModeNames.Free, null),
@@ -203,8 +201,7 @@ public class IntentTerminalPreviewHandlerTests
             NewLaunches(),
             NewResolver(),
             NewSkillSelection(),
-            NewWorkspaceRoot(),
-            NewTagNames());
+            NewWorkspaceMap(NewLinks([])));
     }
 
     private static IWorkspaceRootProvider NewWorkspaceRoot(string root = "/ws")
@@ -239,6 +236,20 @@ public class IntentTerminalPreviewHandlerTests
             .Returns(bindings);
         return repo;
     }
+
+    private static IIntentLinkRepository NewLinks(IReadOnlyList<IntentLinkView> links)
+    {
+        var repo = Substitute.For<IIntentLinkRepository>();
+        repo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns(links);
+        return repo;
+    }
+
+    private static IntentWorkspaceMapComposer NewWorkspaceMap(
+        IIntentLinkRepository links,
+        string root = "/ws",
+        params Tag[] tags) =>
+        new(NewWorkspaceRoot(root), NewTagNames(tags), new IntentLinkPromptContextReader(links));
 
     private static PromptCompositionResolver NewResolver()
     {

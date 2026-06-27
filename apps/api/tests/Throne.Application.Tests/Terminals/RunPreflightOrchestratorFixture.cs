@@ -210,7 +210,6 @@ public partial class RunPreflightOrchestratorTests
                 Bindings.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
                     .Returns(Task.FromResult(bindings));
             }
-
             if (spawn is not null)
             {
                 Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>()).Returns(spawn);

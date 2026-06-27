@@ -102,6 +102,7 @@ export function PreflightModal({
             skills={preview.skills}
             onToggle={preview.toggleSkill}
           />
+          <WorkspaceMapFrame workspaceMap={preview.workspaceMap} />
           <PreflightSummary
             systemPrompt={preview.systemPrompt}
             workspaceMap={preview.workspaceMap}
@@ -126,6 +127,24 @@ export function PreflightModal({
         </Button>
       </footer>
     </Modal>
+  );
+}
+
+function WorkspaceMapFrame({ workspaceMap }: { workspaceMap: string }) {
+  if (!workspaceMap.includes("\nСвязи:\n")) return null;
+
+  return (
+    <section className="flex flex-col gap-1 rounded-md border border-base-300 bg-base-100 px-2 py-2">
+      <span className="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">
+        workspace map
+      </span>
+      <pre
+        data-testid="agent-terminal-workspace-map-context"
+        className="m-0 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-base-300 bg-base-200/40 px-2 py-1.5 font-mono text-[11px] leading-snug text-base-content/80"
+      >
+        {workspaceMap}
+      </pre>
+    </section>
   );
 }
 

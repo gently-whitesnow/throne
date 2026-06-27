@@ -4,6 +4,8 @@ using NSubstitute;
 using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
+using Throne.Domain.Intents;
+using Throne.Domain.Intents.Linking;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Tests.Terminals;
@@ -124,7 +126,7 @@ public class RunPreflightPromptDeliveryTests
         }
     }
 
-    [Fact(DisplayName = "Карта workspace (root + пути репо + теги) допишется в начало задачи перед paste")]
+    [Fact(DisplayName = "Карта workspace (root + пути репо + теги + связи) допишется в начало задачи перед paste")]
     public async Task Prepends_workspace_map_with_repo_paths_above_the_task()
     {
         var tmux = Substitute.For<ITmuxSessionManager>();
@@ -136,7 +138,13 @@ public class RunPreflightPromptDeliveryTests
             .Returns(Tag.Create(throne, "throne", DateTimeOffset.UnixEpoch));
         tagRepo.GetByIdAsync(must, Arg.Any<CancellationToken>())
             .Returns(Tag.Create(must, "must", DateTimeOffset.UnixEpoch));
-        var (sut, workspace) = NewDelivery(tmux, events, tagRepo);
+        var linkRepo = Substitute.For<IIntentLinkRepository>();
+        linkRepo.ListByIntentAsync(new IntentId(IntentId), Arg.Any<CancellationToken>())
+            .Returns([
+                LinkView("blocked-by-id", blocking: true, incoming: true, rationale: null),
+                LinkView("soft-id", blocking: false, incoming: false, rationale: "передать результат дальше"),
+            ]);
+        var (sut, workspace) = NewDelivery(tmux, events, tagRepo, linkRepo);
         var repo = Path.Combine(workspace, "octo__widget");
 
         try
@@ -153,6 +161,9 @@ public class RunPreflightPromptDeliveryTests
             delivered.Should().Contain(workspace);
             delivered.Should().Contain(repo);
             delivered.Should().Contain("Теги интента: throne, must");
+            delivered.Should().Contain("Связи:");
+            delivered.Should().Contain("- заблокирован intent_id=blocked-by-id (без причины связи)");
+            delivered.Should().Contain("- ведёт к intent_id=soft-id: передать результат дальше");
             delivered.Should().Contain("не угадывай имя клон-сабдира");
             delivered.Should().Contain("cwd между Bash-вызовами не гарантирована");
             // Map sits above the original task, not appended after it.
@@ -166,7 +177,10 @@ public class RunPreflightPromptDeliveryTests
     }
 
     private static (RunPreflightPromptDelivery Delivery, string Workspace) NewDelivery(
-        ITmuxSessionManager tmux, IDomainEventDispatcher events, ITagRepository? tagRepo = null)
+        ITmuxSessionManager tmux,
+        IDomainEventDispatcher events,
+        ITagRepository? tagRepo = null,
+        IIntentLinkRepository? linkRepo = null)
     {
         var workspace = Path.Combine(Path.GetTempPath(), $"throne-delivery-{Guid.NewGuid():N}");
         var options = new RunPreflightOptions
@@ -184,6 +198,7 @@ public class RunPreflightPromptDeliveryTests
         var delivery = new RunPreflightPromptDelivery(
             tmux, readinessWaiter, confirmer, new TerminalPromptSubmitSignals(), events,
             new RunPreflightTagNames(tagRepo ?? Substitute.For<ITagRepository>()),
+            new IntentLinkPromptContextReader(linkRepo ?? EmptyLinks()),
             NullLogger<RunPreflightPromptDelivery>.Instance);
         return (delivery, workspace);
     }
@@ -194,7 +209,35 @@ public class RunPreflightPromptDeliveryTests
         string userPrompt = "TASK",
         IReadOnlyList<string>? repoPaths = null,
         IReadOnlyList<TagId>? tagIds = null) =>
-        new(IntentId, TerminalRunModes.Work, Vendor, adapter, workspace, repoPaths ?? [], tagIds ?? [], userPrompt);
+        new(
+            IntentId, TerminalRunModes.Work, Vendor, adapter, workspace,
+            repoPaths ?? [], tagIds ?? [], userPrompt);
+
+    private static IIntentLinkRepository EmptyLinks()
+    {
+        var repo = Substitute.For<IIntentLinkRepository>();
+        repo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+        return repo;
+    }
+
+    private static IntentLinkView LinkView(string peerId, bool blocking, bool incoming, string? rationale)
+    {
+        var intentId = new IntentId(IntentId);
+        var peer = Intent.Restore(new IntentId(peerId), $"{peerId} body", IntentStatusNames.Work, 1, [], DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+        var link = IntentLink.Create(
+            $"link-{peerId}",
+            incoming ? peer.Id : intentId,
+            incoming ? intentId : peer.Id,
+            blocking,
+            IntentLinkAuthor.User,
+            rationale,
+            DateTimeOffset.UnixEpoch);
+        return new IntentLinkView(
+            link,
+            incoming ? IntentLinkDirection.Incoming : IntentLinkDirection.Outgoing,
+            peer);
+    }
 
     private static void CleanUp(string workspace)
     {
