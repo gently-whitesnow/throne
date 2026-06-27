@@ -1,13 +1,11 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
+import { AgentContextPage } from "@/pages/agent-context";
 import { HomePage } from "@/pages/home";
-import { ImprovementsSectionPage } from "@/pages/improvements-section";
 import { IntentDetailPage } from "@/pages/intent-detail";
 import { IntentsSectionPage } from "@/pages/intents-section";
-import { InstructionsSectionPage } from "@/pages/instructions-section";
-import { LaunchSkillsPage } from "@/pages/launch-skills";
 import { SettingsPage } from "@/pages/settings";
 import { StartPage } from "@/pages/start";
 import { TagsSectionPage } from "@/pages/tags-section";
@@ -36,9 +34,19 @@ export function App() {
               </Route>
             </Route>
             <Route path="/tags" element={<TagsSectionPage />} />
-            <Route path="/instructions" element={<InstructionsSectionPage />} />
-            <Route path="/improvements" element={<ImprovementsSectionPage />} />
-            <Route path="/launch-skills" element={<LaunchSkillsPage />} />
+            <Route path="/agent-context" element={<AgentContextPage />} />
+            <Route
+              path="/instructions"
+              element={<Navigate to="/agent-context" replace />}
+            />
+            <Route
+              path="/improvements"
+              element={<Navigate to="/agent-context" replace />}
+            />
+            <Route
+              path="/launch-skills"
+              element={<Navigate to="/agent-context" replace />}
+            />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>

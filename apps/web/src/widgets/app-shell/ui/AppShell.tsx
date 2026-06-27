@@ -1,12 +1,4 @@
-import {
-  FileText,
-  Hash,
-  PackageCheck,
-  Power,
-  Settings,
-  Sparkles,
-  Sprout
-} from "lucide-react";
+import { Hash, Layers, Power, Settings, Sparkles } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useThroneReadiness } from "@/features/throne-readiness";
@@ -18,9 +10,7 @@ import { NotReadyBanner } from "./NotReadyBanner";
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
   { to: "/tags", label: "Tags", icon: Hash },
-  { to: "/instructions", label: "Prompt parts", icon: FileText },
-  { to: "/improvements", label: "Improvements", icon: Sprout },
-  { to: "/launch-skills", label: "Launch skills", icon: PackageCheck },
+  { to: "/agent-context", label: "Состав агента", icon: Layers },
   { to: "/settings", label: "Settings", icon: Settings }
 ] as const;
 
@@ -53,7 +43,7 @@ export function AppShell() {
               aria-label={label}
             >
               <Icon aria-hidden size={18} strokeWidth={2} />
-              {to === "/improvements" && proposedPatches > 0 ? (
+              {to === "/agent-context" && proposedPatches > 0 ? (
                 <span
                   aria-label={`${String(proposedPatches)} proposed prompt part patches`}
                   className="absolute right-0.5 top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-error px-1 text-[9px] font-bold leading-none text-error-content"

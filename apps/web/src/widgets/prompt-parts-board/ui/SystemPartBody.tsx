@@ -25,12 +25,12 @@ export function SystemPartBody({
   return (
     <div className="flex flex-col gap-4">
       <p className="m-0 text-xs text-base-content/60">
-        System-часть управляется манифестом — меняется только через него.
+        Системный блок управляется манифестом — меняется только через него.
       </p>
 
       <section className="flex flex-col gap-1.5">
         <span className="text-[13px] font-semibold text-base-content">
-          Роли по режимам
+          Где входит по режимам
         </span>
         <div className="flex flex-wrap gap-3">
           {PROMPT_PART_MODES.map((mode) => {

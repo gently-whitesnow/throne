@@ -36,16 +36,16 @@ export function PromptPartDetailDialog({
         <div>
           <p className="m-0 mb-1 text-[11px] font-bold uppercase tracking-wider text-primary">
             {target.mode === "create"
-              ? "Новая часть"
+              ? "Новый блок"
               : isSystem
-                ? "System-часть"
-                : "User-часть"}
+                ? "Системный блок"
+                : "Твой блок"}
           </p>
           <h2
             id={titleId}
             className="m-0 font-mono text-xl font-bold tracking-tight"
           >
-            {target.mode === "create" ? "Новая часть" : target.part.key}
+            {target.mode === "create" ? "Новый блок" : target.part.key}
           </h2>
         </div>
         <button
