@@ -88,6 +88,16 @@ internal static partial class TerminalsLog
         string controlHex,
         string detail);
 
+    [LoggerMessage(EventId = 20, Level = LogLevel.Debug,
+        Message = "terminal input buffered {SessionName}: chars={CharLength} bytes={ByteLength} buffer={BufferName} success={Success}")]
+    public static partial void TerminalInputBuffered(
+        ILogger logger,
+        string sessionName,
+        int charLength,
+        int byteLength,
+        string bufferName,
+        bool success);
+
     [LoggerMessage(EventId = 18, Level = LogLevel.Information,
         Message = "tmux prompt submit starting {SessionName}: buffer={BufferName} file_bytes={FileBytes} path={FilePath}")]
     public static partial void TmuxPromptSubmitStarting(
