@@ -2,7 +2,7 @@ using Throne.Application.Ports;
 
 namespace Throne.Application.Terminals;
 
-public sealed record IntentLinkPromptContext(string Label, string PeerIntentId, string? Rationale);
+public sealed record IntentLinkPromptContext(string Label, string PeerIntentId, string Status, string? Rationale);
 
 internal static class IntentLinkPromptContextBuilder
 {
@@ -22,6 +22,7 @@ internal static class IntentLinkPromptContextBuilder
             result.Add(new IntentLinkPromptContext(
                 LinkLabel(view.Link.Blocking, view.Direction == IntentLinkDirection.Outgoing),
                 view.Other.Id.Value,
+                view.Other.State.Status,
                 rationale));
         }
 
