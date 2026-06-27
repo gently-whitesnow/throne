@@ -229,4 +229,20 @@ describe("PreflightModal", () => {
     const payload = onLaunch.mock.calls[0][0] as TerminalRunPayload;
     expect(payload.reviewBindingId).toBe("binding-2");
   });
+
+  it("раскрывает итоговый prompt preview сразу, если workspace map содержит связи", async () => {
+    previewIntentTerminal.mockResolvedValueOnce({
+      ...preview(),
+      workspace_map:
+        "=== Карта workspace ===\nТеги интента: throne\nСвязи:\n- заблокирован (без причины связи)"
+    });
+
+    renderModal(vi.fn());
+
+    const summary = await screen.findByTestId(
+      "agent-terminal-preflight-summary"
+    );
+    expect(summary.textContent).toContain("Связи:");
+    expect(summary.textContent).toContain("заблокирован");
+  });
 });

@@ -174,6 +174,17 @@ public class ClaudeSessionHookAdapterTests
         sut.IsTuiReady(snapshot).Should().Be(expected);
     }
 
+    [Theory(DisplayName = "IsPromptSubmitted распознаёт рабочий и уже завершённый Claude transcript")]
+    [InlineData("✻ Tinkering… esc to interrupt", true)]
+    [InlineData("● Привет!\n\n* Brewed for 2s\n\n❯", true)]
+    [InlineData("❯ pasted prompt still in composer", false)]
+    public void Is_prompt_submitted_matches_working_or_completed_transcript(string snapshot, bool expected)
+    {
+        var sut = NewAdapter();
+
+        sut.IsPromptSubmitted(snapshot).Should().Be(expected);
+    }
+
     private static string? HookCommand(JsonDocument document, string hookEvent) =>
         document.RootElement
             .GetProperty("hooks")
