@@ -62,6 +62,7 @@ internal static class WorkspaceMapPrompt
             foreach (var link in links)
             {
                 map.Append("- ").Append(link.Label).Append(" intent_id=").Append(link.PeerIntentId);
+                map.Append(" status=").Append(link.Status);
                 if (string.IsNullOrWhiteSpace(link.Rationale))
                 {
                     map.Append(" (без причины связи)");

@@ -162,8 +162,8 @@ public class RunPreflightPromptDeliveryTests
             delivered.Should().Contain(repo);
             delivered.Should().Contain("Теги интента: throne, must");
             delivered.Should().Contain("Связи:");
-            delivered.Should().Contain("- заблокирован intent_id=blocked-by-id (без причины связи)");
-            delivered.Should().Contain("- ведёт к intent_id=soft-id: передать результат дальше");
+            delivered.Should().Contain("- заблокирован intent_id=blocked-by-id status=work (без причины связи)");
+            delivered.Should().Contain("- ведёт к intent_id=soft-id status=work: передать результат дальше");
             delivered.Should().Contain("не угадывай имя клон-сабдира");
             delivered.Should().Contain("cwd между Bash-вызовами не гарантирована");
             // Map sits above the original task, not appended after it.
