@@ -5,7 +5,6 @@ import {
   type PromptPartListItem,
   type PromptPartMode
 } from "@/entities/prompt-part";
-import { scopeAccent } from "@/shared/lib";
 
 import { roleForMode } from "../model/block-buckets";
 import { RoleSelect } from "./RoleSelect";
@@ -52,21 +51,9 @@ export function BlockRow({
 }: BlockRowProps) {
   const isSystem = part.scope === "system";
   const role = roleForMode(part, mode);
-  const accent = scopeAccent(part.scope);
 
   return (
-    <li
-      className="flex flex-col gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2.5"
-      style={
-        accent
-          ? {
-              backgroundColor: accent.tint,
-              borderLeftColor: accent.stripe,
-              borderLeftWidth: "3px"
-            }
-          : undefined
-      }
-    >
+    <li className="flex flex-col gap-2 rounded-md border border-base-300 bg-base-100 px-3 py-2.5">
       <div className="flex items-start justify-between gap-2">
         <button
           type="button"

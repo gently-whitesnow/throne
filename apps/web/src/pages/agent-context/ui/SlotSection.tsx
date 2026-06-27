@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { promptRegionAccent, type PromptRegion } from "@/shared/lib";
+
 interface SlotSectionProps {
   /** Anchor id for the slot rail jump links. */
   id: string;
@@ -14,6 +16,8 @@ interface SlotSectionProps {
   marker?: ReactNode;
   /** Subdue the frame for not-yet-available slots. */
   muted?: boolean;
+  /** Tint the whole slot as a system/user prompt zone. */
+  region?: PromptRegion;
   children: ReactNode;
 }
 
@@ -30,13 +34,22 @@ export function SlotSection({
   whereToChange,
   marker,
   muted = false,
+  region,
   children
 }: SlotSectionProps) {
+  const accent = region ? promptRegionAccent(region) : null;
   return (
     <section
       id={id}
       aria-label={title}
-      className={`flex scroll-mt-6 flex-col gap-4 ${muted ? "opacity-70" : ""}`}
+      className={`flex scroll-mt-6 flex-col gap-4 ${
+        accent ? "rounded-r-lg border-l-[3px] py-4 pl-5 pr-4" : ""
+      } ${muted ? "opacity-70" : ""}`}
+      style={
+        accent
+          ? { backgroundColor: accent.tint, borderLeftColor: accent.stripe }
+          : undefined
+      }
     >
       <header className="flex items-start gap-3 border-b border-base-300 pb-3">
         <span
