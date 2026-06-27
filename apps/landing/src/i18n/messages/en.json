@@ -16,7 +16,9 @@
     "title": "The cockpit for the dev loop — for humans and AI agents",
     "subtitle": "Around an intent, Throne brings together framing, memory and preferences, agent launch, repositories, and review — and learns from every conversation, so the agent's next pass lands closer to what you expect.",
     "ctaPrimary": "Get started",
-    "ctaSecondary": "Open on GitHub"
+    "ctaSecondary": "Open on GitHub",
+    "copy": "Copy command",
+    "copied": "Copied"
   },
   "theory": {
     "kicker": "Theory",

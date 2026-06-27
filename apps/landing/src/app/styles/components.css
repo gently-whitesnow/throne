@@ -172,6 +172,54 @@
   line-height: 1.55;
 }
 
+.install-cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  background: var(--color-neutral-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded-md);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+}
+.install-cmd__text {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.9375rem;
+  color: var(--color-text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.install-cmd__text::before {
+  content: '$ ';
+  color: var(--color-text-subtle, var(--color-text-muted));
+}
+.install-cmd__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded-sm);
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.install-cmd__copy:hover {
+  color: var(--color-primary-strong);
+  border-color: var(--color-primary);
+  background: var(--color-info-soft);
+}
+.install-cmd__copy:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .steps {
   list-style: none;
   margin: 0;
