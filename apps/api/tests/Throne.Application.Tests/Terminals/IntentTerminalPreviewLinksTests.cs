@@ -42,9 +42,9 @@ public class IntentTerminalPreviewLinksTests
             CancellationToken.None);
 
         preview.WorkspaceMap.Should().Contain("Связи:");
-        preview.WorkspaceMap.Should().Contain("- заблокирован (без причины связи)");
-        preview.WorkspaceMap.Should().Contain("- блокирует: дальше зависит от этого");
-        preview.WorkspaceMap.Should().Contain("- вытекает из: контекст пришёл отсюда");
+        preview.WorkspaceMap.Should().Contain("- заблокирован intent_id=peer-blocking-in (без причины связи)");
+        preview.WorkspaceMap.Should().Contain("- блокирует intent_id=peer-blocking-out: дальше зависит от этого");
+        preview.WorkspaceMap.Should().Contain("- вытекает из intent_id=peer-soft-in: контекст пришёл отсюда");
         preview.WorkspaceMap.Should().NotContain("- ведёт к");
         preview.WorkspaceMap.Should().NotContain("peer-soft-in body");
     }
