@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
+import { InstallCommand } from '@/components/InstallCommand';
 
 export async function Hero() {
   const t = await getTranslations('hero');
+  const tc = await getTranslations('connect');
   return (
     <section
       className="section"
@@ -26,7 +28,19 @@ export async function Hero() {
         >
           {t('subtitle')}
         </p>
-        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+        <InstallCommand
+          command={tc('install.snippet')}
+          copyLabel={t('copy')}
+          copiedLabel={t('copied')}
+        />
+        <div
+          style={{
+            display: 'flex',
+            gap: 'var(--space-3)',
+            flexWrap: 'wrap',
+            marginTop: 'var(--space-5)',
+          }}
+        >
           <a className="btn btn-primary" href="#connect">
             {t('ctaPrimary')}
           </a>

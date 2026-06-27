@@ -1,17 +1,13 @@
 import { getTranslations } from 'next-intl/server';
 
-type SnippetTab = { label: string; description: string; snippet: string };
-type RunBlock = { title: string; description: string; snippet: string };
-type TextBlock = { title: string; description: string };
+type CodeStep = { title: string; description: string; snippet: string };
+type TextStep = { title: string; description: string };
 
 export async function Connect() {
   const t = await getTranslations('connect');
-  const run = t.raw('run') as RunBlock;
-  const embedded = t.raw('embedded') as TextBlock;
-  const claudeDesktop = t.raw('tabs.claudeDesktop') as SnippetTab;
-  const claudeCode = t.raw('tabs.claudeCode') as SnippetTab;
-  const cursor = t.raw('tabs.cursor') as SnippetTab;
-  const codex = t.raw('tabs.codex') as SnippetTab;
+  const install = t.raw('install') as CodeStep;
+  const open = t.raw('open') as CodeStep;
+  const embedded = t.raw('embedded') as TextStep;
 
   return (
     <section className="section" id="connect">
@@ -28,10 +24,10 @@ export async function Connect() {
               1
             </span>
             <div className="step__body">
-              <h3 className="step__title">{run.title}</h3>
-              <p className="step__desc">{run.description}</p>
+              <h3 className="step__title">{install.title}</h3>
+              <p className="step__desc">{install.description}</p>
               <pre className="code-block">
-                <code>{run.snippet}</code>
+                <code>{install.snippet}</code>
               </pre>
             </div>
           </li>
@@ -41,8 +37,11 @@ export async function Connect() {
               2
             </span>
             <div className="step__body">
-              <h3 className="step__title">{embedded.title}</h3>
-              <p className="step__desc">{embedded.description}</p>
+              <h3 className="step__title">{open.title}</h3>
+              <p className="step__desc">{open.description}</p>
+              <pre className="code-block">
+                <code>{open.snippet}</code>
+              </pre>
             </div>
           </li>
 
@@ -51,32 +50,12 @@ export async function Connect() {
               3
             </span>
             <div className="step__body">
-              <h3 className="step__title">{t('clientsTitle')}</h3>
-              <p className="step__desc">{t('clientsDescription')}</p>
-              <div className="step__clients">
-                <ClientDisclosure tab={claudeDesktop} defaultOpen />
-                <ClientDisclosure tab={claudeCode} />
-                <ClientDisclosure tab={cursor} />
-                <ClientDisclosure tab={codex} />
-              </div>
+              <h3 className="step__title">{embedded.title}</h3>
+              <p className="step__desc">{embedded.description}</p>
             </div>
           </li>
         </ol>
       </div>
     </section>
-  );
-}
-
-function ClientDisclosure({ tab, defaultOpen }: { tab: SnippetTab; defaultOpen?: boolean }) {
-  return (
-    <details className="disclosure" open={defaultOpen}>
-      <summary className="disclosure__summary">{tab.label}</summary>
-      <div className="disclosure__body">
-        <p className="disclosure__desc">{tab.description}</p>
-        <pre className="code-block">
-          <code>{tab.snippet}</code>
-        </pre>
-      </div>
-    </details>
   );
 }
