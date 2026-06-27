@@ -142,15 +142,10 @@ export function AgentTerminalPanel({
       data-testid="agent-terminal-panel"
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"
     >
-      {sessionLive ? (
-        <SessionLiveBadge
-          testId="agent-terminal-live-badge"
-          label="Сессия запущена"
-          className="text-[12px] font-medium text-success"
-        />
-      ) : null}
-
       <div className="flex flex-wrap items-center gap-3">
+        {sessionLive ? (
+          <SessionLiveBadge testId="agent-terminal-live-badge" />
+        ) : null}
         <RunControls
           mode={effectiveMode}
           modes={availableModes}
