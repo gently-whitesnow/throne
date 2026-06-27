@@ -107,7 +107,7 @@ export function EditPromptPartBody({
               setDraft(e.target.value);
             }}
             rows={14}
-            aria-label="Текст части"
+            aria-label="Текст блока"
           />
         )}
       </label>
@@ -122,7 +122,7 @@ export function EditPromptPartBody({
         {confirmingDelete ? (
           <div className="flex items-center gap-2">
             <span className="text-[13px] text-base-content/70">
-              Удалить часть?
+              Удалить блок?
             </span>
             <Button
               type="button"

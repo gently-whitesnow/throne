@@ -45,8 +45,8 @@ export function CreatePromptPartBody({ onClose }: { onClose: () => void }) {
           onChange={(e) => {
             setKey(e.target.value);
           }}
-          aria-label="Key части"
-          placeholder="my-optional-part"
+          aria-label="Key блока"
+          placeholder="my-block"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -63,7 +63,7 @@ export function CreatePromptPartBody({ onClose }: { onClose: () => void }) {
             setDescription(e.target.value);
           }}
           rows={2}
-          aria-label="Описание части"
+          aria-label="Описание блока"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -77,7 +77,7 @@ export function CreatePromptPartBody({ onClose }: { onClose: () => void }) {
             setText(e.target.value);
           }}
           rows={14}
-          aria-label="Текст части"
+          aria-label="Текст блока"
         />
       </label>
       {error ? (

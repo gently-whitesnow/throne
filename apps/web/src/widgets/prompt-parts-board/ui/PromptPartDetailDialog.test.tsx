@@ -95,10 +95,10 @@ describe("PromptPartDetailDialog — создание", () => {
       <PromptPartDetailDialog target={{ mode: "create" }} onClose={noop} />
     );
 
-    fireEvent.change(screen.getByLabelText("Key части"), {
+    fireEvent.change(screen.getByLabelText("Key блока"), {
       target: { value: "fresh-key" }
     });
-    fireEvent.change(screen.getByLabelText("Текст части"), {
+    fireEvent.change(screen.getByLabelText("Текст блока"), {
       target: { value: "hello" }
     });
     fireEvent.click(screen.getByRole("button", { name: "Создать" }));
@@ -129,7 +129,7 @@ describe("PromptPartDetailDialog — редактирование", () => {
 
     render(<PromptPartDetailDialog target={editTarget} onClose={noop} />);
 
-    const textarea = await screen.findByLabelText("Текст части");
+    const textarea = await screen.findByLabelText("Текст блока");
     fireEvent.change(textarea, { target: { value: "new body" } });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить текст" }));
 
@@ -187,7 +187,7 @@ describe("PromptPartDetailDialog — редактирование", () => {
     await waitFor(() => {
       expect(screen.getByText("SYSTEM BODY")).toBeTruthy();
     });
-    expect(screen.queryByLabelText("Текст части")).toBeNull();
+    expect(screen.queryByLabelText("Текст блока")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Сохранить текст" })
     ).toBeNull();
