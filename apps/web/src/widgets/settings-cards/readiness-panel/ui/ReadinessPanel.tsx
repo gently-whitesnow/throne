@@ -11,15 +11,16 @@ import { useState } from "react";
 
 import {
   useThroneReadiness,
-  type ReadinessItem
+  type ReadinessItem,
+  type ReadinessRemedy
 } from "@/features/throne-readiness";
 
 /**
  * Агрегированный статус «Throne готов» + чеклист полного пути до Run (агент,
  * tmux, git, workspace). Источник правды — `useThroneReadiness` (feature), чтобы
  * AppShell-бейдж, эта панель и экран /start считали готовность одинаково. У
- * невыполненных пунктов — copy-paste команда фикса; кнопка «Перепроверить»
- * перезапускает пробы вживую после правки.
+ * невыполненных пунктов — copy-paste команда фикса (паритетные провайдеры —
+ * вкладками); кнопка «Перепроверить» перезапускает пробы вживую после правки.
  */
 export function ReadinessPanel() {
   const { ready, items, isLoading, refresh } = useThroneReadiness();
@@ -103,6 +104,7 @@ export function ReadinessPanel() {
 }
 
 function ReadinessRow({ item }: { item: ReadinessItem }) {
+  const remedies = item.ok ? undefined : item.remedies;
   return (
     <li
       data-testid={`readiness-item-${item.key}`}
@@ -137,22 +139,54 @@ function ReadinessRow({ item }: { item: ReadinessItem }) {
         >
           {item.detail}
         </span>
-        {!item.ok && item.command !== undefined ? (
-          <CommandBlock command={item.command} />
-        ) : null}
-        {!item.ok && item.hintHref !== undefined ? (
-          <a
-            href={item.hintHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          >
-            Как установить
-            <ExternalLink aria-hidden size={12} strokeWidth={2} />
-          </a>
+        {remedies !== undefined && remedies.length > 0 ? (
+          <Remediation remedies={remedies} />
         ) : null}
       </div>
     </li>
+  );
+}
+
+function Remediation({ remedies }: { remedies: ReadinessRemedy[] }) {
+  const [active, setActive] = useState(0);
+  const current = remedies[active] ?? remedies[0];
+  const tabbed = remedies.length > 1;
+
+  return (
+    <div className="mt-1.5 flex flex-col gap-1.5">
+      {tabbed ? (
+        <div role="tablist" aria-label="Чем закрыть" className="flex gap-1">
+          {remedies.map((r, i) => (
+            <button
+              key={r.label}
+              type="button"
+              role="tab"
+              aria-selected={i === active}
+              onClick={() => {
+                setActive(i);
+              }}
+              className={
+                i === active
+                  ? "rounded-md bg-base-content/10 px-2.5 py-1 text-xs font-semibold text-base-content"
+                  : "rounded-md px-2.5 py-1 text-xs font-medium text-base-content/55 hover:text-base-content"
+              }
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <CommandBlock command={current.command} />
+      <a
+        href={current.hintHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+      >
+        Документация
+        <ExternalLink aria-hidden size={12} strokeWidth={2} />
+      </a>
+    </div>
   );
 }
 
@@ -169,7 +203,7 @@ function CommandBlock({ command }: { command: string }) {
   };
 
   return (
-    <div className="mt-1.5 flex items-center gap-2 rounded-md border border-base-300 bg-base-300/40 px-2.5 py-1.5">
+    <div className="flex items-center gap-2 rounded-md border border-base-300 bg-base-300/40 px-2.5 py-1.5">
       <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-xs text-base-content/90">
         {command}
       </code>

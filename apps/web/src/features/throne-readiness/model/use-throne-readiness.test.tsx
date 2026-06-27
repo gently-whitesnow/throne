@@ -102,7 +102,7 @@ describe("useThroneReadiness", () => {
     expect(result.current.ready).toBe(false);
     const tmuxItem = result.current.items.find((i) => i.key === "tmux");
     expect(tmuxItem?.ok).toBe(false);
-    expect(tmuxItem?.command).toBe("brew install tmux");
+    expect(tmuxItem?.remedies?.[0].command).toBe("brew install tmux");
   });
 
   it("ready=false когда вендор не залогинен", async () => {

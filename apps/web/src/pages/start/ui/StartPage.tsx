@@ -8,7 +8,7 @@ import { ReadinessPanel } from "@/widgets/settings-cards/readiness-panel";
 /**
  * `/start` — first-run экран: доводит свежую установку до рабочего состояния
  * (полный путь до Run) и упирается в CTA «Создать первый интент». Не блокирует —
- * в кокпит можно уйти в любой момент по ссылке внизу (мягкий редирект, ADR-выбор
+ * в Throne можно уйти в любой момент по ссылке внизу (мягкий редирект, ADR-выбор
  * «Вариант A»: гейта нет, есть церемония).
  */
 export function StartPage() {
@@ -68,7 +68,7 @@ export function StartPage() {
         to="/intents"
         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-base-content/60 hover:text-base-content hover:underline"
       >
-        {ready ? "Перейти в кокпит" : "Всё равно перейти в кокпит"}
+        {ready ? "Перейти в Throne" : "Всё равно перейти в Throne"}
         <ArrowRight aria-hidden size={14} strokeWidth={2} />
       </Link>
     </div>
