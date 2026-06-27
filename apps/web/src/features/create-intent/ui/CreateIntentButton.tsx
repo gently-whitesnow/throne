@@ -132,12 +132,15 @@ export function CreateIntentButton({
           <p className="m-0 text-xs font-bold uppercase tracking-wider text-primary">
             Новый intent
           </p>
-          <h3 id={titleId} className="m-0 text-xl font-semibold leading-tight">
+          <h3
+            id={titleId}
+            className="m-0 text-balance text-xl font-semibold leading-tight"
+          >
             Сформулируйте задачу в одном окне
           </h3>
           <p
             id={descriptionId}
-            className="m-0 max-w-[46ch] text-sm leading-relaxed text-base-content/70"
+            className="m-0 max-w-[46ch] text-pretty text-sm leading-relaxed text-base-content/70"
           >
             Добавьте текст, теги и изображения. Клик вне окна закроет форму.
           </p>
