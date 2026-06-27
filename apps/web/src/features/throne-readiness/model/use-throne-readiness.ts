@@ -14,14 +14,20 @@ import { useWorkspaceSettings } from "@/entities/workspace-setting";
 
 export type ReadinessItemKey = "vendor" | "tmux" | "git" | "workspace";
 
+/** Один вариант фикса невыполненного пункта; несколько → панель рисует вкладки. */
+export interface ReadinessRemedy {
+  label: string;
+  command: string;
+  hintHref: string;
+}
+
 export interface ReadinessItem {
   key: ReadinessItemKey;
   label: string;
   ok: boolean;
   detail: string;
-  /** Copy-paste remediation command for an unmet item, when one exists. */
-  command?: string;
-  hintHref?: string;
+  /** Варианты фикса (паритет провайдеров). Пусто для выполненного пункта. */
+  remedies?: ReadinessRemedy[];
 }
 
 export interface ThroneReadiness {
@@ -32,21 +38,37 @@ export interface ThroneReadiness {
   refresh: () => void;
 }
 
-const HINT = {
-  vendor: "https://code.claude.com/docs/en/authentication",
-  tmux: "https://github.com/tmux/tmux/wiki/Installing",
-  git: "https://docs.github.com/en/github-cli/github-cli/quickstart"
-} as const;
+const VENDORS = [
+  {
+    key: "claude",
+    label: "Claude",
+    install: "curl -fsSL https://claude.ai/install.sh | bash",
+    login: "claude  # запустит сессию — затем выполните /login",
+    doc: "https://code.claude.com/docs/en/quickstart#native-install-recommended"
+  },
+  {
+    key: "codex",
+    label: "Codex",
+    install: "curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+    login: "codex login",
+    doc: "https://developers.openai.com/codex/cli"
+  }
+] as const;
 
-const VENDOR_INSTALL_COMMAND: Record<string, string> = {
-  claude: "npm install -g @anthropic-ai/claude-code",
-  codex: "npm install -g @openai/codex"
-};
+const GIT_REMEDIES: ReadinessRemedy[] = [
+  {
+    label: "GitHub",
+    command: "gh auth login",
+    hintHref: "https://cli.github.com/"
+  },
+  {
+    label: "GitLab",
+    command: "glab auth login",
+    hintHref: "https://docs.gitlab.com/cli/"
+  }
+];
 
-const VENDOR_LOGIN_COMMAND: Record<string, string> = {
-  claude: "claude  # запустит сессию — затем выполните /login",
-  codex: "codex login"
-};
+const TMUX_DOC = "https://github.com/tmux/tmux/wiki/Installing";
 
 /**
  * Агрегирует «Throne готов» — полный путь до Run: агент установлен И залогинен,
@@ -84,36 +106,38 @@ export function useThroneReadiness(): ThroneReadiness {
 function buildVendorItem(
   vendors: readonly TerminalVendorMetadata[]
 ): ReadinessItem {
-  const base = {
-    key: "vendor",
-    label: "Агент установлен и залогинен"
-  } as const;
-
   const ready = vendors.find((v) => v.login_status === "ready");
   if (ready !== undefined) {
-    return { ...base, ok: true, detail: `${ready.label} залогинен` };
-  }
-
-  // «Установлен, но не залогинен» — отдельный случай от «не установлен»:
-  // login_status уже различает их (CliLoginProbe), осталось дать верную команду.
-  const loggedOut = vendors.find((v) => v.login_status === "logged_out");
-  if (loggedOut !== undefined) {
     return {
-      ...base,
-      ok: false,
-      detail: `${loggedOut.label} установлен, но вы не залогинены`,
-      command:
-        VENDOR_LOGIN_COMMAND[loggedOut.vendor] ?? VENDOR_LOGIN_COMMAND.claude,
-      hintHref: HINT.vendor
+      key: "vendor",
+      label: "Агент установлен и залогинен",
+      ok: true,
+      detail: `${ready.label} залогинен`
     };
   }
 
+  // Паритет: оба агента — вкладками, чтобы новичок видел выбор. Команда зависит
+  // от состояния: «установлен, но не залогинен» (login_status уже различает,
+  // CliLoginProbe) → login, иначе → install.
+  const anyLoggedOut = vendors.some((v) => v.login_status === "logged_out");
+  const remedies = VENDORS.map((v) => {
+    const meta = vendors.find((x) => x.vendor === v.key);
+    const loggedOut = meta?.login_status === "logged_out";
+    return {
+      label: v.label,
+      command: loggedOut ? v.login : v.install,
+      hintHref: v.doc
+    };
+  });
+
   return {
-    ...base,
+    key: "vendor",
+    label: "Агент установлен и залогинен",
     ok: false,
-    detail: "CLI агента (claude или codex) не установлен",
-    command: VENDOR_INSTALL_COMMAND.claude,
-    hintHref: HINT.vendor
+    detail: anyLoggedOut
+      ? "Агент установлен, но вы не залогинены"
+      : "CLI агента не установлен — выберите claude или codex",
+    remedies
   };
 }
 
@@ -133,9 +157,10 @@ function buildTmuxItem(
     key: "tmux",
     label: "tmux установлен",
     ok: false,
-    detail: "tmux не найден — без него «Запустить агента» не сработает",
-    command: "brew install tmux",
-    hintHref: HINT.tmux
+    detail: "tmux не найден — без него «Запустить агента» не получится",
+    remedies: [
+      { label: "tmux", command: "brew install tmux", hintHref: TMUX_DOC }
+    ]
   };
 }
 
@@ -145,16 +170,20 @@ function buildGitItem(
   const ready = gitProviderEntries(status).find((entry) =>
     isProviderHealthy(entry.status)
   );
-  const ok = ready !== undefined;
+  if (ready !== undefined) {
+    return {
+      key: "git",
+      label: "Git-провайдер авторизован",
+      ok: true,
+      detail: `${providerLabel(ready.provider)} авторизован`
+    };
+  }
   return {
     key: "git",
     label: "Git-провайдер авторизован",
-    ok,
-    detail: ok
-      ? `${providerLabel(ready.provider)} авторизован`
-      : "Авторизуйтесь в Git provider CLI",
-    command: ok ? undefined : "gh auth login",
-    hintHref: HINT.git
+    ok: false,
+    detail: "Авторизуйтесь в GitHub или GitLab CLI",
+    remedies: GIT_REMEDIES
   };
 }
 

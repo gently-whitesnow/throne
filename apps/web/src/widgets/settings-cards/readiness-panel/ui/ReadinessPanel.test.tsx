@@ -96,9 +96,25 @@ describe("ReadinessPanel", () => {
     await waitFor(() => {
       expect(screen.getByText(/Не готов/)).toBeTruthy();
     });
-    expect(screen.getAllByText("Как установить").length).toBeGreaterThan(0);
+    // Паритет агентов: Claude и Codex — вкладками фикса.
+    expect(screen.getByRole("tab", { name: "Claude" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Codex" })).toBeTruthy();
     expect(
       screen.getByTestId("readiness-item-vendor").getAttribute("data-ok")
     ).toBe("false");
+  });
+
+  it("git-пункт даёт паритетные вкладки GitHub/GitLab", async () => {
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(false));
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", true));
+    fetchWorkspaceSettings.mockResolvedValue({ writable: true });
+
+    render(<ReadinessPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Не готов/)).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: "GitHub" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "GitLab" })).toBeTruthy();
   });
 });
