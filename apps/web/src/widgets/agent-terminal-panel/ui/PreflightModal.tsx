@@ -85,7 +85,6 @@ export function PreflightModal({
           <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
             USER · user-промпт запуска
           </h4>
-          <WorkspaceMapFrame workspaceMap={preview.workspaceMap} />
           <TaskBodyFrame preview={preview} />
           <label className="flex flex-col gap-1 text-xs text-base-content/70">
             <span>Свободная вставка на эту сессию</span>
@@ -103,6 +102,7 @@ export function PreflightModal({
             skills={preview.skills}
             onToggle={preview.toggleSkill}
           />
+          <WorkspaceMapFrame workspaceMap={preview.workspaceMap} />
           <PreflightSummary
             systemPrompt={preview.systemPrompt}
             workspaceMap={preview.workspaceMap}

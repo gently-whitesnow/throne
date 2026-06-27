@@ -39,12 +39,23 @@ function preview(): IntentTerminalPreviewResponse {
     intent_version: 2,
     mode: "work",
     parts: [],
-    available_skills_for_mode: [],
+    available_skills_for_mode: [
+      {
+        skill_id: "intent",
+        source: "throne",
+        title: "Intent",
+        description: "Правка Intent.text и чтение связанных интентов.",
+        materializable: true,
+        reason: null,
+        default_enabled: false,
+        selected: false
+      }
+    ],
     selected_part_ids: [],
     system_prompt: "",
     user_prompt: "BODY",
     workspace_map:
-      "=== Карта workspace ===\nТеги интента: throne\nСвязи:\n- заблокирован (без причины связи)\n- ведёт к: soft context\n======================="
+      "=== Карта workspace ===\nТеги интента: throne\nСвязи:\n- заблокирован intent_id=peer-1 (без причины связи)\n- ведёт к intent_id=peer-2: soft context\n======================="
   };
 }
 
@@ -81,8 +92,13 @@ describe("PreflightModal workspace map context", () => {
     );
     expect(workspaceMap.textContent).toContain("Карта workspace");
     expect(workspaceMap.textContent).toContain("Связи:");
-    expect(workspaceMap.textContent).toContain("заблокирован");
+    expect(workspaceMap.textContent).toContain("intent_id=peer-1");
     expect(workspaceMap.textContent).toContain("soft context");
+    const skillsTitle = screen.getByText("Скилы сессии");
+    expect(
+      skillsTitle.compareDocumentPosition(workspaceMap) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
     await waitFor(() => {
       expect(
