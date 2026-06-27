@@ -586,6 +586,317 @@ namespace Throne.Settings.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// `not_configured` — no connection saved. `connected` — a validated base URL + token is persisted. `invalid` — the token was rejected by the tracker API (upsert only; not persisted). `unreachable` — the tracker API could not be reached (upsert only; not persisted).
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TaskTrackerConnectionState
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"not_configured")]
+        [System.Runtime.Serialization.EnumMember(Value = @"not_configured")]
+        Not_configured = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"connected")]
+        [System.Runtime.Serialization.EnumMember(Value = @"connected")]
+        Connected = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"invalid")]
+        [System.Runtime.Serialization.EnumMember(Value = @"invalid")]
+        Invalid = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unreachable")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unreachable")]
+        Unreachable = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerConnectionDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tracker")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Tracker { get; set; }
+
+        /// <summary>
+        /// Human-readable provider label from the registry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("display_name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Display_name { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrackerConnectionState>))]
+        public TaskTrackerConnectionState State { get; set; }
+
+        /// <summary>
+        /// Persisted workspace base URL. Null unless a connection is saved. Token is never returned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_url")]
+        public string Base_url { get; set; }
+
+        /// <summary>
+        /// Probe failure detail. Present only for `invalid` / `unreachable`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public string Error { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerConnectionsDto
+    {
+
+        /// <summary>
+        /// One row per registered task-tracker provider, in registry order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("connections")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TaskTrackerConnectionDto> Connections { get; set; } = new System.Collections.ObjectModel.Collection<TaskTrackerConnectionDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateTaskTrackerConnectionRequest
+    {
+
+        /// <summary>
+        /// Workspace base URL, e.g. `https://mycompany.kaiten.ru`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_url")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Base_url { get; set; }
+
+        /// <summary>
+        /// API token. Persisted in the local SQLite database; never read back.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("token")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Token { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Board field used to derive a card's «context» during sync. `none` is the explicit opt-out / fallback when no field maps cleanly.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TaskTrackerContextField
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"lane")]
+        [System.Runtime.Serialization.EnumMember(Value = @"lane")]
+        Lane = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"tags")]
+        [System.Runtime.Serialization.EnumMember(Value = @"tags")]
+        Tags = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"type")]
+        [System.Runtime.Serialization.EnumMember(Value = @"type")]
+        Type = 2,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"none")]
+        [System.Runtime.Serialization.EnumMember(Value = @"none")]
+        None = 3,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerBoardDto
+    {
+
+        /// <summary>
+        /// Provider-native board identifier (opaque string, provider-neutral).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("board_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Board_id { get; set; }
+
+        /// <summary>
+        /// Human-readable board name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("board_title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Board_title { get; set; }
+
+        /// <summary>
+        /// Whether this board is part of the saved selection.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("selected")]
+        public bool Selected { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("context_field")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrackerContextField>))]
+        public TaskTrackerContextField Context_field { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerSpaceDto
+    {
+
+        /// <summary>
+        /// Provider-native space identifier (opaque string).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("space_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Space_id { get; set; }
+
+        /// <summary>
+        /// Human-readable space name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("space_title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Space_title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("boards")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TaskTrackerBoardDto> Boards { get; set; } = new System.Collections.ObjectModel.Collection<TaskTrackerBoardDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerBoardsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tracker")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.ComponentModel.DataAnnotations.StringLength(int.MaxValue, MinimumLength = 1)]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-z0-9][a-z0-9-]*$")]
+        public string Tracker { get; set; }
+
+        /// <summary>
+        /// Live space/board topology, merged with the saved selection.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("spaces")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TaskTrackerSpaceDto> Spaces { get; set; } = new System.Collections.ObjectModel.Collection<TaskTrackerSpaceDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerBoardSelectionEntry
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("space_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Space_id { get; set; }
+
+        /// <summary>
+        /// Cached space title so the selection is self-describing for sync.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("space_title")]
+        public string Space_title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("board_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Board_id { get; set; }
+
+        /// <summary>
+        /// Cached board title so the selection is self-describing for sync.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("board_title")]
+        public string Board_title { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("context_field")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrackerContextField>))]
+        public TaskTrackerContextField Context_field { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateTaskTrackerBoardsRequest
+    {
+
+        /// <summary>
+        /// The full selected set. Boards not listed become unselected.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("boards")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TaskTrackerBoardSelectionEntry> Boards { get; set; } = new System.Collections.ObjectModel.Collection<TaskTrackerBoardSelectionEntry>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProblemDetails
     {

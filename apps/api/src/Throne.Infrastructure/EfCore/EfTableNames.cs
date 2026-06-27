@@ -54,4 +54,9 @@ internal static class EfTableNames
     {
         public const string GitLabHostSettings = "gitlab_host_settings";
     }
+
+    public static class TaskTrackers
+    {
+        public const string Connections = "task_tracker_connections";
+    }
 }

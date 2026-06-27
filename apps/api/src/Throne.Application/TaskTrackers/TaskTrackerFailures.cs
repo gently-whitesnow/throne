@@ -21,4 +21,22 @@ public static class TaskTrackerFailures
                 ["tracker"] = trackerKey,
                 ["supported_trackers"] = supportedTrackers.ToArray(),
             });
+
+    public static ApiException ConnectionMissing(string trackerKey) =>
+        new(
+            ErrorCodes.TaskTrackerConnectionMissing,
+            $"No connection is configured for task tracker '{trackerKey}'.",
+            new Dictionary<string, object?> { ["tracker"] = trackerKey });
+
+    public static ApiException ConnectionRejected(string trackerKey, string detail) =>
+        new(
+            ErrorCodes.TaskTrackerConnectionRejected,
+            $"The saved '{trackerKey}' token was rejected — reconnect the tracker: {detail}",
+            new Dictionary<string, object?> { ["tracker"] = trackerKey });
+
+    public static ApiException UpstreamUnavailable(string trackerKey, string detail) =>
+        new(
+            ErrorCodes.TaskTrackerUpstreamUnavailable,
+            $"The '{trackerKey}' task-tracker API could not be reached: {detail}",
+            new Dictionary<string, object?> { ["tracker"] = trackerKey });
 }

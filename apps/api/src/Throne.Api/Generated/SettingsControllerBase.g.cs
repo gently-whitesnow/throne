@@ -119,6 +119,56 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/git-providers/gitlab/host", Name = "setGitLabHost")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<GitLabHostSettingsDto>> SetGitLabHost([Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateGitLabHostRequest body);
 
+        /// <summary>
+        /// Catalog of task-tracker providers with their saved connection state.
+        /// </summary>
+        /// <remarks>
+        /// One row per provider registered in this Throne build (the catalog half), each carrying its persisted connection state (the status half). `not_configured` means no connection is saved; `connected` means a validated `base_url` + token is on file. The token itself is never returned — only the base URL. This read does not re-probe the upstream tracker; validation happens on the connection upsert. The provider list comes straight from the task-tracker registry (ADR-0045/0046), so the provider-neutral core returns an empty list until an adapter is registered.
+        /// </remarks>
+        /// <returns>Saved connection state per registered task-tracker provider.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers", Name = "getTaskTrackerConnections")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerConnectionsDto>> GetTaskTrackerConnections();
+
+        /// <summary>
+        /// Validate and persist a task-tracker connection (base URL + API token).
+        /// </summary>
+        /// <remarks>
+        /// Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
+        /// </remarks>
+        /// <returns>Connection probe outcome (persisted only when `state=connected`).</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/connection", Name = "setTaskTrackerConnection")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerConnectionDto>> SetTaskTrackerConnection([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTaskTrackerConnectionRequest body);
+
+        /// <summary>
+        /// Remove a saved task-tracker connection and its board selection.
+        /// </summary>
+        /// <remarks>
+        /// Drops the persisted connection (encrypted token included) and any board selection bound to it. Idempotent: deleting an absent connection still returns `204`.
+        /// </remarks>
+        /// <returns>Connection removed (or was already absent).</returns>
+        [Microsoft.AspNetCore.Mvc.HttpDelete, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/connection", Name = "deleteTaskTrackerConnection")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteTaskTrackerConnection([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
+
+        /// <summary>
+        /// List the boards available through the connection, grouped by space.
+        /// </summary>
+        /// <remarks>
+        /// Reads the live space/board topology from the provider using the saved connection, then folds in the current selection so each board carries its `selected` flag and chosen grouping `context_field`. Requires a configured connection — a missing one returns `409`.
+        /// </remarks>
+        /// <returns>Available boards grouped by space, merged with the saved selection.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/boards", Name = "getTaskTrackerBoards")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardsDto>> GetTaskTrackerBoards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
+
+        /// <summary>
+        /// Persist the selected boards and their per-board grouping context.
+        /// </summary>
+        /// <remarks>
+        /// Replaces the board selection for this tracker. Each entry pins a board plus the field used to derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out). Boards omitted from the request become unselected. The response re-reads the live topology so the caller sees the saved selection reflected against the current boards.
+        /// </remarks>
+        /// <returns>Saved selection, merged against the live topology.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/boards", Name = "setTaskTrackerBoards")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardsDto>> SetTaskTrackerBoards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTaskTrackerBoardsRequest body);
+
     }
 
     
