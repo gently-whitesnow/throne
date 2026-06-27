@@ -73,8 +73,8 @@ describe("AppShell", () => {
 
     renderShell();
 
-    expect(
-      screen.getByLabelText("Завершение").hasAttribute("disabled")
-    ).toBe(true);
+    expect(screen.getByLabelText("Завершение").hasAttribute("disabled")).toBe(
+      true
+    );
   });
 });
