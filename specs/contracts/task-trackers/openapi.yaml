@@ -1,0 +1,85 @@
+openapi: "3.1.0"
+info:
+  title: Throne Task Trackers
+  version: "1.0.0"
+  x-csharp-namespace: Throne.TaskTrackers.Contracts.Generated
+  description: >
+    Provider-neutral catalog surface for the task-tracker extension axis (ADR-0045/0046).
+    The backend is the single source of truth for which trackers are compiled in; the frontend
+    discovers them from this catalog instead of a generated enum. The `tracker` key is an open
+    wire string — unknown values are rejected server-side (422) against the provider registry.
+    Connection settings (base URL / token) and board selection live on the settings axis, not here.
+paths:
+  /api/v1/task-trackers:
+    get:
+      operationId: listTaskTrackers
+      tags: [TaskTrackers]
+      summary: List the task-tracker providers registered in this Throne build.
+      description: >
+        Backed by the in-process provider registry. Returns every registered provider exactly once,
+        in registration order. Provider-neutral core ships with no adapters, so an empty list is a
+        valid response until an adapter (Kaiten, …) is registered.
+      responses:
+        '200':
+          description: Registered task-tracker providers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTrackerCatalogResponse'
+  /api/v1/task-trackers/{tracker}:
+    get:
+      operationId: getTaskTracker
+      tags: [TaskTrackers]
+      summary: Resolve a single task-tracker provider by its open wire key.
+      description: >
+        The first server boundary that closes the open wire key: a registered key returns its
+        catalog row, an unknown key returns 422 (provider-unsupported).
+      parameters:
+        - in: path
+          name: tracker
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskTrackerProvider'
+      responses:
+        '200':
+          description: Registered provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTrackerProviderDto'
+        '422':
+          description: Tracker key is not registered on this Throne build.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    TaskTrackerProvider:
+      type: string
+      minLength: 1
+      pattern: '^[a-z0-9][a-z0-9-]*$'
+      description: >
+        Stable task-tracker provider key. Value set intentionally open (ADR-0046); supported
+        providers are delivered by the backend registry and unknown values are rejected server-side.
+    TaskTrackerProviderDto:
+      type: object
+      required:
+        - tracker
+        - display_name
+      properties:
+        tracker:
+          $ref: '#/components/schemas/TaskTrackerProvider'
+        display_name:
+          type: string
+          minLength: 1
+          description: Human-readable label for settings/catalog rows.
+    TaskTrackerCatalogResponse:
+      type: object
+      required:
+        - providers
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskTrackerProviderDto'
