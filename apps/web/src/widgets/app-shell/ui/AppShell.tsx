@@ -71,20 +71,18 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        {runtime.isEphemeral ? (
-          <button
-            type="button"
-            className="relative ml-auto flex h-10 w-10 items-center justify-center rounded-md text-error transition-[color,background-color,scale] hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error active:scale-[0.96] disabled:opacity-60 md:ml-0 md:mt-auto"
-            title="Завершение"
-            aria-label="Завершение"
-            disabled={runtime.isStopping}
-            onClick={() => {
-              runtime.stop();
-            }}
-          >
-            <Power aria-hidden size={18} strokeWidth={2} />
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="relative ml-auto flex h-10 w-10 items-center justify-center rounded-md text-error transition-[color,background-color,scale] hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error active:scale-[0.96] disabled:opacity-60 md:ml-0 md:mt-auto"
+          title="Завершение"
+          aria-label="Завершение"
+          disabled={runtime.isStopping}
+          onClick={() => {
+            runtime.stop();
+          }}
+        >
+          <Power aria-hidden size={18} strokeWidth={2} />
+        </button>
       </aside>
       <main className="min-h-0 min-w-0 overflow-y-auto bg-base-100">
         <Outlet />
