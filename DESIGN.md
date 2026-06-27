@@ -301,6 +301,20 @@ Component behavior should reinforce the control-plane feel.
 
 When a component needs emphasis, prefer stronger hierarchy, tighter copy, or clearer status over decorative treatment.
 
+## Motion & interaction
+
+Motion is feedback, not decoration. It confirms that a control received input; it never announces itself.
+
+- Tactile press: interactive controls scale to `0.96` on `:active` only — never on hover. Below `0.95` reads as exaggerated.
+- Hover and focus state changes go through CSS transitions so they stay interruptible; never snap instantly, never drive them with keyframes.
+- Always name the exact transitioned properties (`transition-[color,scale]`); never `transition: all`.
+- Body text uses antialiased font smoothing — the shell reads crisp, not heavy.
+- Dynamic numbers (counts, timers, sizes) use `tabular-nums` to avoid layout shift.
+- Headings use balanced wrapping; body copy avoids orphan words.
+- Every interactive target keeps at least a 40×40px hit area, extending the zone with a pseudo-element rather than inflating the visible control.
+
+Respect `prefers-reduced-motion`: durations collapse, the interface stays usable.
+
 ## Do's and Don'ts
 
 Do:
@@ -314,7 +328,7 @@ Do:
 Don't:
 
 - Reintroduce Miro-like gradients, glossy panels, or oversized rounded modals.
-- Use flashy hover transforms or motion that feels promotional.
+- Use flashy hover transforms or motion that feels promotional, or `transition: all` instead of named properties.
 - Make every badge or card colorful by default.
 - Treat the app like a landing page.
 - Use color as the only indicator of status.
