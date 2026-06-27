@@ -29,6 +29,14 @@ body,
   overflow: hidden;
 }
 
+/* Crisper text rendering on macOS — без этого Mona Sans на retina выглядит
+ * жирнее, чем заложено в начертании. */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 /* Toast fade-in */
 @keyframes fade-in {
   from {
