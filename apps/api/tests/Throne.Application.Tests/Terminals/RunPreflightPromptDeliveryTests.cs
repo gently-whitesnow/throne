@@ -154,6 +154,7 @@ public class RunPreflightPromptDeliveryTests
             delivered.Should().Contain(repo);
             delivered.Should().Contain("Теги интента: throne, must");
             delivered.Should().Contain("не угадывай имя клон-сабдира");
+            delivered.Should().Contain("cwd между Bash-вызовами не гарантирована");
             // Map sits above the original task, not appended after it.
             delivered.IndexOf("Карта workspace", StringComparison.Ordinal)
                 .Should().BeLessThan(delivered.IndexOf("do the thing", StringComparison.Ordinal));
