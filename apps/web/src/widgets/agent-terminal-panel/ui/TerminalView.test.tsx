@@ -45,6 +45,7 @@ class FakeWebSocket {
   readyState = FakeWebSocket.OPEN;
   binaryType = "blob";
   readonly url: string;
+  readonly sent: string[] = [];
   private readonly listeners = new Map<string, Set<(e: unknown) => void>>();
 
   constructor(url: string) {
@@ -56,8 +57,8 @@ class FakeWebSocket {
     set.add(cb);
     this.listeners.set(type, set);
   }
-  send() {
-    /* noop */
+  send(data: string) {
+    this.sent.push(data);
   }
   close() {
     this.readyState = FakeWebSocket.CLOSED;
@@ -128,6 +129,27 @@ describe("TerminalView", () => {
     lastSocket().emit("close", { code: 1006 });
 
     expect(onClosed).toHaveBeenCalledWith(1006);
+  });
+
+  it("первый resize шлёт только после загрузки шрифта и форсит redraw (C-l)", async () => {
+    render(<TerminalView intentId="i1" attempt={1} onClosed={vi.fn()} />);
+
+    const socket = lastSocket();
+    // Сокет открылся раньше, чем догрузился шрифт — геометрию ещё не шлём.
+    socket.emit("open", {});
+    expect(socket.sent).toEqual([]);
+
+    // Даём промису шрифта (document.fonts недоступен в jsdom → resolved-цепочка)
+    // отработать на микротасках.
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const frames = socket.sent.map(
+      (raw) => JSON.parse(raw) as Record<string, unknown>
+    );
+    expect(frames).toContainEqual({ type: "resize", cols: 80, rows: 24 });
+    expect(frames).toContainEqual({ type: "input", data: "\f" });
   });
 
   it("склеивает несколько output frames в один term.write на animation frame", () => {

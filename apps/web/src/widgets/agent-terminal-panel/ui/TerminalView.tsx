@@ -5,8 +5,8 @@ import { Terminal } from "@xterm/xterm";
 import { GripHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { apiUrl } from "@/shared/api";
-import { terminalWebSocketEndpoints } from "@/shared/realtime";
+import type { InputFrame, ResizeFrame } from "../model/terminal-frames";
+import { parseFrame, toWebSocketUrl } from "../model/terminal-frames";
 
 interface TerminalViewProps {
   intentId: string;
@@ -31,24 +31,6 @@ function resolveTokenColor(token: string, fallback: string): string {
   probe.remove();
   return resolved || fallback;
 }
-
-interface InputFrame {
-  type: "input";
-  data: string;
-}
-
-interface ResizeFrame {
-  type: "resize";
-  cols: number;
-  rows: number;
-}
-
-interface OutputFrame {
-  type: "output";
-  data: string;
-}
-
-type IncomingFrame = OutputFrame;
 
 const MIN_TERMINAL_HEIGHT = 200;
 const MAX_TERMINAL_HEIGHT = 1000;
@@ -156,6 +138,40 @@ export function TerminalView({
       socket.send(JSON.stringify(frame));
     };
 
+    let fontsLoaded = false;
+    let socketOpened = false;
+    let initialGeometrySent = false;
+
+    // Первую геометрию tmux'у задаёт первый resize-фрейм, поэтому он обязан
+    // считаться на метриках уже загруженного Monaspace Neon. Измерение на
+    // fallback-шрифте даёт неверную ширину клетки → неверный cols, и абсолютная
+    // ошибка в колонках растёт с шириной (≈4 при 80, ≈12 при 240) — отсюда каша
+    // только на широких терминалах. Ждём И шрифт, И открытый сокет, после чего
+    // шлём единственный корректный resize и форсим redraw приложения (C-l),
+    // вычищая остаточный мусор без ручного ресайза панели.
+    const sendInitialGeometry = () => {
+      if (disposed || initialGeometrySent) return;
+      if (!fontsLoaded || !socketOpened) return;
+      initialGeometrySent = true;
+      try {
+        fitAddon.fit();
+      } catch {
+        // layout may not be settled yet
+      }
+      sendResize(true);
+      const redraw: InputFrame = { type: "input", data: "\f" };
+      socket.send(JSON.stringify(redraw));
+    };
+
+    const fontSet = document.fonts as FontFaceSet | undefined;
+    void Promise.resolve(fontSet?.load('13px "Monaspace Neon"'))
+      .catch(() => undefined)
+      .then(() => fontSet?.ready)
+      .then(() => {
+        fontsLoaded = true;
+        sendInitialGeometry();
+      });
+
     const scheduleResize = () => {
       if (resizeTimer !== null) return;
       resizeTimer = window.setTimeout(() => {
@@ -202,8 +218,8 @@ export function TerminalView({
     resizeObserver.observe(container);
 
     socket.addEventListener("open", () => {
-      fitAddon.fit();
-      sendResize(true);
+      socketOpened = true;
+      sendInitialGeometry();
     });
 
     socket.addEventListener("message", (event) => {
@@ -271,29 +287,4 @@ export function TerminalView({
       />
     </div>
   );
-}
-
-function parseFrame(raw: unknown): IncomingFrame | null {
-  if (typeof raw !== "string") return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<IncomingFrame>;
-    if (parsed.type === "output" && typeof parsed.data === "string") {
-      return { type: "output", data: parsed.data };
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function toWebSocketUrl(intentId: string): string {
-  const httpUrl = apiUrl(
-    terminalWebSocketEndpoints.intentsTerminalWs(intentId)
-  );
-  if (httpUrl.startsWith("http://") || httpUrl.startsWith("https://")) {
-    return httpUrl.replace(/^http/, "ws");
-  }
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const path = httpUrl.startsWith("/") ? httpUrl : `/${httpUrl}`;
-  return `${protocol}//${window.location.host}${path}`;
 }
