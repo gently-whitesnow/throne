@@ -73,7 +73,7 @@ export function AppShell() {
         </nav>
         <button
           type="button"
-          className="relative ml-auto flex h-10 w-10 items-center justify-center rounded-md text-error transition-[color,background-color,scale] hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error active:scale-[0.96] disabled:opacity-60 md:ml-0 md:mt-auto"
+          className="relative ml-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-md text-base-content/60 transition-[color,background-color,scale] hover:bg-error/10 hover:text-error focus-visible:outline-2 focus-visible:outline-error active:scale-[0.96] disabled:cursor-default disabled:opacity-60 md:ml-0 md:mt-auto"
           title="Завершение"
           aria-label="Завершение"
           disabled={runtime.isStopping}
