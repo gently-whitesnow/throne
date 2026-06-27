@@ -124,7 +124,7 @@ public class RunPreflightPromptDeliveryTests
         }
     }
 
-    [Fact(DisplayName = "Карта workspace (root + пути репо + теги) допишется в начало задачи перед paste")]
+    [Fact(DisplayName = "Карта workspace (root + пути репо + теги + связи) допишется в начало задачи перед paste")]
     public async Task Prepends_workspace_map_with_repo_paths_above_the_task()
     {
         var tmux = Substitute.For<ITmuxSessionManager>();
@@ -144,7 +144,12 @@ public class RunPreflightPromptDeliveryTests
             await sut.DeliverAsync(
                 NewRequest(
                     workspace, adapter: null, userPrompt: "do the thing",
-                    repoPaths: [repo], tagIds: [throne, must]),
+                    repoPaths: [repo], tagIds: [throne, must],
+                    linkContext:
+                    [
+                        new IntentLinkPromptContext("заблокирован", null),
+                        new IntentLinkPromptContext("ведёт к", "передать результат дальше"),
+                    ]),
                 CancellationToken.None);
 
             var delivered = await File.ReadAllTextAsync(
@@ -153,6 +158,9 @@ public class RunPreflightPromptDeliveryTests
             delivered.Should().Contain(workspace);
             delivered.Should().Contain(repo);
             delivered.Should().Contain("Теги интента: throne, must");
+            delivered.Should().Contain("Связи:");
+            delivered.Should().Contain("- заблокирован (без причины связи)");
+            delivered.Should().Contain("- ведёт к: передать результат дальше");
             delivered.Should().Contain("не угадывай имя клон-сабдира");
             delivered.Should().Contain("cwd между Bash-вызовами не гарантирована");
             // Map sits above the original task, not appended after it.
@@ -193,8 +201,11 @@ public class RunPreflightPromptDeliveryTests
         ISessionHookAdapter? adapter,
         string userPrompt = "TASK",
         IReadOnlyList<string>? repoPaths = null,
-        IReadOnlyList<TagId>? tagIds = null) =>
-        new(IntentId, TerminalRunModes.Work, Vendor, adapter, workspace, repoPaths ?? [], tagIds ?? [], userPrompt);
+        IReadOnlyList<TagId>? tagIds = null,
+        IReadOnlyList<IntentLinkPromptContext>? linkContext = null) =>
+        new(
+            IntentId, TerminalRunModes.Work, Vendor, adapter, workspace,
+            repoPaths ?? [], tagIds ?? [], linkContext ?? [], userPrompt);
 
     private static void CleanUp(string workspace)
     {

@@ -80,6 +80,7 @@ public class IntentTerminalPreviewHandlerTests
         var handler = new IntentTerminalPreviewHandler(
             intents,
             attachments,
+            NewLinks([]),
             NewBindings([]),
             NewLaunches(),
             NewResolver(),
@@ -142,6 +143,7 @@ public class IntentTerminalPreviewHandlerTests
         var handler = new IntentTerminalPreviewHandler(
             intents,
             attachmentRepo,
+            NewLinks([]),
             NewBindings(bindings),
             NewLaunches(),
             NewResolver(),
@@ -199,6 +201,7 @@ public class IntentTerminalPreviewHandlerTests
         return new IntentTerminalPreviewHandler(
             intents,
             attachmentRepo,
+            NewLinks([]),
             NewBindings([]),
             NewLaunches(),
             NewResolver(),
@@ -237,6 +240,14 @@ public class IntentTerminalPreviewHandlerTests
         var repo = Substitute.For<IIntentRepositoryBindingRepository>();
         repo.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns(bindings);
+        return repo;
+    }
+
+    private static IIntentLinkRepository NewLinks(IReadOnlyList<IntentLinkView> links)
+    {
+        var repo = Substitute.For<IIntentLinkRepository>();
+        repo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns(links);
         return repo;
     }
 
