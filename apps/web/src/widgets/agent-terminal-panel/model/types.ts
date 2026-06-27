@@ -68,13 +68,14 @@ export interface TerminalRunPayload {
   intentTextUpdate: IntentTextUpdate | null;
 }
 
-// Dream намеренно отсутствует: dream-режим запускается вне контекста интента,
-// поэтому в панели запуска агента на странице интента он не предлагается.
+// Dream-сессия не использует контекст интента, но привязана к его workspace/clone —
+// оператор запускает её отсюда как ручной триггер рефлексии (ничем не гейтим).
 // free доступен в любом статусе — оператор сам формулирует задачу терминалу.
 export const TERMINAL_RUN_MODES: readonly TerminalRunMode[] = [
   "interview",
   "work",
   "review",
+  "dream",
   "free"
 ] as const;
 
@@ -82,7 +83,7 @@ export const RUN_MODE_LABEL: Record<TerminalRunMode, string> = {
   work: "Работа",
   interview: "Интервью",
   review: "Review",
-  dream: "Dream",
+  dream: "Рефлексия",
   free: "Свободный"
 };
 

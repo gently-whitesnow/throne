@@ -26,8 +26,9 @@ public sealed record IntentTerminalPreview(
 /// Pre-flight preview (ADR-0036): reads the intent body for the task zone, appends a minimal block
 /// listing any current intent attachments by their workspace-relative path (the bytes are staged on
 /// spawn so the embedded agent opens them with a native <c>Read</c>), and resolves the embedded prompt
-/// composition for the requested mode. Unsupported modes (e.g. <c>dream</c>) are rejected by
-/// <see cref="PromptCompositionResolver"/>.
+/// composition for the requested mode. Unsupported modes are rejected by
+/// <see cref="PromptCompositionResolver"/> (<c>dream</c> is valid and has no manifest bundle, so its
+/// mandatory parts resolve empty).
 ///
 /// Alongside the composition it returns a read-only render of the workspace map that
 /// <see cref="RunPreflightPromptDelivery"/> prepends to the delivered prompt at spawn — so the modal
