@@ -1,4 +1,4 @@
-import { ImagePlus, Plus, X } from "lucide-react";
+import { Paperclip, Plus, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
@@ -8,7 +8,7 @@ import { httpPost, intentsEndpoints } from "@/shared/api";
 import { errorMessage, filesFromClipboard } from "@/shared/lib";
 import { Button, Modal, TagMultiSelect } from "@/shared/ui";
 
-import { collectImageFiles, uploadAttachments } from "../model/attachments";
+import { collectFiles, uploadAttachments } from "../model/attachments";
 import { AttachmentList } from "./AttachmentList";
 
 interface CreateIntentButtonProps {
@@ -49,7 +49,7 @@ export function CreateIntentButton({
 
   const addFiles = (nextFiles: Iterable<File> | null) => {
     if (!nextFiles) return;
-    const result = collectImageFiles(files, nextFiles);
+    const result = collectFiles(files, nextFiles);
     setFiles(result.files);
     setError(result.error);
   };
@@ -142,7 +142,7 @@ export function CreateIntentButton({
             id={descriptionId}
             className="m-0 max-w-[46ch] text-pretty text-sm leading-relaxed text-base-content/70"
           >
-            Добавьте текст, теги и изображения. Клик вне окна закроет форму.
+            Добавьте текст, теги и файлы. Клик вне окна закроет форму.
           </p>
         </div>
         <button
@@ -193,7 +193,6 @@ export function CreateIntentButton({
         <label className="flex cursor-pointer flex-col gap-1.5 rounded-md border border-dashed border-base-300 bg-base-200 px-4 py-3 transition-colors hover:border-primary hover:bg-primary/5">
           <input
             type="file"
-            accept="image/*"
             multiple
             className="sr-only"
             onChange={(e) => {
@@ -202,8 +201,8 @@ export function CreateIntentButton({
             }}
           />
           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-            <ImagePlus aria-hidden size={16} strokeWidth={2} />
-            Приложить изображения
+            <Paperclip aria-hidden size={16} strokeWidth={2} />
+            Приложить файлы
           </span>
           <span className="text-xs leading-relaxed text-base-content/60">
             До 10 файлов, каждый до 10 МБ. Можно вставить картинку из буфера.

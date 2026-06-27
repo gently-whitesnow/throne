@@ -10,10 +10,10 @@ export const MAX_ATTACHMENTS = 10;
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 /**
- * Фильтрует входящие файлы по лимитам (только изображения, ≤10 файлов, ≤10 МБ),
+ * Фильтрует входящие файлы по лимитам (≤10 файлов, ≤10 МБ),
  * добавляя к уже выбранным. Проблемы дедуплицируются в одно сообщение.
  */
-export function collectImageFiles(
+export function collectFiles(
   current: File[],
   incoming: Iterable<File>
 ): { files: File[]; error: string | null } {
@@ -25,10 +25,6 @@ export function collectImageFiles(
         `Можно приложить максимум ${String(MAX_ATTACHMENTS)} файлов.`
       );
       break;
-    }
-    if (!file.type.startsWith("image/")) {
-      problems.push(`${file.name}: сейчас принимаем только изображения.`);
-      continue;
     }
     if (file.size > MAX_ATTACHMENT_BYTES) {
       problems.push(`${file.name}: файл больше 10 МБ.`);
