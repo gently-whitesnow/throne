@@ -38,6 +38,14 @@ function vendor(login_status: string) {
   };
 }
 
+function catalog(login_status: string, tmuxDetected: boolean) {
+  return {
+    default_vendor: "claude",
+    vendors: [vendor(login_status)],
+    runtime: { tmux: { detected: tmuxDetected, detail: null } }
+  };
+}
+
 function gitStatus(authenticated: boolean) {
   return {
     providers: [
@@ -65,10 +73,7 @@ describe("ReadinessPanel", () => {
 
   it("рендерит «Throne готов» когда все критерии выполнены", async () => {
     fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
-    fetchTerminalVendorCatalog.mockResolvedValue({
-      default_vendor: "claude",
-      vendors: [vendor("ready")]
-    });
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", true));
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
     render(<ReadinessPanel />);
@@ -83,10 +88,7 @@ describe("ReadinessPanel", () => {
 
   it("рендерит «Не готов» при незакрытом критерии вендора", async () => {
     fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
-    fetchTerminalVendorCatalog.mockResolvedValue({
-      default_vendor: "claude",
-      vendors: [vendor("logged_out")]
-    });
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("logged_out", true));
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
     render(<ReadinessPanel />);
@@ -94,9 +96,25 @@ describe("ReadinessPanel", () => {
     await waitFor(() => {
       expect(screen.getByText(/Не готов/)).toBeTruthy();
     });
-    expect(screen.getAllByText("Как установить").length).toBeGreaterThan(0);
+    // Паритет агентов: Claude и Codex — вкладками фикса.
+    expect(screen.getByRole("tab", { name: "Claude" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Codex" })).toBeTruthy();
     expect(
       screen.getByTestId("readiness-item-vendor").getAttribute("data-ok")
     ).toBe("false");
+  });
+
+  it("git-пункт даёт паритетные вкладки GitHub/GitLab", async () => {
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(false));
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", true));
+    fetchWorkspaceSettings.mockResolvedValue({ writable: true });
+
+    render(<ReadinessPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Не готов/)).toBeTruthy();
+    });
+    expect(screen.getByRole("tab", { name: "GitHub" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "GitLab" })).toBeTruthy();
   });
 });

@@ -13,6 +13,7 @@ import { useThroneReadiness } from "@/features/throne-readiness";
 
 import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
 import { useRuntimeInstance } from "../model/use-runtime-instance";
+import { NotReadyBanner } from "./NotReadyBanner";
 
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
@@ -85,6 +86,7 @@ export function AppShell() {
         </button>
       </aside>
       <main className="min-h-0 min-w-0 overflow-y-auto bg-base-100">
+        <NotReadyBanner />
         <Outlet />
       </main>
     </div>
