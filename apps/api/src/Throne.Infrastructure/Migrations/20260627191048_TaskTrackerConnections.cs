@@ -16,7 +16,7 @@ namespace Throne.Infrastructure.Migrations
                 {
                     tracker = table.Column<string>(type: "TEXT", nullable: false),
                     base_url = table.Column<string>(type: "TEXT", nullable: false),
-                    encrypted_token = table.Column<string>(type: "TEXT", nullable: false),
+                    token = table.Column<string>(type: "TEXT", nullable: false),
                     selected_boards = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>

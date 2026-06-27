@@ -33,7 +33,9 @@ export function TaskTrackersCard() {
           <KanbanSquare size={18} strokeWidth={2} />
         </span>
         <div className="flex flex-col gap-1">
-          <h3 className="m-0 text-base font-bold leading-tight">Таск-трекеры</h3>
+          <h3 className="m-0 text-base font-bold leading-tight">
+            Таск-трекеры
+          </h3>
           <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
             Подключите Kaiten по base URL и API-токену, затем выберите доски и
             поле, из которого выводить «контекст» карточек.

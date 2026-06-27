@@ -1,19 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Infrastructure.EfCore.Rows;
-using Throne.Infrastructure.Security;
 
 namespace Throne.Infrastructure.EfCore;
 
 /// <summary>
-/// EF Core <see cref="ITaskTrackerConnectionStore"/>. Encrypts the token on the way in and decrypts on
-/// the way out via <see cref="ISecretProtector"/>, so the plaintext crosses only the in-process port
-/// boundary and never the database file. Like the GitLab-host provider this is a settings store, not a
-/// domain repository — it uses one-shot contexts and lives outside any unit of work.
+/// EF Core <see cref="ITaskTrackerConnectionStore"/>. Throne is local-first and single-operator
+/// (ADR-0029), so the API token is persisted as-is alongside the base URL — no at-rest encryption.
+/// Like the GitLab-host provider this is a settings store, not a domain repository — it uses one-shot
+/// contexts and lives outside any unit of work.
 /// </summary>
 internal sealed class EfTaskTrackerConnectionStore(
-    IDbContextFactory<ThroneDbContext> contextFactory,
-    ISecretProtector protector)
+    IDbContextFactory<ThroneDbContext> contextFactory)
     : ITaskTrackerConnectionStore
 {
     public async Task<TaskTrackerStoredConnection?> GetAsync(string tracker, CancellationToken ct)
@@ -29,7 +27,7 @@ internal sealed class EfTaskTrackerConnectionStore(
 
         return new TaskTrackerStoredConnection(
             row.BaseUrl,
-            protector.Unprotect(row.EncryptedToken),
+            row.Token,
             row.SelectedBoards.Select(ToSelection).ToList());
     }
 
@@ -42,20 +40,19 @@ internal sealed class EfTaskTrackerConnectionStore(
         await using var context = await contextFactory.CreateDbContextAsync(ct);
         var row = await context.Set<TaskTrackerConnectionRow>()
             .FirstOrDefaultAsync(r => r.Tracker == tracker, ct);
-        var encrypted = protector.Protect(token);
         if (row is null)
         {
             context.Set<TaskTrackerConnectionRow>().Add(new TaskTrackerConnectionRow
             {
                 Tracker = tracker,
                 BaseUrl = baseUrl,
-                EncryptedToken = encrypted,
+                Token = token,
             });
         }
         else
         {
             row.BaseUrl = baseUrl;
-            row.EncryptedToken = encrypted;
+            row.Token = token;
         }
 
         await context.SaveChangesAsync(ct);

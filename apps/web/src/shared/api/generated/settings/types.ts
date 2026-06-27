@@ -182,7 +182,7 @@ export interface paths {
         get?: never;
         /**
          * Validate and persist a task-tracker connection (base URL + API token).
-         * @description Validates the credentials against the provider's API, then persists them on success. The token is stored encrypted at rest in the local SQLite database (ADR-0047/0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
+         * @description Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
          */
         put: operations["setTaskTrackerConnection"];
         post?: never;
@@ -375,7 +375,7 @@ export interface components {
         UpdateTaskTrackerConnectionRequest: {
             /** @description Workspace base URL, e.g. `https://mycompany.kaiten.ru`. */
             base_url: string;
-            /** @description API token. Stored encrypted at rest; never read back. */
+            /** @description API token. Persisted in the local SQLite database; never read back. */
             token: string;
         };
         /**
@@ -773,7 +773,7 @@ export interface operations {
                     "application/json": components["schemas"]["TaskTrackerBoardsDto"];
                 };
             };
-            /** @description No connection is configured for this tracker. */
+            /** @description No connection is configured for this tracker, or the saved token was rejected (reconnect required). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -791,7 +791,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description The upstream tracker API was unreachable or rejected the saved token. */
+            /** @description The upstream tracker API was unreachable. */
             502: {
                 headers: {
                     [name: string]: unknown;
@@ -826,7 +826,7 @@ export interface operations {
                     "application/json": components["schemas"]["TaskTrackerBoardsDto"];
                 };
             };
-            /** @description No connection is configured for this tracker. */
+            /** @description No connection is configured for this tracker, or the saved token was rejected (reconnect required). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -844,7 +844,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description The upstream tracker API was unreachable or rejected the saved token. */
+            /** @description The upstream tracker API was unreachable. */
             502: {
                 headers: {
                     [name: string]: unknown;

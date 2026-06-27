@@ -45,6 +45,7 @@ public static class ErrorCodes
     public const string GitLabHostInvalid = "settings.gitlab_host.invalid";
     public const string TaskTrackerProviderUnsupported = "task_tracker.provider_unsupported";
     public const string TaskTrackerConnectionMissing = "task_tracker.connection_missing";
+    public const string TaskTrackerConnectionRejected = "task_tracker.connection_rejected";
     public const string TaskTrackerUpstreamUnavailable = "task_tracker.upstream_unavailable";
     public const string PromptPartNotFound = "prompt_part.not_found";
     public const string PromptPartAlreadyExists = "prompt_part.already_exists";
