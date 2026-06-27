@@ -76,6 +76,14 @@ function lastSocket(): FakeWebSocket {
   return socket;
 }
 
+// Терминал поднимается после промиса шрифта (document.fonts недоступен в jsdom →
+// resolved-цепочка), поэтому ждём несколько микротасков перед доступом к сокету.
+async function flushMount(): Promise<void> {
+  for (let i = 0; i < 6; i += 1) {
+    await Promise.resolve();
+  }
+}
+
 describe("TerminalView", () => {
   let rafCallbacks: FrameRequestCallback[] = [];
 
@@ -104,14 +112,16 @@ describe("TerminalView", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
-  it("не сигналит onClosed при плановом размонтировании (tmux-сессия жива)", () => {
+  it("не сигналит onClosed при плановом размонтировании (tmux-сессия жива)", async () => {
     const onClosed = vi.fn();
     const { unmount } = render(
       <TerminalView intentId="i1" attempt={1} onClosed={onClosed} />
     );
+    await flushMount();
 
     const socket = lastSocket();
     unmount();
@@ -122,38 +132,37 @@ describe("TerminalView", () => {
     expect(onClosed).not.toHaveBeenCalled();
   });
 
-  it("сигналит onClosed при реальном закрытии сокета во время жизни вью", () => {
+  it("сигналит onClosed при реальном закрытии сокета во время жизни вью", async () => {
     const onClosed = vi.fn();
     render(<TerminalView intentId="i1" attempt={1} onClosed={onClosed} />);
+    await flushMount();
 
     lastSocket().emit("close", { code: 1006 });
 
     expect(onClosed).toHaveBeenCalledWith(1006);
   });
 
-  it("первый resize шлёт только после загрузки шрифта и форсит redraw (C-l)", async () => {
+  it("после open шлёт один debounce'нутый resize и не шлёт redraw (C-l)", async () => {
+    vi.useFakeTimers();
     render(<TerminalView intentId="i1" attempt={1} onClosed={vi.fn()} />);
+    await flushMount();
 
     const socket = lastSocket();
-    // Сокет открылся раньше, чем догрузился шрифт — геометрию ещё не шлём.
     socket.emit("open", {});
+    // Геометрия уходит только после оседания debounce-таймера.
     expect(socket.sent).toEqual([]);
-
-    // Даём промису шрифта (document.fonts недоступен в jsdom → resolved-цепочка)
-    // отработать на микротасках.
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    vi.advanceTimersByTime(200);
 
     const frames = socket.sent.map(
       (raw) => JSON.parse(raw) as Record<string, unknown>
     );
-    expect(frames).toContainEqual({ type: "resize", cols: 80, rows: 24 });
-    expect(frames).toContainEqual({ type: "input", data: "\f" });
+    expect(frames).toEqual([{ type: "resize", cols: 80, rows: 24 }]);
+    expect(frames).not.toContainEqual({ type: "input", data: "\f" });
   });
 
-  it("склеивает несколько output frames в один term.write на animation frame", () => {
+  it("склеивает несколько output frames в один term.write на animation frame", async () => {
     render(<TerminalView intentId="i1" attempt={1} onClosed={vi.fn()} />);
+    await flushMount();
 
     const socket = lastSocket();
     socket.emit("message", { data: '{"type":"output","data":"a"}' });
