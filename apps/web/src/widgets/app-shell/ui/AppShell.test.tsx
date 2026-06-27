@@ -3,8 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 interface RuntimeInstanceState {
-  isEphemeral: boolean;
-  isLoading: boolean;
   isStopping: boolean;
   stop: () => void;
 }
@@ -44,8 +42,6 @@ describe("AppShell", () => {
   beforeEach(() => {
     mocks.useProposedPatchesCount.mockReturnValue(0);
     mocks.useRuntimeInstance.mockReturnValue({
-      isEphemeral: false,
-      isLoading: false,
       isStopping: false,
       stop: vi.fn()
     });
@@ -56,17 +52,9 @@ describe("AppShell", () => {
     vi.clearAllMocks();
   });
 
-  it("не показывает Завершение для обычного инстанса", () => {
-    renderShell();
-
-    expect(screen.queryByLabelText("Завершение")).toBeNull();
-  });
-
-  it("показывает Завершение для тестового инстанса и вызывает stop", () => {
+  it("всегда показывает Завершение и вызывает stop по клику", () => {
     const stop = vi.fn();
     mocks.useRuntimeInstance.mockReturnValue({
-      isEphemeral: true,
-      isLoading: false,
       isStopping: false,
       stop
     });
@@ -75,5 +63,18 @@ describe("AppShell", () => {
     fireEvent.click(screen.getByLabelText("Завершение"));
 
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("блокирует кнопку Завершение во время остановки", () => {
+    mocks.useRuntimeInstance.mockReturnValue({
+      isStopping: true,
+      stop: vi.fn()
+    });
+
+    renderShell();
+
+    expect(
+      screen.getByLabelText("Завершение").hasAttribute("disabled")
+    ).toBe(true);
   });
 });

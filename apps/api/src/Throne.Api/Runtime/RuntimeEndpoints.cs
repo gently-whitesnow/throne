@@ -11,13 +11,8 @@ public static class RuntimeEndpoints
 
         app.MapPost(
             "/api/v1/runtime/shutdown",
-            (IConfiguration configuration, IHostApplicationLifetime lifetime) =>
+            (IHostApplicationLifetime lifetime) =>
             {
-                if (!RuntimeInstanceDetector.IsEphemeral(configuration))
-                {
-                    return Results.NotFound();
-                }
-
                 _ = StopSoonAsync(lifetime);
                 return Results.NoContent();
             });

@@ -1,23 +1,13 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
-import {
-  fetchRuntimeInstance,
-  shutdownRuntimeInstance
-} from "./runtime-instance-api";
+import { stopRuntimeInstance } from "./runtime-instance-api";
 
 export function useRuntimeInstance() {
-  const instance = useQuery({
-    queryKey: ["runtime-instance"],
-    queryFn: ({ signal }) => fetchRuntimeInstance(signal)
-  });
-
   const shutdown = useMutation({
-    mutationFn: shutdownRuntimeInstance
+    mutationFn: stopRuntimeInstance
   });
 
   return {
-    isEphemeral: instance.data?.ephemeral === true,
-    isLoading: instance.isLoading,
     isStopping: shutdown.isPending,
     stop: shutdown.mutate
   };
