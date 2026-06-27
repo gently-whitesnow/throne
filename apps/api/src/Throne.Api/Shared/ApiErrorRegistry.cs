@@ -56,6 +56,7 @@ internal static class ApiErrorRegistry
         [ErrorCodes.CapabilityDisabled] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.IdeProviderUnavailable] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.GitLabHostInvalid] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.TaskTrackerProviderUnsupported] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.RunPreflightBlocked] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.SpawnFailed] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.CloneWaitTimeout] = StatusCodes.Status422UnprocessableEntity,

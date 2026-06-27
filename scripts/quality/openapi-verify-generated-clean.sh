@@ -18,6 +18,7 @@ GENERATED_PATHS=(
   "apps/api/src/Throne.Settings.Contracts/Generated/"
   "apps/api/src/Throne.Capabilities.Contracts/Generated/"
   "apps/api/src/Throne.Terminal.Contracts/Generated/"
+  "apps/api/src/Throne.TaskTrackers.Contracts/Generated/"
   "apps/api/src/Throne.PromptParts.Contracts/Generated/"
   "apps/api/src/Throne.Realtime.Contracts/Generated/"
   "apps/api/src/Throne.Api/Generated/"
