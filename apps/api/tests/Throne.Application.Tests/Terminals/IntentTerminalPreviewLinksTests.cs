@@ -29,10 +29,10 @@ public class IntentTerminalPreviewLinksTests
         var links = Substitute.For<IIntentLinkRepository>();
         links.ListByIntentAsync(intentId, Arg.Any<CancellationToken>())
             .Returns([
-                LinkView(intentId, "peer-blocking-in", blocking: true, incoming: true, rationale: null),
-                LinkView(intentId, "peer-blocking-out", blocking: true, incoming: false, rationale: "дальше зависит от этого"),
-                LinkView(intentId, "peer-soft-out", blocking: false, incoming: false, rationale: null),
-                LinkView(intentId, "peer-soft-in", blocking: false, incoming: true, rationale: "контекст пришёл отсюда"),
+                LinkView(intentId, "peer-blocking-in", blocking: true, incoming: true, rationale: null, status: IntentStatusNames.Work),
+                LinkView(intentId, "peer-blocking-out", blocking: true, incoming: false, rationale: "дальше зависит от этого", status: IntentStatusNames.ReadyForWork),
+                LinkView(intentId, "peer-soft-out", blocking: false, incoming: false, rationale: null, status: IntentStatusNames.Work),
+                LinkView(intentId, "peer-soft-in", blocking: false, incoming: true, rationale: "контекст пришёл отсюда", status: IntentStatusNames.Done),
             ]);
 
         var handler = NewHandler(intents, links);
@@ -42,9 +42,9 @@ public class IntentTerminalPreviewLinksTests
             CancellationToken.None);
 
         preview.WorkspaceMap.Should().Contain("Связи:");
-        preview.WorkspaceMap.Should().Contain("- заблокирован intent_id=peer-blocking-in (без причины связи)");
-        preview.WorkspaceMap.Should().Contain("- блокирует intent_id=peer-blocking-out: дальше зависит от этого");
-        preview.WorkspaceMap.Should().Contain("- вытекает из intent_id=peer-soft-in: контекст пришёл отсюда");
+        preview.WorkspaceMap.Should().Contain("- заблокирован intent_id=peer-blocking-in status=work (без причины связи)");
+        preview.WorkspaceMap.Should().Contain("- блокирует intent_id=peer-blocking-out status=ready_for_work: дальше зависит от этого");
+        preview.WorkspaceMap.Should().Contain("- вытекает из intent_id=peer-soft-in status=done: контекст пришёл отсюда");
         preview.WorkspaceMap.Should().NotContain("- ведёт к");
         preview.WorkspaceMap.Should().NotContain("peer-soft-in body");
     }
@@ -81,9 +81,10 @@ public class IntentTerminalPreviewLinksTests
         string peerId,
         bool blocking,
         bool incoming,
-        string? rationale)
+        string? rationale,
+        string status)
     {
-        var peer = Intent.Restore(new IntentId(peerId), $"{peerId} body", IntentStatusNames.Work, 1, [], Now, Now);
+        var peer = Intent.Restore(new IntentId(peerId), $"{peerId} body", status, 1, [], Now, Now);
         var link = IntentLink.Create(
             $"link-{peerId}",
             incoming ? peer.Id : intentId,
