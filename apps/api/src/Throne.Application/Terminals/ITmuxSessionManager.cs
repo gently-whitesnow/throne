@@ -103,13 +103,21 @@ public interface ITmuxSessionManager
 /// mouse with the TUI for vendors that need it for clicks/selection.
 /// </param>
 /// <param name="EnvironmentVariables">Environment variables injected into the tmux session.</param>
+/// <param name="Cols">
+/// Initial window width passed to <c>new-session -x</c>. When set together with <paramref name="Rows"/>
+/// the agent's first paint already matches the client geometry, so the client's first resize is a
+/// no-op (no SIGWINCH → no reflow → no duplicated frame in scrollback). Null → tmux default 80×24.
+/// </param>
+/// <param name="Rows">Initial window height passed to <c>new-session -y</c>; see <paramref name="Cols"/>.</param>
 public sealed record TmuxSpawnRequest(
     string IntentId,
     string WorkingDirectory,
     string Command,
     IReadOnlyList<string> Arguments,
     bool EnableMouse = false,
-    IReadOnlyDictionary<string, string>? EnvironmentVariables = null);
+    IReadOnlyDictionary<string, string>? EnvironmentVariables = null,
+    int? Cols = null,
+    int? Rows = null);
 
 /// <summary>
 /// Outcome of a spawn observation.

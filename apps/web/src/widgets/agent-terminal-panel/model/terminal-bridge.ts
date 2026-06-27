@@ -7,9 +7,64 @@ import { parseFrame, toWebSocketUrl } from "./terminal-frames";
 const RESIZE_DEBOUNCE_MS = 150;
 const MAX_PENDING_OUTPUT_CHARS = 1_000_000;
 
+// Cell-size-determining options shared by the live terminal and the pre-spawn measurement,
+// so the geometry measured for the spawn matches what the live xterm fits to (no reflow).
+const TERMINAL_METRICS = {
+  fontFamily: "Monaspace Neon, ui-monospace, Menlo, Consolas, monospace",
+  fontSize: 13,
+  lineHeight: 1.3
+} as const;
+
+// Layout classes of the live xterm host (TerminalView's container) that affect the fit:
+// width box + padding + border. Replicated on the off-screen measuring node so cols/rows match.
+const HOST_LAYOUT_CLASS =
+  "w-full overflow-hidden rounded-b-md border border-base-300 p-2";
+
 export interface MountTerminalOptions {
   intentId: string;
   onClosed: (code: number) => void;
+}
+
+/**
+ * Меряет геометрию терминала ДО спавна, повторяя бокс живого контейнера: создаёт скрытый
+ * узел той же ширины/паддинга/высоты внутри `parent`, монтирует временный xterm с теми же
+ * метриками шрифта и возвращает cols/rows из `proposeDimensions`. Сервер спавнит сессию в
+ * этой геометрии, поэтому первый resize клиента — no-op (без reflow и дублей в scrollback).
+ *
+ * Вызывать после загрузки шрифта: на fallback-метриках замер разойдётся с живым fit.
+ * Возвращает null, если замер не удался — вызывающий просто спавнит без геометрии (старое
+ * поведение: один reflow при первом attach).
+ */
+export function measureViewport(
+  parent: HTMLElement,
+  heightPx: number
+): { cols: number; rows: number } | null {
+  const root = document.createElement("div");
+  root.className = "flex flex-col";
+  root.style.visibility = "hidden";
+  const host = document.createElement("div");
+  host.className = HOST_LAYOUT_CLASS;
+  host.style.height = `${String(heightPx)}px`;
+  root.appendChild(host);
+  parent.appendChild(root);
+
+  let term: Terminal | null = null;
+  try {
+    term = new Terminal(TERMINAL_METRICS);
+    const fit = new FitAddon();
+    term.loadAddon(fit);
+    term.open(host);
+    const dims = fit.proposeDimensions();
+    if (!dims) return null;
+    const cols = Math.floor(dims.cols);
+    const rows = Math.floor(dims.rows);
+    return cols > 0 && rows > 0 ? { cols, rows } : null;
+  } catch {
+    return null;
+  } finally {
+    term?.dispose();
+    parent.removeChild(root);
+  }
 }
 
 /**
@@ -47,9 +102,7 @@ export function mountTerminal(
   { intentId, onClosed }: MountTerminalOptions
 ): () => void {
   const term = new Terminal({
-    fontFamily: "Monaspace Neon, ui-monospace, Menlo, Consolas, monospace",
-    fontSize: 13,
-    lineHeight: 1.3,
+    ...TERMINAL_METRICS,
     cursorBlink: true,
     convertEol: true,
     scrollback: 5000,

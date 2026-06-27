@@ -14,7 +14,8 @@ interface TerminalViewProps {
 
 const MIN_TERMINAL_HEIGHT = 200;
 const MAX_TERMINAL_HEIGHT = 1000;
-const DEFAULT_TERMINAL_HEIGHT = 576;
+/** Высота терминала при свежем монтировании — её же берёт pre-spawn замер геометрии. */
+export const DEFAULT_TERMINAL_HEIGHT = 576;
 const TERMINAL_FONT = '13px "Monaspace Neon"';
 
 /**

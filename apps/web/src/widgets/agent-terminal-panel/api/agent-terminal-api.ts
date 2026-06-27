@@ -20,7 +20,9 @@ function toRequestBody(payload: TerminalRunPayload) {
     selected_skill_ids: payload.selectedSkillIds,
     system_prompt: payload.systemPrompt,
     user_prompt: payload.userPrompt,
-    intent_text_update: payload.intentTextUpdate
+    intent_text_update: payload.intentTextUpdate,
+    cols: payload.viewport?.cols ?? null,
+    rows: payload.viewport?.rows ?? null
   };
 }
 

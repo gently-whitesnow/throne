@@ -10,6 +10,7 @@ import {
 import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
 import { SessionLiveBadge } from "@/shared/ui";
 
+import { measureViewport } from "../model/terminal-bridge";
 import { useAttachableSkills } from "../model/use-attachable-skills";
 import { useLaunchAxis } from "../model/use-launch-axis";
 import { useReviewTargetSelection } from "../model/use-review-target-selection";
@@ -17,6 +18,7 @@ import { useTerminalSession } from "../model/use-terminal-session";
 import { TERMINAL_RUN_MODES, defaultRunModeForStatus } from "../model/types";
 import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
 
+import { DEFAULT_TERMINAL_HEIGHT } from "./TerminalView";
 import { PreflightModal } from "./PreflightModal";
 import { ReviewTargetSelect } from "./ReviewTargetSelect";
 import { RunControls } from "./RunControls";
@@ -27,6 +29,28 @@ import { TerminalPanelAlerts } from "./TerminalPanelAlerts";
 interface AgentTerminalPanelProps {
   intentId: string;
   intentStatus: IntentStatus;
+}
+
+/**
+ * Меряем геометрию терминала прямо перед спавном и кладём её в payload, чтобы сервер
+ * стартовал tmux в этой геометрии (без reflow на первом attach). Замер — best-effort:
+ * любой сбой просто запускает сессию без геометрии (старое поведение).
+ */
+async function launchWithMeasuredViewport(
+  payload: TerminalRunPayload,
+  section: HTMLElement | null,
+  start: (payload: TerminalRunPayload) => Promise<void>
+): Promise<void> {
+  let viewport: { cols: number; rows: number } | null = null;
+  if (section !== null) {
+    try {
+      await (document.fonts as FontFaceSet | undefined)?.ready;
+      viewport = measureViewport(section, DEFAULT_TERMINAL_HEIGHT);
+    } catch {
+      viewport = null;
+    }
+  }
+  await start({ ...payload, viewport });
 }
 
 export function AgentTerminalPanel({
@@ -124,10 +148,16 @@ export function AgentTerminalPanel({
 
   const attachable = useAttachableSkills(intentId, effectiveMode, sessionLive);
 
+  const sectionRef = useRef<HTMLElement | null>(null);
+
   const handleLaunch = useCallback(
     (payload: TerminalRunPayload) => {
       setPreflightOpen(false);
-      void startSession(payload);
+      void launchWithMeasuredViewport(
+        payload,
+        sectionRef.current,
+        startSession
+      );
     },
     [startSession]
   );
@@ -138,6 +168,7 @@ export function AgentTerminalPanel({
 
   return (
     <section
+      ref={sectionRef}
       aria-label="Запустить агента"
       data-testid="agent-terminal-panel"
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3"

@@ -35,7 +35,8 @@ public sealed class RunPreflightOrchestrator(
         TerminalSpawnPrompt prompt,
         IReadOnlyList<string>? selectedSkillIds,
         CancellationToken ct,
-        string? reviewBindingId = null)
+        string? reviewBindingId = null,
+        TerminalViewport? viewport = null)
     {
         ArgumentNullException.ThrowIfNull(prompt);
         RunPreflightModeGuard.EnsureKnown(mode);
@@ -76,6 +77,7 @@ public sealed class RunPreflightOrchestrator(
             skillPlan.Packages,
             RunPreflightSession.CollectReadyRepoPaths(waitResult.Bindings),
             intent.TagIds,
+            viewport,
             ct);
         await launches.SaveAsync(intent.Id.Value, launchPlan, ct);
         await skills.SaveAsync(intent.Id.Value, mode, skillPlan, ct);

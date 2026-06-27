@@ -36,6 +36,7 @@ public sealed class RunPreflightSpawn(
         IReadOnlyList<SessionSkillPackage> skillPackages,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<TagId> tagIds,
+        TerminalViewport? viewport,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(prompt);
@@ -77,7 +78,9 @@ public sealed class RunPreflightSpawn(
                 Command: invocation.Command,
                 Arguments: invocation.Arguments,
                 EnableMouse: descriptor.EnableMouse,
-                EnvironmentVariables: BuildSessionEnvironment(intentId.Value, skillPackages)),
+                EnvironmentVariables: BuildSessionEnvironment(intentId.Value, skillPackages),
+                Cols: viewport?.Cols,
+                Rows: viewport?.Rows),
             ct);
 
         if (!spawn.IsAlive)

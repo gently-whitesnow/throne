@@ -59,7 +59,12 @@ vi.mock("./TerminalView", () => ({
     <div data-testid="terminal-view" data-attempt={attempt}>
       {intentId}
     </div>
-  )
+  ),
+  DEFAULT_TERMINAL_HEIGHT: 576
+}));
+
+vi.mock("../model/terminal-bridge", () => ({
+  measureViewport: () => null
 }));
 
 vi.mock("@/entities/repository-binding/api/repository-bindings-api", () => ({
@@ -221,7 +226,8 @@ describe("AgentTerminalPanel", () => {
       selectedSkillIds: [],
       systemPrompt: "RULES",
       userPrompt: "BODY",
-      intentTextUpdate: null
+      intentTextUpdate: null,
+      viewport: null
     });
   });
 

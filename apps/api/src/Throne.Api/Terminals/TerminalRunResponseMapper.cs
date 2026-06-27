@@ -70,6 +70,16 @@ internal static class TerminalRunResponseMapper
         return request.Selected_skill_ids?.ToArray();
     }
 
+    // Both axes must be present to spawn at a fixed geometry; a lone dimension is meaningless and
+    // falls back to tmux's default. Range is re-checked at the spawn args builder.
+    public static TerminalViewport? ToViewport(RunIntentTerminalRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return request.Cols is int cols && request.Rows is int rows
+            ? new TerminalViewport(cols, rows)
+            : null;
+    }
+
     private static string ToWireEffort(TerminalReasoningEffort effort) => effort switch
     {
         TerminalReasoningEffort.Low => TerminalAgentCatalog.EffortLow,

@@ -8,6 +8,12 @@ namespace Throne.Application.Terminals;
 public sealed record TerminalLaunchOptions(string Vendor, string Model, string? Effort);
 
 /// <summary>
+/// Client-measured embedded-pane geometry, carried from the run request to the tmux spawn so the
+/// session starts at the final size (no first-attach reflow). Null end-to-end → tmux default 80×24.
+/// </summary>
+public sealed record TerminalViewport(int Cols, int Rows);
+
+/// <summary>
 /// Pre-split spawn invocation handed to <see cref="ITmuxSessionManager.SpawnAsync"/>:
 /// <c>tmux new -ADs throne-{id} -- {Command} {Arguments...}</c>.
 /// </summary>

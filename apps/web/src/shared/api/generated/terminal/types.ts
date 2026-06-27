@@ -281,6 +281,16 @@ export interface components {
             user_prompt?: string | null;
             /** @description Present only when the operator opted to persist their task-zone edit to `Intent.text` before spawn. Applied with optimistic concurrency; a version conflict aborts the spawn (the agent never starts on a stale edit). */
             intent_text_update?: components["schemas"]["IntentTextUpdate"] | null;
+            /**
+             * Format: int32
+             * @description Terminal width in columns the client measured for the embedded pane before spawn. When present together with `rows`, the session is created at this geometry (`tmux new-session -x/-y`) so the agent's first paint already matches the client and the initial WebSocket resize is a no-op — no SIGWINCH, no reflow, no duplicated frame in the scrollback. Omitted/out-of-range → tmux default 80×24 (one reflow on first attach).
+             */
+            cols?: number | null;
+            /**
+             * Format: int32
+             * @description Terminal height in rows measured by the client; see `cols`.
+             */
+            rows?: number | null;
         };
         IntentTextUpdate: {
             /**

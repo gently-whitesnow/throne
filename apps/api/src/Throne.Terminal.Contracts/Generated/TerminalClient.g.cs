@@ -443,6 +443,21 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("intent_text_update")]
         public IntentTextUpdate Intent_text_update { get; set; }
 
+        /// <summary>
+        /// Terminal width in columns the client measured for the embedded pane before spawn. When present together with `rows`, the session is created at this geometry (`tmux new-session -x/-y`) so the agent's first paint already matches the client and the initial WebSocket resize is a no-op — no SIGWINCH, no reflow, no duplicated frame in the scrollback. Omitted/out-of-range → tmux default 80×24 (one reflow on first attach).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cols")]
+        [System.ComponentModel.DataAnnotations.Range(1, 1000)]
+        public int? Cols { get; set; }
+
+        /// <summary>
+        /// Terminal height in rows measured by the client; see `cols`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rows")]
+        [System.ComponentModel.DataAnnotations.Range(1, 1000)]
+        public int? Rows { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

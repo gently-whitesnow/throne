@@ -66,6 +66,12 @@ export interface TerminalRunPayload {
   systemPrompt: string;
   userPrompt: string;
   intentTextUpdate: IntentTextUpdate | null;
+  /**
+   * Геометрия встроенного терминала, измеренная фронтом перед спавном. Сервер стартует
+   * tmux-сессию в ней (new-session -x/-y), чтобы первый кадр агента сразу совпал с клиентом
+   * и начальный resize не вызывал reflow. Отсутствует → дефолт 80×24 (один reflow на attach).
+   */
+  viewport?: { cols: number; rows: number } | null;
 }
 
 // Dream намеренно отсутствует: dream-режим запускается вне контекста интента,

@@ -108,6 +108,7 @@ public sealed class TerminalController(
         var launch = TerminalRunResponseMapper.ToLaunchInput(body);
         var prompt = TerminalRunResponseMapper.ToSpawnPrompt(body);
         var reviewBindingId = TerminalRunResponseMapper.ToReviewBindingId(body);
+        var viewport = TerminalRunResponseMapper.ToViewport(body);
         var result = await orchestrator.RunAsync(
             intentId,
             domainMode,
@@ -115,7 +116,8 @@ public sealed class TerminalController(
             prompt,
             TerminalRunResponseMapper.ToSelectedSkillIds(body),
             HttpContext.RequestAborted,
-            reviewBindingId
+            reviewBindingId,
+            viewport
         );
         var dto = TerminalRunResponseMapper.ToDto(result);
         return Accepted(dto);

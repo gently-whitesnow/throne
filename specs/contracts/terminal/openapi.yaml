@@ -681,6 +681,26 @@ components:
             conflict aborts the spawn (the agent never starts on a stale edit).
           allOf:
             - $ref: '#/components/schemas/IntentTextUpdate'
+        cols:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 1000
+          nullable: true
+          description: >
+            Terminal width in columns the client measured for the embedded pane before spawn.
+            When present together with `rows`, the session is created at this geometry
+            (`tmux new-session -x/-y`) so the agent's first paint already matches the client and
+            the initial WebSocket resize is a no-op — no SIGWINCH, no reflow, no duplicated
+            frame in the scrollback. Omitted/out-of-range → tmux default 80×24 (one reflow on
+            first attach).
+        rows:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 1000
+          nullable: true
+          description: Terminal height in rows measured by the client; see `cols`.
     IntentTextUpdate:
       type: object
       required:
