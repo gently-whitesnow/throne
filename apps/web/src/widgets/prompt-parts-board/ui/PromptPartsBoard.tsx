@@ -2,11 +2,13 @@ import { useState } from "react";
 
 import {
   useListPromptParts,
-  type PromptPartListItem
+  type PromptPartListItem,
+  type PromptPartMode
 } from "@/entities/prompt-part";
 import { errorMessage } from "@/shared/lib";
 
-import { PartsList } from "./PartsList";
+import { ModeComposition } from "./ModeComposition";
+import { ModeRail } from "./ModeRail";
 import {
   PromptPartDetailDialog,
   type PromptPartDialogTarget
@@ -15,21 +17,21 @@ import {
 interface PromptPartsBoardProps {
   /** key `${scope}/${key}` → proposed-patch count, for the «N правок» badge. */
   patchCounts?: Map<string, number>;
-  /** Surface a part's proposed improvements next to the part. */
+  /** Surface a block's proposed improvements next to the block. */
   onShowPatches?: (part: PromptPartListItem) => void;
 }
 
 /**
- * Каталог prompt_parts (system read-only + user editable) с инлайновыми ролями
- * по режимам. Без собственного page-заголовка — встраивается в слот «System-
- * промпт / части», который задаёт заголовок и подпись источника.
+ * Каталог блоков системного промпта в раскладке «режим → состав»: слева режимы
+ * со счётчиком, справа — что входит / доступно / не входит в выбранном режиме.
+ * Без собственного page-заголовка — встраивается в слот «System-промпт».
  */
 export function PromptPartsBoard({
   patchCounts,
   onShowPatches
 }: PromptPartsBoardProps) {
   const partsQuery = useListPromptParts();
-
+  const [mode, setMode] = useState<PromptPartMode>("work");
   const [partDialog, setPartDialog] = useState<PromptPartDialogTarget | null>(
     null
   );
@@ -42,7 +44,7 @@ export function PromptPartsBoard({
   const loading = partsQuery.isPending;
 
   return (
-    <div className="flex flex-col gap-4" aria-label="Части промпта">
+    <div className="flex flex-col gap-4" aria-label="Блоки системного промпта">
       {error ? (
         <p role="alert" className="m-0 text-[13px] text-base-content/60">
           {error}
@@ -53,17 +55,21 @@ export function PromptPartsBoard({
       ) : null}
 
       {!loading && !error ? (
-        <PartsList
-          parts={parts}
-          patchCounts={patchCounts}
-          onOpenPart={(part) => {
-            setPartDialog({ mode: "detail", part });
-          }}
-          onShowPatches={onShowPatches}
-          onCreatePart={() => {
-            setPartDialog({ mode: "create" });
-          }}
-        />
+        <div className="grid gap-4 md:grid-cols-[170px_1fr]">
+          <ModeRail parts={parts} selected={mode} onSelect={setMode} />
+          <ModeComposition
+            parts={parts}
+            mode={mode}
+            patchCounts={patchCounts}
+            onOpenPart={(part) => {
+              setPartDialog({ mode: "detail", part });
+            }}
+            onShowPatches={onShowPatches}
+            onCreatePart={() => {
+              setPartDialog({ mode: "create" });
+            }}
+          />
+        </div>
       ) : null}
 
       {partDialog ? (

@@ -20,7 +20,7 @@ export function AgentContextPage() {
     {
       id: "slot-system",
       index: 1,
-      label: "System · части",
+      label: "System · блоки",
       badge: patches.total
     },
     { id: "slot-user-prompt", index: 2, label: "User-промпт" },
@@ -44,9 +44,9 @@ export function AgentContextPage() {
       <SlotSection
         id="slot-system"
         index={1}
-        title="System-промпт / части"
-        source="каталог prompt_parts — роли по режимам (работа / интервью / review / свободный)"
-        whereToChange="здесь: текст и роли user-частей; system-части — read-only из манифеста"
+        title="System-промпт"
+        source="блоки инструкций; что войдёт — зависит от режима запуска"
+        whereToChange="выбери режим слева → правь состав и текст своих блоков; системные read-only из манифеста"
         marker={
           patches.total > 0 ? <SlotCountMarker value={patches.total} /> : null
         }

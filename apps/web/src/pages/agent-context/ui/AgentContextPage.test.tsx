@@ -32,7 +32,7 @@ describe("AgentContextPage", () => {
     ).toBeTruthy();
 
     for (const title of [
-      "System-промпт / части",
+      "System-промпт",
       "User-промпт",
       "Скилы",
       "Скилы юзера"

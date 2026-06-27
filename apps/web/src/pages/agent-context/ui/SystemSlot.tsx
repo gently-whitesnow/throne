@@ -46,7 +46,7 @@ export function SystemSlot({ patchCounts, proposedTotal }: SystemSlotProps) {
       <div role="tablist" className="tabs tabs-boxed w-fit">
         <SubTabButton
           active={tab === "parts"}
-          label="Части"
+          label="Блоки"
           onClick={() => {
             selectTab("parts");
           }}
@@ -77,7 +77,7 @@ export function SystemSlot({ patchCounts, proposedTotal }: SystemSlotProps) {
         ) : tab === "improvements" ? (
           <div className="flex flex-col gap-3">
             <p className="m-0 text-xs leading-relaxed text-base-content/60">
-              Предложенные правки user-частей от dream-агента. Apply /
+              Предложенные правки твоих блоков от dream-агента. Apply /
               apply-with-edit / reject — твоё решение.
             </p>
             <PatchesTab
