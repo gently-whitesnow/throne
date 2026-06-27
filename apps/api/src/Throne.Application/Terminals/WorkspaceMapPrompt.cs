@@ -7,8 +7,10 @@ namespace Throne.Application.Terminals;
 /// path of every mounted repo clone, a note that everything else in the root is session metadata,
 /// and the intent's tags as light context. Counters the dominant embedded-session failure where the
 /// agent guesses the clone sub-directory name and <c>cd</c>s into a path that does not exist
-/// (ADR-0026); the agent reads the real paths instead of inventing them. Paths only — never file
-/// contents.
+/// (ADR-0026); the agent reads the real paths instead of inventing them. Also states the cwd model
+/// — cwd is not preserved across Bash calls and resets to the workspace root — so the agent prefixes
+/// an absolute repo path in every command instead of relying on a prior <c>cd</c>. Paths only —
+/// never file contents.
 /// </summary>
 internal static class WorkspaceMapPrompt
 {
@@ -39,6 +41,9 @@ internal static class WorkspaceMapPrompt
         map.Append("Остальное в корне workspace — session-метадата (.claude/, skills/, throne-session.*), ");
         map.Append("не часть репозитория.\n");
         map.Append("Путь к репозиторию бери отсюда (абсолютный) — не угадывай имя клон-сабдира.\n");
+        map.Append("cwd между Bash-вызовами не гарантирована — может сбрасываться к корню workspace.\n");
+        map.Append("Не полагайся на `cd` из прошлого вызова: в каждой команде префиксуй абсолютный путь репо ");
+        map.Append("или `cd <абсолютный путь репо> && …`.\n");
         if (tags is { Count: > 0 })
         {
             map.Append("Теги интента: ").Append(string.Join(", ", tags)).Append('\n');
