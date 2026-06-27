@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "Throne — Memory and task framing for humans",
-    "description": "Throne is a local memory and task-framing layer for people working with AI agents. Persistent context, intents, instructions, and MCP routing.",
-    "ogAlt": "Throne — Memory and task framing for humans"
+    "title": "Throne — the cockpit for the dev loop with AI agents",
+    "description": "Throne is a cockpit for the development loop — for a human working with AI agents. Around an intent it brings together framing, memory and preferences, agent launch, repositories, and review — and learns from every conversation. Local, a single binary.",
+    "ogAlt": "Throne — the cockpit for the dev loop with AI agents"
   },
   "nav": {
     "skipToContent": "Skip to content",
@@ -13,8 +13,8 @@
     "switchToDark": "Switch to dark theme"
   },
   "hero": {
-    "title": "Keep context across tasks, agents, and conversations",
-    "subtitle": "Throne turns scattered requests, ideas, and preferences into working units. You switch between tasks, and agents pick up fresh context without manual retelling.",
+    "title": "The cockpit for the dev loop — for humans and AI agents",
+    "subtitle": "Around an intent, Throne brings together framing, memory and preferences, agent launch, repositories, and review — and learns from every conversation, so the agent's next pass lands closer to what you expect.",
     "ctaPrimary": "Get started",
     "ctaSecondary": "Open on GitHub"
   },
@@ -27,20 +27,20 @@
       "work": "Useful work",
       "knowledge": "Knowledge base"
     },
-    "tagline": "Throne is that knowledge base with an MCP interface. A path to interviews and code work in any agent stack.",
+    "tagline": "Throne closes this loop in one cockpit: framing, agent launch, review of the result, and memory that feeds back into the next pass.",
     "scrollHint": "More details",
     "scrollAria": "Jump to the Throne section"
   },
   "video": {
     "kicker": "Demo",
     "title": "Throne in five minutes",
-    "body": "A short walkthrough: creating an Intent, handing it to an agent over MCP, and improving the result through patches.",
+    "body": "A short walkthrough: creating an Intent, launching the agent from the embedded terminal, and improving the result through patches.",
     "placeholder": "Video is loading…"
   },
   "features": {
     "kicker": "Capabilities",
     "title": "Context under your control",
-    "subtitle": "Throne gives a clean interface for working with intents, links, and instructions. Agents don't have to keep everything in a single chat — they fetch and update context through MCP.",
+    "subtitle": "Throne gives the human one interface over intents, agent launch, and memory. Context no longer scatters across chats — it lives around the Intent.",
     "items": [
       {
         "title": "Intent workspace",
@@ -51,12 +51,12 @@
         "text": "Connect Intents to each other: continuation, dependency, refinement, bug, fix. The agent sees a map of work, not an isolated request."
       },
       {
-        "title": "MCP for every operation",
-        "text": "Any agent can read, create, and update Intents, attach questions, capture reviews, and pull instructions through the MCP interface."
+        "title": "Launch the agent from the cockpit",
+        "text": "Hit \"Run agent\" — Throne spins up a terminal right in the browser, hands over context and operational skills, and drives the session through hooks."
       },
       {
-        "title": "Your personal skill in the cloud",
-        "text": "It's your personal skill in the cloud: rules, style, and preferences apply automatically when the agent starts an interview or a work session."
+        "title": "Memory and preferences",
+        "text": "Your rules, style, and decisions are stored locally and applied automatically when the agent starts framing or a work session."
       },
       {
         "title": "Dream retrospective",
@@ -71,39 +71,20 @@
   "connect": {
     "kicker": "Setup",
     "title": "Three steps to your first Intent",
-    "intro": "Throne runs locally. Embedded terminal is the primary path; standalone clients connect directly to http://localhost:5008/mcp as a secondary path.",
-    "run": {
-      "title": "Run Throne locally",
-      "description": "API + UI + Mongo in one command. UI at http://localhost:8080, API at http://localhost:5008.",
-      "snippet": "git clone https://github.com/gently-whitesnow/throne\ncd throne\ndocker compose --profile full up --build -d"
+    "intro": "Throne runs locally: a single binary serves the UI, the API, and the database. No Docker, no cloud, no network auth.",
+    "install": {
+      "title": "Install with one command",
+      "description": "macOS and Linux x64. The script downloads the latest release, installs the binary and the throne command, appends PATH, and starts the daemon. Re-running does a clean reinstall.",
+      "snippet": "curl -fsSL https://throne.whitesnow.tech/install | bash"
+    },
+    "open": {
+      "title": "Open the cockpit",
+      "description": "The daemon starts and opens the browser at http://localhost:5008. Manage it with the same command; update to the latest in one line.",
+      "snippet": "throne            # start daemon and browser\nthrone status     # port, pid, version\nthrone update     # update to latest"
     },
     "embedded": {
-      "title": "Use embedded first",
-      "description": "In host-backend mode Throne starts the agent from the UI, injects context upfront, and tracks lifecycle through hooks. This is more reliable than relying on standalone MCP routing hints."
-    },
-    "clientsTitle": "Standalone HTTP MCP",
-    "clientsDescription": "Use this when the agent runs outside the Throne UI. Ask the agent explicitly to work through Throne; the mini-router is a best-effort hint.",
-    "tabs": {
-      "claudeDesktop": {
-        "label": "Claude Desktop",
-        "description": "Use the standard mcp-remote stdio to HTTP bridge. Plain HTTP localhost requires --allow-http; if local policy blocks it, prefer embedded terminal or Claude Code CLI.",
-        "snippet": "{\n  \"mcpServers\": {\n    \"throne\": {\n      \"command\": \"npx\",\n      \"args\": [\n        \"-y\",\n        \"mcp-remote\",\n        \"http://localhost:5008/mcp\",\n        \"--allow-http\"\n      ]\n    }\n  }\n}"
-      },
-      "claudeCode": {
-        "label": "Claude Code",
-        "description": "CLI: claude mcp add --transport http throne http://localhost:5008/mcp · manual: ~/.claude.json (mcpServers).",
-        "snippet": "{\n  \"mcpServers\": {\n    \"throne\": {\n      \"type\": \"http\",\n      \"url\": \"http://localhost:5008/mcp\"\n    }\n  }\n}"
-      },
-      "cursor": {
-        "label": "Cursor",
-        "description": "macOS/Linux: ~/.cursor/mcp.json · Windows: %USERPROFILE%\\.cursor\\mcp.json. Reconnect from settings if HTTP keep-alive drops.",
-        "snippet": "{\n  \"mcpServers\": {\n    \"throne\": {\n      \"url\": \"http://localhost:5008/mcp\"\n    }\n  }\n}"
-      },
-      "codex": {
-        "label": "Codex",
-        "description": "CLI: codex mcp add throne --url http://localhost:5008/mcp · manual: ~/.codex/config.toml.",
-        "snippet": "[mcp_servers.throne]\nurl = \"http://localhost:5008/mcp\""
-      }
+      "title": "Run the agent",
+      "description": "Create an Intent and hit \"Run agent\" — Throne spins up an agent terminal right in the UI, hands over context and operational skills, and drives the session through hooks. Host features — repositories, PR comments, open in VS Code — light up on their own as soon as the matching CLI is on PATH."
     }
   },
   "roadmap": {
@@ -141,7 +122,7 @@
     "telegram": "t.me/gently_whitesnow"
   },
   "footer": {
-    "tagline": "Memory and task framing for humans",
+    "tagline": "The cockpit for the dev loop around an intent",
     "rights": "Throne."
   }
 }
