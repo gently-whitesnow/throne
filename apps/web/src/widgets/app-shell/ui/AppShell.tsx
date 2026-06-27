@@ -2,6 +2,7 @@ import {
   FileText,
   Hash,
   PackageCheck,
+  Power,
   Settings,
   Sparkles,
   Sprout
@@ -11,6 +12,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useThroneReadiness } from "@/features/throne-readiness";
 
 import { useProposedPatchesCount } from "../model/use-proposed-patches-count";
+import { useRuntimeInstance } from "../model/use-runtime-instance";
 
 const NAV_ITEMS = [
   { to: "/intents", label: "Intents", icon: Sparkles },
@@ -24,6 +26,7 @@ const NAV_ITEMS = [
 export function AppShell() {
   const proposedPatches = useProposedPatchesCount();
   const readiness = useThroneReadiness();
+  const runtime = useRuntimeInstance();
   const showNotReadyBadge = !readiness.isLoading && !readiness.ready;
   const navItems = NAV_ITEMS;
   return (
@@ -68,6 +71,20 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+        {runtime.isEphemeral ? (
+          <button
+            type="button"
+            className="relative ml-auto flex h-10 w-10 items-center justify-center rounded-md text-error transition-colors hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error disabled:opacity-60 md:ml-0 md:mt-auto"
+            title="Завершение"
+            aria-label="Завершение"
+            disabled={runtime.isStopping}
+            onClick={() => {
+              runtime.stop();
+            }}
+          >
+            <Power aria-hidden size={18} strokeWidth={2} />
+          </button>
+        ) : null}
       </aside>
       <main className="min-h-0 min-w-0 overflow-y-auto bg-base-100">
         <Outlet />
