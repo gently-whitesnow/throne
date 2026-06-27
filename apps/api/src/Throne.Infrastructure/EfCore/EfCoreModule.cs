@@ -95,6 +95,7 @@ internal static class EfCoreModule
         services.AddSingleton<IIntentTerminalLaunchStore, EfIntentTerminalLaunchStore>();
         services.AddSingleton<ISkillModeDefaultStore, EfSkillModeDefaultStore>();
         services.AddSingleton<IGitLabHostProvider, EfGitLabHostProvider>();
+        services.AddSingleton<ITaskTrackerConnectionStore, EfTaskTrackerConnectionStore>();
 
         services.AddHostedService<EfSchemaInitializer>();
         services.AddHostedService<SkillModeDefaultSeeder>();

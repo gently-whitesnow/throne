@@ -39,6 +39,8 @@ internal static class ApiErrorRegistry
         [ErrorCodes.PromptPartAlreadyExists] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartVersionConflict] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartHasRoles] = StatusCodes.Status409Conflict,
+        [ErrorCodes.TaskTrackerConnectionMissing] = StatusCodes.Status409Conflict,
+        [ErrorCodes.TaskTrackerConnectionRejected] = StatusCodes.Status409Conflict,
         [LinkErrorCodes.Duplicate] = StatusCodes.Status409Conflict,
 
         [ErrorCodes.IntentAttachmentTooLarge] = StatusCodes.Status413PayloadTooLarge,
@@ -70,6 +72,8 @@ internal static class ApiErrorRegistry
 
         [ErrorCodes.RepositoryWorkspaceRemovalFailed] = StatusCodes.Status500InternalServerError,
         [ErrorCodes.RepositoryBranchSyncFailed] = StatusCodes.Status500InternalServerError,
+
+        [ErrorCodes.TaskTrackerUpstreamUnavailable] = StatusCodes.Status502BadGateway,
     };
 
     public static int GetStatus(string code) =>

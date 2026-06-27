@@ -14,7 +14,9 @@ public sealed class SettingsController(
     GetLocalModelCatalogEndpoint localModelEndpoint,
     TerminalSettingsService terminalSettings,
     SkillModeDefaultsService skillModeDefaults,
-    IGitLabHostProvider gitLabHost) : SettingsControllerBase
+    IGitLabHostProvider gitLabHost,
+    TaskTrackerConnectionsEndpoint taskTrackerConnections,
+    TaskTrackerBoardsEndpoint taskTrackerBoards) : SettingsControllerBase
 {
     public override Task<ActionResult<WorkspaceSettingsDto>> GetWorkspaceSettings() =>
         Task.FromResult(workspaceEndpoint.Run());
@@ -63,5 +65,22 @@ public sealed class SettingsController(
         var host = await gitLabHost.SetHostAsync(body.Host, HttpContext.RequestAborted);
         return Ok(new GitLabHostSettingsDto { Host = host });
     }
+
+    public override Task<ActionResult<TaskTrackerConnectionsDto>> GetTaskTrackerConnections() =>
+        taskTrackerConnections.ListAsync(HttpContext.RequestAborted);
+
+    public override Task<ActionResult<TaskTrackerConnectionDto>> SetTaskTrackerConnection(
+        string tracker, UpdateTaskTrackerConnectionRequest body) =>
+        taskTrackerConnections.SetAsync(tracker, body, HttpContext.RequestAborted);
+
+    public override Task<IActionResult> DeleteTaskTrackerConnection(string tracker) =>
+        taskTrackerConnections.DeleteAsync(tracker, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<TaskTrackerBoardsDto>> GetTaskTrackerBoards(string tracker) =>
+        taskTrackerBoards.GetAsync(tracker, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<TaskTrackerBoardsDto>> SetTaskTrackerBoards(
+        string tracker, UpdateTaskTrackerBoardsRequest body) =>
+        taskTrackerBoards.SetAsync(tracker, body, HttpContext.RequestAborted);
 
 }
