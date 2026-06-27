@@ -1,5 +1,4 @@
 using Throne.Application.Errors;
-using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Application.PromptParts;
@@ -40,13 +39,11 @@ public sealed record IntentTerminalPreview(
 public sealed class IntentTerminalPreviewHandler(
     IIntentRepository intents,
     IIntentAttachmentRepository attachments,
-    IIntentLinkRepository links,
     IIntentRepositoryBindingRepository bindings,
     IIntentTerminalLaunchStore launches,
     PromptCompositionResolver resolver,
     SessionSkillSelectionService skillSelection,
-    IWorkspaceRootProvider workspaceRoot,
-    RunPreflightTagNames tagNames)
+    IntentWorkspaceMapComposer workspaceMap)
 {
     public async Task<IntentTerminalPreview> HandleAsync(IntentTerminalPreviewQuery query, CancellationToken ct)
     {
@@ -59,7 +56,6 @@ public sealed class IntentTerminalPreviewHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, ct);
-        var linkList = await links.ListByIntentAsync(intent.Id, ct);
         var bindingList = await bindings.FindByIntentAsync(intent.Id, ct);
         var userPrompt = ComposeUserPrompt(intent.State.Text, attachmentList);
 
@@ -76,30 +72,9 @@ public sealed class IntentTerminalPreviewHandler(
                 : null;
         var skills = await skillSelection.PreviewAsync(query.Mode, bindingList, remembered, ct);
 
-        var workspaceMap = await ComposeWorkspaceMapAsync(intent, bindingList, linkList, ct);
+        var workspaceMapText = await workspaceMap.ComposePreviewAsync(intent, bindingList, ct);
         return new IntentTerminalPreview(
-            composition, intent.State.CurrentVersion, skills, workspaceMap);
-    }
-
-    /// <summary>
-    /// Renders the workspace map exactly as delivery does (<see cref="WorkspaceMapPrompt"/>), but with
-    /// an empty body so the returned string is the map alone. Repos are listed by their (immutable)
-    /// clone path without a status marker: clone paths are known the moment a binding exists and every
-    /// repo is cloned by the time the agent actually reads this map at spawn, so a "still cloning" note
-    /// would only be transient noise in the preview. The trailing separator/body gap is trimmed; the
-    /// front renders the result read-only.
-    /// </summary>
-    private async Task<string> ComposeWorkspaceMapAsync(
-        Intent intent,
-        IReadOnlyList<IntentRepositoryBinding> bindings,
-        IReadOnlyList<IntentLinkView> linkList,
-        CancellationToken ct)
-    {
-        var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intent.Id.Value);
-        var repoPaths = bindings.Select(b => b.WorkspacePath).ToArray();
-        var tags = await tagNames.ResolveAsync(intent.TagIds, ct);
-        var linkContext = IntentLinkPromptContextBuilder.Build(linkList);
-        return WorkspaceMapPrompt.Compose(workspacePath, repoPaths, tags, linkContext, userPrompt: "").TrimEnd();
+            composition, intent.State.CurrentVersion, skills, workspaceMapText);
     }
 
     private static string ComposeUserPrompt(string intentText, IReadOnlyList<IntentAttachment> attachments)

@@ -66,13 +66,14 @@ public class IntentTerminalPreviewLinksTests
         return new IntentTerminalPreviewHandler(
             intents,
             attachments,
-            links,
             bindings,
             launches,
             NewResolver(),
             NewSkillSelection(),
-            NewWorkspaceRoot(),
-            NewTagNames());
+            new IntentWorkspaceMapComposer(
+                NewWorkspaceRoot(),
+                NewTagNames(),
+                new IntentLinkPromptContextReader(links)));
     }
 
     private static IntentLinkView LinkView(

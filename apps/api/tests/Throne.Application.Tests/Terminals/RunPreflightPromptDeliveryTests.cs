@@ -4,6 +4,8 @@ using NSubstitute;
 using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Application.Terminals;
+using Throne.Domain.Intents;
+using Throne.Domain.Intents.Linking;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Tests.Terminals;
@@ -136,7 +138,13 @@ public class RunPreflightPromptDeliveryTests
             .Returns(Tag.Create(throne, "throne", DateTimeOffset.UnixEpoch));
         tagRepo.GetByIdAsync(must, Arg.Any<CancellationToken>())
             .Returns(Tag.Create(must, "must", DateTimeOffset.UnixEpoch));
-        var (sut, workspace) = NewDelivery(tmux, events, tagRepo);
+        var linkRepo = Substitute.For<IIntentLinkRepository>();
+        linkRepo.ListByIntentAsync(new IntentId(IntentId), Arg.Any<CancellationToken>())
+            .Returns([
+                LinkView("blocked-by-id", blocking: true, incoming: true, rationale: null),
+                LinkView("soft-id", blocking: false, incoming: false, rationale: "передать результат дальше"),
+            ]);
+        var (sut, workspace) = NewDelivery(tmux, events, tagRepo, linkRepo);
         var repo = Path.Combine(workspace, "octo__widget");
 
         try
@@ -144,12 +152,7 @@ public class RunPreflightPromptDeliveryTests
             await sut.DeliverAsync(
                 NewRequest(
                     workspace, adapter: null, userPrompt: "do the thing",
-                    repoPaths: [repo], tagIds: [throne, must],
-                    linkContext:
-                    [
-                        new IntentLinkPromptContext("заблокирован", "blocked-by-id", null),
-                        new IntentLinkPromptContext("ведёт к", "soft-id", "передать результат дальше"),
-                    ]),
+                    repoPaths: [repo], tagIds: [throne, must]),
                 CancellationToken.None);
 
             var delivered = await File.ReadAllTextAsync(
@@ -174,7 +177,10 @@ public class RunPreflightPromptDeliveryTests
     }
 
     private static (RunPreflightPromptDelivery Delivery, string Workspace) NewDelivery(
-        ITmuxSessionManager tmux, IDomainEventDispatcher events, ITagRepository? tagRepo = null)
+        ITmuxSessionManager tmux,
+        IDomainEventDispatcher events,
+        ITagRepository? tagRepo = null,
+        IIntentLinkRepository? linkRepo = null)
     {
         var workspace = Path.Combine(Path.GetTempPath(), $"throne-delivery-{Guid.NewGuid():N}");
         var options = new RunPreflightOptions
@@ -192,6 +198,7 @@ public class RunPreflightPromptDeliveryTests
         var delivery = new RunPreflightPromptDelivery(
             tmux, readinessWaiter, confirmer, new TerminalPromptSubmitSignals(), events,
             new RunPreflightTagNames(tagRepo ?? Substitute.For<ITagRepository>()),
+            new IntentLinkPromptContextReader(linkRepo ?? EmptyLinks()),
             NullLogger<RunPreflightPromptDelivery>.Instance);
         return (delivery, workspace);
     }
@@ -201,11 +208,36 @@ public class RunPreflightPromptDeliveryTests
         ISessionHookAdapter? adapter,
         string userPrompt = "TASK",
         IReadOnlyList<string>? repoPaths = null,
-        IReadOnlyList<TagId>? tagIds = null,
-        IReadOnlyList<IntentLinkPromptContext>? linkContext = null) =>
+        IReadOnlyList<TagId>? tagIds = null) =>
         new(
             IntentId, TerminalRunModes.Work, Vendor, adapter, workspace,
-            repoPaths ?? [], tagIds ?? [], linkContext ?? [], userPrompt);
+            repoPaths ?? [], tagIds ?? [], userPrompt);
+
+    private static IIntentLinkRepository EmptyLinks()
+    {
+        var repo = Substitute.For<IIntentLinkRepository>();
+        repo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+        return repo;
+    }
+
+    private static IntentLinkView LinkView(string peerId, bool blocking, bool incoming, string? rationale)
+    {
+        var intentId = new IntentId(IntentId);
+        var peer = Intent.Restore(new IntentId(peerId), $"{peerId} body", IntentStatusNames.Work, 1, [], DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+        var link = IntentLink.Create(
+            $"link-{peerId}",
+            incoming ? peer.Id : intentId,
+            incoming ? intentId : peer.Id,
+            blocking,
+            IntentLinkAuthor.User,
+            rationale,
+            DateTimeOffset.UnixEpoch);
+        return new IntentLinkView(
+            link,
+            incoming ? IntentLinkDirection.Incoming : IntentLinkDirection.Outgoing,
+            peer);
+    }
 
     private static void CleanUp(string workspace)
     {
