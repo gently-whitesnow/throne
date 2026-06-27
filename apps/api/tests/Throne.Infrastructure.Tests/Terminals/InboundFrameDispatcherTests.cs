@@ -41,6 +41,44 @@ public class InboundFrameDispatcherTests
         args.Should().Equal("send-keys", "-t", "throne-intent-1", "-H", "D0", "B4");
     }
 
+    [Fact(DisplayName = "Крупный input идёт через load-buffer + paste-buffer, а не send-keys -H")]
+    public async Task Large_input_uses_load_and_paste_buffer()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(0, "", "", TimeSpan.Zero)));
+        var tmux = new TmuxCli(launcher, Options.Create(new TmuxOptions()));
+        var sut = new InboundFrameDispatcher(tmux);
+        var payload = new string('x', 5000);
+
+        await sut.DispatchAsync(new ClientFrame(ClientFrameKind.Input, payload, 0, 0), "throne-intent-1", CancellationToken.None);
+
+        var calls = launcher.ReceivedCalls()
+            .Select(c => (ProcessRunRequest)c.GetArguments()[0]!)
+            .ToList();
+        calls.Should().HaveCount(2);
+        calls[0].Arguments.Should().Equal("load-buffer", "-b", "throne-intent-1-input", "-");
+        calls[0].StandardInput.Should().Be(payload);
+        calls[1].Arguments.Should().Equal("paste-buffer", "-d", "-p", "-b", "throne-intent-1-input", "-t", "throne-intent-1");
+    }
+
+    [Fact(DisplayName = "Если load-buffer упал, paste-buffer не вызывается")]
+    public async Task Failed_load_buffer_skips_paste()
+    {
+        var launcher = Substitute.For<IProcessLauncher>();
+        launcher.RunAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new ProcessRunResult(1, "", "command too long", TimeSpan.Zero)));
+        var tmux = new TmuxCli(launcher, Options.Create(new TmuxOptions()));
+        var sut = new InboundFrameDispatcher(tmux);
+
+        await sut.DispatchAsync(
+            new ClientFrame(ClientFrameKind.Input, new string('x', 5000), 0, 0),
+            "throne-intent-1",
+            CancellationToken.None);
+
+        launcher.ReceivedCalls().Should().HaveCount(1);
+    }
+
     private static async Task<IReadOnlyList<string>> DispatchInputAsync(string data)
     {
         var launcher = Substitute.For<IProcessLauncher>();

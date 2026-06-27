@@ -24,6 +24,14 @@ internal static class ProcessStartInfoBuilder
             StandardErrorEncoding = Encoding.UTF8,
         };
 
+        if (request.StandardInput is not null)
+        {
+            // Without an explicit encoding the redirected writer falls back to the console
+            // input codepage; on a non-UTF-8 locale that mangles multibyte payloads (e.g.
+            // Cyrillic piped to `tmux load-buffer -`). Pin UTF-8 so bytes match the source.
+            psi.StandardInputEncoding = Encoding.UTF8;
+        }
+
         ApplyArguments(psi, request.Arguments);
         ApplyEnvironment(psi, request.Environment);
         return psi;
