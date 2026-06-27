@@ -13,4 +13,9 @@ export const settingsEndpoints = {
   getLocalModelCatalog: () => "/settings/local-model/models",
   getGitProvidersStatus: () => "/settings/git-providers/status",
   setGitLabHost: () => "/settings/git-providers/gitlab/host",
+  getTaskTrackerConnections: () => "/settings/task-trackers",
+  setTaskTrackerConnection: (tracker: string) => `/settings/task-trackers/${tracker}/connection`,
+  deleteTaskTrackerConnection: (tracker: string) => `/settings/task-trackers/${tracker}/connection`,
+  getTaskTrackerBoards: (tracker: string) => `/settings/task-trackers/${tracker}/boards`,
+  setTaskTrackerBoards: (tracker: string) => `/settings/task-trackers/${tracker}/boards`,
 } as const;

@@ -152,6 +152,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/task-trackers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Catalog of task-tracker providers with their saved connection state.
+         * @description One row per provider registered in this Throne build (the catalog half), each carrying its persisted connection state (the status half). `not_configured` means no connection is saved; `connected` means a validated `base_url` + token is on file. The token itself is never returned — only the base URL. This read does not re-probe the upstream tracker; validation happens on the connection upsert. The provider list comes straight from the task-tracker registry (ADR-0045/0046), so the provider-neutral core returns an empty list until an adapter is registered.
+         */
+        get: operations["getTaskTrackerConnections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/task-trackers/{tracker}/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Validate and persist a task-tracker connection (base URL + API token).
+         * @description Validates the credentials against the provider's API, then persists them on success. The token is stored encrypted at rest in the local SQLite database (ADR-0047/0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
+         */
+        put: operations["setTaskTrackerConnection"];
+        post?: never;
+        /**
+         * Remove a saved task-tracker connection and its board selection.
+         * @description Drops the persisted connection (encrypted token included) and any board selection bound to it. Idempotent: deleting an absent connection still returns `204`.
+         */
+        delete: operations["deleteTaskTrackerConnection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/task-trackers/{tracker}/boards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the boards available through the connection, grouped by space.
+         * @description Reads the live space/board topology from the provider using the saved connection, then folds in the current selection so each board carries its `selected` flag and chosen grouping `context_field`. Requires a configured connection — a missing one returns `409`.
+         */
+        get: operations["getTaskTrackerBoards"];
+        /**
+         * Persist the selected boards and their per-board grouping context.
+         * @description Replaces the board selection for this tracker. Each entry pins a board plus the field used to derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out). Boards omitted from the request become unselected. The response re-reads the live topology so the caller sees the saved selection reflected against the current boards.
+         */
+        put: operations["setTaskTrackerBoards"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -282,6 +350,72 @@ export interface components {
         UpdateGitLabHostRequest: {
             /** @description Status for the configured GitLab host. */
             host: string;
+        };
+        /** @description Stable task-tracker provider key. Open wire string (ADR-0046): supported providers come from the backend registry and unknown values are rejected server-side (422). Mirror of `task-trackers#/components/schemas/TaskTrackerProvider` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. */
+        TaskTrackerKey: string;
+        /**
+         * @description `not_configured` — no connection saved. `connected` — a validated base URL + token is persisted. `invalid` — the token was rejected by the tracker API (upsert only; not persisted). `unreachable` — the tracker API could not be reached (upsert only; not persisted).
+         * @enum {string}
+         */
+        TaskTrackerConnectionState: "not_configured" | "connected" | "invalid" | "unreachable";
+        TaskTrackerConnectionDto: {
+            tracker: components["schemas"]["TaskTrackerKey"];
+            /** @description Human-readable provider label from the registry. */
+            display_name: string;
+            state: components["schemas"]["TaskTrackerConnectionState"];
+            /** @description Persisted workspace base URL. Null unless a connection is saved. Token is never returned. */
+            base_url?: string | null;
+            /** @description Probe failure detail. Present only for `invalid` / `unreachable`. */
+            error?: string | null;
+        };
+        TaskTrackerConnectionsDto: {
+            /** @description One row per registered task-tracker provider, in registry order. */
+            connections: components["schemas"]["TaskTrackerConnectionDto"][];
+        };
+        UpdateTaskTrackerConnectionRequest: {
+            /** @description Workspace base URL, e.g. `https://mycompany.kaiten.ru`. */
+            base_url: string;
+            /** @description API token. Stored encrypted at rest; never read back. */
+            token: string;
+        };
+        /**
+         * @description Board field used to derive a card's «context» during sync. `none` is the explicit opt-out / fallback when no field maps cleanly.
+         * @enum {string}
+         */
+        TaskTrackerContextField: "lane" | "tags" | "type" | "none";
+        TaskTrackerBoardDto: {
+            /** @description Provider-native board identifier (opaque string, provider-neutral). */
+            board_id: string;
+            /** @description Human-readable board name. */
+            board_title: string;
+            /** @description Whether this board is part of the saved selection. */
+            selected: boolean;
+            context_field: components["schemas"]["TaskTrackerContextField"];
+        };
+        TaskTrackerSpaceDto: {
+            /** @description Provider-native space identifier (opaque string). */
+            space_id: string;
+            /** @description Human-readable space name. */
+            space_title: string;
+            boards: components["schemas"]["TaskTrackerBoardDto"][];
+        };
+        TaskTrackerBoardsDto: {
+            tracker: components["schemas"]["TaskTrackerKey"];
+            /** @description Live space/board topology, merged with the saved selection. */
+            spaces: components["schemas"]["TaskTrackerSpaceDto"][];
+        };
+        TaskTrackerBoardSelectionEntry: {
+            space_id: string;
+            /** @description Cached space title so the selection is self-describing for sync. */
+            space_title?: string;
+            board_id: string;
+            /** @description Cached board title so the selection is self-describing for sync. */
+            board_title?: string;
+            context_field: components["schemas"]["TaskTrackerContextField"];
+        };
+        UpdateTaskTrackerBoardsRequest: {
+            /** @description The full selected set. Boards not listed become unselected. */
+            boards: components["schemas"]["TaskTrackerBoardSelectionEntry"][];
         };
         ProblemDetails: {
             type: string;
@@ -526,6 +660,192 @@ export interface operations {
             };
             /** @description Empty or invalid host. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getTaskTrackerConnections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved connection state per registered task-tracker provider. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerConnectionsDto"];
+                };
+            };
+        };
+    };
+    setTaskTrackerConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerKey"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTaskTrackerConnectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Connection probe outcome (persisted only when `state=connected`). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerConnectionDto"];
+                };
+            };
+            /** @description Unknown tracker key, or empty base URL / token. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    deleteTaskTrackerConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerKey"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection removed (or was already absent). */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown tracker key. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getTaskTrackerBoards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerKey"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available boards grouped by space, merged with the saved selection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerBoardsDto"];
+                };
+            };
+            /** @description No connection is configured for this tracker. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unknown tracker key. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The upstream tracker API was unreachable or rejected the saved token. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    setTaskTrackerBoards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerKey"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTaskTrackerBoardsRequest"];
+            };
+        };
+        responses: {
+            /** @description Saved selection, merged against the live topology. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerBoardsDto"];
+                };
+            };
+            /** @description No connection is configured for this tracker. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unknown tracker key or unknown context field. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The upstream tracker API was unreachable or rejected the saved token. */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -44,6 +44,8 @@ public static class ErrorCodes
     public const string IdeProviderUnavailable = "ide.provider_unavailable";
     public const string GitLabHostInvalid = "settings.gitlab_host.invalid";
     public const string TaskTrackerProviderUnsupported = "task_tracker.provider_unsupported";
+    public const string TaskTrackerConnectionMissing = "task_tracker.connection_missing";
+    public const string TaskTrackerUpstreamUnavailable = "task_tracker.upstream_unavailable";
     public const string PromptPartNotFound = "prompt_part.not_found";
     public const string PromptPartAlreadyExists = "prompt_part.already_exists";
     public const string PromptPartVersionConflict = "prompt_part.version_conflict";

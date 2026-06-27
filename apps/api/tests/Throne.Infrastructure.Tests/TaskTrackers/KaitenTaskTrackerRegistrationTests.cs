@@ -11,7 +11,8 @@ public class KaitenTaskTrackerRegistrationTests
     [Fact(DisplayName = "Провайдер несёт открытый ключ 'kaiten' и читаемое имя")]
     public void Provider_identity()
     {
-        var provider = new KaitenTaskTrackerProvider();
+        // Identity (key + label) is independent of the HTTP client, so a null client suffices here.
+        var provider = new KaitenTaskTrackerProvider(client: null!);
         provider.TrackerKey.Should().Be("kaiten");
         provider.DisplayName.Should().Be("Kaiten");
     }
