@@ -24,8 +24,8 @@ export function AgentContextPage() {
       badge: patches.total
     },
     { id: "slot-user-prompt", index: 2, label: "User-промпт" },
-    { id: "slot-skills", index: 3, label: "Скилы" },
-    { id: "slot-user-skills", index: 4, label: "Скилы юзера" }
+    { id: "slot-skills", index: 3, label: "Throne-скилы" },
+    { id: "slot-user-skills", index: 4, label: "Пользовательские скилы" }
   ];
 
   return (
@@ -70,8 +70,8 @@ export function AgentContextPage() {
       <SlotSection
         id="slot-skills"
         index={3}
-        title="Скилы"
-        source="дефолтные скилы Трона по режимам (intent / review / dream)"
+        title="Throne-скилы"
+        source="встроенные скилы Throne по режимам (intent / review / dream)"
         whereToChange="здесь — матрица режим × скил; на сессию — в окне запуска"
       >
         <SkillsSlot />
@@ -80,7 +80,7 @@ export function AgentContextPage() {
       <SlotSection
         id="slot-user-skills"
         index={4}
-        title="Скилы юзера"
+        title="Пользовательские скилы"
         source="подкладываемые пользовательские скилы"
         marker={<SoonChip />}
         muted
