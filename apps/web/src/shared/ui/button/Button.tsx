@@ -15,8 +15,12 @@ export function Button({
   type = "button",
   ...props
 }: ButtonProps) {
+  const press =
+    "transition-[color,background-color,box-shadow,scale] active:scale-[0.96]";
   const base =
-    variant === "primary" ? "btn btn-sm btn-primary" : "btn btn-sm btn-soft";
+    variant === "primary"
+      ? `btn btn-sm btn-primary ${press}`
+      : `btn btn-sm btn-soft ${press}`;
   const merged = className ? `${base} ${className}` : base;
 
   return (

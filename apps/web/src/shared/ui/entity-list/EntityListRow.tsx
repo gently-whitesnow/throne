@@ -21,7 +21,7 @@ export function EntityListRowContent({ row }: EntityListRowProps) {
         to={row.href}
         className={({ isActive }) =>
           [
-            "flex min-h-9 items-center gap-2 border-l-2 px-3.5 py-1.5 text-[13px] no-underline focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2",
+            "flex min-h-9 items-center gap-2 border-l-2 px-3.5 py-1.5 text-[13px] no-underline transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:-outline-offset-2",
             isActive
               ? "border-primary bg-primary/10 text-base-content"
               : "border-transparent text-base-content hover:bg-base-200"

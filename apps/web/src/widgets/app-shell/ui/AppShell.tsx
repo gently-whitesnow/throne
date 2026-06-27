@@ -74,7 +74,7 @@ export function AppShell() {
         {runtime.isEphemeral ? (
           <button
             type="button"
-            className="relative ml-auto flex h-10 w-10 items-center justify-center rounded-md text-error transition-colors hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error disabled:opacity-60 md:ml-0 md:mt-auto"
+            className="relative ml-auto flex h-10 w-10 items-center justify-center rounded-md text-error transition-[color,background-color,scale] hover:bg-error/10 focus-visible:outline-2 focus-visible:outline-error active:scale-[0.96] disabled:opacity-60 md:ml-0 md:mt-auto"
             title="Завершение"
             aria-label="Завершение"
             disabled={runtime.isStopping}
@@ -95,7 +95,7 @@ export function AppShell() {
 
 function navItemClass({ isActive }: { isActive: boolean }): string {
   const base =
-    "relative flex h-10 w-10 items-center justify-center rounded-md transition-colors";
+    "relative flex h-10 w-10 items-center justify-center rounded-md transition-[color,background-color,scale] active:scale-[0.96]";
   return isActive
     ? `${base} bg-primary/10 text-primary`
     : `${base} text-base-content/60 hover:bg-base-300/60 hover:text-base-content`;
