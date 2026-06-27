@@ -45,6 +45,7 @@ export function AgentContextPage() {
         id="slot-system"
         index={1}
         title="System-промпт"
+        region="system"
         source="блоки инструкций; что войдёт — зависит от режима запуска"
         whereToChange="выбери режим слева → правь состав и текст своих блоков; системные read-only из манифеста"
         marker={
@@ -61,6 +62,7 @@ export function AgentContextPage() {
         id="slot-user-prompt"
         index={2}
         title="User-промпт"
+        region="user"
         source="тело интента + свободная вставка оператора"
         whereToChange="тело — на странице интента; вставка — в окне запуска"
       >

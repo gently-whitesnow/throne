@@ -1,8 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 
-import { scopeAccent } from "@/shared/lib";
-
 import type { PromptPartPreview } from "../model/types";
 
 import { AutoTextarea } from "./AutoTextarea";
@@ -29,21 +27,9 @@ export function PartFrame({ part, onToggle, onTextChange }: PartFrameProps) {
   const [open, setOpen] = useState(true);
   const bodyId = useId();
   const mandatory = part.role === "mandatory";
-  const accent = scopeAccent(part.scope);
 
   return (
-    <section
-      className="flex flex-col rounded-md border border-base-300 bg-base-100"
-      style={
-        accent
-          ? {
-              backgroundColor: accent.tint,
-              borderLeftColor: accent.stripe,
-              borderLeftWidth: "3px"
-            }
-          : undefined
-      }
-    >
+    <section className="flex flex-col rounded-md border border-base-300 bg-base-100">
       <div className="flex items-center gap-2 px-2 py-1.5">
         <button
           type="button"

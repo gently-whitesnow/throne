@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { promptRegionAccent } from "@/shared/lib";
+
 import type { PromptPartPreview } from "../model/types";
 
 import { PartChip, PartFrame } from "./PartFrame";
@@ -12,6 +14,8 @@ interface PreflightColumnProps {
   /** Контент перед рамками частей (зона задачи в USER-колонке). */
   children?: ReactNode;
 }
+
+const SYSTEM_ACCENT = promptRegionAccent("system");
 
 /**
  * Колонка-поток частей system-промпта: включённые — рамками, доступные выключенные
@@ -32,7 +36,11 @@ export function PreflightColumn({
   return (
     <section
       aria-label={title}
-      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-3"
+      className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto border-l-[3px] px-3 py-3"
+      style={{
+        backgroundColor: SYSTEM_ACCENT.tint,
+        borderLeftColor: SYSTEM_ACCENT.stripe
+      }}
     >
       <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
         {title}
