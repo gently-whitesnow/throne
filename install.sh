@@ -61,7 +61,11 @@ info "Downloading $asset (latest release)…"
 curl -fSL --proto '=https' --tlsv1.2 "$url" -o "$tmp/$asset" \
   || err "download failed from $url"
 
-info "Installing into $APP_DIR…"
+# NB: всегда оборачивай $VAR в ${VAR}, если сразу за ним идёт не-ASCII символ
+# (здесь — многобайтный «…»). macOS-bash 3.2 в UTF-8-локали затягивает первый
+# байт multibyte-символа в имя переменной → "${APP_DIR}…" парсится как $APP_DIR<байт>,
+# которой нет, и при `set -u` падает с "unbound variable". Скобки фиксируют границу имени.
+info "Installing into ${APP_DIR}…"
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR"
 tar -xzf "$tmp/$asset" -C "$APP_DIR"
