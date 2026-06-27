@@ -15,6 +15,16 @@ Usage:
   throne-dream patches [--scope user] [--key KEY] [--status STATUS] [--limit N] [--cursor C]
   throne-dream get-patch PATCH_ID
   throne-dream propose-patch < payload.json
+
+propose-patch payload (ADR-0038): { target_scope:"user", target_key, base_version,
+  rationale, idempotency_key, operation, patch_text?, mode_roles? }
+  operation (default replace_text):
+    replace_text  patch_text = whole new text of the part
+    create        new part: patch_text + mode_roles, base_version=0
+    set_roles     replace mode_roles (full desired set; e.g. demote default_on->default_off)
+    delete        retire the user part (no patch_text / mode_roles needed)
+  mode_roles[] = { mode: interview|work|review|dream|free,
+                   role: mandatory|default_on|default_off, order: int>=0 }
 USAGE
 }
 
