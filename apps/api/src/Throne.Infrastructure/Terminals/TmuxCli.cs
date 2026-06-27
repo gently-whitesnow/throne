@@ -16,7 +16,10 @@ internal sealed class TmuxCli(IProcessLauncher launcher, IOptions<TmuxOptions> o
 
     public string ExecutablePath => _opts.ExecutablePath;
 
-    public async Task<TmuxRunOutcome> RunAsync(IReadOnlyList<string> arguments, CancellationToken ct)
+    public async Task<TmuxRunOutcome> RunAsync(
+        IReadOnlyList<string> arguments,
+        CancellationToken ct,
+        string? standardInput = null)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         try
@@ -25,7 +28,8 @@ internal sealed class TmuxCli(IProcessLauncher launcher, IOptions<TmuxOptions> o
                 new ProcessRunRequest(
                     FileName: _opts.ExecutablePath,
                     Arguments: arguments,
-                    Timeout: _opts.CommandTimeout),
+                    Timeout: _opts.CommandTimeout,
+                    StandardInput: standardInput),
                 ct);
             return TmuxRunOutcome.Completed(result);
         }
