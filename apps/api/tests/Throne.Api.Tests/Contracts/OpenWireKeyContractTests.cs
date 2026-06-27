@@ -10,6 +10,7 @@ public class OpenWireKeyContractTests
     [InlineData("tags/openapi.yaml", "TagDefaultGitProvider")]
     [InlineData("terminal/openapi.yaml", "TerminalAgentVendor")]
     [InlineData("settings/openapi.yaml", "TerminalAgentVendor")]
+    [InlineData("task-trackers/openapi.yaml", "TaskTrackerProvider")]
     public void Extension_key_schema_is_plain_string(string contractPath, string schemaName)
     {
         var schema = Schema(contractPath, schemaName);

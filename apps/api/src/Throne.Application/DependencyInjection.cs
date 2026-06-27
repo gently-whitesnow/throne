@@ -115,6 +115,7 @@ public static class DependencyInjection
         services.AddSingleton<OpenInIdeService>();
         services.AddSingleton<ITerminalOpenerRegistry, TerminalOpenerRegistry>();
         services.AddSingleton<OpenInTerminalService>();
+        services.AddTaskTrackerAxis();
         return services;
     }
 
