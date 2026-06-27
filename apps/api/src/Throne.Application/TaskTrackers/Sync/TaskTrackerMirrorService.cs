@@ -1,0 +1,117 @@
+using Throne.Application.Intents;
+using Throne.Application.Ports;
+using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
+using Throne.Domain.TaskTrackers;
+using Throne.Domain.TextVersions;
+
+namespace Throne.Application.TaskTrackers.Sync;
+
+/// <summary>Outcome of mirroring a single card into its intent.</summary>
+public sealed record MirrorApplyResult(string IntentId, bool Created, bool ContentChanged);
+
+/// <summary>
+/// Applies one tracker card onto its mirror intent: creates the intent on first sight, otherwise pulls
+/// the card's title/description into the intent text — but only when the card actually differs from the
+/// snapshot baseline (last-write-wins, no merge). The link's snapshot is persisted <em>before</em> the
+/// intent-text write so the write-through handler, firing on the resulting <c>IntentTextChanged</c>,
+/// sees the new baseline and suppresses the echo back to the tracker. Reused by both the poll loop and
+/// force-pull so the two paths can never drift.
+/// </summary>
+public sealed class TaskTrackerMirrorService(
+    IIntentRepository repository,
+    IIntentOrderingRepository ordering,
+    ITaskTrackerCardLinkStore linkStore,
+    IUnitOfWork unitOfWork,
+    TimeProvider clock)
+{
+    public async Task<MirrorApplyResult> ApplyAsync(string tracker, TaskTrackerCard card, CardSyncLink? existing, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        var now = clock.GetUtcNow();
+        var snapshot = new CardSyncLinkSnapshot(card.Title, card.Description, card.ColumnId, card.ColumnTitle);
+        var cursors = new CardSyncLinkCursors(card.UpdatedAt, card.ColumnChangedAt, now);
+
+        if (existing is null)
+        {
+            return await CreateAsync(tracker, card, snapshot, cursors, now, ct);
+        }
+
+        var intent = await repository.GetByIdAsync(new IntentId(existing.IntentId), ct);
+        if (intent is null)
+        {
+            // The operator deleted the mirror intent; drop the stale link and re-mirror fresh.
+            await linkStore.DeleteByIntentAsync(existing.IntentId, ct);
+            return await CreateAsync(tracker, card, snapshot, cursors, now, ct);
+        }
+
+        var composed = CardTextComposer.Compose(card.Title, card.Description);
+        if (CardTextComposer.Matches(existing.Snapshot, intent.State.Text) && string.Equals(intent.State.Text, composed, StringComparison.Ordinal))
+        {
+            existing.RecordSnapshot(snapshot, cursors, now);
+            await linkStore.SaveAsync(existing, ct);
+            return new MirrorApplyResult(existing.IntentId, Created: false, ContentChanged: false);
+        }
+
+        existing.RecordSnapshot(snapshot, cursors, now);
+        await linkStore.SaveAsync(existing, ct);
+        await unitOfWork.ExecuteAsync(
+            inner => repository.ReplaceTextAsync(
+                intent.Id, intent.State.CurrentVersion, intent.State.Text, composed, TextVersionAuthor.Agent, now, inner),
+            ct);
+        return new MirrorApplyResult(existing.IntentId, Created: false, ContentChanged: true);
+    }
+
+    public async Task MarkStubAsync(CardSyncLink link, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(link);
+        if (link.IsStub)
+        {
+            return;
+        }
+
+        link.MarkStub(clock.GetUtcNow());
+        await linkStore.SaveAsync(link, ct);
+    }
+
+    private async Task<MirrorApplyResult> CreateAsync(
+        string tracker, TaskTrackerCard card, CardSyncLinkSnapshot snapshot, CardSyncLinkCursors cursors, DateTimeOffset now, CancellationToken ct)
+    {
+        var id = IntentId.New();
+        var composed = CardTextComposer.Compose(card.Title, card.Description);
+        var sortKey = await NextTopSortKeyAsync(ct);
+        await unitOfWork.ExecuteAsync(
+            async inner =>
+            {
+                var intent = Intent.Create(id, composed, null, now, sortKey: sortKey);
+                var version = TextVersion.CreateSnapshot(
+                    id: Guid.NewGuid().ToString("N"),
+                    ownerKind: TextVersionOwnerKind.Intent,
+                    ownerId: id.Value,
+                    snapshot: intent.State.Text,
+                    changedAt: now,
+                    changedBy: TextVersionAuthor.Agent);
+                var statusChange = IntentStatusChange.Create(
+                    id: Guid.NewGuid().ToString("N"),
+                    intentId: id,
+                    intentVersionAtWrite: intent.State.CurrentVersion,
+                    fromStatus: intent.State.Status,
+                    toStatus: intent.State.Status,
+                    source: "task_tracker_sync",
+                    createdAt: now,
+                    createdBy: TextVersionAuthorMapping.ToTrainingAuthor(TextVersionAuthor.Agent));
+                return await repository.CreateAsync(intent, version, statusChange, [], inner);
+            },
+            ct);
+
+        var link = CardSyncLink.Create(id.Value, new TaskTrackerCardLink(tracker, card.BoardId, card.CardId), snapshot, cursors, now);
+        await linkStore.SaveAsync(link, ct);
+        return new MirrorApplyResult(id.Value, Created: true, ContentChanged: true);
+    }
+
+    private async Task<string> NextTopSortKeyAsync(CancellationToken ct)
+    {
+        var currentMin = await ordering.GetMinSortKeyAsync(ct);
+        return FractionalIndex.Between(before: null, after: string.IsNullOrEmpty(currentMin) ? null : currentMin);
+    }
+}

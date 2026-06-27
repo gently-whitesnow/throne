@@ -177,6 +177,14 @@
             "methodMaxLoc": 80,
             "methodMaxCyclomaticComplexity": 15
           }
+        },
+        {
+          "_comment": "Hand-written test doubles (Fakes/TestDoubles) implement a whole port interface, so public surface == interface method count — same structural-surface precedent as the *CliProvider façades above, not a real type-cohesion smell.",
+          "glob": "**/tests/**Fakes.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20,
+            "typeMaxLoc": 500
+          }
         }
       ]
     },

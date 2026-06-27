@@ -58,5 +58,6 @@ internal static class EfTableNames
     public static class TaskTrackers
     {
         public const string Connections = "task_tracker_connections";
+        public const string CardLinks = "task_tracker_card_links";
     }
 }
