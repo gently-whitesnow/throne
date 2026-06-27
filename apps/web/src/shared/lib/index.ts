@@ -28,6 +28,11 @@ export {
   type MinimalTextDelta
 } from "./minimal-text-delta";
 export { formatRelativeTime, formatDateLabel, dayKey } from "./relative-time";
+export {
+  promptRegionAccent,
+  type PromptRegion,
+  type PromptRegionAccent
+} from "./prompt-region-accent";
 export { useDebouncedValue } from "./use-debounced-value";
 export {
   useResizablePane,

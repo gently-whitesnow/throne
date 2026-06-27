@@ -2,6 +2,7 @@ import { Play, X } from "lucide-react";
 import { useId } from "react";
 
 import { Button, Modal } from "@/shared/ui";
+import { promptRegionAccent } from "@/shared/lib";
 
 import { usePreflightPreview } from "../model/use-preflight-preview";
 import { RUN_MODE_LABEL } from "../model/types";
@@ -35,6 +36,7 @@ export function PreflightModal({
 }: PreflightModalProps) {
   const preview = usePreflightPreview(intentId, launch.mode, open);
   const titleId = useId();
+  const userAccent = promptRegionAccent("user");
 
   if (!open) return null;
 
@@ -71,7 +73,7 @@ export function PreflightModal({
         </p>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 divide-base-300 lg:grid-cols-2 lg:divide-x">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2">
         <PreflightColumn
           title="SYSTEM · system-промпт"
           parts={preview.parts}
@@ -80,7 +82,8 @@ export function PreflightModal({
         />
         <section
           aria-label="USER · user-промпт запуска"
-          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3"
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto border-l-[3px] px-3 py-3"
+          style={{ borderLeftColor: userAccent.stripe }}
         >
           <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
             USER · user-промпт запуска
