@@ -1,3 +1,4 @@
+using Throne.Api.Runtime;
 using Throne.Api.Terminals;
 
 namespace Throne.Api.Hosting;
@@ -14,6 +15,7 @@ public static class ThroneEndpointMapping
         ArgumentNullException.ThrowIfNull(app);
         app.UseWebSockets();
         app.MapThroneTerminalEndpoints();
+        app.MapThroneRuntimeEndpoints();
         return app;
     }
 }
