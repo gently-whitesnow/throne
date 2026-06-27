@@ -22,6 +22,14 @@ Throne — это один self-contained бинарь `throne`: Kestrel в од
 
 ### 1. Получить бинарь
 
+**Одной командой (macOS / Linux x64).** Скачивает latest-релиз, ставит бинарь в `~/.throne/app`, шим `throne` в `~/.local/bin`, дописывает PATH и стартует демон с UI:
+
+```bash
+curl -fsSL https://throne.whitesnow.tech/install | bash
+```
+
+Идемпотентно — повторный запуск = чистая переустановка. Источник — [`install.sh`](install.sh) в репо. Не поддерживается этим путём (ставь вручную, см. ниже): `linux-arm64` и Windows.
+
 **Готовый.** Скачай `throne` под свою платформу из [GitHub Releases](https://github.com/gently-whitesnow/throne/releases) (ассеты `throne-<rid>.tar.gz`, для Windows — `throne-win-x64.zip`; RID: `osx-arm64`, `osx-x64`, `linux-x64`, `win-x64`), распакуй — внутри лежат бинарь и рядом `wwwroot`/`skills`/`specs`.
 
 **Собрать самому.** Нужен .NET 10 SDK и pnpm только на сборку, не на запуск:
