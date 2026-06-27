@@ -28,6 +28,8 @@ public static class DependencyInjection
 
         GitInfrastructureModule.AddThroneGitInfrastructure(services, configuration);
         Throne.Infrastructure.Terminals.TerminalsModule.AddThroneTerminalsInfrastructure(services, configuration);
+        Throne.Infrastructure.TaskTrackers.TaskTrackerInfrastructureModule.AddThroneTaskTrackerInfrastructure(
+            services, configuration);
 
         services.AddOptions<LocalModelSettings>()
             .Bind(configuration.GetSection(LocalModelSettings.SectionName));
