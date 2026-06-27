@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Throne.Api.Tests.Infrastructure;
 using Throne.Application.TaskTrackers;
 
@@ -25,6 +26,10 @@ public sealed class TaskTrackerCatalogEndpointTests(SqliteFixture sqlite) : IAsy
         _factory = SqliteTestHost.Create(_database).WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services =>
             {
+                // Drop the compiled-in adapters (the real Kaiten provider) so this test asserts the
+                // catalog/registry mechanics over a controlled set and the registry doesn't trip on a
+                // duplicate 'kaiten' key.
+                services.RemoveAll<ITaskTrackerProvider>();
                 services.AddSingleton<ITaskTrackerProvider>(new FakeProvider("kaiten", "Kaiten"));
                 services.AddSingleton<ITaskTrackerProvider>(new FakeProvider("jira", "Jira"));
             }));
