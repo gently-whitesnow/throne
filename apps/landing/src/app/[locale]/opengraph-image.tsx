@@ -17,7 +17,9 @@ export default async function OgImage({ params }: { params: { locale: string } }
   const locale = hasLocale(routing.locales, params.locale) ? params.locale : routing.defaultLocale;
   const t = await getTranslations({ locale, namespace: 'meta' });
   const tagline =
-    locale === 'ru' ? 'Память и постановка задач для человека' : 'Memory and intent layer for humans';
+    locale === 'ru'
+      ? 'Кокпит цикла разработки вокруг намерения'
+      : 'The cockpit for the dev loop around an intent';
 
   return new ImageResponse(
     (
