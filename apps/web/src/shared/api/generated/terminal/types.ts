@@ -389,7 +389,7 @@ export interface components {
             system_prompt: string;
             /** @description Intent body draft for the task zone (first user message). */
             user_prompt: string;
-            /** @description Read-only preview of the workspace map prepended to the delivered prompt at spawn: workspace root, mounted repo clone paths, session-metadata note and intent tags. Clone paths are listed without a status marker — every repo is cloned by the time the agent reads the map at spawn. Shown verbatim, never folded into `user_prompt`. */
+            /** @description Read-only preview of the workspace map prepended to the delivered prompt at spawn: workspace root, mounted repo clone paths, session-metadata note, intent tags and link micro-facts. Blocking links are always shown, even without rationale; soft links are shown only when rationale exists. Clone paths are listed without a status marker — every repo is cloned by the time the agent reads the map at spawn. Shown verbatim, never folded into `user_prompt`. */
             workspace_map: string;
         };
         ProblemDetails: {

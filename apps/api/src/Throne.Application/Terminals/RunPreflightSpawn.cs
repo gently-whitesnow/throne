@@ -95,7 +95,8 @@ public sealed class RunPreflightSpawn(
         if (adapter is not INativeSessionInitializer && !string.IsNullOrWhiteSpace(prompt.UserPrompt))
         {
             promptDelivery.Kick(new TerminalPromptDeliveryRequest(
-                intentId.Value, mode, launch.Vendor, adapter, workspacePath, repoPaths, tagIds, prompt.UserPrompt));
+                intentId.Value, mode, launch.Vendor, adapter, workspacePath,
+                repoPaths, tagIds, prompt.UserPrompt));
         }
     }
 
