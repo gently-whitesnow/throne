@@ -48,7 +48,6 @@ public partial class RunPreflightOrchestratorTests
             Intents = Substitute.For<IIntentRepository>();
             Detection = Substitute.For<ICapabilityDetectionCache>();
             Bindings = Substitute.For<IIntentRepositoryBindingRepository>();
-            Links = Substitute.For<IIntentLinkRepository>();
             Tags = Substitute.For<ITagRepository>();
             Tmux = Substitute.For<ITmuxSessionManager>();
             var workspace = new StubWorkspaceRoot(WorkspaceRoot);
@@ -76,7 +75,7 @@ public partial class RunPreflightOrchestratorTests
                 LaunchStore);
             var launchPlanner = new RunPreflightLaunchPlanner(launchResolver, LaunchStore);
             Orchestrator = new RunPreflightOrchestrator(
-                guards, Links, autoBind, queue, cloneWait, spawn, promptGate, skillPlanner, launchPlanner);
+                guards, autoBind, queue, cloneWait, spawn, promptGate, skillPlanner, launchPlanner);
         }
 
         private (RepositoryBindingService Service, IRepositoryCloneRequests CloneQueue) BuildBindingService(
@@ -164,7 +163,6 @@ public partial class RunPreflightOrchestratorTests
         public IIntentRepository Intents { get; }
         public ICapabilityDetectionCache Detection { get; }
         public IIntentRepositoryBindingRepository Bindings { get; }
-        public IIntentLinkRepository Links { get; }
         public ITagRepository Tags { get; }
         public ITmuxSessionManager Tmux { get; }
         public IRunPreflightPromptDelivery Delivery { get; private set; } = default!;
@@ -212,9 +210,6 @@ public partial class RunPreflightOrchestratorTests
                 Bindings.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
                     .Returns(Task.FromResult(bindings));
             }
-            Links.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
-                .Returns(Task.FromResult<IReadOnlyList<IntentLinkView>>([]));
-
             if (spawn is not null)
             {
                 Tmux.SpawnAsync(Arg.Any<TmuxSpawnRequest>(), Arg.Any<CancellationToken>()).Returns(spawn);

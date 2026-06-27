@@ -58,7 +58,6 @@ public class RunPreflightSpawnStagingTests
                 skillPackages: [],
                 repoPaths: [],
                 tagIds: [],
-                linkContext: [],
                 CancellationToken.None);
 
             var dumped = Path.Combine(workspacePath, ".throne", "attachments", "att-9-diagram.png");

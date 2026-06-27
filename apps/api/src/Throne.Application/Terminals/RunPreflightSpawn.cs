@@ -36,7 +36,6 @@ public sealed class RunPreflightSpawn(
         IReadOnlyList<SessionSkillPackage> skillPackages,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<TagId> tagIds,
-        IReadOnlyList<IntentLinkPromptContext> linkContext,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(prompt);
@@ -97,7 +96,7 @@ public sealed class RunPreflightSpawn(
         {
             promptDelivery.Kick(new TerminalPromptDeliveryRequest(
                 intentId.Value, mode, launch.Vendor, adapter, workspacePath,
-                repoPaths, tagIds, linkContext, prompt.UserPrompt));
+                repoPaths, tagIds, prompt.UserPrompt));
         }
     }
 

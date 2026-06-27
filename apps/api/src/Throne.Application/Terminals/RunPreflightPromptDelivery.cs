@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Throne.Application.Events;
+using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Terminals;
@@ -31,6 +32,7 @@ public sealed partial class RunPreflightPromptDelivery(
     TerminalPromptSubmitSignals submitSignals,
     IDomainEventDispatcher events,
     RunPreflightTagNames tagNames,
+    IntentLinkPromptContextReader linkContext,
     ILogger<RunPreflightPromptDelivery>? log = null) : IRunPreflightPromptDelivery
 {
     private const string UserPromptFileName = "throne-session.user-prompt.txt";
@@ -70,8 +72,9 @@ public sealed partial class RunPreflightPromptDelivery(
         // clone sub-dir name. Pasted verbatim — confirmation matches against the composed body. Tag
         // names are resolved here, off the pre-flight critical path, since this task is detached.
         var tags = await tagNames.ResolveAsync(request.TagIds, ct);
+        var links = await linkContext.BuildAsync(new IntentId(request.IntentId), ct);
         var composedPrompt = WorkspaceMapPrompt.Compose(
-            request.WorkspacePath, request.RepoPaths, tags, request.LinkContext, request.UserPrompt);
+            request.WorkspacePath, request.RepoPaths, tags, links, request.UserPrompt);
         await File.WriteAllTextAsync(promptPath, composedPrompt, ct);
         LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, composedPrompt.Length, promptPath);
 
@@ -151,8 +154,8 @@ public sealed partial class RunPreflightPromptDelivery(
 /// Inputs for a detached post-spawn prompt delivery. <see cref="Adapter"/> is null for unknown
 /// vendors (best-effort paste, no readiness/confirm gates). <see cref="RepoPaths"/> are the absolute
 /// clone paths of the intent's ready repos and <see cref="TagIds"/> its tags (resolved to names at
-/// delivery), rendered as a workspace map atop the pasted prompt. <see cref="LinkContext"/> carries
-/// the same filtered link micro-facts shown in the preflight preview.
+/// delivery), rendered as a workspace map atop the pasted prompt. Link micro-facts are resolved by
+/// intent id at delivery time, matching the preflight preview filter.
 /// </summary>
 public sealed record TerminalPromptDeliveryRequest(
     string IntentId,
@@ -162,5 +165,4 @@ public sealed record TerminalPromptDeliveryRequest(
     string WorkspacePath,
     IReadOnlyList<string> RepoPaths,
     IReadOnlyList<TagId> TagIds,
-    IReadOnlyList<IntentLinkPromptContext> LinkContext,
     string UserPrompt);
