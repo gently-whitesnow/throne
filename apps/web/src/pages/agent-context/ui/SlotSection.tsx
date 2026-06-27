@@ -43,13 +43,9 @@ export function SlotSection({
       id={id}
       aria-label={title}
       className={`flex scroll-mt-6 flex-col gap-4 ${
-        accent ? "rounded-r-lg border-l-[3px] py-4 pl-5 pr-4" : ""
+        accent ? "border-l-[3px] py-1 pl-5" : ""
       } ${muted ? "opacity-70" : ""}`}
-      style={
-        accent
-          ? { backgroundColor: accent.tint, borderLeftColor: accent.stripe }
-          : undefined
-      }
+      style={accent ? { borderLeftColor: accent.stripe } : undefined}
     >
       <header className="flex items-start gap-3 border-b border-base-300 pb-3">
         <span
