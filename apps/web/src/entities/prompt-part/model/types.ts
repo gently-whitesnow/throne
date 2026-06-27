@@ -38,11 +38,16 @@ export type PromptPartRole = (typeof PROMPT_PART_ROLES)[number];
 
 export type PromptPartUiRole = PromptPartRole | "none";
 
+/**
+ * Per-mode role wording, phrased as «what happens in this mode» so the operator
+ * reads membership, not the backend enum: mandatory always ships, default_on
+ * ships unless toggled off, default_off is available-but-off, none is excluded.
+ */
 export const PROMPT_PART_ROLE_LABELS: Record<PromptPartUiRole, string> = {
-  mandatory: "обязательная",
+  mandatory: "всегда",
   default_on: "по умолчанию вкл",
-  default_off: "доступна",
-  none: "—"
+  default_off: "доступен, выкл",
+  none: "не входит"
 };
 
 /** Roles selectable for an optional part within a single mode. */
