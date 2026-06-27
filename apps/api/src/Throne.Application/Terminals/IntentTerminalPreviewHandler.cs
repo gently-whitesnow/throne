@@ -40,6 +40,7 @@ public sealed record IntentTerminalPreview(
 public sealed class IntentTerminalPreviewHandler(
     IIntentRepository intents,
     IIntentAttachmentRepository attachments,
+    IIntentLinkRepository links,
     IIntentRepositoryBindingRepository bindings,
     IIntentTerminalLaunchStore launches,
     PromptCompositionResolver resolver,
@@ -58,6 +59,7 @@ public sealed class IntentTerminalPreviewHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, ct);
+        var linkList = await links.ListByIntentAsync(intent.Id, ct);
         var bindingList = await bindings.FindByIntentAsync(intent.Id, ct);
         var userPrompt = ComposeUserPrompt(intent.State.Text, attachmentList);
 
@@ -74,7 +76,7 @@ public sealed class IntentTerminalPreviewHandler(
                 : null;
         var skills = await skillSelection.PreviewAsync(query.Mode, bindingList, remembered, ct);
 
-        var workspaceMap = await ComposeWorkspaceMapAsync(intent, bindingList, ct);
+        var workspaceMap = await ComposeWorkspaceMapAsync(intent, bindingList, linkList, ct);
         return new IntentTerminalPreview(
             composition, intent.State.CurrentVersion, skills, workspaceMap);
     }
@@ -88,12 +90,16 @@ public sealed class IntentTerminalPreviewHandler(
     /// front renders the result read-only.
     /// </summary>
     private async Task<string> ComposeWorkspaceMapAsync(
-        Intent intent, IReadOnlyList<IntentRepositoryBinding> bindings, CancellationToken ct)
+        Intent intent,
+        IReadOnlyList<IntentRepositoryBinding> bindings,
+        IReadOnlyList<IntentLinkView> linkList,
+        CancellationToken ct)
     {
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intent.Id.Value);
         var repoPaths = bindings.Select(b => b.WorkspacePath).ToArray();
         var tags = await tagNames.ResolveAsync(intent.TagIds, ct);
-        return WorkspaceMapPrompt.Compose(workspacePath, repoPaths, tags, userPrompt: "").TrimEnd();
+        var linkContext = IntentLinkPromptContextBuilder.Build(linkList);
+        return WorkspaceMapPrompt.Compose(workspacePath, repoPaths, tags, linkContext, userPrompt: "").TrimEnd();
     }
 
     private static string ComposeUserPrompt(string intentText, IReadOnlyList<IntentAttachment> attachments)

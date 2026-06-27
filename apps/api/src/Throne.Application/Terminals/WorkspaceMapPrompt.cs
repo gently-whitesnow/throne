@@ -18,6 +18,14 @@ internal static class WorkspaceMapPrompt
         string workspaceRoot,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<string> tags,
+        string userPrompt) =>
+        Compose(workspaceRoot, repoPaths, tags, [], userPrompt);
+
+    public static string Compose(
+        string workspaceRoot,
+        IReadOnlyList<string> repoPaths,
+        IReadOnlyList<string> tags,
+        IReadOnlyList<IntentLinkPromptContext> links,
         string userPrompt)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
@@ -47,6 +55,23 @@ internal static class WorkspaceMapPrompt
         if (tags is { Count: > 0 })
         {
             map.Append("Теги интента: ").Append(string.Join(", ", tags)).Append('\n');
+        }
+        if (links is { Count: > 0 })
+        {
+            map.Append("Связи:\n");
+            foreach (var link in links)
+            {
+                map.Append("- ").Append(link.Label);
+                if (string.IsNullOrWhiteSpace(link.Rationale))
+                {
+                    map.Append(" (без причины связи)");
+                }
+                else
+                {
+                    map.Append(": ").Append(link.Rationale);
+                }
+                map.Append('\n');
+            }
         }
 
         map.Append("=======================\n\n");

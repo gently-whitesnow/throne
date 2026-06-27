@@ -11,6 +11,7 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public sealed class RunPreflightOrchestrator(
     RunPreflightGuards guards,
+    IIntentLinkRepository links,
     RunPreflightAutoBind autoBind,
     RunPreflightCloneScheduler cloneQueue,
     RunPreflightCloneWait cloneWait,
@@ -60,6 +61,8 @@ public sealed class RunPreflightOrchestrator(
                 intent.Id.Value, sessionName, TerminalSessionStates.Blocked, waitResult.Bindings, blocking,
                 launchPlan.Record);
         }
+        var linkContext = IntentLinkPromptContextBuilder.Build(
+            await links.ListByIntentAsync(intent.Id, ct));
         var skillPlan = skills.Build(
             intent.Id.Value, launchPlan.Options.Vendor, selectedSkillIds, reviewBindingId, waitResult.Bindings);
 
@@ -76,6 +79,7 @@ public sealed class RunPreflightOrchestrator(
             skillPlan.Packages,
             RunPreflightSession.CollectReadyRepoPaths(waitResult.Bindings),
             intent.TagIds,
+            linkContext,
             ct);
         await launches.SaveAsync(intent.Id.Value, launchPlan, ct);
         await skills.SaveAsync(intent.Id.Value, mode, skillPlan, ct);
