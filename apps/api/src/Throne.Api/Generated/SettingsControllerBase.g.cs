@@ -133,7 +133,7 @@ namespace Throne.Api.Generated
         /// Validate and persist a task-tracker connection (base URL + API token).
         /// </summary>
         /// <remarks>
-        /// Validates the credentials against the provider's API, then persists them on success. The token is stored encrypted at rest in the local SQLite database (ADR-0047/0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
+        /// Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
         /// </remarks>
         /// <returns>Connection probe outcome (persisted only when `state=connected`).</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/connection", Name = "setTaskTrackerConnection")]

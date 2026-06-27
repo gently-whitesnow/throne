@@ -40,6 +40,7 @@ internal static class ApiErrorRegistry
         [ErrorCodes.PromptPartVersionConflict] = StatusCodes.Status409Conflict,
         [ErrorCodes.PromptPartHasRoles] = StatusCodes.Status409Conflict,
         [ErrorCodes.TaskTrackerConnectionMissing] = StatusCodes.Status409Conflict,
+        [ErrorCodes.TaskTrackerConnectionRejected] = StatusCodes.Status409Conflict,
         [LinkErrorCodes.Duplicate] = StatusCodes.Status409Conflict,
 
         [ErrorCodes.IntentAttachmentTooLarge] = StatusCodes.Status413PayloadTooLarge,

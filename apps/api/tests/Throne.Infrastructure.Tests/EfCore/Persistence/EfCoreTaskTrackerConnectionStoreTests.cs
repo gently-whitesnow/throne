@@ -9,8 +9,8 @@ namespace Throne.Infrastructure.Tests.EfCore.Persistence;
 [Trait("Category", "Integration")]
 public sealed class EfCoreTaskTrackerConnectionStoreTests(SqliteFixture sqlite)
 {
-    [Fact(DisplayName = "Save then Get returns the base URL and decrypted token; the column is encrypted at rest")]
-    public async Task SavesAndReadsBackEncrypted()
+    [Fact(DisplayName = "Save then Get round-trips the base URL and token (stored as-is, local-first)")]
+    public async Task SavesAndReadsBack()
     {
         await using var db = await sqlite.CreateDatabaseAsync();
         var store = db.GetRequiredService<ITaskTrackerConnectionStore>();
@@ -25,7 +25,7 @@ public sealed class EfCoreTaskTrackerConnectionStoreTests(SqliteFixture sqlite)
         await using var context = await db.CreateContextAsync();
         var row = await context.Set<TaskTrackerConnectionRow>().AsNoTracking()
             .SingleAsync(r => r.Tracker == "kaiten");
-        row.EncryptedToken.Should().NotContain("tok-secret-123");
+        row.Token.Should().Be("tok-secret-123");
     }
 
     [Fact(DisplayName = "Re-saving the connection preserves the existing board selection")]

@@ -1,9 +1,4 @@
-import {
-  httpDelete,
-  httpGet,
-  httpPut,
-  settingsEndpoints
-} from "@/shared/api";
+import { httpDelete, httpGet, httpPut, settingsEndpoints } from "@/shared/api";
 
 import type {
   TaskTrackerBoards,

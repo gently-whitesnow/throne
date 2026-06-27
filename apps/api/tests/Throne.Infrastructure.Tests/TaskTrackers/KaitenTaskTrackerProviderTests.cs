@@ -77,6 +77,20 @@ public sealed class KaitenTaskTrackerProviderTests
             .Which.Code.Should().Be(ErrorCodes.TaskTrackerUpstreamUnavailable);
     }
 
+    [Theory(DisplayName = "ListBoards translates a 401/403 into connection-rejected, not upstream-unavailable")]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task ListBoards_token_rejected(HttpStatusCode status)
+    {
+        var provider = Provider(
+            spaces: (_, _) => throw new KaitenApiException(status, body: null));
+
+        var act = () => provider.ListBoardsAsync(Descriptor, CancellationToken.None);
+
+        (await act.Should().ThrowAsync<ApiException>())
+            .Which.Code.Should().Be(ErrorCodes.TaskTrackerConnectionRejected);
+    }
+
     private static KaitenTaskTrackerProvider Provider(
         Func<KaitenConnection, CancellationToken, Task<IReadOnlyList<KaitenSpace>>> spaces,
         Func<KaitenConnection, long, CancellationToken, Task<IReadOnlyList<KaitenBoard>>>? boards = null) =>

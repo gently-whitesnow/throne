@@ -940,15 +940,15 @@ namespace Throne.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("base_url");
 
-                    b.Property<string>("EncryptedToken")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("encrypted_token");
-
                     b.Property<string>("SelectedBoards")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("selected_boards");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("token");
 
                     b.HasKey("Tracker");
 

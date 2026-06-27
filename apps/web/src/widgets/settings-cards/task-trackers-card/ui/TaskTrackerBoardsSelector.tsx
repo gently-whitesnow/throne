@@ -84,7 +84,10 @@ export function TaskTrackerBoardsSelector({
 
   const handleSave = () => {
     if (!data) return;
-    saveBoards.mutate({ tracker, request: { boards: collect(data, selection) } });
+    saveBoards.mutate({
+      tracker,
+      request: { boards: collect(data, selection) }
+    });
   };
 
   return (

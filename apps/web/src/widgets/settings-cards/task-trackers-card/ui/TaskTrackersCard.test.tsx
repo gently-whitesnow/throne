@@ -12,8 +12,7 @@ const fetchTaskTrackerConnections = vi.fn<() => Promise<unknown>>();
 const fetchTaskTrackerBoards = vi.fn<(tracker: string) => Promise<unknown>>();
 const setTaskTrackerConnection =
   vi.fn<(tracker: string, request: unknown) => Promise<unknown>>();
-const deleteTaskTrackerConnection =
-  vi.fn<(tracker: string) => Promise<void>>();
+const deleteTaskTrackerConnection = vi.fn<(tracker: string) => Promise<void>>();
 const setTaskTrackerBoards =
   vi.fn<(tracker: string, request: unknown) => Promise<unknown>>();
 
@@ -177,9 +176,7 @@ describe("TaskTrackersCard", () => {
       "task-tracker-board-kaiten-s1:b1"
     );
     expect(checkbox.checked).toBe(true);
-    expect(
-      screen.getByTestId("task-tracker-boards-save-kaiten")
-    ).toBeTruthy();
+    expect(screen.getByTestId("task-tracker-boards-save-kaiten")).toBeTruthy();
   });
 
   it("собирает выбранные доски и шлёт их при «Сохранить доски»", async () => {
@@ -255,9 +252,9 @@ describe("TaskTrackersCard", () => {
     await waitFor(() => {
       expect(screen.getByText("Токен отклонён")).toBeTruthy();
     });
-    expect(
-      screen.getByTestId("task-tracker-error-kaiten").textContent
-    ).toMatch(/Token rejected by Kaiten/);
+    expect(screen.getByTestId("task-tracker-error-kaiten").textContent).toMatch(
+      /Token rejected by Kaiten/
+    );
     expect(fetchTaskTrackerBoards).not.toHaveBeenCalled();
   });
 });

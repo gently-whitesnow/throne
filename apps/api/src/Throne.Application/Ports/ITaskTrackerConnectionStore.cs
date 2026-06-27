@@ -1,10 +1,9 @@
 namespace Throne.Application.Ports;
 
 /// <summary>
-/// Persistence port for a task-tracker connection: the workspace base URL, the API token (encrypted
-/// at rest by the adapter, ADR-0047/0029) and the selected boards. One connection per tracker key.
-/// The token crosses this boundary in plaintext — encryption is an implementation detail of the store,
-/// not a concern the settings axis carries.
+/// Persistence port for a task-tracker connection: the workspace base URL, the API token and the
+/// selected boards. One connection per tracker key. Throne is local-first / single-operator (ADR-0029),
+/// so the store persists the token as-is — at-rest secret protection is out of scope for this axis.
 /// </summary>
 public interface ITaskTrackerConnectionStore
 {

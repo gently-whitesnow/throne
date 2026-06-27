@@ -72,6 +72,13 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
 
             return topology;
         }
+        catch (KaitenApiException ex) when (IsAuthFailure(ex.StatusCode))
+        {
+            // A previously-valid token was revoked/expired: that's a credentials problem the operator
+            // must fix by reconnecting, not an upstream outage. Surface it distinctly (409) instead of
+            // masquerading it as 502.
+            throw TaskTrackerFailures.ConnectionRejected(TrackerKey, ex.Message);
+        }
         catch (KaitenApiException ex)
         {
             throw TaskTrackerFailures.UpstreamUnavailable(TrackerKey, ex.Message);

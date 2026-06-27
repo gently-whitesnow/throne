@@ -17,7 +17,7 @@ internal sealed class TaskTrackerConnectionRowConfiguration
 
         builder.Property(x => x.Tracker).HasColumnName("tracker");
         builder.Property(x => x.BaseUrl).HasColumnName("base_url").IsRequired();
-        builder.Property(x => x.EncryptedToken).HasColumnName("encrypted_token").IsRequired();
+        builder.Property(x => x.Token).HasColumnName("token").IsRequired();
 
         builder.Property(x => x.SelectedBoards)
             .HasColumnName("selected_boards")

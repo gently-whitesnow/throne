@@ -691,7 +691,7 @@ namespace Throne.Settings.Contracts.Generated
         public string Base_url { get; set; }
 
         /// <summary>
-        /// API token. Stored encrypted at rest; never read back.
+        /// API token. Persisted in the local SQLite database; never read back.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("token")]
         [System.ComponentModel.DataAnnotations.Required]
