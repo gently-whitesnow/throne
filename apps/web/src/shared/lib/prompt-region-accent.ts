@@ -26,12 +26,12 @@ export type PromptRegion = "system" | "user";
 // (family-6): sky is pushed up so the system zone shows a faint blue matching its
 // stripe; pink is pulled down so the user zone stays muted.
 const REGION: Record<PromptRegion, { family: string; tintPct: string }> = {
-  system: { family: "var(--color-family-6)", tintPct: "12%" }, // sky
-  user: { family: "var(--color-family-2)", tintPct: "5%" } // pink
+  system: { family: "var(--color-family-6)", tintPct: "10%" }, // sky
+  user: { family: "var(--color-family-2)", tintPct: "4%" } // pink
 };
 
 export interface PromptRegionAccent {
-  /** Saturated left-edge stripe / header-label colour. */
+  /** Left-edge stripe / header-label colour, eased off full saturation. */
   stripe: string;
   /** Very light zone-background tint mixed over base-100. */
   tint: string;
@@ -40,7 +40,7 @@ export interface PromptRegionAccent {
 export function promptRegionAccent(region: PromptRegion): PromptRegionAccent {
   const { family, tintPct } = REGION[region];
   return {
-    stripe: family,
+    stripe: `color-mix(in srgb, ${family} 85%, var(--color-base-100))`,
     tint: `color-mix(in srgb, ${family} ${tintPct}, var(--color-base-100))`
   };
 }
