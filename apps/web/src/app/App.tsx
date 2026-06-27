@@ -9,6 +9,7 @@ import { IntentsSectionPage } from "@/pages/intents-section";
 import { InstructionsSectionPage } from "@/pages/instructions-section";
 import { LaunchSkillsPage } from "@/pages/launch-skills";
 import { SettingsPage } from "@/pages/settings";
+import { StartPage } from "@/pages/start";
 import { TagsSectionPage } from "@/pages/tags-section";
 import { AppShell } from "@/widgets/app-shell";
 import { ReviewWorkspaceRoute } from "@/widgets/review-workspace";
@@ -25,6 +26,7 @@ export function App() {
         <Routes>
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/start" element={<StartPage />} />
             <Route path="/intents" element={<IntentsSectionPage />}>
               <Route path=":id" element={<IntentDetailPage />}>
                 <Route

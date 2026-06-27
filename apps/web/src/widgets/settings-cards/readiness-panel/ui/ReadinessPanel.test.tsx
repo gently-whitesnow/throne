@@ -38,6 +38,14 @@ function vendor(login_status: string) {
   };
 }
 
+function catalog(login_status: string, tmuxDetected: boolean) {
+  return {
+    default_vendor: "claude",
+    vendors: [vendor(login_status)],
+    runtime: { tmux: { detected: tmuxDetected, detail: null } }
+  };
+}
+
 function gitStatus(authenticated: boolean) {
   return {
     providers: [
@@ -65,10 +73,7 @@ describe("ReadinessPanel", () => {
 
   it("рендерит «Throne готов» когда все критерии выполнены", async () => {
     fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
-    fetchTerminalVendorCatalog.mockResolvedValue({
-      default_vendor: "claude",
-      vendors: [vendor("ready")]
-    });
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", true));
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
     render(<ReadinessPanel />);
@@ -83,10 +88,7 @@ describe("ReadinessPanel", () => {
 
   it("рендерит «Не готов» при незакрытом критерии вендора", async () => {
     fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
-    fetchTerminalVendorCatalog.mockResolvedValue({
-      default_vendor: "claude",
-      vendors: [vendor("logged_out")]
-    });
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("logged_out", true));
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
     render(<ReadinessPanel />);

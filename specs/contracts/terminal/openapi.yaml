@@ -493,6 +493,7 @@ components:
       required:
         - default_vendor
         - vendors
+        - runtime
       properties:
         default_vendor:
           description: >
@@ -506,6 +507,36 @@ components:
           items:
             $ref: '#/components/schemas/TerminalVendorMetadataDto'
           description: Every registered vendor, in catalog order.
+        runtime:
+          description: >
+            Host runtime prerequisites of the embedded-terminal launch path, probed live.
+            These are plain host binaries the Run pipeline shells out to — not selectable
+            carrier capabilities (ADR-0026 § 1) — so they ride the launch-surface catalog
+            rather than the capability/provider model. The readiness checklist surfaces
+            them: a logged-in vendor whose `tmux` is undetected would still fail `run` 422.
+          allOf:
+            - $ref: '#/components/schemas/TerminalRuntimePrerequisitesDto'
+    TerminalRuntimePrerequisitesDto:
+      type: object
+      required:
+        - tmux
+      properties:
+        tmux:
+          description: tmux binary detection — the session multiplexer every embedded Run spawns into.
+          allOf:
+            - $ref: '#/components/schemas/RuntimePrerequisiteStatusDto'
+    RuntimePrerequisiteStatusDto:
+      type: object
+      required:
+        - detected
+      properties:
+        detected:
+          type: boolean
+          description: Whether the binary was found on PATH by the live (TTL-cached) probe.
+        detail:
+          type: string
+          nullable: true
+          description: Short free-form probe note (version string, or why detection failed).
     OpenNativeTerminalResponse:
       type: object
       required:

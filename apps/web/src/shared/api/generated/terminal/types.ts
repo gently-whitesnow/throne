@@ -224,6 +224,18 @@ export interface components {
             default_vendor: components["schemas"]["TerminalAgentVendor"];
             /** @description Every registered vendor, in catalog order. */
             vendors: components["schemas"]["TerminalVendorMetadataDto"][];
+            /** @description Host runtime prerequisites of the embedded-terminal launch path, probed live. These are plain host binaries the Run pipeline shells out to — not selectable carrier capabilities (ADR-0026 § 1) — so they ride the launch-surface catalog rather than the capability/provider model. The readiness checklist surfaces them: a logged-in vendor whose `tmux` is undetected would still fail `run` 422. */
+            runtime: components["schemas"]["TerminalRuntimePrerequisitesDto"];
+        };
+        TerminalRuntimePrerequisitesDto: {
+            /** @description tmux binary detection — the session multiplexer every embedded Run spawns into. */
+            tmux: components["schemas"]["RuntimePrerequisiteStatusDto"];
+        };
+        RuntimePrerequisiteStatusDto: {
+            /** @description Whether the binary was found on PATH by the live (TTL-cached) probe. */
+            detected: boolean;
+            /** @description Short free-form probe note (version string, or why detection failed). */
+            detail?: string | null;
         };
         OpenNativeTerminalResponse: {
             /** @description Native terminal provider that was actually invoked. */
