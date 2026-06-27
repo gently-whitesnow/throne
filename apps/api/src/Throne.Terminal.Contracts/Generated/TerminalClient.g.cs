@@ -188,6 +188,63 @@ namespace Throne.Terminal.Contracts.Generated
         [System.ComponentModel.DataAnnotations.MinLength(1)]
         public System.Collections.Generic.ICollection<TerminalVendorMetadataDto> Vendors { get; set; } = new System.Collections.ObjectModel.Collection<TerminalVendorMetadataDto>();
 
+        /// <summary>
+        /// Host runtime prerequisites of the embedded-terminal launch path, probed live. These are plain host binaries the Run pipeline shells out to — not selectable carrier capabilities (ADR-0026 § 1) — so they ride the launch-surface catalog rather than the capability/provider model. The readiness checklist surfaces them: a logged-in vendor whose `tmux` is undetected would still fail `run` 422.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("runtime")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TerminalRuntimePrerequisitesDto Runtime { get; set; } = new TerminalRuntimePrerequisitesDto();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalRuntimePrerequisitesDto
+    {
+
+        /// <summary>
+        /// tmux binary detection — the session multiplexer every embedded Run spawns into.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tmux")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public RuntimePrerequisiteStatusDto Tmux { get; set; } = new RuntimePrerequisiteStatusDto();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class RuntimePrerequisiteStatusDto
+    {
+
+        /// <summary>
+        /// Whether the binary was found on PATH by the live (TTL-cached) probe.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("detected")]
+        public bool Detected { get; set; }
+
+        /// <summary>
+        /// Short free-form probe note (version string, or why detection failed).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("detail")]
+        public string Detail { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
