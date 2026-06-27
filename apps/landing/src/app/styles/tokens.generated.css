@@ -1,0 +1,52 @@
+/*
+ * AUTO-GENERATED FROM DESIGN.md — DO NOT EDIT BY HAND.
+ * Regenerate with: python apps/landing/scripts/sync_design_tokens.py
+ */
+
+:root {
+  --color-primary: oklch(0.5 0.2 255);
+  --color-primary-strong: oklch(0.42 0.2 255);
+  --color-secondary: oklch(0.48 0.14 280);
+  --color-accent: oklch(0.56 0.17 168);
+  --color-accent-strong: oklch(0.48 0.13 168);
+  --color-neutral: oklch(0.3 0.006 260);
+  --color-neutral-soft: oklch(0.97 0.005 250);
+  --color-canvas: oklch(1 0 0);
+  --color-surface: oklch(0.99 0.003 250);
+  --color-border: oklch(0.93 0.005 250);
+  --color-text: oklch(0.22 0.005 250);
+  --color-text-muted: oklch(0.39 0.02 257);
+  --color-text-subtle: oklch(0.59 0.02 257);
+  --color-info: oklch(0.58 0.2 240);
+  --color-info-soft: oklch(0.95 0.04 240);
+  --color-success: oklch(0.58 0.2 155);
+  --color-success-soft: oklch(0.95 0.05 155);
+  --color-warning: oklch(0.68 0.2 70);
+  --color-warning-soft: oklch(0.95 0.06 80);
+  --color-error: oklch(0.55 0.24 25);
+  --color-error-soft: oklch(0.95 0.05 25);
+}
+
+[data-theme='dark'] {
+  --color-primary: oklch(0.68 0.17 250);
+  --color-primary-strong: oklch(0.55 0.18 250);
+  --color-secondary: oklch(0.62 0.13 280);
+  --color-accent: oklch(0.74 0.16 168);
+  --color-accent-strong: oklch(0.6 0.14 168);
+  --color-neutral: oklch(0.22 0.005 250);
+  --color-neutral-soft: oklch(0.2 0.005 260);
+  --color-canvas: oklch(0.17 0.005 260);
+  --color-surface: oklch(0.19 0.005 260);
+  --color-border: oklch(0.27 0.005 260);
+  --color-text: oklch(0.88 0.005 250);
+  --color-text-muted: oklch(0.7 0.02 257);
+  --color-text-subtle: oklch(0.55 0.02 257);
+  --color-info: oklch(0.72 0.16 240);
+  --color-info-soft: oklch(0.25 0.06 240);
+  --color-success: oklch(0.74 0.18 155);
+  --color-success-soft: oklch(0.25 0.07 155);
+  --color-warning: oklch(0.78 0.17 70);
+  --color-warning-soft: oklch(0.28 0.08 80);
+  --color-error: oklch(0.68 0.2 25);
+  --color-error-soft: oklch(0.28 0.07 25);
+}

@@ -1,0 +1,34 @@
+/*
+ * Color tokens live in tokens.generated.css (auto-generated from
+ * site/design/DESIGN.md). This file owns the non-color design primitives
+ * — spacing, radii, font stacks, layout widths — and pulls in the
+ * generated palette so consumers can keep importing a single file.
+ */
+@import './tokens.generated.css';
+
+:root {
+  --rounded-sm: 6px;
+  --rounded-md: 8px;
+  --rounded-lg: 12px;
+  --rounded-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  --font-sans: "Mona Sans Variable", "Mona Sans", var(--font-mona-sans), ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "Monaspace Neon", ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Monaco, Consolas,
+    monospace;
+
+  --max-w-page: 1120px;
+  --max-w-prose: 880px;
+}
