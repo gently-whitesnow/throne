@@ -8,7 +8,10 @@ import { PartRow } from "./PartRow";
 
 interface PartsListProps {
   parts: PromptPartListItem[];
+  /** key `${scope}/${key}` → proposed-patch count, for the «N правок» badge. */
+  patchCounts?: Map<string, number>;
   onOpenPart: (part: PromptPartListItem) => void;
+  onShowPatches?: (part: PromptPartListItem) => void;
   onCreatePart: () => void;
 }
 
@@ -17,7 +20,13 @@ interface PartsListProps {
  * (read-only text and roles); user parts get full CRUD plus inline per-mode role
  * controls. A part's per-mode role drives the embedded composition for that mode.
  */
-export function PartsList({ parts, onOpenPart, onCreatePart }: PartsListProps) {
+export function PartsList({
+  parts,
+  patchCounts,
+  onOpenPart,
+  onShowPatches,
+  onCreatePart
+}: PartsListProps) {
   const [roleError, setRoleError] = useState<string | null>(null);
 
   const systemParts = parts.filter((p) => p.scope === "system");
@@ -37,7 +46,9 @@ export function PartsList({ parts, onOpenPart, onCreatePart }: PartsListProps) {
         empty="Нет system-частей."
         parts={systemParts}
         readOnly
+        patchCounts={patchCounts}
         onOpenPart={onOpenPart}
+        onShowPatches={onShowPatches}
         onRoleError={setRoleError}
       />
 
@@ -47,7 +58,9 @@ export function PartsList({ parts, onOpenPart, onCreatePart }: PartsListProps) {
         empty="Пока нет user-частей. Создайте первую."
         parts={userParts}
         readOnly={false}
+        patchCounts={patchCounts}
         onOpenPart={onOpenPart}
+        onShowPatches={onShowPatches}
         onRoleError={setRoleError}
         action={
           <Button
@@ -69,7 +82,9 @@ interface ScopeGroupProps {
   empty: string;
   parts: PromptPartListItem[];
   readOnly: boolean;
+  patchCounts?: Map<string, number>;
   onOpenPart: (part: PromptPartListItem) => void;
+  onShowPatches?: (part: PromptPartListItem) => void;
   onRoleError: (message: string | null) => void;
   action?: React.ReactNode;
 }
@@ -80,7 +95,9 @@ function ScopeGroup({
   empty,
   parts,
   readOnly,
+  patchCounts,
   onOpenPart,
+  onShowPatches,
   onRoleError,
   action
 }: ScopeGroupProps) {
@@ -104,9 +121,17 @@ function ScopeGroup({
               key={part.id}
               part={part}
               readOnly={readOnly}
+              patchCount={patchCounts?.get(`${part.scope}/${part.key}`) ?? 0}
               onOpen={() => {
                 onOpenPart(part);
               }}
+              onShowPatches={
+                onShowPatches
+                  ? () => {
+                      onShowPatches(part);
+                    }
+                  : undefined
+              }
               onRoleError={onRoleError}
             />
           ))}

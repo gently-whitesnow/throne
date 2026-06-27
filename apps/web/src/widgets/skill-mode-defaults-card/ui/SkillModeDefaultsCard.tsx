@@ -8,7 +8,14 @@ import {
   type SkillModeDefaults
 } from "@/entities/session-skill";
 
-export function SkillModeDefaultsCard() {
+interface SkillModeDefaultsCardProps {
+  /** Hide the card's own header when an outer slot already provides the title. */
+  hideHeader?: boolean;
+}
+
+export function SkillModeDefaultsCard({
+  hideHeader = false
+}: SkillModeDefaultsCardProps = {}) {
   const query = useSkillModeDefaultsQuery();
   const mutation = useSetSkillModeDefaults();
 
@@ -30,23 +37,25 @@ export function SkillModeDefaultsCard() {
       data-testid="skill-mode-defaults-card"
       className="flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 p-4"
     >
-      <header className="flex min-w-0 items-start gap-3">
-        <span
-          aria-hidden
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-        >
-          <PackageCheck size={18} strokeWidth={2} />
-        </span>
-        <div className="flex min-w-0 flex-col gap-1">
-          <h3 className="m-0 text-base font-semibold leading-tight">
-            Скилы по умолчанию
-          </h3>
-          <p className="m-0 text-sm leading-relaxed text-base-content/70">
-            Стартовая матрица для окна запуска. В конкретной сессии её можно
-            переопределить перед спавном.
-          </p>
-        </div>
-      </header>
+      {hideHeader ? null : (
+        <header className="flex min-w-0 items-start gap-3">
+          <span
+            aria-hidden
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+          >
+            <PackageCheck size={18} strokeWidth={2} />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <h3 className="m-0 text-base font-semibold leading-tight">
+              Скилы по умолчанию
+            </h3>
+            <p className="m-0 text-sm leading-relaxed text-base-content/70">
+              Стартовая матрица для окна запуска. В конкретной сессии её можно
+              переопределить перед спавном.
+            </p>
+          </div>
+        </header>
+      )}
 
       {data === undefined ? (
         <p className="m-0 text-sm text-base-content/60">Загружаем…</p>
