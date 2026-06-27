@@ -17,9 +17,17 @@
  */
 export type PromptRegion = "system" | "user";
 
-const REGION_FAMILY: Record<PromptRegion, string> = {
-  system: "var(--color-family-6)", // sky
-  user: "var(--color-family-2)" // pink
+// Tint is mixed in sRGB, not oklch: base-100 is a faintly pink white, and oklch
+// hue interpolation keeps a low-percentage mix near the base hue — a 9% sky mix
+// still came out pink, not blue. sRGB blends toward the channel that's actually
+// blue/pink, so the tint reads as the stripe colour.
+//
+// Per-region strength differs because pink (family-2) is more saturated than sky
+// (family-6): sky is pushed up so the system zone shows a faint blue matching its
+// stripe; pink is pulled down so the user zone stays muted.
+const REGION: Record<PromptRegion, { family: string; tintPct: string }> = {
+  system: { family: "var(--color-family-6)", tintPct: "12%" }, // sky
+  user: { family: "var(--color-family-2)", tintPct: "5%" } // pink
 };
 
 export interface PromptRegionAccent {
@@ -30,9 +38,9 @@ export interface PromptRegionAccent {
 }
 
 export function promptRegionAccent(region: PromptRegion): PromptRegionAccent {
-  const family = REGION_FAMILY[region];
+  const { family, tintPct } = REGION[region];
   return {
     stripe: family,
-    tint: `color-mix(in oklch, ${family} 5%, var(--color-base-100))`
+    tint: `color-mix(in srgb, ${family} ${tintPct}, var(--color-base-100))`
   };
 }
