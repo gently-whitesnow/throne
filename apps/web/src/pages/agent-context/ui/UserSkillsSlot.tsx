@@ -14,8 +14,8 @@ export function UserSkillsSlot() {
         <Upload size={18} strokeWidth={2} />
       </span>
       <p className="m-0 leading-relaxed">
-        Подкладываемые скилы поедут рядом со скилами Трона. Механизм загрузки —
-        в работе.
+        Свои скилы можно будет подкладывать рядом с Throne-скилами. Механизм
+        загрузки — в работе.
       </p>
     </div>
   );

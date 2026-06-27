@@ -66,8 +66,8 @@ export function PatchesTab({
         {filterChip}
         <p className="m-0 rounded border border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
           {filtered
-            ? "Для этой части пока нет предложенных правок."
-            : "Патчи появятся, когда dream-проход вызовет `skills/dream/bin/throne-dream propose-patch`. Запусти dream-сессию в Throne либо подожди cron."}
+            ? "Для этого блока пока нет предложенных правок."
+            : "Здесь появятся правки от dream-прохода. Запусти его в подключённом агенте скиллом «/dream» — он разберёт твои диалоги и предложит улучшения блоков, а ты примешь их тут: apply / apply-with-edit / reject."}
         </p>
       </div>
     );

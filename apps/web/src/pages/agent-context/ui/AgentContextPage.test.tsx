@@ -34,8 +34,8 @@ describe("AgentContextPage", () => {
     for (const title of [
       "System-промпт",
       "User-промпт",
-      "Скилы",
-      "Скилы юзера"
+      "Throne-скилы",
+      "Пользовательские скилы"
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeTruthy();
     }
