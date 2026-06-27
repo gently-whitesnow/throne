@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Throne.Api.Terminals;
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Terminal.Contracts.Generated;
 
 namespace Throne.Api.Tests.Terminals;
@@ -10,7 +11,8 @@ public class TerminalVendorCatalogMapperTests
     private static TerminalVendorCatalogMapper Build(
         IVendorModelCatalog[]? dynamicCatalogs = null,
         AgentVendorLoginStatus claudeLogin = AgentVendorLoginStatus.Ready,
-        AgentVendorLoginStatus codexLogin = AgentVendorLoginStatus.LoggedOut)
+        AgentVendorLoginStatus codexLogin = AgentVendorLoginStatus.LoggedOut,
+        CapabilityProbeResult? tmux = null)
     {
         IAgentVendorLoginProbe[] probes =
         [
@@ -26,7 +28,8 @@ public class TerminalVendorCatalogMapperTests
         return new TerminalVendorCatalogMapper(
             catalog,
             dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
-            probes);
+            probes,
+            new StubDetectionCache(tmux));
     }
 
     [Fact(DisplayName = "Каталог: default_vendor=claude и все три вендора отданы в порядке каталога")]
@@ -131,6 +134,32 @@ public class TerminalVendorCatalogMapperTests
         opencode.Login_status.Should().Be(TerminalVendorLoginStatus.In_development);
         opencode.Selectable.Should().BeFalse();
         opencode.Login_detail.Should().Be("в разработке");
+    }
+
+    [Fact(DisplayName = "runtime.tmux: проба детекта tmux пробрасывается в runtime-prerequisites")]
+    public async Task Maps_runtime_tmux_detected()
+    {
+        var dto = await Build(tmux: new CapabilityProbeResult(Detected: true, Detail: "tmux 3.5a"))
+            .ToDtoAsync(CancellationToken.None);
+
+        dto.Runtime.Should().NotBeNull();
+        dto.Runtime.Tmux.Detected.Should().BeTrue();
+        dto.Runtime.Tmux.Detail.Should().Be("tmux 3.5a");
+    }
+
+    [Fact(DisplayName = "runtime.tmux: нет зарегистрированной пробы → detected=false, detail=null")]
+    public async Task Maps_runtime_tmux_undetected_when_probe_missing()
+    {
+        var dto = await Build().ToDtoAsync(CancellationToken.None);
+
+        dto.Runtime.Tmux.Detected.Should().BeFalse();
+        dto.Runtime.Tmux.Detail.Should().BeNull();
+    }
+
+    private sealed class StubDetectionCache(CapabilityProbeResult? tmux) : ICapabilityDetectionCache
+    {
+        public Task<CapabilityProbeResult?> GetAsync(string capabilityName, CancellationToken ct) =>
+            Task.FromResult(capabilityName == "tmux" ? tmux : null);
     }
 
     private sealed class StubCatalog(string vendor, IReadOnlyList<string> models) : IVendorModelCatalog

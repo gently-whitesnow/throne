@@ -35,7 +35,8 @@ const catalog: TerminalVendorCatalog = {
       login_detail: null,
       selectable: true
     }
-  ]
+  ],
+  runtime: { tmux: { detected: true, detail: "tmux 3.5a" } }
 };
 
 describe("findVendorMetadata", () => {

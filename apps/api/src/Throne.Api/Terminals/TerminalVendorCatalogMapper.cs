@@ -1,4 +1,5 @@
 using Throne.Application.Terminals;
+using Throne.Application.Terminals.Capabilities;
 using Throne.Terminal.Contracts.Generated;
 // Capability-availability gating dropped with the toggle model — vendor selectability
 // now depends only on the `in_development` flag (ADR-0032 refactor).
@@ -24,7 +25,8 @@ namespace Throne.Api.Terminals;
 public sealed class TerminalVendorCatalogMapper(
     ITerminalVendorCatalog catalog,
     IEnumerable<IVendorModelCatalog> dynamicCatalogs,
-    IEnumerable<IAgentVendorLoginProbe> loginProbes)
+    IEnumerable<IAgentVendorLoginProbe> loginProbes,
+    ICapabilityDetectionCache detection)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
         dynamicCatalogs.ToDictionary(c => c.Vendor, StringComparer.Ordinal);
@@ -43,6 +45,22 @@ public sealed class TerminalVendorCatalogMapper(
         {
             Default_vendor = TerminalAgentCatalog.DefaultVendor,
             Vendors = vendors,
+            Runtime = await ResolveRuntimeAsync(ct),
+        };
+    }
+
+    // tmux is the embedded-run prerequisite (probed but never a selectable carrier, ADR-0026 § 1);
+    // surfaced here so readiness can flag "agent logged in but Run would still 422".
+    private async Task<TerminalRuntimePrerequisitesDto> ResolveRuntimeAsync(CancellationToken ct)
+    {
+        var tmux = await detection.GetAsync("tmux", ct);
+        return new TerminalRuntimePrerequisitesDto
+        {
+            Tmux = new RuntimePrerequisiteStatusDto
+            {
+                Detected = tmux?.Detected ?? false,
+                Detail = tmux?.Detail,
+            },
         };
     }
 

@@ -37,6 +37,14 @@ function vendor(login_status: string, selectable = true) {
   };
 }
 
+function catalog(login_status: string, tmuxDetected = true, selectable = true) {
+  return {
+    default_vendor: "claude",
+    vendors: [vendor(login_status, selectable)],
+    runtime: { tmux: { detected: tmuxDetected, detail: null } }
+  };
+}
+
 function gitStatus(authenticated: boolean) {
   return {
     providers: [
@@ -69,10 +77,7 @@ describe("useThroneReadiness", () => {
 
   it("ready=true когда все критерии выполнены", async () => {
     fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
-    fetchTerminalVendorCatalog.mockResolvedValue({
-      default_vendor: "claude",
-      vendors: [vendor("ready")]
-    });
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready"));
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
     const { result } = renderHook(() => useThroneReadiness(), { wrapper });
@@ -84,12 +89,27 @@ describe("useThroneReadiness", () => {
     expect(result.current.items.every((i) => i.ok)).toBe(true);
   });
 
+  it("ready=false когда tmux не установлен", async () => {
+    fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", false));
+    fetchWorkspaceSettings.mockResolvedValue({ writable: true });
+
+    const { result } = renderHook(() => useThroneReadiness(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+    expect(result.current.ready).toBe(false);
+    const tmuxItem = result.current.items.find((i) => i.key === "tmux");
+    expect(tmuxItem?.ok).toBe(false);
+    expect(tmuxItem?.command).toBe("brew install tmux");
+  });
+
   it("ready=false когда вендор не залогинен", async () => {
     fetchGitProvidersStatus.mockResolvedValue(gitStatus(true));
-    fetchTerminalVendorCatalog.mockResolvedValue({
-      default_vendor: "claude",
-      vendors: [vendor("in_development", false)]
-    });
+    fetchTerminalVendorCatalog.mockResolvedValue(
+      catalog("in_development", true, false)
+    );
     fetchWorkspaceSettings.mockResolvedValue({ writable: true });
 
     const { result } = renderHook(() => useThroneReadiness(), { wrapper });
