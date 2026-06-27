@@ -2,6 +2,7 @@ import {
   Bot,
   FolderCog,
   GitBranch,
+  KanbanSquare,
   ShieldCheck,
   ToggleRight
 } from "lucide-react";
@@ -10,6 +11,7 @@ import { CapabilitiesCard } from "@/widgets/capabilities-card";
 import { GitProvidersCard } from "@/widgets/git-providers-card";
 import { AgentVendorsCard } from "@/widgets/settings-cards/agent-vendors-card";
 import { ReadinessPanel } from "@/widgets/settings-cards/readiness-panel";
+import { TaskTrackersCard } from "@/widgets/settings-cards/task-trackers-card";
 import { WorkspaceCard } from "@/widgets/workspace-card";
 
 import { TerminalDefaultsCard } from "./TerminalDefaultsCard";
@@ -60,6 +62,15 @@ export function SettingsPage() {
         description="Привязка локальных Git-провайдеров: статус gh CLI, авторизация и scopes."
       >
         <GitProvidersCard />
+      </SettingsSection>
+
+      <SettingsSection
+        id="task-trackers"
+        title="Таск-трекеры"
+        icon={KanbanSquare}
+        description="Подключение таск-трекеров (Kaiten): base URL, API-токен и выбор досок с полем для вывода «контекста» карточек."
+      >
+        <TaskTrackersCard />
       </SettingsSection>
 
       <SettingsSection

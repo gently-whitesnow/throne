@@ -12,6 +12,7 @@ using Throne.Infrastructure.EfCore.Intents;
 using Throne.Infrastructure.EfCore.PromptParts;
 using Throne.Infrastructure.EfCore.Tags;
 using Throne.Infrastructure.PromptParts;
+using Throne.Infrastructure.Security;
 using Throne.Infrastructure.Terminals;
 
 namespace Throne.Infrastructure.EfCore;
@@ -95,6 +96,8 @@ internal static class EfCoreModule
         services.AddSingleton<IIntentTerminalLaunchStore, EfIntentTerminalLaunchStore>();
         services.AddSingleton<ISkillModeDefaultStore, EfSkillModeDefaultStore>();
         services.AddSingleton<IGitLabHostProvider, EfGitLabHostProvider>();
+        services.AddSingleton<ISecretProtector, LocalKeySecretProtector>();
+        services.AddSingleton<ITaskTrackerConnectionStore, EfTaskTrackerConnectionStore>();
 
         services.AddHostedService<EfSchemaInitializer>();
         services.AddHostedService<SkillModeDefaultSeeder>();
