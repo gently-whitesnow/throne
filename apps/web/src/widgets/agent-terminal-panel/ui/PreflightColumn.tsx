@@ -37,10 +37,7 @@ export function PreflightColumn({
     <section
       aria-label={title}
       className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto border-l-[3px] px-3 py-3"
-      style={{
-        backgroundColor: SYSTEM_ACCENT.tint,
-        borderLeftColor: SYSTEM_ACCENT.stripe
-      }}
+      style={{ borderLeftColor: SYSTEM_ACCENT.stripe }}
     >
       <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
         {title}

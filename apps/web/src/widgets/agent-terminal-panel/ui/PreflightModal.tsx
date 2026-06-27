@@ -83,10 +83,7 @@ export function PreflightModal({
         <section
           aria-label="USER · user-промпт запуска"
           className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto border-l-[3px] px-3 py-3"
-          style={{
-            backgroundColor: userAccent.tint,
-            borderLeftColor: userAccent.stripe
-          }}
+          style={{ borderLeftColor: userAccent.stripe }}
         >
           <h4 className="m-0 text-xs font-semibold uppercase tracking-wide text-base-content/55">
             USER · user-промпт запуска
