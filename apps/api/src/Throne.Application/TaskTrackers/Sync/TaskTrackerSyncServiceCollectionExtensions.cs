@@ -20,6 +20,7 @@ public static class TaskTrackerSyncServiceCollectionExtensions
         services.AddSingleton<TaskTrackerBoardSyncWorkflow>();
         services.AddSingleton<TaskTrackerSyncTickWorkflow>();
         services.AddSingleton<TaskTrackerForcePullWorkflow>();
+        services.AddSingleton<TaskTrackerBoardForcePullWorkflow>();
         services.AddSingleton<IDomainEventHandler, TaskTrackerWriteThroughHandler>();
         return services;
     }

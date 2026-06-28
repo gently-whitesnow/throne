@@ -78,6 +78,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TaskTrackerCardSyncDto'
+  /api/v1/task-trackers/{tracker}/boards/{board}/refresh:
+    post:
+      operationId: forceRefreshTaskTrackerBoard
+      tags: [TaskTrackers]
+      summary: Run the periodic board sync for one board right now («Обновить» on the board group).
+      description: >
+        Triggers the same delta poll the background sync runs for this board (cards changed since
+        last_seen), bypassing the per-board backoff so the operator does not wait for the next tick.
+        Mirror intents are created/updated and vanished cards are stubbed exactly as in the periodic
+        loop; refreshed content arrives over the realtime stream. Not a bulk re-fetch of every card —
+        it reuses the existing polling path. Returns `not_connected` when the tracker has no saved
+        connection and `unavailable` when the tracker is unreachable.
+      parameters:
+        - in: path
+          name: tracker
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskTrackerProvider'
+        - in: path
+          name: board
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: The board sync outcome.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTrackerBoardSyncDto'
+        '422':
+          description: Tracker key is not registered on this Throne build.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
 components:
   schemas:
     TaskTrackerCardSyncDto:
@@ -101,6 +138,22 @@ components:
           type: string
           enum: [linked, stub]
           description: Resulting link lifecycle, when a link exists.
+    TaskTrackerBoardSyncDto:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [synced, unavailable, not_connected]
+          description: >
+            `synced` — the board poll ran (see `cards_changed`); `unavailable` — the tracker was
+            unreachable mid-poll; `not_connected` — no saved connection for this tracker.
+        cards_changed:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Cards whose mirror content changed in this run, when `status=synced`.
     TaskTrackerProvider:
       type: string
       minLength: 1

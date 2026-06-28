@@ -15,7 +15,8 @@ namespace Throne.Api.TaskTrackers;
 /// </summary>
 public sealed class TaskTrackersController(
     ITaskTrackerProviderRegistry registry,
-    TaskTrackerForcePullWorkflow forcePull) : TaskTrackersControllerBase
+    TaskTrackerForcePullWorkflow forcePull,
+    TaskTrackerBoardForcePullWorkflow boardForcePull) : TaskTrackersControllerBase
 {
     public override async Task<ActionResult<TaskTrackerCardSyncDto>> ForceRefreshIntentTaskTrackerCard(string id)
     {
@@ -30,6 +31,30 @@ public sealed class TaskTrackersController(
                 : TaskTrackerCardSyncDtoState.Linked,
         });
     }
+
+    public override async Task<ActionResult<TaskTrackerBoardSyncDto>> ForceRefreshTaskTrackerBoard(
+        string tracker, string board)
+    {
+        // Close the open wire key before doing any work — an unknown tracker is a 422, like the catalog read.
+        _ = registry.GetByName(tracker)
+            ?? throw TaskTrackerFailures.ProviderUnsupported(
+                tracker,
+                registry.AllProviders.Select(p => p.TrackerKey));
+
+        var result = await boardForcePull.ForcePullAsync(tracker, board, HttpContext.RequestAborted);
+        return new OkObjectResult(new TaskTrackerBoardSyncDto
+        {
+            Status = MapBoardStatus(result.Status),
+            Cards_changed = result.CardsChanged,
+        });
+    }
+
+    private static TaskTrackerBoardSyncDtoStatus MapBoardStatus(BoardForcePullStatus status) => status switch
+    {
+        BoardForcePullStatus.Synced => TaskTrackerBoardSyncDtoStatus.Synced,
+        BoardForcePullStatus.Unavailable => TaskTrackerBoardSyncDtoStatus.Unavailable,
+        _ => TaskTrackerBoardSyncDtoStatus.Not_connected,
+    };
 
     private static TaskTrackerCardSyncDtoStatus MapStatus(ForcePullStatus status) => status switch
     {

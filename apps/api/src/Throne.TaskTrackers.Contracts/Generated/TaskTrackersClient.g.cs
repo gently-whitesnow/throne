@@ -70,6 +70,37 @@ namespace Throne.TaskTrackers.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerBoardSyncDto
+    {
+
+        /// <summary>
+        /// `synced` — the board poll ran (see `cards_changed`); `unavailable` — the tracker was unreachable mid-poll; `not_connected` — no saved connection for this tracker.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TaskTrackerBoardSyncDtoStatus>))]
+        public TaskTrackerBoardSyncDtoStatus Status { get; set; }
+
+        /// <summary>
+        /// Cards whose mirror content changed in this run, when `status=synced`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cards_changed")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Cards_changed { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TaskTrackerProviderDto
     {
 
@@ -184,6 +215,24 @@ namespace Throne.TaskTrackers.Contracts.Generated
         [System.Text.Json.Serialization.JsonStringEnumMemberName(@"stub")]
         [System.Runtime.Serialization.EnumMember(Value = @"stub")]
         Stub = 1,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum TaskTrackerBoardSyncDtoStatus
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"synced")]
+        [System.Runtime.Serialization.EnumMember(Value = @"synced")]
+        Synced = 0,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unavailable")]
+        [System.Runtime.Serialization.EnumMember(Value = @"unavailable")]
+        Unavailable = 1,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"not_connected")]
+        [System.Runtime.Serialization.EnumMember(Value = @"not_connected")]
+        Not_connected = 2,
 
     }
 

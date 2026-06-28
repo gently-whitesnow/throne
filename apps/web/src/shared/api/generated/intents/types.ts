@@ -514,6 +514,19 @@ export interface components {
              */
             count: number;
         };
+        IntentContextBoardCountDto: {
+            /** @description Provider key owning the board (e.g. `kaiten`). */
+            tracker: string;
+            /** @description Board id within the tracker; pair with `tracker` to address the board. */
+            board_id: string;
+            /** @description Cached human-readable board name; absent when unknown (falls back to id). */
+            board_title?: string;
+            /**
+             * Format: int32
+             * @description Active mirror intents currently linked to this board.
+             */
+            count: number;
+        };
         IntentContextCountsDto: {
             /**
              * Format: int32
@@ -561,6 +574,8 @@ export interface components {
             archive_tags: components["schemas"]["IntentContextTagCountDto"][];
             /** @description Per-tag counts across fridge intents, sorted by count desc then tag name asc. */
             fridge_tags: components["schemas"]["IntentContextTagCountDto"][];
+            /** @description Connected task-tracker boards, sorted by board title asc. Each board is a rail group whose active mirror intents are counted here; those mirrors are excluded from the native active `tags`/`untagged` buckets so they group only by board. */
+            boards: components["schemas"]["IntentContextBoardCountDto"][];
         };
         IntentDetailDto: {
             /** @description Intent identifier (24 hex chars, ObjectId-shaped). */
@@ -782,6 +797,8 @@ export interface operations {
                 tag?: string;
                 /** @description When true, return only intents that carry no tags at all. Mutually exclusive with `tag` (combining them yields an empty page). */
                 untagged?: boolean;
+                /** @description Filter to task-tracker mirror intents linked to this board id. Backs the per-board context group in the rail; combine with `status` to scope to active mirrors. An unmatched board id yields an empty page. */
+                board?: string;
                 /** @description When true, return only intents pinned into at least one context. Server-side equivalent of the client "pinned" bucket. */
                 pinned?: boolean;
                 /** @description When true, return only intents that currently have a live embedded-terminal session (a `throne-{intent_id}` tmux session). The set is read live from tmux (no DB mirror); an empty tmux server yields an empty page. */

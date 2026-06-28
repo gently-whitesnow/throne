@@ -31,7 +31,27 @@ public sealed class GetIntentContextsEndpoint(GetIntentContextsHandler handler, 
             Tags = ToTagRows(counts.Tags, tagMap),
             Archive_tags = ToTagRows(counts.ArchiveTags, tagMap),
             Fridge_tags = ToTagRows(counts.FridgeTags, tagMap),
+            Boards = ToBoardRows(counts.Boards),
         });
+    }
+
+    // Board groups render before the native groups; sort by display title (id fallback) so the rail
+    // order is stable across requests without re-sorting on the client.
+    private static Collection<IntentContextBoardCountDto> ToBoardRows(IReadOnlyList<IntentBoardCount> boards)
+    {
+        var rows = boards
+            .Select(b => new IntentContextBoardCountDto
+            {
+                Tracker = b.Tracker,
+                Board_id = b.BoardId,
+                Board_title = b.BoardTitle,
+                Count = b.Count,
+            })
+            .ToList();
+        rows.Sort(static (a, b) => string.CompareOrdinal(
+            a.Board_title ?? a.Board_id,
+            b.Board_title ?? b.Board_id));
+        return new Collection<IntentContextBoardCountDto>(rows);
     }
 
     // Resolve tag id -> display name, drop ids whose tag no longer exists (mirrors the list DTO

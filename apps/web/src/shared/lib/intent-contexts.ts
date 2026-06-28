@@ -4,9 +4,11 @@ export const FRIDGE_CONTEXT = "__fridge";
 export const INBOX_HELP_CONTEXT = "__inbox_help";
 export const TERMINAL_RUNNING_CONTEXT = "__terminal_running";
 export const PINNED_CONTEXT = "__pinned";
+export const BOARD_CONTEXT = "__board";
 
 const ARCHIVE_PREFIX = `${ARCHIVE_CONTEXT}:`;
 const FRIDGE_PREFIX = `${FRIDGE_CONTEXT}:`;
+const BOARD_PREFIX = `${BOARD_CONTEXT}:`;
 
 export function isPinnedContext(context: string | null): boolean {
   return context === PINNED_CONTEXT;
@@ -50,6 +52,30 @@ export function fridgeSubContext(tagOrUntagged: string): string {
 export function fridgeContextTag(context: string | null): string | null {
   if (!context?.startsWith(FRIDGE_PREFIX)) return null;
   return context.slice(FRIDGE_PREFIX.length);
+}
+
+/**
+ * Task-tracker board group. The key carries both the provider key and the board id
+ * (`__board:<tracker>:<boardId>`) so the rail can both filter the list (by board id) and
+ * address the board for a force-pull (which needs the tracker too).
+ */
+export function isBoardContext(context: string | null): boolean {
+  if (!context) return false;
+  return context.startsWith(BOARD_PREFIX);
+}
+
+export function boardContext(tracker: string, boardId: string): string {
+  return `${BOARD_PREFIX}${tracker}:${boardId}`;
+}
+
+export function boardContextParts(
+  context: string | null
+): { tracker: string; boardId: string } | null {
+  if (!context?.startsWith(BOARD_PREFIX)) return null;
+  const rest = context.slice(BOARD_PREFIX.length);
+  const idx = rest.indexOf(":");
+  if (idx <= 0 || idx >= rest.length - 1) return null;
+  return { tracker: rest.slice(0, idx), boardId: rest.slice(idx + 1) };
 }
 
 export function isInboxContext(context: string | null): boolean {
