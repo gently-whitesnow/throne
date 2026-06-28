@@ -283,26 +283,61 @@ paths:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/settings/task-trackers/{tracker}/boards:
     get:
-      operationId: getTaskTrackerBoards
+      operationId: searchTaskTrackerBoards
       tags: [Settings]
-      summary: List the boards available through the connection, grouped by space.
+      summary: Search the boards available through the connection by name.
       description: >
-        Reads the live space/board topology from the provider using the saved connection, then folds
-        in the current selection so each board carries its `selected` flag and chosen grouping
-        `context_field`. Requires a configured connection — a missing one returns `409`.
+        Autocomplete source for board selection. The full space/board topology is read once through
+        the saved connection (a single upstream call), cached in memory and filtered server-side, so
+        typing does not hit the tracker on every keystroke. `query` matches board or space title
+        (case-insensitive substring); `skip`/`take` page the matches. `refresh=true` drops the cache
+        and re-reads the topology (the «Обновить» action). Requires a configured connection — a
+        missing one returns `409`.
       parameters:
         - in: path
           name: tracker
           required: true
           schema:
             $ref: '#/components/schemas/TaskTrackerKey'
+        - in: query
+          name: query
+          required: false
+          schema:
+            type: string
+          description: Case-insensitive substring matched against board and space titles. Empty returns the first page of all boards.
+        - in: query
+          name: skip
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+            default: 0
+          description: Number of matches to skip (pagination offset).
+        - in: query
+          name: take
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of matches to return.
+        - in: query
+          name: refresh
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Drop the in-memory cache and re-read the topology before searching.
       responses:
         '200':
-          description: Available boards grouped by space, merged with the saved selection.
+          description: Boards matching the query, drawn from the cached topology.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaskTrackerBoardsDto'
+                $ref: '#/components/schemas/TaskTrackerBoardSearchDto'
         '409':
           description: No connection is configured for this tracker, or the saved token was rejected (reconnect required).
           content:
@@ -327,9 +362,10 @@ paths:
       summary: Persist the selected boards and their per-board grouping context.
       description: >
         Replaces the board selection for this tracker. Each entry pins a board plus the field used to
-        derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out). Boards omitted
-        from the request become unselected. The response re-reads the live topology so the caller sees
-        the saved selection reflected against the current boards.
+        derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out), and carries the
+        board/space titles so the selection is self-describing for downstream sync. Boards omitted
+        from the request become unselected. The response echoes the saved selection (no upstream
+        read — saving a selection does not depend on the live topology).
       parameters:
         - in: path
           name: tracker
@@ -344,11 +380,11 @@ paths:
               $ref: '#/components/schemas/UpdateTaskTrackerBoardsRequest'
       responses:
         '200':
-          description: Saved selection, merged against the live topology.
+          description: The saved selection.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaskTrackerBoardsDto'
+                $ref: '#/components/schemas/TaskTrackerBoardSelectionDto'
         '409':
           description: No connection is configured for this tracker, or the saved token was rejected (reconnect required).
           content:
@@ -361,8 +397,37 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
-        '502':
-          description: The upstream tracker API was unreachable.
+  /api/v1/settings/task-trackers/{tracker}/boards/selection:
+    get:
+      operationId: getTaskTrackerBoardSelection
+      tags: [Settings]
+      summary: Read the currently selected boards for this tracker.
+      description: >
+        Returns the persisted board selection (the chips on the settings card), each entry
+        self-describing with cached board/space titles and its grouping `context_field`. Reads from
+        local persistence only — it never calls the tracker, so it cannot be `502`. Requires a
+        configured connection — a missing one returns `409`.
+      parameters:
+        - in: path
+          name: tracker
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskTrackerKey'
+      responses:
+        '200':
+          description: The saved board selection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTrackerBoardSelectionDto'
+        '409':
+          description: No connection is configured for this tracker.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Unknown tracker key.
           content:
             application/problem+json:
               schema:
@@ -733,13 +798,13 @@ components:
       description: >
         Board field used to derive a card's «context» during sync. `none` is the explicit
         opt-out / fallback when no field maps cleanly.
-    TaskTrackerBoardDto:
+    TaskTrackerBoardMatchDto:
       type: object
       required:
         - board_id
         - board_title
-        - selected
-        - context_field
+        - space_id
+        - space_title
       properties:
         board_id:
           type: string
@@ -748,42 +813,39 @@ components:
         board_title:
           type: string
           description: Human-readable board name.
-        selected:
-          type: boolean
-          description: Whether this board is part of the saved selection.
-        context_field:
-          $ref: '#/components/schemas/TaskTrackerContextField'
-    TaskTrackerSpaceDto:
-      type: object
-      required:
-        - space_id
-        - space_title
-        - boards
-      properties:
         space_id:
           type: string
           minLength: 1
-          description: Provider-native space identifier (opaque string).
+          description: Provider-native space identifier the board belongs to.
         space_title:
           type: string
-          description: Human-readable space name.
-        boards:
-          type: array
-          items:
-            $ref: '#/components/schemas/TaskTrackerBoardDto'
-    TaskTrackerBoardsDto:
+          description: Human-readable space name, shown to disambiguate boards.
+    TaskTrackerBoardSearchDto:
       type: object
       required:
         - tracker
-        - spaces
+        - boards
       properties:
         tracker:
           $ref: '#/components/schemas/TaskTrackerKey'
-        spaces:
+        boards:
           type: array
-          description: Live space/board topology, merged with the saved selection.
+          description: Boards matching the query, drawn from the cached topology.
           items:
-            $ref: '#/components/schemas/TaskTrackerSpaceDto'
+            $ref: '#/components/schemas/TaskTrackerBoardMatchDto'
+    TaskTrackerBoardSelectionDto:
+      type: object
+      required:
+        - tracker
+        - boards
+      properties:
+        tracker:
+          $ref: '#/components/schemas/TaskTrackerKey'
+        boards:
+          type: array
+          description: The persisted board selection.
+          items:
+            $ref: '#/components/schemas/TaskTrackerBoardSelectionEntry'
     TaskTrackerBoardSelectionEntry:
       type: object
       required:

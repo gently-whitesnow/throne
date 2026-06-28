@@ -1,53 +1,51 @@
-import { AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { AlertCircle, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   taskTrackerContextFieldOptions,
   useSetTaskTrackerBoards,
-  useTaskTrackerBoardsQuery,
-  type TaskTrackerBoards,
+  useTaskTrackerBoardSelectionQuery,
+  type TaskTrackerBoardMatch,
   type TaskTrackerBoardSelectionEntry,
   type TaskTrackerContextField
 } from "@/entities/task-tracker";
 import { Button } from "@/shared/ui";
 
+import { BoardSearchCombobox } from "./BoardSearchCombobox";
+
 interface TaskTrackerBoardsSelectorProps {
   tracker: string;
 }
 
-interface BoardChoice {
-  selected: boolean;
-  contextField: TaskTrackerContextField;
-}
-
-type SelectionState = Map<string, BoardChoice>;
-
-const boardKey = (spaceId: string, boardId: string) => `${spaceId}:${boardId}`;
+type SelectionState = Map<string, TaskTrackerBoardSelectionEntry>;
 
 /**
- * Выбор досок для подключённого трекера: чекбокс выбора + per-board селект
- * поля «контекст». Локальный выбор инициализируется из ответа GET и шлётся
- * целиком (полный выбранный набор) в PUT при «Сохранить доски».
+ * Выбор досок для подключённого трекера через поиск/автокомплит. Выбранные
+ * доски показываются чипами с per-board полем «контекст»; добавление — только
+ * через поиск по имени (одна дешёвая загрузка топологии на бэке, не плоский
+ * список всех досок). Полный выбранный набор шлётся в PUT при «Сохранить».
  */
 export function TaskTrackerBoardsSelector({
   tracker
 }: TaskTrackerBoardsSelectorProps) {
-  const boardsQuery = useTaskTrackerBoardsQuery(tracker, true);
+  const selectionQuery = useTaskTrackerBoardSelectionQuery(tracker, true);
   const saveBoards = useSetTaskTrackerBoards();
   const [selection, setSelection] = useState<SelectionState>(() => new Map());
 
-  const data = boardsQuery.data;
+  const saved = selectionQuery.data;
 
   useEffect(() => {
-    if (!data) return;
-    setSelection(buildSelection(data));
-  }, [data]);
+    if (!saved) return;
+    setSelection(buildSelection(saved.boards));
+  }, [saved]);
 
-  if (boardsQuery.isLoading) {
+  const selectedIds = useMemo(() => new Set(selection.keys()), [selection]);
+
+  if (selectionQuery.isLoading) {
     return <p className="m-0 text-sm text-base-content/60">Загружаем доски…</p>;
   }
 
-  if (boardsQuery.error instanceof Error) {
+  if (selectionQuery.error instanceof Error) {
     return (
       <p
         role="alert"
@@ -55,40 +53,55 @@ export function TaskTrackerBoardsSelector({
         className="m-0 flex items-start gap-1.5 text-xs text-error"
       >
         <AlertCircle aria-hidden size={14} strokeWidth={2} className="mt-0.5" />
-        <span>Не удалось загрузить доски: {boardsQuery.error.message}</span>
+        <span>Не удалось загрузить доски: {selectionQuery.error.message}</span>
       </p>
     );
   }
 
-  const spaces = data?.spaces ?? [];
-  if (spaces.length === 0) {
-    return (
-      <p className="m-0 text-sm text-base-content/60">
-        Трекер не вернул ни одной доски.
-      </p>
-    );
-  }
-
-  const updateChoice = (key: string, patch: Partial<BoardChoice>) => {
+  const addBoard = (board: TaskTrackerBoardMatch) => {
     setSelection((prev) => {
+      if (prev.has(board.board_id)) return prev;
       const next = new Map(prev);
-      const existing = next.get(key);
-      next.set(key, {
-        selected: existing?.selected ?? false,
-        contextField: existing?.contextField ?? "none",
-        ...patch
+      next.set(board.board_id, {
+        space_id: board.space_id,
+        space_title: board.space_title,
+        board_id: board.board_id,
+        board_title: board.board_title,
+        context_field: "none"
       });
       return next;
     });
   };
 
-  const handleSave = () => {
-    if (!data) return;
-    saveBoards.mutate({
-      tracker,
-      request: { boards: collect(data, selection) }
+  const removeBoard = (boardId: string) => {
+    setSelection((prev) => {
+      const next = new Map(prev);
+      next.delete(boardId);
+      return next;
     });
   };
+
+  const setContext = (
+    boardId: string,
+    contextField: TaskTrackerContextField
+  ) => {
+    setSelection((prev) => {
+      const existing = prev.get(boardId);
+      if (!existing) return prev;
+      const next = new Map(prev);
+      next.set(boardId, { ...existing, context_field: contextField });
+      return next;
+    });
+  };
+
+  const handleSave = () => {
+    saveBoards.mutate({
+      tracker,
+      request: { boards: [...selection.values()] }
+    });
+  };
+
+  const chips = [...selection.values()];
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-base-300 bg-base-100 p-3">
@@ -105,69 +118,71 @@ export function TaskTrackerBoardsSelector({
         </Button>
       </div>
 
-      {spaces.map((space) => (
-        <fieldset
-          key={space.space_id}
-          className="flex flex-col gap-2 border-0 p-0 m-0"
-        >
-          <legend className="m-0 px-0 text-xs font-semibold text-base-content/60">
-            {space.space_title}
-          </legend>
-          {space.boards.map((board) => {
-            const key = boardKey(space.space_id, board.board_id);
-            const choice = selection.get(key);
-            const selected = choice?.selected ?? false;
-            const contextField = choice?.contextField ?? "none";
-            const contextId = `task-tracker-context-${tracker}-${key}`;
-            return (
-              <div
-                key={key}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-base-300 bg-base-200/40 px-3 py-2"
-              >
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    data-testid={`task-tracker-board-${tracker}-${key}`}
-                    checked={selected}
-                    onChange={(event) => {
-                      updateChoice(key, { selected: event.target.checked });
-                    }}
-                  />
-                  {board.board_title}
+      <BoardSearchCombobox
+        tracker={tracker}
+        selectedIds={selectedIds}
+        onAdd={addBoard}
+      />
+
+      {chips.length === 0 ? (
+        <p className="m-0 text-xs text-base-content/60">
+          Доски не выбраны. Найдите доску по имени и добавьте её.
+        </p>
+      ) : (
+        <ul className="m-0 flex flex-col gap-2 p-0">
+          {chips.map((chip) => (
+            <li
+              key={chip.board_id}
+              data-testid={`task-tracker-board-chip-${tracker}-${chip.board_id}`}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-base-300 bg-base-200/40 px-3 py-2"
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-sm">{chip.board_title}</span>
+                <span className="truncate text-xs text-base-content/50">
+                  {chip.space_title}
+                </span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <label
+                  htmlFor={`task-tracker-context-${tracker}-${chip.board_id}`}
+                  className="text-xs text-base-content/60"
+                >
+                  Контекст
                 </label>
-                <div className="flex items-center gap-1.5">
-                  <label
-                    htmlFor={contextId}
-                    className="text-xs text-base-content/60"
-                  >
-                    Контекст
-                  </label>
-                  <select
-                    id={contextId}
-                    data-testid={contextId}
-                    className="select select-sm select-bordered text-xs"
-                    value={contextField}
-                    disabled={!selected}
-                    onChange={(event) => {
-                      updateChoice(key, {
-                        contextField: event.target
-                          .value as TaskTrackerContextField
-                      });
-                    }}
-                  >
-                    {taskTrackerContextFieldOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  id={`task-tracker-context-${tracker}-${chip.board_id}`}
+                  data-testid={`task-tracker-context-${tracker}-${chip.board_id}`}
+                  className="select select-sm select-bordered text-xs"
+                  value={chip.context_field}
+                  onChange={(event) => {
+                    setContext(
+                      chip.board_id,
+                      event.target.value as TaskTrackerContextField
+                    );
+                  }}
+                >
+                  {taskTrackerContextFieldOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  aria-label={`Убрать доску ${chip.board_title ?? chip.board_id}`}
+                  data-testid={`task-tracker-board-remove-${tracker}-${chip.board_id}`}
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => {
+                    removeBoard(chip.board_id);
+                  }}
+                >
+                  <X aria-hidden size={14} strokeWidth={2} />
+                </button>
               </div>
-            );
-          })}
-        </fieldset>
-      ))}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {saveBoards.error instanceof Error ? (
         <p
@@ -182,36 +197,12 @@ export function TaskTrackerBoardsSelector({
   );
 }
 
-function buildSelection(data: TaskTrackerBoards): SelectionState {
+function buildSelection(
+  boards: TaskTrackerBoardSelectionEntry[]
+): SelectionState {
   const next: SelectionState = new Map();
-  for (const space of data.spaces) {
-    for (const board of space.boards) {
-      next.set(boardKey(space.space_id, board.board_id), {
-        selected: board.selected,
-        contextField: board.context_field
-      });
-    }
+  for (const board of boards) {
+    next.set(board.board_id, board);
   }
   return next;
-}
-
-function collect(
-  data: TaskTrackerBoards,
-  selection: SelectionState
-): TaskTrackerBoardSelectionEntry[] {
-  const entries: TaskTrackerBoardSelectionEntry[] = [];
-  for (const space of data.spaces) {
-    for (const board of space.boards) {
-      const choice = selection.get(boardKey(space.space_id, board.board_id));
-      if (!choice?.selected) continue;
-      entries.push({
-        space_id: space.space_id,
-        space_title: space.space_title,
-        board_id: board.board_id,
-        board_title: board.board_title,
-        context_field: choice.contextField
-      });
-    }
-  }
-  return entries;
 }

@@ -76,10 +76,15 @@ public sealed class SettingsController(
     public override Task<IActionResult> DeleteTaskTrackerConnection(string tracker) =>
         taskTrackerConnections.DeleteAsync(tracker, HttpContext.RequestAborted);
 
-    public override Task<ActionResult<TaskTrackerBoardsDto>> GetTaskTrackerBoards(string tracker) =>
-        taskTrackerBoards.GetAsync(tracker, HttpContext.RequestAborted);
+    public override Task<ActionResult<TaskTrackerBoardSearchDto>> SearchTaskTrackerBoards(
+        string tracker, string query = null!, int? skip = 0, int? take = 20, bool? refresh = false) =>
+        taskTrackerBoards.SearchAsync(
+            tracker, query, skip ?? 0, take ?? 20, refresh ?? false, HttpContext.RequestAborted);
 
-    public override Task<ActionResult<TaskTrackerBoardsDto>> SetTaskTrackerBoards(
+    public override Task<ActionResult<TaskTrackerBoardSelectionDto>> GetTaskTrackerBoardSelection(string tracker) =>
+        taskTrackerBoards.GetSelectionAsync(tracker, HttpContext.RequestAborted);
+
+    public override Task<ActionResult<TaskTrackerBoardSelectionDto>> SetTaskTrackerBoards(
         string tracker, UpdateTaskTrackerBoardsRequest body) =>
         taskTrackerBoards.SetAsync(tracker, body, HttpContext.RequestAborted);
 

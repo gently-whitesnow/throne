@@ -46,14 +46,12 @@ public sealed class KaitenTaskTrackerProviderTests
             .Should().Be(TaskTrackerConnectionHealth.Unreachable);
     }
 
-    [Fact(DisplayName = "ListBoards maps spaces and boards to opaque string ids")]
+    [Fact(DisplayName = "ListBoards reads boards nested in spaces (one call) and maps to opaque string ids")]
     public async Task ListBoards_maps_topology()
     {
         var provider = Provider(
             spaces: (_, _) => Task.FromResult<IReadOnlyList<KaitenSpace>>(
-                [new KaitenSpace(1, "Space One", null)]),
-            boards: (_, spaceId, _) => Task.FromResult<IReadOnlyList<KaitenBoard>>(
-                [new KaitenBoard(10, "Board Ten", null, spaceId)]));
+                [new KaitenSpace(1, "Space One", null, Boards: [new KaitenBoard(10, "Board Ten", null, 1)])]));
 
         var topology = await provider.ListBoardsAsync(Descriptor, CancellationToken.None);
 
@@ -63,6 +61,22 @@ public sealed class KaitenTaskTrackerProviderTests
         topology[0].Boards.Should().ContainSingle();
         topology[0].Boards[0].BoardId.Should().Be("10");
         topology[0].Boards[0].BoardTitle.Should().Be("Board Ten");
+    }
+
+    [Fact(DisplayName = "ListBoards skips archived spaces")]
+    public async Task ListBoards_skips_archived_spaces()
+    {
+        var provider = Provider(
+            spaces: (_, _) => Task.FromResult<IReadOnlyList<KaitenSpace>>(
+            [
+                new KaitenSpace(1, "Live", null, Boards: [new KaitenBoard(10, "Keep", null, 1)]),
+                new KaitenSpace(2, "Gone", null, Archived: true, Boards: [new KaitenBoard(20, "Drop", null, 2)]),
+            ]));
+
+        var topology = await provider.ListBoardsAsync(Descriptor, CancellationToken.None);
+
+        topology.Should().ContainSingle();
+        topology[0].SpaceTitle.Should().Be("Live");
     }
 
     [Fact(DisplayName = "ListBoards translates an upstream failure into an upstream-unavailable ApiException")]

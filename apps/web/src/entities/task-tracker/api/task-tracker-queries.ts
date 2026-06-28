@@ -7,7 +7,8 @@ import {
 } from "@tanstack/react-query";
 
 import type {
-  TaskTrackerBoards,
+  TaskTrackerBoardSearch,
+  TaskTrackerBoardSelection,
   TaskTrackerConnection,
   TaskTrackerConnections,
   UpdateTaskTrackerBoardsRequest,
@@ -15,17 +16,21 @@ import type {
 } from "../model/types";
 import {
   deleteTaskTrackerConnection,
-  fetchTaskTrackerBoards,
+  fetchTaskTrackerBoardSelection,
   fetchTaskTrackerConnections,
+  searchTaskTrackerBoards,
   setTaskTrackerBoards,
-  setTaskTrackerConnection
+  setTaskTrackerConnection,
+  type TaskTrackerBoardSearchParams
 } from "./task-tracker-api";
 
 export const taskTrackerQueryKeys = {
   all: ["task-trackers"] as const,
   connections: () => [...taskTrackerQueryKeys.all, "connections"] as const,
-  boards: (tracker: string) =>
-    [...taskTrackerQueryKeys.all, "boards", tracker] as const
+  boardSearch: (tracker: string, query: string) =>
+    [...taskTrackerQueryKeys.all, "board-search", tracker, query] as const,
+  boardSelection: (tracker: string) =>
+    [...taskTrackerQueryKeys.all, "board-selection", tracker] as const
 };
 
 export function useTaskTrackerConnectionsQuery(): UseQueryResult<TaskTrackerConnections> {
@@ -35,13 +40,26 @@ export function useTaskTrackerConnectionsQuery(): UseQueryResult<TaskTrackerConn
   });
 }
 
-export function useTaskTrackerBoardsQuery(
+export function useTaskTrackerBoardSearchQuery(
+  tracker: string,
+  query: string,
+  enabled: boolean
+): UseQueryResult<TaskTrackerBoardSearch> {
+  return useQuery({
+    queryKey: taskTrackerQueryKeys.boardSearch(tracker, query),
+    queryFn: ({ signal }) =>
+      searchTaskTrackerBoards(tracker, { query: query || undefined }, signal),
+    enabled
+  });
+}
+
+export function useTaskTrackerBoardSelectionQuery(
   tracker: string,
   enabled: boolean
-): UseQueryResult<TaskTrackerBoards> {
+): UseQueryResult<TaskTrackerBoardSelection> {
   return useQuery({
-    queryKey: taskTrackerQueryKeys.boards(tracker),
-    queryFn: ({ signal }) => fetchTaskTrackerBoards(tracker, signal),
+    queryKey: taskTrackerQueryKeys.boardSelection(tracker),
+    queryFn: ({ signal }) => fetchTaskTrackerBoardSelection(tracker, signal),
     enabled
   });
 }
@@ -49,6 +67,21 @@ export function useTaskTrackerBoardsQuery(
 interface SetConnectionVariables {
   tracker: string;
   request: UpdateTaskTrackerConnectionRequest;
+}
+
+function invalidateTrackerBoards(
+  queryClient: ReturnType<typeof useQueryClient>,
+  tracker: string
+) {
+  void queryClient.invalidateQueries({
+    queryKey: taskTrackerQueryKeys.connections()
+  });
+  void queryClient.invalidateQueries({
+    queryKey: taskTrackerQueryKeys.boardSelection(tracker)
+  });
+  void queryClient.invalidateQueries({
+    queryKey: [...taskTrackerQueryKeys.all, "board-search", tracker]
+  });
 }
 
 export function useSetTaskTrackerConnection(): UseMutationResult<
@@ -61,12 +94,7 @@ export function useSetTaskTrackerConnection(): UseMutationResult<
     mutationFn: ({ tracker, request }: SetConnectionVariables) =>
       setTaskTrackerConnection(tracker, request),
     onSuccess: (_data, { tracker }) => {
-      void queryClient.invalidateQueries({
-        queryKey: taskTrackerQueryKeys.connections()
-      });
-      void queryClient.invalidateQueries({
-        queryKey: taskTrackerQueryKeys.boards(tracker)
-      });
+      invalidateTrackerBoards(queryClient, tracker);
     }
   });
 }
@@ -80,12 +108,7 @@ export function useDeleteTaskTrackerConnection(): UseMutationResult<
   return useMutation({
     mutationFn: (tracker: string) => deleteTaskTrackerConnection(tracker),
     onSuccess: (_data, tracker) => {
-      void queryClient.invalidateQueries({
-        queryKey: taskTrackerQueryKeys.connections()
-      });
-      void queryClient.invalidateQueries({
-        queryKey: taskTrackerQueryKeys.boards(tracker)
-      });
+      invalidateTrackerBoards(queryClient, tracker);
     }
   });
 }
@@ -96,7 +119,7 @@ interface SetBoardsVariables {
 }
 
 export function useSetTaskTrackerBoards(): UseMutationResult<
-  TaskTrackerBoards,
+  TaskTrackerBoardSelection,
   Error,
   SetBoardsVariables
 > {
@@ -105,7 +128,12 @@ export function useSetTaskTrackerBoards(): UseMutationResult<
     mutationFn: ({ tracker, request }: SetBoardsVariables) =>
       setTaskTrackerBoards(tracker, request),
     onSuccess: (data, { tracker }) => {
-      queryClient.setQueryData(taskTrackerQueryKeys.boards(tracker), data);
+      queryClient.setQueryData(
+        taskTrackerQueryKeys.boardSelection(tracker),
+        data
+      );
     }
   });
 }
+
+export type { TaskTrackerBoardSearchParams };
