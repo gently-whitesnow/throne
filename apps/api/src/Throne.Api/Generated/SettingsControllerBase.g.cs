@@ -150,24 +150,38 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.IActionResult> DeleteTaskTrackerConnection([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
 
         /// <summary>
-        /// List the boards available through the connection, grouped by space.
+        /// Search the boards available through the connection by name.
         /// </summary>
         /// <remarks>
-        /// Reads the live space/board topology from the provider using the saved connection, then folds in the current selection so each board carries its `selected` flag and chosen grouping `context_field`. Requires a configured connection — a missing one returns `409`.
+        /// Autocomplete source for board selection. The full space/board topology is read once through the saved connection (a single upstream call), cached in memory and filtered server-side, so typing does not hit the tracker on every keystroke. `query` matches board or space title (case-insensitive substring); `skip`/`take` page the matches. `refresh=true` drops the cache and re-reads the topology (the «Обновить» action). Requires a configured connection — a missing one returns `409`.
         /// </remarks>
-        /// <returns>Available boards grouped by space, merged with the saved selection.</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/boards", Name = "getTaskTrackerBoards")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardsDto>> GetTaskTrackerBoards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
+        /// <param name="query">Case-insensitive substring matched against board and space titles. Empty returns the first page of all boards.</param>
+        /// <param name="skip">Number of matches to skip (pagination offset).</param>
+        /// <param name="take">Maximum number of matches to return.</param>
+        /// <param name="refresh">Drop the in-memory cache and re-read the topology before searching.</param>
+        /// <returns>Boards matching the query, drawn from the cached topology.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/boards", Name = "searchTaskTrackerBoards")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardSearchDto>> SearchTaskTrackerBoards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.FromQuery] string query = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? skip = 0, [Microsoft.AspNetCore.Mvc.FromQuery] int? take = 20, [Microsoft.AspNetCore.Mvc.FromQuery] bool? refresh = false);
 
         /// <summary>
         /// Persist the selected boards and their per-board grouping context.
         /// </summary>
         /// <remarks>
-        /// Replaces the board selection for this tracker. Each entry pins a board plus the field used to derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out). Boards omitted from the request become unselected. The response re-reads the live topology so the caller sees the saved selection reflected against the current boards.
+        /// Replaces the board selection for this tracker. Each entry pins a board plus the field used to derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out), and carries the board/space titles so the selection is self-describing for downstream sync. Boards omitted from the request become unselected. The response echoes the saved selection (no upstream read — saving a selection does not depend on the live topology).
         /// </remarks>
-        /// <returns>Saved selection, merged against the live topology.</returns>
+        /// <returns>The saved selection.</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/boards", Name = "setTaskTrackerBoards")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardsDto>> SetTaskTrackerBoards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTaskTrackerBoardsRequest body);
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardSelectionDto>> SetTaskTrackerBoards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] UpdateTaskTrackerBoardsRequest body);
+
+        /// <summary>
+        /// Read the currently selected boards for this tracker.
+        /// </summary>
+        /// <remarks>
+        /// Returns the persisted board selection (the chips on the settings card), each entry self-describing with cached board/space titles and its grouping `context_field`. Reads from local persistence only — it never calls the tracker, so it cannot be `502`. Requires a configured connection — a missing one returns `409`.
+        /// </remarks>
+        /// <returns>The saved board selection.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/boards/selection", Name = "getTaskTrackerBoardSelection")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardSelectionDto>> GetTaskTrackerBoardSelection([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
 
     }
 

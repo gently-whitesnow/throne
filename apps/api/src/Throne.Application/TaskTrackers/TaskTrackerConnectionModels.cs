@@ -39,3 +39,13 @@ public sealed record TaskTrackerSpaceTopology(
     string SpaceId,
     string SpaceTitle,
     IReadOnlyList<TaskTrackerBoardRef> Boards);
+
+/// <summary>
+/// A board flattened out of the space topology, carrying its space context. The unit the board catalog
+/// caches and returns from a search — a board name alone is ambiguous, so the space disambiguates it.
+/// </summary>
+public sealed record TaskTrackerBoardMatch(
+    string BoardId,
+    string BoardTitle,
+    string SpaceId,
+    string SpaceTitle);

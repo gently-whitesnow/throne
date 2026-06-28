@@ -1,12 +1,20 @@
 import { httpDelete, httpGet, httpPut, settingsEndpoints } from "@/shared/api";
 
 import type {
-  TaskTrackerBoards,
+  TaskTrackerBoardSearch,
+  TaskTrackerBoardSelection,
   TaskTrackerConnection,
   TaskTrackerConnections,
   UpdateTaskTrackerBoardsRequest,
   UpdateTaskTrackerConnectionRequest
 } from "../model/types";
+
+export interface TaskTrackerBoardSearchParams {
+  query?: string;
+  skip?: number;
+  take?: number;
+  refresh?: boolean;
+}
 
 export function fetchTaskTrackerConnections(
   signal?: AbortSignal
@@ -39,12 +47,27 @@ export function deleteTaskTrackerConnection(
   );
 }
 
-export function fetchTaskTrackerBoards(
+export function searchTaskTrackerBoards(
+  tracker: string,
+  params: TaskTrackerBoardSearchParams,
+  signal?: AbortSignal
+): Promise<TaskTrackerBoardSearch> {
+  const search = new URLSearchParams();
+  if (params.query) search.set("query", params.query);
+  if (params.skip !== undefined) search.set("skip", String(params.skip));
+  if (params.take !== undefined) search.set("take", String(params.take));
+  if (params.refresh) search.set("refresh", "true");
+  const qs = search.toString();
+  const base = settingsEndpoints.searchTaskTrackerBoards(tracker);
+  return httpGet<TaskTrackerBoardSearch>(qs ? `${base}?${qs}` : base, signal);
+}
+
+export function fetchTaskTrackerBoardSelection(
   tracker: string,
   signal?: AbortSignal
-): Promise<TaskTrackerBoards> {
-  return httpGet<TaskTrackerBoards>(
-    settingsEndpoints.getTaskTrackerBoards(tracker),
+): Promise<TaskTrackerBoardSelection> {
+  return httpGet<TaskTrackerBoardSelection>(
+    settingsEndpoints.getTaskTrackerBoardSelection(tracker),
     signal
   );
 }
@@ -53,8 +76,8 @@ export function setTaskTrackerBoards(
   tracker: string,
   request: UpdateTaskTrackerBoardsRequest,
   signal?: AbortSignal
-): Promise<TaskTrackerBoards> {
-  return httpPut<TaskTrackerBoards>(
+): Promise<TaskTrackerBoardSelection> {
+  return httpPut<TaskTrackerBoardSelection>(
     settingsEndpoints.setTaskTrackerBoards(tracker),
     request,
     signal

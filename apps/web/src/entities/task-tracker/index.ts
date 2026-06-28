@@ -2,9 +2,9 @@ export type {
   TaskTrackerConnections,
   TaskTrackerConnection,
   TaskTrackerConnectionState,
-  TaskTrackerBoards,
-  TaskTrackerSpace,
-  TaskTrackerBoard,
+  TaskTrackerBoardSearch,
+  TaskTrackerBoardMatch,
+  TaskTrackerBoardSelection,
   TaskTrackerContextField,
   TaskTrackerBoardSelectionEntry,
   UpdateTaskTrackerConnectionRequest,
@@ -20,13 +20,15 @@ export {
   fetchTaskTrackerConnections,
   setTaskTrackerConnection,
   deleteTaskTrackerConnection,
-  fetchTaskTrackerBoards,
+  searchTaskTrackerBoards,
+  fetchTaskTrackerBoardSelection,
   setTaskTrackerBoards
 } from "./api/task-tracker-api";
 export {
   taskTrackerQueryKeys,
   useTaskTrackerConnectionsQuery,
-  useTaskTrackerBoardsQuery,
+  useTaskTrackerBoardSearchQuery,
+  useTaskTrackerBoardSelectionQuery,
   useSetTaskTrackerConnection,
   useDeleteTaskTrackerConnection,
   useSetTaskTrackerBoards
