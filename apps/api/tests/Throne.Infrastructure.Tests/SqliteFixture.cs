@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -51,6 +52,7 @@ public sealed class SqliteFixture : IAsyncLifetime
         skillCatalog.List().Returns(Array.Empty<SessionSkillDescriptor>());
 
         var services = new ServiceCollection();
+        services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Substitute.For<IDomainEventDispatcher>());
         services.AddSingleton<ISkillManifestProvider>(

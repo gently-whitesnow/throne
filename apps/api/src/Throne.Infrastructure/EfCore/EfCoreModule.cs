@@ -96,6 +96,7 @@ internal static class EfCoreModule
         services.AddSingleton<ISkillModeDefaultStore, EfSkillModeDefaultStore>();
         services.AddSingleton<IGitLabHostProvider, EfGitLabHostProvider>();
         services.AddSingleton<ITaskTrackerConnectionStore, EfTaskTrackerConnectionStore>();
+        services.AddSingleton<ITaskTrackerCardLinkStore, EfTaskTrackerCardLinkStore>();
 
         services.AddHostedService<EfSchemaInitializer>();
         services.AddHostedService<SkillModeDefaultSeeder>();
