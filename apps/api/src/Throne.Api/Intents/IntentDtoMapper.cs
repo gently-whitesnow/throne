@@ -33,7 +33,8 @@ internal static class IntentDtoMapper
         Intent intent,
         IReadOnlyDictionary<string, Tag> tagsById,
         int textShortMaxLength,
-        IReadOnlyList<IntentPin>? pinnedIn = null) => new()
+        IReadOnlyList<IntentPin>? pinnedIn = null,
+        string? snippet = null) => new()
         {
             Id = intent.Id.Value,
             Status = IntentStatusDtoMapper.ToContractStatus(intent.State.Status),
@@ -41,6 +42,7 @@ internal static class IntentDtoMapper
             Tags = IntentTagDtoMapper.ToTagRefs(intent.TagIds, tagsById),
             Title = intent.State.Title,
             Text_short = IntentTextSnippet.Cut(intent.State.Text, textShortMaxLength),
+            Snippet = snippet,
             Sort_key = intent.State.SortKey,
             Created_at = intent.CreatedAt,
             Updated_at = intent.State.UpdatedAt,

@@ -7,9 +7,11 @@ using Throne.Application.Events;
 using Throne.Application.Git;
 using Throne.Application.Manifest;
 using Throne.Application.Ports;
+using Throne.Application.Search;
 using Throne.Infrastructure.EfCore.Bindings;
 using Throne.Infrastructure.EfCore.Intents;
 using Throne.Infrastructure.EfCore.PromptParts;
+using Throne.Infrastructure.EfCore.Search;
 using Throne.Infrastructure.EfCore.Tags;
 using Throne.Infrastructure.PromptParts;
 using Throne.Infrastructure.Terminals;
@@ -48,6 +50,10 @@ internal static class EfCoreModule
         services.AddSingleton<IIntentLinkRepository, EfIntentLinkRepository>();
         services.AddSingleton<IIntentPinRepository, EfIntentPinRepository>();
         services.AddSingleton<IIntentAttachmentRepository, EfIntentAttachmentRepository>();
+
+        // Search-core (ADR-0050): ranked FTS5/BM25 read engine, consumed by the intent
+        // reader for the query path and reusable by a future global search.
+        services.AddSingleton<IIntentSearchReader, EfIntentSearchReader>();
 
         // Decomposed pieces backing the composite IIntentRepository — internal singletons
         // so the composite picks them up via DI without manual wiring.

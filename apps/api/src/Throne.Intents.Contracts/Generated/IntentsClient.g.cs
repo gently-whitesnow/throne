@@ -491,6 +491,12 @@ namespace Throne.Intents.Contracts.Generated
         public string Text_short { get; set; }
 
         /// <summary>
+        /// Relevance snippet of Intent.text with matched terms wrapped in highlight markers (STX/ETX control characters). Present only on the ranked `query` path; absent on plain list pages. Clients split on the markers and render the enclosed run as a highlight (as text, never raw markup).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("snippet")]
+        public string Snippet { get; set; }
+
+        /// <summary>
         /// Fractional sort key (base62). Default list order is ascending by this key.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sort_key")]

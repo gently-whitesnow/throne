@@ -34,7 +34,15 @@ public sealed record ListIntentsPagedQuery(
     int Limit = 50,
     IntentListCursor? Cursor = null);
 
-public sealed record IntentListPage(IReadOnlyList<Intent> Items, IntentListCursor? NextCursor);
+/// <param name="Snippets">
+/// Per-intent highlighted snippet, present only on the ranked query path (keyed by intent
+/// id). Markers come from <see cref="Throne.Application.Search.IntentSearchMarkers"/>. Null
+/// for plain list pages, where callers fall back to the short text.
+/// </param>
+public sealed record IntentListPage(
+    IReadOnlyList<Intent> Items,
+    IntentListCursor? NextCursor,
+    IReadOnlyDictionary<string, string>? Snippets = null);
 
 public sealed record IntentListSpec(
     IReadOnlyList<string>? Statuses,

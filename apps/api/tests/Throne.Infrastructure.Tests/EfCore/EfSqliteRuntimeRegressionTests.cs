@@ -16,6 +16,7 @@ using Throne.Infrastructure.EfCore;
 using Throne.Infrastructure.EfCore.Intents;
 using Throne.Infrastructure.EfCore.Mappers;
 using Throne.Infrastructure.EfCore.Rows;
+using Throne.Infrastructure.EfCore.Search;
 
 namespace Throne.Infrastructure.Tests.EfCore;
 
@@ -71,7 +72,8 @@ public sealed class EfSqliteRuntimeRegressionTests : IDisposable
                 UpdatedAt = now.AddMinutes(-1),
             });
 
-        var reader = new EfIntentReader(factory, new EfSessionAccessor());
+        var sessions = new EfSessionAccessor();
+        var reader = new EfIntentReader(factory, sessions, new EfIntentSearchReader(factory, sessions));
         var tagged = await reader.ListPagedAsync(
             new IntentListSpec(null, tag, false, false, null, IntentListSort.CreatedAsc, 10, null),
             CancellationToken.None);
