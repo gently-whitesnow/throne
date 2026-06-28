@@ -195,6 +195,7 @@ public static class DependencyInjection
         services.AddSingleton<SetIntentStatusHandler>();
         services.AddSingleton<SetIntentCleanupOnDoneHandler>();
         services.AddSingleton<SetIntentTagsHandler>();
+        services.AddSingleton<SetIntentTitleHandler>();
         services.AddSingleton<MoveIntentHandler>();
         services.AddSingleton<PinIntentHandler>();
         services.AddSingleton<UnpinIntentHandler>();

@@ -20,9 +20,9 @@ namespace Throne.Domain.Intents;
 ///         it must not bump <see cref="IntentState.CurrentVersion"/> nor
 ///         <see cref="IntentState.UpdatedAt"/>; drag-and-drop is purely positional
 ///         and stays out of text-edit history.</item>
-///   <item><see cref="SetTags"/> bumps <see cref="IntentState.UpdatedAt"/> but not
-///         <see cref="IntentState.CurrentVersion"/> — tag membership is metadata,
-///         not part of versioned text.</item>
+///   <item><see cref="SetTags"/> and <see cref="SetTitle"/> bump
+///         <see cref="IntentState.UpdatedAt"/> but not <see cref="IntentState.CurrentVersion"/> —
+///         tag membership and the optional title are metadata, not part of versioned text.</item>
 ///   <item>Text-mutating transitions (<see cref="ReplaceText"/>,
 ///         <see cref="InsertTextAfterLine"/>, <see cref="AppendText"/>) bump both
 ///         <see cref="IntentState.CurrentVersion"/> and <see cref="IntentState.UpdatedAt"/>
@@ -55,7 +55,8 @@ public sealed class Intent
         string text,
         IReadOnlyList<TagId>? tagIds,
         DateTimeOffset now,
-        string? sortKey = null)
+        string? sortKey = null,
+        string? title = null)
     {
         ArgumentNullException.ThrowIfNull(text);
         if (text.Length == 0)
@@ -65,7 +66,8 @@ public sealed class Intent
         var resolvedSortKey = sortKey ?? FractionalIndex.Initial();
         FractionalIndex.ValidateKey(resolvedSortKey, nameof(sortKey));
         var normalized = NormalizeTagIds(tagIds);
-        var state = new IntentState(text, IntentStatusNames.Draft, CurrentVersion: 1, resolvedSortKey, now);
+        var state = new IntentState(
+            text, IntentStatusNames.Draft, CurrentVersion: 1, resolvedSortKey, now, Title: NormalizeTitle(title));
         return new Intent(id, state, normalized, now);
     }
 
@@ -78,7 +80,8 @@ public sealed class Intent
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt,
         string? sortKey = null,
-        bool cleanupLocalStateOnDone = true)
+        bool cleanupLocalStateOnDone = true,
+        string? title = null)
     {
         EnsureValidStatus(status, nameof(status));
         if (currentVersion < 1)
@@ -87,7 +90,8 @@ public sealed class Intent
         }
         var resolvedSortKey = sortKey ?? FractionalIndex.Initial();
         FractionalIndex.ValidateKey(resolvedSortKey, nameof(sortKey));
-        var state = new IntentState(text, status, currentVersion, resolvedSortKey, updatedAt, cleanupLocalStateOnDone);
+        var state = new IntentState(
+            text, status, currentVersion, resolvedSortKey, updatedAt, cleanupLocalStateOnDone, NormalizeTitle(title));
         return new Intent(id, state, tagIds, createdAt);
     }
 
@@ -158,6 +162,24 @@ public sealed class Intent
         _tagIds.Clear();
         _tagIds.AddRange(normalized);
         State = State with { UpdatedAt = now };
+        return true;
+    }
+
+    /// <summary>
+    /// Set the optional title. Blank/whitespace collapses to <c>null</c> (no title). Idempotent —
+    /// returns <c>false</c> when the normalised title already matches. Like tag membership it is
+    /// metadata: bumps <see cref="IntentState.UpdatedAt"/> but not <see cref="IntentState.CurrentVersion"/>,
+    /// and emits no <see cref="TextVersion"/>.
+    /// </summary>
+    public bool SetTitle(string? title, DateTimeOffset now)
+    {
+        var normalized = NormalizeTitle(title);
+        if (string.Equals(State.Title, normalized, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        State = State with { Title = normalized, UpdatedAt = now };
         return true;
     }
 
@@ -285,6 +307,9 @@ public sealed class Intent
             throw new ArgumentOutOfRangeException(paramName, $"Unknown intent status: {status}.");
         }
     }
+
+    private static string? NormalizeTitle(string? title) =>
+        string.IsNullOrWhiteSpace(title) ? null : title.Trim();
 
     private static List<TagId> NormalizeTagIds(IReadOnlyList<TagId>? tagIds)
     {

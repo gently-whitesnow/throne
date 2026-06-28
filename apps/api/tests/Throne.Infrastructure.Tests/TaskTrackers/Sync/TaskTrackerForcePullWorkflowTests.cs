@@ -80,6 +80,7 @@ public sealed class TaskTrackerForcePullWorkflowTests(SqliteFixture sqlite)
         result.Status.Should().Be(ForcePullStatus.Refreshed);
         result.State.Should().Be(CardSyncLinkState.Linked);
         var intent = await h.Repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
-        intent!.State.Text.Should().Be(CardTextComposer.Compose("Renamed", "New body"));
+        intent!.State.Title.Should().Be("Renamed");
+        intent.State.Text.Should().Be("New body");
     }
 }

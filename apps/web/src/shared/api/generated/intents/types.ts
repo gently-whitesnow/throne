@@ -126,6 +126,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intents/{id}/title": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or clear the optional Intent title.
+         * @description Title is optional metadata: it does not bump current_version and is not versioned. Pass title=null or an empty string to clear it. A card-linked intent must keep a non-empty title (422 otherwise).
+         */
+        put: operations["setIntentTitle"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intents/{id}/move": {
         parameters: {
             query?: never;
@@ -373,6 +393,8 @@ export interface components {
         CreateIntentRequest: {
             /** @description Initial text of the Intent. */
             text: string;
+            /** @description Optional title. Free-form metadata, not versioned; omit or pass null for an untitled intent. */
+            title?: string | null;
             /** @description Optional tag names (slug-style). Server upserts by name — existing names are reused, new names create tags. */
             tag_names?: string[];
         };
@@ -420,6 +442,15 @@ export interface components {
              */
             expected_version: number;
         };
+        SetIntentTitleRequest: {
+            /** @description New title; pass null or an empty string to clear it. A card-linked intent must keep a non-empty title. */
+            title?: string | null;
+            /**
+             * Format: int32
+             * @description current_version observed before this update; title changes do not bump the value but it must still match.
+             */
+            expected_version: number;
+        };
         TagRefDto: {
             /** @description Tag identifier. */
             id: string;
@@ -461,6 +492,8 @@ export interface components {
             current_version: number;
             /** @description Tags currently attached to the intent (id + display name). */
             tags: components["schemas"]["TagRefDto"][];
+            /** @description Optional title. Null when the intent is untitled; render a text snippet fallback in that case. */
+            title?: string | null;
             /** @description First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint. */
             text_short: string;
             /** @description Fractional sort key (base62). Default list order is ascending by this key. */
@@ -537,6 +570,8 @@ export interface components {
             current_version: number;
             /** @description Tags currently attached to the intent (id + display name). */
             tags: components["schemas"]["TagRefDto"][];
+            /** @description Optional title. Null when the intent is untitled; render a text snippet fallback in that case. */
+            title?: string | null;
             /** @description Full canonical Intent.Text. */
             text: string;
             /** @description Fractional sort key (base62). Stable across edits; only changes via /move. */
@@ -1002,6 +1037,59 @@ export interface operations {
             };
             /** @description Version conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    setIntentTitle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetIntentTitleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntentDetailDto"];
+                };
+            };
+            /** @description Intent not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Version conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description A card-linked intent must keep a non-empty title. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

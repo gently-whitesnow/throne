@@ -39,7 +39,8 @@ public sealed class TaskTrackerMirrorServiceTests(SqliteFixture sqlite)
         var intent = await repo.GetByIdAsync(new IntentId(result.IntentId), CancellationToken.None);
         intent.Should().NotBeNull();
         intent!.State.Status.Should().Be(IntentStatusNames.Draft);
-        intent.State.Text.Should().Be(CardTextComposer.Compose("Title", "Body"));
+        intent.State.Title.Should().Be("Title");
+        intent.State.Text.Should().Be("Body");
 
         var link = await links.GetByCardAsync("kaiten", "board-7", "card-42", CancellationToken.None);
         link.Should().NotBeNull();
@@ -60,7 +61,37 @@ public sealed class TaskTrackerMirrorServiceTests(SqliteFixture sqlite)
         result.Created.Should().BeFalse();
         result.ContentChanged.Should().BeFalse();
         var intent = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
-        intent!.State.Text.Should().Be(CardTextComposer.Compose("Title", "Body"));
+        intent!.State.Text.Should().Be("Body");
+        intent.State.CurrentVersion.Should().Be(1);
+    }
+
+    [Fact(DisplayName = "Карточка без описания → text = title, title заполнен")]
+    public async Task Blank_description_seeds_text_from_title()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, _) = Build(db);
+
+        var result = await mirror.ApplyAsync("kaiten", Card("Only title", null), existing: null, CancellationToken.None);
+
+        var intent = await repo.GetByIdAsync(new IntentId(result.IntentId), CancellationToken.None);
+        intent!.State.Title.Should().Be("Only title");
+        intent.State.Text.Should().Be("Only title");
+    }
+
+    [Fact(DisplayName = "Меняется только заголовок карточки → title обновляется, current_version не растёт")]
+    public async Task Title_only_change_does_not_bump_version()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, links) = Build(db);
+        var created = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+        var existing = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
+
+        var result = await mirror.ApplyAsync("kaiten", Card("Renamed", "Body"), existing, CancellationToken.None);
+
+        result.ContentChanged.Should().BeTrue();
+        var intent = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
+        intent!.State.Title.Should().Be("Renamed");
+        intent.State.Text.Should().Be("Body");
         intent.State.CurrentVersion.Should().Be(1);
     }
 
@@ -76,7 +107,9 @@ public sealed class TaskTrackerMirrorServiceTests(SqliteFixture sqlite)
 
         result.ContentChanged.Should().BeTrue();
         var intent = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
-        intent!.State.Text.Should().Be(CardTextComposer.Compose("Renamed", "New body"));
+        intent!.State.Title.Should().Be("Renamed");
+        intent.State.Text.Should().Be("New body");
+        intent.State.CurrentVersion.Should().Be(2);
 
         var link = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
         link!.Snapshot.Title.Should().Be("Renamed");

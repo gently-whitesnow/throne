@@ -8,9 +8,9 @@ using Throne.Infrastructure.EfCore.Rows;
 namespace Throne.Infrastructure.EfCore.Intents;
 
 /// <summary>
-/// Tags + cleanup-on-done mutations. Pulled out of <see cref="EfIntentStatusMutator"/>
-/// so neither type bumps into the per-type LOC budget; the two clusters share the same
-/// CAS pattern but operate on disjoint columns.
+/// Tags + title + cleanup-on-done mutations. Pulled out of <see cref="EfIntentStatusMutator"/>
+/// so neither type bumps into the per-type LOC budget; the clusters share the same
+/// CAS pattern but operate on disjoint metadata columns.
 /// </summary>
 internal sealed class EfIntentTagsMutator(EfSessionAccessor sessions)
 {
@@ -68,6 +68,56 @@ internal sealed class EfIntentTagsMutator(EfSessionAccessor sessions)
         await EfTagAttachmentToucher.TouchAsync(ctx, added, now, ct);
 
         return new SetIntentTagsOutcome.Updated(intent, Changed: true);
+    }
+
+    public async Task<SetIntentTitleOutcome> SetTitleAsync(
+        IntentId id,
+        int expectedVersion,
+        string? title,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var ctx = RequireContext(nameof(SetTitleAsync));
+        var wire = id.Value;
+
+        var row = await ctx.Set<IntentRow>().FirstOrDefaultAsync(r => r.Id == wire, ct);
+        if (row is null)
+        {
+            return new SetIntentTitleOutcome.NotFound();
+        }
+        if (row.CurrentVersion != expectedVersion)
+        {
+            return new SetIntentTitleOutcome.VersionConflict(row.CurrentVersion);
+        }
+        ctx.Entry(row).State = EntityState.Detached;
+
+        var intent = IntentRowMapper.ToDomain(row);
+        var changed = intent.SetTitle(title, now);
+        if (!changed)
+        {
+            return new SetIntentTitleOutcome.Updated(intent, Changed: false);
+        }
+
+        var newTitle = intent.State.Title;
+        var newUpdatedAt = intent.State.UpdatedAt;
+
+        var affected = await ctx.Set<IntentRow>()
+            .Where(r => r.Id == wire && r.CurrentVersion == expectedVersion)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Title, newTitle)
+                .SetProperty(r => r.UpdatedAt, newUpdatedAt), ct);
+
+        if (affected == 0)
+        {
+            var fresh = await ctx.Set<IntentRow>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == wire, ct);
+            return fresh is null
+                ? new SetIntentTitleOutcome.NotFound()
+                : new SetIntentTitleOutcome.VersionConflict(fresh.CurrentVersion);
+        }
+
+        return new SetIntentTitleOutcome.Updated(intent, Changed: true);
     }
 
     public async Task SetCleanupLocalStateOnDoneAsync(
