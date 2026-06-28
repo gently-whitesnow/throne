@@ -204,15 +204,35 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List the boards available through the connection, grouped by space.
-         * @description Reads the live space/board topology from the provider using the saved connection, then folds in the current selection so each board carries its `selected` flag and chosen grouping `context_field`. Requires a configured connection — a missing one returns `409`.
+         * Search the boards available through the connection by name.
+         * @description Autocomplete source for board selection. The full space/board topology is read once through the saved connection (a single upstream call), cached in memory and filtered server-side, so typing does not hit the tracker on every keystroke. `query` matches board or space title (case-insensitive substring); `skip`/`take` page the matches. `refresh=true` drops the cache and re-reads the topology (the «Обновить» action). Requires a configured connection — a missing one returns `409`.
          */
-        get: operations["getTaskTrackerBoards"];
+        get: operations["searchTaskTrackerBoards"];
         /**
          * Persist the selected boards and their per-board grouping context.
-         * @description Replaces the board selection for this tracker. Each entry pins a board plus the field used to derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out). Boards omitted from the request become unselected. The response re-reads the live topology so the caller sees the saved selection reflected against the current boards.
+         * @description Replaces the board selection for this tracker. Each entry pins a board plus the field used to derive the card «context» (`lane` / `tags` / `type`, or `none` to opt out), and carries the board/space titles so the selection is self-describing for downstream sync. Boards omitted from the request become unselected. The response echoes the saved selection (no upstream read — saving a selection does not depend on the live topology).
          */
         put: operations["setTaskTrackerBoards"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/task-trackers/{tracker}/boards/selection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the currently selected boards for this tracker.
+         * @description Returns the persisted board selection (the chips on the settings card), each entry self-describing with cached board/space titles and its grouping `context_field`. Reads from local persistence only — it never calls the tracker, so it cannot be `502`. Requires a configured connection — a missing one returns `409`.
+         */
+        get: operations["getTaskTrackerBoardSelection"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -383,26 +403,25 @@ export interface components {
          * @enum {string}
          */
         TaskTrackerContextField: "lane" | "tags" | "type" | "none";
-        TaskTrackerBoardDto: {
+        TaskTrackerBoardMatchDto: {
             /** @description Provider-native board identifier (opaque string, provider-neutral). */
             board_id: string;
             /** @description Human-readable board name. */
             board_title: string;
-            /** @description Whether this board is part of the saved selection. */
-            selected: boolean;
-            context_field: components["schemas"]["TaskTrackerContextField"];
-        };
-        TaskTrackerSpaceDto: {
-            /** @description Provider-native space identifier (opaque string). */
+            /** @description Provider-native space identifier the board belongs to. */
             space_id: string;
-            /** @description Human-readable space name. */
+            /** @description Human-readable space name, shown to disambiguate boards. */
             space_title: string;
-            boards: components["schemas"]["TaskTrackerBoardDto"][];
         };
-        TaskTrackerBoardsDto: {
+        TaskTrackerBoardSearchDto: {
             tracker: components["schemas"]["TaskTrackerKey"];
-            /** @description Live space/board topology, merged with the saved selection. */
-            spaces: components["schemas"]["TaskTrackerSpaceDto"][];
+            /** @description Boards matching the query, drawn from the cached topology. */
+            boards: components["schemas"]["TaskTrackerBoardMatchDto"][];
+        };
+        TaskTrackerBoardSelectionDto: {
+            tracker: components["schemas"]["TaskTrackerKey"];
+            /** @description The persisted board selection. */
+            boards: components["schemas"]["TaskTrackerBoardSelectionEntry"][];
         };
         TaskTrackerBoardSelectionEntry: {
             space_id: string;
@@ -753,9 +772,18 @@ export interface operations {
             };
         };
     };
-    getTaskTrackerBoards: {
+    searchTaskTrackerBoards: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Case-insensitive substring matched against board and space titles. Empty returns the first page of all boards. */
+                query?: string;
+                /** @description Number of matches to skip (pagination offset). */
+                skip?: number;
+                /** @description Maximum number of matches to return. */
+                take?: number;
+                /** @description Drop the in-memory cache and re-read the topology before searching. */
+                refresh?: boolean;
+            };
             header?: never;
             path: {
                 tracker: components["schemas"]["TaskTrackerKey"];
@@ -764,13 +792,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Available boards grouped by space, merged with the saved selection. */
+            /** @description Boards matching the query, drawn from the cached topology. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskTrackerBoardsDto"];
+                    "application/json": components["schemas"]["TaskTrackerBoardSearchDto"];
                 };
             };
             /** @description No connection is configured for this tracker, or the saved token was rejected (reconnect required). */
@@ -817,13 +845,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Saved selection, merged against the live topology. */
+            /** @description The saved selection. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskTrackerBoardsDto"];
+                    "application/json": components["schemas"]["TaskTrackerBoardSelectionDto"];
                 };
             };
             /** @description No connection is configured for this tracker, or the saved token was rejected (reconnect required). */
@@ -844,8 +872,39 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description The upstream tracker API was unreachable. */
-            502: {
+        };
+    };
+    getTaskTrackerBoardSelection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerKey"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The saved board selection. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerBoardSelectionDto"];
+                };
+            };
+            /** @description No connection is configured for this tracker. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unknown tracker key. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -8,28 +8,41 @@ namespace Throne.Api.Tests.Settings;
 
 public class TaskTrackerSettingsDtoMapperTests
 {
-    [Fact(DisplayName = "Boards: selected board carries its context; unselected falls back to none")]
-    public void Boards_merges_selection()
+    [Fact(DisplayName = "SearchResult: flattened matches carry board and space context")]
+    public void SearchResult_maps_matches()
     {
-        var topology = new List<TaskTrackerSpaceTopology>
+        var matches = new List<TaskTrackerBoardMatch>
         {
-            new("1", "Space", [new TaskTrackerBoardRef("10", "Picked"), new TaskTrackerBoardRef("11", "Other")]),
+            new("10", "Backlog", "1", "Engineering"),
         };
+
+        var dto = TaskTrackerSettingsDtoMapper.SearchResult("kaiten", matches);
+
+        dto.Tracker.Should().Be("kaiten");
+        var board = dto.Boards.Single();
+        board.Board_id.Should().Be("10");
+        board.Board_title.Should().Be("Backlog");
+        board.Space_id.Should().Be("1");
+        board.Space_title.Should().Be("Engineering");
+    }
+
+    [Fact(DisplayName = "SelectionView: stored selection round-trips titles and context token to the wire enum")]
+    public void SelectionView_maps_selection()
+    {
         var selection = new List<TaskTrackerBoardSelection>
         {
-            new("1", "Space", "10", "Picked", "tags"),
+            new("1", "Engineering", "10", "Backlog", "tags"),
         };
 
-        var dto = TaskTrackerSettingsDtoMapper.Boards("kaiten", topology, selection);
+        var dto = TaskTrackerSettingsDtoMapper.SelectionView("kaiten", selection);
 
-        var boards = dto.Spaces.Single().Boards.ToList();
-        var picked = boards.Single(b => b.Board_id == "10");
-        picked.Selected.Should().BeTrue();
-        picked.Context_field.Should().Be(TaskTrackerContextField.Tags);
-
-        var other = boards.Single(b => b.Board_id == "11");
-        other.Selected.Should().BeFalse();
-        other.Context_field.Should().Be(TaskTrackerContextField.None);
+        dto.Tracker.Should().Be("kaiten");
+        var entry = dto.Boards.Single();
+        entry.Space_id.Should().Be("1");
+        entry.Space_title.Should().Be("Engineering");
+        entry.Board_id.Should().Be("10");
+        entry.Board_title.Should().Be("Backlog");
+        entry.Context_field.Should().Be(TaskTrackerContextField.Tags);
     }
 
     [Fact(DisplayName = "Selection: request entries round-trip the context-field token, defaulting to none")]

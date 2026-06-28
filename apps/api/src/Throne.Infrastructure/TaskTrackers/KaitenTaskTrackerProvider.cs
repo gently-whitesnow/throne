@@ -57,20 +57,21 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         var kaiten = ToConnection(connection);
         try
         {
+            // GET /spaces nests each space's boards inline, so the entire topology is one cheap call —
+            // no per-space board fan-out (which would multiply load and trip Kaiten's rate limit).
+            // Archived spaces are operator-hidden clutter and are dropped here.
             var spaces = await client.Topology.ListSpacesAsync(kaiten, ct);
-            var topology = new List<TaskTrackerSpaceTopology>(spaces.Count);
-            foreach (var space in spaces)
-            {
-                var boards = await client.Topology.ListBoardsAsync(kaiten, space.Id, ct);
-                topology.Add(new TaskTrackerSpaceTopology(
+            return spaces
+                .Where(space => !space.Archived)
+                .Select(space => new TaskTrackerSpaceTopology(
                     space.Id.ToString(CultureInfo.InvariantCulture),
                     space.Title,
-                    boards.Select(b => new TaskTrackerBoardRef(
-                        b.Id.ToString(CultureInfo.InvariantCulture),
-                        b.Title)).ToList()));
-            }
-
-            return topology;
+                    (space.Boards ?? [])
+                        .Select(b => new TaskTrackerBoardRef(
+                            b.Id.ToString(CultureInfo.InvariantCulture),
+                            b.Title))
+                        .ToList()))
+                .ToList();
         }
         catch (KaitenApiException ex) when (IsAuthFailure(ex.StatusCode))
         {

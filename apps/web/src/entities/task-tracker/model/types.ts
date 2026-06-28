@@ -9,14 +9,14 @@ export type TaskTrackerConnection =
 export type TaskTrackerConnectionState =
   SettingsComponents["schemas"]["TaskTrackerConnectionState"];
 
-export type TaskTrackerBoards =
-  SettingsComponents["schemas"]["TaskTrackerBoardsDto"];
+export type TaskTrackerBoardSearch =
+  SettingsComponents["schemas"]["TaskTrackerBoardSearchDto"];
 
-export type TaskTrackerSpace =
-  SettingsComponents["schemas"]["TaskTrackerSpaceDto"];
+export type TaskTrackerBoardMatch =
+  SettingsComponents["schemas"]["TaskTrackerBoardMatchDto"];
 
-export type TaskTrackerBoard =
-  SettingsComponents["schemas"]["TaskTrackerBoardDto"];
+export type TaskTrackerBoardSelection =
+  SettingsComponents["schemas"]["TaskTrackerBoardSelectionDto"];
 
 export type TaskTrackerContextField =
   SettingsComponents["schemas"]["TaskTrackerContextField"];

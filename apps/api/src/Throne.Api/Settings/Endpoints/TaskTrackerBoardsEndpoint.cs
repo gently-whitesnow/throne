@@ -6,39 +6,57 @@ using Throne.Settings.Contracts.Generated;
 namespace Throne.Api.Settings.Endpoints;
 
 /// <summary>
-/// Settings → «Таск-трекеры»: the board half. Reads the live space/board topology through the saved
-/// connection and folds in the selection, and persists a replacement selection (with per-board
-/// grouping context). Both require a configured connection (409 otherwise) and surface an upstream
-/// failure as 502 via the provider.
+/// Settings → «Таск-трекеры»: the board half. Search the board catalog by name (cache-backed, one cheap
+/// upstream read), read the saved selection (local-only, for the chips), and replace the selection with
+/// its per-board grouping context. All three require a configured connection (409 otherwise); a search
+/// that has to (re)read the topology surfaces an upstream failure as 502 via the provider.
 /// </summary>
 public sealed class TaskTrackerBoardsEndpoint(
     ITaskTrackerProviderRegistry registry,
-    ITaskTrackerConnectionStore store)
+    ITaskTrackerConnectionStore store,
+    TaskTrackerBoardCatalog catalog)
 {
-    public async Task<ActionResult<TaskTrackerBoardsDto>> GetAsync(string tracker, CancellationToken ct)
+    public async Task<ActionResult<TaskTrackerBoardSearchDto>> SearchAsync(
+        string tracker,
+        string? query,
+        int skip,
+        int take,
+        bool refresh,
+        CancellationToken ct)
     {
         var (provider, stored) = await ResolveAsync(tracker, ct);
-        var topology = await provider.ListBoardsAsync(
-            new TaskTrackerConnectionDescriptor(stored.BaseUrl, stored.Token), ct);
-        return new OkObjectResult(
-            TaskTrackerSettingsDtoMapper.Boards(tracker, topology, stored.Selection));
+        var matches = await catalog.SearchAsync(
+            tracker,
+            provider,
+            new TaskTrackerConnectionDescriptor(stored.BaseUrl, stored.Token),
+            query,
+            skip,
+            take,
+            refresh,
+            ct);
+        return new OkObjectResult(TaskTrackerSettingsDtoMapper.SearchResult(tracker, matches));
     }
 
-    public async Task<ActionResult<TaskTrackerBoardsDto>> SetAsync(
+    public async Task<ActionResult<TaskTrackerBoardSelectionDto>> GetSelectionAsync(
+        string tracker,
+        CancellationToken ct)
+    {
+        var (_, stored) = await ResolveAsync(tracker, ct);
+        return new OkObjectResult(TaskTrackerSettingsDtoMapper.SelectionView(tracker, stored.Selection));
+    }
+
+    public async Task<ActionResult<TaskTrackerBoardSelectionDto>> SetAsync(
         string tracker,
         UpdateTaskTrackerBoardsRequest body,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(body);
-        var (provider, stored) = await ResolveAsync(tracker, ct);
+        await ResolveAsync(tracker, ct);
 
         var selection = TaskTrackerSettingsDtoMapper.Selection(body);
         await store.SaveSelectionAsync(tracker, selection, ct);
 
-        var topology = await provider.ListBoardsAsync(
-            new TaskTrackerConnectionDescriptor(stored.BaseUrl, stored.Token), ct);
-        return new OkObjectResult(
-            TaskTrackerSettingsDtoMapper.Boards(tracker, topology, selection));
+        return new OkObjectResult(TaskTrackerSettingsDtoMapper.SelectionView(tracker, selection));
     }
 
     private async Task<(ITaskTrackerConnectionProvider Provider, TaskTrackerStoredConnection Stored)> ResolveAsync(
