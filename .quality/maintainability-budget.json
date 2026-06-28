@@ -108,6 +108,13 @@
           }
         },
         {
+          "_comment": "ADR-0040: NSwag-generated one-class-per-tag dispatcher; public surface == route count. IntentsController is the core /api/v1/intents axis (CRUD + status / tags / title / move / versions / events) — one client-facing aggregate. Same structural-surface precedent as IntentRepositoriesController/SettingsController above; splitting would force an OpenAPI tag-split + TS-client regen, not a real decomposition.",
+          "glob": "**/Throne.Api/Intents/IntentsController.cs",
+          "limits": {
+            "typeMaxPublicMembers": 20
+          }
+        },
+        {
           "_comment": "ApiErrorRegistry is a flat error-code → HTTP-status lookup table; the StatusByCode initializer grows one dict entry per wire error code (zero branching, CC trivial). Same registry precedent as ErrorCodes — method LOC tracks the error catalogue size, not logic complexity.",
           "glob": "**/Throne.Api/Shared/ApiErrorRegistry.cs",
           "limits": {

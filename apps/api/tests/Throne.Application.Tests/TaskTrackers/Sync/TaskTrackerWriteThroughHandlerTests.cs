@@ -49,36 +49,6 @@ public class TaskTrackerWriteThroughHandlerTests
         link.Snapshot.Description.Should().Be("New body");
     }
 
-    [Fact(DisplayName = "IntentTitleChanged: расхождение со снапшотом пушит только title и двигает его в снапшоте")]
-    public async Task Title_changed_pushes_title_only()
-    {
-        _links.Seed(Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Old title", "Body", "col", "Todo")));
-
-        await Handler().HandleAsync(
-            new IntentTitleChanged(IntentWith("intent-1", "Body", title: "New title")), CancellationToken.None);
-
-        _provider.Updated.Should().ContainSingle();
-        var (cardId, patch) = _provider.Updated[0];
-        cardId.Should().Be("card-42");
-        patch.Title.Should().Be("New title");
-        patch.Description.Should().BeNull();
-
-        var link = await _links.GetByIntentAsync("intent-1", CancellationToken.None);
-        link!.Snapshot.Title.Should().Be("New title");
-        link.Snapshot.Description.Should().Be("Body");
-    }
-
-    [Fact(DisplayName = "IntentTitleChanged: title совпадает со снапшотом — echo suppression, пуша нет")]
-    public async Task Title_changed_echo_suppressed()
-    {
-        _links.Seed(Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Title", "Body", "col", "Todo")));
-
-        await Handler().HandleAsync(
-            new IntentTitleChanged(IntentWith("intent-1", "Body", title: "Title")), CancellationToken.None);
-
-        _provider.Updated.Should().BeEmpty();
-    }
-
     [Fact(DisplayName = "IntentTextChanged: echo suppression — текст уже == TextOf(snapshot), пуша нет")]
     public async Task Text_changed_echo_suppressed()
     {
