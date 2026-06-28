@@ -19,6 +19,7 @@ public sealed class IntentWorkspaceMapComposer(
         var repoPaths = bindings.Select(b => b.WorkspacePath).ToArray();
         var tags = await tagNames.ResolveAsync(intent.TagIds, ct);
         var links = await linkContext.BuildAsync(intent.Id, ct);
-        return WorkspaceMapPrompt.Compose(workspacePath, repoPaths, tags, links, userPrompt: "").TrimEnd();
+        return WorkspaceMapPrompt.Compose(
+            workspacePath, repoPaths, tags, intent.State.Title, links, userPrompt: "").TrimEnd();
     }
 }

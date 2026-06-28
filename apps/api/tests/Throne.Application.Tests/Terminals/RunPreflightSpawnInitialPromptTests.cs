@@ -58,6 +58,7 @@ public class RunPreflightSpawnInitialPromptTests
                 skillPackages: [],
                 repoPaths: [],
                 tagIds: [],
+                title: null,
                 CancellationToken.None);
 
             var workspacePath = Path.Combine(workspaceRoot, "intents", "intent-1");

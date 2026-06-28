@@ -152,7 +152,7 @@ public class RunPreflightPromptDeliveryTests
             await sut.DeliverAsync(
                 NewRequest(
                     workspace, adapter: null, userPrompt: "do the thing",
-                    repoPaths: [repo], tagIds: [throne, must]),
+                    repoPaths: [repo], tagIds: [throne, must], title: "Починить доставку"),
                 CancellationToken.None);
 
             var delivered = await File.ReadAllTextAsync(
@@ -160,6 +160,7 @@ public class RunPreflightPromptDeliveryTests
             delivered.Should().Contain("Карта workspace");
             delivered.Should().Contain(workspace);
             delivered.Should().Contain(repo);
+            delivered.Should().Contain("Заголовок интента: Починить доставку");
             delivered.Should().Contain("Теги интента: throne, must");
             delivered.Should().Contain("Связи:");
             delivered.Should().Contain("- заблокирован intent_id=blocked-by-id status=work (без причины связи)");
@@ -208,10 +209,11 @@ public class RunPreflightPromptDeliveryTests
         ISessionHookAdapter? adapter,
         string userPrompt = "TASK",
         IReadOnlyList<string>? repoPaths = null,
-        IReadOnlyList<TagId>? tagIds = null) =>
+        IReadOnlyList<TagId>? tagIds = null,
+        string? title = null) =>
         new(
             IntentId, TerminalRunModes.Work, Vendor, adapter, workspace,
-            repoPaths ?? [], tagIds ?? [], userPrompt);
+            repoPaths ?? [], tagIds ?? [], title, userPrompt);
 
     private static IIntentLinkRepository EmptyLinks()
     {
