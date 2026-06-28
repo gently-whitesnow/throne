@@ -292,6 +292,52 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{id}/title:
+    put:
+      operationId: setIntentTitle
+      tags: [Intents]
+      summary: Set or clear the optional Intent title.
+      description: >
+        Title is optional metadata: it does not bump current_version and is not versioned. Pass
+        title=null or an empty string to clear it. A card-linked intent must keep a non-empty title
+        (422 otherwise).
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetIntentTitleRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentDetailDto'
+        '404':
+          description: Intent not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: Version conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: A card-linked intent must keep a non-empty title.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/intents/{id}/move:
     post:
       operationId: moveIntent
@@ -857,6 +903,10 @@ components:
           type: string
           minLength: 1
           description: Initial text of the Intent.
+        title:
+          type: string
+          nullable: true
+          description: Optional title. Free-form metadata, not versioned; omit or pass null for an untitled intent.
         tag_names:
           type: array
           items:
@@ -948,6 +998,20 @@ components:
           format: int32
           minimum: 1
           description: current_version observed before this update; tag changes do not bump the value but it must still match.
+    SetIntentTitleRequest:
+      type: object
+      required:
+        - expected_version
+      properties:
+        title:
+          type: string
+          nullable: true
+          description: New title; pass null or an empty string to clear it. A card-linked intent must keep a non-empty title.
+        expected_version:
+          type: integer
+          format: int32
+          minimum: 1
+          description: current_version observed before this update; title changes do not bump the value but it must still match.
     TagRefDto:
       type: object
       required:
@@ -1045,6 +1109,10 @@ components:
           items:
             $ref: '#/components/schemas/TagRefDto'
           description: Tags currently attached to the intent (id + display name).
+        title:
+          type: string
+          nullable: true
+          description: Optional title. Null when the intent is untitled; render a text snippet fallback in that case.
         text_short:
           type: string
           maxLength: 140
@@ -1182,6 +1250,10 @@ components:
           items:
             $ref: '#/components/schemas/TagRefDto'
           description: Tags currently attached to the intent (id + display name).
+        title:
+          type: string
+          nullable: true
+          description: Optional title. Null when the intent is untitled; render a text snippet fallback in that case.
         text:
           type: string
           description: Full canonical Intent.Text.
