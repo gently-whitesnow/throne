@@ -27,19 +27,21 @@ public class TaskTrackerWriteThroughHandlerTests
     private static CardSyncLink Linked(string intentId, string cardId, CardSyncLinkSnapshot snapshot) =>
         CardSyncLink.Create(intentId, new TaskTrackerCardLink("kaiten", "board-7", cardId), snapshot, CardSyncLinkCursors.Empty, Now);
 
-    private static Intent IntentWith(string id, string text) => Intent.Create(new IntentId(id), text, null, Now);
+    private static Intent IntentWith(string id, string text, string? title = null) =>
+        Intent.Create(new IntentId(id), text, null, Now, title: title);
 
-    [Fact(DisplayName = "IntentTextChanged: расхождение со снапшотом пушит decompose-патч и двигает снапшот")]
-    public async Task Text_changed_pushes_patch()
+    [Fact(DisplayName = "IntentTextChanged: расхождение со снапшотом пушит только description и двигает его в снапшоте")]
+    public async Task Text_changed_pushes_description_only()
     {
         _links.Seed(Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Title", "Old", "col", "Todo")));
 
-        await Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "Title\n\nNew body")), CancellationToken.None);
+        await Handler().HandleAsync(
+            new IntentTextChanged(IntentWith("intent-1", "New body", title: "Title")), CancellationToken.None);
 
         _provider.Updated.Should().ContainSingle();
         var (cardId, patch) = _provider.Updated[0];
         cardId.Should().Be("card-42");
-        patch.Title.Should().Be("Title");
+        patch.Title.Should().BeNull();
         patch.Description.Should().Be("New body");
 
         var link = await _links.GetByIntentAsync("intent-1", CancellationToken.None);
@@ -47,12 +49,13 @@ public class TaskTrackerWriteThroughHandlerTests
         link.Snapshot.Description.Should().Be("New body");
     }
 
-    [Fact(DisplayName = "IntentTextChanged: echo suppression — текст уже == Compose(snapshot), пуша нет")]
+    [Fact(DisplayName = "IntentTextChanged: echo suppression — текст уже == TextOf(snapshot), пуша нет")]
     public async Task Text_changed_echo_suppressed()
     {
         _links.Seed(Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Title", "Body", "col", "Todo")));
 
-        await Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "Title\n\nBody")), CancellationToken.None);
+        await Handler().HandleAsync(
+            new IntentTextChanged(IntentWith("intent-1", "Body", title: "Title")), CancellationToken.None);
 
         _provider.Updated.Should().BeEmpty();
     }
@@ -60,7 +63,7 @@ public class TaskTrackerWriteThroughHandlerTests
     [Fact(DisplayName = "IntentTextChanged: интент без линка — пуша нет")]
     public async Task Text_changed_no_link()
     {
-        await Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "Title\n\nBody")), CancellationToken.None);
+        await Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "Body")), CancellationToken.None);
 
         _provider.Updated.Should().BeEmpty();
     }
@@ -72,7 +75,7 @@ public class TaskTrackerWriteThroughHandlerTests
         link.MarkStub(Now);
         _links.Seed(link);
 
-        await Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "Title\n\nNew")), CancellationToken.None);
+        await Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "New")), CancellationToken.None);
 
         _provider.Updated.Should().BeEmpty();
     }
@@ -155,7 +158,8 @@ public class TaskTrackerWriteThroughHandlerTests
         _links.Seed(Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Title", "Old", null, null)));
         _provider.Throw = true;
 
-        var act = () => Handler().HandleAsync(new IntentTextChanged(IntentWith("intent-1", "Title\n\nNew")), CancellationToken.None);
+        var act = () => Handler().HandleAsync(
+            new IntentTextChanged(IntentWith("intent-1", "New", title: "Title")), CancellationToken.None);
 
         await act.Should().NotThrowAsync();
     }

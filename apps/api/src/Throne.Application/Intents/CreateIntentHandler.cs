@@ -8,7 +8,8 @@ namespace Throne.Application.Intents;
 public sealed record CreateIntentCommand(
     string Text,
     IReadOnlyList<string>? TagNames,
-    TextVersionAuthor Author);
+    TextVersionAuthor Author,
+    string? Title = null);
 
 public sealed class CreateIntentHandler(
     IIntentRepository repository,
@@ -29,7 +30,7 @@ public sealed class CreateIntentHandler(
             {
                 var resolved = await tagResolver.EnsureByNamesAsync(command.TagNames, now, inner);
                 var sortKey = await NextTopSortKeyAsync(inner);
-                var intent = Intent.Create(id, command.Text, resolved.TagIds, now, sortKey: sortKey);
+                var intent = Intent.Create(id, command.Text, resolved.TagIds, now, sortKey: sortKey, title: command.Title);
                 var initialVersion = TextVersion.CreateSnapshot(
                     id: Guid.NewGuid().ToString("N"),
                     ownerKind: TextVersionOwnerKind.Intent,

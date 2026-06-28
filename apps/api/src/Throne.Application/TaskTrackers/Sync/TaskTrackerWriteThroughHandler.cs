@@ -9,11 +9,12 @@ namespace Throne.Application.TaskTrackers.Sync;
 
 /// <summary>
 /// Pushes Throne-side changes to a mirrored card the moment they commit (ADR-0008 write-through,
-/// last-write-wins). Title/description ride <c>IntentTextChanged</c>; card-children ride
-/// <c>IntentLinkAdded</c>/<c>IntentLinkRemoved</c>; closing a stub mirror clears its local link.
-/// Echoes are suppressed (the snapshot already equals the intent text; the Kaiten child is already in
-/// the desired state). Upstream failures are swallowed and logged — a tracker outage must never fail
-/// the operator's local edit.
+/// last-write-wins). Title rides <c>IntentTitleChanged</c> and description rides <c>IntentTextChanged</c> —
+/// each pushes only its own card field so an independent title rename never clobbers the description.
+/// Card-children ride <c>IntentLinkAdded</c>/<c>IntentLinkRemoved</c>; closing a stub mirror clears its
+/// local link. Echoes are suppressed (the snapshot already equals the intent field; the Kaiten child is
+/// already in the desired state). Upstream failures are swallowed and logged — a tracker outage must
+/// never fail the operator's local edit.
 /// </summary>
 public sealed partial class TaskTrackerWriteThroughHandler(
     ITaskTrackerCardLinkStore linkStore,
@@ -28,6 +29,9 @@ public sealed partial class TaskTrackerWriteThroughHandler(
         {
             switch (evt)
             {
+                case IntentTitleChanged title:
+                    await PushTitleAsync(title.Intent, ct);
+                    break;
                 case IntentTextChanged text:
                     await PushTextAsync(text.Intent, ct);
                     break;
@@ -48,10 +52,14 @@ public sealed partial class TaskTrackerWriteThroughHandler(
         }
     }
 
-    private async Task PushTextAsync(Intent intent, CancellationToken ct)
+    private async Task PushTitleAsync(Intent intent, CancellationToken ct)
     {
         var link = await linkStore.GetByIntentAsync(intent.Id.Value, ct);
-        if (link is null || link.IsStub || CardTextComposer.Matches(link.Snapshot, intent.State.Text))
+        var title = intent.State.Title;
+        // A linked intent is required to keep a non-empty title (enforced on the write-path); skip
+        // defensively rather than push an empty title that every tracker would reject.
+        if (link is null || link.IsStub || string.IsNullOrWhiteSpace(title)
+            || string.Equals(link.Snapshot.Title, title, StringComparison.Ordinal))
         {
             return;
         }
@@ -63,10 +71,32 @@ public sealed partial class TaskTrackerWriteThroughHandler(
         }
 
         var (provider, descriptor) = resolved.Value;
-        var (title, description) = CardTextComposer.Decompose(intent.State.Text);
-        await provider.UpdateCardAsync(descriptor, link.Card.CardId, new TaskTrackerCardPatch(title, description), ct);
-        link.RecordPushedSnapshot(
-            link.Snapshot with { Title = title, Description = description }, clock.GetUtcNow());
+        await provider.UpdateCardAsync(descriptor, link.Card.CardId, new TaskTrackerCardPatch(Title: title), ct);
+        link.RecordPushedSnapshot(link.Snapshot with { Title = title }, clock.GetUtcNow());
+        await linkStore.SaveAsync(link, ct);
+    }
+
+    private async Task PushTextAsync(Intent intent, CancellationToken ct)
+    {
+        var link = await linkStore.GetByIntentAsync(intent.Id.Value, ct);
+        var text = intent.State.Text;
+        // Echo suppression: the live text already mirrors the snapshot's description (the title seeds
+        // the text when the card description is blank).
+        if (link is null || link.IsStub
+            || string.Equals(text, CardMirror.TextOf(link.Snapshot.Title, link.Snapshot.Description), StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var resolved = await ResolveAsync(link.Card.Tracker, ct);
+        if (resolved is null)
+        {
+            return;
+        }
+
+        var (provider, descriptor) = resolved.Value;
+        await provider.UpdateCardAsync(descriptor, link.Card.CardId, new TaskTrackerCardPatch(Description: text), ct);
+        link.RecordPushedSnapshot(link.Snapshot with { Description = text }, clock.GetUtcNow());
         await linkStore.SaveAsync(link, ct);
     }
 

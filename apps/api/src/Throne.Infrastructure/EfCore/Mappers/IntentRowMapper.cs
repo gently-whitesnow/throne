@@ -9,6 +9,7 @@ internal static class IntentRowMapper
     public static IntentRow ToRow(Intent intent) => new()
     {
         Id = intent.Id.Value,
+        Title = intent.State.Title,
         Text = intent.State.Text,
         Status = intent.State.Status,
         CurrentVersion = intent.State.CurrentVersion,
@@ -28,5 +29,6 @@ internal static class IntentRowMapper
         createdAt: row.CreatedAt,
         updatedAt: row.UpdatedAt,
         sortKey: row.SortKey,
-        cleanupLocalStateOnDone: row.CleanupLocalStateOnDone);
+        cleanupLocalStateOnDone: row.CleanupLocalStateOnDone,
+        title: row.Title);
 }
