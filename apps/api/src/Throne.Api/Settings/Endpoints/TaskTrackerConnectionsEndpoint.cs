@@ -13,7 +13,8 @@ namespace Throne.Api.Settings.Endpoints;
 /// </summary>
 public sealed class TaskTrackerConnectionsEndpoint(
     ITaskTrackerProviderRegistry registry,
-    ITaskTrackerConnectionStore store)
+    ITaskTrackerConnectionStore store,
+    TaskTrackerBoardCatalog catalog)
 {
     public async Task<ActionResult<TaskTrackerConnectionsDto>> ListAsync(CancellationToken ct)
     {
@@ -45,6 +46,9 @@ public sealed class TaskTrackerConnectionsEndpoint(
         if (probe.Health == TaskTrackerConnectionHealth.Connected)
         {
             await store.SaveConnectionAsync(tracker, body.Base_url, body.Token, ct);
+            // Base URL / token may have changed under the same key — drop any boards cached against the
+            // old credentials so the next search re-reads against the new connection.
+            catalog.Invalidate(tracker);
             return new OkObjectResult(TaskTrackerSettingsDtoMapper.Connection(
                 provider.TrackerKey,
                 provider.DisplayName,
@@ -66,6 +70,7 @@ public sealed class TaskTrackerConnectionsEndpoint(
         // Resolve to close the open wire key (422 on an unknown tracker) before touching persistence.
         ResolveConnectionProvider(tracker);
         await store.DeleteAsync(tracker, ct);
+        catalog.Invalidate(tracker);
         return new NoContentResult();
     }
 

@@ -16,6 +16,7 @@ export const settingsEndpoints = {
   getTaskTrackerConnections: () => "/settings/task-trackers",
   setTaskTrackerConnection: (tracker: string) => `/settings/task-trackers/${tracker}/connection`,
   deleteTaskTrackerConnection: (tracker: string) => `/settings/task-trackers/${tracker}/connection`,
-  getTaskTrackerBoards: (tracker: string) => `/settings/task-trackers/${tracker}/boards`,
+  searchTaskTrackerBoards: (tracker: string) => `/settings/task-trackers/${tracker}/boards`,
   setTaskTrackerBoards: (tracker: string) => `/settings/task-trackers/${tracker}/boards`,
+  getTaskTrackerBoardSelection: (tracker: string) => `/settings/task-trackers/${tracker}/boards/selection`,
 } as const;

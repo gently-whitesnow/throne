@@ -15,6 +15,7 @@ public static class TaskTrackerServiceCollectionExtensions
     public static IServiceCollection AddTaskTrackerAxis(this IServiceCollection services)
     {
         services.AddSingleton<ITaskTrackerProviderRegistry, TaskTrackerProviderRegistry>();
+        services.AddSingleton<TaskTrackerBoardCatalog>();
         return services;
     }
 }
