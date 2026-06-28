@@ -59,6 +59,16 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/task-tracker/refresh", Name = "forceRefreshIntentTaskTrackerCard")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerCardSyncDto>> ForceRefreshIntentTaskTrackerCard([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id);
 
+        /// <summary>
+        /// Run the periodic board sync for one board right now («Обновить» on the board group).
+        /// </summary>
+        /// <remarks>
+        /// Triggers the same delta poll the background sync runs for this board (cards changed since last_seen), bypassing the per-board backoff so the operator does not wait for the next tick. Mirror intents are created/updated and vanished cards are stubbed exactly as in the periodic loop; refreshed content arrives over the realtime stream. Not a bulk re-fetch of every card — it reuses the existing polling path. Returns `not_connected` when the tracker has no saved connection and `unavailable` when the tracker is unreachable.
+        /// </remarks>
+        /// <returns>The board sync outcome.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("api/v1/task-trackers/{tracker}/boards/{board}/refresh", Name = "forceRefreshTaskTrackerBoard")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardSyncDto>> ForceRefreshTaskTrackerBoard([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string board);
+
     }
 
     

@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/task-trackers/{tracker}/boards/{board}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the periodic board sync for one board right now («Обновить» on the board group).
+         * @description Triggers the same delta poll the background sync runs for this board (cards changed since last_seen), bypassing the per-board backoff so the operator does not wait for the next tick. Mirror intents are created/updated and vanished cards are stubbed exactly as in the periodic loop; refreshed content arrives over the realtime stream. Not a bulk re-fetch of every card — it reuses the existing polling path. Returns `not_connected` when the tracker has no saved connection and `unavailable` when the tracker is unreachable.
+         */
+        post: operations["forceRefreshTaskTrackerBoard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -83,6 +103,18 @@ export interface components {
              * @enum {string}
              */
             state?: "linked" | "stub";
+        };
+        TaskTrackerBoardSyncDto: {
+            /**
+             * @description `synced` — the board poll ran (see `cards_changed`); `unavailable` — the tracker was unreachable mid-poll; `not_connected` — no saved connection for this tracker.
+             * @enum {string}
+             */
+            status: "synced" | "unavailable" | "not_connected";
+            /**
+             * Format: int32
+             * @description Cards whose mirror content changed in this run, when `status=synced`.
+             */
+            cards_changed?: number;
         };
         /** @description Stable task-tracker provider key. Value set intentionally open (ADR-0046); supported providers are delivered by the backend registry and unknown values are rejected server-side. */
         TaskTrackerProvider: string;
@@ -183,6 +215,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskTrackerCardSyncDto"];
+                };
+            };
+        };
+    };
+    forceRefreshTaskTrackerBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerProvider"];
+                board: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The board sync outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerBoardSyncDto"];
+                };
+            };
+            /** @description Tracker key is not registered on this Throne build. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

@@ -5,8 +5,10 @@ import {
   TERMINAL_RUNNING_CONTEXT,
   UNTAGGED_CONTEXT,
   archiveContextTag,
+  boardContextParts,
   fridgeContextTag,
   isArchiveContext,
+  isBoardContext,
   isFridgeContext,
   isInboxContext,
   isPinnedContext,
@@ -45,6 +47,9 @@ export function matchesContext(
   // Membership in the terminal-running bucket lives in tmux, not on the item — the list is
   // fetched server-side via the `terminal_running` filter, so there is nothing to mirror here.
   if (isTerminalRunningContext(context)) return false;
+  // Board membership lives in the task-tracker link table, not on the list item — fetched
+  // server-side via the `board` filter, so it cannot be mirrored from the item alone.
+  if (isBoardContext(context)) return false;
   if (isPinnedContext(context)) {
     return item.pinned_in.length > 0;
   }
@@ -85,6 +90,8 @@ export function contextToParams(context: string | null): IntentListParams {
   if (!context) return {};
   if (isTerminalRunningContext(context)) return { terminalRunning: true };
   if (isPinnedContext(context)) return { pinned: true };
+  const board = boardContextParts(context);
+  if (board) return { status: ACTIVE_STATUSES, board: board.boardId };
   if (isArchiveContext(context)) {
     const subTag = archiveContextTag(context);
     if (subTag === null) return { status: ARCHIVE_STATUS_LIST };
@@ -112,6 +119,8 @@ export function contextToParams(context: string | null): IntentListParams {
 /** Human-readable label of the supplied context bucket. */
 export function contextTitle(context: string | null): string {
   if (!context) return "Intents";
+  const board = boardContextParts(context);
+  if (board) return board.boardId;
   if (isArchiveContext(context)) {
     const subTag = archiveContextTag(context);
     if (subTag === null) return "Архив";

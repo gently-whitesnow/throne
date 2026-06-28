@@ -68,6 +68,7 @@ export function IntentContextRail() {
     : null;
 
   const {
+    boardRows,
     tagRows,
     untaggedCount,
     archiveCount,
@@ -88,6 +89,7 @@ export function IntentContextRail() {
     if (currentContext) return;
     let next: string | null = null;
     if (inboxHelpCount > 0) next = INBOX_HELP_CONTEXT;
+    else if (boardRows.length > 0) next = boardRows[0].key;
     else if (tagRows.length > 0) next = tagRows[0].key;
     else if (untaggedCount > 0) next = UNTAGGED_CONTEXT;
     else if (fridgeCount > 0) next = FRIDGE_CONTEXT;
@@ -98,6 +100,7 @@ export function IntentContextRail() {
     setParams(nextParams, { replace: true });
   }, [
     archiveCount,
+    boardRows,
     currentContext,
     fridgeCount,
     inboxHelpCount,
@@ -158,6 +161,7 @@ export function IntentContextRail() {
         ) : null}
         {contextsQuery.isSuccess ? (
           <ContextList
+            boardRows={boardRows}
             tagRows={tagRows}
             untaggedCount={untaggedCount}
             fridgeCount={fridgeCount}

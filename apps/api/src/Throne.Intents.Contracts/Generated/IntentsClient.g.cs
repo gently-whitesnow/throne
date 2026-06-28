@@ -559,6 +559,48 @@ namespace Throne.Intents.Contracts.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntentContextBoardCountDto
+    {
+
+        /// <summary>
+        /// Provider key owning the board (e.g. `kaiten`).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tracker")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Tracker { get; set; }
+
+        /// <summary>
+        /// Board id within the tracker; pair with `tracker` to address the board.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("board_id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Board_id { get; set; }
+
+        /// <summary>
+        /// Cached human-readable board name; absent when unknown (falls back to id).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("board_title")]
+        public string Board_title { get; set; }
+
+        /// <summary>
+        /// Active mirror intents currently linked to this board.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+        public int Count { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntentContextCountsDto
     {
 
@@ -640,6 +682,14 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("fridge_tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IntentContextTagCountDto> Fridge_tags { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextTagCountDto>();
+
+        /// <summary>
+        /// Connected task-tracker boards, sorted by board title asc. Each board is a rail group whose active mirror intents are counted here; those mirrors are excluded from the native active `tags`/`untagged` buckets so they group only by board.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("boards")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntentContextBoardCountDto> Boards { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextBoardCountDto>();
 
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
