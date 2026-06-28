@@ -15,6 +15,7 @@ internal sealed class IntentRowConfiguration : IEntityTypeConfiguration<IntentRo
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id).HasColumnName("id");
+        builder.Property(x => x.Title).HasColumnName("title").IsRequired(false);
         builder.Property(x => x.Text).HasColumnName("text").IsRequired();
         builder.Property(x => x.Status).HasColumnName("status").IsRequired();
         // CAS guard: every status/text/tags write filters on current_version and we double-check

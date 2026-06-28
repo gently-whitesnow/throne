@@ -12,11 +12,11 @@ public sealed record MirrorApplyResult(string IntentId, bool Created, bool Conte
 
 /// <summary>
 /// Applies one tracker card onto its mirror intent: creates the intent on first sight, otherwise pulls
-/// the card's title/description into the intent text — but only when the card actually differs from the
-/// snapshot baseline (last-write-wins, no merge). The link's snapshot is persisted <em>before</em> the
-/// intent-text write so the write-through handler, firing on the resulting <c>IntentTextChanged</c>,
-/// sees the new baseline and suppresses the echo back to the tracker. Reused by both the poll loop and
-/// force-pull so the two paths can never drift.
+/// the card's title into the intent title and the card's description into the intent text — but only the
+/// fields that actually differ from the snapshot baseline (last-write-wins, no merge). The link's
+/// snapshot is persisted <em>before</em> the intent writes so the write-through handler, firing on the
+/// resulting <c>IntentTitleChanged</c>/<c>IntentTextChanged</c>, sees the new baseline and suppresses the
+/// echo back to the tracker. Reused by both the poll loop and force-pull so the two paths can never drift.
 /// </summary>
 public sealed class TaskTrackerMirrorService(
     IIntentRepository repository,
@@ -45,20 +45,35 @@ public sealed class TaskTrackerMirrorService(
             return await CreateAsync(tracker, card, snapshot, cursors, now, ct);
         }
 
-        var composed = CardTextComposer.Compose(card.Title, card.Description);
-        if (CardTextComposer.Matches(existing.Snapshot, intent.State.Text) && string.Equals(intent.State.Text, composed, StringComparison.Ordinal))
+        var newText = CardMirror.TextOf(card.Title, card.Description);
+        var titleChanged = !string.Equals(intent.State.Title, card.Title, StringComparison.Ordinal);
+        var textChanged = !string.Equals(intent.State.Text, newText, StringComparison.Ordinal);
+        if (!titleChanged && !textChanged)
         {
             existing.RecordSnapshot(snapshot, cursors, now);
             await linkStore.SaveAsync(existing, ct);
             return new MirrorApplyResult(existing.IntentId, Created: false, ContentChanged: false);
         }
 
+        // Persist the new baseline first so the write-through handler, firing on the writes below,
+        // sees the card's values already mirrored and suppresses the echo back to the tracker.
         existing.RecordSnapshot(snapshot, cursors, now);
         await linkStore.SaveAsync(existing, ct);
-        await unitOfWork.ExecuteAsync(
-            inner => repository.ReplaceTextAsync(
-                intent.Id, intent.State.CurrentVersion, intent.State.Text, composed, TextVersionAuthor.Agent, now, inner),
-            ct);
+
+        // Title is metadata (no version bump); apply it first so the text CAS still sees the same version.
+        if (titleChanged)
+        {
+            await unitOfWork.ExecuteAsync(
+                inner => repository.SetTitleAsync(intent.Id, intent.State.CurrentVersion, card.Title, now, inner),
+                ct);
+        }
+        if (textChanged)
+        {
+            await unitOfWork.ExecuteAsync(
+                inner => repository.ReplaceTextAsync(
+                    intent.Id, intent.State.CurrentVersion, intent.State.Text, newText, TextVersionAuthor.Agent, now, inner),
+                ct);
+        }
         return new MirrorApplyResult(existing.IntentId, Created: false, ContentChanged: true);
     }
 
@@ -78,12 +93,12 @@ public sealed class TaskTrackerMirrorService(
         string tracker, TaskTrackerCard card, CardSyncLinkSnapshot snapshot, CardSyncLinkCursors cursors, DateTimeOffset now, CancellationToken ct)
     {
         var id = IntentId.New();
-        var composed = CardTextComposer.Compose(card.Title, card.Description);
+        var text = CardMirror.TextOf(card.Title, card.Description);
         var sortKey = await NextTopSortKeyAsync(ct);
         await unitOfWork.ExecuteAsync(
             async inner =>
             {
-                var intent = Intent.Create(id, composed, null, now, sortKey: sortKey);
+                var intent = Intent.Create(id, text, null, now, sortKey: sortKey, title: card.Title);
                 var version = TextVersion.CreateSnapshot(
                     id: Guid.NewGuid().ToString("N"),
                     ownerKind: TextVersionOwnerKind.Intent,
