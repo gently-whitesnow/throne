@@ -5,6 +5,7 @@ export type {
   EntityListReorder
 } from "./entity-list/EntityList";
 export { VirtualEntityList } from "./entity-list/VirtualEntityList";
+export { HighlightedSnippet } from "./highlighted-snippet/HighlightedSnippet";
 export { MarkdownView, MermaidDiagram } from "./markdown";
 export { Modal } from "./modal";
 export { ResizeHandle } from "./resize-handle/ResizeHandle";

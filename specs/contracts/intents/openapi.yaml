@@ -79,7 +79,11 @@ paths:
           schema:
             type: string
             minLength: 1
-          description: Case-insensitive substring filter against Intent.text.
+          description: >-
+            Ranked full-text search over Intent.text (FTS5/BM25). Tokens are matched as
+            case-insensitive AND prefixes; results come back ordered by relevance with a
+            highlighted `snippet`, and `next_cursor` is null (single ranked page). When
+            absent, the list uses the structural order from `sort`.
         - in: query
           name: sort
           required: false
@@ -1117,6 +1121,13 @@ components:
           type: string
           maxLength: 140
           description: First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
+        snippet:
+          type: string
+          description: >-
+            Relevance snippet of Intent.text with matched terms wrapped in highlight
+            markers (STX/ETX control characters). Present only on the ranked `query` path;
+            absent on plain list pages. Clients split on the markers and render the enclosed
+            run as a highlight (as text, never raw markup).
         sort_key:
           type: string
           minLength: 1

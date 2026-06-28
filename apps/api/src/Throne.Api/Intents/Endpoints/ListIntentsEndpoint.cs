@@ -46,7 +46,7 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
 
         return new OkObjectResult(new IntentListPageDto
         {
-            Items = MapItems(page.Items, tagMap, pinnedMap),
+            Items = MapItems(page.Items, tagMap, pinnedMap, page.Snippets),
             Next_cursor = IntentListCursorCodec.Encode(page.NextCursor),
         });
     }
@@ -54,7 +54,8 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
     private static System.Collections.ObjectModel.Collection<IntentListItemDto> MapItems(
         IReadOnlyList<Intent> intents,
         IReadOnlyDictionary<string, Tag> tagMap,
-        IReadOnlyDictionary<string, IReadOnlyList<IntentPin>> pinnedMap)
+        IReadOnlyDictionary<string, IReadOnlyList<IntentPin>> pinnedMap,
+        IReadOnlyDictionary<string, string>? snippets)
     {
         var dtos = new System.Collections.ObjectModel.Collection<IntentListItemDto>();
         foreach (var intent in intents)
@@ -63,7 +64,8 @@ public sealed class ListIntentsEndpoint(ListIntentsHandler handler, IntentsApiHe
                 intent,
                 tagMap,
                 TextShortMaxLength,
-                pinnedMap.TryGetValue(intent.Id.Value, out var pinned) ? pinned : null));
+                pinnedMap.TryGetValue(intent.Id.Value, out var pinned) ? pinned : null,
+                snippets?.GetValueOrDefault(intent.Id.Value)));
         }
         return dtos;
     }
