@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useInfiniteIntents } from "@/entities/intent";
 import { errorMessage, httpErrorCode, useDebouncedValue } from "@/shared/lib";
-import { Button } from "@/shared/ui";
+import { Button, HighlightedSnippet } from "@/shared/ui";
 
 import { createIntentLink } from "../api/intent-links-api";
 import { bucketDropParams, type DisplayBucket } from "../model/types";
@@ -138,7 +138,21 @@ export function AddLinkForm({
                 selected === i.id ? "bg-primary/10 text-primary" : ""
               }`}
             >
-              <span className="line-clamp-1">{i.text_short || i.id}</span>
+              {i.title && (
+                <span className="line-clamp-1 font-medium">{i.title}</span>
+              )}
+              {i.snippet ? (
+                <HighlightedSnippet
+                  snippet={i.snippet}
+                  className={`line-clamp-1 ${i.title ? "text-base-content/60" : ""}`}
+                />
+              ) : (
+                <span
+                  className={`line-clamp-1 ${i.title ? "text-base-content/60" : ""}`}
+                >
+                  {i.text_short || i.id}
+                </span>
+              )}
             </button>
           </li>
         ))}
