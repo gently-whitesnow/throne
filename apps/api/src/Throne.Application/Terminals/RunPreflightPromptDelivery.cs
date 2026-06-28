@@ -74,7 +74,7 @@ public sealed partial class RunPreflightPromptDelivery(
         var tags = await tagNames.ResolveAsync(request.TagIds, ct);
         var links = await linkContext.BuildAsync(new IntentId(request.IntentId), ct);
         var composedPrompt = WorkspaceMapPrompt.Compose(
-            request.WorkspacePath, request.RepoPaths, tags, links, request.UserPrompt);
+            request.WorkspacePath, request.RepoPaths, tags, request.Title, links, request.UserPrompt);
         await File.WriteAllTextAsync(promptPath, composedPrompt, ct);
         LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, composedPrompt.Length, promptPath);
 
@@ -165,4 +165,5 @@ public sealed record TerminalPromptDeliveryRequest(
     string WorkspacePath,
     IReadOnlyList<string> RepoPaths,
     IReadOnlyList<TagId> TagIds,
+    string? Title,
     string UserPrompt);
