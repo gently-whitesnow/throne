@@ -496,6 +496,8 @@ export interface components {
             title?: string | null;
             /** @description First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint. */
             text_short: string;
+            /** @description Relevance snippet of Intent.text with matched terms wrapped in highlight markers (STX/ETX control characters). Present only on the ranked `query` path; absent on plain list pages. Clients split on the markers and render the enclosed run as a highlight (as text, never raw markup). */
+            snippet?: string;
             /** @description Fractional sort key (base62). Default list order is ascending by this key. */
             sort_key: string;
             /** Format: date-time */
@@ -786,7 +788,7 @@ export interface operations {
                 pinned?: boolean;
                 /** @description When true, return only intents that currently have a live embedded-terminal session (a `throne-{intent_id}` tmux session). The set is read live from tmux (no DB mirror); an empty tmux server yields an empty page. */
                 terminal_running?: boolean;
-                /** @description Case-insensitive substring filter against Intent.text. */
+                /** @description Ranked full-text search over Intent.text (FTS5/BM25). Tokens are matched as case-insensitive AND prefixes; results come back ordered by relevance with a highlighted `snippet`, and `next_cursor` is null (single ranked page). When absent, the list uses the structural order from `sort`. */
                 query?: string;
                 sort?: components["schemas"]["IntentListSort"];
             };

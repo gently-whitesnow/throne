@@ -33,7 +33,7 @@ internal static class EfIntentListQueryBuilder
         {
             return null;
         }
-        query = ApplyQueryFilter(afterPinned, spec);
+        query = afterPinned;
 
         if (spec.Cursor is not null)
         {
@@ -127,21 +127,6 @@ internal static class EfIntentListQueryBuilder
             : (query.Where(r => pinnedIds.Contains(r.Id)), false);
     }
 
-    private static IQueryable<IntentRow> ApplyQueryFilter(IQueryable<IntentRow> query, IntentListSpec spec)
-    {
-        if (string.IsNullOrEmpty(spec.Query))
-        {
-            return query;
-        }
-        // AND of per-token LIKE %word%. Tokenisation is whitespace-split + non-empty.
-        foreach (var token in TokenizeQuery(spec.Query))
-        {
-            var pattern = $"%{Escape(token)}%";
-            query = query.Where(r => EF.Functions.Like(r.Text, pattern));
-        }
-        return query;
-    }
-
     private static IQueryable<IntentRow> ApplySort(IQueryable<IntentRow> query, IntentListSort sort) => sort switch
     {
         IntentListSort.SortKeyAsc => query.OrderBy(r => r.SortKey).ThenBy(r => r.Id),
@@ -195,21 +180,4 @@ internal static class EfIntentListQueryBuilder
             || (r.CreatedAt == sortValue && r.Id.CompareTo(cid) > 0));
     }
 
-    private static readonly char[] QueryWhitespace = [' ', '\t', '\r', '\n'];
-
-    private static IEnumerable<string> TokenizeQuery(string query)
-    {
-        foreach (var token in query.Split(QueryWhitespace, StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (!string.IsNullOrEmpty(token))
-            {
-                yield return token;
-            }
-        }
-    }
-
-    private static string Escape(string s) =>
-        s.Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("%", "\\%", StringComparison.Ordinal)
-            .Replace("_", "\\_", StringComparison.Ordinal);
 }
