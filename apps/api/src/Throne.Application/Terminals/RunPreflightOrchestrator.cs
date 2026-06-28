@@ -76,6 +76,7 @@ public sealed class RunPreflightOrchestrator(
             skillPlan.Packages,
             RunPreflightSession.CollectReadyRepoPaths(waitResult.Bindings),
             intent.TagIds,
+            intent.State.Title,
             ct);
         await launches.SaveAsync(intent.Id.Value, launchPlan, ct);
         await skills.SaveAsync(intent.Id.Value, mode, skillPlan, ct);

@@ -18,13 +18,15 @@ internal static class WorkspaceMapPrompt
         string workspaceRoot,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<string> tags,
+        string? title,
         string userPrompt) =>
-        Compose(workspaceRoot, repoPaths, tags, [], userPrompt);
+        Compose(workspaceRoot, repoPaths, tags, title, [], userPrompt);
 
     public static string Compose(
         string workspaceRoot,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<string> tags,
+        string? title,
         IReadOnlyList<IntentLinkPromptContext> links,
         string userPrompt)
     {
@@ -52,6 +54,10 @@ internal static class WorkspaceMapPrompt
         map.Append("cwd между Bash-вызовами не гарантирована — может сбрасываться к корню workspace.\n");
         map.Append("Не полагайся на `cd` из прошлого вызова: в каждой команде префиксуй абсолютный путь репо ");
         map.Append("или `cd <абсолютный путь репо> && …`.\n");
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            map.Append("Заголовок интента: ").Append(title).Append('\n');
+        }
         if (tags is { Count: > 0 })
         {
             map.Append("Теги интента: ").Append(string.Join(", ", tags)).Append('\n');
