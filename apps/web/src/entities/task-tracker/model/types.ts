@@ -1,4 +1,7 @@
-import type { SettingsComponents } from "@/shared/api";
+import type { SettingsComponents, TaskTrackersComponents } from "@/shared/api";
+
+export type TaskTrackerBoardSync =
+  TaskTrackersComponents["schemas"]["TaskTrackerBoardSyncDto"];
 
 export type TaskTrackerConnections =
   SettingsComponents["schemas"]["TaskTrackerConnectionsDto"];

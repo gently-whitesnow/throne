@@ -1,7 +1,8 @@
-import { Archive, Hash, Inbox, Snowflake } from "lucide-react";
+import { Archive, Columns3, Hash, Inbox, Snowflake } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { FRIDGE_STATUS, type IntentStatus } from "@/entities/intent";
+import { RefreshBoardButton } from "@/features/refresh-tracker-board";
 import {
   ARCHIVE_CONTEXT,
   FRIDGE_CONTEXT,
@@ -13,9 +14,10 @@ import {
 } from "@/shared/lib";
 
 import { RailRow } from "./RailRow";
-import type { ContextRow } from "../model/use-context-rows";
+import type { BoardRow, ContextRow } from "../model/use-context-rows";
 
 interface ContextListProps {
+  boardRows: BoardRow[];
   tagRows: ContextRow[];
   untaggedCount: number;
   fridgeCount: number;
@@ -34,6 +36,7 @@ interface ContextListProps {
 }
 
 export function ContextList({
+  boardRows,
   tagRows,
   untaggedCount,
   fridgeCount,
@@ -48,6 +51,29 @@ export function ContextList({
 }: ContextListProps) {
   return (
     <ul className="m-0 flex list-none flex-col p-0">
+      {boardRows.map((row) => (
+        <li key={row.key}>
+          <RailRow
+            label={row.label}
+            icon={<Columns3 aria-hidden size={14} strokeWidth={2} />}
+            count={row.count}
+            active={currentContext === row.key}
+            onSelect={() => {
+              onSelect(row.key);
+            }}
+            action={
+              <RefreshBoardButton
+                tracker={row.tracker}
+                boardId={row.boardId}
+                ariaLabel={`Обновить доску ${row.label}`}
+              />
+            }
+          />
+        </li>
+      ))}
+      {boardRows.length > 0 ? (
+        <li className="mt-1 border-t border-base-300" aria-hidden />
+      ) : null}
       {tagRows.map((row) => (
         <li key={row.key}>
           <RailRow
@@ -193,7 +219,8 @@ export function ContextList({
             ) : null
           ]
         : null}
-      {tagRows.length === 0 &&
+      {boardRows.length === 0 &&
+      tagRows.length === 0 &&
       untaggedCount === 0 &&
       fridgeCount === 0 &&
       archiveCount === 0 ? (

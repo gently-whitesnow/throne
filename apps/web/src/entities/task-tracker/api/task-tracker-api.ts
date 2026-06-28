@@ -1,8 +1,16 @@
-import { httpDelete, httpGet, httpPut, settingsEndpoints } from "@/shared/api";
+import {
+  httpDelete,
+  httpGet,
+  httpPost,
+  httpPut,
+  settingsEndpoints,
+  taskTrackersEndpoints
+} from "@/shared/api";
 
 import type {
   TaskTrackerBoardSearch,
   TaskTrackerBoardSelection,
+  TaskTrackerBoardSync,
   TaskTrackerConnection,
   TaskTrackerConnections,
   UpdateTaskTrackerBoardsRequest,
@@ -80,6 +88,18 @@ export function setTaskTrackerBoards(
   return httpPut<TaskTrackerBoardSelection>(
     settingsEndpoints.setTaskTrackerBoards(tracker),
     request,
+    signal
+  );
+}
+
+export function forceRefreshTaskTrackerBoard(
+  tracker: string,
+  board: string,
+  signal?: AbortSignal
+): Promise<TaskTrackerBoardSync> {
+  return httpPost<TaskTrackerBoardSync>(
+    taskTrackersEndpoints.forceRefreshTaskTrackerBoard(tracker, board),
+    undefined,
     signal
   );
 }

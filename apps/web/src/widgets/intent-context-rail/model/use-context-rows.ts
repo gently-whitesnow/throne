@@ -1,12 +1,21 @@
 import { useMemo } from "react";
 
 import { useIntentContexts } from "@/entities/intent";
+import { boardContext } from "@/shared/lib";
 
 export interface ContextRow {
   key: string;
   label: string;
   count: number;
   icon: "tag" | "untagged" | "archive";
+}
+
+export interface BoardRow {
+  key: string;
+  label: string;
+  count: number;
+  tracker: string;
+  boardId: string;
 }
 
 type ContextsData = ReturnType<typeof useIntentContexts>["data"];
@@ -24,7 +33,17 @@ export function useContextRows(data: ContextsData) {
         count: row.count,
         icon: "tag" as const
       }));
+    const boardRows: BoardRow[] = counts
+      ? counts.boards.map((b) => ({
+          key: boardContext(b.tracker, b.board_id),
+          label: b.board_title ?? b.board_id,
+          count: b.count,
+          tracker: b.tracker,
+          boardId: b.board_id
+        }))
+      : [];
     return {
+      boardRows,
       tagRows: counts ? toRows(counts.tags) : [],
       untaggedCount: counts?.untagged ?? 0,
       archiveCount: counts?.archive ?? 0,

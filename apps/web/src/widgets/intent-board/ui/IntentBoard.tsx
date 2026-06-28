@@ -15,15 +15,12 @@ import { type IntentsComponents } from "@/shared/api";
 import { errorMessage, isTagContext } from "@/shared/lib";
 import { VirtualEntityList, type EntityListReorder } from "@/shared/ui";
 
-import {
-  contextTitle,
-  emptyMessage,
-  synthesizeSortKey
-} from "../model/board-helpers";
+import { emptyMessage, synthesizeSortKey } from "../model/board-helpers";
 import { computeFamilyTints } from "../model/family-tint";
 import { computeStepRanks } from "../model/step-rank";
 import { useBoardItems } from "../model/use-board-items";
 import { useBoardRows } from "../model/use-board-rows";
+import { useContextTitle } from "../model/use-context-title";
 import { IntentLinksOverlay } from "./IntentLinksOverlay";
 import { PinnedSection } from "./PinnedSection";
 
@@ -41,6 +38,7 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
   const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const context = params.get("context");
+  const headerTitle = useContextTitle(context);
 
   const {
     allItems,
@@ -218,7 +216,7 @@ export function IntentBoard({ headerAction }: IntentBoardProps = {}) {
     >
       <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-base-300 px-3.5 py-3">
         <h2 className="m-0 truncate text-[13px] font-bold uppercase tracking-wider text-base-content/60">
-          {contextTitle(context)}
+          {headerTitle}
         </h2>
         <div className="flex items-center gap-2">
           {headerAction}

@@ -17,12 +17,13 @@ internal sealed class StubSyncProvider(string trackerKey = "kaiten") : ITaskTrac
     public string DisplayName => "Stub";
 
     public Func<string, TaskTrackerCard?>? GetCard { get; set; }
+    public Func<string, IReadOnlyList<TaskTrackerCard>>? ListBoardCards { get; set; }
     public HashSet<string> ChildCardIds { get; } = new(StringComparer.Ordinal);
     public List<(string Parent, string Child)> Added { get; } = [];
 
     public Task<IReadOnlyList<TaskTrackerCard>> ListBoardCardsAsync(
         TaskTrackerConnectionDescriptor connection, string boardId, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
+        Task.FromResult(ListBoardCards?.Invoke(boardId) ?? []);
 
     public Task<TaskTrackerCard?> GetCardAsync(TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
         Task.FromResult(GetCard?.Invoke(cardId));

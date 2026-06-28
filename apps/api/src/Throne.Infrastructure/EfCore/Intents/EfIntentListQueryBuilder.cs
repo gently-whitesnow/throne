@@ -27,6 +27,7 @@ internal static class EfIntentListQueryBuilder
         var query = ctx.Set<IntentRow>().AsQueryable();
         query = ApplyStatusFilter(query, spec);
         query = await ApplyTagFiltersAsync(ctx, query, spec, ct);
+        query = await ApplyBoardFilterAsync(ctx, query, spec, ct);
         query = ApplyIdFilter(query, spec);
         var (afterPinned, empty) = await ApplyPinnedFilterAsync(ctx, query, spec, ct);
         if (empty)
@@ -96,6 +97,28 @@ internal static class EfIntentListQueryBuilder
                 : query.Where(r => untaggedIds.Contains(r.Id));
         }
         return query;
+    }
+
+    // Board filter resolves the linked intent ids from the task-tracker card-link table. Mirror cards
+    // are 1:1 with intents (intent_id is the link PK), so this is a small id set even for big boards.
+    private static async Task<IQueryable<IntentRow>> ApplyBoardFilterAsync(
+        ThroneDbContext ctx,
+        IQueryable<IntentRow> query,
+        IntentListSpec spec,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(spec.BoardId))
+        {
+            return query;
+        }
+        var boardId = spec.BoardId;
+        var ids = await ctx.Set<TaskTrackerCardLinkRow>()
+            .Where(l => l.BoardId == boardId)
+            .Select(l => l.IntentId)
+            .ToListAsync(ct);
+        return ids.Count == 0
+            ? query.Where(_ => false)
+            : query.Where(r => ids.Contains(r.Id));
     }
 
     private static IQueryable<IntentRow> ApplyIdFilter(IQueryable<IntentRow> query, IntentListSpec spec)
