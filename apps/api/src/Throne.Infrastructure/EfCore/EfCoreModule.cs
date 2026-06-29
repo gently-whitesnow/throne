@@ -106,6 +106,7 @@ internal static class EfCoreModule
 
         services.AddHostedService<EfSchemaInitializer>();
         services.AddHostedService<SkillModeDefaultSeeder>();
+        services.AddHostedService<UserPromptSeedSeeder>();
 
         return services;
     }

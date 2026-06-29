@@ -57,6 +57,8 @@ public sealed class SqliteFixture : IAsyncLifetime
         services.AddSingleton(Substitute.For<IDomainEventDispatcher>());
         services.AddSingleton<ISkillManifestProvider>(
             new InMemorySkillManifestProvider(new SkillManifest(1, [], [], [])));
+        services.AddSingleton<IUserPromptSeedProvider>(
+            new InMemoryUserPromptSeedProvider(new UserPromptSeed(1, [])));
         services.AddSingleton(skillCatalog);
         services.AddSingleton(Substitute.For<ITerminalVendorCatalog>());
         services.AddThroneEfCore(configuration);

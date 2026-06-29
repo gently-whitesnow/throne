@@ -4,9 +4,9 @@ using Throne.Application.Manifest;
 
 namespace Throne.Infrastructure.Manifest;
 
-public sealed class YamlFileSkillManifestProvider : ISkillManifestProvider
+public sealed class YamlFileUserPromptSeedProvider : IUserPromptSeedProvider
 {
-    public YamlFileSkillManifestProvider(IOptions<SkillManifestOptions> options, IHostEnvironment env)
+    public YamlFileUserPromptSeedProvider(IOptions<UserPromptSeedOptions> options, IHostEnvironment env)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(env);
@@ -14,16 +14,16 @@ public sealed class YamlFileSkillManifestProvider : ISkillManifestProvider
         var configuredPath = options.Value.Path;
         if (string.IsNullOrWhiteSpace(configuredPath))
         {
-            throw new SkillManifestException("Throne:SkillManifest:Path is empty.");
+            throw new SkillManifestException("Throne:UserPromptSeed:Path is empty.");
         }
 
         var resolved = ManifestFileResolver.ResolveExisting(configuredPath, env.ContentRootPath)
             ?? throw new SkillManifestException(
-                $"Skill manifest not found. Tried '{configuredPath}' relative to content root '{env.ContentRootPath}'.");
+                $"User prompt seed not found. Tried '{configuredPath}' relative to content root '{env.ContentRootPath}'.");
 
         var yaml = File.ReadAllText(resolved);
-        Current = SkillManifestParser.Parse(yaml);
+        Current = UserPromptSeedParser.Parse(yaml);
     }
 
-    public SkillManifest Current { get; }
+    public UserPromptSeed Current { get; }
 }

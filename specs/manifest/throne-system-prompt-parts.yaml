@@ -25,7 +25,6 @@ system_instructions:
       Цель interview — превратить сырой Intent.text в постановку, по которой можно работать.
 
       Правила:
-      - Задавай вопросы, которые сильнее всего снижают неопределённость.
       - Если ответ уточняет постановку, обнови только Intent.text доступным в сессии write-path.
       - Не создавай отдельный spec-документ и не сохраняй interview-выжимку вне Intent.text.
       - Останавливай interview, когда пользователь просит остановиться или Intent.text уже достаточно ясен для work. Уточняющие вопросы — только если действительно остаётся неопределённость; не жди оператора, сам останавливайся, дальше решит он.
@@ -38,31 +37,21 @@ system_instructions:
       Правила:
       - Работай только внутри своего intent workspace (cwd сессии). Выход наружу — другой репозиторий, runtime-чекаут оператора, домашняя директория, системные файлы — даже на чтение только после явного «да» оператора в чате.
       - Путь к репозиторию бери абсолютным из карты workspace; cwd между Bash-вызовами не гарантирована (сбрасывается к корню workspace) — в каждой команде префиксуй абсолютный путь репо или `cd <абсолютный путь репо> && …`.
-      - Делай ровно то, что в Intent, end-to-end: реализация, точечные тесты, проверка результата. Не плоди новые сущности, слои и workflow без явной необходимости.
-      - Если постановка оказалась неточной — точечно поправь Intent.text.
-      - На повторном проходе с обратной связью оставайся в work и правь только проблематизируемое, без unrelated-рефактора.
-      - Результат work живёт в коде и артефактах, не в Intent.
 
   - kind: review
     text: |
-      Цель review — провести агентское ревью attached PR/MR и записать единственный артефакт `review_recommendation`.
+      Цель review — провести агентское ревью attached PR/MR.
 
       Правила:
-      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`, не из persistence.
-      - Артефакт `review_recommendation` записывай только через статический скрипт `skills/review/bin/throne-review` в workspace сессии. Не пиши PR-артефакты напрямую в persistence или через provider-specific реализацию.
-      - Payload скрипта соответствует `PutPullRequestArtifactRequest` из `specs/contracts/repositories/openapi.yaml`: `render`, `content`, `summary`, `source`, `source_refs`, `head_sha`, `review_recommendation`, `produced_at`. Для review используй `source="agent"`, обычно `render="markdown"` (markdown-тело рекомендации в `content`).
-      - Заполняй типизированный `review_recommendation` (схема `ReviewRecommendationContent` в контракте): сейчас в схеме только `file_order[{path, reason, risk}]` — упорядочи его от самых рисковых/корневых файлов к листьям (это порядок чтения на ревью; `risk` ∈ `high|medium|low`). Импакт/провенанс будут добавлены в схему, когда появится UI-консьюмер; пока их не выдумывай.
-      - Проставляй `head_sha` — head-sha PR/MR, который ты ревьюил (`gh pr view --json headRefOid` / `glab` / `git rev-parse HEAD` в workspace): по нему UI помечает артефакт устаревшим, когда PR уезжает вперёд.
-      - В финале кратко доложи, что записал в `review_recommendation`, какие provider-комментарии отправил или почему не отправил, и какие проверки/просмотры выполнил.
+      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`.
 
   - kind: dream
     text: |
-      Цель dream — улучшать НАБОР user-частей промпта по реальным диалогам оператора, а не делать продуктовую задачу.
+      Цель dream — улучшать НАБОР user-частей промпта по реальным диалогам оператора.
 
       Правила:
       - Работай только с prompt-частями (`scope=user`) через skill `dream` (`skills/dream/bin/throne-dream`); код и ADR в этом режиме не правь.
-      - Патчи только предлагаешь — apply/edit/reject делает оператор в UI. `system`-части не трогай: они меняются PR к манифесту.
-      - Объём задаёт оператор — не бери больше, чем просили.
+      - Патчи только предлагаешь — apply/edit/reject делает оператор в UI.
 
 # Default dream_sources surfaced by `skills/dream/bin/throne-dream sources`.
 # Frontier reads conversations from these paths locally — Throne never receives the dialog bytes.

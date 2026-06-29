@@ -70,6 +70,13 @@ public sealed class EfSqliteProvisioningTests : IDisposable
         skillCatalog.List().Returns(System.Array.Empty<SessionSkillDescriptor>());
         services.AddSingleton(skillCatalog);
         services.AddSingleton(Substitute.For<ITerminalVendorCatalog>());
+        // UserPromptSeedSeeder (hosted service) is constructed when IHostedService is
+        // enumerated below; give it a TimeProvider and an empty seed provider so the DI
+        // graph composes without the full Application/Infrastructure modules.
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<Throne.Application.Manifest.IUserPromptSeedProvider>(
+            new Throne.Application.Manifest.InMemoryUserPromptSeedProvider(
+                new Throne.Application.Manifest.UserPromptSeed(1, [])));
         services.AddThroneEfCore(configuration);
         return services.BuildServiceProvider();
     }

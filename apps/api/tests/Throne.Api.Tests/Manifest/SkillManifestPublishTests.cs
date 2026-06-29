@@ -18,6 +18,18 @@ public class SkillManifestPublishTests
             $"layouts can find it. Expected at: {manifestPath}");
     }
 
+    [Fact(DisplayName = "User-prompt seed-манифест копируется рядом с Throne.Api.dll (Content в csproj)")]
+    public void User_prompt_seed_is_copied_next_to_binary()
+    {
+        var apiBinDir = ResolveApiBinDirectory();
+        var seedPath = Path.Combine(apiBinDir, "specs", "manifest", "throne-user-prompt-seed-parts.yaml");
+
+        File.Exists(seedPath).Should().BeTrue(
+            $"Throne.Api.csproj must include the user-prompt seed manifest as Content with " +
+            $"CopyToOutputDirectory/CopyToPublishDirectory so the boot seeder finds it in " +
+            $"Docker/CI publish layouts. Expected at: {seedPath}");
+    }
+
     private static string ResolveApiBinDirectory()
     {
         // Test bin is .../apps/api/tests/Throne.Api.Tests/bin/<Config>/net10.0.
