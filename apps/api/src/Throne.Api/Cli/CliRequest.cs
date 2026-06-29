@@ -7,8 +7,9 @@ namespace Throne.Api.Cli;
 /// (<c>--home</c>/<c>-p</c>/<c>--db</c>/<c>-a</c>/<c>--no-browser</c>/<c>-f</c>) are
 /// human aliases lifted out of the raw args; <see cref="HostArgs"/> is what the
 /// Kestrel host actually receives, with the port/db/home aliases lowered onto the
-/// existing ASP.NET config keys (<c>--urls</c>, <c>Persistence:Sqlite:DataSource</c>,
-/// <c>Throne:Workspace:Root</c>). Command-line config wins over env/appsettings, so
+/// existing ASP.NET config keys (<c>--urls</c> and <c>Throne:ApiBaseUrl</c>,
+/// <c>Persistence:Sqlite:DataSource</c>, <c>Throne:Workspace:Root</c>). Command-line
+/// config wins over env/appsettings, so
 /// an explicit <c>--urls</c> the user passes is overridden only when they also pass
 /// <c>-p</c>.
 /// </summary>
@@ -145,6 +146,10 @@ internal sealed record CliRequest(
         {
             list.Add("--urls");
             list.Add($"http://localhost:{port.Trim()}");
+            // -p is the single source of truth for the port: keep the hook/spawn callback
+            // URL (Throne:ApiBaseUrl) in sync with --urls so an ephemeral instance's hooks
+            // reach it instead of leaking to the default :5008.
+            list.Add($"--Throne:ApiBaseUrl=http://localhost:{port.Trim()}");
         }
 
         if (db is not null)

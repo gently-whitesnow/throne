@@ -15,6 +15,22 @@ public class CliHostArgsTests
     }
 
     [Fact]
+    public void Port_alias_also_lowers_onto_api_base_url_so_hooks_reach_the_instance()
+    {
+        var request = CliRequest.Parse(["-p", "9000"]);
+
+        request.HostArgs.Should().Contain("--Throne:ApiBaseUrl=http://localhost:9000");
+    }
+
+    [Fact]
+    public void Without_port_api_base_url_is_left_at_its_default()
+    {
+        var request = CliRequest.Parse(["-a"]);
+
+        request.HostArgs.Should().NotContain(a => a.StartsWith("--Throne:ApiBaseUrl=", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Db_alias_lowers_onto_persistence_config_key()
     {
         var request = CliRequest.Parse(["--db", "/data/custom.db"]);
