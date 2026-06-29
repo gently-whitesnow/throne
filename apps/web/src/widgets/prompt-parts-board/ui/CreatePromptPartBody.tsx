@@ -40,7 +40,7 @@ export function CreatePromptPartBody({ onClose }: { onClose: () => void }) {
       <label className="flex flex-col gap-1">
         <span className="text-[13px] font-semibold text-base-content">Key</span>
         <input
-          className="input input-bordered font-mono text-[13px]"
+          className="input input-bordered w-full font-mono text-[13px]"
           value={key}
           onChange={(e) => {
             setKey(e.target.value);
@@ -57,7 +57,7 @@ export function CreatePromptPartBody({ onClose }: { onClose: () => void }) {
           </span>
         </span>
         <textarea
-          className="textarea textarea-bordered text-[13px]"
+          className="textarea textarea-bordered w-full text-[13px]"
           value={description}
           onChange={(e) => {
             setDescription(e.target.value);
@@ -71,7 +71,7 @@ export function CreatePromptPartBody({ onClose }: { onClose: () => void }) {
           Текст
         </span>
         <textarea
-          className="textarea textarea-bordered min-h-60 font-mono text-[13px] leading-relaxed"
+          className="textarea textarea-bordered min-h-60 w-full font-mono text-[13px] leading-relaxed"
           value={text}
           onChange={(e) => {
             setText(e.target.value);

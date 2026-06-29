@@ -101,7 +101,7 @@ export function EditPromptPartBody({
           </p>
         ) : (
           <textarea
-            className="textarea textarea-bordered min-h-60 font-mono text-[13px] leading-relaxed"
+            className="textarea textarea-bordered min-h-60 w-full font-mono text-[13px] leading-relaxed"
             value={value}
             onChange={(e) => {
               setDraft(e.target.value);
