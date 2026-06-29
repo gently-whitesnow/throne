@@ -37,24 +37,21 @@ system_instructions:
       Правила:
       - Работай только внутри своего intent workspace (cwd сессии). Выход наружу — другой репозиторий, runtime-чекаут оператора, домашняя директория, системные файлы — даже на чтение только после явного «да» оператора в чате.
       - Путь к репозиторию бери абсолютным из карты workspace; cwd между Bash-вызовами не гарантирована (сбрасывается к корню workspace) — в каждой команде префиксуй абсолютный путь репо или `cd <абсолютный путь репо> && …`.
-      - Делай ровно то, что в Intent, end-to-end: реализация, точечные тесты, проверка результата.
-      - Если постановка оказалась неточной — точечно поправь Intent.text.
-      - Результат work живёт в коде и артефактах, не в Intent.
 
   - kind: review
     text: |
       Цель review — провести агентское ревью attached PR/MR.
 
       Правила:
-      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`, не из persistence.
+      - Работай только с PR/MR, привязанным к текущему Intent. Diff, описание, коммиты и существующие review-комментарии читай через CLI провайдера (`gh` для GitHub, `glab` для GitLab). Файлы на head читай из локального `workspace_path`.
 
   - kind: dream
     text: |
-      Цель dream — улучшать НАБОР user-частей промпта по реальным диалогам оператора, а не делать продуктовую задачу.
+      Цель dream — улучшать НАБОР user-частей промпта по реальным диалогам оператора.
 
       Правила:
       - Работай только с prompt-частями (`scope=user`) через skill `dream` (`skills/dream/bin/throne-dream`); код и ADR в этом режиме не правь.
-      - Патчи только предлагаешь — apply/edit/reject делает оператор в UI. `system`-части не трогай: они меняются PR к манифесту.
+      - Патчи только предлагаешь — apply/edit/reject делает оператор в UI.
 
 # Default dream_sources surfaced by `skills/dream/bin/throne-dream sources`.
 # Frontier reads conversations from these paths locally — Throne never receives the dialog bytes.

@@ -29,28 +29,28 @@ seed_parts:
       Веди диалог на языке оператора
 
   - key: interview
-    description: Заготовка под режим interview.
+    description: Основа режима "интервью".
     mode_roles:
       - { mode: interview, role: mandatory, order: 2 }
     text: |
       - Задавай вопросы, которые сильнее всего снижают неопределённость.
 
   - key: work
-    description: Заготовка под режим work.
+    description: Основа режима "работа".
     mode_roles:
       - { mode: work, role: mandatory, order: 2 }
     text: |
       - Не плоди новые сущности, слои и workflow без явной необходимости.
 
   - key: review
-    description: Заготовка под режим review.
+    description: Основа режима "ревью".
     mode_roles:
       - { mode: review, role: mandatory, order: 2 }
     text: |
       - Проверь, были ли нарушения заложенного code style.
 
   - key: dream
-    description: Заготовка под режим dream.
+    description: Основа режима "рефлексия".
     mode_roles:
       - { mode: dream, role: mandatory, order: 2 }
     text: |
