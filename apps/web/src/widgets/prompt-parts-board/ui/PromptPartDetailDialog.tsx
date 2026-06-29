@@ -30,7 +30,7 @@ export function PromptPartDetailDialog({
       onClose={onClose}
       labelledBy={titleId}
       overlayClassName=""
-      boxClassName="flex max-h-[min(880px,calc(100vh-48px))] w-full max-w-3xl flex-col"
+      boxClassName="flex max-h-[min(880px,calc(100vh_-_48px))] w-full max-w-3xl flex-col"
     >
       <header className="mb-4 flex justify-between gap-4">
         <div>
@@ -58,7 +58,7 @@ export function PromptPartDetailDialog({
         </button>
       </header>
 
-      <div className="flex flex-col gap-4 overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
         {target.mode === "create" ? (
           <CreatePromptPartBody onClose={onClose} />
         ) : isSystem ? (
