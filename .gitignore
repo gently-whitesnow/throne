@@ -27,6 +27,9 @@ Thumbs.db
 .env
 .env.local
 
+# Isolated agent instance home (THRONE_HOME=$PWD/.throne-agent ./throne -p ...)
+.throne-agent/
+
 # Node (future apps/web)
 node_modules/
 dist/
