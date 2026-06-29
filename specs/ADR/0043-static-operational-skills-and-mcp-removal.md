@@ -15,7 +15,7 @@ Operational agent support was split across two delivery mechanisms:
 
 This made operations harder to review and reuse: some behavior lived in C# string generation, some in MCP tool code, and some in runtime prompts. It also kept a standalone MCP contour alive even though the product path is the embedded terminal.
 
-The system-prompt layer is separate. `specs/manifest/throne-skills.yaml`, Mongo user prompt parts, and `PromptCompositionResolver` still compose mode instructions. This ADR changes only the operational layer.
+The system-prompt layer is separate. `specs/manifest/throne-system-prompt-parts.yaml`, Mongo user prompt parts, and `PromptCompositionResolver` still compose mode instructions. This ADR changes only the operational layer.
 
 ## Decision
 

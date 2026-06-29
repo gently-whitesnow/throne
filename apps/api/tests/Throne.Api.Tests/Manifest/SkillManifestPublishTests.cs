@@ -10,7 +10,7 @@ public class SkillManifestPublishTests
         // We assert against the API host's own bin output, not the test bin,
         // because the Content item lives on Throne.Api.csproj specifically.
         var apiBinDir = ResolveApiBinDirectory();
-        var manifestPath = Path.Combine(apiBinDir, "specs", "manifest", "throne-skills.yaml");
+        var manifestPath = Path.Combine(apiBinDir, "specs", "manifest", "throne-system-prompt-parts.yaml");
 
         File.Exists(manifestPath).Should().BeTrue(
             $"Throne.Api.csproj must include the skill manifest as Content with " +

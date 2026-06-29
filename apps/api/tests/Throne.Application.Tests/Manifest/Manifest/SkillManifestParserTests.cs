@@ -5,7 +5,7 @@ namespace Throne.Application.Tests.Manifest.Manifest;
 
 public class SkillManifestParserTests
 {
-    private static readonly string[] ExpectedBundleModes = ["interview", "work", "review"];
+    private static readonly string[] ExpectedBundleModes = ["interview", "work", "review", "dream"];
 
     private const string ValidYaml = """
         version: 1
@@ -94,7 +94,7 @@ public class SkillManifestParserTests
         act.Should().Throw<SkillManifestException>().WithMessage("*work*system_instructions*");
     }
 
-    [Fact(DisplayName = "Реальный manifest specs/manifest/throne-skills.yaml парсится без ошибок")]
+    [Fact(DisplayName = "Реальный manifest specs/manifest/throne-system-prompt-parts.yaml парсится без ошибок")]
     public void Parses_real_manifest_from_repo()
     {
         var path = ResolveManifestPath();
@@ -102,8 +102,8 @@ public class SkillManifestParserTests
 
         var manifest = SkillManifestParser.Parse(yaml);
 
-        manifest.SystemInstructions.Should().HaveCount(3);
-        manifest.Bundles.Should().HaveCount(3);
+        manifest.SystemInstructions.Should().HaveCount(4);
+        manifest.Bundles.Should().HaveCount(4);
         manifest.Bundles.Select(b => b.Mode).Should().BeEquivalentTo(ExpectedBundleModes);
         manifest.DreamSources.Should().HaveCount(3);
         manifest.DreamSources.Select(s => s.Vendor).Should().BeEquivalentTo("claude-code", "claude-desktop", "codex-cli");
@@ -116,7 +116,7 @@ public class SkillManifestParserTests
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            var manifestPath = Path.Combine(dir.FullName, "specs", "manifest", "throne-skills.yaml");
+            var manifestPath = Path.Combine(dir.FullName, "specs", "manifest", "throne-system-prompt-parts.yaml");
             var anchor = Path.Combine(dir.FullName, "specs", "AGENTS.local.md");
             if (File.Exists(manifestPath) && File.Exists(anchor))
             {
@@ -125,7 +125,7 @@ public class SkillManifestParserTests
             dir = dir.Parent;
         }
         throw new FileNotFoundException(
-            "Cannot locate repo-root throne-skills.yaml (looked for specs/manifest/throne-skills.yaml + specs/AGENTS.local.md) walking up from " +
+            "Cannot locate repo-root throne-system-prompt-parts.yaml (looked for specs/manifest/throne-system-prompt-parts.yaml + specs/AGENTS.local.md) walking up from " +
             AppContext.BaseDirectory);
     }
 }

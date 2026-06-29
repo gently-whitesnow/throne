@@ -55,8 +55,8 @@ public sealed class TerminalHookStatusHandler(IIntentRepository repository, SetI
 
     /// <summary>
     /// Maps (event, spawn mode) to the intent status the hook drives, or <c>null</c> when the hook
-    /// is a no-op for status. Bundle-less <c>dream</c> never touches the status machine — it runs
-    /// without an intent and has no phase to park or return to. <c>free</c> and <c>review</c> are
+    /// is a no-op for status. <c>dream</c> is not a phased mode — it never touches the status machine,
+    /// runs without an intent and has no phase to park or return to. <c>free</c> and <c>review</c> are
     /// phased like work (spawn→work, Stop→awaiting_operator, UserPromptSubmit→work); only their
     /// injected context differs.
     /// </summary>

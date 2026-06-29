@@ -46,7 +46,7 @@ Related: [ADR-0025](0025-domain-aggregate-style-rich-ddd.md), [ADR-0030](0030-mc
 
 Резолвер композиции читает через `IPromptPartRepository`: для режима берёт mandatory-части в порядке `bundles[].includes`, где `system` приходит из манифеста, а `user` — из `prompt_parts`. Тексты правил байт-в-байт прежние, поэтому агент-видимый контент композиции не меняется.
 
-Манифест [throne-skills.yaml](../manifest/throne-skills.yaml) остаётся runtime-источником mandatory `system`-частей (`system_instructions` тексты) и композиции (`bundles[].includes` → какие `(scope, key)` mandatory в каком режиме и в каком порядке). Он также остаётся:
+Манифест [throne-system-prompt-parts.yaml](../manifest/throne-system-prompt-parts.yaml) остаётся runtime-источником mandatory `system`-частей (`system_instructions` тексты) и композиции (`bundles[].includes` → какие `(scope, key)` mandatory в каком режиме и в каком порядке). Он также остаётся:
 - источником `dream_sources` (без изменений).
 
 `system`-части читаются из манифеста через manifest-backed реализацию `IPromptPartRepository`: list/get для scope=`system` синтезируют read-only `PromptPart` с детерминированным id `system:{kind}` и ролями из `PromptPartManifestRoles`. Mongo-документы scope=`system` не читаются и не реконсайлятся. `user`-части создаются явно через UI или patch-apply flow и живут в Mongo как versioned/editable runtime-данные.

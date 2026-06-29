@@ -32,7 +32,7 @@ MCP-протокол уже даёт штатный канал для серве
 
 1. **Отказ от skill-лаунчеров.** Удаляются:
    - каталоги `.claude/skills/{tinterview,twork,tfix,tdream}/` и `.agents/skills/{tinterview,twork,tfix,tdream}/`;
-   - секция `skills:` в [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) (манифест продолжает быть source of truth для `system_instructions` и `bundles`);
+   - секция `skills:` в [specs/manifest/throne-system-prompt-parts.yaml](../manifest/throne-system-prompt-parts.yaml) (манифест продолжает быть source of truth для `system_instructions` и `bundles`);
    - архитектурный тест парности `SkillLauncherParityTests`;
    - HTTP-операция `getSkillsTree` и поддерживавшие её `GetSkillsTreeHandler`/`SkillsTreeDto`/`SkillNodeDto` (заменены на `getBundlesTree` + `BundlesTreeDto`, потому что UI-странице `/instructions` больше нечего рендерить на уровне «скилов»).
 2. **Доставка mini-router'а через `InitializeResult.instructions`.** На каждом MCP-handshake Throne сервер отдаёт короткий условный глоссарий с единственным триггером: если пользователь явно просит прочитать бандл — агент зовёт `get_prompt_bundle`. Если пользователь просто описывает задачу, mini-router не классифицирует её по смыслу и не дёргает бандл — это устраняет ложные раундтрипы во встроенном контуре, где контекст уже инъектится upfront (см. [ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2). Текст вида:
@@ -53,7 +53,7 @@ MCP-протокол уже даёт штатный канал для серве
 
 4. **Slash-команд `/tinterview | /twork | /tdream` нет.** Единственный путь начать standalone-поток — явная просьба пользователя прочитать конкретный бандл. Mini-router не классифицирует свободное описание задачи; пользователь либо пишет «прочитай бандл work/interview/dream …», либо нажимает copy-кнопку на странице интента / `/improvements`, которая кладёт ровно такую формулировку в буфер. Это сознательно жертвует «mode by meaning»-вход ради устранения лишнего MCP-раундтрипа во встроенном контуре ([ADR-0034](0034-dual-execution-contours-hooks-vs-bundles.md) §2).
 
-5. **Манифест и bundle resolver не меняются.** `system_instructions` и `bundles` в [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) остаются source of truth для текстов system-инструкций и `mode → kinds` маппинга. Имя файла оставлено `throne-skills.yaml` для совместимости с уже задеплоенными серверами; новых читателей секции `skills:` нет.
+5. **Манифест и bundle resolver не меняются.** `system_instructions` и `bundles` в [specs/manifest/throne-system-prompt-parts.yaml](../manifest/throne-system-prompt-parts.yaml) остаются source of truth для текстов system-инструкций и `mode → kinds` маппинга. (Исторически файл назывался `throne-system-prompt-parts.yaml` — имя сохранялось ради совместимости с задеплоенными серверами; после перехода на локальный single-process инстанс это стало неактуально, и файл переименован в `throne-system-prompt-parts.yaml`, отражая, что в нём остались только system-части промпта.)
 
 6. **UI `/instructions`.** Страница теперь рендерит дерево по бандлам (`bundle.mode → includes → entries`). HTTP-эндпоинт переименован: `GET /api/v1/instructions/skills-tree` → `GET /api/v1/instructions/bundles-tree`. Виджет фронта — `widgets/bundles-tree`.
 

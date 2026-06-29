@@ -26,7 +26,7 @@ Accepted. Заменяет ранний серверный insight-pipeline (cha
 
 - `Instruction` + `InstructionPatch` (apply / apply-with-edit / reject) — HTTP, MCP, UI `/improvements`. Без изменений (контракт уже работал).
 - Новая сущность **`DreamSession`** — append-only память о прошлых проходах: vendor, период, `processed_conversation_ids`, `summary`, `reflection`, `proposed_patch_ids`. Owner-scoped, immutable после `record`.
-- Конфиг **`dream_sources`** в [specs/manifest/throne-skills.yaml](../manifest/throne-skills.yaml) — отдаёт фронтиру таблицу `{vendor → path, hint}`, откуда читать диалоги локально.
+- Конфиг **`dream_sources`** в [specs/manifest/throne-system-prompt-parts.yaml](../manifest/throne-system-prompt-parts.yaml) — отдаёт фронтиру таблицу `{vendor → path, hint}`, откуда читать диалоги локально.
 
 ### MCP surface
 
@@ -91,6 +91,6 @@ Accepted. Заменяет ранний серверный insight-pipeline (cha
 ## References
 
 - Постмортем + ход рассуждений: интент `d2a6c7f08cab4095bd8ac12fb4483e0c` (`derived_from` интента раннего pipeline `3a042303f99d4ddf93bbda08f6055671`).
-- Реализация бандла: [`specs/manifest/throne-skills.yaml`](../manifest/throne-skills.yaml) → `system_instructions[kind: dream]` + `dream_sources`.
+- Реализация бандла: [`specs/manifest/throne-system-prompt-parts.yaml`](../manifest/throne-system-prompt-parts.yaml) → `system_instructions[kind: dream]` + `dream_sources`.
 - HTTP контракт: [`specs/contracts/dreams/openapi.yaml`](../contracts/dreams/openapi.yaml).
 - Realtime: [`specs/contracts/realtime/events.yaml`](../contracts/realtime/events.yaml) → `dream_session.recorded`.

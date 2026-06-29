@@ -206,7 +206,7 @@ bash scripts/quality/verify-frontend.sh            # frontend-only
 | [specs/AGENTS.local.md](specs/AGENTS.local.md) | Правила для AI-агентов в этом проекте |
 | [specs/contracts/AGENTS.md](specs/contracts/AGENTS.md) | HTTP API контракты (OpenAPI source of truth) |
 | [specs/contracts/realtime/events.yaml](specs/contracts/realtime/events.yaml) | Realtime server→client события (yaml source of truth) + [ADR-0008](specs/ADR/0008-realtime-contract-first-events.md) |
-| [specs/manifest/throne-skills.yaml](specs/manifest/throne-skills.yaml) | System instructions + embedded-композиция по режимам (источник правды) |
+| [specs/manifest/throne-system-prompt-parts.yaml](specs/manifest/throne-system-prompt-parts.yaml) | System instructions + embedded-композиция по режимам (источник правды) |
 | [skills/intent/SKILL.md](skills/intent/SKILL.md) / [skills/review/SKILL.md](skills/review/SKILL.md) / [skills/dream/SKILL.md](skills/dream/SKILL.md) | Static operational skills |
 | [specs/ADR/0043-static-operational-skills-and-mcp-removal.md](specs/ADR/0043-static-operational-skills-and-mcp-removal.md) | Operational skills as repo files + MCP removal |
 | [DESIGN.md](DESIGN.md) | Дизайн-система фронтенда |

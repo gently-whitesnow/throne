@@ -181,7 +181,7 @@ skills/dream/bin/throne-dream record-session < /tmp/session.json
 
 - Карту частей показывай ДО патчей; рефлексию делай ВСЕГДА перед поиском нового.
 - Не применяй патчи сам — apply/edit/reject исключительно user-action в UI `/improvements`.
-- Не патчи `system`-части: они manifest-managed (`specs/manifest/throne-skills.yaml`), меняются
+- Не патчи `system`-части: они manifest-managed (`specs/manifest/throne-system-prompt-parts.yaml`), меняются
   только PR к манифесту, вне объёма dream.
 - dream сам не пишет код и не правит ADR — но вправе РЕКОМЕНДОВАТЬ носителем сигнала ADR.
 - Не предлагай rule с toxic absolutism («никогда», «всегда без исключений»), если есть

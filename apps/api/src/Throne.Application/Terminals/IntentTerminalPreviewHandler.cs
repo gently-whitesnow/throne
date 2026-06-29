@@ -27,8 +27,7 @@ public sealed record IntentTerminalPreview(
 /// listing any current intent attachments by their workspace-relative path (the bytes are staged on
 /// spawn so the embedded agent opens them with a native <c>Read</c>), and resolves the embedded prompt
 /// composition for the requested mode. Unsupported modes are rejected by
-/// <see cref="PromptCompositionResolver"/> (<c>dream</c> is valid and has no manifest bundle, so its
-/// mandatory parts resolve empty).
+/// <see cref="PromptCompositionResolver"/>.
 ///
 /// Alongside the composition it returns a read-only render of the workspace map that
 /// <see cref="RunPreflightPromptDelivery"/> prepends to the delivered prompt at spawn — so the modal
