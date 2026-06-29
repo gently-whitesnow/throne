@@ -3,8 +3,9 @@ namespace Throne.Infrastructure.TaskTrackers.Kaiten.Models;
 /// <summary>
 /// A Kaiten card — the unit Throne links an intent to. Carries the stable identity and the mutable
 /// fields the sync axis needs to mirror and to detect change (<see cref="Updated"/> /
-/// <see cref="ColumnChangedAt"/>). The full Kaiten card has many more fields; this is the projection
-/// the adapter exposes, extended as consumers need more.
+/// <see cref="ColumnChangedAt"/>, plus the monotonic <see cref="Version"/> Kaiten ticks on every
+/// edit). The full Kaiten card has many more fields; this is the projection the adapter exposes,
+/// extended as consumers need more.
 /// </summary>
 internal sealed record KaitenCard(
     long Id,
@@ -18,7 +19,8 @@ internal sealed record KaitenCard(
     DateTimeOffset? Created,
     DateTimeOffset? Updated,
     DateTimeOffset? ColumnChangedAt,
-    long? TypeId);
+    long? TypeId,
+    int? Version = null);
 
 /// <summary>Payload for <c>POST /cards</c>. Board/column place the card; lane/type are optional.</summary>
 internal sealed record KaitenCreateCardRequest(

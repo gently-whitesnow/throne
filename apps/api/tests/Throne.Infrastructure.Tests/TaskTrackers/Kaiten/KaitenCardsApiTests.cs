@@ -21,11 +21,12 @@ public class KaitenCardsApiTests
       "created": "2026-01-01T10:00:00.000Z",
       "updated": "2026-02-02T12:00:00.000Z",
       "column_changed_at": "2026-02-01T08:00:00.000Z",
-      "type_id": 5
+      "type_id": 5,
+      "version": 17
     }
     """;
 
-    [Fact(DisplayName = "Card: snake_case поля маппятся, включая tag_ids и column_changed_at")]
+    [Fact(DisplayName = "Card: snake_case поля маппятся, включая tag_ids, column_changed_at и version")]
     public async Task Maps_card_fields()
     {
         var (executor, handler) = KaitenTestHarness.NewExecutor();
@@ -43,6 +44,37 @@ public class KaitenCardsApiTests
         card.TypeId.Should().Be(5);
         card.ColumnChangedAt.Should().Be(new DateTimeOffset(2026, 2, 1, 8, 0, 0, TimeSpan.Zero));
         card.Updated.Should().Be(new DateTimeOffset(2026, 2, 2, 12, 0, 0, TimeSpan.Zero));
+        card.Version.Should().Be(17);
+    }
+
+    [Fact(DisplayName = "List-row Kaiten опускает description, но несёт version → Description=null, Version наполнен")]
+    public async Task List_row_omits_description_but_carries_version()
+    {
+        var (executor, handler) = KaitenTestHarness.NewExecutor();
+        const string listJson = """
+        [
+          {
+            "id": 42,
+            "title": "Fix login",
+            "board_id": 7,
+            "column_id": 3,
+            "condition": 1,
+            "description_filled": true,
+            "version": 17
+          }
+        ]
+        """;
+        handler.Enqueue(HttpStatusCode.OK, listJson);
+        var cards = new KaitenCardsApi(executor);
+
+        var list = await cards.ListCardsAsync(
+            KaitenTestHarness.Connection,
+            new KaitenCardQuery(BoardId: 7),
+            CancellationToken.None);
+
+        list.Should().HaveCount(1);
+        list[0].Description.Should().BeNull();
+        list[0].Version.Should().Be(17);
     }
 
     [Fact(DisplayName = "ListCards: фильтры идут query-параметрами")]

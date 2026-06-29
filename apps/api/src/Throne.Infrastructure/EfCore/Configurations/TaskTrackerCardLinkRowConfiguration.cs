@@ -23,6 +23,7 @@ internal sealed class TaskTrackerCardLinkRowConfiguration : IEntityTypeConfigura
         builder.Property(x => x.CardUpdatedAt).HasColumnName("card_updated_at");
         builder.Property(x => x.ColumnChangedAt).HasColumnName("column_changed_at");
         builder.Property(x => x.LastSyncedAt).HasColumnName("last_synced_at");
+        builder.Property(x => x.RevisionTag).HasColumnName("revision_tag");
         builder.Property(x => x.State).HasColumnName("state").IsRequired();
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");

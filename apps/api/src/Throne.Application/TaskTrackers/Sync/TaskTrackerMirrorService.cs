@@ -30,7 +30,7 @@ public sealed class TaskTrackerMirrorService(
         ArgumentNullException.ThrowIfNull(card);
         var now = clock.GetUtcNow();
         var snapshot = new CardSyncLinkSnapshot(card.Title, card.Description, card.ColumnId, card.ColumnTitle);
-        var cursors = new CardSyncLinkCursors(card.UpdatedAt, card.ColumnChangedAt, now);
+        var cursors = new CardSyncLinkCursors(card.UpdatedAt, card.ColumnChangedAt, now, card.RevisionTag);
 
         if (existing is null)
         {

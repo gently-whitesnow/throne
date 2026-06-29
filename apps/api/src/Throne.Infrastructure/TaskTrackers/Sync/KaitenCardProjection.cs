@@ -21,7 +21,8 @@ internal static class KaitenCardProjection
             Description: card.Description,
             UpdatedAt: card.Updated,
             ColumnChangedAt: card.ColumnChangedAt,
-            Archived: card.Condition != KaitenCardConditions.Live);
+            Archived: card.Condition != KaitenCardConditions.Live,
+            RevisionTag: card.Version?.ToString(CultureInfo.InvariantCulture));
 
     public static long ParseId(string value) => long.Parse(value, CultureInfo.InvariantCulture);
 }

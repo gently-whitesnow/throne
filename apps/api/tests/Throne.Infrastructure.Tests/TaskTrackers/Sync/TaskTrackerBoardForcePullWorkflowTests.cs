@@ -38,12 +38,13 @@ public sealed class TaskTrackerBoardForcePullWorkflowTests(SqliteFixture sqlite)
         return new Harness(boardForcePull, links, provider);
     }
 
-    [Fact(DisplayName = "Доска с карточкой → Synced, зеркало создано")]
+    [Fact(DisplayName = "Доска с карточкой → Synced, зеркало создано (через detail-эскалацию)")]
     public async Task Board_with_card_syncs_and_mirrors()
     {
         await using var db = await sqlite.CreateDatabaseAsync();
         var h = await BuildAsync(db);
         h.Provider.ListBoardCards = _ => [Card("card-1", "First")];
+        h.Provider.GetCard = _ => Card("card-1", "First");
 
         var result = await h.BoardForcePull.ForcePullAsync("kaiten", "board-7", CancellationToken.None);
 
