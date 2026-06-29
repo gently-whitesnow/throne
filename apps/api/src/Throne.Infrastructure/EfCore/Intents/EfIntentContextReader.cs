@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
+using Throne.Domain.TaskTrackers;
 using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.EfCore.Intents;
@@ -91,7 +92,10 @@ internal sealed class EfIntentContextReader(
     private static async Task<Dictionary<string, (string Tracker, string BoardId)>> LoadBoardLinksAsync(
         ThroneDbContext ctx, CancellationToken ct)
     {
+        // Stub links (card vanished upstream) are excluded so a not-yet-cleaned-up stub mirror never
+        // inflates a board count — belt-and-suspenders behind the reject-on-vanish cleanup.
         var links = await ctx.Set<TaskTrackerCardLinkRow>()
+            .Where(l => l.State != CardSyncLinkState.Stub)
             .Select(l => new { l.IntentId, l.Tracker, l.BoardId })
             .ToListAsync(ct);
         var map = new Dictionary<string, (string, string)>(StringComparer.Ordinal);

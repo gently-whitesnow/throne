@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
+using Throne.Domain.TaskTrackers;
 using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.EfCore.Intents;
@@ -113,7 +114,7 @@ internal static class EfIntentListQueryBuilder
         }
         var boardId = spec.BoardId;
         var ids = await ctx.Set<TaskTrackerCardLinkRow>()
-            .Where(l => l.BoardId == boardId)
+            .Where(l => l.BoardId == boardId && l.State != CardSyncLinkState.Stub)
             .Select(l => l.IntentId)
             .ToListAsync(ct);
         return ids.Count == 0

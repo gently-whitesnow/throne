@@ -25,6 +25,9 @@ public sealed class TaskTrackerMirrorService(
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
+    private const string TaskTrackerSyncSource = "task_tracker_sync";
+    private const string ArchivedByTrackerReason = "архивировано таск-трекером";
+
     public async Task<MirrorApplyResult> ApplyAsync(string tracker, TaskTrackerCard card, CardSyncLink? existing, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(card);
@@ -89,6 +92,36 @@ public sealed class TaskTrackerMirrorService(
         await linkStore.SaveAsync(link, ct);
     }
 
+    // A card that left the board's Live list is de-facto final upstream (Kaiten archives it after the
+    // fact). Closing the mirror as reject — not done — reflects «abandoned, not finished». The stub is
+    // saved before the reject so the write-through CleanupOnClose (which fires on IntentStatusChanged and
+    // only clears stub links) deletes the link, collapsing the board counter/list for free.
+    // Idempotent on both invariants (link == stub AND intent closed) so re-ticks — and the legacy
+    // active-intent-with-stub-link rows — converge instead of being skipped.
+    public async Task StubAndCloseVanishedAsync(CardSyncLink link, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(link);
+        await MarkStubAsync(link, ct);
+
+        var intent = await repository.GetByIdAsync(new IntentId(link.IntentId), ct);
+        if (intent is null || IntentStatusNames.IsClosing(intent.State.Status))
+        {
+            return;
+        }
+
+        await unitOfWork.ExecuteAsync(
+            inner => repository.SetStatusAsync(
+                intent.Id,
+                IntentStatusNames.Reject,
+                appendText: null,
+                reason: ArchivedByTrackerReason,
+                IntentTrainingAuthor.System,
+                TaskTrackerSyncSource,
+                clock.GetUtcNow(),
+                inner),
+            ct);
+    }
+
     private async Task<MirrorApplyResult> CreateAsync(
         string tracker, TaskTrackerCard card, CardSyncLinkSnapshot snapshot, CardSyncLinkCursors cursors, DateTimeOffset now, CancellationToken ct)
     {
@@ -112,7 +145,7 @@ public sealed class TaskTrackerMirrorService(
                     intentVersionAtWrite: intent.State.CurrentVersion,
                     fromStatus: intent.State.Status,
                     toStatus: intent.State.Status,
-                    source: "task_tracker_sync",
+                    source: TaskTrackerSyncSource,
                     createdAt: now,
                     createdBy: TextVersionAuthorMapping.ToTrainingAuthor(TextVersionAuthor.Agent));
                 return await repository.CreateAsync(intent, version, statusChange, [], inner);

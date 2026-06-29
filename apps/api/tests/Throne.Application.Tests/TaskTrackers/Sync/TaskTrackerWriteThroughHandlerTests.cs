@@ -140,6 +140,20 @@ public class TaskTrackerWriteThroughHandlerTests
         _links.DeletedIntentIds.Should().Contain("intent-1");
     }
 
+    [Fact(DisplayName = "IntentStatusChanged → reject на stub-линке удаляет линк (авто-реджект архива трекера)")]
+    public async Task Status_reject_on_stub_deletes_link()
+    {
+        var link = Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Title", null, null, null));
+        link.MarkStub(Now);
+        _links.Seed(link);
+        var intent = IntentWith("intent-1", "Title");
+        intent.SetStatus(IntentStatusNames.Reject, Now);
+
+        await Handler().HandleAsync(new IntentStatusChanged(intent), CancellationToken.None);
+
+        _links.DeletedIntentIds.Should().Contain("intent-1");
+    }
+
     [Fact(DisplayName = "IntentStatusChanged → reject на linked-линке оставляет линк")]
     public async Task Status_reject_on_linked_keeps_link()
     {

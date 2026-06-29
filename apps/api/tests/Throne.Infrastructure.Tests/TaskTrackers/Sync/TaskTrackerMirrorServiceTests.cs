@@ -1,8 +1,11 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
 using Throne.Application.TaskTrackers.Sync;
 using Throne.Domain.Intents;
+using Throne.Domain.Intents.Training;
 using Throne.Domain.TaskTrackers;
+using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.Tests.TaskTrackers.Sync;
 
@@ -148,5 +151,117 @@ public sealed class TaskTrackerMirrorServiceTests(SqliteFixture sqlite)
 
         var stubbed = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
         stubbed!.IsStub.Should().BeTrue();
+    }
+
+    [Fact(DisplayName = "StubAndCloseVanishedAsync: линк → stub, intent → reject с reason/source")]
+    public async Task Vanished_stubs_link_and_rejects_intent()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, links) = Build(db);
+        var created = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+        var link = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
+
+        await mirror.StubAndCloseVanishedAsync(link!, CancellationToken.None);
+
+        var stubbed = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
+        stubbed!.IsStub.Should().BeTrue();
+        var intent = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
+        intent!.State.Status.Should().Be(IntentStatusNames.Reject);
+        var change = await RejectChangeAsync(db, created.IntentId);
+        change.Source.Should().Be("task_tracker_sync");
+        change.Reason.Should().Be("архивировано таск-трекером");
+    }
+
+    [Fact(DisplayName = "StubAndCloseVanishedAsync идемпотентен: повторный тик не плодит изменений")]
+    public async Task Vanished_is_idempotent()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, links) = Build(db);
+        var created = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+        var link = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
+
+        await mirror.StubAndCloseVanishedAsync(link!, CancellationToken.None);
+        var afterFirst = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
+        await mirror.StubAndCloseVanishedAsync((await links.GetByIntentAsync(created.IntentId, CancellationToken.None))!, CancellationToken.None);
+        var afterSecond = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
+
+        afterSecond!.State.Status.Should().Be(IntentStatusNames.Reject);
+        afterSecond.State.CurrentVersion.Should().Be(afterFirst!.State.CurrentVersion);
+        (await CountStatusChangesAsync(db, created.IntentId, IntentStatusNames.Reject)).Should().Be(1);
+    }
+
+    [Fact(DisplayName = "StubAndCloseVanishedAsync: уже-stub линк с active-интентом всё равно реджектится (миграция 16-ти)")]
+    public async Task Vanished_rejects_already_stub_link_with_active_intent()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, links) = Build(db);
+        var created = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+        // Состояние «16-ти»: линк уже stub, но intent остался active (баг до фикса).
+        await mirror.MarkStubAsync((await links.GetByIntentAsync(created.IntentId, CancellationToken.None))!, CancellationToken.None);
+
+        await mirror.StubAndCloseVanishedAsync((await links.GetByIntentAsync(created.IntentId, CancellationToken.None))!, CancellationToken.None);
+
+        var intent = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
+        intent!.State.Status.Should().Be(IntentStatusNames.Reject);
+    }
+
+    [Theory(DisplayName = "StubAndCloseVanishedAsync: fridge реджектится, done/reject не перетираются")]
+    [InlineData(IntentStatusNames.Fridge, IntentStatusNames.Reject)]
+    [InlineData(IntentStatusNames.Done, IntentStatusNames.Done)]
+    [InlineData(IntentStatusNames.Reject, IntentStatusNames.Reject)]
+    public async Task Vanished_respects_closing_skip_set(string seedStatus, string expected)
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, links) = Build(db);
+        var uow = db.GetRequiredService<IUnitOfWork>();
+        var created = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+        var reason = seedStatus == IntentStatusNames.Reject ? "ручной реджект" : null;
+        await uow.ExecuteAsync(
+            ct => repo.SetStatusAsync(new IntentId(created.IntentId), seedStatus, null, reason, IntentTrainingAuthor.User, "test:seed", Now, ct),
+            CancellationToken.None);
+
+        await mirror.StubAndCloseVanishedAsync((await links.GetByIntentAsync(created.IntentId, CancellationToken.None))!, CancellationToken.None);
+
+        var intent = await repo.GetByIdAsync(new IntentId(created.IntentId), CancellationToken.None);
+        intent!.State.Status.Should().Be(expected);
+        if (seedStatus == IntentStatusNames.Reject)
+        {
+            // Прежний ручной reject не перетёрт авто-причиной.
+            (await RejectChangeAsync(db, created.IntentId)).Reason.Should().Be("ручной реджект");
+        }
+    }
+
+    [Fact(DisplayName = "Разархивация: вернувшаяся карточка без линка заводит новый mirror-intent, старый reject цел")]
+    public async Task Rearchived_card_creates_new_mirror_keeping_old_reject()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var (mirror, repo, links) = Build(db);
+        var first = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+        await mirror.StubAndCloseVanishedAsync((await links.GetByIntentAsync(first.IntentId, CancellationToken.None))!, CancellationToken.None);
+        // CleanupOnClose удалил бы линк в проде; в этой фикстуре диспетчер — no-op, поэтому сносим вручную.
+        await links.DeleteByIntentAsync(first.IntentId, CancellationToken.None);
+
+        var second = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
+
+        second.IntentId.Should().NotBe(first.IntentId);
+        var old = await repo.GetByIdAsync(new IntentId(first.IntentId), CancellationToken.None);
+        old!.State.Status.Should().Be(IntentStatusNames.Reject);
+        var link = await links.GetByCardAsync("kaiten", "board-7", "card-42", CancellationToken.None);
+        link!.IntentId.Should().Be(second.IntentId);
+        link.State.Should().Be(CardSyncLinkState.Linked);
+    }
+
+    private static async Task<IntentStatusChangeRow> RejectChangeAsync(SqliteTestDatabase db, string intentId)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentStatusChangeRow>()
+            .SingleAsync(r => r.IntentId == intentId && r.ToStatus == IntentStatusNames.Reject);
+    }
+
+    private static async Task<int> CountStatusChangesAsync(SqliteTestDatabase db, string intentId, string toStatus)
+    {
+        await using var ctx = await db.CreateContextAsync();
+        return await ctx.Set<IntentStatusChangeRow>()
+            .CountAsync(r => r.IntentId == intentId && r.ToStatus == toStatus);
     }
 }
