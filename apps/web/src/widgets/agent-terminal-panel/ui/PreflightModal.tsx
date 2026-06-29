@@ -125,8 +125,8 @@ export function PreflightModal({
         </section>
       </div>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 px-4 py-3">
-        {controls ? <div className="min-w-0">{controls}</div> : <span />}
+      <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-base-300 px-4 py-3">
+        {controls ? <div className="min-w-0">{controls}</div> : null}
         <div className="flex items-center gap-2">
           <Button onClick={onClose}>Отмена</Button>
           <Button

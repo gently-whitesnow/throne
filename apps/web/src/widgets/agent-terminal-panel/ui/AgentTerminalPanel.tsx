@@ -181,9 +181,6 @@ export function AgentTerminalPanel({
           isStarting={session.isStarting}
           isStopping={session.isStopping}
         />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3">
         <SkillsAttachControl
           available={attachable.skills}
           sessionLive={sessionLive}
