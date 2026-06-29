@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
+using Throne.Application.Events;
 using Throne.Application.Ports;
 using Throne.Application.TaskTrackers.Sync;
 using Throne.Domain.Intents;
@@ -160,6 +162,8 @@ public sealed class TaskTrackerMirrorServiceTests(SqliteFixture sqlite)
         var (mirror, repo, links) = Build(db);
         var created = await mirror.ApplyAsync("kaiten", Card("Title", "Body"), existing: null, CancellationToken.None);
         var link = await links.GetByIntentAsync(created.IntentId, CancellationToken.None);
+        var dispatcher = db.GetRequiredService<IDomainEventDispatcher>();
+        dispatcher.ClearReceivedCalls();
 
         await mirror.StubAndCloseVanishedAsync(link!, CancellationToken.None);
 
@@ -170,6 +174,11 @@ public sealed class TaskTrackerMirrorServiceTests(SqliteFixture sqlite)
         var change = await RejectChangeAsync(db, created.IntentId);
         change.Source.Should().Be("task_tracker_sync");
         change.Reason.Should().Be("архивировано таск-трекером");
+        await dispatcher
+            .Received(1)
+            .DispatchAllAsync(
+                Arg.Is<IEnumerable<IDomainEvent>>(events => events.OfType<IntentStatusChanged>().Any()),
+                CancellationToken.None);
     }
 
     [Fact(DisplayName = "StubAndCloseVanishedAsync идемпотентен: повторный тик не плодит изменений")]

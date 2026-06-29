@@ -109,7 +109,7 @@ public sealed class TaskTrackerMirrorService(
             return;
         }
 
-        await unitOfWork.ExecuteAsync(
+        _ = await unitOfWork.ExecuteAsync(
             inner => repository.SetStatusAsync(
                 intent.Id,
                 IntentStatusNames.Reject,
