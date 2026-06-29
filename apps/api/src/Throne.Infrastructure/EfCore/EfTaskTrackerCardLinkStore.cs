@@ -84,6 +84,7 @@ internal sealed class EfTaskTrackerCardLinkStore(IDbContextFactory<ThroneDbConte
         row.CardUpdatedAt = link.Cursors.CardUpdatedAt;
         row.ColumnChangedAt = link.Cursors.ColumnChangedAt;
         row.LastSyncedAt = link.Cursors.LastSyncedAt;
+        row.RevisionTag = link.Cursors.RevisionTag;
         row.State = link.State;
         row.UpdatedAt = link.UpdatedAt;
     }
@@ -93,7 +94,7 @@ internal sealed class EfTaskTrackerCardLinkStore(IDbContextFactory<ThroneDbConte
             row.IntentId,
             new TaskTrackerCardLink(row.Tracker, row.BoardId, row.CardId),
             new CardSyncLinkSnapshot(row.SnapshotTitle, row.SnapshotDescription, row.ColumnId, row.ColumnTitle),
-            new CardSyncLinkCursors(row.CardUpdatedAt, row.ColumnChangedAt, row.LastSyncedAt),
+            new CardSyncLinkCursors(row.CardUpdatedAt, row.ColumnChangedAt, row.LastSyncedAt, row.RevisionTag),
             row.State,
             row.CreatedAt,
             row.UpdatedAt);

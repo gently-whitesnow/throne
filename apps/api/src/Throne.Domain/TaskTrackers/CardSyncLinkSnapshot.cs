@@ -15,12 +15,16 @@ public sealed record CardSyncLinkSnapshot(
 /// <summary>
 /// Upstream change cursors plus our last poll timestamp. <see cref="CardUpdatedAt"/> mirrors the
 /// card's <c>updated</c> and <see cref="ColumnChangedAt"/> its <c>column_changed_at</c>; a poll skips
-/// a card whose cursors did not advance.
+/// a card whose cursors did not advance. <see cref="RevisionTag"/> is the opaque provider-supplied
+/// revision identifier (Kaiten — <c>card.version</c>) used by the board sync workflow as the primary
+/// delta cursor between the list-row (cheap) и detail-fetch (ground-truth) — null means «не виден
+/// в текущей разметке провайдера» → board sync escalates до detail unconditionally.
 /// </summary>
 public sealed record CardSyncLinkCursors(
     DateTimeOffset? CardUpdatedAt,
     DateTimeOffset? ColumnChangedAt,
-    DateTimeOffset? LastSyncedAt)
+    DateTimeOffset? LastSyncedAt,
+    string? RevisionTag = null)
 {
-    public static readonly CardSyncLinkCursors Empty = new(null, null, null);
+    public static readonly CardSyncLinkCursors Empty = new(null, null, null, null);
 }

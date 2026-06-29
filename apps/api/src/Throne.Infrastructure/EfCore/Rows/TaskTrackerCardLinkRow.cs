@@ -14,6 +14,7 @@ internal sealed class TaskTrackerCardLinkRow
     public DateTimeOffset? CardUpdatedAt { get; set; }
     public DateTimeOffset? ColumnChangedAt { get; set; }
     public DateTimeOffset? LastSyncedAt { get; set; }
+    public string? RevisionTag { get; set; }
     public string State { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
