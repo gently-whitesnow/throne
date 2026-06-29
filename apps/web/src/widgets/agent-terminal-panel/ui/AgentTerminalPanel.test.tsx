@@ -177,23 +177,29 @@ describe("AgentTerminalPanel", () => {
     cleanup();
   });
 
-  it("Run открывает модалку, а /run уходит только после подтверждения с собранным payload", async () => {
+  it("Run открывает модалку с осью запуска, а /run уходит только после подтверждения с собранным payload", async () => {
     getIntentTerminalSession.mockResolvedValue(sessionResponse("exited"));
     previewIntentTerminal.mockResolvedValue(previewResponse());
     runIntentTerminal.mockResolvedValue(sessionResponse("running"));
 
     render();
 
-    const vendor = screen.getByRole<HTMLSelectElement>("combobox", {
-      name: "Агент терминала"
+    const run =
+      await screen.findByTestId<HTMLButtonElement>("agent-terminal-run");
+    await waitFor(() => {
+      expect(run.disabled).toBe(false);
     });
+    fireEvent.click(run);
+    expect(runIntentTerminal).not.toHaveBeenCalled();
+
+    // Селекторы оси теперь живут в модалке, рядом с кнопкой запуска.
+    const vendor = await screen.findByTestId<HTMLSelectElement>(
+      "agent-terminal-vendor"
+    );
     await waitFor(() => {
       expect(vendor.disabled).toBe(false);
     });
     fireEvent.change(vendor, { target: { value: "codex" } });
-
-    fireEvent.click(screen.getByTestId("agent-terminal-run"));
-    expect(runIntentTerminal).not.toHaveBeenCalled();
 
     const launch = await screen.findByTestId("agent-terminal-preflight-launch");
     await waitFor(() => {
@@ -225,7 +231,7 @@ describe("AgentTerminalPanel", () => {
     });
   });
 
-  it("без живой сессии префиллит ось из last-used интента, а не из дефолта каталога", async () => {
+  it("без живой сессии префиллит ось модалки из last-used интента, а не из дефолта каталога", async () => {
     getIntentTerminalSession.mockResolvedValue(
       sessionResponse("exited", {
         mode: "work",
@@ -237,10 +243,14 @@ describe("AgentTerminalPanel", () => {
 
     render();
 
+    const run =
+      await screen.findByTestId<HTMLButtonElement>("agent-terminal-run");
     await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
+      expect(run.disabled).toBe(false);
     });
-    const vendor = screen.getByTestId<HTMLSelectElement>(
+    fireEvent.click(run);
+
+    const vendor = await screen.findByTestId<HTMLSelectElement>(
       "agent-terminal-vendor"
     );
     const model = screen.getByTestId<HTMLSelectElement>("agent-terminal-model");

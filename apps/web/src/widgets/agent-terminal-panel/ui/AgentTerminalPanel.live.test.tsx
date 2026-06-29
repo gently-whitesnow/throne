@@ -212,7 +212,7 @@ describe("AgentTerminalPanel live viewers", () => {
     ).toBeTruthy();
   });
 
-  it("показывает фактическую ось live-сессии вместо дефолта каталога", async () => {
+  it("показывает фактическую ось live-сессии read-only бейджами, без селекторов", async () => {
     getIntentTerminalSession.mockResolvedValue(
       sessionResponse("running", {
         mode: "interview",
@@ -224,21 +224,16 @@ describe("AgentTerminalPanel live viewers", () => {
     render();
     await screen.findByTestId("agent-terminal-live-badge");
 
-    const vendor = screen.getByTestId<HTMLSelectElement>(
-      "agent-terminal-vendor"
-    );
+    const badges = await screen.findByTestId("agent-terminal-axis-badges");
     await waitFor(() => {
-      expect(vendor.value).toBe("codex");
+      expect(badges.textContent).toContain("Codex");
     });
-    expect(
-      screen.getByTestId<HTMLSelectElement>("agent-terminal-model").value
-    ).toBe("gpt-5.4");
-    expect(
-      screen.getByTestId<HTMLSelectElement>("agent-terminal-effort").value
-    ).toBe("low");
-    expect(
-      screen.getByTestId<HTMLSelectElement>("agent-terminal-mode").value
-    ).toBe("interview");
-    expect(vendor.disabled).toBe(true);
+    expect(badges.textContent).toContain("Интервью");
+    expect(badges.textContent).toContain("gpt-5.4");
+    expect(badges.textContent).toContain("Low");
+
+    // В live-сессии ось — read-only: селекторов в тулбаре нет.
+    expect(screen.queryByTestId("agent-terminal-vendor")).toBeNull();
+    expect(screen.queryByTestId("agent-terminal-mode")).toBeNull();
   });
 });
