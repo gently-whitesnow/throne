@@ -70,8 +70,8 @@
       Link= preserves the directory layout so the provider's existing path lookup
       under AppContext.BaseDirectory keeps working unchanged.
     -->
-    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-skills.yaml"
-             Link="specs/manifest/throne-skills.yaml"
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-system-prompt-parts.yaml"
+             Link="specs/manifest/throne-system-prompt-parts.yaml"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="Always" />
     <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\skills\**\*"

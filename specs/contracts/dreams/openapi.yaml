@@ -10,7 +10,7 @@ info:
     the UI remains read-only.
 
     `/api/v1/dream-sources` exposes the static manifest list of vendor → path
-    pairs declared in `specs/manifest/throne-skills.yaml`; sources are a single
+    pairs declared in `specs/manifest/throne-system-prompt-parts.yaml`; sources are a single
     global manifest.
   x-csharp-namespace: Throne.Dreams.Contracts.Generated
 paths:
