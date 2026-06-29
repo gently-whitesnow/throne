@@ -1,5 +1,5 @@
 import { Play, X } from "lucide-react";
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 
 import { Button, Modal } from "@/shared/ui";
 import { promptRegionAccent } from "@/shared/lib";
@@ -20,6 +20,10 @@ interface PreflightModalProps {
   reviewBindingId: string | null;
   actionLabel: string;
   isSubmitting: boolean;
+  /** Ось запуска (режим/vendor/model/effort) — оператор задаёт её здесь, рядом с кнопкой. */
+  controls?: ReactNode;
+  /** Непустая причина блокирует запуск (напр. не выбран PR/MR для review). */
+  launchBlockedReason?: string | null;
   onClose: () => void;
   onLaunch: (payload: TerminalRunPayload) => void;
 }
@@ -31,6 +35,8 @@ export function PreflightModal({
   reviewBindingId,
   actionLabel,
   isSubmitting,
+  controls,
+  launchBlockedReason,
   onClose,
   onLaunch
 }: PreflightModalProps) {
@@ -41,7 +47,11 @@ export function PreflightModal({
   if (!open) return null;
 
   const busy = preview.status === "loading";
-  const launchDisabled = busy || isSubmitting || preview.status === "error";
+  const launchDisabled =
+    busy ||
+    isSubmitting ||
+    preview.status === "error" ||
+    Boolean(launchBlockedReason);
 
   return (
     <Modal variant="fullscreen" labelledBy={titleId} onClose={onClose}>
@@ -115,19 +125,23 @@ export function PreflightModal({
         </section>
       </div>
 
-      <footer className="flex items-center justify-end gap-2 border-t border-base-300 px-4 py-3">
-        <Button onClick={onClose}>Отмена</Button>
-        <Button
-          data-testid="agent-terminal-preflight-launch"
-          variant="primary"
-          icon={<Play aria-hidden size={14} strokeWidth={2} />}
-          disabled={launchDisabled}
-          onClick={() => {
-            onLaunch(preview.buildPayload(launch, reviewBindingId));
-          }}
-        >
-          {isSubmitting ? "Запускаем…" : actionLabel}
-        </Button>
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-base-300 px-4 py-3">
+        {controls ? <div className="min-w-0">{controls}</div> : <span />}
+        <div className="flex items-center gap-2">
+          <Button onClick={onClose}>Отмена</Button>
+          <Button
+            data-testid="agent-terminal-preflight-launch"
+            variant="primary"
+            icon={<Play aria-hidden size={14} strokeWidth={2} />}
+            disabled={launchDisabled}
+            title={launchBlockedReason ?? undefined}
+            onClick={() => {
+              onLaunch(preview.buildPayload(launch, reviewBindingId));
+            }}
+          >
+            {isSubmitting ? "Запускаем…" : actionLabel}
+          </Button>
+        </div>
       </footer>
     </Modal>
   );

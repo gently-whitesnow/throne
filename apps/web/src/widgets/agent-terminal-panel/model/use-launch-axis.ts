@@ -18,13 +18,10 @@ import type {
 
 export interface LaunchAxisParams {
   /**
-   * Persisted launch axis of the intent (ADR-0041): the live session's real parameters when
-   * `sessionLive`, otherwise the last-used choice to pre-fill from. Null until the probe settles
-   * or when the intent was never launched.
+   * Persisted launch axis of the intent (ADR-0041): the intent's last-used choice the draft
+   * pre-fills from. Null until the probe settles or when the intent was never launched.
    */
   sessionLaunch: PersistedLaunchArgs | null;
-  /** Live session → the axis is read-only and mirrors `sessionLaunch`, not the local draft. */
-  sessionLive: boolean;
   /** Prefill waits for this so it seeds from `sessionLaunch` instead of racing the probe. */
   ready: boolean;
 }
@@ -57,13 +54,12 @@ export interface LaunchAxis {
  * главнее, затем default_vendor, затем дефолт каталога; дальше выбор оператора
  * главнее серверных дефолтов.
  *
- * Пока сессия живая (`sessionLive`) ось — read-only зеркало `sessionLaunch`
- * (фактических параметров сессии), а не локального черновика: дропдауны всё равно
- * залочены, смена параметров — только через новый запуск/перезапуск.
+ * Ось — всегда редактируемый черновик: её правят в preflight-модалке перед запуском
+ * (в т.ч. при перезапуске поверх живой сессии). Фактические параметры живой сессии
+ * показываются read-only бейджами в тулбаре, а не этой осью.
  */
 export function useLaunchAxis({
   sessionLaunch,
-  sessionLive,
   ready
 }: LaunchAxisParams): LaunchAxis {
   const [vendor, setVendor] = useState<TerminalAgentVendor | null>(null);
@@ -121,19 +117,9 @@ export function useLaunchAxis({
     settingsQuery.data?.default_vendor
   ]);
 
-  // While the session is live the controls show its real axis, not the local draft — they are
-  // frozen anyway, but the live response parameters must be reflected here immediately.
-  const overriding = sessionLive && sessionLaunch !== null;
-  const effectiveVendor = overriding ? sessionLaunch.vendor : vendor;
-  const effectiveModel = overriding ? sessionLaunch.model : model;
-  const effectiveEffort = overriding ? (sessionLaunch.effort ?? null) : effort;
-
   const selectedMeta = useMemo(
-    () =>
-      effectiveVendor === null
-        ? undefined
-        : findVendorMetadata(catalog, effectiveVendor),
-    [catalog, effectiveVendor]
+    () => (vendor === null ? undefined : findVendorMetadata(catalog, vendor)),
+    [catalog, vendor]
   );
 
   const onVendorChange = useCallback(
@@ -149,33 +135,31 @@ export function useLaunchAxis({
   );
 
   const launchReady =
-    effectiveVendor !== null &&
-    effectiveModel !== null &&
-    selectedMeta !== undefined;
+    vendor !== null && model !== null && selectedMeta !== undefined;
 
   const launchArgs = useCallback(
     (mode: TerminalRunMode): TerminalLaunchArgs | null =>
-      effectiveVendor === null || effectiveModel === null
+      vendor === null || model === null
         ? null
         : {
             mode,
-            vendor: effectiveVendor,
-            model: effectiveModel,
-            effort: effectiveEffort
+            vendor,
+            model,
+            effort
           },
-    [effectiveVendor, effectiveModel, effectiveEffort]
+    [vendor, model, effort]
   );
 
   return {
     vendors: selectableVendors,
-    vendor: effectiveVendor,
+    vendor,
     selectedMeta,
-    model: effectiveModel,
-    effort: effectiveEffort,
+    model,
+    effort,
     setModel: setModelState,
     setEffort: setEffortState,
     onVendorChange,
-    metadataLoading: catalogQuery.isLoading || effectiveVendor === null,
+    metadataLoading: catalogQuery.isLoading || vendor === null,
     metadataError: catalogQuery.isError,
     launchReady,
     launchArgs

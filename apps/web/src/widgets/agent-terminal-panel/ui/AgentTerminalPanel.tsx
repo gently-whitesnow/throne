@@ -15,10 +15,11 @@ import { useLaunchAxis } from "../model/use-launch-axis";
 import { useReviewTargetSelection } from "../model/use-review-target-selection";
 import { useTerminalSession } from "../model/use-terminal-session";
 import { TERMINAL_RUN_MODES, defaultRunModeForStatus } from "../model/types";
-import type { TerminalRunMode, TerminalRunPayload } from "../model/types";
+import type { TerminalRunPayload } from "../model/types";
 
+import { LaunchAxisBadges } from "./LaunchAxisBadges";
+import { LaunchAxisControls } from "./LaunchAxisControls";
 import { PreflightModal } from "./PreflightModal";
-import { ReviewTargetSelect } from "./ReviewTargetSelect";
 import { RunControls } from "./RunControls";
 import { SkillsAttachControl } from "./SkillsAttachControl";
 import { TerminalLiveViewers } from "./TerminalLiveViewers";
@@ -33,9 +34,7 @@ export function AgentTerminalPanel({
   intentId,
   intentStatus
 }: AgentTerminalPanelProps) {
-  const [mode, setMode] = useState<TerminalRunMode>(() =>
-    defaultRunModeForStatus(intentStatus)
-  );
+  const [mode, setMode] = useState(() => defaultRunModeForStatus(intentStatus));
 
   const { bindings } = useIntentRepositories(intentId);
 
@@ -43,14 +42,11 @@ export function AgentTerminalPanel({
   const sessionLive =
     session.state === "running" || session.state === "spawning";
   const sessionLaunch = session.lastResponse?.launch ?? null;
+  const liveLaunch = sessionLive ? sessionLaunch : null;
 
   const prefillReady = session.probeSettled;
 
-  const axis = useLaunchAxis({
-    sessionLaunch,
-    sessionLive,
-    ready: prefillReady
-  });
+  const axis = useLaunchAxis({ sessionLaunch, ready: prefillReady });
 
   const notReady = useMemo(
     () => bindings.filter((b) => !isCloneReady(b.clone_status)),
@@ -82,19 +78,18 @@ export function AgentTerminalPanel({
     }
   }, [availableModes, intentStatus, mode]);
 
-  // While live the mode control shows the running session's real mode, not the draft.
-  const effectiveMode =
-    sessionLive && sessionLaunch !== null ? sessionLaunch.mode : mode;
-
   const hasBlockingBinding = notReady.length > 0;
-  const reviewBindingId =
-    effectiveMode === "review" && reviewSelection.reviewTargets.length > 1
-      ? reviewSelection.selectedReviewTargetId
+  // Launch path uses the draft `mode` (not the live session's mode): the «Начать работу» flow
+  // launches `work` while an interview session is still live.
+  const reviewActive =
+    mode === "review" && reviewSelection.reviewTargets.length > 1;
+  const reviewBindingId = reviewActive
+    ? reviewSelection.selectedReviewTargetId
+    : null;
+  const modalLaunchBlockedReason =
+    reviewActive && reviewSelection.selectedReviewTargetId === ""
+      ? "Выберите PR/MR для review."
       : null;
-  const hasMissingReviewTarget =
-    effectiveMode === "review" &&
-    reviewSelection.reviewTargets.length > 1 &&
-    reviewSelection.selectedReviewTargetId === "";
 
   const runDisabledReason = axis.metadataError
     ? "Не удалось загрузить список агентов. Обновите страницу."
@@ -102,14 +97,12 @@ export function AgentTerminalPanel({
       ? "Загружаем список агентов…"
       : hasBlockingBinding
         ? "Дождитесь готовности клонов всех репозиториев."
-        : hasMissingReviewTarget
-          ? "Выберите PR/MR для review."
-          : null;
+        : null;
 
   const [preflightOpen, setPreflightOpen] = useState(false);
   const terminalProviders = useDetectedTerminalProviders();
 
-  const launchArgs = axis.launchArgs(effectiveMode);
+  const launchArgs = axis.launchArgs(mode);
 
   // Берём стабильные функции хука напрямую: иначе колбэки зависели бы от
   // объекта `session`, который пересоздаётся каждый рендер, и onClosed менял
@@ -117,24 +110,50 @@ export function AgentTerminalPanel({
   // сокет на любом постороннем ре-рендере панели.
   const {
     start: startSession,
+    kill: killSession,
     openNative: openNativeSession,
     attachSkills: attachSessionSkills,
     markSessionEnded
   } = session;
 
-  const attachable = useAttachableSkills(intentId, effectiveMode, sessionLive);
+  // Skills hot-attach to the running session, so it follows the live mode, not the draft.
+  const skillsMode = liveLaunch ? liveLaunch.mode : mode;
+  const attachable = useAttachableSkills(intentId, skillsMode, sessionLive);
 
   const handleLaunch = useCallback(
     (payload: TerminalRunPayload) => {
       setPreflightOpen(false);
-      void startSession(payload);
+      // Restart = kill + start (no dedicated endpoint, by design): when a session is live (the
+      // «Начать работу» flow), tear it down before spawning the new one. Kill awaits the tmux
+      // session being gone, so the spawn's session-slot guard passes.
+      void (async () => {
+        if (sessionLive) {
+          await killSession();
+        }
+        await startSession(payload);
+      })();
     },
-    [startSession]
+    [sessionLive, killSession, startSession]
   );
 
   const handleKill = useCallback(() => {
-    void session.kill();
-  }, [session]);
+    void killSession();
+  }, [killSession]);
+
+  const handleStartWork = useCallback(() => {
+    setMode("work");
+    setPreflightOpen(true);
+  }, []);
+
+  const showStartWork =
+    sessionLive &&
+    liveLaunch?.mode === "interview" &&
+    intentStatus === "awaiting_operator";
+
+  const vendorLabel = liveLaunch
+    ? (axis.vendors.find((v) => v.vendor === liveLaunch.vendor)?.label ??
+      liveLaunch.vendor)
+    : "";
 
   return (
     <section
@@ -146,37 +165,25 @@ export function AgentTerminalPanel({
         {sessionLive ? (
           <SessionLiveBadge testId="agent-terminal-live-badge" />
         ) : null}
+        {liveLaunch ? (
+          <LaunchAxisBadges launch={liveLaunch} vendorLabel={vendorLabel} />
+        ) : null}
         <RunControls
-          mode={effectiveMode}
-          modes={availableModes}
-          onModeChange={setMode}
-          vendors={axis.vendors}
-          vendor={axis.vendor ?? ""}
-          onVendorChange={axis.onVendorChange}
-          models={axis.selectedMeta?.models ?? []}
-          model={axis.model ?? ""}
-          onModelChange={axis.setModel}
-          efforts={
-            (axis.selectedMeta?.efforts ??
-              []) as readonly TerminalReasoningEffort[]
-          }
-          effort={axis.effort ?? ""}
-          onEffortChange={axis.setEffort}
-          supportsEffort={axis.selectedMeta?.supports_effort ?? false}
-          metadataLoading={axis.metadataLoading}
-          metadataError={axis.metadataError}
+          sessionLive={sessionLive}
           onRun={() => {
             setPreflightOpen(true);
           }}
           onKill={handleKill}
-          runDisabled={
-            !axis.launchReady || hasBlockingBinding || hasMissingReviewTarget
-          }
+          showStartWork={showStartWork}
+          onStartWork={handleStartWork}
+          runDisabled={!axis.launchReady || hasBlockingBinding}
           runDisabledReason={runDisabledReason}
-          sessionLive={sessionLive}
           isStarting={session.isStarting}
           isStopping={session.isStopping}
         />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
         <SkillsAttachControl
           available={attachable.skills}
           sessionLive={sessionLive}
@@ -191,15 +198,6 @@ export function AgentTerminalPanel({
           }}
         />
       </div>
-
-      {effectiveMode === "review" ? (
-        <ReviewTargetSelect
-          targets={reviewSelection.reviewTargets}
-          value={reviewSelection.selectedReviewTargetId}
-          disabled={session.isStarting || session.isStopping}
-          onChange={reviewSelection.setSelectedReviewBindingId}
-        />
-      ) : null}
 
       <TerminalPanelAlerts
         metadataError={axis.metadataError}
@@ -233,6 +231,33 @@ export function AgentTerminalPanel({
           reviewBindingId={reviewBindingId}
           actionLabel="Запустить"
           isSubmitting={session.isStarting}
+          launchBlockedReason={modalLaunchBlockedReason}
+          controls={
+            <LaunchAxisControls
+              mode={mode}
+              modes={availableModes}
+              onModeChange={setMode}
+              vendors={axis.vendors}
+              vendor={axis.vendor ?? ""}
+              onVendorChange={axis.onVendorChange}
+              models={axis.selectedMeta?.models ?? []}
+              model={axis.model ?? ""}
+              onModelChange={axis.setModel}
+              efforts={
+                (axis.selectedMeta?.efforts ??
+                  []) as readonly TerminalReasoningEffort[]
+              }
+              effort={axis.effort ?? ""}
+              onEffortChange={axis.setEffort}
+              supportsEffort={axis.selectedMeta?.supports_effort ?? false}
+              metadataLoading={axis.metadataLoading}
+              metadataError={axis.metadataError}
+              reviewTargets={reviewSelection.reviewTargets}
+              reviewBindingValue={reviewSelection.selectedReviewTargetId}
+              onReviewBindingChange={reviewSelection.setSelectedReviewBindingId}
+              reviewDisabled={session.isStarting || session.isStopping}
+            />
+          }
           onClose={() => {
             setPreflightOpen(false);
           }}

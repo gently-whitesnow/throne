@@ -160,16 +160,13 @@ describe("AgentTerminalPanel review target", () => {
   it("скрывает review без PR и не показывает selector при одном PR", async () => {
     listIntentRepositories.mockResolvedValue([]);
     render();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("agent-terminal-run")).toBeTruthy();
-    });
+    await openModal();
     expect(modeOptions()).not.toContain("review");
 
     cleanup();
     listIntentRepositories.mockResolvedValue([binding("binding-1", 42, "api")]);
     render();
-
+    await openModal();
     await waitFor(() => {
       expect(modeOptions()).toContain("review");
     });
@@ -186,7 +183,7 @@ describe("AgentTerminalPanel review target", () => {
       binding("binding-2", 42, "web")
     ]);
     render();
-
+    await openModal();
     await waitFor(() => {
       expect(modeOptions()).toContain("review");
     });
@@ -198,10 +195,14 @@ describe("AgentTerminalPanel review target", () => {
       "agent-terminal-review-binding"
     );
     fireEvent.change(selector, { target: { value: "binding-2" } });
-    fireEvent.click(screen.getByTestId("agent-terminal-run"));
-    fireEvent.click(
-      await screen.findByTestId("agent-terminal-preflight-launch")
+
+    const launch = await screen.findByTestId<HTMLButtonElement>(
+      "agent-terminal-preflight-launch"
     );
+    await waitFor(() => {
+      expect(launch.disabled).toBe(false);
+    });
+    fireEvent.click(launch);
 
     await waitFor(() => {
       expect(runIntentTerminal).toHaveBeenCalledTimes(1);
@@ -211,6 +212,16 @@ describe("AgentTerminalPanel review target", () => {
     );
   });
 });
+
+async function openModal(): Promise<void> {
+  const run =
+    await screen.findByTestId<HTMLButtonElement>("agent-terminal-run");
+  await waitFor(() => {
+    expect(run.disabled).toBe(false);
+  });
+  fireEvent.click(run);
+  await screen.findByTestId("agent-terminal-mode");
+}
 
 function modeOptions(): string[] {
   return Array.from(
