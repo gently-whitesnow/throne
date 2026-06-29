@@ -1,0 +1,104 @@
+# Throne user-prompt seed — starter set of user-scope prompt parts (ADR-0051).
+#
+# This file is the single source of truth for the FIRST-RUN seed of editable
+# user-scope parts. A hosted seeder (`UserPromptSeedSeeder`) reads it and writes
+# the parts into the real EF store — but ONLY when `prompt_parts(scope=user)` is
+# completely empty (a truly first boot). Once any user part exists the seeder is a
+# no-op: it never resurrects deleted parts and never tops up running instances.
+#
+# Unlike the system manifest (whose texts are read-only and managed by PR), these
+# texts are deliberately generic placeholders the operator refines for their own
+# context. They become normal editable user parts after the seed runs.
+#
+# Per part: {key, text, description?, mode_roles[]}. `mode_roles` mirrors the
+# PromptPart domain model: {mode, role, order}. Core parts (common/work/interview/
+# review/dream) carry `mandatory` roles matching the system manifest's bundles;
+# the module examples are `default_off` (available, not selected by default).
+
+version: 1
+
+seed_parts:
+  - key: common
+    description: Общие договорённости для всех режимов.
+    mode_roles:
+      - { mode: interview, role: mandatory, order: 1 }
+      - { mode: work,      role: mandatory, order: 1 }
+      - { mode: review,    role: mandatory, order: 1 }
+      - { mode: dream,     role: mandatory, order: 1 }
+    text: |
+      Общие договорённости, применимые во всех режимах. Допиши под свой контекст:
+      язык общения, тон, чего избегать, какие факты о проекте держать в виду всегда.
+
+  - key: interview
+    description: Заготовка под режим interview.
+    mode_roles:
+      - { mode: interview, role: mandatory, order: 2 }
+    text: |
+      Заготовка под режим interview. Опиши, как вести уточнение постановки под свой
+      проект.
+
+      - Задавай вопросы, которые сильнее всего снижают неопределённость.
+
+  - key: work
+    description: Заготовка под режим work.
+    mode_roles:
+      - { mode: work, role: mandatory, order: 2 }
+    text: |
+      Заготовка под режим work. Опиши свои рабочие договорённости: стиль кода, что
+      считать «готово», как проверять результат.
+
+      - Не плоди новые сущности, слои и workflow без явной необходимости.
+      - На повторном проходе с обратной связью оставайся в work и правь только
+        проблематизируемое, без unrelated-рефактора.
+
+  - key: review
+    description: Заготовка под режим review.
+    mode_roles:
+      - { mode: review, role: mandatory, order: 2 }
+    text: |
+      Заготовка под режим review. Опиши, на что смотреть при ревью в своём проекте:
+      что критично, что косметика, в каком порядке читать изменения.
+
+  - key: dream
+    description: Заготовка под режим dream.
+    mode_roles:
+      - { mode: dream, role: mandatory, order: 2 }
+    text: |
+      Заготовка под режим dream. Опиши, как улучшать набор частей промпта под свой
+      контекст.
+
+      - Объём задаёт оператор — не бери больше, чем просили.
+
+  - key: analysis
+    description: Пример модульной части под анализ (читается dream-скилом).
+    mode_roles:
+      - { mode: dream, role: default_off, order: 10 }
+    text: |
+      Пример модульной части под анализ (её читает dream-скил). Замени на свой формат
+      разбора диалогов: что считать сигналом, как группировать находки, какой вывод
+      ожидается на выходе.
+
+  - key: commit
+    description: Пример модульной части с правилами коммитов.
+    mode_roles:
+      - { mode: work, role: default_off, order: 11 }
+    text: |
+      Пример модульной части с правилами коммитов. Замени на свои: формат сообщения,
+      что обязательно в теле, когда дробить изменение на несколько коммитов.
+
+  - key: tests
+    description: Пример модульной части про тесты.
+    mode_roles:
+      - { mode: work, role: default_off, order: 12 }
+    text: |
+      Пример модульной части про тесты. Сформулируй своё правило вида «напиши тесты к
+      изменению …»: какой охват ждёшь, в каком стиле, где лежат тесты.
+
+  - key: contracts
+    description: Пример модульной части про контракты.
+    mode_roles:
+      - { mode: work, role: default_off, order: 13 }
+    text: |
+      Пример модульной части про контракты. Сформулируй своё правило вида «переиспользуй
+      и следуй таким-то паттернам контрактов …»: где они лежат, как именуются, что нельзя
+      ломать.

@@ -74,6 +74,10 @@
              Link="specs/manifest/throne-system-prompt-parts.yaml"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="Always" />
+    <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\specs\manifest\throne-user-prompt-seed-parts.yaml"
+             Link="specs/manifest/throne-user-prompt-seed-parts.yaml"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="Always" />
     <Content Include="$(MSBuildThisFileDirectory)..\..\..\..\skills\**\*"
              Link="skills/%(RecursiveDir)%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"

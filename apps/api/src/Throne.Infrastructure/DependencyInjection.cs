@@ -26,6 +26,10 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(SkillManifestOptions.SectionName));
         services.AddSingleton<ISkillManifestProvider, YamlFileSkillManifestProvider>();
 
+        services.AddOptions<UserPromptSeedOptions>()
+            .Bind(configuration.GetSection(UserPromptSeedOptions.SectionName));
+        services.AddSingleton<IUserPromptSeedProvider, YamlFileUserPromptSeedProvider>();
+
         GitInfrastructureModule.AddThroneGitInfrastructure(services, configuration);
         Throne.Infrastructure.Terminals.TerminalsModule.AddThroneTerminalsInfrastructure(services, configuration);
         Throne.Infrastructure.TaskTrackers.TaskTrackerInfrastructureModule.AddThroneTaskTrackerInfrastructure(
