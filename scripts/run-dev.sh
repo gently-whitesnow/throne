@@ -81,7 +81,6 @@ REMOTE_SSH=""
 REMOTE_PATH=""
 REMOTE_MOUNT=""
 REMOTE_LOCK_PID=""
-REMOTE_LOCK_REMOTE_PID=""
 REMOTE_MOUNTED=0
 
 cleanup_remote() {
@@ -98,13 +97,6 @@ cleanup_remote() {
     echo "==> Releasing remote lock"
     kill "$REMOTE_LOCK_PID" 2>/dev/null
     wait "$REMOTE_LOCK_PID" 2>/dev/null
-  fi
-  # Belt-and-suspenders: even with `ssh -tt` (sshd should SIGHUP the remote
-  # process group on disconnect), kill the captured remote PID explicitly so
-  # nothing lingers if pty teardown raced or the user's SSH config disabled it.
-  if [[ -n "$REMOTE_SSH" && -n "$REMOTE_LOCK_REMOTE_PID" ]]; then
-    ssh -o BatchMode=yes -o ConnectTimeout=5 "$REMOTE_SSH" \
-      "kill $REMOTE_LOCK_REMOTE_PID 2>/dev/null; exit 0" >/dev/null 2>&1
   fi
   set -e
 }
@@ -130,48 +122,29 @@ EOF
 
   echo "==> Acquiring exclusive remote lock on $REMOTE_SSH:$REMOTE_PATH/throne.lock"
   # Hold the lock for the lifetime of this background ssh. flock -n fails fast if
-  # another laptop is already in. The remote handshake prints "ok <pid>" so we
-  # confirm acquisition synchronously and capture the remote PID for guaranteed
-  # cleanup. `exec sleep infinity` becomes the lock-holder process; killing it
-  # releases the lock. `ssh -tt` allocates a pty so sshd SIGHUPs the remote
-  # process group on disconnect (without pty, the process leaks).
-  local lock_fifo lock_err
+  # another laptop is already in. The remote `printf ok` lets us confirm
+  # acquisition synchronously, then `sleep infinity` keeps the fd open.
+  local lock_fifo
   lock_fifo="$(mktemp -u "${TMPDIR:-/tmp}/throne-remote-lock.XXXXXX")"
-  lock_err="$(mktemp "${TMPDIR:-/tmp}/throne-remote-lock.err.XXXXXX")"
   mkfifo "$lock_fifo"
   # shellcheck disable=SC2029  # remote-side expansion is intentional
-  ssh -tt -o BatchMode=no -o ServerAliveInterval=30 "$REMOTE_SSH" \
-    "mkdir -p '$REMOTE_PATH' && exec flock -n '$REMOTE_PATH/throne.lock' -c 'printf \"ok %d\\n\" \$\$; exec sleep infinity'" \
-    < /dev/null > "$lock_fifo" 2>"$lock_err" &
+  ssh -o BatchMode=no -o ServerAliveInterval=30 "$REMOTE_SSH" \
+    "mkdir -p '$REMOTE_PATH' && flock -n '$REMOTE_PATH/throne.lock' -c 'printf ok; sleep infinity'" \
+    > "$lock_fifo" 2>/tmp/throne-remote-lock.err &
   REMOTE_LOCK_PID=$!
   trap cleanup_remote EXIT INT TERM
 
-  # Read the first line of the handshake with a 15s ceiling. macOS ships no
-  # `timeout(1)`, so we race a reader against a sleeper that kills it on
-  # timeout — works on bash 3.2 too. pty adds \r so we strip it.
-  local handshake=""
-  local reader_out
-  reader_out="$(mktemp "${TMPDIR:-/tmp}/throne-remote-lock.ack.XXXXXX")"
-  ( IFS= read -r line < "$lock_fifo"; printf '%s' "$line" > "$reader_out" ) &
-  local reader_pid=$!
-  ( sleep 15; kill -TERM "$reader_pid" 2>/dev/null ) &
-  local killer_pid=$!
-  wait "$reader_pid" 2>/dev/null || true
-  kill "$killer_pid" 2>/dev/null || true
-  wait "$killer_pid" 2>/dev/null || true
-  handshake="$(tr -d '\r' < "$reader_out" 2>/dev/null || true)"
-  rm -f "$lock_fifo" "$reader_out"
-
-  # Expected: "ok <remote-pid>". Anything else → bail and dump remote stderr.
-  if [[ ! "$handshake" =~ ^ok\ ([0-9]+)$ ]]; then
+  # Read the "ok" handshake with a timeout so we don't hang forever if the
+  # remote refuses the lock or ssh fails.
+  local ack
+  if ! ack="$(timeout 15 head -c2 "$lock_fifo")" || [[ "$ack" != "ok" ]]; then
+    rm -f "$lock_fifo"
     echo "ERROR: failed to acquire remote lock on $REMOTE_SSH:$REMOTE_PATH/throne.lock" >&2
     echo "Either another machine is using it, or ssh/flock failed:" >&2
-    [[ -s "$lock_err" ]] && cat "$lock_err" >&2 || echo "(no stderr captured from ssh)" >&2
-    rm -f "$lock_err"
+    cat /tmp/throne-remote-lock.err >&2 || true
     exit 1
   fi
-  REMOTE_LOCK_REMOTE_PID="${BASH_REMATCH[1]}"
-  rm -f "$lock_err"
+  rm -f "$lock_fifo"
 
   mkdir -p "$REMOTE_MOUNT"
   echo "==> Mounting $REMOTE_SSH:$REMOTE_PATH → $REMOTE_MOUNT (sshfs)"
