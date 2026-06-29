@@ -38,6 +38,7 @@ jobs:
         env:
           BUILD_STATIC: 'true'
           NEXT_PUBLIC_SITE_URL: https://throne.whitesnow.tech
+          NEXT_PUBLIC_DEMO_VIDEO_URL: https://www.youtube.com/embed/o-DsYWGr6UI
         run: |
           npm ci
           npm run build
