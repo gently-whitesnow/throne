@@ -71,7 +71,7 @@ seed_parts:
   - key: analysis
     description: Пример модульной части под анализ.
     mode_roles:
-      - { mode: dream, role: default_off, order: 10 }
+      - { mode: free, role: default_off, order: 10 }
     text: |
       Аналитический проход — диагностика / инвентаризация / ресёрч без правок кода.
       - Не меняй файлы. Выход — диагноз + actionable-заметки + 2-3 варианта решения с pro/contra и подтверждением из кода/доков.
