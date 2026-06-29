@@ -35,7 +35,7 @@
   },
   "video": {
     "kicker": "Demo",
-    "title": "Throne in five minutes",
+    "title": "Throne in ten minutes",
     "body": "A short walkthrough: creating an Intent, launching the agent from the embedded terminal, and improving the result through patches.",
     "placeholder": "Video is loading…"
   },
