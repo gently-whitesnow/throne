@@ -43,11 +43,12 @@ jobs:
           npm run build
           test -d out || { echo "out/ не собрался — проверь экспорт"; exit 1; }
           # as-needed + export не создаёт out/index.html (это делал middleware,
-          # а он при экспорте отключён). Генерим корневой редирект на локаль.
+          # а он при экспорте отключён). Генерим корневой редирект на дефолтную
+          # локаль ru (defaultLocale в routing.ts), без детекции языка браузера.
           cat > out/index.html <<'HTML'
           <!doctype html><html lang="ru"><head><meta charset="utf-8">
           <title>throne</title>
-          <script>location.replace((navigator.language||'').toLowerCase().startsWith('en')?'/en/':'/ru/')</script>
+          <script>location.replace('/ru/')</script>
           <meta http-equiv="refresh" content="0; url=/ru/">
           <link rel="canonical" href="https://throne.whitesnow.tech/ru/"></head>
           <body>Redirecting… <a href="/ru/">throne</a></body></html>
