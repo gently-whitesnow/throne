@@ -7,8 +7,8 @@
 # no-op: it never resurrects deleted parts and never tops up running instances.
 #
 # Unlike the system manifest (whose texts are read-only and managed by PR), these
-# texts are deliberately generic placeholders the operator refines for their own
-# context. They become normal editable user parts after the seed runs.
+# texts are lightweight ready-to-use starter directives the operator tunes for their
+# own context. They become normal editable user parts after the seed runs.
 #
 # Per part: {key, text, description?, mode_roles[]}. `mode_roles` mirrors the
 # PromptPart domain model: {mode, role, order}. Core parts (common/work/interview/
@@ -47,7 +47,7 @@ seed_parts:
     mode_roles:
       - { mode: review, role: mandatory, order: 2 }
     text: |
-      - Проверь были ли нарушения заложенного code style.
+      - Проверь, были ли нарушения заложенного code style.
 
   - key: dream
     description: Заготовка под режим dream.
@@ -56,6 +56,18 @@ seed_parts:
     text: |
       - Объём задаёт оператор — не бери больше, чем просили.
 
+  - key: review_recommendation
+    description: Опциональная фича — записать артефакт review_recommendation по итогам ревью.
+    mode_roles:
+      - { mode: review, role: default_off, order: 10 }
+    text: |
+      По итогам ревью запиши единственный артефакт `review_recommendation`.
+      - Записывай его только через статический скрипт `skills/review/bin/throne-review` в workspace сессии. Не пиши PR-артефакты напрямую в persistence или через provider-specific реализацию.
+      - Payload соответствует `PutPullRequestArtifactRequest` (`specs/contracts/repositories/openapi.yaml`): `render`, `content`, `summary`, `source`, `source_refs`, `head_sha`, `review_recommendation`, `produced_at`. Для review используй `source="agent"`, обычно `render="markdown"` (markdown-тело рекомендации в `content`).
+      - Заполняй типизированный `review_recommendation` (схема `ReviewRecommendationContent`): сейчас в схеме только `file_order[{path, reason, risk}]` — упорядочи от самых рисковых/корневых файлов к листьям (`risk` ∈ `high|medium|low`).
+      - Проставляй `head_sha` ревьюенного PR/MR (`gh pr view --json headRefOid` / `glab` / `git rev-parse HEAD`): по нему UI помечает артефакт устаревшим, когда PR уезжает вперёд.
+      - В финале кратко доложи, что записал в `review_recommendation`, какие provider-комментарии отправил или почему не отправил.
+
   - key: analysis
     description: Пример модульной части под анализ.
     mode_roles:
@@ -63,7 +75,7 @@ seed_parts:
     text: |
       Аналитический проход — диагностика / инвентаризация / ресёрч без правок кода.
       - Не меняй файлы. Выход — диагноз + actionable-заметки + 2-3 варианта решения с pro/contra и подтверждением из кода/доков.
-      - Жди явного апрува оператора на фикс;
+      - Жди явного апрува оператора на фикс.
 
   - key: commit
     description: Пример модульной части с правилами коммитов.

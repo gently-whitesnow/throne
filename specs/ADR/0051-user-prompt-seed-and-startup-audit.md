@@ -32,7 +32,8 @@ read-only-семантикой.
 seed-набора. По части несёт `{key, text, description?, mode_roles[]}`; `mode_roles` зеркалит
 доменную модель `PromptPart` (`{mode, role, order}`). Намеренно отделён от
 `throne-system-prompt-parts.yaml`: system-тексты read-only и меняются PR-ом, а seed-тексты —
-generic-заготовки, которые после сидинга становятся обычными редактируемыми user-частями.
+лёгкие готовые-к-использованию директивы (не «опиши под себя»-плейсхолдеры), которые после
+сидинга становятся обычными редактируемыми user-частями и работают из коробки.
 Парсинг/валидация (`UserPromptSeedParser`) переиспользуют доменные инварианты
 (`PromptPart.ValidateModeRoles`), так что seed не может описать часть, которую агрегат отверг
 бы. Файл едет рядом с бинарём через `Content`/`Link` в `Throne.Api.csproj` (как system-манифест).
@@ -48,22 +49,33 @@ generic-заготовки, которые после сидинга стано�
 
 ### Содержимое сида
 
-- Core (`common`/`work`/`interview`/`review`/`dream`) — generic-заготовки с `mandatory`-ролями,
-  совпадающими с `bundles[].includes` system-манифеста (заполняют те самые пустые слоты бандла).
-- Модульные примеры (`analysis`/`commit`/`tests`/`contracts`) — `default_off` (доступны, не
-  выбраны по умолчанию): абстрактные образцы формата модульной части.
+- Core (`common`/`work`/`interview`/`review`/`dream`) — лёгкие готовые директивы с
+  `mandatory`-ролями, совпадающими с `bundles[].includes` system-манифеста (заполняют те самые
+  пустые слоты бандла), которые оператор подстраивает под себя.
+- Модульные части (`analysis`/`commit`/`tests`/`contracts`/`review_recommendation`) —
+  `default_off` (доступны, не выбраны по умолчанию): готовые опциональные директивы,
+  включаемые явно.
 
 ### Вынос преференциальных кусков system → user-seed
 
-Жёсткий механизм остаётся в system (границы workspace, абсолютные пути, write-path, схема
-`review_recommendation`, CLI-провайдеры ревью, dream-механика). Преференциальные (мнение, а не
-механизм) куски перенесены в редактируемый user-seed, правкой обоих манифестов (минус в system,
-плюс в seed):
+Жёсткий механизм остаётся в system (границы workspace, абсолютные пути, write-path, чтение
+PR/MR через CLI-провайдеры `gh`/`glab`). Преференциальные (мнение, а не механизм) куски
+перенесены в редактируемый user-seed, правкой обоих манифестов (минус в system, плюс в seed):
 
 - interview: «вопросы, сильнее всего снижающие неопределённость» → seed `interview`.
 - work: «не плоди новые сущности/слои/workflow» и «повторный проход — только проблематизируемое,
   без unrelated-рефактора» → seed `work`.
 - dream: «объём задаёт оператор — не бери больше, чем просили» → seed `dream`.
+
+### review_recommendation — opt-in, а не дефолт
+
+Артефакт `review_recommendation` (запись через `skills/review/bin/throne-review`, payload
+`PutPullRequestArtifactRequest`, схема `ReviewRecommendationContent`/`file_order`, `head_sha`)
+вынесен из system-текста `review` в отдельную `default_off` user-seed часть
+`review_recommendation` (mode `review`). По умолчанию review лёгкий — «проведи агентское ревью
+attached PR/MR, читай через CLI-провайдер»; тяжёлый механизм артефакта включается оператором
+явно. Это сужает раннюю формулировку (схема `review_recommendation` «остаётся в system»): сам
+контракт/скрипт остаются кодом, но prompt-инструкция к их использованию стала opt-in частью.
 
 ## Аудит «лишнего на старте» (вывод, без удаления)
 
