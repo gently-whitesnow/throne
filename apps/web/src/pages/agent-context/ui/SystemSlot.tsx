@@ -78,7 +78,10 @@ export function SystemSlot({ patchCounts, proposedTotal }: SystemSlotProps) {
           <div className="flex flex-col gap-3">
             <p className="m-0 text-xs leading-relaxed text-base-content/60">
               Предложенные правки твоих блоков от dream-агента. Apply /
-              apply-with-edit / reject — твоё решение.
+              apply-with-edit / reject — твоё решение. Чтобы правки появились,
+              создай интент с описанием, на чём учиться (например «обучись на
+              последних сессиях claude code»), и запусти его в режиме
+              «Рефлексия».
             </p>
             <PatchesTab
               targetScope={target?.scope}
