@@ -13,10 +13,6 @@ vi.mock("./SystemSlot", () => ({
   SystemSlot: () => <div data-testid="system-slot" />
 }));
 
-vi.mock("./SkillsSlot", () => ({
-  SkillsSlot: () => <div data-testid="skills-slot" />
-}));
-
 import { AgentContextPage } from "./AgentContextPage";
 
 afterEach(() => {
@@ -24,29 +20,29 @@ afterEach(() => {
 });
 
 describe("AgentContextPage", () => {
-  it("показывает один экран с четырьмя слотами состава", () => {
+  it("показывает единственный редактируемый блок — system-промпт", () => {
     render(<AgentContextPage />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Состав агента" })
+      screen.getByRole("heading", { level: 1, name: "System-промпт" })
     ).toBeTruthy();
+    expect(screen.getByTestId("system-slot")).toBeTruthy();
+  });
+
+  it("скрытые слоты состава не выводятся", () => {
+    render(<AgentContextPage />);
 
     for (const title of [
-      "System-промпт",
       "User-промпт",
       "Throne-скилы",
       "Пользовательские скилы"
     ]) {
-      expect(screen.getByRole("heading", { name: title })).toBeTruthy();
+      expect(screen.queryByRole("heading", { name: title })).toBeNull();
     }
+    expect(screen.queryByText("скоро")).toBeNull();
   });
 
-  it("слот пользовательских скилов помечен «скоро»", () => {
-    render(<AgentContextPage />);
-    expect(screen.getByText("скоро")).toBeTruthy();
-  });
-
-  it("счётчик правок на ревью выводится в слоте System", () => {
+  it("счётчик правок на ревью выводится рядом с заголовком", () => {
     render(<AgentContextPage />);
     expect(screen.getByText("3 на ревью")).toBeTruthy();
   });

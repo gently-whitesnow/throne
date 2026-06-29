@@ -1,94 +1,49 @@
 import { usePartPatchCounts } from "../model/use-part-patch-counts";
 
-import { SkillsSlot } from "./SkillsSlot";
-import { SlotRail, type SlotRailItem } from "./SlotRail";
-import { SlotCountMarker, SlotSection, SoonChip } from "./SlotSection";
+import { SlotCountMarker } from "./SlotSection";
 import { SystemSlot } from "./SystemSlot";
-import { UserPromptSlot } from "./UserPromptSlot";
-import { UserSkillsSlot } from "./UserSkillsSlot";
 
 /**
- * `/agent-context` — единый хаб «Состав агента». Заменяет Prompt parts / Launch
- * skills / Improvements: один экран, собранный по метафоре «что уйдёт агенту».
- * Четыре слота читаются сверху вниз как сборка прогона; в каждом — что это и
- * где менять. Improvements встроены в слот 1 рядом с частями.
+ * `/agent-context` — редактор системного промпта агента. Прочие слоты состава
+ * (User-промпт, скилы) пока скрыты как нередактируемые; на экране остаётся
+ * единственное, что оператор реально меняет — блоки system-промпта по режимам.
+ * Improvements / История встроены сюда же, рядом с блоками, что они правят.
  */
 export function AgentContextPage() {
   const patches = usePartPatchCounts();
 
-  const railItems: SlotRailItem[] = [
-    {
-      id: "slot-system",
-      index: 1,
-      label: "System · блоки",
-      badge: patches.total
-    },
-    { id: "slot-user-prompt", index: 2, label: "User-промпт" },
-    { id: "slot-skills", index: 3, label: "Throne-скилы" },
-    { id: "slot-user-skills", index: 4, label: "Пользовательские скилы" }
-  ];
-
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-7 pb-16 pt-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="m-0 text-2xl font-bold tracking-tight">Состав агента</h1>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-7 pb-16 pt-6">
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="m-0 text-2xl font-bold tracking-tight">
+            System-промпт
+          </h1>
+          {patches.total > 0 ? <SlotCountMarker value={patches.total} /> : null}
+        </div>
         <p className="m-0 max-w-[72ch] text-sm leading-relaxed text-base-content/70">
-          Всё, что уходит агенту при запуске, собрано здесь. Читай сверху вниз —
-          это сборка прогона: в каждом слоте видно, откуда он берётся и где его
-          менять.
+          Системный промпт агента — это набор блоков инструкций. Что именно
+          уйдёт в запуск, зависит от выбранного режима: выбери режим и увидишь
+          его состав.
         </p>
+        <dl className="m-0 flex flex-col gap-1 text-xs leading-relaxed">
+          <div className="flex gap-1.5">
+            <dt className="font-semibold text-base-content/60">источник:</dt>
+            <dd className="m-0 text-base-content/60">
+              системные блоки — из манифеста (read-only); твои — создаёшь и
+              правишь здесь
+            </dd>
+          </div>
+          <div className="flex gap-1.5">
+            <dt className="font-semibold text-base-content/60">где менять:</dt>
+            <dd className="m-0 text-base-content/50">
+              выбери режим слева → включай/выключай блоки и правь текст своих
+            </dd>
+          </div>
+        </dl>
       </header>
 
-      <SlotRail items={railItems} />
-
-      <SlotSection
-        id="slot-system"
-        index={1}
-        title="System-промпт"
-        region="system"
-        source="блоки инструкций; что войдёт — зависит от режима запуска"
-        whereToChange="выбери режим слева → правь состав и текст своих блоков; системные read-only из манифеста"
-        marker={
-          patches.total > 0 ? <SlotCountMarker value={patches.total} /> : null
-        }
-      >
-        <SystemSlot
-          patchCounts={patches.counts}
-          proposedTotal={patches.total}
-        />
-      </SlotSection>
-
-      <SlotSection
-        id="slot-user-prompt"
-        index={2}
-        title="User-промпт"
-        region="user"
-        source="тело интента + свободная вставка оператора"
-        whereToChange="тело — на странице интента; вставка — в окне запуска"
-      >
-        <UserPromptSlot />
-      </SlotSection>
-
-      <SlotSection
-        id="slot-skills"
-        index={3}
-        title="Throne-скилы"
-        source="встроенные скилы Throne по режимам (intent / review / dream)"
-        whereToChange="здесь — матрица режим × скил; на сессию — в окне запуска"
-      >
-        <SkillsSlot />
-      </SlotSection>
-
-      <SlotSection
-        id="slot-user-skills"
-        index={4}
-        title="Пользовательские скилы"
-        source="подкладываемые пользовательские скилы"
-        marker={<SoonChip />}
-        muted
-      >
-        <UserSkillsSlot />
-      </SlotSection>
+      <SystemSlot patchCounts={patches.counts} proposedTotal={patches.total} />
     </div>
   );
 }
