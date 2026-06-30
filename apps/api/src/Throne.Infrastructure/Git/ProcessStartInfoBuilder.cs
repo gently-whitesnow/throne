@@ -37,6 +37,24 @@ internal static class ProcessStartInfoBuilder
         return psi;
     }
 
+    public static ProcessStartInfo BuildDetached(ProcessRunRequest request)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = request.FileName,
+            WorkingDirectory = request.WorkingDirectory ?? string.Empty,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
+            RedirectStandardInput = false,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        ApplyArguments(psi, request.Arguments);
+        ApplyEnvironment(psi, request.Environment);
+        return psi;
+    }
+
     private static void ApplyArguments(ProcessStartInfo psi, IReadOnlyList<string> arguments)
     {
         foreach (var arg in arguments)

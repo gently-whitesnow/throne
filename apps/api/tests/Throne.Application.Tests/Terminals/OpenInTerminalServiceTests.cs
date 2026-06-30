@@ -15,7 +15,7 @@ public class OpenInTerminalServiceTests
     private static readonly DateTimeOffset Now = new(2026, 6, 25, 10, 0, 0, TimeSpan.Zero);
     private const string IntentIdValue = "intent-native-1";
 
-    [Fact(DisplayName = "Open выбирает persisted provider, требует live session и гасит embedded pipe")]
+    [Fact(DisplayName = "Open выбирает persisted provider, требует live session и готовит tmux к native attach")]
     public async Task Open_uses_selected_provider()
     {
         var fixture = new Fixture();
@@ -30,6 +30,7 @@ public class OpenInTerminalServiceTests
         fixture.WezTerm.Opened.Should().ContainSingle().Which
             .Should().Be(("intent-native-1", "throne-intent-native-1"));
         await fixture.Tmux.Received(1).StopPipeAsync(IntentIdValue, Arg.Any<CancellationToken>());
+        await fixture.Tmux.Received(1).PrepareNativeViewerAsync(IntentIdValue, Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Open без live tmux session возвращает terminal.session_not_live")]

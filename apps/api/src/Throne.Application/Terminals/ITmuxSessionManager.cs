@@ -42,6 +42,12 @@ public interface ITmuxSessionManager
     Task StopPipeAsync(string intentId, CancellationToken ct);
 
     /// <summary>
+    /// Prepares an existing session for a native terminal attach by dropping embedded resize
+    /// state and enabling tmux-owned mouse scroll/copy-mode behavior.
+    /// </summary>
+    Task PrepareNativeViewerAsync(string intentId, CancellationToken ct);
+
+    /// <summary>
     /// <c>tmux ls -F '#S'</c>. Returns the set of currently-alive Throne sessions
     /// (filtered to the <see cref="TmuxSessionName.Prefix"/>). Empty when tmux is not
     /// running a server or the binary is missing.

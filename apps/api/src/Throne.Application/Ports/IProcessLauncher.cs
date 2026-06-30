@@ -21,6 +21,13 @@ public interface IProcessLauncher
     /// </list>
     /// </summary>
     Task<ProcessRunResult> RunAsync(ProcessRunRequest request, CancellationToken ct);
+
+    /// <summary>
+    /// Start <paramref name="request"/> and return after the process is spawned. The child is not
+    /// waited on or force-killed by Throne; use this only for GUI handoffs whose lifetime belongs
+    /// to the desktop app rather than the HTTP request.
+    /// </summary>
+    Task StartDetachedAsync(ProcessRunRequest request, CancellationToken ct);
 }
 
 /// <summary>

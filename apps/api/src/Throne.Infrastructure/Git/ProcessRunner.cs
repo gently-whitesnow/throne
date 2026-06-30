@@ -52,6 +52,23 @@ internal sealed class ProcessRunner(ILogger<ProcessRunner> log) : IProcessLaunch
             Elapsed: stopwatch.Elapsed);
     }
 
+    public Task StartDetachedAsync(ProcessRunRequest request, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.FileName);
+        ct.ThrowIfCancellationRequested();
+
+        using var process = new Process
+        {
+            StartInfo = ProcessStartInfoBuilder.BuildDetached(request),
+        };
+
+        ProcessRunnerLog.Starting(log, request.FileName, request.Arguments.Count, request.WorkingDirectory);
+        process.Start();
+        ProcessRunnerLog.Finished(log, request.FileName, 0, 0);
+        return Task.CompletedTask;
+    }
+
     private async Task WaitForExitAsync(
         Process process,
         ProcessRunRequest request,
