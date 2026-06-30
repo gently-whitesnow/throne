@@ -146,9 +146,13 @@ internal sealed partial class GlabReviewWorkspaceActions(GlabCliInvoker glab, IG
     private static void ThrowSubmitException(string operation, Throne.Application.Ports.ProcessRunResult result)
     {
         var stderr = result.StandardError ?? string.Empty;
-        if (stderr.Contains("400", StringComparison.OrdinalIgnoreCase)
-            || stderr.Contains("Position is incorrect", StringComparison.OrdinalIgnoreCase)
-            || stderr.Contains("line_code", StringComparison.OrdinalIgnoreCase))
+        // Map to anchor_invalid only on GitLab's genuine position/line-code markers.
+        // A bare "400" must NOT be funnelled here — e.g. "Invalid JSON format" or
+        // "body is missing" are body-level failures whose real cause is masked if we
+        // relabel them as an invalid anchor. Let those propagate with GitLab's message.
+        if (stderr.Contains("Position is incorrect", StringComparison.OrdinalIgnoreCase)
+            || stderr.Contains("line_code", StringComparison.OrdinalIgnoreCase)
+            || stderr.Contains("valid line code", StringComparison.OrdinalIgnoreCase))
         {
             throw new GitProviderException(
                 GitProviderErrorKind.ReviewCommentAnchorInvalid,

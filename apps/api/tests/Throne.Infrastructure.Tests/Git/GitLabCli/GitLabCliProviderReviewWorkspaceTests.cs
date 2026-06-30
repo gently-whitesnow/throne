@@ -177,4 +177,42 @@ public class GitLabCliProviderReviewWorkspaceTests
         position.GetProperty("old_line").GetInt32().Should().Be(5);
         position.TryGetProperty("new_line", out _).Should().BeFalse();
     }
+
+    [Fact(DisplayName = "SubmitReviewCommentAsync мапит line_code-ошибку в ReviewCommentAnchorInvalid")]
+    public async Task SubmitReviewCommentAsync_maps_line_code_error_to_anchor_invalid()
+    {
+        _fx.OnRun(_ => GitLabCliProviderFixture.Fail(
+            1, "glab: 400 Bad request - Note {:line_code=>[\"must be a valid line code\"]}"));
+
+        var act = async () => await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, Anchor(), default);
+
+        var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
+        ex.Kind.Should().Be(GitProviderErrorKind.ReviewCommentAnchorInvalid);
+    }
+
+    [Fact(DisplayName = "SubmitReviewCommentAsync НЕ выдаёт anchor_invalid на body-level 400 и сохраняет тело")]
+    public async Task SubmitReviewCommentAsync_generic_400_is_not_anchor_invalid()
+    {
+        // Body-level failure (e.g. a corrupted JSON body) must surface as-is, not be
+        // mislabelled as an invalid anchor that masks the real cause.
+        _fx.OnRun(_ => GitLabCliProviderFixture.Fail(1, "{\"error\":\"Invalid JSON format\"}\nglab: HTTP 400"));
+
+        var act = async () => await _fx.Provider.SubmitReviewCommentAsync("g", "r", 7, Anchor(), default);
+
+        var ex = (await act.Should().ThrowAsync<GitProviderException>()).Which;
+        ex.Kind.Should().NotBe(GitProviderErrorKind.ReviewCommentAnchorInvalid);
+        ex.Detail.Should().Contain("Invalid JSON format");
+    }
+
+    private static SubmitReviewCommentRequest Anchor() =>
+        new(
+            Body: "x",
+            Path: "src/a.cs",
+            PreviousPath: null,
+            Side: ReviewCommentSide.Right,
+            OldLine: null,
+            NewLine: 12,
+            CommitSha: "h",
+            BaseSha: "b",
+            StartSha: "s");
 }
