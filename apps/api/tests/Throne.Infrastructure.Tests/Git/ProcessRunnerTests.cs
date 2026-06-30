@@ -108,6 +108,34 @@ public class ProcessRunnerTests
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
 
+    [Fact(DisplayName = "RunAsync передаёт stdin без ведущего BOM, сохраняя UTF-8")]
+    public async Task StandardInput_has_no_leading_bom()
+    {
+        // od dumps the raw bytes the child actually received, so a BOM emitted by the
+        // input encoding is observable here (a BOM-stripping StreamReader would hide it
+        // if we echoed stdin back as a string instead). Regression for glab rejecting
+        // BOM-prefixed JSON bodies with HTTP 400 "Invalid JSON format".
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var request = new ProcessRunRequest(
+            FileName: "/bin/sh",
+            Arguments: ["-c", "od -An -tx1"],
+            StandardInput: "{\"тест\":1}");
+
+        var result = await _runner.RunAsync(request, CancellationToken.None);
+
+        result.ExitCode.Should().Be(0);
+        var hex = string.Join(' ', result.StandardOutput.Split(
+            (char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        hex.Should().NotStartWith("ef bb bf", "stdin must not carry a UTF-8 BOM");
+        hex.Should().StartWith("7b", "payload must start with '{' as authored");
+        // Cyrillic "тест" → UTF-8 bytes d1 82 d0 b5 d1 81 d1 82 — encoding stays UTF-8.
+        hex.Should().Contain("d1 82 d0 b5 d1 81 d1 82");
+    }
+
     private static ProcessRunRequest ShellEcho(string text) =>
         ShellCommand(OperatingSystem.IsWindows() ? $"echo {text}" : $"printf '%s' '{text}'");
 
