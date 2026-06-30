@@ -9,7 +9,8 @@ public sealed record BoardSyncOutcome(IReadOnlyList<string> ChangedCardIds, bool
 /// <summary>
 /// Polls a single board: discovers live cards via the cheap list call, escalates to the detail
 /// endpoint only for cards whose provider revision tag advanced relative to the persisted cursor,
-/// then mirrors them into their intents and stubs links whose card vanished from the board.
+/// then mirrors them into their intents and closes the mirror (stub link + reject intent) for
+/// cards that vanished from the board.
 /// <para>
 /// Kaiten (and other trackers that expose a list/detail-asymmetric card shape — list-row omits
 /// expensive fields like <c>description</c>) requires the escalation: without it the mirror would
@@ -106,9 +107,11 @@ public sealed class TaskTrackerBoardSyncWorkflow(
         var existing = await linkStore.ListByBoardAsync(tracker, boardId, ct);
         foreach (var link in existing)
         {
-            if (!link.IsStub && !liveCardIds.Contains(link.Card.CardId))
+            // Process every vanished link — not just not-yet-stub ones — so legacy stub links whose
+            // mirror intent is still active get rejected too; the method is idempotent on both invariants.
+            if (!liveCardIds.Contains(link.Card.CardId))
             {
-                await mirror.MarkStubAsync(link, ct);
+                await mirror.StubAndCloseVanishedAsync(link, ct);
             }
         }
     }

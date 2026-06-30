@@ -163,4 +163,21 @@ public sealed class TaskTrackerBoardSyncWorkflowTests(SqliteFixture sqlite)
         var link = await h.Links.GetByCardAsync("kaiten", "board-7", "card-1", CancellationToken.None);
         link!.IsStub.Should().BeTrue();
     }
+
+    [Fact(DisplayName = "Карточка ушла с доски → mirror-intent уходит в reject")]
+    public async Task Vanished_card_rejects_mirror_intent()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var h = Build(db);
+        h.Provider.ListBoardCards = _ => [ListRow("card-1", "Title", "v1")];
+        h.Provider.GetCard = _ => Detail("card-1", "Title", "body", "v1");
+        await h.Workflow.SyncBoardAsync(h.Provider, Descriptor, "board-7", CancellationToken.None);
+        var link = await h.Links.GetByCardAsync("kaiten", "board-7", "card-1", CancellationToken.None);
+
+        h.Provider.ListBoardCards = _ => [];
+        await h.Workflow.SyncBoardAsync(h.Provider, Descriptor, "board-7", CancellationToken.None);
+
+        var intent = await h.Repo.GetByIdAsync(new IntentId(link!.IntentId), CancellationToken.None);
+        intent!.State.Status.Should().Be(IntentStatusNames.Reject);
+    }
 }

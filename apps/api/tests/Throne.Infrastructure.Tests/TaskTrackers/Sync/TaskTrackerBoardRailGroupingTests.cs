@@ -61,6 +61,39 @@ public sealed class TaskTrackerBoardRailGroupingTests(SqliteFixture sqlite)
         page.Items.Select(i => i.Id.Value).Should().NotContain(plain.Id.Value);
     }
 
+    [Fact(DisplayName = "Stub-линк не считается в boards и исключён из списка доски (страховочный фильтр)")]
+    public async Task Stub_link_excluded_from_board_count_and_list()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var repo = db.GetRequiredService<IIntentRepository>();
+        var ordering = db.GetRequiredService<IIntentOrderingRepository>();
+        var links = db.GetRequiredService<ITaskTrackerCardLinkStore>();
+        var connections = db.GetRequiredService<ITaskTrackerConnectionStore>();
+        var uow = db.GetRequiredService<IUnitOfWork>();
+        var mirror = new TaskTrackerMirrorService(repo, ordering, links, uow, new FixedTimeProvider(Now));
+
+        await connections.SaveConnectionAsync("kaiten", "https://acme.kaiten.ru", "tok", CancellationToken.None);
+        await connections.SaveSelectionAsync(
+            "kaiten",
+            [new TaskTrackerBoardSelection("space-1", "Space", "board-7", "Board Seven", "none")],
+            CancellationToken.None);
+
+        var mirrored = await mirror.ApplyAsync("kaiten", Card("card-1", "Card One"), existing: null, CancellationToken.None);
+        // Линк stub, но intent всё ещё active (legacy-данные / гонка до cleanup): он не должен считаться доской.
+        await mirror.MarkStubAsync((await links.GetByIntentAsync(mirrored.IntentId, CancellationToken.None))!, CancellationToken.None);
+
+        var counts = await repo.GetContextCountsAsync([], CancellationToken.None);
+        counts.Boards.Should().ContainSingle().Which.Count.Should().Be(0);
+
+        var page = await repo.ListPagedAsync(
+            new IntentListSpec(
+                Statuses: ["draft", "interview", "ready_for_work", "work", "awaiting_operator"],
+                TagId: null, Untagged: false, Pinned: false, Query: null,
+                Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null, BoardId: "board-7"),
+            CancellationToken.None);
+        page.Items.Should().BeEmpty();
+    }
+
     [Fact(DisplayName = "Подключённая доска без карточек — пустая группа со счётчиком 0")]
     public async Task Connected_board_without_cards_is_empty_group()
     {

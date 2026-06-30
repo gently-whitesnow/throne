@@ -126,14 +126,16 @@ public class TaskTrackerWriteThroughHandlerTests
         _provider.Removed.Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "IntentStatusChanged → done на stub-линке удаляет линк")]
-    public async Task Status_done_on_stub_deletes_link()
+    [Theory(DisplayName = "IntentStatusChanged → done/reject на stub-линке удаляет линк")]
+    [InlineData(IntentStatusNames.Done)]
+    [InlineData(IntentStatusNames.Reject)]
+    public async Task Closing_status_on_stub_deletes_link(string status)
     {
         var link = Linked("intent-1", "card-42", new CardSyncLinkSnapshot("Title", null, null, null));
         link.MarkStub(Now);
         _links.Seed(link);
         var intent = IntentWith("intent-1", "Title");
-        intent.SetStatus(IntentStatusNames.Done, Now);
+        intent.SetStatus(status, Now);
 
         await Handler().HandleAsync(new IntentStatusChanged(intent), CancellationToken.None);
 
