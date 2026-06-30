@@ -67,7 +67,7 @@ export function EditPromptPartBody({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <span className="text-[13px] font-semibold text-base-content">
@@ -91,7 +91,7 @@ export function EditPromptPartBody({
         API.
       </p>
 
-      <label className="flex flex-col gap-1">
+      <label className="flex min-h-0 flex-1 flex-col gap-1">
         <span className="text-[13px] font-semibold text-base-content">
           Текст
         </span>
@@ -101,12 +101,11 @@ export function EditPromptPartBody({
           </p>
         ) : (
           <textarea
-            className="textarea textarea-bordered min-h-60 font-mono text-[13px] leading-relaxed"
+            className="textarea textarea-bordered min-h-60 w-full flex-1 resize-none font-mono text-[13px] leading-relaxed"
             value={value}
             onChange={(e) => {
               setDraft(e.target.value);
             }}
-            rows={14}
             aria-label="Текст блока"
           />
         )}
