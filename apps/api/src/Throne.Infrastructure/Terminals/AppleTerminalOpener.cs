@@ -44,7 +44,7 @@ internal sealed class AppleTerminalOpener(IProcessLauncher launcher) : ITerminal
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionName);
-        var command = "tmux attach -d -t " + TerminalCommandEscaping.ShellSingleQuote(sessionName);
+        var command = NativeTmuxAttachCommand.BuildShellCommand(sessionName);
         var result = await launcher.RunAsync(
             new ProcessRunRequest(
                 "osascript",

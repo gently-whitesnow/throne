@@ -7,7 +7,7 @@ namespace Throne.Infrastructure.Tests.Terminals;
 
 public class TerminalOpenersTests
 {
-    [Fact(DisplayName = "WezTerm opener запускает wezterm start -- tmux attach -d -t <session>")]
+    [Fact(DisplayName = "WezTerm opener detached-запускает native tmux handoff")]
     public async Task WezTerm_open_builds_expected_argv()
     {
         var launcher = SuccessLauncher();
@@ -15,13 +15,14 @@ public class TerminalOpenersTests
 
         await opener.OpenAsync("intent-1", "throne-intent-1", CancellationToken.None);
 
-        var request = (ProcessRunRequest)launcher.ReceivedCalls().Single().GetArguments()[0]!;
+        var call = launcher.ReceivedCalls().Single(c => c.GetMethodInfo().Name == nameof(IProcessLauncher.StartDetachedAsync));
+        var request = (ProcessRunRequest)call.GetArguments()[0]!;
         request.FileName.Should().Be("wezterm");
         request.Arguments.Should().Equal(
-            "start", "--", "tmux", "attach", "-d", "-t", "throne-intent-1");
+            "start", "--", "sh", "-lc", NativeTmuxAttachCommand.BuildShellCommand("throne-intent-1"));
     }
 
-    [Fact(DisplayName = "Terminal.app opener запускает osascript do script с tmux attach -d")]
+    [Fact(DisplayName = "Terminal.app opener запускает osascript do script с native tmux handoff")]
     public async Task AppleTerminal_open_builds_expected_argv()
     {
         var launcher = SuccessLauncher();
@@ -33,7 +34,7 @@ public class TerminalOpenersTests
         request.FileName.Should().Be("osascript");
         request.Arguments.Should().Equal(
             "-e", "tell application \"Terminal\"",
-            "-e", "do script \"tmux attach -d -t 'throne-intent-1'\"",
+            "-e", $"do script \"{TerminalCommandEscaping.AppleScriptString(NativeTmuxAttachCommand.BuildShellCommand("throne-intent-1"))}\"",
             "-e", "activate",
             "-e", "end tell");
     }
@@ -48,6 +49,17 @@ public class TerminalOpenersTests
         apple.Should().Be("tmux \\\"x\\\" \\\\ y");
     }
 
+    [Fact(DisplayName = "Native handoff ждёт client перед resize-window -A")]
+    public void Native_handoff_waits_for_client_before_resize()
+    {
+        var command = NativeTmuxAttachCommand.BuildShellCommand("throne-intent-1");
+
+        command.Should().Contain("tmux list-clients -t 'throne-intent-1'");
+        command.Should().Contain("sleep 0.1");
+        command.Should().Contain("tmux resize-window -A -t 'throne-intent-1'");
+        command.Should().EndWith("exec tmux attach -d -t 'throne-intent-1'");
+    }
+
     private static IProcessLauncher SuccessLauncher()
     {
         var launcher = Substitute.For<IProcessLauncher>();
@@ -57,6 +69,8 @@ public class TerminalOpenersTests
                 StandardOutput: string.Empty,
                 StandardError: string.Empty,
                 Elapsed: TimeSpan.Zero)));
+        launcher.StartDetachedAsync(Arg.Any<ProcessRunRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
         return launcher;
     }
 }

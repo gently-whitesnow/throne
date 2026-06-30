@@ -26,6 +26,7 @@ public sealed class OpenInTerminalService(
 
         var opener = await ResolveOpenerAsync(ct);
         await tmux.StopPipeAsync(intent.Id.Value, ct);
+        await tmux.PrepareNativeViewerAsync(intent.Id.Value, ct);
         await opener.OpenAsync(intent.Id.Value, sessionName, ct);
         return new OpenInTerminalResult(opener.ProviderName, sessionName);
     }

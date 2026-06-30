@@ -40,17 +40,19 @@ internal sealed class WezTermOpener(IProcessLauncher launcher) : ITerminalOpener
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(intentId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionName);
-        var result = await launcher.RunAsync(
-            new ProcessRunRequest(
-                "wezterm",
-                ["start", "--", "tmux", "attach", "-d", "-t", sessionName],
-                Timeout: TimeSpan.FromSeconds(10)),
-            ct);
-        if (!result.IsSuccess)
+        try
+        {
+            await launcher.StartDetachedAsync(
+                new ProcessRunRequest(
+                    "wezterm",
+                    ["start", "--", "sh", "-lc", NativeTmuxAttachCommand.BuildShellCommand(sessionName)]),
+                ct);
+        }
+        catch (System.ComponentModel.Win32Exception)
         {
             throw new ApiException(
                 TerminalErrorCodes.NativeProviderUnavailable,
-                Detail("wezterm start", result),
+                "wezterm CLI not found on PATH",
                 new Dictionary<string, object?> { ["provider"] = ProviderName });
         }
     }

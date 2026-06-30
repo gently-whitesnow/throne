@@ -38,6 +38,17 @@ public class ProcessRunnerTests
         result.IsSuccess.Should().BeFalse();
     }
 
+    [Fact(DisplayName = "StartDetachedAsync возвращается сразу и не ждёт завершения процесса")]
+    public async Task Start_detached_does_not_wait_for_exit()
+    {
+        var request = ShellCommand(OperatingSystem.IsWindows() ? "ping -n 3 127.0.0.1 > nul" : "sleep 2");
+
+        var start = DateTimeOffset.UtcNow;
+        await _runner.StartDetachedAsync(request, CancellationToken.None);
+
+        (DateTimeOffset.UtcNow - start).Should().BeLessThan(TimeSpan.FromSeconds(1));
+    }
+
     [Fact(DisplayName = "RunAsync захватывает stderr отдельно от stdout")]
     public async Task Captures_stderr_separately()
     {

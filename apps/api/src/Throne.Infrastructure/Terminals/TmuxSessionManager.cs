@@ -93,6 +93,13 @@ internal sealed class TmuxSessionManager(
         await tmux.RunAsync(["pipe-pane", "-t", sessionName], ct);
     }
 
+    public async Task PrepareNativeViewerAsync(string intentId, CancellationToken ct)
+    {
+        var sessionName = TmuxSessionName.For(intentId);
+        await tmux.RunAsync(["set-window-option", "-t", sessionName, "window-size", "latest"], ct);
+        await tmux.RunAsync(["set-option", "-t", sessionName, "mouse", "on"], ct);
+    }
+
     public async Task<IReadOnlyList<string>> ListThroneSessionsAsync(CancellationToken ct)
     {
         var outcome = await tmux.RunAsync(["list-sessions", "-F", "#S"], ct);
