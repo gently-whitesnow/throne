@@ -1,6 +1,6 @@
 {
   "runtime": "Net100",
-  "defaultVariables": "OpenApiDocument=../../specs/contracts/prompt-parts/openapi.yaml,GeneratedClient=src/Throne.PromptParts.Contracts/Generated/PromptPartsClient.g.cs,ClientNamespace=Throne.PromptParts.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=src/Throne.Api/Generated/PromptPartsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=PromptParts",
+  "defaultVariables": "OpenApiDocument=../../../specs/contracts/tags/openapi.yaml,GeneratedClient=../src/Throne.Contracts/Generated/TagsClient.g.cs,ClientNamespace=Throne.Tags.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=../src/Throne.Api/Generated/TagsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=Tags",
   "documentGenerator": {
     "fromDocument": {
       "url": "$(OpenApiDocument)",

@@ -111,7 +111,7 @@ Server-to-client события описаны в [specs/contracts/realtime/even
 Добавление нового realtime-события (gate `realtime` падает при «половинной» интеграции):
 
 1. Расширь [events.yaml](contracts/realtime/events.yaml): имя, описание, `payload` или `payload_ref`.
-2. Регенерация: `bash scripts/quality/codegen-frontend.sh` обновит `Throne.Realtime.Contracts/Generated` и `apps/web/src/shared/realtime/generated`.
+2. Регенерация: `bash scripts/quality/codegen-frontend.sh` обновит `Throne.Contracts/Generated` (C# константы) и `apps/web/src/shared/realtime/generated`.
 3. Добавь record в [Throne.Application/Events/IntentEvents.cs](../apps/api/src/Throne.Application/Events/IntentEvents.cs) (имя — PascalCase от `<event.name>`, например `intent.text_changed` → `IntentTextChanged`).
 4. Сделай так, чтобы соответствующий **outcome** (или новый wrapper-outcome) возвращал этот event на success-ветке через `Events`.
 5. Репозиторий положит event в outcome — никаких publish-вызовов писать не нужно.

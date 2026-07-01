@@ -1,6 +1,6 @@
 {
   "runtime": "Net100",
-  "defaultVariables": "OpenApiDocument=../../specs/contracts/task-trackers/openapi.yaml,GeneratedClient=src/Throne.TaskTrackers.Contracts/Generated/TaskTrackersClient.g.cs,ClientNamespace=Throne.TaskTrackers.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=src/Throne.Api/Generated/TaskTrackersControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName={controller}",
+  "defaultVariables": "OpenApiDocument=../../../specs/contracts/settings/openapi.yaml,GeneratedClient=../src/Throne.Contracts/Generated/SettingsClient.g.cs,ClientNamespace=Throne.Settings.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=../src/Throne.Api/Generated/SettingsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=Settings",
   "documentGenerator": {
     "fromDocument": {
       "url": "$(OpenApiDocument)",
@@ -21,7 +21,7 @@
       "generateBaseUrlProperty": false,
       "generateSyncMethods": false,
       "generatePrepareRequestAndProcessResponseAsAsyncMethods": false,
-      "operationGenerationMode": "MultipleClientsFromFirstTagAndOperationId",
+      "operationGenerationMode": "MultipleClientsFromOperationId",
       "generateOptionalParameters": true,
       "generateJsonMethods": false,
       "generateDataAnnotations": true,
@@ -38,7 +38,7 @@
       "generateModelValidationAttributes": true,
       "routeNamingStrategy": "OperationId",
       "className": "$(ControllerClassName)",
-      "operationGenerationMode": "MultipleClientsFromFirstTagAndOperationId",
+      "operationGenerationMode": "MultipleClientsFromOperationId",
       "additionalNamespaceUsages": [
         "$(ClientNamespace)"
       ],

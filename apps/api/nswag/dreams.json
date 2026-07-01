@@ -1,6 +1,6 @@
 {
   "runtime": "Net100",
-  "defaultVariables": "OpenApiDocument=../../specs/contracts/dreams/openapi.yaml,GeneratedClient=src/Throne.Dreams.Contracts/Generated/DreamsClient.g.cs,ClientNamespace=Throne.Dreams.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=src/Throne.Api/Generated/DreamsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=Dreams",
+  "defaultVariables": "OpenApiDocument=../../../specs/contracts/dreams/openapi.yaml,GeneratedClient=../src/Throne.Contracts/Generated/DreamsClient.g.cs,ClientNamespace=Throne.Dreams.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=../src/Throne.Api/Generated/DreamsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=Dreams",
   "documentGenerator": {
     "fromDocument": {
       "url": "$(OpenApiDocument)",

@@ -1,6 +1,6 @@
 {
   "runtime": "Net100",
-  "defaultVariables": "OpenApiDocument=../../specs/contracts/repositories/openapi.yaml,GeneratedClient=src/Throne.Repositories.Contracts/Generated/RepositoriesClient.g.cs,ClientNamespace=Throne.Repositories.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=src/Throne.Api/Generated/RepositoriesControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName={controller}",
+  "defaultVariables": "OpenApiDocument=../../../specs/contracts/intents/openapi.yaml,GeneratedClient=../src/Throne.Contracts/Generated/IntentsClient.g.cs,ClientNamespace=Throne.Intents.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=../src/Throne.Api/Generated/IntentsControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName={controller}",
   "documentGenerator": {
     "fromDocument": {
       "url": "$(OpenApiDocument)",

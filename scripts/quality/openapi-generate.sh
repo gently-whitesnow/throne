@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Generate .NET artefacts from OpenAPI contracts (specs/contracts/*) via NSwag.
-# Iterates over every nswag.*.json config in apps/api/.
+# Iterates over every nswag/*.json config in apps/api/.
 # Usage: scripts/quality/openapi-generate.sh
 set -euo pipefail
 
@@ -17,11 +17,11 @@ fi
 dotnet tool restore >/dev/null
 
 shopt -s nullglob
-configs=( nswag.*.json )
+configs=( nswag/*.json )
 shopt -u nullglob
 
 if [[ ${#configs[@]} -eq 0 ]]; then
-  echo "No nswag.*.json configs in $API_DIR." >&2
+  echo "No nswag/*.json configs in $API_DIR." >&2
   exit 1
 fi
 

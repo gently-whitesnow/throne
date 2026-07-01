@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Generate WebSocket route artefacts from specs/contracts/realtime/websocket/*.yaml.
 // Outputs (one source of truth → both consumers, no hand-written route literals):
-//   - apps/api/src/Throne.Terminal.Contracts/Generated/TerminalWebSocketRoutes.g.cs (C# route templates)
+//   - apps/api/src/Throne.Contracts/Generated/TerminalWebSocketRoutes.g.cs (C# route templates)
 //   - apps/web/src/shared/realtime/generated/terminal-routes.ts (base-relative path builders)
 // Mirrors the OpenAPI generator split: C# keeps the full `/api/v1/...` route (like the
 // generated controller `Route` attributes); TS strips the `/api/v1` base (like the generated
@@ -25,7 +25,7 @@ const TS_OUT = resolve(
 );
 const CS_OUT = resolve(
   ROOT_DIR,
-  "apps/api/src/Throne.Terminal.Contracts/Generated/TerminalWebSocketRoutes.g.cs"
+  "apps/api/src/Throne.Contracts/Generated/TerminalWebSocketRoutes.g.cs"
 );
 
 const API_PREFIX = "/api/v1";
