@@ -15,15 +15,15 @@ specs/contracts/
     openapi.yaml           # paths + components.schemas одного модуля
 ```
 
-Имя `<module>` ↔ префикс пути и имена .NET сборок:
+Имя `<module>` ↔ префикс пути и namespace:
 - `paths` начинаются с `/api/v1/<module>` (множественное число);
-- C# DTO живут в `Throne.<Module>.Contracts.Generated`;
+- C# DTO живут в namespace `Throne.<Module>.Contracts.Generated` (задаётся через nswag `ClientNamespace`; физически все `<Module>Client.g.cs` лежат в едином проекте `apps/api/src/Throne.Contracts/Generated/`);
 - abstract controller в `Throne.Api.Generated`.
 
 ## Как добавить метод в существующий модуль
 
 1. Отредактировать `specs/contracts/<module>/openapi.yaml` — добавить путь/operationId/схемы.
-2. `bash scripts/quality/openapi-generate.sh apps/api/nswag.<module>.json` — регенерация .NET.
+2. `bash scripts/quality/openapi-generate.sh` — регенерация .NET (пробегает все `apps/api/nswag/*.json`).
 3. `bash scripts/quality/codegen-frontend.sh` — регенерация TypeScript.
 4. Реализовать abstract метод в ручном `apps/api/src/Throne.Api/<Module>/<Module>Controller.cs : <Module>ControllerBase`.
 5. Добавить handler в `Throne.Application` (+ порт/реализацию в `Throne.Infrastructure`, если нужно новое чтение/запись).
@@ -34,10 +34,10 @@ specs/contracts/
 ## Как добавить новый модуль
 
 1. Создать `specs/contracts/<module>/openapi.yaml`.
-2. Создать проект `apps/api/src/Throne.<Module>.Contracts/Throne.<Module>.Contracts.csproj` (только `Generated/*.g.cs`).
-3. Создать NSwag config `apps/api/nswag.<module>.json` (клон существующего, заменить переменные).
-4. Расширить `scripts/quality/openapi-verify-generated-clean.sh` или его caller — добавить путь в проверяемый список (`generated_paths`).
-5. ADR обязателен (новые границы и сборки — модульные решения).
+2. Создать NSwag config `apps/api/nswag/<module>.json` (клон существующего конфига, подменить `<module>` в `defaultVariables`: `OpenApiDocument`, `GeneratedClient`, `GeneratedController`, `ClientNamespace`).
+3. `bash scripts/quality/openapi-generate.sh` — сгенерированный `<Module>Client.g.cs` прилетает в существующий `apps/api/src/Throne.Contracts/Generated/`, controller-base — в `apps/api/src/Throne.Api/Generated/`. Отдельного csproj для нового модуля создавать не нужно.
+4. Реализовать `apps/api/src/Throne.Api/<Module>/<Module>Controller.cs : <Module>ControllerBase` и handler(-ы) в `Throne.Application`.
+5. ADR желателен, если модуль вводит новый bounded context или доменные инварианты.
 
 ## Что нельзя делать
 

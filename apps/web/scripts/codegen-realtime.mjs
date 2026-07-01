@@ -2,7 +2,7 @@
 // Generate realtime event artefacts from specs/contracts/realtime/events.yaml.
 // Outputs:
 //   - apps/web/src/shared/realtime/generated/events.ts (typed map for frontend)
-//   - apps/api/src/Throne.Realtime.Contracts/Generated/RealtimeEventNames.g.cs (C# constants)
+//   - apps/api/src/Throne.Contracts/Generated/RealtimeEventNames.g.cs (C# constants)
 // Source of truth lives in specs/contracts/realtime/events.yaml. Do not edit generated files.
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -17,7 +17,7 @@ const EVENTS_YAML = resolve(ROOT_DIR, "specs/contracts/realtime/events.yaml");
 const TS_OUT = resolve(WEB_DIR, "src/shared/realtime/generated/events.ts");
 const CS_OUT = resolve(
   ROOT_DIR,
-  "apps/api/src/Throne.Realtime.Contracts/Generated/RealtimeEventNames.g.cs"
+  "apps/api/src/Throne.Contracts/Generated/RealtimeEventNames.g.cs"
 );
 
 function toRepoRelative(path) {

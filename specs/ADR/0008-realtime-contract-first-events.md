@@ -24,7 +24,7 @@ Scope этого ADR — server-to-client realtime fanout. Пользовате�
 
 `scripts/quality/codegen-frontend.sh` (через `apps/web/scripts/codegen-realtime.mjs`) из YAML генерит:
 
-- `apps/api/src/Throne.Realtime.Contracts/Generated/RealtimeEventNames.g.cs` — константы и `All`;
+- `apps/api/src/Throne.Contracts/Generated/RealtimeEventNames.g.cs` — константы и `All` (namespace остаётся `Throne.Realtime.Contracts.Generated`);
 - `apps/web/src/shared/realtime/generated/events.ts` — `RealtimeEventMap`, `RealtimeEventName`, `realtimeEventNames`, `RealtimeEventEnvelope`.
 
 Drift-гейт `contracts` ловит расхождения между YAML и сгенерированными файлами.

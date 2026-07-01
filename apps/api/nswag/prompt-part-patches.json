@@ -1,6 +1,6 @@
 {
   "runtime": "Net100",
-  "defaultVariables": "OpenApiDocument=../../specs/contracts/ide/openapi.yaml,GeneratedClient=src/Throne.Ide.Contracts/Generated/IdeClient.g.cs,ClientNamespace=Throne.Ide.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=src/Throne.Api/Generated/IdeControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName={controller}",
+  "defaultVariables": "OpenApiDocument=../../../specs/contracts/prompt-part-patches/openapi.yaml,GeneratedClient=../src/Throne.Contracts/Generated/PromptPartPatchesClient.g.cs,ClientNamespace=Throne.PromptPartPatches.Contracts.Generated,ClientClassName={controller}Client,GeneratedController=../src/Throne.Api/Generated/PromptPartPatchesControllerBase.g.cs,ControllerNamespace=Throne.Api.Generated,ControllerClassName=PromptPartPatches",
   "documentGenerator": {
     "fromDocument": {
       "url": "$(OpenApiDocument)",
@@ -21,7 +21,7 @@
       "generateBaseUrlProperty": false,
       "generateSyncMethods": false,
       "generatePrepareRequestAndProcessResponseAsAsyncMethods": false,
-      "operationGenerationMode": "MultipleClientsFromFirstTagAndOperationId",
+      "operationGenerationMode": "MultipleClientsFromOperationId",
       "generateOptionalParameters": true,
       "generateJsonMethods": false,
       "generateDataAnnotations": true,
@@ -38,7 +38,7 @@
       "generateModelValidationAttributes": true,
       "routeNamingStrategy": "OperationId",
       "className": "$(ControllerClassName)",
-      "operationGenerationMode": "MultipleClientsFromFirstTagAndOperationId",
+      "operationGenerationMode": "MultipleClientsFromOperationId",
       "additionalNamespaceUsages": [
         "$(ClientNamespace)"
       ],
