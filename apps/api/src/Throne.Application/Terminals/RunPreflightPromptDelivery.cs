@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Throne.Application.Events;
-using Throne.Application.Ports;
-using Throne.Domain.Intents;
 using Throne.Domain.Tags;
 
 namespace Throne.Application.Terminals;
@@ -32,9 +30,7 @@ public sealed partial class RunPreflightPromptDelivery(
     TmuxPromptSubmitConfirmer confirmer,
     TerminalPromptSubmitSignals submitSignals,
     IDomainEventDispatcher events,
-    RunPreflightTagNames tagNames,
-    IntentLinkPromptContextReader linkContext,
-    IIntentAttachmentRepository attachments,
+    TerminalDeliveryMapContextReader mapContext,
     ILogger<RunPreflightPromptDelivery>? log = null) : IRunPreflightPromptDelivery
 {
     private const string UserPromptFileName = "throne-session.user-prompt.txt";
@@ -74,13 +70,10 @@ public sealed partial class RunPreflightPromptDelivery(
         // clone sub-dir name. Pasted verbatim — confirmation matches against the composed body. Tag
         // names, links and attachments are resolved here by intent id, off the pre-flight critical
         // path, since this task is detached; the curated session skills ride on the request.
-        var intentId = new IntentId(request.IntentId);
-        var tags = await tagNames.ResolveAsync(request.TagIds, ct);
-        var links = await linkContext.BuildAsync(intentId, ct);
-        var attachmentList = await attachments.ListByIntentAsync(intentId, ct);
+        var ctx = await mapContext.ReadAsync(request.IntentId, request.TagIds, ct);
         var composedPrompt = WorkspaceMapPrompt.Compose(
-            request.WorkspacePath, request.RepoPaths, tags, request.Title, links,
-            attachmentList, request.SessionSkillIds, request.UserPrompt);
+            request.WorkspacePath, request.RepoPaths, ctx.Tags, request.Title, ctx.Links,
+            ctx.Attachments, request.SessionSkillIds, request.UserPrompt);
         await File.WriteAllTextAsync(promptPath, composedPrompt, ct);
         LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, composedPrompt.Length, promptPath);
 

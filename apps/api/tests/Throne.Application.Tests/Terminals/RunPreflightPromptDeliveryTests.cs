@@ -232,12 +232,13 @@ public class RunPreflightPromptDeliveryTests
             NullLogger<TmuxTuiReadinessWaiter>.Instance);
         var confirmer = new TmuxPromptSubmitConfirmer(
             tmux, options, TimeProvider.System, NullLogger<TmuxPromptSubmitConfirmer>.Instance);
-        var delivery = new RunPreflightPromptDelivery(
-            tmux, readinessWaiter, confirmer, new TerminalPromptSubmitSignals(), events,
+        var mapContext = new TerminalDeliveryMapContextReader(
             new RunPreflightTagNames(tagRepo ?? Substitute.For<ITagRepository>()),
             new IntentLinkPromptContextReader(linkRepo ?? EmptyLinks()),
-            attachmentRepo ?? EmptyAttachments(),
-            NullLogger<RunPreflightPromptDelivery>.Instance);
+            attachmentRepo ?? EmptyAttachments());
+        var delivery = new RunPreflightPromptDelivery(
+            tmux, readinessWaiter, confirmer, new TerminalPromptSubmitSignals(), events,
+            mapContext, NullLogger<RunPreflightPromptDelivery>.Instance);
         return (delivery, workspace);
     }
 

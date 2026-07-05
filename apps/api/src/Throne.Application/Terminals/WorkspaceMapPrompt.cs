@@ -35,25 +35,44 @@ internal static class WorkspaceMapPrompt
         var map = new StringBuilder();
         map.Append("=== Карта workspace ===\n");
         map.Append("Корень workspace: ").Append(workspaceRoot).Append('\n');
-        if (repoPaths is { Count: > 0 })
-        {
-            map.Append("Репозитории:\n");
-            foreach (var path in repoPaths)
-            {
-                map.Append("- ").Append(path).Append('\n');
-            }
-        }
-        else
+        AppendRepositories(map, repoPaths);
+        AppendCwdModel(map);
+        AppendTitleAndTags(map, title, tags);
+        AppendLinks(map, links);
+        AppendSkills(map, sessionSkillIds);
+        AppendAttachments(map, attachments);
+
+        map.Append("=======================\n\n");
+        map.Append(userPrompt);
+        return map.ToString();
+    }
+
+    private static void AppendRepositories(StringBuilder map, IReadOnlyList<string> repoPaths)
+    {
+        if (repoPaths is not { Count: > 0 })
         {
             map.Append("Репозитории: не смонтированы.\n");
+            return;
         }
+        map.Append("Репозитории:\n");
+        foreach (var path in repoPaths)
+        {
+            map.Append("- ").Append(path).Append('\n');
+        }
+    }
 
+    private static void AppendCwdModel(StringBuilder map)
+    {
         map.Append("Остальное в корне workspace — session-метадата (.claude/, skills/, throne-session.*), ");
         map.Append("не часть репозитория.\n");
         map.Append("Путь к репозиторию бери отсюда (абсолютный) — не угадывай имя клон-сабдира.\n");
         map.Append("cwd между Bash-вызовами не гарантирована — может сбрасываться к корню workspace.\n");
         map.Append("Не полагайся на `cd` из прошлого вызова: в каждой команде префиксуй абсолютный путь репо ");
         map.Append("или `cd <абсолютный путь репо> && …`.\n");
+    }
+
+    private static void AppendTitleAndTags(StringBuilder map, string? title, IReadOnlyList<string> tags)
+    {
         if (!string.IsNullOrWhiteSpace(title))
         {
             map.Append("Заголовок интента: ").Append(title).Append('\n');
@@ -62,43 +81,47 @@ internal static class WorkspaceMapPrompt
         {
             map.Append("Теги интента: ").Append(string.Join(", ", tags)).Append('\n');
         }
-        if (links is { Count: > 0 })
-        {
-            map.Append("Связи:\n");
-            foreach (var link in links)
-            {
-                map.Append("- ").Append(link.Label).Append(" intent_id=").Append(link.PeerIntentId);
-                map.Append(" status=").Append(link.Status);
-                if (string.IsNullOrWhiteSpace(link.Rationale))
-                {
-                    map.Append(" (без причины связи)");
-                }
-                else
-                {
-                    map.Append(": ").Append(link.Rationale);
-                }
-                map.Append('\n');
-            }
-        }
+    }
 
+    private static void AppendLinks(StringBuilder map, IReadOnlyList<IntentLinkPromptContext> links)
+    {
+        if (links is not { Count: > 0 })
+        {
+            return;
+        }
+        map.Append("Связи:\n");
+        foreach (var link in links)
+        {
+            map.Append("- ").Append(link.Label).Append(" intent_id=").Append(link.PeerIntentId);
+            map.Append(" status=").Append(link.Status);
+            map.Append(string.IsNullOrWhiteSpace(link.Rationale)
+                ? " (без причины связи)"
+                : $": {link.Rationale}");
+            map.Append('\n');
+        }
+    }
+
+    private static void AppendSkills(StringBuilder map, IReadOnlyList<string> sessionSkillIds)
+    {
         if (sessionSkillIds is { Count: > 0 })
         {
             map.Append("Скиллы сессии: ").Append(string.Join(", ", sessionSkillIds)).Append('\n');
         }
-        if (attachments is { Count: > 0 })
-        {
-            map.Append("Приложения интента (открой через Read):\n");
-            foreach (var att in attachments)
-            {
-                map.Append("- \"").Append(EscapeFileName(att.FileName)).Append("\": ")
-                    .Append(WorkspaceAttachmentPaths.RelativePath(att.Id, att.FileName))
-                    .Append('\n');
-            }
-        }
+    }
 
-        map.Append("=======================\n\n");
-        map.Append(userPrompt);
-        return map.ToString();
+    private static void AppendAttachments(StringBuilder map, IReadOnlyList<IntentAttachment> attachments)
+    {
+        if (attachments is not { Count: > 0 })
+        {
+            return;
+        }
+        map.Append("Приложения интента (открой через Read):\n");
+        foreach (var att in attachments)
+        {
+            map.Append("- \"").Append(EscapeFileName(att.FileName)).Append("\": ")
+                .Append(WorkspaceAttachmentPaths.RelativePath(att.Id, att.FileName))
+                .Append('\n');
+        }
     }
 
     private static string EscapeFileName(string fileName) =>
