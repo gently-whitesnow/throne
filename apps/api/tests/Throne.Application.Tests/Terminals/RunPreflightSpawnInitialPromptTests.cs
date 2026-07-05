@@ -56,6 +56,7 @@ public class RunPreflightSpawnInitialPromptTests
                 new TerminalLaunchOptions(TerminalAgentCatalog.VendorOpencode, "qwen", Effort: null),
                 new TerminalSpawnPrompt("RULES", "TASK", null, null),
                 skillPackages: [],
+                sessionSkillIds: [],
                 repoPaths: [],
                 tagIds: [],
                 title: null,

@@ -1,4 +1,5 @@
 using System.Text;
+using Throne.Application.Intents;
 
 namespace Throne.Application.Terminals;
 
@@ -11,6 +12,11 @@ namespace Throne.Application.Terminals;
 /// — cwd is not preserved across Bash calls and resets to the workspace root — so the agent prefixes
 /// an absolute repo path in every command instead of relying on a prior <c>cd</c>. Paths only —
 /// never file contents.
+///
+/// Two environment blocks live here rather than in the editable task body: the intent's attachments
+/// (staged to <c>.throne/attachments/</c> on spawn, listed here as name + relative path the agent
+/// opens with <c>Read</c>) and the session skills the operator loaded for this mode. Both are context
+/// the agent reads, not text it edits — keeping them out of the round-tripping user_prompt.
 /// </summary>
 internal static class WorkspaceMapPrompt
 {
@@ -19,15 +25,9 @@ internal static class WorkspaceMapPrompt
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<string> tags,
         string? title,
-        string userPrompt) =>
-        Compose(workspaceRoot, repoPaths, tags, title, [], userPrompt);
-
-    public static string Compose(
-        string workspaceRoot,
-        IReadOnlyList<string> repoPaths,
-        IReadOnlyList<string> tags,
-        string? title,
         IReadOnlyList<IntentLinkPromptContext> links,
+        IReadOnlyList<IntentAttachment> attachments,
+        IReadOnlyList<string> sessionSkillIds,
         string userPrompt)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
@@ -81,8 +81,27 @@ internal static class WorkspaceMapPrompt
             }
         }
 
+        if (sessionSkillIds is { Count: > 0 })
+        {
+            map.Append("Скиллы сессии: ").Append(string.Join(", ", sessionSkillIds)).Append('\n');
+        }
+        if (attachments is { Count: > 0 })
+        {
+            map.Append("Приложения интента (открой через Read):\n");
+            foreach (var att in attachments)
+            {
+                map.Append("- \"").Append(EscapeFileName(att.FileName)).Append("\": ")
+                    .Append(WorkspaceAttachmentPaths.RelativePath(att.Id, att.FileName))
+                    .Append('\n');
+            }
+        }
+
         map.Append("=======================\n\n");
         map.Append(userPrompt);
         return map.ToString();
     }
+
+    private static string EscapeFileName(string fileName) =>
+        fileName.Replace("\\", "\\\\", StringComparison.Ordinal)
+                .Replace("\"", "\\\"", StringComparison.Ordinal);
 }

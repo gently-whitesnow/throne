@@ -34,6 +34,7 @@ public sealed class RunPreflightSpawn(
         TerminalLaunchOptions launch,
         TerminalSpawnPrompt prompt,
         IReadOnlyList<SessionSkillPackage> skillPackages,
+        IReadOnlyList<string> sessionSkillIds,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<TagId> tagIds,
         string? title,
@@ -97,7 +98,7 @@ public sealed class RunPreflightSpawn(
         {
             promptDelivery.Kick(new TerminalPromptDeliveryRequest(
                 intentId.Value, mode, launch.Vendor, adapter, workspacePath,
-                repoPaths, tagIds, title, prompt.UserPrompt));
+                repoPaths, tagIds, title, sessionSkillIds, prompt.UserPrompt));
         }
     }
 
