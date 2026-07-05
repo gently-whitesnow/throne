@@ -97,7 +97,6 @@ Operational layer лежит в репозитории обычными файл
 - `skills/intent/SKILL.md` + `skills/intent/bin/throne-intent`
 - `skills/review/SKILL.md` + `skills/review/bin/throne-review`
 - `skills/dream/SKILL.md` + `skills/dream/bin/throne-dream`
-- `skills/pr-description/SKILL.md` + `skills/pr-description/bin/throne-pr-description`
 
 Embedded Run сам прикладывает нужные skills и инжектит `THRONE_INTENT_ID`, `THRONE_API_BASE`, а для review — `THRONE_REPOSITORY_BINDING_ID`. Если запускаешь обычную агент-сессию прямо в этом репозитории для dogfooding, приложи нужные `skills/<id>/SKILL.md` вручную и задай:
 

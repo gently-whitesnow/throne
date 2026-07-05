@@ -2,9 +2,6 @@
 bin/
 !/bin/
 !/bin/throne-*
-# Static operational skill CLIs live in skills/<id>/bin/ — keep them out of the bin/ ignore.
-!skills/*/bin/
-!skills/*/bin/throne-*
 obj/
 out/
 *.user
