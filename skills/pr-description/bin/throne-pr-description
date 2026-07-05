@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Local, network-free helper: reads git diff/log and prints either a PR-description
+# scaffold or the business-logic LOC budget. No LLM, no Throne API — see SKILL.md.
+
+DEFAULT_BASE_CANDIDATES=("origin/master" "master")
+LOC_LIMIT=600
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  throne-pr-description scaffold [--base <ref>] [--head <ref>]
+  throne-pr-description loc      [--base <ref>] [--head <ref>]
+
+Defaults: --base origin/master (fallback master), --head HEAD.
+USAGE
+}
+
+die() {
+  echo "throne-pr-description: $*" >&2
+  exit 64
+}
+
+require_git_repo() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
+}
+
+resolve_ref() {
+  local ref="$1" label="$2"
+  git rev-parse --verify --quiet "${ref}^{commit}" >/dev/null || die "${label} ref not found: ${ref}"
+  printf '%s' "${ref}"
+}
+
+resolve_base() {
+  local given="$1"
+  if [[ -n "${given}" ]]; then
+    resolve_ref "${given}" "base"
+    return
+  fi
+  local c
+  for c in "${DEFAULT_BASE_CANDIDATES[@]}"; do
+    if git rev-parse --verify --quiet "${c}^{commit}" >/dev/null; then
+      printf '%s' "${c}"
+      return
+    fi
+  done
+  die "no default base branch (origin/master|master) found; pass --base <ref>"
+}
+
+parse_range_args() {
+  BASE=""
+  HEAD="HEAD"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --base) BASE="${2:-}"; shift 2 ;;
+      --head) HEAD="${2:-}"; shift 2 ;;
+      --help|-h) usage; exit 0 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+  BASE="$(resolve_base "${BASE}")"
+  HEAD="$(resolve_ref "${HEAD}" "head")"
+}
+
+# Shared python classifier: takes numstat text as $1, prints category totals as JSON.
+# numstat is passed via argv, not stdin — the heredoc already occupies python's stdin.
+# Categories mirror the exclusion list in CONTRIBUTING.md — keep them in sync.
+classify_numstat() {
+  python3 - "$1" <<'PY'
+import fnmatch, json, sys
+
+CATEGORIES = [
+    ("tests", ["*Tests/*", "*/tests/*", "*/__tests__/*", "*.test.*", "*.spec.*", "*_test.go"]),
+    ("generated", ["*.g.*", "*.generated.*", "*/migrations/*", "*/__snapshots__/*",
+                   "*.snap", "*.received.*", "*.verified.*", "apps/api/nswag/*", "*.generated.css"]),
+    ("lockfiles", ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "go.sum", "*.lock"]),
+    ("docs", ["*.md", "*.mdx", "specs/ADR/*"]),
+    ("assets", ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.svg", "*.ico",
+                "*.woff", "*.woff2", "*/public/*"]),
+]
+
+def category_of(path):
+    base = path.rsplit("/", 1)[-1]
+    for name, globs in CATEGORIES:
+        if any(fnmatch.fnmatch(path, g) or fnmatch.fnmatch(base, g) for g in globs):
+            return name
+    return "business"
+
+totals = {name: 0 for name, _ in CATEGORIES}
+totals["business"] = 0
+files = {name: 0 for name in totals}
+
+for line in sys.argv[1].splitlines():
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    parts = line.split("\t")
+    if len(parts) < 3:
+        continue
+    added, removed, path = parts[0], parts[1], parts[2]
+    # binary files report "-\t-"; count as 0 lines but attribute the file.
+    a = int(added) if added.isdigit() else 0
+    r = int(removed) if removed.isdigit() else 0
+    cat = category_of(path)
+    totals[cat] += a + r
+    files[cat] += 1
+
+business = totals.pop("business")
+business_files = files.pop("business")
+print(json.dumps({
+    "business": business,
+    "business_files": business_files,
+    "excluded": totals,
+    "excluded_files": files,
+    "total": business + sum(totals.values()),
+    "total_files": business_files + sum(files.values()),
+}))
+PY
+}
+
+numstat_for_range() {
+  git diff --numstat "${BASE}...${HEAD}"
+}
+
+cmd_loc() {
+  parse_range_args "$@"
+  local stats
+  stats="$(classify_numstat "$(numstat_for_range)")"
+  BASE="${BASE}" HEAD="${HEAD}" LIMIT="${LOC_LIMIT}" python3 - "${stats}" <<'PY'
+import json, os, sys
+s = json.loads(sys.argv[1])
+limit = int(os.environ["LIMIT"])
+biz = s["business"]
+status = "OK" if biz <= limit else "OVER LIMIT"
+print(f"Business-logic LOC vs limit {limit}")
+print(f"  base: {os.environ['BASE']}   head: {os.environ['HEAD']}")
+print(f"  files changed: {s['total_files']}")
+print()
+print(f"  business logic: {biz:>6}   (limit {limit})  {status}")
+print(f"  excluded:")
+for name, val in s["excluded"].items():
+    print(f"    {name:<10} {val:>6}   ({s['excluded_files'][name]} files)")
+print(f"  total diff:     {s['total']:>6}")
+if biz > limit:
+    print()
+    print(f"  -> over by {biz - limit}. Decompose into smaller PRs (see CONTRIBUTING.md).")
+PY
+}
+
+cmd_scaffold() {
+  parse_range_args "$@"
+  local stats commits
+  stats="$(classify_numstat "$(numstat_for_range)")"
+  commits="$(git log --format='%s' "${BASE}..${HEAD}")"
+  BASE="${BASE}" HEAD="${HEAD}" LIMIT="${LOC_LIMIT}" COMMITS="${commits}" python3 - "${stats}" <<'PY'
+import json, os, sys
+s = json.loads(sys.argv[1])
+limit = int(os.environ["LIMIT"])
+biz = s["business"]
+commits = [c for c in os.environ["COMMITS"].splitlines() if c.strip()]
+status = "OK" if biz <= limit else f"OVER by {biz - limit} — decompose"
+
+hints = "\n".join(f"- {c}" for c in commits) if commits else "- "
+
+print(f"""## Что
+
+<!-- перечисли существенные изменения (не построчный пересказ diff) -->
+{hints}
+
+## Зачем
+
+<!-- какую задачу или проблему решает PR -->
+
+## Привязка к миссии
+
+<!-- как изменение служит миссии: локальное приложение агентной инженерии вокруг Intent.
+     Если связать не выходит — это сигнал пересмотреть изменение. Миссия: readme.md#Миссия -->
+
+## Решения
+
+<!-- ключевые выборы и почему именно так (опционально) -->
+
+## Ограничения
+
+<!-- что осталось за рамками прохода / известные ограничения (опционально) -->
+
+## Проверка
+
+- [ ] `bash scripts/quality/verify.sh`
+
+<!-- Бюджет: бизнес-логика {biz} строк из {limit} — {status}.
+     files changed: {s['total_files']}, total diff: {s['total']}.
+     Пересчитать: skills/pr-description/bin/throne-pr-description loc --base {os.environ['BASE']} -->""")
+PY
+}
+
+require_git_repo
+case "${1:-}" in
+  scaffold) shift; cmd_scaffold "$@" ;;
+  loc) shift; cmd_loc "$@" ;;
+  --help|-h|"") usage ;;
+  *) die "unknown subcommand: $1" ;;
+esac

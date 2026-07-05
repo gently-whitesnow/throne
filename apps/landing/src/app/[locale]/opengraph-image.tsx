@@ -18,8 +18,8 @@ export default async function OgImage({ params }: { params: { locale: string } }
   const t = await getTranslations({ locale, namespace: 'meta' });
   const tagline =
     locale === 'ru'
-      ? 'Кокпит цикла разработки вокруг намерения'
-      : 'The cockpit for the dev loop around an intent';
+      ? 'Локальное приложение агентной инженерии вокруг Intent'
+      : 'A local app for agentic engineering, built around the Intent';
 
   return new ImageResponse(
     (

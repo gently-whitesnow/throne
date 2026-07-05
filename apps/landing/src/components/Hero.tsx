@@ -52,6 +52,14 @@ export async function Hero() {
           >
             {t('ctaSecondary')}
           </a>
+          <a
+            className="btn btn-secondary"
+            href="https://github.com/gently-whitesnow/throne#миссия"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {t('ctaMission')}
+          </a>
         </div>
       </div>
     </section>
