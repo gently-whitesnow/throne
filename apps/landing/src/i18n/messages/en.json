@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "Throne — a local app for agentic engineering",
-    "description": "Throne is a standalone local app for agentic engineering: the human sets direction and verifies, agents execute. The unit of work is the Intent — Throne pulls context, agent launch, and result verification around it. Local, a single binary.",
-    "ogAlt": "Throne — a local app for agentic engineering"
+    "title": "Throne — An app for agentic engineering",
+    "description": "Throne is an app for agentic engineering: the human sets direction and verifies, agents execute. The unit of work is the Intent — Throne pulls context, agent launch, and result verification around it. Local, a single binary.",
+    "ogAlt": "Throne — An app for agentic engineering"
   },
   "nav": {
     "skipToContent": "Skip to content",
@@ -13,7 +13,7 @@
     "switchToDark": "Switch to dark theme"
   },
   "hero": {
-    "title": "A local app for agentic engineering, built around the Intent",
+    "title": "An app for agentic engineering, built around the Intent",
     "subtitle": "Agentic engineering is a discipline where the human sets direction and verifies while agents execute. The unit of work is the Intent: Throne pulls context, agent launch in the right mode, and result verification around it — and learns from every conversation. Local, a single binary.",
     "ctaPrimary": "Get started",
     "ctaSecondary": "Open on GitHub",
@@ -125,7 +125,7 @@
     "telegram": "t.me/gently_whitesnow"
   },
   "footer": {
-    "tagline": "A local app for agentic engineering, built around the Intent",
+    "tagline": "An app for agentic engineering, built around the Intent",
     "rights": "Throne."
   }
 }

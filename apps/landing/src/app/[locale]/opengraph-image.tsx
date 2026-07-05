@@ -19,7 +19,7 @@ export default async function OgImage({ params }: { params: { locale: string } }
   const tagline =
     locale === 'ru'
       ? 'Приложение агентной инженерии вокруг Intent'
-      : 'A local app for agentic engineering, built around the Intent';
+      : 'An app for agentic engineering, built around the Intent';
 
   return new ImageResponse(
     (

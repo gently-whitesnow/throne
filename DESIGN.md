@@ -216,7 +216,7 @@ components:
 
 Throne is not a marketing site and not a playful productivity app. It is a command center for spec-driven AI engineering: calm, dense, trustworthy, and operationally clear.
 
-The product mission — a local app for **agentic engineering** built around the Intent — is the north star for UI copy and tone of voice. Read it before writing product-facing text: [readme.md#Миссия](readme.md#миссия).
+The product mission — An app for **agentic engineering** built around the Intent — is the north star for UI copy and tone of voice. Read it before writing product-facing text: [readme.md#Миссия](readme.md#миссия).
 
 The interface should feel precise and intentional. Normal state stays quiet; only actionable changes surface stronger emphasis. The system is light-first; a `throne-dark` theme is shipped and mirrors every token in the same semantic shape.
 
