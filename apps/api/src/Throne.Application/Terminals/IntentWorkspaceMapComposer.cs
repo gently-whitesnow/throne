@@ -13,6 +13,8 @@ public sealed class IntentWorkspaceMapComposer(
     public async Task<string> ComposePreviewAsync(
         Intent intent,
         IReadOnlyList<IntentRepositoryBinding> bindings,
+        IReadOnlyList<IntentAttachment> attachments,
+        IReadOnlyList<string> sessionSkillIds,
         CancellationToken ct)
     {
         var workspacePath = Path.Combine(workspaceRoot.ResolvedRoot, "intents", intent.Id.Value);
@@ -20,6 +22,7 @@ public sealed class IntentWorkspaceMapComposer(
         var tags = await tagNames.ResolveAsync(intent.TagIds, ct);
         var links = await linkContext.BuildAsync(intent.Id, ct);
         return WorkspaceMapPrompt.Compose(
-            workspacePath, repoPaths, tags, intent.State.Title, links, userPrompt: "").TrimEnd();
+            workspacePath, repoPaths, tags, intent.State.Title, links,
+            attachments, sessionSkillIds, userPrompt: "").TrimEnd();
     }
 }

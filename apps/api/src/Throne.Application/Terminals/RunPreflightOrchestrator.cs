@@ -74,6 +74,7 @@ public sealed class RunPreflightOrchestrator(
             launchPlan.Options,
             prompt,
             skillPlan.Packages,
+            skillPlan.SelectedSkillIds,
             RunPreflightSession.CollectReadyRepoPaths(waitResult.Bindings),
             intent.TagIds,
             intent.State.Title,

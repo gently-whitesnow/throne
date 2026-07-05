@@ -56,6 +56,7 @@ public class RunPreflightSpawnStagingTests
                 new TerminalLaunchOptions(TerminalAgentCatalog.VendorClaude, "sonnet", Effort: null),
                 new TerminalSpawnPrompt("RULES", "TASK", null, null),
                 skillPackages: [],
+                sessionSkillIds: [],
                 repoPaths: [],
                 tagIds: [],
                 title: null,

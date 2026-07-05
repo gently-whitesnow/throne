@@ -31,11 +31,11 @@ public class IntentTerminalPreviewHandlerTests
             CancellationToken.None);
 
         preview.Composition.UserPrompt.Should().Be("пишем код");
-        preview.Composition.UserPrompt.Should().NotContain(TerminalAttachmentsContextRenderer.BlockHeader);
+        preview.WorkspaceMap.Should().NotContain("Приложения интента");
     }
 
-    [Fact(DisplayName = "С image-аттачем UserPrompt получает блок attachments после Intent.text")]
-    public async Task Image_attachment_appends_block_after_intent_text()
+    [Fact(DisplayName = "Аттач идёт в карту workspace, а тело задачи остаётся чистым Intent.text")]
+    public async Task Attachment_goes_to_workspace_map_not_user_prompt()
     {
         var attachment = new IntentAttachment("att-1", "intent-1", "shot.png", "image/png", 12345, Now);
         var handler = NewHandler(
@@ -47,27 +47,10 @@ public class IntentTerminalPreviewHandlerTests
             new IntentTerminalPreviewQuery(intentId.Value, PromptPartModeNames.Free, null),
             CancellationToken.None);
 
-        preview.Composition.UserPrompt.Should().StartWith("посмотри картинку\n\n");
-        preview.Composition.UserPrompt.Should().Contain(TerminalAttachmentsContextRenderer.BlockHeader);
-        preview.Composition.UserPrompt.Should().Contain("- \"shot.png\": .throne/attachments/att-1-shot.png");
-        preview.Composition.UserPrompt.Should().NotContain("read_intent_attachment_image");
-        preview.Composition.UserPrompt.Should().NotContain("attachment-read");
-    }
-
-    [Fact(DisplayName = "Хвостовые переносы Intent.text не дублируют пустую строку перед блоком attachments")]
-    public async Task Trailing_newlines_are_collapsed_to_one_blank_line()
-    {
-        var attachment = new IntentAttachment("att-1", "intent-1", "shot.png", "image/png", 12345, Now);
-        var handler = NewHandler(
-            intentText: "тело интента\n\n\n",
-            attachments: [attachment],
-            out var intentId);
-
-        var preview = await handler.HandleAsync(
-            new IntentTerminalPreviewQuery(intentId.Value, PromptPartModeNames.Free, null),
-            CancellationToken.None);
-
-        preview.Composition.UserPrompt.Should().StartWith("тело интента\n\n[intent attachments]");
+        // Тело — только текст интента; приложения больше не подклеиваются к редактируемой зоне.
+        preview.Composition.UserPrompt.Should().Be("посмотри картинку");
+        preview.WorkspaceMap.Should().Contain("Приложения интента (открой через Read):");
+        preview.WorkspaceMap.Should().Contain("- \"shot.png\": .throne/attachments/att-1-shot.png");
     }
 
     [Fact(DisplayName = "Отсутствующий интент даёт IntentNotFound и не дёргает репозиторий аттачей")]
@@ -160,6 +143,36 @@ public class IntentTerminalPreviewHandlerTests
         preview.WorkspaceMap.Should().Contain("Теги интента: throne");
         // Карта самодостаточна — тело сюда не вкладываем (иначе на доставке оно дублируется).
         preview.WorkspaceMap.Should().NotContain("тело");
+    }
+
+    [Fact(DisplayName = "WorkspaceMap несёт строку выбранных скиллов сессии")]
+    public async Task Workspace_map_lists_selected_session_skills()
+    {
+        var intentId = IntentId.New();
+        var intent = Intent.Restore(intentId, "тело", IntentStatusNames.Work, 1, [], Now, Now);
+
+        var intents = Substitute.For<IIntentRepository>();
+        intents.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>()).Returns(intent);
+        var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
+        attachmentRepo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+        // Review mode default-enables the review skill; a ready binding makes it materialisable → selected.
+        var bindings = new[] { Binding("/ws/intents/repo-ready", CloneStatusNames.Ready) };
+
+        var handler = new IntentTerminalPreviewHandler(
+            intents,
+            attachmentRepo,
+            NewBindings(bindings),
+            NewLaunches(),
+            NewResolver(),
+            NewSkillSelection(),
+            NewWorkspaceMap(NewLinks([])));
+
+        var preview = await handler.HandleAsync(
+            new IntentTerminalPreviewQuery(intentId.Value, PromptPartModeNames.Review, null),
+            CancellationToken.None);
+
+        preview.WorkspaceMap.Should().Contain($"Скиллы сессии: {SessionSkillPackageIds.Review}");
     }
 
     private static IntentRepositoryBinding Binding(string workspacePath, string cloneStatus) =>

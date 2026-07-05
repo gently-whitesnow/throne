@@ -143,6 +143,7 @@ public static class DependencyInjection
         services.AddSingleton<RunPreflightSkillPlanner>();
         services.AddSingleton<RunPreflightTagNames>();
         services.AddSingleton<IntentLinkPromptContextReader>();
+        services.AddSingleton<TerminalDeliveryMapContextReader>();
         services.AddSingleton<IntentWorkspaceMapComposer>();
         services.AddSingleton<RunPreflightLaunchPlanner>();
         services.AddSingleton<SkillModeDefaultsService>();

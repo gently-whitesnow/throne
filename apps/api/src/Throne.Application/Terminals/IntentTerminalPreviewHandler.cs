@@ -23,15 +23,15 @@ public sealed record IntentTerminalPreview(
     string WorkspaceMap);
 
 /// <summary>
-/// Pre-flight preview (ADR-0036): reads the intent body for the task zone, appends a minimal block
-/// listing any current intent attachments by their workspace-relative path (the bytes are staged on
-/// spawn so the embedded agent opens them with a native <c>Read</c>), and resolves the embedded prompt
-/// composition for the requested mode. Unsupported modes are rejected by
-/// <see cref="PromptCompositionResolver"/>.
+/// Pre-flight preview (ADR-0036): reads the intent body for the task zone (nothing else — the body
+/// round-trips through the run request into <c>Intent.text</c>, so environment context is kept out of
+/// it) and resolves the embedded prompt composition for the requested mode. Unsupported modes are
+/// rejected by <see cref="PromptCompositionResolver"/>.
 ///
 /// Alongside the composition it returns a read-only render of the workspace map that
 /// <see cref="RunPreflightPromptDelivery"/> prepends to the delivered prompt at spawn — so the modal
-/// shows the real workspace root, repo paths and tags the agent will receive, not just the editable
+/// shows the real workspace root, repo paths, tags, the intent's attachments (staged on spawn, opened
+/// with a native <c>Read</c>) and the session skills the agent will receive, not just the editable
 /// body. The map is built from the same <see cref="WorkspaceMapPrompt"/> formatter but returned as a
 /// separate field, never folded into <c>user_prompt</c>: the body round-trips through the run request
 /// and an embedded map would be prepended a second time at delivery.
@@ -57,10 +57,9 @@ public sealed class IntentTerminalPreviewHandler(
 
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, ct);
         var bindingList = await bindings.FindByIntentAsync(intent.Id, ct);
-        var userPrompt = ComposeUserPrompt(intent.State.Text, attachmentList);
 
         var composition = await resolver.ResolveAsync(
-            new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, userPrompt),
+            new ResolvePromptCompositionQuery(query.Mode, query.SelectedPartIds, intent.State.Text),
             ct);
         // Pull the per-mode «remembered» selection from the persisted launch record so the
         // modal pre-fills with the last spawn's curated set (the hot-attach handler merges
@@ -71,20 +70,11 @@ public sealed class IntentTerminalPreviewHandler(
                 ? ids
                 : null;
         var skills = await skillSelection.PreviewAsync(query.Mode, bindingList, remembered, ct);
+        var sessionSkillIds = skills.Where(s => s.Selected).Select(s => s.SkillId).ToArray();
 
-        var workspaceMapText = await workspaceMap.ComposePreviewAsync(intent, bindingList, ct);
+        var workspaceMapText = await workspaceMap.ComposePreviewAsync(
+            intent, bindingList, attachmentList, sessionSkillIds, ct);
         return new IntentTerminalPreview(
             composition, intent.State.CurrentVersion, skills, workspaceMapText);
-    }
-
-    private static string ComposeUserPrompt(string intentText, IReadOnlyList<IntentAttachment> attachments)
-    {
-        var block = TerminalAttachmentsContextRenderer.Render(attachments);
-        if (block is null)
-        {
-            return intentText;
-        }
-        var trimmed = intentText.TrimEnd('\r', '\n');
-        return trimmed.Length == 0 ? block : $"{trimmed}\n\n{block}";
     }
 }
