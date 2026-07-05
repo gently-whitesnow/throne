@@ -216,6 +216,8 @@ components:
 
 Throne is not a marketing site and not a playful productivity app. It is a command center for spec-driven AI engineering: calm, dense, trustworthy, and operationally clear.
 
+The product mission — An app for **agentic engineering** built around the Intent — is the north star for UI copy and tone of voice. Read it before writing product-facing text: [readme.md#Миссия](readme.md#миссия).
+
 The interface should feel precise and intentional. Normal state stays quiet; only actionable changes surface stronger emphasis. The system is light-first; a `throne-dark` theme is shipped and mirrors every token in the same semantic shape.
 
 The frontmatter above is the source of truth. `apps/web` and any other consumer regenerate their runtime CSS from these tokens (see `scripts/design/sync_design_tokens.py` for the in-repo generator). Editing token values by hand in CSS files will drift the theme away from this file — don't do it; edit DESIGN.md and re-run the generator.

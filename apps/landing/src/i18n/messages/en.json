@@ -1,8 +1,8 @@
 {
   "meta": {
-    "title": "Throne — the cockpit for the dev loop with AI agents",
-    "description": "Throne is a cockpit for the development loop — for a human working with AI agents. Around an intent it brings together framing, memory and preferences, agent launch, repositories, and review — and learns from every conversation. Local, a single binary.",
-    "ogAlt": "Throne — the cockpit for the dev loop with AI agents"
+    "title": "Throne — An app for agentic engineering",
+    "description": "Throne is an app for agentic engineering: the human sets direction and verifies, agents execute. The unit of work is the Intent — Throne pulls context, agent launch, and result verification around it. Local, a single binary.",
+    "ogAlt": "Throne — An app for agentic engineering"
   },
   "nav": {
     "skipToContent": "Skip to content",
@@ -13,10 +13,11 @@
     "switchToDark": "Switch to dark theme"
   },
   "hero": {
-    "title": "The cockpit for the dev loop — for humans and AI agents",
-    "subtitle": "Around an intent, Throne brings together framing, memory and preferences, agent launch, repositories, and review — and learns from every conversation, so the agent's next pass lands closer to what you expect.",
+    "title": "An app for agentic engineering, built around the Intent",
+    "subtitle": "Agentic engineering is a discipline where the human sets direction and verifies while agents execute. The unit of work is the Intent: Throne pulls context, agent launch in the right mode, and result verification around it — and learns from every conversation. Local, a single binary.",
     "ctaPrimary": "Get started",
     "ctaSecondary": "Open on GitHub",
+    "ctaMission": "Read the mission",
     "copy": "Copy command",
     "copied": "Copied"
   },
@@ -29,7 +30,7 @@
       "work": "Useful work",
       "knowledge": "Knowledge base"
     },
-    "tagline": "Throne closes this loop in one cockpit: framing, agent launch, review of the result, and memory that feeds back into the next pass.",
+    "tagline": "Throne closes this loop in one place: framing, agent launch, review of the result, and memory that feeds back into the next pass.",
     "scrollHint": "More details",
     "scrollAria": "Jump to the Throne section"
   },
@@ -53,7 +54,7 @@
         "text": "Connect Intents to each other: continuation, dependency, refinement, bug, fix. The agent sees a map of work, not an isolated request."
       },
       {
-        "title": "Launch the agent from the cockpit",
+        "title": "Launch the agent from Throne",
         "text": "Hit \"Run agent\" — Throne spins up a terminal right in the browser, hands over context and operational skills, and drives the session through hooks."
       },
       {
@@ -80,7 +81,7 @@
       "snippet": "curl -fsSL https://throne.whitesnow.tech/install | bash"
     },
     "open": {
-      "title": "Open the cockpit",
+      "title": "Open Throne",
       "description": "The daemon starts and opens the browser at http://localhost:5008. Manage it with the same command; update to the latest in one line.",
       "snippet": "throne            # start daemon and browser\nthrone status     # port, pid, version\nthrone update     # update to latest"
     },
@@ -124,7 +125,7 @@
     "telegram": "t.me/gently_whitesnow"
   },
   "footer": {
-    "tagline": "The cockpit for the dev loop around an intent",
+    "tagline": "An app for agentic engineering, built around the Intent",
     "rights": "Throne."
   }
 }
