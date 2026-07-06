@@ -47,6 +47,8 @@ internal static class ApiErrorRegistry
         [ErrorCodes.CardAttachmentTrackerNotConnected] = StatusCodes.Status409Conflict,
         [LinkErrorCodes.Duplicate] = StatusCodes.Status409Conflict,
 
+        [ErrorCodes.TaskTrackerConnectionBlocked] = StatusCodes.Status402PaymentRequired,
+
         [ErrorCodes.IntentAttachmentTooLarge] = StatusCodes.Status413PayloadTooLarge,
 
         [ErrorCodes.IntentTextMatchNotFound] = StatusCodes.Status422UnprocessableEntity,

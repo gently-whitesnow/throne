@@ -34,6 +34,12 @@ public static class TaskTrackerFailures
             $"The saved '{trackerKey}' token was rejected — reconnect the tracker: {detail}",
             new Dictionary<string, object?> { ["tracker"] = trackerKey });
 
+    public static ApiException ConnectionBlocked(string trackerKey, string detail) =>
+        new(
+            ErrorCodes.TaskTrackerConnectionBlocked,
+            $"The '{trackerKey}' tracker refused the request on tariff-plan grounds (402): {detail}",
+            new Dictionary<string, object?> { ["tracker"] = trackerKey });
+
     public static ApiException UpstreamUnavailable(string trackerKey, string detail) =>
         new(
             ErrorCodes.TaskTrackerUpstreamUnavailable,

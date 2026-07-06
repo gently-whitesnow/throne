@@ -11,9 +11,9 @@ public interface ITaskTrackerConnectionProvider : ITaskTrackerProvider
 {
     /// <summary>
     /// Validate <paramref name="connection"/> against the tracker API. Never throws on an
-    /// authentication or transport failure — those are reported as
-    /// <see cref="TaskTrackerConnectionHealth.Invalid"/> / <see cref="TaskTrackerConnectionHealth.Unreachable"/>
-    /// so the caller can echo the state to the operator and decide whether to persist.
+    /// authentication or transport failure — those are reported as the classified
+    /// <see cref="TaskTrackerConnectionHealth"/> (auth / offline / blocked) so the caller can echo the
+    /// state to the operator and decide whether to persist.
     /// </summary>
     Task<TaskTrackerProbeResult> ProbeAsync(TaskTrackerConnectionDescriptor connection, CancellationToken ct);
 
@@ -27,10 +27,12 @@ public interface ITaskTrackerConnectionProvider : ITaskTrackerProvider
         CancellationToken ct);
 
     /// <summary>
-    /// Pull a single card snapshot by its provider-native id. Returns <see langword="null"/> when the
-    /// card is gone or forbidden upstream (404/403) so the caller can record «gone» without branching on
-    /// an exception. A transport/5xx failure propagates as an exception (mapped to 502 upstream) — it is
-    /// «tracker unreachable», not «card absent».
+    /// Pull a single card snapshot by its provider-native id. Returns <see langword="null"/> only when
+    /// the card is genuinely gone upstream (404) so the caller can record «gone» without branching on an
+    /// exception. Every other failure throws a <see cref="TaskTrackerConnectionException"/> carrying the
+    /// classified <see cref="TaskTrackerConnectionHealth"/> (auth on 401/403, blocked on 402, offline on
+    /// 5xx / transport / timeout) — a forbidden card is a credentials problem, not an absent card, so it
+    /// must not masquerade as «gone».
     /// </summary>
     Task<TaskTrackerCard?> GetCardAsync(
         TaskTrackerConnectionDescriptor connection,

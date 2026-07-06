@@ -35,5 +35,9 @@ internal sealed class TaskTrackerConnectionRowConfiguration
                         JsonSerializer.Serialize(v, EfJson.Options), EfJson.Options)
                         ?? new List<TaskTrackerBoardSelectionRow>()))
             .IsRequired();
+
+        builder.Property(x => x.LastStatus).HasColumnName("last_status");
+        builder.Property(x => x.LastError).HasColumnName("last_error");
+        builder.Property(x => x.LastCheckedAt).HasColumnName("last_checked_at");
     }
 }

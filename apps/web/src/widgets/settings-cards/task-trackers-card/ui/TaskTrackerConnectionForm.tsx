@@ -12,11 +12,17 @@ interface TaskTrackerConnectionFormProps {
   connection: TaskTrackerConnection;
 }
 
+const probeFallbackMessage: Record<"auth" | "offline" | "blocked", string> = {
+  auth: "Токен отклонён — переподключите трекер.",
+  offline: "Трекер вне сети.",
+  blocked: "Трекер заблокирован тарифом."
+};
+
 /**
  * Inline-форма подключения трекера: base URL + API-токен.
  *
  * Токен никогда не приходит с бэка, поэтому поле не предзаполняется. PUT
- * возвращает 200 даже при `invalid`/`unreachable` — итоговое состояние читаем
+ * возвращает 200 даже при `auth`/`offline`/`blocked` — итоговое состояние читаем
  * из обновлённого `connection.state`/`connection.error`, а не из ошибки мутации.
  */
 export function TaskTrackerConnectionForm({
@@ -164,11 +170,10 @@ function ConnectionFeedback({
   mutationError
 }: ConnectionFeedbackProps) {
   const probeError =
-    connection.state === "invalid" || connection.state === "unreachable"
-      ? (connection.error ??
-        (connection.state === "invalid"
-          ? "Токен отклонён трекером."
-          : "Трекер недоступен."))
+    connection.state === "auth" ||
+    connection.state === "offline" ||
+    connection.state === "blocked"
+      ? (connection.error ?? probeFallbackMessage[connection.state])
       : null;
 
   const message =

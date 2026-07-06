@@ -77,9 +77,11 @@ public class TaskTrackerSettingsDtoMapperTests
     {
         TaskTrackerSettingsDtoMapper.ToState(TaskTrackerConnectionHealth.Connected)
             .Should().Be(TaskTrackerConnectionState.Connected);
-        TaskTrackerSettingsDtoMapper.ToState(TaskTrackerConnectionHealth.Invalid)
-            .Should().Be(TaskTrackerConnectionState.Invalid);
-        TaskTrackerSettingsDtoMapper.ToState(TaskTrackerConnectionHealth.Unreachable)
-            .Should().Be(TaskTrackerConnectionState.Unreachable);
+        TaskTrackerSettingsDtoMapper.ToState(TaskTrackerConnectionHealth.Auth)
+            .Should().Be(TaskTrackerConnectionState.Auth);
+        TaskTrackerSettingsDtoMapper.ToState(TaskTrackerConnectionHealth.Offline)
+            .Should().Be(TaskTrackerConnectionState.Offline);
+        TaskTrackerSettingsDtoMapper.ToState(TaskTrackerConnectionHealth.Blocked)
+            .Should().Be(TaskTrackerConnectionState.Blocked);
     }
 }

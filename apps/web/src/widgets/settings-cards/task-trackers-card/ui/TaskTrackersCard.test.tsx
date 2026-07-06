@@ -220,13 +220,13 @@ describe("TaskTrackersCard", () => {
     });
   });
 
-  it("показывает ошибку probe для invalid состояния и не грузит доски", async () => {
+  it("показывает ошибку probe для auth состояния и не грузит доски", async () => {
     fetchTaskTrackerConnections.mockResolvedValue(
       connections([
         {
           tracker: "kaiten",
           display_name: "Kaiten",
-          state: "invalid",
+          state: "auth",
           error: "Token rejected by Kaiten"
         }
       ])
@@ -235,7 +235,7 @@ describe("TaskTrackersCard", () => {
     render(<TaskTrackersCard />);
 
     await waitFor(() => {
-      expect(screen.getByText("Токен отклонён")).toBeTruthy();
+      expect(screen.getByText("Переподключите")).toBeTruthy();
     });
     expect(screen.getByTestId("task-tracker-error-kaiten").textContent).toMatch(
       /Token rejected by Kaiten/

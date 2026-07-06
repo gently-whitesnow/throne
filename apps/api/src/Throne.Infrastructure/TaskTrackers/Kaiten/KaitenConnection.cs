@@ -4,8 +4,9 @@ namespace Throne.Infrastructure.TaskTrackers.Kaiten;
 /// Per-request connection to one Kaiten company: the workspace base URL (e.g.
 /// <c>https://mycompany.kaiten.ru</c>) and the bearer token. The adapter is stateless with respect
 /// to credentials — they are passed on every call rather than captured at construction, so a single
-/// registered client serves every connection and never holds a secret in a field. The token comes
-/// from the encrypted connection-settings axis (out of scope here); this slice only consumes it.
+/// registered client serves every connection and never holds a secret in a field. The token is stored
+/// as plaintext in the local SQLite settings axis — Throne is local-first / single-operator, so at-rest
+/// encryption is out of scope (ADR-0029); this slice only consumes it.
 /// </summary>
 internal sealed record KaitenConnection(string BaseUrl, string Token)
 {

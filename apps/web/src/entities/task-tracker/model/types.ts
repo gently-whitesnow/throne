@@ -37,8 +37,9 @@ export interface TaskTrackerStateMeta {
 
 /**
  * Light-first semantic tokens for the connection-state pill on `/settings`.
- * `connected` → success, `invalid` → error (token rejected, not persisted),
- * `unreachable` → warning (upstream down), `not_configured` → neutral.
+ * `connected` → success, `auth` → error (token rejected, reconnect),
+ * `offline` → warning (host unreachable, binding kept), `blocked` → error
+ * (tariff plan), `not_configured` → neutral.
  */
 export const taskTrackerStateMeta: Record<
   TaskTrackerConnectionState,
@@ -48,13 +49,17 @@ export const taskTrackerStateMeta: Record<
     label: "Подключено",
     className: "bg-success/10 text-success"
   },
-  invalid: {
-    label: "Токен отклонён",
+  auth: {
+    label: "Переподключите",
     className: "bg-error/10 text-error"
   },
-  unreachable: {
-    label: "Недоступен",
+  offline: {
+    label: "Вне сети",
     className: "bg-warning/20 text-warning"
+  },
+  blocked: {
+    label: "Заблокировано тарифом",
+    className: "bg-error/10 text-error"
   },
   not_configured: {
     label: "Не настроено",

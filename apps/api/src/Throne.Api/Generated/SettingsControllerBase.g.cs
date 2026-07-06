@@ -123,7 +123,7 @@ namespace Throne.Api.Generated
         /// Catalog of task-tracker providers with their saved connection state.
         /// </summary>
         /// <remarks>
-        /// One row per provider registered in this Throne build (the catalog half), each carrying its persisted connection state (the status half). `not_configured` means no connection is saved; `connected` means a validated `base_url` + token is on file. The token itself is never returned — only the base URL. This read does not re-probe the upstream tracker; validation happens on the connection upsert. The provider list comes straight from the task-tracker registry (ADR-0045/0046), so the provider-neutral core returns an empty list until an adapter is registered.
+        /// One row per provider registered in this Throne build (the catalog half), each carrying its persisted connection state (the status half). `not_configured` means no connection is saved; a saved connection reports its last observed health — `connected`, `auth` (token rejected, reconnect), `offline` (host unreachable / transport failure) or `blocked` (tariff plan). The token itself is never returned — only the base URL. The state is the last persisted probe outcome (recorded on upsert, on a background re-probe, and on card attach/refresh) — this read does not itself re-probe. The provider list comes straight from the task-tracker registry (ADR-0045/0046), so the provider-neutral core returns an empty list until an adapter is registered.
         /// </remarks>
         /// <returns>Saved connection state per registered task-tracker provider.</returns>
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers", Name = "getTaskTrackerConnections")]
@@ -133,7 +133,7 @@ namespace Throne.Api.Generated
         /// Validate and persist a task-tracker connection (base URL + API token).
         /// </summary>
         /// <remarks>
-        /// Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
+        /// Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `auth`, an unreachable host returns `offline` and a tariff wall returns `blocked` — none of these is persisted, and all arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
         /// </remarks>
         /// <returns>Connection probe outcome (persisted only when `state=connected`).</returns>
         [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/settings/task-trackers/{tracker}/connection", Name = "setTaskTrackerConnection")]

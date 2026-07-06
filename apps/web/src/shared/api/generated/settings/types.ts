@@ -161,7 +161,7 @@ export interface paths {
         };
         /**
          * Catalog of task-tracker providers with their saved connection state.
-         * @description One row per provider registered in this Throne build (the catalog half), each carrying its persisted connection state (the status half). `not_configured` means no connection is saved; `connected` means a validated `base_url` + token is on file. The token itself is never returned — only the base URL. This read does not re-probe the upstream tracker; validation happens on the connection upsert. The provider list comes straight from the task-tracker registry (ADR-0045/0046), so the provider-neutral core returns an empty list until an adapter is registered.
+         * @description One row per provider registered in this Throne build (the catalog half), each carrying its persisted connection state (the status half). `not_configured` means no connection is saved; a saved connection reports its last observed health — `connected`, `auth` (token rejected, reconnect), `offline` (host unreachable / transport failure) or `blocked` (tariff plan). The token itself is never returned — only the base URL. The state is the last persisted probe outcome (recorded on upsert, on a background re-probe, and on card attach/refresh) — this read does not itself re-probe. The provider list comes straight from the task-tracker registry (ADR-0045/0046), so the provider-neutral core returns an empty list until an adapter is registered.
          */
         get: operations["getTaskTrackerConnections"];
         put?: never;
@@ -182,7 +182,7 @@ export interface paths {
         get?: never;
         /**
          * Validate and persist a task-tracker connection (base URL + API token).
-         * @description Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `invalid` and an unreachable host returns `unreachable` — neither is persisted, and both arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
+         * @description Validates the credentials against the provider's API, then persists them on success. The token is stored as-is in the local SQLite database (Throne is local-first / single-operator, ADR-0029); only the base URL is ever read back. A rejected token returns `auth`, an unreachable host returns `offline` and a tariff wall returns `blocked` — none of these is persisted, and all arrive as a `200` so the settings card can render the state inline. One connection (url + token) per provider; re-issuing replaces it.
          */
         put: operations["setTaskTrackerConnection"];
         post?: never;
@@ -374,10 +374,10 @@ export interface components {
         /** @description Stable task-tracker provider key. Open wire string (ADR-0046): supported providers come from the backend registry and unknown values are rejected server-side (422). Mirror of `task-trackers#/components/schemas/TaskTrackerProvider` — duplicated because NSwag does not resolve `$ref` across OpenAPI documents. */
         TaskTrackerKey: string;
         /**
-         * @description `not_configured` — no connection saved. `connected` — a validated base URL + token is persisted. `invalid` — the token was rejected by the tracker API (upsert only; not persisted). `unreachable` — the tracker API could not be reached (upsert only; not persisted).
+         * @description Three-state connection health, plus the unconfigured baseline. `not_configured` — no connection saved. `connected` — the last probe read the topology successfully. `auth` — the token was rejected (401/403); the operator must reconnect. `offline` — the host was unreachable (no network / 5xx / timeout); the binding stays valid and Throne keeps retrying. `blocked` — the tracker refused on tariff grounds (402); an operator plan action is required. On upsert only `connected` persists; `auth` / `offline` / `blocked` surface inline without a row. For a saved connection the state is the last recorded probe outcome (upsert, background re-probe, or card attach/refresh).
          * @enum {string}
          */
-        TaskTrackerConnectionState: "not_configured" | "connected" | "invalid" | "unreachable";
+        TaskTrackerConnectionState: "not_configured" | "connected" | "auth" | "offline" | "blocked";
         TaskTrackerConnectionDto: {
             tracker: components["schemas"]["TaskTrackerKey"];
             /** @description Human-readable provider label from the registry. */
@@ -385,7 +385,7 @@ export interface components {
             state: components["schemas"]["TaskTrackerConnectionState"];
             /** @description Persisted workspace base URL. Null unless a connection is saved. Token is never returned. */
             base_url?: string | null;
-            /** @description Probe failure detail. Present only for `invalid` / `unreachable`. */
+            /** @description Probe failure detail. Present for `auth` / `offline` / `blocked`. */
             error?: string | null;
         };
         TaskTrackerConnectionsDto: {

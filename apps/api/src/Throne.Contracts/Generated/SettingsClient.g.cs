@@ -587,7 +587,7 @@ namespace Throne.Settings.Contracts.Generated
     }
 
     /// <summary>
-    /// `not_configured` — no connection saved. `connected` — a validated base URL + token is persisted. `invalid` — the token was rejected by the tracker API (upsert only; not persisted). `unreachable` — the tracker API could not be reached (upsert only; not persisted).
+    /// Three-state connection health, plus the unconfigured baseline. `not_configured` — no connection saved. `connected` — the last probe read the topology successfully. `auth` — the token was rejected (401/403); the operator must reconnect. `offline` — the host was unreachable (no network / 5xx / timeout); the binding stays valid and Throne keeps retrying. `blocked` — the tracker refused on tariff grounds (402); an operator plan action is required. On upsert only `connected` persists; `auth` / `offline` / `blocked` surface inline without a row. For a saved connection the state is the last recorded probe outcome (upsert, background re-probe, or card attach/refresh).
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -602,13 +602,17 @@ namespace Throne.Settings.Contracts.Generated
         [System.Runtime.Serialization.EnumMember(Value = @"connected")]
         Connected = 1,
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"invalid")]
-        [System.Runtime.Serialization.EnumMember(Value = @"invalid")]
-        Invalid = 2,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"auth")]
+        [System.Runtime.Serialization.EnumMember(Value = @"auth")]
+        Auth = 2,
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"unreachable")]
-        [System.Runtime.Serialization.EnumMember(Value = @"unreachable")]
-        Unreachable = 3,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"offline")]
+        [System.Runtime.Serialization.EnumMember(Value = @"offline")]
+        Offline = 3,
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName(@"blocked")]
+        [System.Runtime.Serialization.EnumMember(Value = @"blocked")]
+        Blocked = 4,
 
     }
 
@@ -641,7 +645,7 @@ namespace Throne.Settings.Contracts.Generated
         public string Base_url { get; set; }
 
         /// <summary>
-        /// Probe failure detail. Present only for `invalid` / `unreachable`.
+        /// Probe failure detail. Present for `auth` / `offline` / `blocked`.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("error")]
         public string Error { get; set; }

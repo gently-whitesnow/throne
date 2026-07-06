@@ -41,5 +41,13 @@ internal static class TaskTrackerInfrastructureModule
         services.AddSingleton<IKaitenClient, KaitenClient>();
 
         services.AddSingleton<ITaskTrackerProvider, KaitenTaskTrackerProvider>();
+
+        var healthProbeOptions = services.AddOptions<TaskTrackerHealthProbeOptions>();
+        if (configuration is not null)
+        {
+            healthProbeOptions.Bind(configuration.GetSection(TaskTrackerHealthProbeOptions.SectionName));
+        }
+
+        services.AddHostedService<TaskTrackerHealthProbeService>();
     }
 }

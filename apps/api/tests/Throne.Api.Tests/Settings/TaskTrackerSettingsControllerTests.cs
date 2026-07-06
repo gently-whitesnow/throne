@@ -2,8 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Throne.Api.Tests.Infrastructure;
 using Throne.Api.Tests.Repositories;
+using Throne.Application.Ports;
+using Throne.Application.TaskTrackers;
 
 namespace Throne.Api.Tests.Settings;
 
@@ -35,6 +38,26 @@ public sealed class TaskTrackerSettingsControllerTests(SqliteFixture sqlite) : I
             .Single(c => c.GetProperty("tracker").GetString() == "kaiten");
         kaiten.GetProperty("display_name").GetString().Should().Be("Kaiten");
         kaiten.GetProperty("state").GetString().Should().Be("not_configured");
+    }
+
+    [Fact(DisplayName = "GET /settings/task-trackers reports the persisted health, not a stale green")]
+    public async Task Lists_persisted_health_not_stale_green()
+    {
+        var store = _fixture.Services.GetRequiredService<ITaskTrackerConnectionStore>();
+        await store.SaveConnectionAsync("kaiten", "https://acme.kaiten.ru", "tok", CancellationToken.None);
+        await store.SaveHealthAsync(
+            "kaiten", TaskTrackerConnectionHealth.Offline, "host down",
+            DateTimeOffset.UnixEpoch, CancellationToken.None);
+
+        var response = await _fixture.Client.GetAsync(
+            new Uri("/api/v1/settings/task-trackers", UriKind.Relative));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var kaiten = dto.GetProperty("connections").EnumerateArray()
+            .Single(c => c.GetProperty("tracker").GetString() == "kaiten");
+        kaiten.GetProperty("state").GetString().Should().Be("offline");
+        kaiten.GetProperty("error").GetString().Should().Be("host down");
     }
 
     [Fact(DisplayName = "GET boards without a connection → 409 connection_missing")]
