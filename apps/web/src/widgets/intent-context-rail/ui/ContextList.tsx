@@ -2,7 +2,6 @@ import { Archive, Columns3, Hash, Inbox, Snowflake } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { FRIDGE_STATUS, type IntentStatus } from "@/entities/intent";
-import { RefreshBoardButton } from "@/features/refresh-tracker-board";
 import {
   ARCHIVE_CONTEXT,
   FRIDGE_CONTEXT,
@@ -61,13 +60,6 @@ export function ContextList({
             onSelect={() => {
               onSelect(row.key);
             }}
-            action={
-              <RefreshBoardButton
-                tracker={row.tracker}
-                boardId={row.boardId}
-                ariaLabel={`Обновить доску ${row.label}`}
-              />
-            }
           />
         </li>
       ))}

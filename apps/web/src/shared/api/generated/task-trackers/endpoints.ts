@@ -6,6 +6,4 @@
 export const taskTrackersEndpoints = {
   listTaskTrackers: () => "/task-trackers",
   getTaskTracker: (tracker: string) => `/task-trackers/${tracker}`,
-  forceRefreshIntentTaskTrackerCard: (id: string) => `/intents/${id}/task-tracker/refresh`,
-  forceRefreshTaskTrackerBoard: (tracker: string, board: string) => `/task-trackers/${tracker}/boards/${board}/refresh`,
 } as const;

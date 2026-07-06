@@ -1,0 +1,246 @@
+openapi: "3.1.0"
+info:
+  title: Throne Card Attachments
+  version: "1.0.0"
+  x-csharp-namespace: Throne.CardAttachments.Contracts.Generated
+  description: >
+    A task-tracker card attached to an intent as read-only context (ADR-0052). Many cards may
+    attach to one intent (1:N); the attachment holds a non-authoritative snapshot of the card
+    (title / description / column / archived / revision) that is never written back upstream and
+    never treated as the intent's own truth. This replaces the retired 1:1 mirror axis: no
+    `Intent.text` mirroring, no write-back, no auto-import, no auto-Reject. The `tracker` key is an
+    open wire string (ADR-0046); connection settings live on the settings axis.
+paths:
+  /api/v1/intents/{intent_id}/task-tracker/cards:
+    get:
+      operationId: listIntentCardAttachments
+      tags: [IntentCardAttachments]
+      summary: List the task-tracker cards attached to an intent.
+      description: >
+        Returns every attachment with its last stored snapshot and availability. Availability is the
+        outcome of the last attach/refresh (never re-probed on read) — `available` after a successful
+        pull, `gone` when the card vanished upstream (404/403), `unavailable` when the tracker was
+        unreachable at the last refresh.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CardAttachmentDto'
+        '404':
+          description: Intent not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+    post:
+      operationId: attachIntentCardAttachment
+      tags: [IntentCardAttachments]
+      summary: Attach a task-tracker card to an intent as read-only context.
+      description: >
+        Pulls the card snapshot from the provider (`GetCardAsync`) and stores the attachment.
+        Idempotent by the `(tracker, board_id, card_id)` coordinate within the intent — re-attaching
+        the same coordinate refreshes the snapshot and returns the existing attachment. Attaching
+        requires the card to be readable now; a vanished/forbidden card is 404 and an unreachable
+        tracker is 502.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachCardRequest'
+      responses:
+        '200':
+          description: OK — the attachment with its freshly pulled snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardAttachmentDto'
+        '404':
+          description: Intent not found, or the card does not exist upstream.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: The tracker has no saved connection.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Tracker unsupported, or the card coordinate is malformed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '502':
+          description: The tracker was unreachable while pulling the card.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/intents/{intent_id}/task-tracker/cards/{attachment_id}:
+    delete:
+      operationId: detachIntentCardAttachment
+      tags: [IntentCardAttachments]
+      summary: Detach a card from an intent.
+      description: >
+        Removes the attachment record — the only way to take a card off an intent. Idempotent:
+        returns 204 whether or not the attachment existed.
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: attachment_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Detached (or already absent).
+  /api/v1/intents/{intent_id}/task-tracker/cards/{attachment_id}/refresh:
+    post:
+      operationId: refreshIntentCardAttachment
+      tags: [IntentCardAttachments]
+      summary: Re-pull the card snapshot from the provider (manual «Обновить»).
+      description: >
+        Online-only re-read of the snapshot. On success the snapshot and `fetched_at` are updated and
+        availability becomes `available`. When the tracker is unreachable or not connected the previous
+        snapshot is kept and availability is set to `unavailable`; a vanished/forbidden card sets
+        `gone`. Never a side-effect on the intent (no auto-Reject / stub).
+      parameters:
+        - in: path
+          name: intent_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: attachment_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK — the attachment after the re-pull.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardAttachmentDto'
+        '404':
+          description: Intent or attachment not found.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+components:
+  schemas:
+    TaskTrackerProvider:
+      type: string
+      minLength: 1
+      pattern: '^[a-z0-9][a-z0-9-]*$'
+      description: >
+        Stable task-tracker provider key. Open wire string (ADR-0046): supported providers come from
+        the backend registry and unknown values are rejected server-side (422). Mirror of
+        `task-trackers#/components/schemas/TaskTrackerProvider` — duplicated because NSwag does not
+        resolve `$ref` across OpenAPI documents.
+    CardAvailability:
+      type: string
+      enum:
+        - available
+        - unavailable
+        - gone
+      description: >
+        Availability of the attached card as of the last attach/refresh (ADR-0052). `available` — the
+        last pull succeeded; `unavailable` — the tracker was unreachable/not connected; `gone` — the
+        card returned 404/403 upstream. Never re-probed on read.
+    AttachCardRequest:
+      type: object
+      required:
+        - tracker
+        - board_id
+        - card_id
+      properties:
+        tracker:
+          $ref: '#/components/schemas/TaskTrackerProvider'
+        board_id:
+          type: string
+          minLength: 1
+          description: Provider-native board/space id the card lives on.
+        card_id:
+          type: string
+          minLength: 1
+          description: Provider-native card/issue id.
+    CardAttachmentDto:
+      type: object
+      required:
+        - id
+        - intent_id
+        - tracker
+        - board_id
+        - card_id
+        - title
+        - archived
+        - availability
+        - fetched_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        intent_id:
+          type: string
+        tracker:
+          $ref: '#/components/schemas/TaskTrackerProvider'
+        board_id:
+          type: string
+        card_id:
+          type: string
+        title:
+          type: string
+          description: Snapshot of the card title. Non-authoritative — never written back upstream.
+        description:
+          type: string
+          nullable: true
+          description: Snapshot of the card description (Markdown as provided by the tracker).
+        column_title:
+          type: string
+          nullable: true
+          description: Snapshot of the card's current column/lane title, when the tracker exposes it.
+        archived:
+          type: boolean
+          description: Whether the card was archived upstream at the last pull.
+        card_version:
+          type: string
+          nullable: true
+          description: Opaque provider-supplied revision/etag captured with the snapshot.
+        availability:
+          $ref: '#/components/schemas/CardAvailability'
+        fetched_at:
+          type: string
+          format: date-time
+          description: When the stored snapshot was last pulled from the provider.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

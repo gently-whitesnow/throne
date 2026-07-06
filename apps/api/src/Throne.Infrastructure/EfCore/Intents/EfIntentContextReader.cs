@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
-using Throne.Domain.TaskTrackers;
 using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.EfCore.Intents;
@@ -11,8 +10,8 @@ namespace Throne.Infrastructure.EfCore.Intents;
 /// plus an in-memory unwind of the
 /// JSON <c>tag_ids</c> column for tag counts — SQLite has no first-class array column,
 /// and EF's LINQ translation can't push a JSON-array unwind into the provider.
-/// Task-tracker mirror intents are pulled out of the active tag/untagged buckets and grouped
-/// by their board instead, so a board's cards live under their board group rather than «Без тегов».
+/// A board's attached cards surface as their own facet group (counted separately); attaching a card
+/// is read-only context and does NOT move the intent out of its tag/untagged bucket (ADR-0052).
 /// </summary>
 internal sealed class EfIntentContextReader(
     IDbContextFactory<ThroneDbContext> contextFactory,
@@ -51,10 +50,8 @@ internal sealed class EfIntentContextReader(
                     StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.Count), StringComparer.Ordinal);
 
-            var boardByIntent = await LoadBoardLinksAsync(ctx, c);
-
-            var (activeUntagged, activeTagCounts, boardCounts) =
-                await CountActiveBucketAsync(ctx, boardByIntent, c);
+            var (activeUntagged, activeTagCounts) = await CountActiveBucketAsync(ctx, c);
+            var boardCounts = await CountBoardsAsync(ctx, c);
             var (archiveUntagged, archiveTagCounts) = await CountBucketAsync(ctx, ArchiveStatuses, c);
             var (fridgeUntagged, fridgeTagCounts) = await CountBucketAsync(ctx, FridgeStatuses, c);
 
@@ -89,61 +86,67 @@ internal sealed class EfIntentContextReader(
         }, ct);
     }
 
-    private static async Task<Dictionary<string, (string Tracker, string BoardId)>> LoadBoardLinksAsync(
-        ThroneDbContext ctx, CancellationToken ct)
-    {
-        // Stub links (card vanished upstream) are excluded so a not-yet-cleaned-up stub mirror never
-        // inflates a board count — belt-and-suspenders behind the reject-on-vanish cleanup.
-        var links = await ctx.Set<TaskTrackerCardLinkRow>()
-            .Where(l => l.State != CardSyncLinkState.Stub)
-            .Select(l => new { l.IntentId, l.Tracker, l.BoardId })
-            .ToListAsync(ct);
-        var map = new Dictionary<string, (string, string)>(StringComparer.Ordinal);
-        foreach (var link in links)
-        {
-            map[link.IntentId] = (link.Tracker, link.BoardId);
-        }
-        return map;
-    }
-
-    // Active bucket needs the intent id (not just tag ids) so board-linked mirrors can be diverted
-    // into their board group instead of double-counting in tag/untagged.
-    private static async Task<(int Untagged, List<IntentTagCount> TagCounts, Dictionary<(string Tracker, string BoardId), int> BoardCounts)>
-        CountActiveBucketAsync(
-            ThroneDbContext ctx,
-            Dictionary<string, (string Tracker, string BoardId)> boardByIntent,
-            CancellationToken ct)
+    // Active bucket counts tags/untagged over all active intents. An attached card is read-only context
+    // (ADR-0052) and never diverts the intent out of this bucket — board grouping is a separate facet
+    // computed by CountBoardsAsync.
+    private static async Task<(int Untagged, List<IntentTagCount> TagCounts)> CountActiveBucketAsync(
+        ThroneDbContext ctx,
+        CancellationToken ct)
     {
         var rows = await ctx.Set<IntentRow>()
             .Where(r => ActiveStatuses.Contains(r.Status) || r.Status == string.Empty)
-            .Select(r => new { r.Id, r.TagIds })
+            .Select(r => r.TagIds)
             .ToListAsync(ct);
 
         var untagged = 0;
         var tagCounts = new Dictionary<string, int>(StringComparer.Ordinal);
-        var boardCounts = new Dictionary<(string, string), int>();
-        foreach (var row in rows)
+        foreach (var tagIds in rows)
         {
-            if (boardByIntent.TryGetValue(row.Id, out var board))
-            {
-                boardCounts[board] = boardCounts.TryGetValue(board, out var bn) ? bn + 1 : 1;
-                continue;
-            }
-
-            if (row.TagIds.Count == 0)
+            if (tagIds.Count == 0)
             {
                 untagged++;
                 continue;
             }
 
-            foreach (var id in row.TagIds.Where(id => !string.IsNullOrEmpty(id)))
+            foreach (var id in tagIds.Where(id => !string.IsNullOrEmpty(id)))
             {
                 tagCounts[id] = tagCounts.TryGetValue(id, out var n) ? n + 1 : 1;
             }
         }
 
         var list = tagCounts.Select(kv => new IntentTagCount(kv.Key, kv.Value)).ToList();
-        return (untagged, list, boardCounts);
+        return (untagged, list);
+    }
+
+    // Board facet: for each (tracker, board) that has an attachment on an active intent, count the
+    // DISTINCT active intents attached to it. Cards are 1:N (an intent can attach several cards on the
+    // same board — deduped here) and availability is NOT filtered (a Gone card is still attached).
+    private static async Task<Dictionary<(string Tracker, string BoardId), int>> CountBoardsAsync(
+        ThroneDbContext ctx,
+        CancellationToken ct)
+    {
+        var rows = await ctx.Set<IntentCardAttachmentRow>()
+            .Join(
+                ctx.Set<IntentRow>().Where(i => ActiveStatuses.Contains(i.Status) || i.Status == string.Empty),
+                a => a.IntentId,
+                i => i.Id,
+                (a, i) => new { a.Tracker, a.BoardId, a.IntentId })
+            .ToListAsync(ct);
+
+        var byBoard = new Dictionary<(string Tracker, string BoardId), HashSet<string>>();
+        foreach (var row in rows)
+        {
+            var key = (row.Tracker, row.BoardId);
+            if (!byBoard.TryGetValue(key, out var intents))
+            {
+                intents = new HashSet<string>(StringComparer.Ordinal);
+                byBoard[key] = intents;
+            }
+
+            intents.Add(row.IntentId);
+        }
+
+        return byBoard.ToDictionary(kv => kv.Key, kv => kv.Value.Count);
     }
 
     private static async Task<(int Untagged, List<IntentTagCount> TagCounts)> CountBucketAsync(
@@ -180,7 +183,7 @@ internal sealed class EfIntentContextReader(
     }
 
     // Board groups come from the saved connections (so empty boards still show as a group), unioned
-    // with any board that still has linked mirrors but was deselected — those mirrors must not vanish.
+    // with any board that still has an attached card but was deselected — those attachments must not vanish.
     private static async Task<List<IntentBoardCount>> BuildBoardsAsync(
         ThroneDbContext ctx,
         Dictionary<(string Tracker, string BoardId), int> boardCounts,

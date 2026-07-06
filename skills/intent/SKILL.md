@@ -45,8 +45,7 @@ writing; the old fragment must occur exactly once in current `Intent.text`.
 
 `set-title` takes exactly one of `--title TEXT` (set/rename) or `--clear` (drop the title); it reads
 the current version itself, so no `--old-*` fragments. The title is short, single-line metadata —
-pass it inline, not via a file. `--clear` is rejected with an explanatory error when the intent is
-mirrored to a task-tracker card, because a card-linked intent must keep a non-empty title.
+pass it inline, not via a file. `--clear` simply drops the title.
 
 ## Environment
 

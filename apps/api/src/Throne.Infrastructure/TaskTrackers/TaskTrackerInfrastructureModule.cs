@@ -1,12 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Throne.Application.TaskTrackers;
-using Throne.Application.TaskTrackers.Sync;
 using Throne.Infrastructure.TaskTrackers.Kaiten;
 using Throne.Infrastructure.TaskTrackers.Kaiten.Http;
-using Throne.Infrastructure.TaskTrackers.Sync;
 
 namespace Throne.Infrastructure.TaskTrackers;
 
@@ -44,18 +41,5 @@ internal static class TaskTrackerInfrastructureModule
         services.AddSingleton<IKaitenClient, KaitenClient>();
 
         services.AddSingleton<ITaskTrackerProvider, KaitenTaskTrackerProvider>();
-
-        // Two-way sync (ADR-0008): the Kaiten card I/O surface plus the poll-loop host. The sync
-        // provider is registered only as ITaskTrackerSyncProvider so it does not collide with the
-        // catalog provider's "kaiten" registry key.
-        var syncOptions = services.AddOptions<TaskTrackerSyncOptions>();
-        if (configuration is not null)
-        {
-            syncOptions.Bind(configuration.GetSection(TaskTrackerSyncOptions.SectionName));
-        }
-
-        services.AddSingleton(sp => sp.GetRequiredService<IOptions<TaskTrackerSyncOptions>>().Value);
-        services.AddSingleton<ITaskTrackerSyncProvider, KaitenSyncProvider>();
-        services.AddHostedService<TaskTrackerSyncService>();
     }
 }

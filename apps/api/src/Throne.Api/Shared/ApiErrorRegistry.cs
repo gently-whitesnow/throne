@@ -22,6 +22,9 @@ internal static class ApiErrorRegistry
         [ErrorCodes.CapabilityNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.CapabilityProviderNotFound] = StatusCodes.Status404NotFound,
         [ErrorCodes.PromptPartNotFound] = StatusCodes.Status404NotFound,
+        [ErrorCodes.CardAttachmentIntentNotFound] = StatusCodes.Status404NotFound,
+        [ErrorCodes.CardAttachmentNotFound] = StatusCodes.Status404NotFound,
+        [ErrorCodes.CardAttachmentCardNotFound] = StatusCodes.Status404NotFound,
 
         [ErrorCodes.IntentVersionConflict] = StatusCodes.Status409Conflict,
         [ErrorCodes.TagVersionConflict] = StatusCodes.Status409Conflict,
@@ -41,6 +44,7 @@ internal static class ApiErrorRegistry
         [ErrorCodes.PromptPartHasRoles] = StatusCodes.Status409Conflict,
         [ErrorCodes.TaskTrackerConnectionMissing] = StatusCodes.Status409Conflict,
         [ErrorCodes.TaskTrackerConnectionRejected] = StatusCodes.Status409Conflict,
+        [ErrorCodes.CardAttachmentTrackerNotConnected] = StatusCodes.Status409Conflict,
         [LinkErrorCodes.Duplicate] = StatusCodes.Status409Conflict,
 
         [ErrorCodes.IntentAttachmentTooLarge] = StatusCodes.Status413PayloadTooLarge,
@@ -59,6 +63,8 @@ internal static class ApiErrorRegistry
         [ErrorCodes.IdeProviderUnavailable] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.GitLabHostInvalid] = StatusCodes.Status422UnprocessableEntity,
         [ErrorCodes.TaskTrackerProviderUnsupported] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.CardAttachmentInvalidCoordinate] = StatusCodes.Status422UnprocessableEntity,
+        [ErrorCodes.CardAttachmentTrackerUnsupported] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.RunPreflightBlocked] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.SpawnFailed] = StatusCodes.Status422UnprocessableEntity,
         [TerminalErrorCodes.CloneWaitTimeout] = StatusCodes.Status422UnprocessableEntity,
@@ -74,6 +80,7 @@ internal static class ApiErrorRegistry
         [ErrorCodes.RepositoryBranchSyncFailed] = StatusCodes.Status500InternalServerError,
 
         [ErrorCodes.TaskTrackerUpstreamUnavailable] = StatusCodes.Status502BadGateway,
+        [ErrorCodes.CardAttachmentTrackerUnavailable] = StatusCodes.Status502BadGateway,
     };
 
     public static int GetStatus(string code) =>

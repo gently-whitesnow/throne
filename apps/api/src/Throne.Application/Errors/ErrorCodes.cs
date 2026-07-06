@@ -47,6 +47,13 @@ public static class ErrorCodes
     public const string TaskTrackerConnectionMissing = "task_tracker.connection_missing";
     public const string TaskTrackerConnectionRejected = "task_tracker.connection_rejected";
     public const string TaskTrackerUpstreamUnavailable = "task_tracker.upstream_unavailable";
+    public const string CardAttachmentIntentNotFound = "card_attachment.intent_not_found";
+    public const string CardAttachmentNotFound = "card_attachment.not_found";
+    public const string CardAttachmentInvalidCoordinate = "card_attachment.invalid_coordinate";
+    public const string CardAttachmentTrackerUnsupported = "card_attachment.tracker_unsupported";
+    public const string CardAttachmentTrackerNotConnected = "card_attachment.tracker_not_connected";
+    public const string CardAttachmentTrackerUnavailable = "card_attachment.tracker_unavailable";
+    public const string CardAttachmentCardNotFound = "card_attachment.card_not_found";
     public const string PromptPartNotFound = "prompt_part.not_found";
     public const string PromptPartAlreadyExists = "prompt_part.already_exists";
     public const string PromptPartVersionConflict = "prompt_part.version_conflict";
