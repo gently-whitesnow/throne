@@ -29,6 +29,7 @@ public sealed record ListIntentsPagedQuery(
     bool Untagged = false,
     bool Pinned = false,
     bool TerminalRunning = false,
+    string? BoardTracker = null,
     string? BoardId = null,
     string? Query = null,
     IntentListSort Sort = IntentListSort.SortKeyAsc,
@@ -55,6 +56,7 @@ public sealed record IntentListSpec(
     int Limit,
     IntentListCursor? Cursor,
     IReadOnlyList<string>? Ids = null,
+    string? BoardTracker = null,
     string? BoardId = null);
 
 public sealed class ListIntentsHandler(
@@ -111,6 +113,7 @@ public sealed class ListIntentsHandler(
             Limit: clampedLimit,
             Cursor: query.Cursor,
             Ids: ids,
+            BoardTracker: string.IsNullOrWhiteSpace(query.BoardTracker) ? null : query.BoardTracker,
             BoardId: string.IsNullOrWhiteSpace(query.BoardId) ? null : query.BoardId);
 
         return await repository.ListPagedAsync(spec, ct);

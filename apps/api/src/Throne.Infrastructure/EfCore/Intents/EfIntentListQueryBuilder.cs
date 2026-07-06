@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
-using Throne.Domain.TaskTrackers;
 using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.EfCore.Intents;
@@ -100,8 +99,8 @@ internal static class EfIntentListQueryBuilder
         return query;
     }
 
-    // Board filter resolves the linked intent ids from the task-tracker card-link table. Mirror cards
-    // are 1:1 with intents (intent_id is the link PK), so this is a small id set even for big boards.
+    // Board filter resolves the attached intent ids from the card-attachment table. Cards are 1:N with
+    // intents (an intent may attach several cards on the same board), so Distinct collapses the id set.
     private static async Task<IQueryable<IntentRow>> ApplyBoardFilterAsync(
         ThroneDbContext ctx,
         IQueryable<IntentRow> query,
@@ -113,9 +112,17 @@ internal static class EfIntentListQueryBuilder
             return query;
         }
         var boardId = spec.BoardId;
-        var ids = await ctx.Set<TaskTrackerCardLinkRow>()
-            .Where(l => l.BoardId == boardId && l.State != CardSyncLinkState.Stub)
-            .Select(l => l.IntentId)
+        var boardTracker = spec.BoardTracker;
+        var attachments = ctx.Set<IntentCardAttachmentRow>()
+            .Where(a => a.BoardId == boardId);
+        if (!string.IsNullOrEmpty(boardTracker))
+        {
+            attachments = attachments.Where(a => a.Tracker == boardTracker);
+        }
+
+        var ids = await attachments
+            .Select(a => a.IntentId)
+            .Distinct()
             .ToListAsync(ct);
         return ids.Count == 0
             ? query.Where(_ => false)

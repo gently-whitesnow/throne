@@ -25,4 +25,15 @@ public interface ITaskTrackerConnectionProvider : ITaskTrackerProvider
     Task<IReadOnlyList<TaskTrackerSpaceTopology>> ListBoardsAsync(
         TaskTrackerConnectionDescriptor connection,
         CancellationToken ct);
+
+    /// <summary>
+    /// Pull a single card snapshot by its provider-native id. Returns <see langword="null"/> when the
+    /// card is gone or forbidden upstream (404/403) so the caller can record «gone» without branching on
+    /// an exception. A transport/5xx failure propagates as an exception (mapped to 502 upstream) — it is
+    /// «tracker unreachable», not «card absent».
+    /// </summary>
+    Task<TaskTrackerCard?> GetCardAsync(
+        TaskTrackerConnectionDescriptor connection,
+        string cardId,
+        CancellationToken ct);
 }

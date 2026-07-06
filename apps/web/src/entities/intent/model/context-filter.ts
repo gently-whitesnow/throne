@@ -91,7 +91,12 @@ export function contextToParams(context: string | null): IntentListParams {
   if (isTerminalRunningContext(context)) return { terminalRunning: true };
   if (isPinnedContext(context)) return { pinned: true };
   const board = boardContextParts(context);
-  if (board) return { status: ACTIVE_STATUSES, board: board.boardId };
+  if (board)
+    return {
+      status: ACTIVE_STATUSES,
+      tracker: board.tracker,
+      board: board.boardId
+    };
   if (isArchiveContext(context)) {
     const subTag = archiveContextTag(context);
     if (subTag === null) return { status: ARCHIVE_STATUS_LIST };

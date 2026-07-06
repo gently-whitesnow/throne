@@ -94,9 +94,41 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
     }
 
+    public async Task<TaskTrackerCard?> GetCardAsync(
+        TaskTrackerConnectionDescriptor connection,
+        string cardId,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cardId);
+        var kaiten = ToConnection(connection);
+        try
+        {
+            var card = await client.Cards.GetCardAsync(kaiten, KaitenCardProjection.ParseId(cardId), ct);
+            var columnTitles = await LoadColumnTitlesAsync(kaiten, card.BoardId, ct);
+            return KaitenCardProjection.ToCard(card, columnTitles);
+        }
+        catch (KaitenApiException ex) when (IsGone(ex.StatusCode))
+        {
+            // A vanished (404) or forbidden (403) card is «gone» to a read-only consumer, not an
+            // outage — surface it as null so the caller records availability without a throw.
+            return null;
+        }
+    }
+
+    private async Task<IReadOnlyDictionary<long, string>> LoadColumnTitlesAsync(
+        KaitenConnection kaiten, long boardId, CancellationToken ct)
+    {
+        var columns = await client.Topology.ListColumnsAsync(kaiten, boardId, ct);
+        return columns.ToDictionary(c => c.Id, c => c.Title);
+    }
+
     private static KaitenConnection ToConnection(TaskTrackerConnectionDescriptor connection) =>
         new(connection.BaseUrl, connection.Token);
 
     private static bool IsAuthFailure(HttpStatusCode status) =>
         status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+
+    private static bool IsGone(HttpStatusCode status) =>
+        status is HttpStatusCode.NotFound or HttpStatusCode.Forbidden;
 }

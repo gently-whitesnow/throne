@@ -186,11 +186,6 @@ cmd_set_title() {
     echo "throne-intent: run 'throne-intent get' and retry." >&2
     exit 75
   fi
-  if [[ "${HTTP_STATUS}" == "422" ]]; then
-    echo "throne-intent: set-title rejected — a card-linked intent must keep a non-empty title." >&2
-    printf '%s\n' "${HTTP_BODY}" >&2
-    exit 65
-  fi
   print_or_fail "set-title"
 }
 

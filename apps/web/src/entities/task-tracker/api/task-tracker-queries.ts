@@ -9,7 +9,6 @@ import {
 import type {
   TaskTrackerBoardSearch,
   TaskTrackerBoardSelection,
-  TaskTrackerBoardSync,
   TaskTrackerConnection,
   TaskTrackerConnections,
   UpdateTaskTrackerBoardsRequest,
@@ -19,7 +18,6 @@ import {
   deleteTaskTrackerConnection,
   fetchTaskTrackerBoardSelection,
   fetchTaskTrackerConnections,
-  forceRefreshTaskTrackerBoard,
   searchTaskTrackerBoards,
   setTaskTrackerBoards,
   setTaskTrackerConnection,
@@ -135,27 +133,6 @@ export function useSetTaskTrackerBoards(): UseMutationResult<
         data
       );
     }
-  });
-}
-
-interface ForceRefreshBoardVariables {
-  tracker: string;
-  board: string;
-}
-
-/**
- * Board-level «Обновить»: triggers the periodic board sync on demand. Invalidation of the rail
- * counts and the board's intent list is left to the caller — the refreshed mirror content also
- * lands over the realtime stream, so the caller just nudges the affected queries.
- */
-export function useForceRefreshTaskTrackerBoard(): UseMutationResult<
-  TaskTrackerBoardSync,
-  Error,
-  ForceRefreshBoardVariables
-> {
-  return useMutation({
-    mutationFn: ({ tracker, board }: ForceRefreshBoardVariables) =>
-      forceRefreshTaskTrackerBoard(tracker, board)
   });
 }
 
