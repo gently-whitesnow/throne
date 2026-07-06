@@ -112,8 +112,15 @@ internal static class EfIntentListQueryBuilder
             return query;
         }
         var boardId = spec.BoardId;
-        var ids = await ctx.Set<IntentCardAttachmentRow>()
-            .Where(a => a.BoardId == boardId)
+        var boardTracker = spec.BoardTracker;
+        var attachments = ctx.Set<IntentCardAttachmentRow>()
+            .Where(a => a.BoardId == boardId);
+        if (!string.IsNullOrEmpty(boardTracker))
+        {
+            attachments = attachments.Where(a => a.Tracker == boardTracker);
+        }
+
+        var ids = await attachments
             .Select(a => a.IntentId)
             .Distinct()
             .ToListAsync(ct);

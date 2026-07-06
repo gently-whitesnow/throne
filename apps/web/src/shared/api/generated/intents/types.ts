@@ -525,7 +525,7 @@ export interface components {
             board_title?: string;
             /**
              * Format: int32
-             * @description Active mirror intents currently linked to this board.
+             * @description Active intents that currently have at least one attached card on this board.
              */
             count: number;
         };
@@ -576,7 +576,7 @@ export interface components {
             archive_tags: components["schemas"]["IntentContextTagCountDto"][];
             /** @description Per-tag counts across fridge intents, sorted by count desc then tag name asc. */
             fridge_tags: components["schemas"]["IntentContextTagCountDto"][];
-            /** @description Connected task-tracker boards, sorted by board title asc. Each board is a rail group whose active mirror intents are counted here; those mirrors are excluded from the native active `tags`/`untagged` buckets so they group only by board. */
+            /** @description Connected task-tracker boards, sorted by board title asc. Each board is a rail facet whose active intents with attached cards are counted here. Board attachments are read-only context, so those intents remain counted in native active `tags`/`untagged` buckets as well. */
             boards: components["schemas"]["IntentContextBoardCountDto"][];
         };
         IntentDetailDto: {
@@ -799,7 +799,9 @@ export interface operations {
                 tag?: string;
                 /** @description When true, return only intents that carry no tags at all. Mutually exclusive with `tag` (combining them yields an empty page). */
                 untagged?: boolean;
-                /** @description Filter to task-tracker mirror intents linked to this board id. Backs the per-board context group in the rail; combine with `status` to scope to active mirrors. An unmatched board id yields an empty page. */
+                /** @description Provider key used with `board` to select one task-tracker board facet. Omit only for legacy board-id-only queries; rail board contexts pass both `tracker` and `board`. */
+                tracker?: string;
+                /** @description Filter to intents that have at least one task-tracker card attachment on this board id. Pair with `tracker` to address the provider-qualified board facet; combine with `status` to scope to active intents. An unmatched board id yields an empty page. Board attachment is read-only context: it does not remove the intent from its native tag/untagged bucket. */
                 board?: string;
                 /** @description When true, return only intents pinned into at least one context. Server-side equivalent of the client "pinned" bucket. */
                 pinned?: boolean;

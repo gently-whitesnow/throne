@@ -43,7 +43,7 @@ public sealed class TaskTrackerBoardRailGroupingTests(SqliteFixture sqlite)
         counts.Boards.Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new IntentBoardCount("kaiten", "board-7", "Board Seven", 1));
 
-        var page = await ListBoardAsync(repo, "board-7");
+        var page = await ListBoardAsync(repo, "kaiten", "board-7");
         page.Items.Select(i => i.Id.Value).Should().Equal(attached.Id.Value);
         page.Items.Select(i => i.Id.Value).Should().NotContain(plain.Id.Value);
     }
@@ -90,8 +90,36 @@ public sealed class TaskTrackerBoardRailGroupingTests(SqliteFixture sqlite)
 
         counts.Boards.Should().ContainSingle().Which.Count.Should().Be(1);
 
-        var page = await ListBoardAsync(repo, "board-7");
+        var page = await ListBoardAsync(repo, "kaiten", "board-7");
         page.Items.Select(i => i.Id.Value).Should().Equal(intent.Id.Value);
+    }
+
+    [Fact(DisplayName = "Board filter scopes by tracker and board_id, not board_id alone")]
+    public async Task Board_filter_scopes_by_tracker_and_board_id()
+    {
+        await using var db = await sqlite.CreateDatabaseAsync();
+        var repo = db.GetRequiredService<IIntentRepository>();
+        var attachments = db.GetRequiredService<IIntentCardAttachmentStore>();
+        var connections = db.GetRequiredService<ITaskTrackerConnectionStore>();
+        var uow = db.GetRequiredService<IUnitOfWork>();
+
+        await SeedBoardSelectionAsync(connections, tracker: "kaiten", title: "Kaiten Board");
+        await SeedBoardSelectionAsync(connections, tracker: "jira", title: "Jira Board");
+
+        var kaitenIntent = await SeedIntentAsync(repo, uow, tagIds: []);
+        var jiraIntent = await SeedIntentAsync(repo, uow, tagIds: []);
+        await AttachAsync(attachments, uow, kaitenIntent.Id.Value, cardId: "kaiten-card", tracker: "kaiten");
+        await AttachAsync(attachments, uow, jiraIntent.Id.Value, cardId: "jira-card", tracker: "jira");
+
+        var counts = await repo.GetContextCountsAsync([], CancellationToken.None);
+        counts.Boards.Should().Contain(b => b.Tracker == "kaiten" && b.BoardId == "board-7" && b.Count == 1);
+        counts.Boards.Should().Contain(b => b.Tracker == "jira" && b.BoardId == "board-7" && b.Count == 1);
+
+        var kaitenPage = await ListBoardAsync(repo, "kaiten", "board-7");
+        var jiraPage = await ListBoardAsync(repo, "jira", "board-7");
+
+        kaitenPage.Items.Select(i => i.Id.Value).Should().Equal(kaitenIntent.Id.Value);
+        jiraPage.Items.Select(i => i.Id.Value).Should().Equal(jiraIntent.Id.Value);
     }
 
     [Fact(DisplayName = "Подключённая доска без карточек — пустая группа со счётчиком 0")]
@@ -108,22 +136,29 @@ public sealed class TaskTrackerBoardRailGroupingTests(SqliteFixture sqlite)
         counts.Boards.Should().ContainSingle().Which.Count.Should().Be(0);
     }
 
-    private static async Task SeedBoardSelectionAsync(ITaskTrackerConnectionStore connections)
+    private static async Task SeedBoardSelectionAsync(
+        ITaskTrackerConnectionStore connections,
+        string tracker = "kaiten",
+        string title = "Board Seven")
     {
-        await connections.SaveConnectionAsync("kaiten", "https://acme.kaiten.ru", "tok", CancellationToken.None);
+        await connections.SaveConnectionAsync(tracker, "https://acme.example", "tok", CancellationToken.None);
         await connections.SaveSelectionAsync(
-            "kaiten",
-            [new TaskTrackerBoardSelection("space-1", "Space", "board-7", "Board Seven", "none")],
+            tracker,
+            [new TaskTrackerBoardSelection("space-1", "Space", "board-7", title, "none")],
             CancellationToken.None);
     }
 
     private static Task AttachAsync(
-        IIntentCardAttachmentStore attachments, IUnitOfWork uow, string intentId, string cardId)
+        IIntentCardAttachmentStore attachments,
+        IUnitOfWork uow,
+        string intentId,
+        string cardId,
+        string tracker = "kaiten")
     {
         var attachment = IntentCardAttachment.Create(
             id: CardAttachmentId.New(),
             intentId: new IntentId(intentId),
-            coordinate: new CardCoordinate("kaiten", "board-7", cardId),
+            coordinate: new CardCoordinate(tracker, "board-7", cardId),
             snapshot: new CardSnapshot(
                 Title: "Card " + cardId,
                 Description: "body",
@@ -152,11 +187,12 @@ public sealed class TaskTrackerBoardRailGroupingTests(SqliteFixture sqlite)
         return intent;
     }
 
-    private static Task<IntentListPage> ListBoardAsync(IIntentRepository repo, string boardId) =>
+    private static Task<IntentListPage> ListBoardAsync(IIntentRepository repo, string tracker, string boardId) =>
         repo.ListPagedAsync(
             new IntentListSpec(
                 Statuses: ["draft", "interview", "ready_for_work", "work", "awaiting_operator"],
                 TagId: null, Untagged: false, Pinned: false, Query: null,
-                Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null, BoardId: boardId),
+                Sort: IntentListSort.UpdatedDesc, Limit: 50, Cursor: null,
+                BoardTracker: tracker, BoardId: boardId),
             CancellationToken.None);
 }

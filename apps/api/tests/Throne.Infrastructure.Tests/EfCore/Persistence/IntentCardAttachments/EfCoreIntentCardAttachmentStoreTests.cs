@@ -45,6 +45,25 @@ public class EfCoreIntentCardAttachmentStoreTests(SqliteFixture fixture)
         all.Should().ContainSingle();
     }
 
+    [Fact(DisplayName = "UpsertAsync при конфликте unique-координаты обновляет выигравшую строку")]
+    public async Task Upsert_unique_coordinate_conflict_updates_existing()
+    {
+        var scope = await IntentCardAttachmentTestScope.CreateAsync(fixture);
+        var intentId = IntentId.New();
+        var first = NewAttachment(intentId, cardId: "99", title: "First");
+        var racing = NewAttachment(intentId, cardId: "99", title: "Second", at: Now.AddMinutes(1));
+        await UpsertAsync(scope, first);
+
+        var persisted = await UpsertAsync(scope, racing);
+
+        persisted.Id.Should().Be(first.Id);
+        persisted.State.Snapshot.Title.Should().Be("Second");
+        var all = await scope.Store.ListByIntentAsync(intentId, CancellationToken.None);
+        all.Should().ContainSingle();
+        all[0].Id.Should().Be(first.Id);
+        all[0].State.Snapshot.Title.Should().Be("Second");
+    }
+
     [Fact(DisplayName = "GetByCoordinateAsync находит запись по (intent, tracker, board, card)")]
     public async Task GetByCoordinate_returns_match()
     {
@@ -104,7 +123,7 @@ public class EfCoreIntentCardAttachmentStoreTests(SqliteFixture fixture)
         (await scope.Store.GetAsync(attachment.Id, CancellationToken.None)).Should().BeNull();
     }
 
-    private static Task UpsertAsync(IntentCardAttachmentTestScope scope, IntentCardAttachment attachment) =>
+    private static Task<IntentCardAttachment> UpsertAsync(IntentCardAttachmentTestScope scope, IntentCardAttachment attachment) =>
         scope.UnitOfWork.ExecuteAsync(ct => scope.Store.UpsertAsync(attachment, ct), CancellationToken.None);
 
     private static Task<bool> DeleteAsync(IntentCardAttachmentTestScope scope, CardAttachmentId id) =>

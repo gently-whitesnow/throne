@@ -583,7 +583,7 @@ namespace Throne.Intents.Contracts.Generated
         public string Board_title { get; set; }
 
         /// <summary>
-        /// Active mirror intents currently linked to this board.
+        /// Active intents that currently have at least one attached card on this board.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("count")]
         [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
@@ -684,7 +684,7 @@ namespace Throne.Intents.Contracts.Generated
         public System.Collections.Generic.ICollection<IntentContextTagCountDto> Fridge_tags { get; set; } = new System.Collections.ObjectModel.Collection<IntentContextTagCountDto>();
 
         /// <summary>
-        /// Connected task-tracker boards, sorted by board title asc. Each board is a rail group whose active mirror intents are counted here; those mirrors are excluded from the native active `tags`/`untagged` buckets so they group only by board.
+        /// Connected task-tracker boards, sorted by board title asc. Each board is a rail facet whose active intents with attached cards are counted here. Board attachments are read-only context, so those intents remain counted in native active `tags`/`untagged` buckets as well.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("boards")]

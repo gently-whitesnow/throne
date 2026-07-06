@@ -124,6 +124,22 @@ public class CardAttachmentServiceAttachTests
         fixture.Store.Items.Should().BeEmpty();
     }
 
+    [Fact(DisplayName = "Attach на карточку с другой доски → 422 card_attachment.invalid_coordinate")]
+    public async Task Attach_board_mismatch_422()
+    {
+        var fixture = new CardAttachmentServiceFixture();
+        fixture.IntentExists();
+        fixture.TrackerConnected();
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(
+            Card(title: "Moved", boardId: "other-board"));
+
+        var act = () => fixture.Service.AttachAsync(AttachCommand(), CancellationToken.None);
+
+        (await act.Should().ThrowAsync<ApiException>()).Which.Code
+            .Should().Be(ErrorCodes.CardAttachmentInvalidCoordinate);
+        fixture.Store.Items.Should().BeEmpty();
+    }
+
     [Fact(DisplayName = "Attach OperationCanceled пробрасывается, не оборачивается в 502")]
     public async Task Attach_cancellation_propagates()
     {

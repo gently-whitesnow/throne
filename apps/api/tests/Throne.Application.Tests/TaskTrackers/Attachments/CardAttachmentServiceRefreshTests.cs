@@ -66,6 +66,21 @@ public class CardAttachmentServiceRefreshTests
         result.State.Snapshot.Title.Should().Be("Seed");
     }
 
+    [Fact(DisplayName = "Refresh карточки, переехавшей на другую доску, ставит gone и сохраняет снапшот")]
+    public async Task Refresh_board_mismatch_marks_gone()
+    {
+        var fixture = new CardAttachmentServiceFixture();
+        var attachment = await fixture.SeedAttachedAsync();
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(
+            Card(title: "Moved", boardId: "other-board"));
+
+        var result = await fixture.Service.RefreshAsync(
+            new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
+
+        result.State.Availability.Should().Be(CardAvailabilityNames.Gone);
+        result.State.Snapshot.Title.Should().Be("Seed");
+    }
+
     [Fact(DisplayName = "Refresh на несуществующий attachment → 404 card_attachment.not_found")]
     public async Task Refresh_missing_attachment_404()
     {

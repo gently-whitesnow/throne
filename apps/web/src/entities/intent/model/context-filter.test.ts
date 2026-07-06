@@ -9,6 +9,7 @@ describe("contextToParams for board contexts", () => {
   it("maps a board context to an active-status board filter", () => {
     const params = contextToParams(boardContext("kaiten", "board-7"));
 
+    expect(params.tracker).toBe("kaiten");
     expect(params.board).toBe("board-7");
     expect(params.status).toEqual([
       "draft",
@@ -22,7 +23,10 @@ describe("contextToParams for board contexts", () => {
   });
 
   it("extracts the board id even when it contains digits and dashes", () => {
-    expect(contextToParams(boardContext("kaiten", "99-2")).board).toBe("99-2");
+    const params = contextToParams(boardContext("kaiten", "99-2"));
+
+    expect(params.tracker).toBe("kaiten");
+    expect(params.board).toBe("99-2");
   });
 });
 

@@ -82,10 +82,14 @@ internal sealed class CardAttachmentServiceFixture
         return attached;
     }
 
-    internal static TaskTrackerCard Card(string title = "Card title", string? version = "v1") =>
+    internal static TaskTrackerCard Card(
+        string title = "Card title",
+        string? version = "v1",
+        string boardId = BoardId,
+        string cardId = CardId) =>
         new(
-            CardId: CardId,
-            BoardId: BoardId,
+            CardId: cardId,
+            BoardId: boardId,
             ColumnId: "100",
             ColumnTitle: "In Progress",
             Title: title,
@@ -138,11 +142,11 @@ internal sealed class InMemoryCardAttachmentStore : IIntentCardAttachmentStore
             && a.Coordinate.BoardId == coordinate.BoardId
             && a.Coordinate.CardId == coordinate.CardId));
 
-    public Task UpsertAsync(IntentCardAttachment attachment, CancellationToken ct)
+    public Task<IntentCardAttachment> UpsertAsync(IntentCardAttachment attachment, CancellationToken ct)
     {
         _items.RemoveAll(a => a.Id == attachment.Id);
         _items.Add(attachment);
-        return Task.CompletedTask;
+        return Task.FromResult(attachment);
     }
 
     public Task<bool> DeleteAsync(CardAttachmentId id, CancellationToken ct)

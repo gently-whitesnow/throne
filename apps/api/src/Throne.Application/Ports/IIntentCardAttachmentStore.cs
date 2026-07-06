@@ -6,8 +6,9 @@ namespace Throne.Application.Ports;
 /// <summary>
 /// Persistence boundary for <see cref="IntentCardAttachment"/> (ADR-0052). Reads run on the ambient
 /// session (or a transient context); writes (<see cref="UpsertAsync"/> / <see cref="DeleteAsync"/>) must
-/// run inside <c>IUnitOfWork.ExecuteAsync</c>. No typed outcomes — attach/detach carry no domain events
-/// in this phase (realtime is deferred, ADR-0052).
+/// run inside <c>IUnitOfWork.ExecuteAsync</c>. Upsert returns the persisted aggregate because a
+/// concurrent idempotent attach may lose the unique-coordinate race and reuse the winning row identity.
+/// Attach/detach carry no domain events in this phase (realtime is deferred, ADR-0052).
 /// </summary>
 public interface IIntentCardAttachmentStore
 {
@@ -24,8 +25,11 @@ public interface IIntentCardAttachmentStore
     Task<IntentCardAttachment?> GetByCoordinateAsync(
         IntentId intentId, CardCoordinate coordinate, CancellationToken ct);
 
-    /// <summary>Insert a new attachment or overwrite the snapshot/availability of an existing one (by id).</summary>
-    Task UpsertAsync(IntentCardAttachment attachment, CancellationToken ct);
+    /// <summary>
+    /// Insert a new attachment or overwrite the snapshot/availability of an existing one. Returns the row
+    /// that won persistence (usually <paramref name="attachment"/>, but an existing coordinate on race).
+    /// </summary>
+    Task<IntentCardAttachment> UpsertAsync(IntentCardAttachment attachment, CancellationToken ct);
 
     /// <summary>Delete the attachment by id. Returns <see langword="true"/> when a row was removed.</summary>
     Task<bool> DeleteAsync(CardAttachmentId id, CancellationToken ct);

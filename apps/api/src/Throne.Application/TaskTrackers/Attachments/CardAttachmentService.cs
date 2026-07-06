@@ -26,13 +26,14 @@ public sealed class CardAttachmentService(
         ArgumentNullException.ThrowIfNull(command);
 
         var intentId = await resolver.EnsureIntentExistsAsync(command.IntentId, ct);
-        var coordinate = BuildCoordinate(command);
-        var connection = await resolver.ResolveConnectionAsync(coordinate.Tracker, ct);
+        var requestedCoordinate = BuildCoordinate(command);
+        var connection = await resolver.ResolveConnectionAsync(requestedCoordinate.Tracker, ct);
 
-        var card = await PullOrThrowAsync(connection, coordinate.CardId, ct)
-            ?? throw CardAttachmentFailures.CardNotFound(coordinate.Tracker, coordinate.CardId);
+        var card = await PullOrThrowAsync(connection, requestedCoordinate.CardId, ct)
+            ?? throw CardAttachmentFailures.CardNotFound(requestedCoordinate.Tracker, requestedCoordinate.CardId);
 
         var now = clock.GetUtcNow();
+        var coordinate = CanonicalizeCoordinate(requestedCoordinate, card);
         var snapshot = CardSnapshotFactory.From(card, now);
         var existing = await store.GetByCoordinateAsync(intentId, coordinate, ct);
         var attachment = ApplyOrCreate(existing, intentId, coordinate, snapshot, now);
@@ -58,9 +59,13 @@ public sealed class CardAttachmentService(
         }
 
         var card = await PullOrDegradeAsync(connection, attachment, now, ct);
-        if (card is not null)
+        if (card is not null && CardMatchesCoordinate(card, attachment.Coordinate))
         {
             attachment.ApplySnapshot(CardSnapshotFactory.From(card, now), now);
+        }
+        else if (card is not null)
+        {
+            attachment.MarkUnavailable(CardAvailabilityNames.Gone, now);
         }
         return await PersistAsync(attachment, ct);
     }
@@ -97,6 +102,32 @@ public sealed class CardAttachmentService(
                 command.Tracker, command.BoardId, command.CardId, ex.Message);
         }
     }
+
+    private static CardCoordinate CanonicalizeCoordinate(CardCoordinate requested, TaskTrackerCard card)
+    {
+        if (!string.Equals(card.BoardId, requested.BoardId, StringComparison.Ordinal))
+        {
+            throw CardAttachmentFailures.InvalidCoordinate(
+                requested.Tracker,
+                requested.BoardId,
+                requested.CardId,
+                $"Card '{requested.CardId}' belongs to board '{card.BoardId}', not requested board '{requested.BoardId}'.");
+        }
+
+        try
+        {
+            return new CardCoordinate(requested.Tracker, card.BoardId, card.CardId);
+        }
+        catch (ArgumentException ex)
+        {
+            throw CardAttachmentFailures.InvalidCoordinate(
+                requested.Tracker, card.BoardId, card.CardId, ex.Message);
+        }
+    }
+
+    private static bool CardMatchesCoordinate(TaskTrackerCard card, CardCoordinate coordinate) =>
+        string.Equals(card.BoardId, coordinate.BoardId, StringComparison.Ordinal)
+        && string.Equals(card.CardId, coordinate.CardId, StringComparison.Ordinal);
 
     private static async Task<TaskTrackerCard?> PullOrThrowAsync(
         CardTrackerConnection connection, string cardId, CancellationToken ct)
@@ -155,7 +186,6 @@ public sealed class CardAttachmentService(
 
     private async Task<IntentCardAttachment> PersistAsync(IntentCardAttachment attachment, CancellationToken ct)
     {
-        await unitOfWork.ExecuteAsync(c => store.UpsertAsync(attachment, c), ct);
-        return attachment;
+        return await unitOfWork.ExecuteAsync(c => store.UpsertAsync(attachment, c), ct);
     }
 }
