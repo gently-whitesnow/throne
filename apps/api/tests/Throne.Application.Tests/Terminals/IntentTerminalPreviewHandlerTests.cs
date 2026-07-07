@@ -63,6 +63,7 @@ public class IntentTerminalPreviewHandlerTests
         var handler = new IntentTerminalPreviewHandler(
             intents,
             attachments,
+            EmptyCardAttachments(),
             NewBindings([]),
             NewLaunches(),
             NewResolver(),
@@ -124,6 +125,7 @@ public class IntentTerminalPreviewHandlerTests
         var handler = new IntentTerminalPreviewHandler(
             intents,
             attachmentRepo,
+            EmptyCardAttachments(),
             NewBindings(bindings),
             NewLaunches(),
             NewResolver(),
@@ -162,6 +164,7 @@ public class IntentTerminalPreviewHandlerTests
         var handler = new IntentTerminalPreviewHandler(
             intents,
             attachmentRepo,
+            EmptyCardAttachments(),
             NewBindings(bindings),
             NewLaunches(),
             NewResolver(),
@@ -211,6 +214,7 @@ public class IntentTerminalPreviewHandlerTests
         return new IntentTerminalPreviewHandler(
             intents,
             attachmentRepo,
+            EmptyCardAttachments(),
             NewBindings([]),
             NewLaunches(),
             NewResolver(),
@@ -257,6 +261,14 @@ public class IntentTerminalPreviewHandlerTests
         repo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns(links);
         return repo;
+    }
+
+    private static IIntentCardAttachmentStore EmptyCardAttachments()
+    {
+        var store = Substitute.For<IIntentCardAttachmentStore>();
+        store.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+        return store;
     }
 
     private static IntentWorkspaceMapComposer NewWorkspaceMap(

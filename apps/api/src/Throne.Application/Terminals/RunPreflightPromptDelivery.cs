@@ -73,7 +73,7 @@ public sealed partial class RunPreflightPromptDelivery(
         var ctx = await mapContext.ReadAsync(request.IntentId, request.TagIds, ct);
         var composedPrompt = WorkspaceMapPrompt.Compose(
             request.WorkspacePath, request.RepoPaths, ctx.Tags, request.Title, ctx.Links,
-            ctx.Attachments, request.SessionSkillIds, request.UserPrompt);
+            ctx.Attachments, ctx.CardAttachments, request.SessionSkillIds, request.UserPrompt);
         await File.WriteAllTextAsync(promptPath, composedPrompt, ct);
         LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, composedPrompt.Length, promptPath);
 

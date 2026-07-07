@@ -2,6 +2,7 @@ using Throne.Application.Git;
 using Throne.Application.Intents;
 using Throne.Domain.Intents;
 using Throne.Domain.Repositories;
+using Throne.Domain.TaskTrackers;
 
 namespace Throne.Application.Terminals;
 
@@ -14,6 +15,7 @@ public sealed class IntentWorkspaceMapComposer(
         Intent intent,
         IReadOnlyList<IntentRepositoryBinding> bindings,
         IReadOnlyList<IntentAttachment> attachments,
+        IReadOnlyList<IntentCardAttachment> cardAttachments,
         IReadOnlyList<string> sessionSkillIds,
         CancellationToken ct)
     {
@@ -23,6 +25,6 @@ public sealed class IntentWorkspaceMapComposer(
         var links = await linkContext.BuildAsync(intent.Id, ct);
         return WorkspaceMapPrompt.Compose(
             workspacePath, repoPaths, tags, intent.State.Title, links,
-            attachments, sessionSkillIds, userPrompt: "").TrimEnd();
+            attachments, cardAttachments, sessionSkillIds, userPrompt: "").TrimEnd();
     }
 }
