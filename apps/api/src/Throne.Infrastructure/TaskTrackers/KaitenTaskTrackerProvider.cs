@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using Throne.Application.Errors;
 using Throne.Application.TaskTrackers;
 using Throne.Infrastructure.TaskTrackers.Kaiten;
 
@@ -31,21 +32,17 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
             await client.Topology.ListSpacesAsync(kaiten, ct);
             return TaskTrackerProbeResult.Connected();
         }
-        catch (KaitenApiException ex) when (IsAuthFailure(ex.StatusCode))
-        {
-            return TaskTrackerProbeResult.Invalid(ex.Message);
-        }
         catch (KaitenApiException ex)
         {
-            return TaskTrackerProbeResult.Unreachable(ex.Message);
+            return TaskTrackerProbeResult.FromHealth(Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
-            return TaskTrackerProbeResult.Unreachable(ex.Message);
+            return TaskTrackerProbeResult.Offline(ex.Message);
         }
         catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            return TaskTrackerProbeResult.Unreachable($"Request timed out: {ex.Message}");
+            return TaskTrackerProbeResult.Offline($"Request timed out: {ex.Message}");
         }
     }
 
@@ -73,16 +70,13 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
                         .ToList()))
                 .ToList();
         }
-        catch (KaitenApiException ex) when (IsAuthFailure(ex.StatusCode))
-        {
-            // A previously-valid token was revoked/expired: that's a credentials problem the operator
-            // must fix by reconnecting, not an upstream outage. Surface it distinctly (409) instead of
-            // masquerading it as 502.
-            throw TaskTrackerFailures.ConnectionRejected(TrackerKey, ex.Message);
-        }
         catch (KaitenApiException ex)
         {
-            throw TaskTrackerFailures.UpstreamUnavailable(TrackerKey, ex.Message);
+            // A previously-valid connection can fail three ways on board read: a revoked token
+            // (auth → 409 reconnect), a tariff wall (blocked → 402) or an outage (offline → 502).
+            // Distinguishing them here is what lets the settings card tell the operator what to do
+            // instead of masquerading everything as a generic 502.
+            throw BoardReadFailure(Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
@@ -110,9 +104,23 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
         catch (KaitenApiException ex) when (IsGone(ex.StatusCode))
         {
-            // A vanished (404) or forbidden (403) card is «gone» to a read-only consumer, not an
-            // outage — surface it as null so the caller records availability without a throw.
+            // Only a genuine 404 is «gone» — the card was deleted. A 403 is NOT gone: it means the
+            // token lost access (auth), and treating it as gone would wrongly bury a revoked-token
+            // signal under a per-card «vanished», so it falls through to the classified throw below.
             return null;
+        }
+        catch (KaitenApiException ex)
+        {
+            throw new TaskTrackerConnectionException(Classify(ex.StatusCode), ex.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
+        }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new TaskTrackerConnectionException(
+                TaskTrackerConnectionHealth.Offline, $"Request timed out: {ex.Message}");
         }
     }
 
@@ -126,9 +134,24 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
     private static KaitenConnection ToConnection(TaskTrackerConnectionDescriptor connection) =>
         new(connection.BaseUrl, connection.Token);
 
-    private static bool IsAuthFailure(HttpStatusCode status) =>
-        status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+    /// <summary>
+    /// Map a Kaiten HTTP status onto the connection-health taxonomy. 401/403 → auth (reconnect),
+    /// 402 → blocked (tariff), everything else — 5xx, an unexpected status — → offline (transient,
+    /// keep the binding). A 404 is handled at the call site (card «gone»), not here.
+    /// </summary>
+    private static TaskTrackerConnectionHealth Classify(HttpStatusCode status) => status switch
+    {
+        HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => TaskTrackerConnectionHealth.Auth,
+        HttpStatusCode.PaymentRequired => TaskTrackerConnectionHealth.Blocked,
+        _ => TaskTrackerConnectionHealth.Offline,
+    };
 
-    private static bool IsGone(HttpStatusCode status) =>
-        status is HttpStatusCode.NotFound or HttpStatusCode.Forbidden;
+    private ApiException BoardReadFailure(TaskTrackerConnectionHealth health, string detail) => health switch
+    {
+        TaskTrackerConnectionHealth.Auth => TaskTrackerFailures.ConnectionRejected(TrackerKey, detail),
+        TaskTrackerConnectionHealth.Blocked => TaskTrackerFailures.ConnectionBlocked(TrackerKey, detail),
+        _ => TaskTrackerFailures.UpstreamUnavailable(TrackerKey, detail),
+    };
+
+    private static bool IsGone(HttpStatusCode status) => status is HttpStatusCode.NotFound;
 }

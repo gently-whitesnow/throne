@@ -8,15 +8,25 @@ namespace Throne.Application.TaskTrackers;
 public sealed record TaskTrackerConnectionDescriptor(string BaseUrl, string Token);
 
 /// <summary>
-/// Health of a credentials probe. <see cref="Connected"/> persists; <see cref="Invalid"/> (token
-/// rejected) and <see cref="Unreachable"/> (transport/5xx) do not — they surface inline so the
-/// operator can correct the input.
+/// Three-state health of a task-tracker connection. Only <see cref="Connected"/> is a healthy binding;
+/// the failure states are kept distinct instead of collapsed into one «unreachable» so the operator
+/// sees the right next action:
+/// <list type="bullet">
+///   <item><see cref="Offline"/> — no network / 5xx / timeout. The binding stays valid and the
+///         connection is re-probed on a quiet backoff; state is never lost to «gone».</item>
+///   <item><see cref="Auth"/> — 401/403. The token was rejected; the operator must reconnect.</item>
+///   <item><see cref="Blocked"/> — 402. The tracker refused on tariff grounds; an operator plan action
+///         is required. Deliberately not hidden inside <see cref="Offline"/>.</item>
+/// </list>
+/// (A vanished/forbidden card — «gone» — is a per-attachment availability, not a connection health;
+/// see <c>CardAvailabilityNames</c>.)
 /// </summary>
 public enum TaskTrackerConnectionHealth
 {
     Connected,
-    Invalid,
-    Unreachable,
+    Offline,
+    Auth,
+    Blocked,
 }
 
 /// <summary>Outcome of <see cref="ITaskTrackerConnectionProvider.ProbeAsync"/>.</summary>
@@ -24,11 +34,17 @@ public sealed record TaskTrackerProbeResult(TaskTrackerConnectionHealth Health, 
 {
     public static TaskTrackerProbeResult Connected() => new(TaskTrackerConnectionHealth.Connected, null);
 
-    public static TaskTrackerProbeResult Invalid(string error) =>
-        new(TaskTrackerConnectionHealth.Invalid, error);
+    public static TaskTrackerProbeResult Offline(string error) =>
+        new(TaskTrackerConnectionHealth.Offline, error);
 
-    public static TaskTrackerProbeResult Unreachable(string error) =>
-        new(TaskTrackerConnectionHealth.Unreachable, error);
+    public static TaskTrackerProbeResult Auth(string error) =>
+        new(TaskTrackerConnectionHealth.Auth, error);
+
+    public static TaskTrackerProbeResult Blocked(string error) =>
+        new(TaskTrackerConnectionHealth.Blocked, error);
+
+    public static TaskTrackerProbeResult FromHealth(TaskTrackerConnectionHealth health, string? error) =>
+        new(health, health == TaskTrackerConnectionHealth.Connected ? null : error);
 }
 
 /// <summary>A board exposed by the tracker, identified by an opaque provider-native id.</summary>

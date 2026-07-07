@@ -14,7 +14,8 @@ namespace Throne.Api.Settings.Endpoints;
 public sealed class TaskTrackerConnectionsEndpoint(
     ITaskTrackerProviderRegistry registry,
     ITaskTrackerConnectionStore store,
-    TaskTrackerBoardCatalog catalog)
+    TaskTrackerBoardCatalog catalog,
+    TimeProvider clock)
 {
     public async Task<ActionResult<TaskTrackerConnectionsDto>> ListAsync(CancellationToken ct)
     {
@@ -25,9 +26,13 @@ public sealed class TaskTrackerConnectionsEndpoint(
             connections.Add(TaskTrackerSettingsDtoMapper.Connection(
                 provider.TrackerKey,
                 provider.DisplayName,
-                stored is null ? TaskTrackerConnectionState.Not_configured : TaskTrackerConnectionState.Connected,
+                // The last persisted probe outcome — not a green inferred from the row existing. A saved
+                // connection that has never been re-probed (null) keeps its upsert-time «connected».
+                stored is null
+                    ? TaskTrackerConnectionState.Not_configured
+                    : TaskTrackerSettingsDtoMapper.ToState(stored.LastStatus ?? TaskTrackerConnectionHealth.Connected),
                 stored?.BaseUrl,
-                error: null));
+                stored?.LastError));
         }
 
         return new OkObjectResult(new TaskTrackerConnectionsDto { Connections = connections });
@@ -46,6 +51,7 @@ public sealed class TaskTrackerConnectionsEndpoint(
         if (probe.Health == TaskTrackerConnectionHealth.Connected)
         {
             await store.SaveConnectionAsync(tracker, body.Base_url, body.Token, ct);
+            await store.SaveHealthAsync(tracker, TaskTrackerConnectionHealth.Connected, detail: null, clock.GetUtcNow(), ct);
             // Base URL / token may have changed under the same key — drop any boards cached against the
             // old credentials so the next search re-reads against the new connection.
             catalog.Invalidate(tracker);

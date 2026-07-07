@@ -7,7 +7,9 @@ namespace Throne.Domain.TaskTrackers;
 ///   <item><see cref="Available"/> — the last pull succeeded and the snapshot is authoritative.</item>
 ///   <item><see cref="Unavailable"/> — the tracker was unreachable / not connected at the last refresh;
 ///         the previous snapshot is kept.</item>
-///   <item><see cref="Gone"/> — the card returned 404/403 upstream; the previous snapshot is kept.</item>
+///   <item><see cref="Gone"/> — the card returned 404 upstream (deleted); the previous snapshot is
+///         kept. A 403 is NOT gone — it is a lost-access/auth signal that degrades to
+///         <see cref="Unavailable"/>, so a revoked token never masquerades as a vanished card.</item>
 /// </list>
 /// </summary>
 public static class CardAvailabilityNames

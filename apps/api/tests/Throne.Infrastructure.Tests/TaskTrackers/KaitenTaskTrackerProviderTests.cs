@@ -2,16 +2,14 @@ using System.Net;
 using FluentAssertions;
 using Throne.Application.Errors;
 using Throne.Application.TaskTrackers;
-using Throne.Infrastructure.TaskTrackers;
 using Throne.Infrastructure.TaskTrackers.Kaiten;
 using Throne.Infrastructure.TaskTrackers.Kaiten.Models;
+using static Throne.Infrastructure.Tests.TaskTrackers.KaitenProviderTestHarness;
 
 namespace Throne.Infrastructure.Tests.TaskTrackers;
 
 public sealed class KaitenTaskTrackerProviderTests
 {
-    private static readonly TaskTrackerConnectionDescriptor Descriptor = new("https://acme.kaiten.ru", "tok");
-
     [Fact(DisplayName = "Probe → Connected when the topology read succeeds")]
     public async Task Probe_connected()
     {
@@ -22,28 +20,49 @@ public sealed class KaitenTaskTrackerProviderTests
         result.Health.Should().Be(TaskTrackerConnectionHealth.Connected);
     }
 
-    [Theory(DisplayName = "Probe → Invalid on 401/403 (token rejected)")]
+    [Theory(DisplayName = "Probe → Auth on 401/403 (token rejected)")]
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.Forbidden)]
-    public async Task Probe_invalid_on_auth_failure(HttpStatusCode status)
+    public async Task Probe_auth_on_auth_failure(HttpStatusCode status)
     {
         var provider = Provider(spaces: (_, _) => throw new KaitenApiException(status, body: null));
 
         var result = await provider.ProbeAsync(Descriptor, CancellationToken.None);
 
-        result.Health.Should().Be(TaskTrackerConnectionHealth.Invalid);
+        result.Health.Should().Be(TaskTrackerConnectionHealth.Auth);
     }
 
-    [Fact(DisplayName = "Probe → Unreachable on a 5xx or a transport failure")]
-    public async Task Probe_unreachable()
+    [Fact(DisplayName = "Probe → Blocked on a 402 (tariff wall)")]
+    public async Task Probe_blocked_on_payment_required()
+    {
+        var provider = Provider(
+            spaces: (_, _) => throw new KaitenApiException(HttpStatusCode.PaymentRequired, body: null));
+
+        var result = await provider.ProbeAsync(Descriptor, CancellationToken.None);
+
+        result.Health.Should().Be(TaskTrackerConnectionHealth.Blocked);
+    }
+
+    [Fact(DisplayName = "Probe → Offline on a 5xx or a transport failure")]
+    public async Task Probe_offline()
     {
         var server = Provider(spaces: (_, _) => throw new KaitenApiException(HttpStatusCode.BadGateway, body: null));
         var transport = Provider(spaces: (_, _) => throw new HttpRequestException("no route"));
 
         (await server.ProbeAsync(Descriptor, CancellationToken.None)).Health
-            .Should().Be(TaskTrackerConnectionHealth.Unreachable);
+            .Should().Be(TaskTrackerConnectionHealth.Offline);
         (await transport.ProbeAsync(Descriptor, CancellationToken.None)).Health
-            .Should().Be(TaskTrackerConnectionHealth.Unreachable);
+            .Should().Be(TaskTrackerConnectionHealth.Offline);
+    }
+
+    [Fact(DisplayName = "Probe → Offline on a timeout (OperationCanceled while ct is not cancelled)")]
+    public async Task Probe_offline_on_timeout()
+    {
+        var provider = Provider(spaces: (_, _) => throw new OperationCanceledException("timed out"));
+
+        var result = await provider.ProbeAsync(Descriptor, CancellationToken.None);
+
+        result.Health.Should().Be(TaskTrackerConnectionHealth.Offline);
     }
 
     [Fact(DisplayName = "ListBoards reads boards nested in spaces (one call) and maps to opaque string ids")]
@@ -105,40 +124,15 @@ public sealed class KaitenTaskTrackerProviderTests
             .Which.Code.Should().Be(ErrorCodes.TaskTrackerConnectionRejected);
     }
 
-    private static KaitenTaskTrackerProvider Provider(
-        Func<KaitenConnection, CancellationToken, Task<IReadOnlyList<KaitenSpace>>> spaces,
-        Func<KaitenConnection, long, CancellationToken, Task<IReadOnlyList<KaitenBoard>>>? boards = null) =>
-        new(new StubKaitenClient(new StubTopologyApi(spaces, boards)));
-
-    private sealed class StubKaitenClient(IKaitenTopologyApi topology) : IKaitenClient
+    [Fact(DisplayName = "ListBoards translates a 402 into connection-blocked (tariff wall)")]
+    public async Task ListBoards_blocked()
     {
-        public IKaitenTopologyApi Topology { get; } = topology;
-        public IKaitenCardsApi Cards => throw new NotSupportedException();
-        public IKaitenCommentsApi Comments => throw new NotSupportedException();
-        public IKaitenTagsApi Tags => throw new NotSupportedException();
-        public IKaitenCardChildrenApi CardChildren => throw new NotSupportedException();
-    }
+        var provider = Provider(
+            spaces: (_, _) => throw new KaitenApiException(HttpStatusCode.PaymentRequired, body: null));
 
-    private sealed class StubTopologyApi(
-        Func<KaitenConnection, CancellationToken, Task<IReadOnlyList<KaitenSpace>>> spaces,
-        Func<KaitenConnection, long, CancellationToken, Task<IReadOnlyList<KaitenBoard>>>? boards) : IKaitenTopologyApi
-    {
-        public Task<IReadOnlyList<KaitenSpace>> ListSpacesAsync(KaitenConnection connection, CancellationToken ct) =>
-            spaces(connection, ct);
+        var act = () => provider.ListBoardsAsync(Descriptor, CancellationToken.None);
 
-        public Task<IReadOnlyList<KaitenBoard>> ListBoardsAsync(KaitenConnection connection, long spaceId, CancellationToken ct) =>
-            (boards ?? throw new NotSupportedException())(connection, spaceId, ct);
-
-        public Task<KaitenSpace> GetSpaceAsync(KaitenConnection connection, long spaceId, CancellationToken ct) =>
-            throw new NotSupportedException();
-
-        public Task<KaitenBoard> GetBoardAsync(KaitenConnection connection, long boardId, CancellationToken ct) =>
-            throw new NotSupportedException();
-
-        public Task<IReadOnlyList<KaitenColumn>> ListColumnsAsync(KaitenConnection connection, long boardId, CancellationToken ct) =>
-            throw new NotSupportedException();
-
-        public Task<IReadOnlyList<KaitenLane>> ListLanesAsync(KaitenConnection connection, long boardId, CancellationToken ct) =>
-            throw new NotSupportedException();
+        (await act.Should().ThrowAsync<ApiException>())
+            .Which.Code.Should().Be(ErrorCodes.TaskTrackerConnectionBlocked);
     }
 }

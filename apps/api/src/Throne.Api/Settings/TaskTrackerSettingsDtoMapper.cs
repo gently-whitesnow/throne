@@ -28,9 +28,10 @@ internal static class TaskTrackerSettingsDtoMapper
     public static TaskTrackerConnectionState ToState(TaskTrackerConnectionHealth health) => health switch
     {
         TaskTrackerConnectionHealth.Connected => TaskTrackerConnectionState.Connected,
-        TaskTrackerConnectionHealth.Invalid => TaskTrackerConnectionState.Invalid,
-        TaskTrackerConnectionHealth.Unreachable => TaskTrackerConnectionState.Unreachable,
-        _ => TaskTrackerConnectionState.Unreachable,
+        TaskTrackerConnectionHealth.Auth => TaskTrackerConnectionState.Auth,
+        TaskTrackerConnectionHealth.Offline => TaskTrackerConnectionState.Offline,
+        TaskTrackerConnectionHealth.Blocked => TaskTrackerConnectionState.Blocked,
+        _ => TaskTrackerConnectionState.Offline,
     };
 
     public static TaskTrackerBoardSearchDto SearchResult(

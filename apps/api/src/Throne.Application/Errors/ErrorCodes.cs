@@ -46,6 +46,7 @@ public static class ErrorCodes
     public const string TaskTrackerProviderUnsupported = "task_tracker.provider_unsupported";
     public const string TaskTrackerConnectionMissing = "task_tracker.connection_missing";
     public const string TaskTrackerConnectionRejected = "task_tracker.connection_rejected";
+    public const string TaskTrackerConnectionBlocked = "task_tracker.connection_blocked";
     public const string TaskTrackerUpstreamUnavailable = "task_tracker.upstream_unavailable";
     public const string CardAttachmentIntentNotFound = "card_attachment.intent_not_found";
     public const string CardAttachmentNotFound = "card_attachment.not_found";

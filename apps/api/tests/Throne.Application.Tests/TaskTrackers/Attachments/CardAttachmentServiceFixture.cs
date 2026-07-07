@@ -28,7 +28,7 @@ internal sealed class CardAttachmentServiceFixture
         Registry = Substitute.For<ITaskTrackerProviderRegistry>();
         Connections = Substitute.For<ITaskTrackerConnectionStore>();
         var resolver = new CardAttachmentResolver(Intents, Store, Registry, Connections);
-        Service = new CardAttachmentService(resolver, Store, new PassthroughUnitOfWork(), new FixedClock(Now));
+        Service = new CardAttachmentService(resolver, Store, Connections, new PassthroughUnitOfWork(), new FixedClock(Now));
     }
 
     internal InMemoryCardAttachmentStore Store { get; } = new();

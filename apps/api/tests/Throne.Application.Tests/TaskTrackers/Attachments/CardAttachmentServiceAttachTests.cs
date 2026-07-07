@@ -1,4 +1,5 @@
 using FluentAssertions;
+using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.TaskTrackers;
 using Throne.Application.TaskTrackers.Attachments;
@@ -138,6 +139,24 @@ public class CardAttachmentServiceAttachTests
         (await act.Should().ThrowAsync<ApiException>()).Which.Code
             .Should().Be(ErrorCodes.CardAttachmentInvalidCoordinate);
         fixture.Store.Items.Should().BeEmpty();
+    }
+
+    [Fact(DisplayName = "Attach при TaskTrackerConnectionException → 502 tracker_unavailable и фиксирует health")]
+    public async Task Attach_connection_exception_records_health_and_502()
+    {
+        var fixture = new CardAttachmentServiceFixture();
+        fixture.IntentExists();
+        fixture.TrackerConnected();
+        fixture.Provider.OnGetCard = _ =>
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Blocked, "tariff wall");
+
+        var act = () => fixture.Service.AttachAsync(AttachCommand(), CancellationToken.None);
+
+        (await act.Should().ThrowAsync<ApiException>()).Which.Code
+            .Should().Be(ErrorCodes.CardAttachmentTrackerUnavailable);
+        await fixture.Connections.Received().SaveHealthAsync(
+            Tracker, TaskTrackerConnectionHealth.Blocked, "tariff wall",
+            Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Attach OperationCanceled пробрасывается, не оборачивается в 502")]

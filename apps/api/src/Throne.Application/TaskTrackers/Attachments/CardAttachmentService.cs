@@ -13,6 +13,7 @@ namespace Throne.Application.TaskTrackers.Attachments;
 public sealed class CardAttachmentService(
     CardAttachmentResolver resolver,
     IIntentCardAttachmentStore store,
+    ITaskTrackerConnectionStore connections,
     IUnitOfWork unitOfWork,
     TimeProvider clock)
 {
@@ -29,10 +30,10 @@ public sealed class CardAttachmentService(
         var requestedCoordinate = BuildCoordinate(command);
         var connection = await resolver.ResolveConnectionAsync(requestedCoordinate.Tracker, ct);
 
-        var card = await PullOrThrowAsync(connection, requestedCoordinate.CardId, ct)
+        var now = clock.GetUtcNow();
+        var card = await PullOrThrowAsync(connection, requestedCoordinate.CardId, now, ct)
             ?? throw CardAttachmentFailures.CardNotFound(requestedCoordinate.Tracker, requestedCoordinate.CardId);
 
-        var now = clock.GetUtcNow();
         var coordinate = CanonicalizeCoordinate(requestedCoordinate, card);
         var snapshot = CardSnapshotFactory.From(card, now);
         var existing = await store.GetByCoordinateAsync(intentId, coordinate, ct);
@@ -129,16 +130,25 @@ public sealed class CardAttachmentService(
         string.Equals(card.BoardId, coordinate.BoardId, StringComparison.Ordinal)
         && string.Equals(card.CardId, coordinate.CardId, StringComparison.Ordinal);
 
-    private static async Task<TaskTrackerCard?> PullOrThrowAsync(
-        CardTrackerConnection connection, string cardId, CancellationToken ct)
+    private async Task<TaskTrackerCard?> PullOrThrowAsync(
+        CardTrackerConnection connection, string cardId, DateTimeOffset now, CancellationToken ct)
     {
         try
         {
-            return await connection.Provider.GetCardAsync(connection.Connection, cardId, ct);
+            // A non-null card OR a null (card genuinely 404-gone) both prove the connection is live —
+            // the pull reached an authorized, reachable tracker. Record «connected» either way.
+            var card = await connection.Provider.GetCardAsync(connection.Connection, cardId, ct);
+            await RecordHealthAsync(connection, TaskTrackerConnectionHealth.Connected, detail: null, now, ct);
+            return card;
         }
         catch (OperationCanceledException)
         {
             throw;
+        }
+        catch (TaskTrackerConnectionException ex)
+        {
+            await RecordHealthAsync(connection, ex.Health, ex.Message, now, ct);
+            throw CardAttachmentFailures.TrackerUnavailable(connection.Provider.TrackerKey, ex.Message);
         }
         catch (Exception ex)
         {
@@ -146,12 +156,13 @@ public sealed class CardAttachmentService(
         }
     }
 
-    private static async Task<TaskTrackerCard?> PullOrDegradeAsync(
+    private async Task<TaskTrackerCard?> PullOrDegradeAsync(
         CardTrackerConnection connection, IntentCardAttachment attachment, DateTimeOffset now, CancellationToken ct)
     {
         try
         {
             var card = await connection.Provider.GetCardAsync(connection.Connection, attachment.Coordinate.CardId, ct);
+            await RecordHealthAsync(connection, TaskTrackerConnectionHealth.Connected, detail: null, now, ct);
             if (card is null)
             {
                 attachment.MarkUnavailable(CardAvailabilityNames.Gone, now);
@@ -162,12 +173,25 @@ public sealed class CardAttachmentService(
         {
             throw;
         }
+        catch (TaskTrackerConnectionException ex)
+        {
+            await RecordHealthAsync(connection, ex.Health, ex.Message, now, ct);
+            attachment.MarkUnavailable(CardAvailabilityNames.Unavailable, now);
+            return null;
+        }
         catch (Exception)
         {
             attachment.MarkUnavailable(CardAvailabilityNames.Unavailable, now);
             return null;
         }
     }
+
+    // Card attach/refresh is the highest-signal probe there is — it hits the tracker on real operator
+    // intent — so its outcome feeds the persisted connection health. No-op when nothing is stored.
+    private Task RecordHealthAsync(
+        CardTrackerConnection connection, TaskTrackerConnectionHealth health, string? detail,
+        DateTimeOffset now, CancellationToken ct) =>
+        connections.SaveHealthAsync(connection.Provider.TrackerKey, health, detail, now, ct);
 
     private static IntentCardAttachment ApplyOrCreate(
         IntentCardAttachment? existing,

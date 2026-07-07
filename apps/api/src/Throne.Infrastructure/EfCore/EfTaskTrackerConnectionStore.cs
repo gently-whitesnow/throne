@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Throne.Application.Ports;
+using Throne.Application.TaskTrackers;
 using Throne.Infrastructure.EfCore.Rows;
 
 namespace Throne.Infrastructure.EfCore;
@@ -28,7 +29,10 @@ internal sealed class EfTaskTrackerConnectionStore(
         return new TaskTrackerStoredConnection(
             row.BaseUrl,
             row.Token,
-            row.SelectedBoards.Select(ToSelection).ToList());
+            row.SelectedBoards.Select(ToSelection).ToList(),
+            ParseStatus(row.LastStatus),
+            row.LastError,
+            row.LastCheckedAt);
     }
 
     public async Task SaveConnectionAsync(string tracker, string baseUrl, string token, CancellationToken ct)
@@ -67,6 +71,28 @@ internal sealed class EfTaskTrackerConnectionStore(
             .ExecuteDeleteAsync(ct);
     }
 
+    public async Task SaveHealthAsync(
+        string tracker,
+        TaskTrackerConnectionHealth status,
+        string? detail,
+        DateTimeOffset checkedAt,
+        CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tracker);
+        await using var context = await contextFactory.CreateDbContextAsync(ct);
+        var row = await context.Set<TaskTrackerConnectionRow>()
+            .FirstOrDefaultAsync(r => r.Tracker == tracker, ct);
+        if (row is null)
+        {
+            return;
+        }
+
+        row.LastStatus = status.ToString();
+        row.LastError = status == TaskTrackerConnectionHealth.Connected ? null : detail;
+        row.LastCheckedAt = checkedAt;
+        await context.SaveChangesAsync(ct);
+    }
+
     public async Task SaveSelectionAsync(
         string tracker,
         IReadOnlyList<TaskTrackerBoardSelection> selection,
@@ -86,6 +112,9 @@ internal sealed class EfTaskTrackerConnectionStore(
         row.SelectedBoards = selection.Select(ToRow).ToList();
         await context.SaveChangesAsync(ct);
     }
+
+    private static TaskTrackerConnectionHealth? ParseStatus(string? stored) =>
+        Enum.TryParse<TaskTrackerConnectionHealth>(stored, out var status) ? status : null;
 
     private static TaskTrackerBoardSelection ToSelection(TaskTrackerBoardSelectionRow row) =>
         new(row.SpaceId, row.SpaceTitle, row.BoardId, row.BoardTitle, row.ContextField);

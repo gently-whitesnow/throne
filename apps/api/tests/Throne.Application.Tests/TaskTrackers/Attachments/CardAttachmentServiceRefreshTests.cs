@@ -1,4 +1,5 @@
 using FluentAssertions;
+using NSubstitute;
 using Throne.Application.Errors;
 using Throne.Application.TaskTrackers;
 using Throne.Application.TaskTrackers.Attachments;
@@ -79,6 +80,55 @@ public class CardAttachmentServiceRefreshTests
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Gone);
         result.State.Snapshot.Title.Should().Be("Seed");
+    }
+
+    [Fact(DisplayName = "Refresh success фиксирует health=Connected в connections")]
+    public async Task Refresh_success_records_connected_health()
+    {
+        var fixture = new CardAttachmentServiceFixture();
+        var attachment = await fixture.SeedAttachedAsync();
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "Refreshed"));
+
+        await fixture.Service.RefreshAsync(
+            new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
+
+        await fixture.Connections.Received().SaveHealthAsync(
+            Tracker, TaskTrackerConnectionHealth.Connected, Arg.Any<string?>(),
+            Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Refresh на пропавшую карточку фиксирует health=Connected (404 — это не сбой связи)")]
+    public async Task Refresh_gone_records_connected_health()
+    {
+        var fixture = new CardAttachmentServiceFixture();
+        var attachment = await fixture.SeedAttachedAsync();
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(null);
+
+        var result = await fixture.Service.RefreshAsync(
+            new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
+
+        result.State.Availability.Should().Be(CardAvailabilityNames.Gone);
+        await fixture.Connections.Received().SaveHealthAsync(
+            Tracker, TaskTrackerConnectionHealth.Connected, Arg.Any<string?>(),
+            Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Refresh при TaskTrackerConnectionException(Auth) деградирует в unavailable и фиксирует health=Auth")]
+    public async Task Refresh_connection_exception_degrades_and_records_health()
+    {
+        var fixture = new CardAttachmentServiceFixture();
+        var attachment = await fixture.SeedAttachedAsync();
+        fixture.Provider.OnGetCard = _ =>
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Auth, "token rejected");
+
+        var result = await fixture.Service.RefreshAsync(
+            new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
+
+        result.State.Availability.Should().Be(CardAvailabilityNames.Unavailable);
+        result.State.Snapshot.Title.Should().Be("Seed");
+        await fixture.Connections.Received().SaveHealthAsync(
+            Tracker, TaskTrackerConnectionHealth.Auth, "token rejected",
+            Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Refresh на несуществующий attachment → 404 card_attachment.not_found")]
