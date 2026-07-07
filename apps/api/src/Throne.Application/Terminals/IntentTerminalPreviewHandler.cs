@@ -39,6 +39,7 @@ public sealed record IntentTerminalPreview(
 public sealed class IntentTerminalPreviewHandler(
     IIntentRepository intents,
     IIntentAttachmentRepository attachments,
+    IIntentCardAttachmentStore cardAttachments,
     IIntentRepositoryBindingRepository bindings,
     IIntentTerminalLaunchStore launches,
     PromptCompositionResolver resolver,
@@ -56,6 +57,7 @@ public sealed class IntentTerminalPreviewHandler(
                 new Dictionary<string, object?> { ["intent_id"] = query.IntentId });
 
         var attachmentList = await attachments.ListByIntentAsync(intent.Id, ct);
+        var cardAttachmentList = await cardAttachments.ListByIntentAsync(intent.Id, ct);
         var bindingList = await bindings.FindByIntentAsync(intent.Id, ct);
 
         var composition = await resolver.ResolveAsync(
@@ -73,7 +75,7 @@ public sealed class IntentTerminalPreviewHandler(
         var sessionSkillIds = skills.Where(s => s.Selected).Select(s => s.SkillId).ToArray();
 
         var workspaceMapText = await workspaceMap.ComposePreviewAsync(
-            intent, bindingList, attachmentList, sessionSkillIds, ct);
+            intent, bindingList, attachmentList, cardAttachmentList, sessionSkillIds, ct);
         return new IntentTerminalPreview(
             composition, intent.State.CurrentVersion, skills, workspaceMapText);
     }

@@ -2,6 +2,7 @@ using Throne.Application.Intents;
 using Throne.Application.Ports;
 using Throne.Domain.Intents;
 using Throne.Domain.Tags;
+using Throne.Domain.TaskTrackers;
 
 namespace Throne.Application.Terminals;
 
@@ -14,7 +15,8 @@ namespace Throne.Application.Terminals;
 public sealed class TerminalDeliveryMapContextReader(
     RunPreflightTagNames tagNames,
     IntentLinkPromptContextReader linkContext,
-    IIntentAttachmentRepository attachments)
+    IIntentAttachmentRepository attachments,
+    IIntentCardAttachmentStore cardAttachments)
 {
     public async Task<TerminalDeliveryMapContext> ReadAsync(
         string intentId, IReadOnlyList<TagId> tagIds, CancellationToken ct)
@@ -23,11 +25,13 @@ public sealed class TerminalDeliveryMapContextReader(
         var tags = await tagNames.ResolveAsync(tagIds, ct);
         var links = await linkContext.BuildAsync(id, ct);
         var attachmentList = await attachments.ListByIntentAsync(id, ct);
-        return new TerminalDeliveryMapContext(tags, links, attachmentList);
+        var cardAttachmentList = await cardAttachments.ListByIntentAsync(id, ct);
+        return new TerminalDeliveryMapContext(tags, links, attachmentList, cardAttachmentList);
     }
 }
 
 public sealed record TerminalDeliveryMapContext(
     IReadOnlyList<string> Tags,
     IReadOnlyList<IntentLinkPromptContext> Links,
-    IReadOnlyList<IntentAttachment> Attachments);
+    IReadOnlyList<IntentAttachment> Attachments,
+    IReadOnlyList<IntentCardAttachment> CardAttachments);

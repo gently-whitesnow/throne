@@ -11,7 +11,7 @@ using Throne.Domain.Tags;
 
 namespace Throne.Application.Tests.Terminals;
 
-public class RunPreflightPromptDeliveryTests
+public partial class RunPreflightPromptDeliveryTests
 {
     private const string IntentId = "intent-delivery-1";
     private const string Vendor = "stub";
@@ -178,46 +178,13 @@ public class RunPreflightPromptDeliveryTests
         }
     }
 
-    [Fact(DisplayName = "Приложения интента и скиллы сессии попадают в карту, но не в тело задачи")]
-    public async Task Attachments_and_skills_render_in_map_not_in_task_body()
-    {
-        var tmux = Substitute.For<ITmuxSessionManager>();
-        var events = Substitute.For<IDomainEventDispatcher>();
-        var attachmentRepo = Substitute.For<IIntentAttachmentRepository>();
-        var shot = new IntentAttachment("att-1", IntentId, "shot.png", "image/png", 10, DateTimeOffset.UnixEpoch);
-        attachmentRepo.ListByIntentAsync(new IntentId(IntentId), Arg.Any<CancellationToken>())
-            .Returns([shot]);
-        var (sut, workspace) = NewDelivery(tmux, events, attachmentRepo: attachmentRepo);
-
-        try
-        {
-            await sut.DeliverAsync(
-                NewRequest(
-                    workspace, adapter: null, userPrompt: "do the thing",
-                    sessionSkillIds: ["intent", "review"]),
-                CancellationToken.None);
-
-            var delivered = await File.ReadAllTextAsync(
-                Path.Combine(workspace, "throne-session.user-prompt.txt"));
-            delivered.Should().Contain("Скиллы сессии: intent, review");
-            delivered.Should().Contain("Приложения интента (открой через Read):");
-            delivered.Should().Contain("- \"shot.png\": .throne/attachments/att-1-shot.png");
-            // Environment blocks live in the map above the task, never inside the task body.
-            delivered.IndexOf("Приложения интента", StringComparison.Ordinal)
-                .Should().BeLessThan(delivered.IndexOf("do the thing", StringComparison.Ordinal));
-        }
-        finally
-        {
-            CleanUp(workspace);
-        }
-    }
-
     private static (RunPreflightPromptDelivery Delivery, string Workspace) NewDelivery(
         ITmuxSessionManager tmux,
         IDomainEventDispatcher events,
         ITagRepository? tagRepo = null,
         IIntentLinkRepository? linkRepo = null,
-        IIntentAttachmentRepository? attachmentRepo = null)
+        IIntentAttachmentRepository? attachmentRepo = null,
+        IIntentCardAttachmentStore? cardAttachmentStore = null)
     {
         var workspace = Path.Combine(Path.GetTempPath(), $"throne-delivery-{Guid.NewGuid():N}");
         var options = new RunPreflightOptions
@@ -235,7 +202,8 @@ public class RunPreflightPromptDeliveryTests
         var mapContext = new TerminalDeliveryMapContextReader(
             new RunPreflightTagNames(tagRepo ?? Substitute.For<ITagRepository>()),
             new IntentLinkPromptContextReader(linkRepo ?? EmptyLinks()),
-            attachmentRepo ?? EmptyAttachments());
+            attachmentRepo ?? EmptyAttachments(),
+            cardAttachmentStore ?? EmptyCardAttachments());
         var delivery = new RunPreflightPromptDelivery(
             tmux, readinessWaiter, confirmer, new TerminalPromptSubmitSignals(), events,
             mapContext, NullLogger<RunPreflightPromptDelivery>.Instance);
@@ -260,6 +228,14 @@ public class RunPreflightPromptDeliveryTests
         repo.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns([]);
         return repo;
+    }
+
+    private static IIntentCardAttachmentStore EmptyCardAttachments()
+    {
+        var store = Substitute.For<IIntentCardAttachmentStore>();
+        store.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
+        return store;
     }
 
     private static IIntentLinkRepository EmptyLinks()

@@ -56,6 +56,9 @@ public class IntentTerminalPreviewLinksTests
         var attachments = Substitute.For<IIntentAttachmentRepository>();
         attachments.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns([]);
+        var cardAttachments = Substitute.For<IIntentCardAttachmentStore>();
+        cardAttachments.ListByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
+            .Returns([]);
         var bindings = Substitute.For<IIntentRepositoryBindingRepository>();
         bindings.FindByIntentAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>())
             .Returns([]);
@@ -66,6 +69,7 @@ public class IntentTerminalPreviewLinksTests
         return new IntentTerminalPreviewHandler(
             intents,
             attachments,
+            cardAttachments,
             bindings,
             launches,
             NewResolver(),

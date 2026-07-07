@@ -1,5 +1,6 @@
 using System.Text;
 using Throne.Application.Intents;
+using Throne.Domain.TaskTrackers;
 
 namespace Throne.Application.Terminals;
 
@@ -15,8 +16,9 @@ namespace Throne.Application.Terminals;
 ///
 /// Two environment blocks live here rather than in the editable task body: the intent's attachments
 /// (staged to <c>.throne/attachments/</c> on spawn, listed here as name + relative path the agent
-/// opens with <c>Read</c>) and the session skills the operator loaded for this mode. Both are context
-/// the agent reads, not text it edits — keeping them out of the round-tripping user_prompt.
+/// opens with <c>Read</c>), attached card snapshots and the session skills the operator loaded for
+/// this mode. These are context the agent reads, not text it edits — keeping them out of the
+/// round-tripping user_prompt.
 /// </summary>
 internal static class WorkspaceMapPrompt
 {
@@ -27,6 +29,7 @@ internal static class WorkspaceMapPrompt
         string? title,
         IReadOnlyList<IntentLinkPromptContext> links,
         IReadOnlyList<IntentAttachment> attachments,
+        IReadOnlyList<IntentCardAttachment> cardAttachments,
         IReadOnlyList<string> sessionSkillIds,
         string userPrompt)
     {
@@ -41,6 +44,7 @@ internal static class WorkspaceMapPrompt
         AppendLinks(map, links);
         AppendSkills(map, sessionSkillIds);
         AppendAttachments(map, attachments);
+        AppendCards(map, cardAttachments);
 
         map.Append("=======================\n\n");
         map.Append(userPrompt);
@@ -121,6 +125,31 @@ internal static class WorkspaceMapPrompt
             map.Append("- \"").Append(EscapeFileName(att.FileName)).Append("\": ")
                 .Append(WorkspaceAttachmentPaths.RelativePath(att.Id, att.FileName))
                 .Append('\n');
+        }
+    }
+
+    private static void AppendCards(StringBuilder map, IReadOnlyList<IntentCardAttachment> cards)
+    {
+        if (cards is not { Count: > 0 })
+        {
+            return;
+        }
+        map.Append("Приложенные карточки интента:\n");
+        foreach (var card in cards)
+        {
+            var snapshot = card.State.Snapshot;
+            map.Append("[card ")
+                .Append(card.Coordinate.Tracker).Append('/')
+                .Append(card.Coordinate.BoardId).Append('/')
+                .Append(card.Coordinate.CardId).Append(']');
+            if (snapshot.Archived)
+            {
+                map.Append(" (в архиве)");
+            }
+            map.Append('\n');
+            map.Append("Title: ").Append(snapshot.Title).Append('\n');
+            map.Append("ColumnTitle: ").Append(snapshot.ColumnTitle ?? "").Append('\n');
+            map.Append("Description:\n").Append(snapshot.Description ?? "").Append('\n');
         }
     }
 
