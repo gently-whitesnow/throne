@@ -6,4 +6,6 @@
 export const taskTrackersEndpoints = {
   listTaskTrackers: () => "/task-trackers",
   getTaskTracker: (tracker: string) => `/task-trackers/${tracker}`,
+  listBoardCards: (tracker: string, board: string) => `/task-trackers/${tracker}/boards/${board}/cards`,
+  getBoardCard: (tracker: string, board: string, card: string) => `/task-trackers/${tracker}/boards/${board}/cards/${card}`,
 } as const;

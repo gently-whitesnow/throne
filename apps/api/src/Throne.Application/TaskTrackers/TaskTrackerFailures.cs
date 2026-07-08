@@ -40,6 +40,19 @@ public static class TaskTrackerFailures
             $"The '{trackerKey}' tracker refused the request on tariff-plan grounds (402): {detail}",
             new Dictionary<string, object?> { ["tracker"] = trackerKey });
 
+    // Reuses the card-axis 404 code (card_attachment.card_not_found) rather than minting a task-tracker
+    // twin: the browser only needs the 404 status, and the shared card axis keeps one «card not found»
+    // wire code instead of tripping the ErrorCodes public-member budget with a synonym.
+    public static ApiException CardNotFound(string trackerKey, string cardId) =>
+        new(
+            ErrorCodes.CardAttachmentCardNotFound,
+            $"Card '{cardId}' is not readable on task tracker '{trackerKey}' (vanished, forbidden, or not on this board).",
+            new Dictionary<string, object?>
+            {
+                ["tracker"] = trackerKey,
+                ["card_id"] = cardId,
+            });
+
     public static ApiException UpstreamUnavailable(string trackerKey, string detail) =>
         new(
             ErrorCodes.TaskTrackerUpstreamUnavailable,

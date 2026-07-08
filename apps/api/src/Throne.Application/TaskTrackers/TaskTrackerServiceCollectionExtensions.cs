@@ -16,6 +16,7 @@ public static class TaskTrackerServiceCollectionExtensions
     {
         services.AddSingleton<ITaskTrackerProviderRegistry, TaskTrackerProviderRegistry>();
         services.AddSingleton<TaskTrackerBoardCatalog>();
+        services.AddSingleton<BoardCardBrowserService>();
         return services;
     }
 }

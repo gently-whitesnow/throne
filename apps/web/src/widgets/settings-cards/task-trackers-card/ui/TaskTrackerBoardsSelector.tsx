@@ -2,12 +2,10 @@ import { AlertCircle, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  taskTrackerContextFieldOptions,
   useSetTaskTrackerBoards,
   useTaskTrackerBoardSelectionQuery,
   type TaskTrackerBoardMatch,
-  type TaskTrackerBoardSelectionEntry,
-  type TaskTrackerContextField
+  type TaskTrackerBoardSelectionEntry
 } from "@/entities/task-tracker";
 import { Button } from "@/shared/ui";
 
@@ -21,9 +19,11 @@ type SelectionState = Map<string, TaskTrackerBoardSelectionEntry>;
 
 /**
  * Выбор досок для подключённого трекера через поиск/автокомплит. Выбранные
- * доски показываются чипами с per-board полем «контекст»; добавление — только
- * через поиск по имени (одна дешёвая загрузка топологии на бэке, не плоский
- * список всех досок). Полный выбранный набор шлётся в PUT при «Сохранить».
+ * доски появляются в сайдбаре как браузеры карточек (ADR-0052) — по одной доске
+ * на строку. Per-board группировка интентов больше не применяется, поэтому
+ * `context_field` фиксируется в `"none"` только ради контракта PUT-запроса.
+ * Добавление — только через поиск по имени (одна дешёвая загрузка топологии на
+ * бэке). Полный выбранный набор шлётся в PUT при «Сохранить».
  */
 export function TaskTrackerBoardsSelector({
   tracker
@@ -81,19 +81,6 @@ export function TaskTrackerBoardsSelector({
     });
   };
 
-  const setContext = (
-    boardId: string,
-    contextField: TaskTrackerContextField
-  ) => {
-    setSelection((prev) => {
-      const existing = prev.get(boardId);
-      if (!existing) return prev;
-      const next = new Map(prev);
-      next.set(boardId, { ...existing, context_field: contextField });
-      return next;
-    });
-  };
-
   const handleSave = () => {
     saveBoards.mutate({
       tracker,
@@ -142,43 +129,17 @@ export function TaskTrackerBoardsSelector({
                   {chip.space_title}
                 </span>
               </span>
-              <div className="flex items-center gap-1.5">
-                <label
-                  htmlFor={`task-tracker-context-${tracker}-${chip.board_id}`}
-                  className="text-xs text-base-content/60"
-                >
-                  Контекст
-                </label>
-                <select
-                  id={`task-tracker-context-${tracker}-${chip.board_id}`}
-                  data-testid={`task-tracker-context-${tracker}-${chip.board_id}`}
-                  className="select select-sm select-bordered text-xs"
-                  value={chip.context_field}
-                  onChange={(event) => {
-                    setContext(
-                      chip.board_id,
-                      event.target.value as TaskTrackerContextField
-                    );
-                  }}
-                >
-                  {taskTrackerContextFieldOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  aria-label={`Убрать доску ${chip.board_title ?? chip.board_id}`}
-                  data-testid={`task-tracker-board-remove-${tracker}-${chip.board_id}`}
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => {
-                    removeBoard(chip.board_id);
-                  }}
-                >
-                  <X aria-hidden size={14} strokeWidth={2} />
-                </button>
-              </div>
+              <button
+                type="button"
+                aria-label={`Убрать доску ${chip.board_title ?? chip.board_id}`}
+                data-testid={`task-tracker-board-remove-${tracker}-${chip.board_id}`}
+                className="btn btn-ghost btn-xs"
+                onClick={() => {
+                  removeBoard(chip.board_id);
+                }}
+              >
+                <X aria-hidden size={14} strokeWidth={2} />
+              </button>
             </li>
           ))}
         </ul>
@@ -202,7 +163,9 @@ function buildSelection(
 ): SelectionState {
   const next: SelectionState = new Map();
   for (const board of boards) {
-    next.set(board.board_id, board);
+    // Per-board grouping is gone post-mirror; normalise every saved board to the
+    // vestigial `"none"` so re-saving keeps the PUT contract satisfied.
+    next.set(board.board_id, { ...board, context_field: "none" });
   }
   return next;
 }

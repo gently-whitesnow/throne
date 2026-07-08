@@ -73,6 +73,101 @@ namespace Throne.TaskTrackers.Contracts.Generated
 
     }
 
+    /// <summary>
+    /// Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A read-only, non-authoritative view — never an intent and never written back upstream. List rows may omit `description` (the provider fills it only on the single-card read).
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerCardDto
+    {
+
+        /// <summary>
+        /// Provider-native card/issue id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Card_id { get; set; }
+
+        /// <summary>
+        /// Provider-native board/space id the card lives on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("board_id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Board_id { get; set; }
+
+        /// <summary>
+        /// Provider-native column id, when the tracker exposes columns.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("column_id")]
+        public string Column_id { get; set; }
+
+        /// <summary>
+        /// Human-readable title of the card's current column.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("column_title")]
+        public string Column_title { get; set; }
+
+        /// <summary>
+        /// Card title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; }
+
+        /// <summary>
+        /// Card description (Markdown as provided by the tracker); null on list rows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; }
+
+        /// <summary>
+        /// Last upstream update time, when the tracker exposes it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
+        public System.DateTimeOffset? Updated_at { get; set; }
+
+        /// <summary>
+        /// Always false in browser results — archived cards are excluded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("archived")]
+        public bool Archived { get; set; }
+
+        /// <summary>
+        /// Opaque provider-supplied revision cursor (for Kaiten — card.version).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_version")]
+        public string Card_version { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TaskTrackerBoardCardsResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("cards")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TaskTrackerCardDto> Cards { get; set; } = new System.Collections.ObjectModel.Collection<TaskTrackerCardDto>();
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProblemDetails
     {

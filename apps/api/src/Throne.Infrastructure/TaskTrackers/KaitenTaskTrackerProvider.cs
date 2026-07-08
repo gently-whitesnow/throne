@@ -3,6 +3,7 @@ using System.Net;
 using Throne.Application.Errors;
 using Throne.Application.TaskTrackers;
 using Throne.Infrastructure.TaskTrackers.Kaiten;
+using Throne.Infrastructure.TaskTrackers.Kaiten.Models;
 
 namespace Throne.Infrastructure.TaskTrackers;
 
@@ -85,6 +86,42 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
         {
             throw TaskTrackerFailures.UpstreamUnavailable(TrackerKey, $"Request timed out: {ex.Message}");
+        }
+    }
+
+    public async Task<IReadOnlyList<TaskTrackerCard>> ListBoardCardsAsync(
+        TaskTrackerConnectionDescriptor connection,
+        string boardId,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(boardId);
+        var kaiten = ToConnection(connection);
+        var board = KaitenCardProjection.ParseId(boardId);
+        try
+        {
+            // condition=1 asks Kaiten for live cards only; the post-filter is belt-and-suspenders so an
+            // archived row can never leak into the browser even if the server ignores the filter.
+            var query = new KaitenCardQuery(BoardId: board, Condition: KaitenCardConditions.Live);
+            var cards = await client.Cards.ListAllCardsAsync(kaiten, query, ct);
+            var columnTitles = await LoadColumnTitlesAsync(kaiten, board, ct);
+            return cards
+                .Where(c => c.Condition == KaitenCardConditions.Live)
+                .Select(c => KaitenCardProjection.ToCard(c, columnTitles))
+                .ToList();
+        }
+        catch (KaitenApiException ex)
+        {
+            throw new TaskTrackerConnectionException(Classify(ex.StatusCode), ex.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
+        }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new TaskTrackerConnectionException(
+                TaskTrackerConnectionHealth.Offline, $"Request timed out: {ex.Message}");
         }
     }
 

@@ -49,6 +49,29 @@ namespace Throne.Api.Generated
         [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/task-trackers/{tracker}", Name = "getTaskTracker")]
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerProviderDto>> GetTaskTracker([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker);
 
+        /// <summary>
+        /// List the active cards visible on a board (card-browser read surface).
+        /// </summary>
+        /// <remarks>
+        /// Operator read surface for browsing a connected board (ADR-0052/0053) — never touches intents. Returns every non-archived card across all columns of the board; no server-side search or pagination in this MVP. Connection degradation is classified per ADR-0053: a revoked token is 409, a tariff wall 402, an unreachable tracker 502.
+        /// </remarks>
+        /// <param name="board">Provider-native board/space id to list cards from.</param>
+        /// <returns>Active cards on the board.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/task-trackers/{tracker}/boards/{board}/cards", Name = "listBoardCards")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardCardsResponse>> ListBoardCards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string board);
+
+        /// <summary>
+        /// Read a single card of a board read-only (title + description).
+        /// </summary>
+        /// <remarks>
+        /// Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source of the description shown in the card browser. Never touches intents. A vanished/forbidden card or one that does not belong to this board is 404; connection degradation is classified per ADR-0053 (409 auth, 402 blocked, 502 offline).
+        /// </remarks>
+        /// <param name="board">Provider-native board/space id the card must belong to.</param>
+        /// <param name="card">Provider-native card/issue id.</param>
+        /// <returns>The card snapshot.</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/task-trackers/{tracker}/boards/{board}/cards/{card}", Name = "getBoardCard")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerCardDto>> GetBoardCard([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string board, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string card);
+
     }
 
     

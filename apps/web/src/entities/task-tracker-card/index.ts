@@ -3,7 +3,9 @@ export type {
   CardAvailability,
   CardAvailabilityMeta,
   AttachCardRequest,
-  TaskTrackerProvider
+  TaskTrackerProvider,
+  TaskTrackerCard,
+  TaskTrackerBoardCardsResponse
 } from "./model/types";
 export { cardAvailabilityMeta } from "./model/types";
 export {
@@ -26,3 +28,9 @@ export {
   useDetachCardMutation,
   useRefreshCardMutation
 } from "./api/card-attachments-queries";
+export { fetchBoardCards, fetchBoardCard } from "./api/board-cards-api";
+export {
+  boardCardsQueryKeys,
+  useBoardCardsQuery,
+  useBoardCardQuery
+} from "./api/board-cards-queries";

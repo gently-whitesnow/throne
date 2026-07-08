@@ -118,6 +118,10 @@ public class TaskTrackerBoardCatalogTests
             return Task.FromResult(topology);
         }
 
+        public Task<IReadOnlyList<TaskTrackerCard>> ListBoardCardsAsync(
+            TaskTrackerConnectionDescriptor connection, string boardId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
+
         public Task<TaskTrackerCard?> GetCardAsync(
             TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
             Task.FromResult<TaskTrackerCard?>(null);

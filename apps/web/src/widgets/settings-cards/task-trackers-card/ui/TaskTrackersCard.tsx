@@ -13,8 +13,9 @@ import { TaskTrackerConnectionForm } from "./TaskTrackerConnectionForm";
  * Settings → «Таск-трекеры».
  *
  * Перечисляет зарегистрированных провайдеров (Kaiten и др.): подключение по
- * base URL + API-токену и, для подключённых, выбор досок с per-board полем
- * «контекст». Boards-запрос монтируется только при `state === "connected"`.
+ * base URL + API-токену и, для подключённых, выбор досок, которые появятся в
+ * сайдбаре как браузеры карточек. Boards-запрос монтируется только при
+ * `state === "connected"`.
  */
 export function TaskTrackersCard() {
   const query = useTaskTrackerConnectionsQuery();
@@ -37,8 +38,8 @@ export function TaskTrackersCard() {
             Таск-трекеры
           </h3>
           <p className="m-0 max-w-[60ch] text-sm leading-relaxed text-base-content/70">
-            Подключите Kaiten по base URL и API-токену, затем выберите доски и
-            поле, из которого выводить «контекст» карточек.
+            Подключите Kaiten по base URL и API-токену, затем выберите доски —
+            они появятся в сайдбаре как браузеры карточек.
           </p>
         </div>
       </header>

@@ -18,24 +18,25 @@ internal static class KaitenProviderTestHarness
         Func<KaitenConnection, CancellationToken, Task<IReadOnlyList<KaitenSpace>>>? spaces = null,
         Func<KaitenConnection, long, CancellationToken, Task<IReadOnlyList<KaitenBoard>>>? boards = null,
         Func<KaitenConnection, long, CancellationToken, Task<KaitenCard>>? card = null,
+        Func<KaitenConnection, KaitenCardQuery, CancellationToken, Task<IReadOnlyList<KaitenCard>>>? listCards = null,
         Func<KaitenConnection, long, CancellationToken, Task<IReadOnlyList<KaitenColumn>>>? columns = null) =>
         new(new StubKaitenClient(
             new StubTopologyApi(
                 spaces ?? ((_, _) => Task.FromResult<IReadOnlyList<KaitenSpace>>([])),
                 boards,
                 columns),
-            new StubCardsApi(card)));
+            new StubCardsApi(card, listCards)));
 
-    public static KaitenCard SampleCard(long columnId) =>
+    public static KaitenCard SampleCard(long columnId, long id = 42, int condition = KaitenCardConditions.Live) =>
         new(
-            Id: 42,
+            Id: id,
             Title: "Card",
             Description: "body",
             BoardId: 10,
             ColumnId: columnId,
             LaneId: null,
             TagIds: null,
-            Condition: KaitenCardConditions.Live,
+            Condition: condition,
             Created: null,
             Updated: null,
             ColumnChangedAt: null,
@@ -51,16 +52,17 @@ internal static class KaitenProviderTestHarness
     }
 
     private sealed class StubCardsApi(
-        Func<KaitenConnection, long, CancellationToken, Task<KaitenCard>>? card) : IKaitenCardsApi
+        Func<KaitenConnection, long, CancellationToken, Task<KaitenCard>>? card,
+        Func<KaitenConnection, KaitenCardQuery, CancellationToken, Task<IReadOnlyList<KaitenCard>>>? listCards) : IKaitenCardsApi
     {
         public Task<KaitenCard> GetCardAsync(KaitenConnection connection, long cardId, CancellationToken ct) =>
             (card ?? throw new NotSupportedException())(connection, cardId, ct);
 
         public Task<IReadOnlyList<KaitenCard>> ListCardsAsync(KaitenConnection connection, KaitenCardQuery query, CancellationToken ct) =>
-            throw new NotSupportedException();
+            (listCards ?? throw new NotSupportedException())(connection, query, ct);
 
         public Task<IReadOnlyList<KaitenCard>> ListAllCardsAsync(KaitenConnection connection, KaitenCardQuery query, CancellationToken ct) =>
-            throw new NotSupportedException();
+            (listCards ?? throw new NotSupportedException())(connection, query, ct);
 
         public Task<KaitenCard> CreateCardAsync(KaitenConnection connection, KaitenCreateCardRequest request, CancellationToken ct) =>
             throw new NotSupportedException();

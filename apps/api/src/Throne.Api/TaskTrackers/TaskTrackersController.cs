@@ -10,7 +10,9 @@ namespace Throne.Api.TaskTrackers;
 /// resolve straight off <see cref="ITaskTrackerProviderRegistry"/>; resolving an unknown key is the
 /// first server boundary that closes the open wire key (422 provider-unsupported).
 /// </summary>
-public sealed class TaskTrackersController(ITaskTrackerProviderRegistry registry) : TaskTrackersControllerBase
+public sealed class TaskTrackersController(
+    ITaskTrackerProviderRegistry registry,
+    BoardCardBrowserService cardBrowser) : TaskTrackersControllerBase
 {
     public override Task<ActionResult<TaskTrackerCatalogResponse>> ListTaskTrackers()
     {
@@ -28,6 +30,20 @@ public sealed class TaskTrackersController(ITaskTrackerProviderRegistry registry
                 tracker,
                 registry.AllProviders.Select(p => p.TrackerKey));
         return Task.FromResult<ActionResult<TaskTrackerProviderDto>>(new OkObjectResult(ToDto(provider)));
+    }
+
+    public override async Task<ActionResult<TaskTrackerBoardCardsResponse>> ListBoardCards(
+        string tracker, string board)
+    {
+        var cards = await cardBrowser.ListBoardCardsAsync(tracker, board, HttpContext.RequestAborted);
+        return new OkObjectResult(TaskTrackerCardDtoMapper.ToResponse(cards));
+    }
+
+    public override async Task<ActionResult<TaskTrackerCardDto>> GetBoardCard(
+        string tracker, string board, string card)
+    {
+        var result = await cardBrowser.GetBoardCardAsync(tracker, board, card, HttpContext.RequestAborted);
+        return new OkObjectResult(TaskTrackerCardDtoMapper.ToDto(result));
     }
 
     private static TaskTrackerProviderDto ToDto(ITaskTrackerProvider provider) => new()
