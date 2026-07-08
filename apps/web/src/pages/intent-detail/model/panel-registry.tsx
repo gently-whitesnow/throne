@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { IntentDetail } from "@/entities/intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
 import { AgentTerminalPanel } from "@/widgets/agent-terminal-panel";
+import { CardAttachmentsList } from "@/widgets/card-attachments-list";
 import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
 import { IntentLinksSection } from "@/widgets/intent-links-section";
 import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
@@ -31,6 +32,12 @@ export const intentDetailPanels: readonly IntentPanelDescriptor[] = [
     placement: "primary",
     order: 10,
     Component: ({ intent }) => <IntentAttachmentsPanel intentId={intent.id} />
+  },
+  {
+    id: "card-attachments",
+    placement: "primary",
+    order: 20,
+    Component: ({ intent }) => <CardAttachmentsList intentId={intent.id} />
   },
   {
     id: "repository-bindings",

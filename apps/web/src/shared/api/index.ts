@@ -8,6 +8,7 @@ export { settingsEndpoints } from "./generated/settings/endpoints";
 export { capabilitiesEndpoints } from "./generated/capabilities/endpoints";
 export { terminalEndpoints } from "./generated/terminal/endpoints";
 export { taskTrackersEndpoints } from "./generated/task-trackers/endpoints";
+export { cardAttachmentsEndpoints } from "./generated/card-attachments/endpoints";
 export { ideEndpoints } from "./generated/ide/endpoints";
 export { INTENT_ATTACHMENTS_CHANGED_EVENT } from "./intent-attachment-events";
 export type { components as IntentsComponents } from "./generated/intents/types";
@@ -20,6 +21,7 @@ export type { components as SettingsComponents } from "./generated/settings/type
 export type { components as CapabilitiesComponents } from "./generated/capabilities/types";
 export type { components as TerminalComponents } from "./generated/terminal/types";
 export type { components as TaskTrackersComponents } from "./generated/task-trackers/types";
+export type { components as CardAttachmentsComponents } from "./generated/card-attachments/types";
 export type { components as IdeComponents } from "./generated/ide/types";
 export type { components as SharedComponents } from "./generated/shared/types";
 export {
