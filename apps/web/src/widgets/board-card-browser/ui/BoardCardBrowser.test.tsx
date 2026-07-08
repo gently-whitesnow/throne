@@ -135,7 +135,7 @@ describe("BoardCardBrowser", () => {
     await waitFor(() => {
       expect(httpPost).toHaveBeenCalledWith(expect.any(String), {
         title: "Починить логин",
-        text: ""
+        text: "Починить логин"
       });
     });
     await waitFor(() => {

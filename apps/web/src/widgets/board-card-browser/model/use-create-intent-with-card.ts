@@ -38,11 +38,17 @@ export function useCreateIntentWithCard(
     setPending(true);
     setError(null);
 
+    // Intent.Create rejects an empty body, so seed the text from the card TITLE
+    // (with an id fallback for a blank title). The description is deliberately
+    // NOT copied — it stays read-only context on the attachment (ADR-0052).
+    const seed =
+      card.title.trim().length > 0 ? card.title : `Карточка ${card.card_id}`;
+
     let created: IntentDetail;
     try {
       created = await httpPost<IntentDetail>(intentsEndpoints.createIntent(), {
         title: card.title,
-        text: ""
+        text: seed
       });
     } catch (err: unknown) {
       setError(errorMessage(err, { base: "Не удалось создать интент" }));
