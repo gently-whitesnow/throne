@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 
 import type { IntentDetail } from "@/entities/intent";
 import { IntentAttachmentsPanel } from "@/features/manage-intent-attachments";
-import { AgentTerminalPanel } from "@/widgets/agent-terminal-panel";
-import { CardAttachmentsList } from "@/widgets/card-attachments-list";
-import { IntentActivityTimeline } from "@/widgets/intent-activity-timeline";
-import { IntentLinksSection } from "@/widgets/intent-links-section";
-import { PullRequestCommentsSection } from "@/widgets/pull-request-comments";
-import { RepositoryBindingsList } from "@/widgets/repository-bindings-list";
+import { AgentTerminalPanel } from "@/widgets/intent-panels/agent-terminal-panel";
+import { CardAttachmentsList } from "@/widgets/intent-panels/card-attachments-list";
+import { IntentActivityTimeline } from "@/widgets/intent-panels/intent-activity-timeline";
+import { IntentLinksSection } from "@/widgets/intent-panels/intent-links-section";
+import { PullRequestCommentsSection } from "@/widgets/intent-panels/pull-request-comments";
+import { RepositoryBindingsList } from "@/widgets/intent-panels/repository-bindings-list";
 
 import type { PanelGating } from "./select-panels";
 

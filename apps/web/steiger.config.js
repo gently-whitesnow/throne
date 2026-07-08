@@ -12,16 +12,8 @@ export default defineConfig([
     // Правило advisory-шумит на идиоме, поэтому off, а не warn (иначе 35 warnings
     // на каждый прогон гейта глушат полезный сигнал). Реальные «висяки» (slice без
     // ссылок) ловятся при ревью, а не этим правилом.
-    //
-    // excessive-slicing — та же идиома: слой widgets держит по одному слайсу на
-    // панель детали интента (repository-bindings-list, pull-request-comments,
-    // card-attachments-list, …), и их число закономерно перевалило за advisory-порог
-    // 20 (он захардкожен в плагине, не настраивается). Совет «сгруппировать/слить со
-    // страницей» противоречит нашей слоистой композиции, поэтому off. Слой pages
-    // (7 слайсов) под порогом с большим запасом — потери сигнала для страниц нет.
     rules: {
-      "fsd/insignificant-slice": "off",
-      "fsd/excessive-slicing": "off"
+      "fsd/insignificant-slice": "off"
     }
   },
   {
