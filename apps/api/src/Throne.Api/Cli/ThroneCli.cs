@@ -9,14 +9,26 @@ namespace Throne.Api.Cli;
 /// </summary>
 public static class ThroneCli
 {
+    /// <summary>
+    /// Lets an in-process host ask for the raw <c>serve</c> path when it cannot pass
+    /// a CLI verb. <see cref="Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory{TEntryPoint}"/>
+    /// boots <c>Program.Main</c> with no args, which resolves to <c>start</c>; <c>start</c>
+    /// records the caller's pid as a live daemon and then refuses every further boot in
+    /// the same process, so a test host that boots many factories dies with «The entry
+    /// point exited without ever building an IHost». Only an implicit <c>start</c> is
+    /// upgraded, so an explicit verb from the real CLI is never touched; unset in normal use.
+    /// </summary>
+    public const string CommandEnvVar = "THRONE_CLI_COMMAND";
+
     public static async Task<int> RunAsync(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
         var request = CliRequest.Parse(args);
+        var command = ResolveCommand(request.Command);
         var ct = CancellationToken.None;
 
-        switch (request.Command)
+        switch (command)
         {
             case CliCommand.Help:
                 return CliHelp.Print();
@@ -48,4 +60,10 @@ public static class ThroneCli
                 return await StartCommand.RunAsync(request, ct);
         }
     }
+
+    private static CliCommand ResolveCommand(CliCommand parsed) =>
+        parsed == CliCommand.Start
+            && Environment.GetEnvironmentVariable(CommandEnvVar) == "serve"
+            ? CliCommand.Serve
+            : parsed;
 }
