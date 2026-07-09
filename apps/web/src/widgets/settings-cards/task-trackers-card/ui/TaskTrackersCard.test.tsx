@@ -117,7 +117,7 @@ describe("TaskTrackersCard", () => {
     });
   });
 
-  it("рендерит сохранённую селекцию чипами с полем «контекст»", async () => {
+  it("рендерит сохранённую селекцию чипами без per-board поля «контекст»", async () => {
     fetchTaskTrackerConnections.mockResolvedValue(connections([connectedRow]));
     fetchTaskTrackerBoardSelection.mockResolvedValue({
       tracker: "kaiten",
@@ -139,10 +139,44 @@ describe("TaskTrackersCard", () => {
     });
     expect(await screen.findByText("Backlog")).toBeTruthy();
     expect(screen.getByText("Engineering")).toBeTruthy();
-    const context = screen.getByTestId<HTMLSelectElement>(
-      "task-tracker-context-kaiten-b1"
-    );
-    expect(context.value).toBe("lane");
+    // Per-board grouping is gone post-mirror: the «контекст» select no longer exists.
+    expect(screen.queryByTestId("task-tracker-context-kaiten-b1")).toBeNull();
+  });
+
+  it("нормализует сохранённый context_field в «none» при повторном сохранении", async () => {
+    fetchTaskTrackerConnections.mockResolvedValue(connections([connectedRow]));
+    fetchTaskTrackerBoardSelection.mockResolvedValue({
+      tracker: "kaiten",
+      boards: [
+        {
+          space_id: "s1",
+          space_title: "Engineering",
+          board_id: "b1",
+          board_title: "Backlog",
+          context_field: "lane"
+        }
+      ]
+    });
+    setTaskTrackerBoards.mockResolvedValue({ tracker: "kaiten", boards: [] });
+
+    render(<TaskTrackersCard />);
+
+    await screen.findByText("Backlog");
+    fireEvent.click(screen.getByTestId("task-tracker-boards-save-kaiten"));
+
+    await waitFor(() => {
+      expect(setTaskTrackerBoards).toHaveBeenCalledWith("kaiten", {
+        boards: [
+          {
+            space_id: "s1",
+            space_title: "Engineering",
+            board_id: "b1",
+            board_title: "Backlog",
+            context_field: "none"
+          }
+        ]
+      });
+    });
   });
 
   it("добавляет доску через поиск и шлёт полный набор при «Сохранить»", async () => {

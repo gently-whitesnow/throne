@@ -1,11 +1,13 @@
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Outlet, useParams } from "react-router-dom";
+import { Outlet, useParams, useSearchParams } from "react-router-dom";
 
 import {
   IntentsViewModeButton,
   type IntentsViewMode
 } from "@/features/switch-intents-view-mode";
+import { boardContextParts, isBoardContext } from "@/shared/lib";
+import { BoardCardBrowser } from "@/widgets/board-card-browser";
 import { IntentBoard } from "@/widgets/intent-board";
 import { IntentContextRail } from "@/widgets/intent-context-rail";
 import { IntentTreeCanvas } from "@/widgets/intent-tree-canvas";
@@ -44,6 +46,13 @@ function clamp(value: number, min: number, max: number): number {
 
 export function IntentsSectionPage() {
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
+  const context = searchParams.get("context");
+  // A board context turns the middle pane into a read-only card browser for that
+  // board (no intent list, no view-mode toggle) instead of a filter over intents.
+  const boardParts = isBoardContext(context)
+    ? boardContextParts(context)
+    : null;
 
   const [mode, setMode] = useState<IntentsViewMode>(() => readMode("list"));
   const [railWidth, setRailWidth] = useState(() =>
@@ -88,8 +97,10 @@ export function IntentsSectionPage() {
     setCanvasWidth(clamp(startWidth + deltaX, CANVAS_MIN, CANVAS_MAX));
   }, canvasWidth);
 
-  const middleWidth = mode === "canvas" ? canvasWidth : boardWidth;
-  const startMiddleDrag = mode === "canvas" ? startCanvasDrag : startBoardDrag;
+  // The card browser reads at list width; only the canvas keeps its own size.
+  const useCanvasWidth = boardParts === null && mode === "canvas";
+  const middleWidth = useCanvasWidth ? canvasWidth : boardWidth;
+  const startMiddleDrag = useCanvasWidth ? startCanvasDrag : startBoardDrag;
   const detailOpen = Boolean(id);
 
   return (
@@ -112,7 +123,12 @@ export function IntentsSectionPage() {
         }
         style={detailOpen ? { width: middleWidth, flexShrink: 0 } : undefined}
       >
-        {mode === "canvas" ? (
+        {boardParts ? (
+          <BoardCardBrowser
+            tracker={boardParts.tracker}
+            boardId={boardParts.boardId}
+          />
+        ) : mode === "canvas" ? (
           <IntentTreeCanvas
             headerAction={
               <IntentsViewModeButton mode={mode} onChange={setMode} />

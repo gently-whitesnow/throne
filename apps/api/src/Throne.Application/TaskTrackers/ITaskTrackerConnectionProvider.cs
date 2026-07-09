@@ -27,6 +27,20 @@ public interface ITaskTrackerConnectionProvider : ITaskTrackerProvider
         CancellationToken ct);
 
     /// <summary>
+    /// List the active cards visible on <paramref name="boardId"/> (all columns, archived excluded) for
+    /// the card-browser read surface. No server-side search or pagination in this MVP — the provider
+    /// aggregates the board's live cards and returns them whole. Every failure throws a
+    /// <see cref="TaskTrackerConnectionException"/> carrying the classified
+    /// <see cref="TaskTrackerConnectionHealth"/> (auth on 401/403, blocked on 402, offline on
+    /// 5xx / transport / timeout), so the caller maps it onto the ADR-0053 degradation surface exactly
+    /// as it does for <see cref="GetCardAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<TaskTrackerCard>> ListBoardCardsAsync(
+        TaskTrackerConnectionDescriptor connection,
+        string boardId,
+        CancellationToken ct);
+
+    /// <summary>
     /// Pull a single card snapshot by its provider-native id. Returns <see langword="null"/> only when
     /// the card is genuinely gone upstream (404) so the caller can record «gone» without branching on an
     /// exception. Every other failure throws a <see cref="TaskTrackerConnectionException"/> carrying the

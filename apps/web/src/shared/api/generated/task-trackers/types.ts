@@ -44,6 +44,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/task-trackers/{tracker}/boards/{board}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the active cards visible on a board (card-browser read surface).
+         * @description Operator read surface for browsing a connected board (ADR-0052/0053) — never touches intents. Returns every non-archived card across all columns of the board; no server-side search or pagination in this MVP. Connection degradation is classified per ADR-0053: a revoked token is 409, a tariff wall 402, an unreachable tracker 502.
+         */
+        get: operations["listBoardCards"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/task-trackers/{tracker}/boards/{board}/cards/{card}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a single card of a board read-only (title + description).
+         * @description Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source of the description shown in the card browser. Never touches intents. A vanished/forbidden card or one that does not belong to this board is 404; connection degradation is classified per ADR-0053 (409 auth, 402 blocked, 502 offline).
+         */
+        get: operations["getBoardCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -57,6 +97,33 @@ export interface components {
         };
         TaskTrackerCatalogResponse: {
             providers: components["schemas"]["TaskTrackerProviderDto"][];
+        };
+        /** @description Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A read-only, non-authoritative view — never an intent and never written back upstream. List rows may omit `description` (the provider fills it only on the single-card read). */
+        TaskTrackerCardDto: {
+            /** @description Provider-native card/issue id. */
+            card_id: string;
+            /** @description Provider-native board/space id the card lives on. */
+            board_id: string;
+            /** @description Provider-native column id, when the tracker exposes columns. */
+            column_id?: string | null;
+            /** @description Human-readable title of the card's current column. */
+            column_title?: string | null;
+            /** @description Card title. */
+            title: string;
+            /** @description Card description (Markdown as provided by the tracker); null on list rows. */
+            description?: string | null;
+            /**
+             * Format: date-time
+             * @description Last upstream update time, when the tracker exposes it.
+             */
+            updated_at?: string | null;
+            /** @description Always false in browser results — archived cards are excluded. */
+            archived: boolean;
+            /** @description Opaque provider-supplied revision cursor (for Kaiten — card.version). */
+            card_version?: string | null;
+        };
+        TaskTrackerBoardCardsResponse: {
+            cards: components["schemas"]["TaskTrackerCardDto"][];
         };
         ProblemDetails: {
             type: string;
@@ -120,6 +187,137 @@ export interface operations {
             };
             /** @description Tracker key is not registered on this Throne build. */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    listBoardCards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerProvider"];
+                /** @description Provider-native board/space id to list cards from. */
+                board: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active cards on the board. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerBoardCardsResponse"];
+                };
+            };
+            /** @description The tracker refused the request on tariff-plan grounds (blocked). */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The tracker has no saved connection, or its token was rejected (reconnect). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tracker key is not registered on this Throne build. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The tracker was unreachable while listing cards (offline). */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getBoardCard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerProvider"];
+                /** @description Provider-native board/space id the card must belong to. */
+                board: string;
+                /** @description Provider-native card/issue id. */
+                card: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The card snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerCardDto"];
+                };
+            };
+            /** @description The tracker refused the request on tariff-plan grounds (blocked). */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The card is gone/forbidden upstream, or not on the requested board. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The tracker has no saved connection, or its token was rejected (reconnect). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tracker key is not registered on this Throne build. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The tracker was unreachable while reading the card (offline). */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

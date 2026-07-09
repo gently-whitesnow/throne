@@ -109,12 +109,19 @@ internal sealed class StubCardTrackerProvider : ITaskTrackerConnectionProvider
     public Func<string, Task<TaskTrackerCard?>> OnGetCard { get; set; } =
         _ => Task.FromResult<TaskTrackerCard?>(null);
 
+    public Func<string, Task<IReadOnlyList<TaskTrackerCard>>> OnListBoardCards { get; set; } =
+        _ => Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
+
     public Task<TaskTrackerProbeResult> ProbeAsync(TaskTrackerConnectionDescriptor connection, CancellationToken ct) =>
         Task.FromResult(TaskTrackerProbeResult.Connected());
 
     public Task<IReadOnlyList<TaskTrackerSpaceTopology>> ListBoardsAsync(
         TaskTrackerConnectionDescriptor connection, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<TaskTrackerSpaceTopology>>([]);
+
+    public Task<IReadOnlyList<TaskTrackerCard>> ListBoardCardsAsync(
+        TaskTrackerConnectionDescriptor connection, string boardId, CancellationToken ct) =>
+        OnListBoardCards(boardId);
 
     public Task<TaskTrackerCard?> GetCardAsync(
         TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>

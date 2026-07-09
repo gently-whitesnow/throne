@@ -1,7 +1,21 @@
-import type { CardAttachmentsComponents } from "@/shared/api";
+import type {
+  CardAttachmentsComponents,
+  TaskTrackersComponents
+} from "@/shared/api";
 
 export type CardAttachment =
   CardAttachmentsComponents["schemas"]["CardAttachmentDto"];
+
+/**
+ * Provider-neutral, read-only projection of an external card as the board card
+ * browser sees it (ADR-0052). Never an intent, never written back upstream. List
+ * rows omit `description` — the single-card GET fills it in.
+ */
+export type TaskTrackerCard =
+  TaskTrackersComponents["schemas"]["TaskTrackerCardDto"];
+
+export type TaskTrackerBoardCardsResponse =
+  TaskTrackersComponents["schemas"]["TaskTrackerBoardCardsResponse"];
 
 export type CardAvailability =
   CardAttachmentsComponents["schemas"]["CardAvailability"];
