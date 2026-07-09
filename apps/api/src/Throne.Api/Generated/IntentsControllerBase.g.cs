@@ -116,16 +116,6 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> SetIntentTags([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetIntentTagsRequest body);
 
         /// <summary>
-        /// Set or clear the optional Intent title.
-        /// </summary>
-        /// <remarks>
-        /// Title is optional metadata: it does not bump current_version and is not versioned. Pass title=null or an empty string to clear it. A card-linked intent must keep a non-empty title (422 otherwise).
-        /// </remarks>
-        /// <returns>OK</returns>
-        [Microsoft.AspNetCore.Mvc.HttpPut, Microsoft.AspNetCore.Mvc.Route("api/v1/intents/{id}/title", Name = "setIntentTitle")]
-        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<IntentDetailDto>> SetIntentTitle([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string id, [Microsoft.AspNetCore.Mvc.FromBody] [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] SetIntentTitleRequest body);
-
-        /// <summary>
         /// Reorder an intent in the user-defined sort order.
         /// </summary>
         /// <remarks>

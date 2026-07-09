@@ -5,7 +5,6 @@ import type { IntentDetail } from "@/entities/intent";
 import { DeleteIntentButton } from "@/features/delete-intent";
 import { CleanupOnDoneToggle } from "@/features/set-intent-cleanup-on-done";
 import { SetIntentStatusForm } from "@/features/set-intent-status";
-import { SetIntentTitleForm } from "@/features/set-intent-title";
 import { formatRelativeTime } from "@/shared/lib";
 import { Button } from "@/shared/ui";
 
@@ -47,7 +46,9 @@ export function IntentDetailHeader({
   return (
     <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-base-300 px-6 py-3.5">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <SetIntentTitleForm intent={intent} onSaved={onStatusSaved} />
+        <h1 className="m-0 min-w-0 break-words text-lg font-semibold leading-snug text-base-content">
+          {firstLine(intent.text) || intent.id}
+        </h1>
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[11px] text-base-content/60">
           <SetIntentStatusForm intent={intent} onSaved={onStatusSaved} />
           <CleanupOnDoneToggle intent={intent} onSaved={onStatusSaved} />
@@ -126,4 +127,9 @@ function IntentIdChip({ id, copied, onCopy }: IntentIdChipProps) {
 
 function shortId(id: string): string {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
+}
+
+function firstLine(text: string): string {
+  const line = text.split(/\r?\n/, 1)[0] ?? "";
+  return line.length > 80 ? `${line.slice(0, 80)}…` : line;
 }

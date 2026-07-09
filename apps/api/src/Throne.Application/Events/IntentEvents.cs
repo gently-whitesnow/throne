@@ -19,8 +19,6 @@ public sealed record IntentStatusChanged(Intent Intent) : IDomainEvent;
 
 public sealed record IntentTagsChanged(Intent Intent) : IDomainEvent;
 
-public sealed record IntentTitleChanged(Intent Intent) : IDomainEvent;
-
 public sealed record IntentReordered(Intent Intent) : IDomainEvent;
 
 public sealed record IntentPinned(string IntentId, string ContextTagId, string PinSortKey) : IDomainEvent;

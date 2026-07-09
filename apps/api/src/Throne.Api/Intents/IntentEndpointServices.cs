@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Throne.Api.Intents;
 
 /// <summary>
-/// DI registration for the 22 per-endpoint classes used by the four Intents
+/// DI registration for the 21 per-endpoint classes used by the four Intents
 /// controllers (Intents / IntentPins / IntentLinks / IntentAttachments).
 /// Endpoints take their dependencies through primary constructors and live as
 /// Singletons next to the application handlers they wrap. Registering them
@@ -29,7 +29,6 @@ internal static class IntentEndpointServices
         services.AddSingleton<GetIntentEndpoint>();
         services.AddSingleton<CreateIntentEndpoint>();
         services.AddSingleton<SetIntentTagsEndpoint>();
-        services.AddSingleton<SetIntentTitleEndpoint>();
         services.AddSingleton<ReplaceIntentTextEndpoint>();
         services.AddSingleton<SetIntentStatusEndpoint>();
         services.AddSingleton<SetIntentCleanupOnDoneEndpoint>();

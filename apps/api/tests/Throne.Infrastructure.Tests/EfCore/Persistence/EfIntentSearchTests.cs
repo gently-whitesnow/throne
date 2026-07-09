@@ -113,53 +113,15 @@ public class EfIntentSearchTests(SqliteFixture fixture)
         page.Items.Should().BeEmpty();
     }
 
-    [Fact(DisplayName = "Поиск по title: термин из заголовка находит интент")]
-    public async Task Matches_title()
-    {
-        var db = await fixture.CreateDatabaseAsync();
-        var repo = db.GetRequiredService<IIntentRepository>();
-        var uow = db.GetRequiredService<IUnitOfWork>();
-
-        var hit = await Seed(repo, uow, "тело без ключа", Base, title: "Договорная кампания");
-        await Seed(repo, uow, "совсем другое тело", Base.AddMinutes(1));
-
-        var page = await repo.ListPagedAsync(QuerySpec("договорная"), CancellationToken.None);
-
-        page.Items.Select(i => i.Id.Value).Should().Equal(hit.Id.Value);
-    }
-
-    [Fact(DisplayName = "Ранжирование: совпадение в title весомее совпадения только в теле")]
-    public async Task Title_match_outranks_body_match()
-    {
-        var db = await fixture.CreateDatabaseAsync();
-        var repo = db.GetRequiredService<IIntentRepository>();
-        var uow = db.GetRequiredService<IUnitOfWork>();
-
-        var bodyOnly = await Seed(
-            repo, uow,
-            "длинное тело где слово синхронизация встречается среди множества прочих слов и идей",
-            Base,
-            title: "Несвязанный заголовок про другое");
-        var titled = await Seed(
-            repo, uow,
-            "короткое тело про прочее",
-            Base.AddMinutes(1),
-            title: "Синхронизация трекеров");
-
-        var page = await repo.ListPagedAsync(QuerySpec("синхронизация"), CancellationToken.None);
-
-        page.Items.Select(i => i.Id.Value).Should().Equal(titled.Id.Value, bodyOnly.Id.Value);
-    }
-
     private static IntentListSpec QuerySpec(string query) => new(
         Statuses: null, TagId: null, Untagged: false, Pinned: false,
         Query: query, Sort: IntentListSort.UpdatedDesc, Limit: 20, Cursor: null);
 
     private static async Task<Intent> Seed(
-        IIntentRepository repo, IUnitOfWork uow, string text, DateTimeOffset at, string? title = null)
+        IIntentRepository repo, IUnitOfWork uow, string text, DateTimeOffset at)
     {
         var id = IntentId.New();
-        var intent = Intent.Create(id, text, [], at, title: title);
+        var intent = Intent.Create(id, text, [], at);
         var version = TextVersion.CreateSnapshot(
             Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
             text, at, TextVersionAuthor.Agent);

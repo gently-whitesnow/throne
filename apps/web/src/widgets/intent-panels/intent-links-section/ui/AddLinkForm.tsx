@@ -138,20 +138,13 @@ export function AddLinkForm({
                 selected === i.id ? "bg-primary/10 text-primary" : ""
               }`}
             >
-              {i.title && (
-                <span className="line-clamp-1 font-medium">{i.title}</span>
-              )}
               {i.snippet ? (
                 <HighlightedSnippet
                   snippet={i.snippet}
-                  className={`line-clamp-1 ${i.title ? "text-base-content/60" : ""}`}
+                  className="line-clamp-1"
                 />
               ) : (
-                <span
-                  className={`line-clamp-1 ${i.title ? "text-base-content/60" : ""}`}
-                >
-                  {i.text_short || i.id}
-                </span>
+                <span className="line-clamp-1">{i.text_short || i.id}</span>
               )}
             </button>
           </li>

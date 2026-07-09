@@ -553,10 +553,6 @@ namespace Throne.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("text");
 
-                    b.Property<string>("Title")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("title");
-
                     b.Property<string>("UpdatedAt")
                         .IsRequired()
                         .HasColumnType("TEXT")

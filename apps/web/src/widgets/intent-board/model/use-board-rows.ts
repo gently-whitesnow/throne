@@ -46,7 +46,7 @@ export function useBoardRows({
       const isPeer = hoverPeerIds.has(i.id);
       return {
         id: i.id,
-        title: (i.title?.trim() ?? "") || firstLine(i.text_short) || i.id,
+        title: firstLine(i.text_short) || i.id,
         subtitle: tagNames.length > 0 ? `#${tagNames.join(" #")}` : undefined,
         meta: `v${String(i.current_version)}`,
         badge: status.label,

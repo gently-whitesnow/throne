@@ -72,7 +72,7 @@ public sealed partial class RunPreflightPromptDelivery(
         // path, since this task is detached; the curated session skills ride on the request.
         var ctx = await mapContext.ReadAsync(request.IntentId, request.TagIds, ct);
         var composedPrompt = WorkspaceMapPrompt.Compose(
-            request.WorkspacePath, request.RepoPaths, ctx.Tags, request.Title, ctx.Links,
+            request.WorkspacePath, request.RepoPaths, ctx.Tags, ctx.Links,
             ctx.Attachments, ctx.CardAttachments, request.SessionSkillIds, request.UserPrompt);
         await File.WriteAllTextAsync(promptPath, composedPrompt, ct);
         LogDeliveryPrepared(_log, request.IntentId, request.Mode, request.Vendor, composedPrompt.Length, promptPath);
@@ -166,6 +166,5 @@ public sealed record TerminalPromptDeliveryRequest(
     string WorkspacePath,
     IReadOnlyList<string> RepoPaths,
     IReadOnlyList<TagId> TagIds,
-    string? Title,
     IReadOnlyList<string> SessionSkillIds,
     string UserPrompt);

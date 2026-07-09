@@ -64,17 +64,6 @@ public interface IIntentRepository
         CancellationToken ct);
 
     /// <summary>
-    /// Sets the optional title (blank clears it). Metadata write — CAS-guards on
-    /// <paramref name="expectedVersion"/> but does not bump it nor emit a text version.
-    /// </summary>
-    Task<SetIntentTitleOutcome> SetTitleAsync(
-        IntentId id,
-        int expectedVersion,
-        string? title,
-        DateTimeOffset now,
-        CancellationToken ct);
-
-    /// <summary>
     /// Sets the cleanup-on-done gate (the merge-control «очистить состояние после мержа»
     /// checkbox). Targeted metadata write — does not bump version nor touch text/status.
     /// A missing intent is a silent no-op.

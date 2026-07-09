@@ -108,7 +108,7 @@ public class IntentTerminalPreviewHandlerTests
         var intentId = IntentId.New();
         var tag = Tag.Create(TagId.New(), "throne", Now);
         var intent = Intent.Restore(
-            intentId, "тело", IntentStatusNames.Work, 1, [tag.Id], Now, Now, title: "Протянуть title");
+            intentId, "тело", IntentStatusNames.Work, 1, [tag.Id], Now, Now);
 
         var intents = Substitute.For<IIntentRepository>();
         intents.GetByIdAsync(Arg.Any<IntentId>(), Arg.Any<CancellationToken>()).Returns(intent);
@@ -141,7 +141,6 @@ public class IntentTerminalPreviewHandlerTests
         // Неготовый клон тоже в списке — без пометки статуса: к спавну он будет склонирован.
         preview.WorkspaceMap.Should().Contain("- /ws/intents/repo-cloning");
         preview.WorkspaceMap.Should().NotContain("клон:");
-        preview.WorkspaceMap.Should().Contain("Заголовок интента: Протянуть title");
         preview.WorkspaceMap.Should().Contain("Теги интента: throne");
         // Карта самодостаточна — тело сюда не вкладываем (иначе на доставке оно дублируется).
         preview.WorkspaceMap.Should().NotContain("тело");
