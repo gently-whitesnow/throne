@@ -1,8 +1,10 @@
+import { useId } from "react";
 import { Link } from "react-router-dom";
 
 import { Button, Modal } from "@/shared/ui";
 
 import { useAttachCardForm } from "../model/use-attach-card-form";
+import { CardSearchCombobox } from "./CardSearchCombobox";
 
 interface AttachCardModalProps {
   intentId: string;
@@ -13,9 +15,9 @@ interface AttachCardModalProps {
 const TITLE_ID = "attach-card-modal-title";
 
 /**
- * Модал attach: выбор подключённого трекера и доски из board-selection даёт
- * координату, оператор вводит только `card_id`. Без подключённых трекеров —
- * подсказка со ссылкой на `/settings`.
+ * Модал attach: трекер + доска из board-selection задают координату, оператор
+ * ищет карточку combobox'ом (пустой фокус = недавние; ввод текста = поиск по
+ * названию), либо приклеивает по чистому id как коротким путём.
  */
 export function AttachCardModal({
   intentId,
@@ -23,13 +25,18 @@ export function AttachCardModal({
   onClose
 }: AttachCardModalProps) {
   const form = useAttachCardForm(intentId, onClose);
+  const cardLabelId = useId();
 
   if (!open) return null;
 
   const hasTrackers = form.connectedTrackers.length > 0;
 
   return (
-    <Modal onClose={onClose} labelledBy={TITLE_ID} boxClassName="max-w-md">
+    <Modal
+      onClose={onClose}
+      labelledBy={TITLE_ID}
+      boxClassName="w-full max-w-xl overflow-visible"
+    >
       <h2
         id={TITLE_ID}
         className="m-0 text-base font-semibold text-base-content"
@@ -93,17 +100,22 @@ export function AttachCardModal({
             </select>
           </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-base-content/70">ID карточки</span>
-            <input
-              className="input input-bordered input-sm font-mono"
+          <div className="flex flex-col gap-1 text-sm">
+            <span id={cardLabelId} className="text-base-content/70">
+              ID карточки
+            </span>
+            <CardSearchCombobox
+              tracker={form.tracker}
+              boardId={form.boardId}
               value={form.cardId}
-              placeholder="например 12345"
-              onChange={(event) => {
-                form.setCardId(event.target.value);
+              onValueChange={form.setCardId}
+              onSelect={(card) => {
+                form.setCardId(card.card_id);
               }}
+              labelId={cardLabelId}
+              disabled={form.boardId.length === 0}
             />
-          </label>
+          </div>
 
           {form.error ? (
             <p role="alert" className="m-0 text-sm text-error">

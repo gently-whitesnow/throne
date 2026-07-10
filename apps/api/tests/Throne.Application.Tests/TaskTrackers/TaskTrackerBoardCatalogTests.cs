@@ -122,6 +122,10 @@ public class TaskTrackerBoardCatalogTests
             TaskTrackerConnectionDescriptor connection, string boardId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
 
+        public Task<IReadOnlyList<TaskTrackerCard>> SearchCardsAsync(
+            TaskTrackerConnectionDescriptor connection, string boardId, string? query, int limit, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
+
         public Task<TaskTrackerCard?> GetCardAsync(
             TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
             Task.FromResult<TaskTrackerCard?>(null);

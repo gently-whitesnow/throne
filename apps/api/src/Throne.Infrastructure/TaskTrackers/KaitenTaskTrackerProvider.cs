@@ -125,6 +125,62 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
     }
 
+    public async Task<IReadOnlyList<TaskTrackerCard>> SearchCardsAsync(
+        TaskTrackerConnectionDescriptor connection,
+        string boardId,
+        string? query,
+        int limit,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(boardId);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        var kaiten = ToConnection(connection);
+        var board = KaitenCardProjection.ParseId(boardId);
+        var trimmed = query?.Trim();
+        var hasQuery = !string.IsNullOrEmpty(trimmed);
+        try
+        {
+            // With an empty query we want the recently touched cards, so ask Kaiten to sort by
+            // updated_at desc; a non-empty query hands the text filter to Kaiten and relevance ordering
+            // stays server-side. Single page — the picker is latency-sensitive, not exhaustive.
+            var kaitenQuery = new KaitenCardQuery(
+                BoardId: board,
+                Condition: KaitenCardConditions.Live,
+                Limit: limit,
+                Query: hasQuery ? trimmed : null,
+                OrderBy: hasQuery ? null : "updated",
+                OrderDirection: hasQuery ? null : "desc");
+            var cards = await client.Cards.ListCardsAsync(kaiten, kaitenQuery, ct);
+            var columnTitles = await LoadColumnTitlesAsync(kaiten, board, ct);
+            var projected = cards
+                .Where(c => c.Condition == KaitenCardConditions.Live)
+                .Select(c => KaitenCardProjection.ToCard(c, columnTitles))
+                .ToList();
+            // Sort belt-and-suspenders for the empty-query case: even if Kaiten ignores order_by, the
+            // caller still sees «recent first» within the returned page.
+            if (!hasQuery)
+            {
+                projected.Sort(static (a, b) =>
+                    Nullable.Compare(b.UpdatedAt, a.UpdatedAt));
+            }
+            return projected;
+        }
+        catch (KaitenApiException ex)
+        {
+            throw new TaskTrackerConnectionException(Classify(ex.StatusCode), ex.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
+        }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new TaskTrackerConnectionException(
+                TaskTrackerConnectionHealth.Offline, $"Request timed out: {ex.Message}");
+        }
+    }
+
     public async Task<TaskTrackerCard?> GetCardAsync(
         TaskTrackerConnectionDescriptor connection,
         string cardId,

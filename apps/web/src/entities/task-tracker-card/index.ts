@@ -28,9 +28,14 @@ export {
   useDetachCardMutation,
   useRefreshCardMutation
 } from "./api/card-attachments-queries";
-export { fetchBoardCards, fetchBoardCard } from "./api/board-cards-api";
+export {
+  fetchBoardCards,
+  fetchBoardCard,
+  searchBoardCards
+} from "./api/board-cards-api";
 export {
   boardCardsQueryKeys,
   useBoardCardsQuery,
-  useBoardCardQuery
+  useBoardCardQuery,
+  useBoardCardSearchQuery
 } from "./api/board-cards-queries";

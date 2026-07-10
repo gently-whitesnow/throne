@@ -46,7 +46,9 @@ internal sealed record KaitenUpdateCardRequest(
 
 /// <summary>
 /// Filters and pagination for <c>GET /cards</c>. All fields optional; only set ones reach the wire.
-/// <see cref="Condition"/> follows Kaiten's encoding (1 = live, 2 = archived).
+/// <see cref="Condition"/> follows Kaiten's encoding (1 = live, 2 = archived). <see cref="Query"/> is
+/// Kaiten's full-text filter; <see cref="OrderBy"/>/<see cref="OrderDirection"/> pair (e.g. "updated"
+/// + "desc") so the caller can ask for the recently-touched cards without pulling the whole board.
 /// </summary>
 internal sealed record KaitenCardQuery(
     long? BoardId = null,
@@ -54,11 +56,14 @@ internal sealed record KaitenCardQuery(
     int? Limit = null,
     int? Offset = null,
     long? OwnerId = null,
-    long? MemberId = null)
+    long? MemberId = null,
+    string? Query = null,
+    string? OrderBy = null,
+    string? OrderDirection = null)
 {
     public string ToQueryString()
     {
-        var parts = new List<string>(6);
+        var parts = new List<string>(9);
         if (BoardId is { } board)
         {
             parts.Add($"board_id={board}");
@@ -87,6 +92,21 @@ internal sealed record KaitenCardQuery(
         if (MemberId is { } member)
         {
             parts.Add($"member_id={member}");
+        }
+
+        if (!string.IsNullOrEmpty(Query))
+        {
+            parts.Add($"query={Uri.EscapeDataString(Query)}");
+        }
+
+        if (!string.IsNullOrEmpty(OrderBy))
+        {
+            parts.Add($"order_by={Uri.EscapeDataString(OrderBy)}");
+        }
+
+        if (!string.IsNullOrEmpty(OrderDirection))
+        {
+            parts.Add($"order_direction={Uri.EscapeDataString(OrderDirection)}");
         }
 
         return parts.Count == 0 ? string.Empty : "?" + string.Join('&', parts);

@@ -38,6 +38,29 @@ public sealed class BoardCardBrowserService(
         }
     }
 
+    public async Task<IReadOnlyList<TaskTrackerCard>> SearchBoardCardsAsync(
+        string tracker, string boardId, string? query, int limit, CancellationToken ct)
+    {
+        var resolved = await ResolveAsync(tracker, ct);
+        var now = clock.GetUtcNow();
+        try
+        {
+            var cards = await resolved.Provider.SearchCardsAsync(
+                resolved.Connection, boardId, query, limit, ct);
+            await RecordHealthAsync(tracker, TaskTrackerConnectionHealth.Connected, detail: null, now, ct);
+            return cards;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (TaskTrackerConnectionException ex)
+        {
+            await RecordHealthAsync(tracker, ex.Health, ex.Message, now, ct);
+            throw MapFailure(tracker, ex);
+        }
+    }
+
     public async Task<TaskTrackerCard> GetBoardCardAsync(
         string tracker, string boardId, string cardId, CancellationToken ct)
     {

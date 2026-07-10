@@ -3,14 +3,27 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { HttpError } from "@/shared/api";
 
 import type { TaskTrackerCard } from "../model/types";
-import { fetchBoardCard, fetchBoardCards } from "./board-cards-api";
+import {
+  fetchBoardCard,
+  fetchBoardCards,
+  searchBoardCards
+} from "./board-cards-api";
 
 export const boardCardsQueryKeys = {
   all: ["task-tracker-board-cards"] as const,
   list: (tracker: string, boardId: string) =>
     [...boardCardsQueryKeys.all, "list", tracker, boardId] as const,
   card: (tracker: string, boardId: string, cardId: string) =>
-    [...boardCardsQueryKeys.all, "card", tracker, boardId, cardId] as const
+    [...boardCardsQueryKeys.all, "card", tracker, boardId, cardId] as const,
+  search: (tracker: string, boardId: string, query: string, limit: number) =>
+    [
+      ...boardCardsQueryKeys.all,
+      "search",
+      tracker,
+      boardId,
+      query,
+      limit
+    ] as const
 };
 
 /**
@@ -35,6 +48,24 @@ export function useBoardCardsQuery(
   return useQuery({
     queryKey: boardCardsQueryKeys.list(tracker, boardId),
     queryFn: ({ signal }) => fetchBoardCards(tracker, boardId, signal),
+    retry
+  });
+}
+
+export function useBoardCardSearchQuery(
+  tracker: string,
+  boardId: string,
+  query: string,
+  options: { limit?: number; enabled?: boolean } = {}
+): UseQueryResult<TaskTrackerCard[]> {
+  const limit = options.limit ?? 10;
+  const enabled = options.enabled ?? true;
+  return useQuery({
+    queryKey: boardCardsQueryKeys.search(tracker, boardId, query, limit),
+    queryFn: ({ signal }) =>
+      searchBoardCards(tracker, boardId, { query, limit }, signal),
+    enabled: enabled && tracker.length > 0 && boardId.length > 0,
+    staleTime: 30_000,
     retry
   });
 }

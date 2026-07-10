@@ -120,6 +120,10 @@ internal sealed class FakeConnectionProvider : ITaskTrackerConnectionProvider
         TaskTrackerConnectionDescriptor connection, string boardId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
 
+    public Task<IReadOnlyList<TaskTrackerCard>> SearchCardsAsync(
+        TaskTrackerConnectionDescriptor connection, string boardId, string? query, int limit, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
+
     public Task<TaskTrackerCard?> GetCardAsync(
         TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
         OnGetCard(cardId);
