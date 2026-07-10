@@ -26,6 +26,7 @@ public sealed class TerminalVendorCatalogMapper(
     ITerminalVendorCatalog catalog,
     IEnumerable<IVendorModelCatalog> dynamicCatalogs,
     IEnumerable<IAgentVendorLoginProbe> loginProbes,
+    IEnumerable<IVendorQuotaAdapter> quotaAdapters,
     ICapabilityDetectionCache detection)
 {
     private readonly Dictionary<string, IVendorModelCatalog> _dynamicCatalogs =
@@ -33,6 +34,9 @@ public sealed class TerminalVendorCatalogMapper(
 
     private readonly Dictionary<string, IAgentVendorLoginProbe> _loginProbes =
         loginProbes.ToDictionary(p => p.Vendor, StringComparer.Ordinal);
+
+    private readonly Dictionary<string, IVendorQuotaAdapter> _quotaAdapters =
+        quotaAdapters.ToDictionary(a => a.Vendor, StringComparer.Ordinal);
 
     public async Task<TerminalVendorCatalogResponse> ToDtoAsync(CancellationToken ct)
     {
@@ -86,6 +90,7 @@ public sealed class TerminalVendorCatalogMapper(
     {
         var models = await ResolveModelsAsync(descriptor, ct);
         var login = await ResolveLoginAsync(descriptor, ct);
+        var quota = await ResolveQuotaAsync(descriptor, ct);
         return new TerminalVendorMetadataDto
         {
             Vendor = descriptor.Vendor,
@@ -103,7 +108,46 @@ public sealed class TerminalVendorCatalogMapper(
             Login_status = login.Status,
             Login_detail = login.Detail,
             Selectable = IsSelectable(descriptor),
+            Quota = quota,
         };
+    }
+
+    private async Task<TerminalVendorQuotaDto?> ResolveQuotaAsync(
+        TerminalVendorDescriptor descriptor, CancellationToken ct)
+    {
+        if (descriptor.InDevelopment
+            || !_quotaAdapters.TryGetValue(descriptor.Vendor, out var adapter))
+        {
+            return null;
+        }
+        var snapshot = await adapter.ReadAsync(ct);
+        return snapshot is null ? null : MapQuota(snapshot);
+    }
+
+    private static TerminalVendorQuotaDto MapQuota(VendorQuotaSnapshot snapshot) => new()
+    {
+        Five_hour = MapQuotaWindow(snapshot.FiveHour)!,
+        Seven_day = snapshot.SevenDay is { } weekly ? MapQuotaWindow(weekly) : null,
+        Credits_balance = snapshot.CreditsBalance,
+    };
+
+    private static TerminalVendorQuotaWindowDto? MapQuotaWindow(VendorQuotaWindow window) => new()
+    {
+        Used_percent = window.UsedPercent,
+        Resets_at = ParseResetsAt(window.ResetsAt),
+    };
+
+    private static DateTimeOffset? ParseResetsAt(string? isoStamp)
+    {
+        if (string.IsNullOrWhiteSpace(isoStamp))
+        {
+            return null;
+        }
+        return DateTimeOffset.TryParse(
+            isoStamp,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+            out var parsed) ? parsed : null;
     }
 
     private static TerminalVendorLoginStatus ParseLoginStatus(AgentVendorLoginStatus status) => status switch

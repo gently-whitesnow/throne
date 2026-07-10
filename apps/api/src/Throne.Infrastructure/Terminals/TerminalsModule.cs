@@ -6,6 +6,7 @@ using Throne.Application.Terminals;
 using Throne.Application.Terminals.Capabilities;
 using Throne.Infrastructure.Ide;
 using Throne.Infrastructure.Terminals.Capabilities;
+using Throne.Infrastructure.Terminals.Quotas;
 // RunPreflightOptions binding pulls Throne.Application.Terminals into the Infrastructure
 // composition root — Application-only DI cannot bind IConfiguration sections directly.
 
@@ -89,6 +90,13 @@ public static class TerminalsModule
         // statically as `in_development` by the catalog mapper.
         services.AddSingleton<IAgentVendorLoginProbe, ClaudeLoginProbe>();
         services.AddSingleton<IAgentVendorLoginProbe, CodexLoginProbe>();
+
+        // Per-vendor Pro/Max quota probes (ADR-0054). Best-effort — the base class
+        // swallows any error into a null snapshot so a broken adapter never blocks Run.
+        services.AddHttpClient(ClaudeQuotaAdapter.HttpClientName);
+        services.AddHttpClient(CodexQuotaAdapter.HttpClientName);
+        services.AddSingleton<IVendorQuotaAdapter, ClaudeQuotaAdapter>();
+        services.AddSingleton<IVendorQuotaAdapter, CodexQuotaAdapter>();
 
         return services;
     }

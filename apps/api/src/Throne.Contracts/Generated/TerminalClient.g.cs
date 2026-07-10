@@ -129,6 +129,82 @@ namespace Throne.Terminal.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("selectable")]
         public bool Selectable { get; set; }
 
+        /// <summary>
+        /// Best-effort Pro/Max quota snapshot for the vendor's own subscription (ADR-0054). Null when the vendor exposes no quota surface, the local CLI is not logged in, or the probe failed (missing token file, HTTP error, unexpected schema). The launch surface hides the quota block when null; a null probe never blocks Run.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("quota")]
+        public TerminalVendorQuotaDto Quota { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    /// <summary>
+    /// Provider-neutral quota view aggregated from the vendor's own subscription surface (Anthropic `/api/oauth/usage`, ChatGPT `/backend-api/wham/usage`). Rendered as a compact block under the model selector.
+    /// <br/>
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalVendorQuotaDto
+    {
+
+        /// <summary>
+        /// Rolling 5-hour usage window, always present when the snapshot exists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("five_hour")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TerminalVendorQuotaWindowDto Five_hour { get; set; } = new TerminalVendorQuotaWindowDto();
+
+        /// <summary>
+        /// Rolling weekly usage window. Null when the vendor does not surface a weekly axis or has not populated it yet for this account.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seven_day")]
+        public TerminalVendorQuotaWindowDto Seven_day { get; set; }
+
+        /// <summary>
+        /// Vendor-specific credits balance (currently Codex only). Null for vendors that do not report a credits axis.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("credits_balance")]
+        public double? Credits_balance { get; set; }
+
+        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TerminalVendorQuotaWindowDto
+    {
+
+        /// <summary>
+        /// Consumed share of the window (0-100). Adapters clamp before serving.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("used_percent")]
+        [System.ComponentModel.DataAnnotations.Range(0D, 100D)]
+        public double Used_percent { get; set; }
+
+        /// <summary>
+        /// When the window rolls over. ISO 8601 UTC. Null when the vendor does not report a reset stamp on this window.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("resets_at")]
+        public System.DateTimeOffset? Resets_at { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

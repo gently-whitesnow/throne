@@ -6,6 +6,8 @@ import {
   type TerminalVendorMetadata
 } from "@/entities/terminal-setting";
 
+import type { ReactNode } from "react";
+
 import { RUN_MODE_LABEL, type TerminalRunMode } from "../model/types";
 
 import { ReviewTargetSelect } from "./ReviewTargetSelect";
@@ -36,6 +38,8 @@ interface LaunchAxisControlsProps {
   reviewBindingValue: string;
   onReviewBindingChange: (bindingId: string) => void;
   reviewDisabled: boolean;
+  /** Опциональный блок квоты выбранного вендора + кнопка «Обновить» под селекторами. */
+  quotaSlot?: ReactNode;
 }
 
 /**
@@ -63,103 +67,107 @@ export function LaunchAxisControls({
   reviewTargets,
   reviewBindingValue,
   onReviewBindingChange,
-  reviewDisabled
+  reviewDisabled,
+  quotaSlot
 }: LaunchAxisControlsProps) {
   const dropdownDisabled = metadataLoading || metadataError;
   const selectClass = "select select-xs w-auto";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select
-        aria-label="Режим запуска агента"
-        title="Режим запуска агента"
-        data-testid="agent-terminal-mode"
-        className={selectClass}
-        value={mode}
-        onChange={(event) => {
-          onModeChange(event.target.value as TerminalRunMode);
-        }}
-      >
-        {modes.map((m) => (
-          <option key={m} value={m}>
-            {RUN_MODE_LABEL[m]}
-          </option>
-        ))}
-      </select>
-
-      <select
-        aria-label="Агент терминала"
-        title="Агент терминала"
-        data-testid="agent-terminal-vendor"
-        className={selectClass}
-        value={vendor}
-        disabled={dropdownDisabled}
-        onChange={(event) => {
-          onVendorChange(event.target.value);
-        }}
-      >
-        {vendor === "" ? <option value="" disabled hidden /> : null}
-        {vendors.map((v) => (
-          <option key={v.vendor} value={v.vendor}>
-            {v.label}
-          </option>
-        ))}
-      </select>
-
-      <select
-        aria-label="Модель агента"
-        title="Модель агента"
-        data-testid="agent-terminal-model"
-        className={selectClass}
-        value={model}
-        disabled={dropdownDisabled}
-        onChange={(event) => {
-          onModelChange(event.target.value);
-        }}
-      >
-        {model === "" ? <option value="" disabled hidden /> : null}
-        {models.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-      </select>
-
-      {supportsEffort ? (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <select
-          aria-label="Уровень усилия (reasoning)"
-          title="Уровень усилия (reasoning)"
-          data-testid="agent-terminal-effort"
+          aria-label="Режим запуска агента"
+          title="Режим запуска агента"
+          data-testid="agent-terminal-mode"
           className={selectClass}
-          value={effort}
-          disabled={dropdownDisabled}
+          value={mode}
           onChange={(event) => {
-            onEffortChange(event.target.value as TerminalReasoningEffort);
+            onModeChange(event.target.value as TerminalRunMode);
           }}
         >
-          {effort === "" ? <option value="" disabled hidden /> : null}
-          {efforts.map((e) => (
-            <option key={e} value={e}>
-              {EFFORT_LABEL[e]}
+          {modes.map((m) => (
+            <option key={m} value={m}>
+              {RUN_MODE_LABEL[m]}
             </option>
           ))}
         </select>
-      ) : null}
 
-      {metadataLoading ? (
-        <span className="text-[11px] text-base-content/60">
-          Загружаем список агентов…
-        </span>
-      ) : null}
+        <select
+          aria-label="Агент терминала"
+          title="Агент терминала"
+          data-testid="agent-terminal-vendor"
+          className={selectClass}
+          value={vendor}
+          disabled={dropdownDisabled}
+          onChange={(event) => {
+            onVendorChange(event.target.value);
+          }}
+        >
+          {vendor === "" ? <option value="" disabled hidden /> : null}
+          {vendors.map((v) => (
+            <option key={v.vendor} value={v.vendor}>
+              {v.label}
+            </option>
+          ))}
+        </select>
 
-      {mode === "review" ? (
-        <ReviewTargetSelect
-          targets={reviewTargets}
-          value={reviewBindingValue}
-          disabled={reviewDisabled}
-          onChange={onReviewBindingChange}
-        />
-      ) : null}
+        <select
+          aria-label="Модель агента"
+          title="Модель агента"
+          data-testid="agent-terminal-model"
+          className={selectClass}
+          value={model}
+          disabled={dropdownDisabled}
+          onChange={(event) => {
+            onModelChange(event.target.value);
+          }}
+        >
+          {model === "" ? <option value="" disabled hidden /> : null}
+          {models.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+
+        {supportsEffort ? (
+          <select
+            aria-label="Уровень усилия (reasoning)"
+            title="Уровень усилия (reasoning)"
+            data-testid="agent-terminal-effort"
+            className={selectClass}
+            value={effort}
+            disabled={dropdownDisabled}
+            onChange={(event) => {
+              onEffortChange(event.target.value as TerminalReasoningEffort);
+            }}
+          >
+            {effort === "" ? <option value="" disabled hidden /> : null}
+            {efforts.map((e) => (
+              <option key={e} value={e}>
+                {EFFORT_LABEL[e]}
+              </option>
+            ))}
+          </select>
+        ) : null}
+
+        {metadataLoading ? (
+          <span className="text-[11px] text-base-content/60">
+            Загружаем список агентов…
+          </span>
+        ) : null}
+
+        {mode === "review" ? (
+          <ReviewTargetSelect
+            targets={reviewTargets}
+            value={reviewBindingValue}
+            disabled={reviewDisabled}
+            onChange={onReviewBindingChange}
+          />
+        ) : null}
+      </div>
+      {quotaSlot}
     </div>
   );
 }

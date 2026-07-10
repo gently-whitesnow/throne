@@ -1,0 +1,7 @@
+{
+  "$schema-note": "Vendor model whitelist per ADR-0054. Order = native-default-first. Bump this file to add/remove a model — no .cs edit required. VendorModelMetadataLoader validates non-empty list per vendor at startup.",
+  "vendors": {
+    "claude": ["opus", "sonnet", "haiku"],
+    "codex": ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"]
+  }
+}

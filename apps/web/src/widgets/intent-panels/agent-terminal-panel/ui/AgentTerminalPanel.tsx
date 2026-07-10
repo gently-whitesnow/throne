@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 
 import { useDetectedTerminalProviders } from "@/entities/capability";
 import type { IntentStatus } from "@/entities/intent";
@@ -7,7 +8,10 @@ import {
   useIntentRepositories
 } from "@/entities/repository-binding";
 
-import type { TerminalReasoningEffort } from "@/entities/terminal-setting";
+import {
+  terminalVendorCatalogQueryKeys,
+  type TerminalReasoningEffort
+} from "@/entities/terminal-setting";
 import { SessionLiveBadge } from "@/shared/ui";
 
 import { useAttachableSkills } from "../model/use-attachable-skills";
@@ -24,6 +28,7 @@ import { RunControls } from "./RunControls";
 import { SkillsAttachControl } from "./SkillsAttachControl";
 import { TerminalLiveViewers } from "./TerminalLiveViewers";
 import { TerminalPanelAlerts } from "./TerminalPanelAlerts";
+import { VendorQuotaBlock } from "./VendorQuotaBlock";
 
 interface AgentTerminalPanelProps {
   intentId: string;
@@ -101,6 +106,26 @@ export function AgentTerminalPanel({
 
   const [preflightOpen, setPreflightOpen] = useState(false);
   const terminalProviders = useDetectedTerminalProviders();
+
+  const queryClient = useQueryClient();
+  const catalogFetches = useIsFetching({
+    queryKey: terminalVendorCatalogQueryKeys.all
+  });
+  const isCatalogRefreshing = catalogFetches > 0;
+  const refreshVendorCatalog = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: terminalVendorCatalogQueryKeys.all
+    });
+  }, [queryClient]);
+
+  // Panel-open trigger: mark catalog stale so the next mount hits the network. Ties in with
+  // ADR-0054 §2 — quota is cache-warm (60s server-side) but fresh from the operator's angle.
+  const panelInvalidated = useRef(false);
+  useEffect(() => {
+    if (panelInvalidated.current) return;
+    panelInvalidated.current = true;
+    refreshVendorCatalog();
+  }, [refreshVendorCatalog]);
 
   const launchArgs = axis.launchArgs(mode);
 
@@ -253,6 +278,13 @@ export function AgentTerminalPanel({
               reviewBindingValue={reviewSelection.selectedReviewTargetId}
               onReviewBindingChange={reviewSelection.setSelectedReviewBindingId}
               reviewDisabled={session.isStarting || session.isStopping}
+              quotaSlot={
+                <VendorQuotaBlock
+                  vendor={axis.selectedMeta}
+                  isRefreshing={isCatalogRefreshing}
+                  onRefresh={refreshVendorCatalog}
+                />
+              }
             />
           }
           onClose={() => {

@@ -13,11 +13,6 @@
       "subject": "RunPreflightSpawn primary constructor"
     },
     {
-      "code": "TYPE_LOC",
-      "path": "apps/api/src/Throne.Application/Terminals/RunPreflightSpawn.cs",
-      "subject": "RunPreflightSpawn"
-    },
-    {
       "code": "TYPE_PUB",
       "path": "apps/api/src/Throne.Application/Terminals/TerminalFailures.cs",
       "subject": "TerminalFailures"
@@ -26,6 +21,11 @@
       "code": "TYPE_PUB",
       "path": "apps/api/src/Throne.Infrastructure/Terminals/TerminalsLog.cs",
       "subject": "TerminalsLog"
+    },
+    {
+      "code": "TYPE_PUB",
+      "path": "apps/api/tests/Throne.Api.Tests/Terminals/TerminalVendorCatalogMapperTests.cs",
+      "subject": "TerminalVendorCatalogMapperTests"
     }
   ]
 }

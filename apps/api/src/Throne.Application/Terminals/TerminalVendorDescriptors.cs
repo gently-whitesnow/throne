@@ -10,10 +10,12 @@ namespace Throne.Application.Terminals;
 /// </summary>
 public static class TerminalVendorDescriptors
 {
+    // Model whitelists come from vendor-models.json (ADR-0054) — inline arrays here would
+    // force a .cs edit for every vendor model release.
     public static readonly TerminalVendorDescriptor Claude = new(
         Vendor: TerminalAgentCatalog.VendorClaude,
         Label: "Claude",
-        Models: ["opus", "sonnet", "haiku"],
+        Models: VendorModelMetadata.For(TerminalAgentCatalog.VendorClaude),
         SupportsEffort: true,
         Efforts: TerminalAgentCatalog.SharedEfforts,
         DefaultEffort: TerminalAgentCatalog.EffortHigh,
@@ -24,7 +26,7 @@ public static class TerminalVendorDescriptors
     public static readonly TerminalVendorDescriptor Codex = new(
         Vendor: TerminalAgentCatalog.VendorCodex,
         Label: "Codex",
-        Models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
+        Models: VendorModelMetadata.For(TerminalAgentCatalog.VendorCodex),
         SupportsEffort: true,
         Efforts: TerminalAgentCatalog.SharedEfforts,
         DefaultEffort: TerminalAgentCatalog.EffortMedium,

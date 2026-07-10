@@ -475,6 +475,60 @@ components:
             Whether the launch surface may offer this vendor. False for `in_development`
             vendors (and any whose capability prerequisite is unavailable) — they still
             appear in `/settings` with their status, but the launch dropdown filters them out.
+        quota:
+          nullable: true
+          description: >
+            Best-effort Pro/Max quota snapshot for the vendor's own subscription (ADR-0054).
+            Null when the vendor exposes no quota surface, the local CLI is not logged in,
+            or the probe failed (missing token file, HTTP error, unexpected schema). The
+            launch surface hides the quota block when null; a null probe never blocks Run.
+          allOf:
+            - $ref: '#/components/schemas/TerminalVendorQuotaDto'
+    TerminalVendorQuotaDto:
+      type: object
+      required:
+        - five_hour
+      properties:
+        five_hour:
+          description: Rolling 5-hour usage window, always present when the snapshot exists.
+          allOf:
+            - $ref: '#/components/schemas/TerminalVendorQuotaWindowDto'
+        seven_day:
+          nullable: true
+          description: >
+            Rolling weekly usage window. Null when the vendor does not surface a weekly
+            axis or has not populated it yet for this account.
+          allOf:
+            - $ref: '#/components/schemas/TerminalVendorQuotaWindowDto'
+        credits_balance:
+          type: number
+          format: double
+          nullable: true
+          description: >
+            Vendor-specific credits balance (currently Codex only). Null for vendors that
+            do not report a credits axis.
+      description: >
+        Provider-neutral quota view aggregated from the vendor's own subscription surface
+        (Anthropic `/api/oauth/usage`, ChatGPT `/backend-api/wham/usage`). Rendered as a
+        compact block under the model selector.
+    TerminalVendorQuotaWindowDto:
+      type: object
+      required:
+        - used_percent
+      properties:
+        used_percent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: Consumed share of the window (0-100). Adapters clamp before serving.
+        resets_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            When the window rolls over. ISO 8601 UTC. Null when the vendor does not report
+            a reset stamp on this window.
     TerminalVendorLoginStatus:
       type: string
       enum:

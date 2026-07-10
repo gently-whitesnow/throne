@@ -12,7 +12,8 @@ public class TerminalVendorCatalogMapperTests
         IVendorModelCatalog[]? dynamicCatalogs = null,
         AgentVendorLoginStatus claudeLogin = AgentVendorLoginStatus.Ready,
         AgentVendorLoginStatus codexLogin = AgentVendorLoginStatus.LoggedOut,
-        CapabilityProbeResult? tmux = null)
+        CapabilityProbeResult? tmux = null,
+        IVendorQuotaAdapter[]? quotaAdapters = null)
     {
         IAgentVendorLoginProbe[] probes =
         [
@@ -29,6 +30,7 @@ public class TerminalVendorCatalogMapperTests
             catalog,
             dynamicCatalogs ?? Array.Empty<IVendorModelCatalog>(),
             probes,
+            quotaAdapters ?? Array.Empty<IVendorQuotaAdapter>(),
             new StubDetectionCache(tmux));
     }
 
@@ -173,5 +175,52 @@ public class TerminalVendorCatalogMapperTests
         public string Vendor { get; } = vendor;
         public Task<AgentVendorLoginResult> ProbeAsync(CancellationToken ct) =>
             Task.FromResult(new AgentVendorLoginResult(status, Detail: null));
+    }
+
+    private sealed class StubQuotaAdapter(string vendor, VendorQuotaSnapshot? snapshot) : IVendorQuotaAdapter
+    {
+        public string Vendor { get; } = vendor;
+        public Task<VendorQuotaSnapshot?> ReadAsync(CancellationToken ct) =>
+            Task.FromResult(snapshot);
+    }
+
+    [Fact(DisplayName = "quota: адаптер вернул снапшот → маппится в DTO, ISO 8601 стамп парсится в UTC")]
+    public async Task Maps_vendor_quota_from_adapter()
+    {
+        var snapshot = new VendorQuotaSnapshot(
+            FiveHour: new VendorQuotaWindow(UsedPercent: 42.5, ResetsAt: "2026-07-10T15:00:00Z"),
+            SevenDay: new VendorQuotaWindow(UsedPercent: 12.0, ResetsAt: null),
+            CreditsBalance: null);
+
+        var dto = await Build(
+            quotaAdapters: [new StubQuotaAdapter(TerminalAgentCatalog.VendorClaude, snapshot)])
+            .ToDtoAsync(CancellationToken.None);
+        var claude = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorClaude);
+
+        claude.Quota.Should().NotBeNull();
+        claude.Quota!.Five_hour.Used_percent.Should().Be(42.5);
+        claude.Quota.Five_hour.Resets_at.Should().Be(new DateTimeOffset(2026, 7, 10, 15, 0, 0, TimeSpan.Zero));
+        claude.Quota.Seven_day.Should().NotBeNull();
+        claude.Quota.Seven_day!.Used_percent.Should().Be(12.0);
+        claude.Quota.Seven_day.Resets_at.Should().BeNull();
+        claude.Quota.Credits_balance.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "quota: адаптер вернул null → Quota=null (блок скрыт)")]
+    public async Task Skips_vendor_quota_when_adapter_returns_null()
+    {
+        var dto = await Build(
+            quotaAdapters: [new StubQuotaAdapter(TerminalAgentCatalog.VendorClaude, null)])
+            .ToDtoAsync(CancellationToken.None);
+
+        dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorClaude).Quota.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "quota: адаптер не зарегистрирован → Quota=null для этого вендора")]
+    public async Task Skips_vendor_quota_when_adapter_missing()
+    {
+        var dto = await Build().ToDtoAsync(CancellationToken.None);
+
+        dto.Vendors.All(v => v.Quota is null).Should().BeTrue();
     }
 }

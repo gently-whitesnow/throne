@@ -10,4 +10,12 @@
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Terminals\vendor-models.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Throne.Application.Tests" />
+  </ItemGroup>
+
 </Project>

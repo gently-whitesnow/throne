@@ -213,6 +213,32 @@ export interface components {
             login_detail?: string | null;
             /** @description Whether the launch surface may offer this vendor. False for `in_development` vendors (and any whose capability prerequisite is unavailable) — they still appear in `/settings` with their status, but the launch dropdown filters them out. */
             selectable: boolean;
+            /** @description Best-effort Pro/Max quota snapshot for the vendor's own subscription (ADR-0054). Null when the vendor exposes no quota surface, the local CLI is not logged in, or the probe failed (missing token file, HTTP error, unexpected schema). The launch surface hides the quota block when null; a null probe never blocks Run. */
+            quota?: components["schemas"]["TerminalVendorQuotaDto"] | null;
+        };
+        /** @description Provider-neutral quota view aggregated from the vendor's own subscription surface (Anthropic `/api/oauth/usage`, ChatGPT `/backend-api/wham/usage`). Rendered as a compact block under the model selector. */
+        TerminalVendorQuotaDto: {
+            /** @description Rolling 5-hour usage window, always present when the snapshot exists. */
+            five_hour: components["schemas"]["TerminalVendorQuotaWindowDto"];
+            /** @description Rolling weekly usage window. Null when the vendor does not surface a weekly axis or has not populated it yet for this account. */
+            seven_day?: components["schemas"]["TerminalVendorQuotaWindowDto"] | null;
+            /**
+             * Format: double
+             * @description Vendor-specific credits balance (currently Codex only). Null for vendors that do not report a credits axis.
+             */
+            credits_balance?: number | null;
+        };
+        TerminalVendorQuotaWindowDto: {
+            /**
+             * Format: double
+             * @description Consumed share of the window (0-100). Adapters clamp before serving.
+             */
+            used_percent: number;
+            /**
+             * Format: date-time
+             * @description When the window rolls over. ISO 8601 UTC. Null when the vendor does not report a reset stamp on this window.
+             */
+            resets_at?: string | null;
         };
         /**
          * @description Login readiness of a terminal vendor's CLI. `ready` — CLI on PATH and authenticated (`claude auth status` / `codex login status` exit 0). `logged_out` — CLI present but not authenticated. `missing` — CLI not found on PATH. `in_development` — vendor is intentionally not wired for launch yet (e.g. `opencode` pending local-model rework); it is excluded from the readiness check and not `selectable`.
