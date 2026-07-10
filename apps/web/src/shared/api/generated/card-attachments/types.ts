@@ -103,6 +103,8 @@ export interface components {
             /** @description Opaque provider-supplied revision/etag captured with the snapshot. */
             card_version?: string | null;
             availability: components["schemas"]["CardAvailability"];
+            /** @description Browser-facing URL of the card in the tracker, when the provider can compose one from the saved connection and the coordinate. Null when the tracker cannot build a stable card URL or the connection is gone. Derived in the API layer per request — not persisted with the snapshot (ADR-0052). */
+            web_url?: string | null;
             /**
              * Format: date-time
              * @description When the stored snapshot was last pulled from the provider.

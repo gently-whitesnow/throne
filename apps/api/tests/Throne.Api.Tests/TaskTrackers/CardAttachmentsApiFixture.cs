@@ -134,6 +134,9 @@ internal sealed class StubCardTrackerProvider : ITaskTrackerConnectionProvider
         TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
         OnGetCard(cardId);
 
+    public string? BuildCardWebUrl(TaskTrackerConnectionDescriptor connection, string cardId) =>
+        $"{connection.BaseUrl.TrimEnd('/')}/{cardId}";
+
     public static TaskTrackerCard Card(string cardId, string title, bool archived = false) =>
         new(
             CardId: cardId,

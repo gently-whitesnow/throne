@@ -14,6 +14,7 @@ internal static class CardAttachmentEndpointServices
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<CardAttachmentDtoMapper>();
         services.AddSingleton<ListIntentCardAttachmentsEndpoint>();
         services.AddSingleton<AttachIntentCardAttachmentEndpoint>();
         services.AddSingleton<DetachIntentCardAttachmentEndpoint>();
