@@ -2,12 +2,14 @@ import { getTranslations } from 'next-intl/server';
 
 type CodeStep = { title: string; description: string; snippet: string };
 type TextStep = { title: string; description: string };
+type ReleaseChannel = { title: string; description: string; primary: string; secondary: string };
 
 export async function Connect() {
   const t = await getTranslations('connect');
   const install = t.raw('install') as CodeStep;
   const open = t.raw('open') as CodeStep;
   const embedded = t.raw('embedded') as TextStep;
+  const releaseChannel = t.raw('releaseChannel') as ReleaseChannel;
 
   return (
     <section className="section" id="connect">
@@ -55,6 +57,39 @@ export async function Connect() {
             </div>
           </li>
         </ol>
+
+        <div
+          aria-labelledby="release-channel-title"
+          style={{
+            marginTop: 'var(--space-8)',
+            paddingTop: 'var(--space-6)',
+            borderTop: '1px solid var(--color-border)',
+            maxWidth: 'var(--max-w-prose)',
+          }}
+        >
+          <h3 className="step__title" id="release-channel-title">
+            {releaseChannel.title}
+          </h3>
+          <p className="step__desc">{releaseChannel.description}</p>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+            <a
+              className="btn btn-primary"
+              href="https://t.me/throne_whitesnow_tech"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {releaseChannel.primary}
+            </a>
+            <a
+              className="btn btn-secondary"
+              href="https://github.com/gently-whitesnow/throne/releases"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {releaseChannel.secondary}
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   );

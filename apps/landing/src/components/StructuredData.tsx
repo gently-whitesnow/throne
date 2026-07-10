@@ -16,7 +16,10 @@ export async function StructuredData({ locale }: { locale: string }) {
       description: t('description'),
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       author: { '@type': 'Person', name: 'gently-whitesnow' },
-      sameAs: ['https://github.com/gently-whitesnow/throne'],
+      sameAs: [
+        'https://github.com/gently-whitesnow/throne',
+        'https://t.me/throne_whitesnow_tech',
+      ],
     },
     {
       '@context': 'https://schema.org',
