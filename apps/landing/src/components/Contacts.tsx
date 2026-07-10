@@ -13,7 +13,7 @@ export async function Contacts() {
         </p>
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
           <a
-            className="btn btn-primary"
+            className="btn btn-secondary"
             href="https://github.com/gently-whitesnow/throne"
             target="_blank"
             rel="noreferrer noopener"
@@ -21,8 +21,8 @@ export async function Contacts() {
             GitHub · {t('github')}
           </a>
           <a
-            className="btn btn-secondary"
-            href="https://t.me/gently_whitesnow"
+            className="btn btn-primary"
+            href="https://t.me/throne_whitesnow_tech"
             target="_blank"
             rel="noreferrer noopener"
           >
