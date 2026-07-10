@@ -20,7 +20,6 @@ public sealed class IntentsController(
     GetIntentEndpoint getIntent,
     CreateIntentEndpoint createIntent,
     SetIntentTagsEndpoint setIntentTags,
-    SetIntentTitleEndpoint setIntentTitle,
     ReplaceIntentTextEndpoint replaceIntentText,
     SetIntentStatusEndpoint setIntentStatus,
     SetIntentCleanupOnDoneEndpoint setIntentCleanupOnDone,
@@ -58,9 +57,6 @@ public sealed class IntentsController(
 
     public override Task<ActionResult<IntentDetailDto>> SetIntentTags(string id, SetIntentTagsRequest body) =>
         setIntentTags.RunAsync(id, body, HttpContext.RequestAborted);
-
-    public override Task<ActionResult<IntentDetailDto>> SetIntentTitle(string id, SetIntentTitleRequest body) =>
-        setIntentTitle.RunAsync(id, body, HttpContext.RequestAborted);
 
     public override Task<ActionResult<IntentDetailDto>> ReplaceIntentText(string id, ReplaceTextRequest body) =>
         replaceIntentText.RunAsync(id, body, HttpContext.RequestAborted);

@@ -12,7 +12,6 @@ export const intentsEndpoints = {
   setIntentStatus: (id: string) => `/intents/${id}/status`,
   setIntentCleanupOnDone: (id: string) => `/intents/${id}/cleanup-on-done`,
   setIntentTags: (id: string) => `/intents/${id}/tags`,
-  setIntentTitle: (id: string) => `/intents/${id}/title`,
   moveIntent: (id: string) => `/intents/${id}/move`,
   pinIntent: (id: string) => `/intents/${id}/pin`,
   unpinIntent: (id: string) => `/intents/${id}/pin`,

@@ -103,14 +103,6 @@ internal sealed class EfIntentRepository(
         CancellationToken ct) =>
         tagsMutator.SetTagsAsync(id, expectedVersion, tagIds, now, ct);
 
-    Task<SetIntentTitleOutcome> IIntentRepository.SetTitleAsync(
-        IntentId id,
-        int expectedVersion,
-        string? title,
-        DateTimeOffset now,
-        CancellationToken ct) =>
-        tagsMutator.SetTitleAsync(id, expectedVersion, title, now, ct);
-
     Task IIntentRepository.SetCleanupLocalStateOnDoneAsync(
         IntentId id,
         bool value,

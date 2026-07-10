@@ -26,7 +26,6 @@ internal static class WorkspaceMapPrompt
         string workspaceRoot,
         IReadOnlyList<string> repoPaths,
         IReadOnlyList<string> tags,
-        string? title,
         IReadOnlyList<IntentLinkPromptContext> links,
         IReadOnlyList<IntentAttachment> attachments,
         IReadOnlyList<IntentCardAttachment> cardAttachments,
@@ -40,7 +39,7 @@ internal static class WorkspaceMapPrompt
         map.Append("Корень workspace: ").Append(workspaceRoot).Append('\n');
         AppendRepositories(map, repoPaths);
         AppendCwdModel(map);
-        AppendTitleAndTags(map, title, tags);
+        AppendTags(map, tags);
         AppendLinks(map, links);
         AppendSkills(map, sessionSkillIds);
         AppendAttachments(map, attachments);
@@ -75,12 +74,8 @@ internal static class WorkspaceMapPrompt
         map.Append("или `cd <абсолютный путь репо> && …`.\n");
     }
 
-    private static void AppendTitleAndTags(StringBuilder map, string? title, IReadOnlyList<string> tags)
+    private static void AppendTags(StringBuilder map, IReadOnlyList<string> tags)
     {
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            map.Append("Заголовок интента: ").Append(title).Append('\n');
-        }
         if (tags is { Count: > 0 })
         {
             map.Append("Теги интента: ").Append(string.Join(", ", tags)).Append('\n');

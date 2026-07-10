@@ -15,7 +15,7 @@ public sealed class CreateIntentEndpoint(CreateIntentHandler handler, IntentsApi
     {
         ArgumentNullException.ThrowIfNull(body);
         var intent = await handler.HandleAsync(
-            new CreateIntentCommand(body.Text, body.Tag_names?.ToList(), TextVersionAuthor.User, body.Title),
+            new CreateIntentCommand(body.Text, body.Tag_names?.ToList(), TextVersionAuthor.User),
             cancellationToken);
         var tagMap = await helpers.BuildTagMapAsync(intent.TagIds, cancellationToken);
         // Freshly created intents start unpinned; skip the pin lookup.

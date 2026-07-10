@@ -38,12 +38,6 @@ namespace Throne.Intents.Contracts.Generated
         public string Text { get; set; }
 
         /// <summary>
-        /// Optional title. Free-form metadata, not versioned; omit or pass null for an untitled intent.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
-        public string Title { get; set; }
-
-        /// <summary>
         /// Optional tag names (slug-style). Server upserts by name — existing names are reused, new names create tags.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tag_names")]
@@ -231,34 +225,6 @@ namespace Throne.Intents.Contracts.Generated
 
         /// <summary>
         /// current_version observed before this update; tag changes do not bump the value but it must still match.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
-        public int Expected_version { get; set; }
-
-        private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
-
-        [System.Text.Json.Serialization.JsonExtensionData]
-        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
-        {
-            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
-            set { _additionalProperties = value; }
-        }
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class SetIntentTitleRequest
-    {
-
-        /// <summary>
-        /// New title; pass null or an empty string to clear it. A card-linked intent must keep a non-empty title.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
-        public string Title { get; set; }
-
-        /// <summary>
-        /// current_version observed before this update; title changes do not bump the value but it must still match.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("expected_version")]
         [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
@@ -475,12 +441,6 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TagRefDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<TagRefDto>();
-
-        /// <summary>
-        /// Optional title. Null when the intent is untitled; render a text snippet fallback in that case.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
-        public string Title { get; set; }
 
         /// <summary>
         /// First 140 characters of Intent.Text (no ellipsis); full text via separate read endpoint.
@@ -728,12 +688,6 @@ namespace Throne.Intents.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<TagRefDto> Tags { get; set; } = new System.Collections.ObjectModel.Collection<TagRefDto>();
-
-        /// <summary>
-        /// Optional title. Null when the intent is untitled; render a text snippet fallback in that case.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
-        public string Title { get; set; }
 
         /// <summary>
         /// Full canonical Intent.Text.

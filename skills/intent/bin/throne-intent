@@ -10,8 +10,7 @@ usage() {
 Usage:
   throne-intent get
   throne-intent replace-text --old-file OLD --new-file NEW
-  throne-intent set-title (--title TEXT | --clear)
-  throne-intent create --text-file TEXT [--title TEXT] [--tag TAG]... [--id-only]
+  throne-intent create --text-file TEXT [--tag TAG]... [--id-only]
   throne-intent link TO_ID [--blocking true|false] [--rationale-file FILE]
 USAGE
 }
@@ -86,26 +85,13 @@ PY
 }
 
 create_payload() {
-  # argv: TEXT_FILE TITLE TAG...  (TITLE empty string means "untitled")
+  # argv: TEXT_FILE TAG...
   python3 - "$@" <<'PY'
 import json, pathlib, sys
 payload = {"text": pathlib.Path(sys.argv[1]).read_text()}
-title = sys.argv[2]
-if title:
-    payload["title"] = title
-tags = sys.argv[3:]
+tags = sys.argv[2:]
 if tags:
     payload["tag_names"] = tags
-print(json.dumps(payload, ensure_ascii=False))
-PY
-}
-
-set_title_payload() {
-  # argv: VERSION MODE(set|clear) TITLE
-  python3 - "$1" "$2" "${3:-}" <<'PY'
-import json, sys
-payload = {"expected_version": int(sys.argv[1])}
-payload["title"] = None if sys.argv[2] == "clear" else sys.argv[3]
 print(json.dumps(payload, ensure_ascii=False))
 PY
 }
@@ -156,46 +142,12 @@ cmd_replace_text() {
   print_or_fail "replace-text"
 }
 
-cmd_set_title() {
-  require_intent
-  local title="" clear=false title_set=false version payload
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --title) title="${2:-}"; title_set=true; shift 2 ;;
-      --clear) clear=true; shift ;;
-      --help) usage; exit 0 ;;
-      *) die "unknown set-title argument: $1" ;;
-    esac
-  done
-  if [[ "${clear}" == true && "${title_set}" == true ]]; then
-    die "set-title takes either --title or --clear, not both"
-  fi
-  [[ "${clear}" == true || "${title_set}" == true ]] || die "set-title requires --title TEXT or --clear"
-
-  http_request GET "/api/v1/intents/${INTENT_ID}"
-  print_or_fail "get before set-title" >/dev/null
-  version="$(printf '%s' "${HTTP_BODY}" | json_field current_version)"
-  if [[ "${clear}" == true ]]; then
-    payload="$(set_title_payload "${version}" clear)"
-  else
-    payload="$(set_title_payload "${version}" set "${title}")"
-  fi
-  http_request PUT "/api/v1/intents/${INTENT_ID}/title" "${payload}"
-  if [[ "${HTTP_STATUS}" == "409" ]]; then
-    echo "throne-intent: set-title lost an optimistic-concurrency race." >&2
-    echo "throne-intent: run 'throne-intent get' and retry." >&2
-    exit 75
-  fi
-  print_or_fail "set-title"
-}
-
 cmd_create() {
-  local text_file="" title="" id_only=false
+  local text_file="" id_only=false
   local tags=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --text-file) text_file="${2:-}"; shift 2 ;;
-      --title) title="${2:-}"; shift 2 ;;
       --tag) tags+=("${2:-}"); shift 2 ;;
       --id-only) id_only=true; shift ;;
       --help) usage; exit 0 ;;
@@ -205,7 +157,7 @@ cmd_create() {
   [[ -n "${text_file}" ]] || die "create requires --text-file"
   require_file "${text_file}"
 
-  http_request POST "/api/v1/intents" "$(create_payload "${text_file}" "${title}" ${tags[@]+"${tags[@]}"})"
+  http_request POST "/api/v1/intents" "$(create_payload "${text_file}" ${tags[@]+"${tags[@]}"})"
   if [[ "${HTTP_STATUS}" =~ ^2 ]]; then
     if [[ "${id_only}" == true ]]; then
       printf '%s' "${HTTP_BODY}" | json_field id
@@ -243,7 +195,6 @@ cmd_link() {
 case "${1:-}" in
   get) shift; [[ $# -eq 0 ]] || die "get takes no arguments"; cmd_get ;;
   replace-text) shift; cmd_replace_text "$@" ;;
-  set-title) shift; cmd_set_title "$@" ;;
   create) shift; cmd_create "$@" ;;
   link) shift; cmd_link "$@" ;;
   --help|-h|"") usage ;;

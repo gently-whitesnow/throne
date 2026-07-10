@@ -8,7 +8,6 @@ namespace Throne.Infrastructure.EfCore.Rows;
 internal sealed class IntentRow
 {
     public string Id { get; set; } = string.Empty;
-    public string? Title { get; set; }
     public string Text { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int CurrentVersion { get; set; }

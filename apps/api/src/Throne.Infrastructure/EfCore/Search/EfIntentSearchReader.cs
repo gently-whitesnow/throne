@@ -16,12 +16,12 @@ internal sealed class EfIntentSearchReader(
     EfSessionAccessor sessions)
     : EfRepositoryBase(contextFactory, sessions), IIntentSearchReader
 {
-    // Columns: 0=intent_id (UNINDEXED), 1=title, 2=text. bm25 weights boost title matches so
-    // a title hit outranks a body hit; snippet() builds the highlighted body excerpt (col 2).
+    // Columns: 0=intent_id (UNINDEXED), 1=text. snippet() builds the highlighted body excerpt
+    // (col 1); bm25() ranks most-relevant first over the single indexed body column.
     private const string SearchSql =
-        "SELECT intent_id, snippet(intents_fts, 2, $open, $close, '…', 12) AS snippet "
+        "SELECT intent_id, snippet(intents_fts, 1, $open, $close, '…', 12) AS snippet "
         + "FROM intents_fts WHERE intents_fts MATCH $match "
-        + "ORDER BY bm25(intents_fts, 1.0, 5.0, 1.0) LIMIT $limit;";
+        + "ORDER BY bm25(intents_fts) LIMIT $limit;";
 
     public Task<IReadOnlyList<IntentSearchHit>> SearchAsync(string query, int limit, CancellationToken ct)
     {

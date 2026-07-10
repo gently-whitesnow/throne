@@ -68,66 +68,6 @@ public class EfCoreIntentRepositoryTests(SqliteFixture fixture)
         fetched.TagIds.Should().Equal(a, b);
     }
 
-    [Fact(DisplayName = "SetTitleAsync пишет title, бьёт updated_at, не растит current_version")]
-    public async Task SetTitle_persists_without_version_bump()
-    {
-        var (db, repo, uow) = await NewScopeAsync();
-
-        var id = IntentId.New();
-        var intent = Intent.Create(id, "body", tagIds: null, Now, title: "First");
-        var version = TextVersion.CreateSnapshot(
-            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
-            "body", Now, TextVersionAuthor.Agent);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
-
-        var later = Now.AddMinutes(2);
-        var outcome = await uow.ExecuteAsync(ct => repo.SetTitleAsync(id, 1, "Second", later, ct), CancellationToken.None);
-
-        outcome.Should().BeOfType<SetIntentTitleOutcome.Updated>();
-        var stored = await FindIntentAsync(db, id);
-        stored!.Title.Should().Be("Second");
-        stored.CurrentVersion.Should().Be(1);
-        stored.UpdatedAt.Should().Be(later);
-
-        var fetched = await repo.GetByIdAsync(id, CancellationToken.None);
-        fetched!.State.Title.Should().Be("Second");
-    }
-
-    [Fact(DisplayName = "SetTitleAsync с пустым значением очищает title")]
-    public async Task SetTitle_clears_to_null()
-    {
-        var (db, repo, uow) = await NewScopeAsync();
-
-        var id = IntentId.New();
-        var intent = Intent.Create(id, "body", tagIds: null, Now, title: "Title");
-        var version = TextVersion.CreateSnapshot(
-            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
-            "body", Now, TextVersionAuthor.Agent);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
-
-        await uow.ExecuteAsync(ct => repo.SetTitleAsync(id, 1, "  ", Now.AddMinutes(1), ct), CancellationToken.None);
-
-        var stored = await FindIntentAsync(db, id);
-        stored!.Title.Should().BeNull();
-    }
-
-    [Fact(DisplayName = "SetTitleAsync на чужой версии → VersionConflict")]
-    public async Task SetTitle_version_conflict()
-    {
-        var (_, repo, uow) = await NewScopeAsync();
-
-        var id = IntentId.New();
-        var intent = Intent.Create(id, "body", tagIds: null, Now);
-        var version = TextVersion.CreateSnapshot(
-            Guid.NewGuid().ToString("N"), TextVersionOwnerKind.Intent, id.Value,
-            "body", Now, TextVersionAuthor.Agent);
-        await uow.ExecuteAsync(ct => repo.CreateAsync(intent, version, InitialStatusChange(intent), Array.Empty<Tag>(), ct), CancellationToken.None);
-
-        var outcome = await uow.ExecuteAsync(ct => repo.SetTitleAsync(id, 99, "X", Now, ct), CancellationToken.None);
-
-        outcome.Should().BeOfType<SetIntentTitleOutcome.VersionConflict>();
-    }
-
     [Fact(DisplayName = "GetByIdAsync возвращает null для несуществующего id")]
     public async Task Get_returns_null_when_missing()
     {
