@@ -138,6 +138,13 @@ namespace Throne.TaskTrackers.Contracts.Generated
         [System.Text.Json.Serialization.JsonPropertyName("card_version")]
         public string Card_version { get; set; }
 
+        /// <summary>
+        /// Per-request derived URL to the card in the provider's UI. Composed from the current connection base_url + card_id (short form; provider redirects to human-readable path). Null when the tracker cannot form the URL (no active connection, or the card_id is not usable). Non-authoritative — never persisted alongside the read-only projection.
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("web_url")]
+        public string Web_url { get; set; }
+
         private System.Collections.Generic.IDictionary<string, object> _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

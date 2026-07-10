@@ -38,7 +38,10 @@ public sealed class BoardCardBrowserEndpointTests(SqliteFixture sqlite) : IAsync
         cards.GetArrayLength().Should().Be(2);
         cards[0].GetProperty("card_id").GetString().Should().Be("42");
         cards[0].GetProperty("title").GetString().Should().Be("First");
+        cards[0].GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/42");
+        cards[1].GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/43");
     }
+
 
     [Fact(DisplayName = "GET board cards → 409 без сохранённого коннекта")]
     public async Task List_not_connected_409()
@@ -104,6 +107,7 @@ public sealed class BoardCardBrowserEndpointTests(SqliteFixture sqlite) : IAsync
         dto.GetProperty("card_id").GetString().Should().Be("42");
         dto.GetProperty("title").GetString().Should().Be("Detailed");
         dto.GetProperty("description").GetString().Should().Be("body");
+        dto.GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/42");
     }
 
     [Fact(DisplayName = "GET single card → 404 когда карточка пропала")]

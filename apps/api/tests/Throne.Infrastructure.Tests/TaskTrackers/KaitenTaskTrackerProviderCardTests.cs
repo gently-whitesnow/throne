@@ -74,4 +74,27 @@ public sealed class KaitenTaskTrackerProviderCardTests
             .Should().ThrowAsync<TaskTrackerConnectionException>())
             .Which.Health.Should().Be(TaskTrackerConnectionHealth.Offline);
     }
+
+    [Theory(DisplayName = "BuildCardWebUrl → concatenates baseUrl and cardId, trimming trailing slash")]
+    [InlineData("https://acme.kaiten.ru", "42", "https://acme.kaiten.ru/42")]
+    [InlineData("https://acme.kaiten.ru/", "42", "https://acme.kaiten.ru/42")]
+    [InlineData("https://acme.kaiten.ru///", "42", "https://acme.kaiten.ru/42")]
+    public void BuildCardWebUrl_short_form(string baseUrl, string cardId, string expected)
+    {
+        var provider = Provider();
+        var url = provider.BuildCardWebUrl(new TaskTrackerConnectionDescriptor(baseUrl, "tok"), cardId);
+        url.Should().Be(expected);
+    }
+
+    [Theory(DisplayName = "BuildCardWebUrl → null when the coordinate has no fields to form a URL")]
+    [InlineData("", "42")]
+    [InlineData("   ", "42")]
+    [InlineData("https://acme.kaiten.ru", "")]
+    [InlineData("https://acme.kaiten.ru", "not-a-number")]
+    public void BuildCardWebUrl_returns_null_for_unusable_input(string baseUrl, string cardId)
+    {
+        var provider = Provider();
+        var url = provider.BuildCardWebUrl(new TaskTrackerConnectionDescriptor(baseUrl, "tok"), cardId);
+        url.Should().BeNull();
+    }
 }

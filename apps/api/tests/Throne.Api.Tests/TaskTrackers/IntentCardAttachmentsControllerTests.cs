@@ -61,6 +61,25 @@ public sealed class IntentCardAttachmentsControllerTests(SqliteFixture sqlite) :
         dto.GetProperty("title").GetString().Should().Be("Fresh card");
         dto.GetProperty("availability").GetString().Should().Be("available");
         dto.GetProperty("card_id").GetString().Should().Be("42");
+        dto.GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/42");
+    }
+
+    [Fact(DisplayName = "GET cards → web_url = null для attachment без сохранённого коннекта")]
+    public async Task List_web_url_null_when_connection_missing()
+    {
+        var intent = await _fixture.SeedIntentAsync(Now);
+        await _fixture.SeedConnectionAsync();
+        _fixture.Provider.OnGetCard = id => Task.FromResult<TaskTrackerCard?>(
+            StubCardTrackerProvider.Card(id, "Attached"));
+        await AttachAndGetIdAsync(intent.Id.Value);
+        await RemoveConnectionAsync();
+
+        var response = await _fixture.Client.GetAsync(CardsUri(intent.Id.Value));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var items = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+        items.Should().ContainSingle();
+        items![0].GetProperty("web_url").ValueKind.Should().Be(JsonValueKind.Null);
     }
 
     [Fact(DisplayName = "POST cards на пропавшую карточку → 404 card_attachment.card_not_found")]

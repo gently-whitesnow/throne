@@ -45,9 +45,21 @@ export function CardAttachmentRow({ intentId, card }: CardAttachmentRowProps) {
             >
               <SquareKanban size={14} strokeWidth={2} />
             </span>
-            <span className="truncate text-sm font-semibold text-base-content">
-              {card.title || "Без названия"}
-            </span>
+            {card.web_url ? (
+              <a
+                href={card.web_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid={`card-attachment-link-${card.id}`}
+                className="truncate text-sm font-semibold text-base-content hover:underline focus-visible:underline"
+              >
+                {card.title || "Без названия"}
+              </a>
+            ) : (
+              <span className="truncate text-sm font-semibold text-base-content">
+                {card.title || "Без названия"}
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="truncate font-mono text-base-content/60">

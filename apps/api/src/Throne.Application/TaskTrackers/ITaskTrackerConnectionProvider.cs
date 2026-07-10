@@ -66,4 +66,13 @@ public interface ITaskTrackerConnectionProvider : ITaskTrackerProvider
         TaskTrackerConnectionDescriptor connection,
         string cardId,
         CancellationToken ct);
+
+    /// <summary>
+    /// Build a browser-facing URL for the card identified by <paramref name="cardId"/> under the given
+    /// connection, or <see langword="null"/> when this provider cannot compose one from the fields it has
+    /// (unknown coordinate shape, missing base URL, tracker with no stable card URL). Returns a short
+    /// canonical form the tracker itself redirects to a human-readable route — the caller does not depend
+    /// on prefix/space metadata that is not part of the coordinate.
+    /// </summary>
+    string? BuildCardWebUrl(TaskTrackerConnectionDescriptor connection, string cardId);
 }

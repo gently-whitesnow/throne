@@ -12,7 +12,8 @@ namespace Throne.Api.TaskTrackers;
 /// </summary>
 public sealed class TaskTrackersController(
     ITaskTrackerProviderRegistry registry,
-    BoardCardBrowserService cardBrowser) : TaskTrackersControllerBase
+    BoardCardBrowserService cardBrowser,
+    TaskTrackerCardDtoMapper cardMapper) : TaskTrackersControllerBase
 {
     public override Task<ActionResult<TaskTrackerCatalogResponse>> ListTaskTrackers()
     {
@@ -36,14 +37,14 @@ public sealed class TaskTrackersController(
         string tracker, string board)
     {
         var cards = await cardBrowser.ListBoardCardsAsync(tracker, board, HttpContext.RequestAborted);
-        return new OkObjectResult(TaskTrackerCardDtoMapper.ToResponse(cards));
+        return new OkObjectResult(await cardMapper.ToResponseAsync(tracker, cards, HttpContext.RequestAborted));
     }
 
     public override async Task<ActionResult<TaskTrackerCardDto>> GetBoardCard(
         string tracker, string board, string card)
     {
         var result = await cardBrowser.GetBoardCardAsync(tracker, board, card, HttpContext.RequestAborted);
-        return new OkObjectResult(TaskTrackerCardDtoMapper.ToDto(result));
+        return new OkObjectResult(await cardMapper.ToDtoAsync(tracker, result, HttpContext.RequestAborted));
     }
 
     public override async Task<ActionResult<TaskTrackerBoardCardsResponse>> SearchBoardCards(
@@ -52,7 +53,7 @@ public sealed class TaskTrackersController(
         var effectiveLimit = ClampLimit(limit);
         var cards = await cardBrowser.SearchBoardCardsAsync(
             tracker, board, query, effectiveLimit, HttpContext.RequestAborted);
-        return new OkObjectResult(TaskTrackerCardDtoMapper.ToResponse(cards));
+        return new OkObjectResult(await cardMapper.ToResponseAsync(tracker, cards, HttpContext.RequestAborted));
     }
 
     private const int DefaultCardSearchLimit = 10;

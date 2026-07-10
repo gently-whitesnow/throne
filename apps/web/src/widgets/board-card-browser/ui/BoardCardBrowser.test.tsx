@@ -115,6 +115,42 @@ describe("BoardCardBrowser", () => {
     ).toBeTruthy();
   });
 
+  it("рендерит title карточки как внешнюю ссылку, когда web_url задан", async () => {
+    fetchBoardCards.mockResolvedValue([makeCard()]);
+    fetchBoardCard.mockResolvedValue(
+      makeCard({ web_url: "https://acme.kaiten.ru/777", description: "desc" })
+    );
+
+    renderBrowser();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Починить логин/ })
+    );
+
+    const link = await screen.findByTestId("board-card-link-777");
+    expect(link.tagName).toBe("A");
+    expect(link.getAttribute("href")).toBe("https://acme.kaiten.ru/777");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.textContent).toBe("Починить логин");
+  });
+
+  it("рендерит title карточки без ссылки, когда web_url отсутствует", async () => {
+    fetchBoardCards.mockResolvedValue([makeCard()]);
+    fetchBoardCard.mockResolvedValue(makeCard({ description: "desc" }));
+
+    renderBrowser();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Починить логин/ })
+    );
+
+    await screen.findByRole("button", {
+      name: "Создать интент с этой карточкой"
+    });
+    expect(screen.queryByTestId("board-card-link-777")).toBeNull();
+  });
+
   it("создаёт интент, привязывает карточку и переходит к нему", async () => {
     fetchBoardCards.mockResolvedValue([makeCard()]);
     fetchBoardCard.mockResolvedValue(makeCard({ description: "desc" }));

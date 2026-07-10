@@ -9,7 +9,9 @@ namespace Throne.Api.TaskTrackers.Attachments.Endpoints;
 /// unreachable tracker 502, a missing connection 409, an unsupported/invalid coordinate 422. Idempotent
 /// by coordinate — a re-attach refreshes the snapshot and returns 200.
 /// </summary>
-public sealed class AttachIntentCardAttachmentEndpoint(CardAttachmentService service)
+public sealed class AttachIntentCardAttachmentEndpoint(
+    CardAttachmentService service,
+    CardAttachmentDtoMapper mapper)
 {
     public async Task<ActionResult<CardAttachmentDto>> RunAsync(
         string intentId, AttachCardRequest body, CancellationToken ct)
@@ -17,6 +19,7 @@ public sealed class AttachIntentCardAttachmentEndpoint(CardAttachmentService ser
         ArgumentNullException.ThrowIfNull(body);
         var command = new AttachCardCommand(intentId, body.Tracker, body.Board_id, body.Card_id);
         var attachment = await service.AttachAsync(command, ct);
-        return new OkObjectResult(CardAttachmentDtoMapper.ToDto(attachment));
+        var dto = await mapper.ToDtoAsync(attachment, ct);
+        return new OkObjectResult(dto);
     }
 }

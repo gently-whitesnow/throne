@@ -3,6 +3,7 @@ using Throne.Api.Intents;
 using Throne.Api.Realtime;
 using Throne.Api.Repositories;
 using Throne.Api.Settings;
+using Throne.Api.TaskTrackers;
 using Throne.Api.TaskTrackers.Attachments;
 using Throne.Api.Terminals;
 using Throne.Application;
@@ -29,6 +30,7 @@ public static class ThroneApiCoreServices
         services.AddThroneIntentEndpoints();
         services.AddThroneRepositoryEndpoints();
         services.AddThroneCardAttachmentEndpoints();
+        services.AddSingleton<TaskTrackerCardDtoMapper>();
         services.AddThroneTerminalEndpoints();
         services.AddThroneSettingsEndpoints();
         services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = 12 * 1024 * 1024);

@@ -129,6 +129,8 @@ public class TaskTrackerBoardCatalogTests
         public Task<TaskTrackerCard?> GetCardAsync(
             TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
             Task.FromResult<TaskTrackerCard?>(null);
+
+        public string? BuildCardWebUrl(TaskTrackerConnectionDescriptor connection, string cardId) => null;
     }
 
     private sealed class MutableClock(DateTimeOffset now) : TimeProvider

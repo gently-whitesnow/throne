@@ -146,6 +146,13 @@ namespace Throne.CardAttachments.Contracts.Generated
         public CardAvailability Availability { get; set; }
 
         /// <summary>
+        /// Browser-facing URL of the card in the tracker, when the provider can compose one from the saved connection and the coordinate. Null when the tracker cannot build a stable card URL or the connection is gone. Derived in the API layer per request — not persisted with the snapshot (ADR-0052).
+        /// <br/>
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("web_url")]
+        public string Web_url { get; set; }
+
+        /// <summary>
         /// When the stored snapshot was last pulled from the provider.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("fetched_at")]

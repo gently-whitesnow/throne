@@ -10,13 +10,16 @@ namespace Throne.Api.TaskTrackers.Attachments.Endpoints;
 /// tracker keeps the snapshot and marks it <c>unavailable</c>; a vanished card marks it <c>gone</c>.
 /// 404 only when the attachment is unknown for this intent.
 /// </summary>
-public sealed class RefreshIntentCardAttachmentEndpoint(CardAttachmentService service)
+public sealed class RefreshIntentCardAttachmentEndpoint(
+    CardAttachmentService service,
+    CardAttachmentDtoMapper mapper)
 {
     public async Task<ActionResult<CardAttachmentDto>> RunAsync(
         string intentId, string attachmentId, CancellationToken ct)
     {
         var attachment = await service.RefreshAsync(
             new RefreshCardAttachmentCommand(intentId, attachmentId), ct);
-        return new OkObjectResult(CardAttachmentDtoMapper.ToDto(attachment));
+        var dto = await mapper.ToDtoAsync(attachment, ct);
+        return new OkObjectResult(dto);
     }
 }

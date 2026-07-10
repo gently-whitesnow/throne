@@ -156,6 +156,28 @@ describe("CardAttachmentsList", () => {
     });
   });
 
+  it("рендерит title как внешнюю ссылку, когда web_url задан", async () => {
+    listIntentCardAttachments.mockResolvedValue([
+      makeCard({ web_url: "https://acme.kaiten.ru/777" })
+    ]);
+    renderList();
+    const link = await screen.findByTestId("card-attachment-link-c1");
+    expect(link.tagName).toBe("A");
+    expect(link.getAttribute("href")).toBe("https://acme.kaiten.ru/777");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.textContent).toBe("Починить логин");
+  });
+
+  it("рендерит title без ссылки, когда web_url = null", async () => {
+    listIntentCardAttachments.mockResolvedValue([makeCard({ web_url: null })]);
+    renderList();
+    await waitFor(() => {
+      expect(screen.getByText("Починить логин")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("card-attachment-link-c1")).toBeNull();
+  });
+
   it("рендерит title, координату и availability-бейдж", async () => {
     listIntentCardAttachments.mockResolvedValue([
       makeCard({ availability: "unavailable", archived: true })

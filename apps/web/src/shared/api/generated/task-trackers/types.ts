@@ -141,6 +141,8 @@ export interface components {
             archived: boolean;
             /** @description Opaque provider-supplied revision cursor (for Kaiten — card.version). */
             card_version?: string | null;
+            /** @description Per-request derived URL to the card in the provider's UI. Composed from the current connection base_url + card_id (short form; provider redirects to human-readable path). Null when the tracker cannot form the URL (no active connection, or the card_id is not usable). Non-authoritative — never persisted alongside the read-only projection. */
+            web_url?: string | null;
         };
         TaskTrackerBoardCardsResponse: {
             cards: components["schemas"]["TaskTrackerCardDto"][];

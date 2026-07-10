@@ -35,7 +35,7 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
         catch (KaitenApiException ex)
         {
-            return TaskTrackerProbeResult.FromHealth(Classify(ex.StatusCode), ex.Message);
+            return TaskTrackerProbeResult.FromHealth(KaitenTaskTrackerFailureMap.Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
@@ -77,7 +77,8 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
             // (auth → 409 reconnect), a tariff wall (blocked → 402) or an outage (offline → 502).
             // Distinguishing them here is what lets the settings card tell the operator what to do
             // instead of masquerading everything as a generic 502.
-            throw BoardReadFailure(Classify(ex.StatusCode), ex.Message);
+            throw KaitenTaskTrackerFailureMap.BoardReadFailure(
+                TrackerKey, KaitenTaskTrackerFailureMap.Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
@@ -112,7 +113,7 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
         catch (KaitenApiException ex)
         {
-            throw new TaskTrackerConnectionException(Classify(ex.StatusCode), ex.Message);
+            throw new TaskTrackerConnectionException(KaitenTaskTrackerFailureMap.Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
@@ -168,7 +169,7 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
         catch (KaitenApiException ex)
         {
-            throw new TaskTrackerConnectionException(Classify(ex.StatusCode), ex.Message);
+            throw new TaskTrackerConnectionException(KaitenTaskTrackerFailureMap.Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
@@ -195,7 +196,7 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
             var columnTitles = await LoadColumnTitlesAsync(kaiten, card.BoardId, ct);
             return KaitenCardProjection.ToCard(card, columnTitles);
         }
-        catch (KaitenApiException ex) when (IsGone(ex.StatusCode))
+        catch (KaitenApiException ex) when (KaitenTaskTrackerFailureMap.IsGone(ex.StatusCode))
         {
             // Only a genuine 404 is «gone» — the card was deleted. A 403 is NOT gone: it means the
             // token lost access (auth), and treating it as gone would wrongly bury a revoked-token
@@ -204,7 +205,7 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
         catch (KaitenApiException ex)
         {
-            throw new TaskTrackerConnectionException(Classify(ex.StatusCode), ex.Message);
+            throw new TaskTrackerConnectionException(KaitenTaskTrackerFailureMap.Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
         {
@@ -217,6 +218,25 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
         }
     }
 
+    public string? BuildCardWebUrl(TaskTrackerConnectionDescriptor connection, string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        if (string.IsNullOrWhiteSpace(connection.BaseUrl) || string.IsNullOrWhiteSpace(cardId))
+        {
+            return null;
+        }
+
+        // Short form Kaiten redirects to the human-readable /space/{s}/boards/card/{prefix}-{n}. Only the
+        // numeric card id is part of the attachment coordinate, so we do not fabricate space/prefix here.
+        if (!long.TryParse(cardId, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+        {
+            return null;
+        }
+
+        var trimmed = connection.BaseUrl.TrimEnd('/');
+        return $"{trimmed}/{cardId}";
+    }
+
     private async Task<IReadOnlyDictionary<long, string>> LoadColumnTitlesAsync(
         KaitenConnection kaiten, long boardId, CancellationToken ct)
     {
@@ -226,25 +246,4 @@ internal sealed class KaitenTaskTrackerProvider(IKaitenClient client) : ITaskTra
 
     private static KaitenConnection ToConnection(TaskTrackerConnectionDescriptor connection) =>
         new(connection.BaseUrl, connection.Token);
-
-    /// <summary>
-    /// Map a Kaiten HTTP status onto the connection-health taxonomy. 401/403 → auth (reconnect),
-    /// 402 → blocked (tariff), everything else — 5xx, an unexpected status — → offline (transient,
-    /// keep the binding). A 404 is handled at the call site (card «gone»), not here.
-    /// </summary>
-    private static TaskTrackerConnectionHealth Classify(HttpStatusCode status) => status switch
-    {
-        HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => TaskTrackerConnectionHealth.Auth,
-        HttpStatusCode.PaymentRequired => TaskTrackerConnectionHealth.Blocked,
-        _ => TaskTrackerConnectionHealth.Offline,
-    };
-
-    private ApiException BoardReadFailure(TaskTrackerConnectionHealth health, string detail) => health switch
-    {
-        TaskTrackerConnectionHealth.Auth => TaskTrackerFailures.ConnectionRejected(TrackerKey, detail),
-        TaskTrackerConnectionHealth.Blocked => TaskTrackerFailures.ConnectionBlocked(TrackerKey, detail),
-        _ => TaskTrackerFailures.UpstreamUnavailable(TrackerKey, detail),
-    };
-
-    private static bool IsGone(HttpStatusCode status) => status is HttpStatusCode.NotFound;
 }

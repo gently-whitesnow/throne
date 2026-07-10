@@ -127,6 +127,9 @@ internal sealed class FakeConnectionProvider : ITaskTrackerConnectionProvider
     public Task<TaskTrackerCard?> GetCardAsync(
         TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>
         OnGetCard(cardId);
+
+    public string? BuildCardWebUrl(TaskTrackerConnectionDescriptor connection, string cardId) =>
+        $"{connection.BaseUrl.TrimEnd('/')}/{cardId}";
 }
 
 internal sealed class InMemoryCardAttachmentStore : IIntentCardAttachmentStore
