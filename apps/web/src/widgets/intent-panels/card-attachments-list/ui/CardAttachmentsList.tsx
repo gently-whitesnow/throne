@@ -4,6 +4,7 @@ import {
   useIntentCardAttachmentsQuery,
   type CardAttachment
 } from "@/entities/task-tracker-card";
+import { useTaskTrackerConnectionsQuery } from "@/entities/task-tracker";
 import { SectionHeading } from "@/shared/ui";
 
 import { AttachCardButton } from "./AttachCardButton";
@@ -19,10 +20,28 @@ interface CardAttachmentsListProps {
  * пишется; `intent.text` остаётся собственным текстом оператора. Realtime у
  * карточек нет by design — список освежает query-invalidation на мутациях
  * attach/detach/refresh (в отличие от `intent.repository_*` с SSE).
+ *
+ * Секцию скрываем целиком, если у оператора нет подключённых трекеров и
+ * ничего уже не приложено: attach всё равно недоступен, а место в интенте
+ * важнее плейсхолдера. Если карточки есть — секция остаётся видимой даже
+ * при отключённых трекерах, чтобы не потерять существующий контекст.
  */
 export function CardAttachmentsList({ intentId }: CardAttachmentsListProps) {
   const { data, isLoading, error } = useIntentCardAttachmentsQuery(intentId);
   const cards = data ?? [];
+
+  const connectionsQuery = useTaskTrackerConnectionsQuery();
+  const hasConnectedTracker = (connectionsQuery.data?.connections ?? []).some(
+    (connection) => connection.state === "connected"
+  );
+
+  if (
+    cards.length === 0 &&
+    connectionsQuery.isSuccess &&
+    !hasConnectedTracker
+  ) {
+    return null;
+  }
 
   return (
     <section
