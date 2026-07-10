@@ -46,6 +46,28 @@ public sealed class TaskTrackersController(
         return new OkObjectResult(TaskTrackerCardDtoMapper.ToDto(result));
     }
 
+    public override async Task<ActionResult<TaskTrackerBoardCardsResponse>> SearchBoardCards(
+        string tracker, string board, string? query, int? limit)
+    {
+        var effectiveLimit = ClampLimit(limit);
+        var cards = await cardBrowser.SearchBoardCardsAsync(
+            tracker, board, query, effectiveLimit, HttpContext.RequestAborted);
+        return new OkObjectResult(TaskTrackerCardDtoMapper.ToResponse(cards));
+    }
+
+    private const int DefaultCardSearchLimit = 10;
+    private const int MaxCardSearchLimit = 25;
+
+    private static int ClampLimit(int? limit)
+    {
+        if (limit is not { } value)
+        {
+            return DefaultCardSearchLimit;
+        }
+
+        return Math.Clamp(value, 1, MaxCardSearchLimit);
+    }
+
     private static TaskTrackerProviderDto ToDto(ITaskTrackerProvider provider) => new()
     {
         Tracker = provider.TrackerKey,

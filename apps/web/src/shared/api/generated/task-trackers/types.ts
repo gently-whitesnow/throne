@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/task-trackers/{tracker}/boards/{board}/cards/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search cards inside a board for the attach-card picker.
+         * @description Read surface for the «Attach card» combobox: an empty `query` returns the most recently touched cards (top-N by upstream `updated_at desc`), a non-empty one hands the text filter to the tracker's own search (Kaiten `query`) and returns the first page only. Archived cards excluded. No local cache — the endpoint proxies live to the tracker. Connection degradation is classified as for the browser (`listBoardCards`): 409 auth, 402 blocked, 502 offline.
+         */
+        get: operations["searchBoardCards"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/task-trackers/{tracker}/boards/{board}/cards/{card}": {
         parameters: {
             query?: never;
@@ -246,6 +266,71 @@ export interface operations {
                 };
             };
             /** @description The tracker was unreachable while listing cards (offline). */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    searchBoardCards: {
+        parameters: {
+            query?: {
+                /** @description Text filter forwarded to the tracker; empty = recent-first mode. */
+                query?: string;
+                /** @description Cap on returned cards. Server clamps to a sane range. */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                tracker: components["schemas"]["TaskTrackerProvider"];
+                /** @description Provider-native board/space id to search cards in. */
+                board: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching cards (single page). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTrackerBoardCardsResponse"];
+                };
+            };
+            /** @description The tracker refused the request on tariff-plan grounds (blocked). */
+            402: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The tracker has no saved connection, or its token was rejected (reconnect). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tracker key is not registered on this Throne build. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description The tracker was unreachable while searching cards (offline). */
             502: {
                 headers: {
                     [name: string]: unknown;

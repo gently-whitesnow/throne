@@ -41,6 +41,20 @@ public interface ITaskTrackerConnectionProvider : ITaskTrackerProvider
         CancellationToken ct);
 
     /// <summary>
+    /// Look up cards inside a board for the attach-card combobox: empty <paramref name="query"/> returns
+    /// the most recently touched cards (top-N by updated-at desc), a non-empty one narrows by the
+    /// tracker's own text filter. Bounded by <paramref name="limit"/>, archived cards excluded, no
+    /// server-side paging beyond the first page — the surface is picker latency, not exhaustive listing.
+    /// Failures follow the same taxonomy as <see cref="ListBoardCardsAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<TaskTrackerCard>> SearchCardsAsync(
+        TaskTrackerConnectionDescriptor connection,
+        string boardId,
+        string? query,
+        int limit,
+        CancellationToken ct);
+
+    /// <summary>
     /// Pull a single card snapshot by its provider-native id. Returns <see langword="null"/> only when
     /// the card is genuinely gone upstream (404) so the caller can record «gone» without branching on an
     /// exception. Every other failure throws a <see cref="TaskTrackerConnectionException"/> carrying the

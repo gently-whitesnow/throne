@@ -61,6 +61,19 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardCardsResponse>> ListBoardCards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string board);
 
         /// <summary>
+        /// Search cards inside a board for the attach-card picker.
+        /// </summary>
+        /// <remarks>
+        /// Read surface for the «Attach card» combobox: an empty `query` returns the most recently touched cards (top-N by upstream `updated_at desc`), a non-empty one hands the text filter to the tracker's own search (Kaiten `query`) and returns the first page only. Archived cards excluded. No local cache — the endpoint proxies live to the tracker. Connection degradation is classified as for the browser (`listBoardCards`): 409 auth, 402 blocked, 502 offline.
+        /// </remarks>
+        /// <param name="board">Provider-native board/space id to search cards in.</param>
+        /// <param name="query">Text filter forwarded to the tracker; empty = recent-first mode.</param>
+        /// <param name="limit">Cap on returned cards. Server clamps to a sane range.</param>
+        /// <returns>Matching cards (single page).</returns>
+        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("api/v1/task-trackers/{tracker}/boards/{board}/cards/search", Name = "searchBoardCards")]
+        public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardCardsResponse>> SearchBoardCards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string board, [Microsoft.AspNetCore.Mvc.FromQuery] string query = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = 10);
+
+        /// <summary>
         /// Read a single card of a board read-only (title + description).
         /// </summary>
         /// <remarks>

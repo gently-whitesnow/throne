@@ -107,6 +107,76 @@ paths:
             application/problem+json:
               schema:
                 $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+  /api/v1/task-trackers/{tracker}/boards/{board}/cards/search:
+    get:
+      operationId: searchBoardCards
+      tags: [TaskTrackers]
+      summary: Search cards inside a board for the attach-card picker.
+      description: >
+        Read surface for the «Attach card» combobox: an empty `query` returns the most recently touched
+        cards (top-N by upstream `updated_at desc`), a non-empty one hands the text filter to the
+        tracker's own search (Kaiten `query`) and returns the first page only. Archived cards excluded.
+        No local cache — the endpoint proxies live to the tracker. Connection degradation is classified
+        as for the browser (`listBoardCards`): 409 auth, 402 blocked, 502 offline.
+      parameters:
+        - in: path
+          name: tracker
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskTrackerProvider'
+        - in: path
+          name: board
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: Provider-native board/space id to search cards in.
+        - in: query
+          name: query
+          required: false
+          schema:
+            type: string
+          description: Text filter forwarded to the tracker; empty = recent-first mode.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 25
+            default: 10
+          description: Cap on returned cards. Server clamps to a sane range.
+      responses:
+        '200':
+          description: Matching cards (single page).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTrackerBoardCardsResponse'
+        '402':
+          description: The tracker refused the request on tariff-plan grounds (blocked).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '409':
+          description: The tracker has no saved connection, or its token was rejected (reconnect).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '422':
+          description: Tracker key is not registered on this Throne build.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
+        '502':
+          description: The tracker was unreachable while searching cards (offline).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../shared.yaml#/components/schemas/ProblemDetails'
   /api/v1/task-trackers/{tracker}/boards/{board}/cards/{card}:
     get:
       operationId: getBoardCard

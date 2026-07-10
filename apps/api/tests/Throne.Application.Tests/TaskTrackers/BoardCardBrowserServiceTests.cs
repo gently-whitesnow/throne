@@ -119,6 +119,9 @@ public sealed class BoardCardBrowserServiceTests
         public Func<string, Task<IReadOnlyList<TaskTrackerCard>>> OnListBoardCards { get; set; } =
             _ => Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
 
+        public Func<string, string?, int, Task<IReadOnlyList<TaskTrackerCard>>> OnSearchCards { get; set; } =
+            (_, _, _) => Task.FromResult<IReadOnlyList<TaskTrackerCard>>([]);
+
         public Func<string, Task<TaskTrackerCard?>> OnGetCard { get; set; } =
             _ => Task.FromResult<TaskTrackerCard?>(null);
 
@@ -132,6 +135,10 @@ public sealed class BoardCardBrowserServiceTests
         public Task<IReadOnlyList<TaskTrackerCard>> ListBoardCardsAsync(
             TaskTrackerConnectionDescriptor connection, string boardId, CancellationToken ct) =>
             OnListBoardCards(boardId);
+
+        public Task<IReadOnlyList<TaskTrackerCard>> SearchCardsAsync(
+            TaskTrackerConnectionDescriptor connection, string boardId, string? query, int limit, CancellationToken ct) =>
+            OnSearchCards(boardId, query, limit);
 
         public Task<TaskTrackerCard?> GetCardAsync(
             TaskTrackerConnectionDescriptor connection, string cardId, CancellationToken ct) =>

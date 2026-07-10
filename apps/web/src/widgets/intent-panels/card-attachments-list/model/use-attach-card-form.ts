@@ -9,9 +9,11 @@ import { errorMessage } from "@/shared/lib";
 
 /**
  * Состояние минимальной формы attach: трекер + доска из board-selection
- * (`/settings`) дают координату `tracker`+`board_id`, оператор вводит только
- * `card_id`. Типизированные ошибки бэкенда (404/409/422/502) переводятся в
- * человекочитаемый текст; поиск карточек по тексту отложен (Child 5).
+ * (`/settings`) дают координату `tracker`+`board_id`. Поле карточки — combobox
+ * с автокомплитом по названию в рамках выбранной доски; ввод чистого id
+ * остаётся коротким путём («уже скопировал число — прикладывай напрямую»).
+ * Типизированные ошибки бэкенда (404/409/422/502) переводятся в человеко-
+ * читаемый текст.
  */
 export function useAttachCardForm(intentId: string, onAttached: () => void) {
   const connectionsQuery = useTaskTrackerConnectionsQuery();
@@ -37,10 +39,11 @@ export function useAttachCardForm(intentId: string, onAttached: () => void) {
   const activeBoardId = boardId || boards[0]?.board_id || "";
 
   const attachMutation = useAttachCardMutation(intentId);
+  const trimmedCardId = cardId.trim();
   const canSubmit =
     activeTracker.length > 0 &&
     activeBoardId.length > 0 &&
-    cardId.trim().length > 0 &&
+    trimmedCardId.length > 0 &&
     !attachMutation.isPending;
 
   async function submit() {
@@ -50,7 +53,7 @@ export function useAttachCardForm(intentId: string, onAttached: () => void) {
       await attachMutation.mutateAsync({
         tracker: activeTracker,
         board_id: activeBoardId,
-        card_id: cardId.trim()
+        card_id: trimmedCardId
       });
       setCardId("");
       onAttached();
@@ -77,11 +80,15 @@ export function useAttachCardForm(intentId: string, onAttached: () => void) {
     setTracker: (value: string) => {
       setTracker(value);
       setBoardId("");
+      setCardId("");
     },
     boards,
     boardsLoading: boardsQuery.isLoading,
     boardId: activeBoardId,
-    setBoardId,
+    setBoardId: (value: string) => {
+      setBoardId(value);
+      setCardId("");
+    },
     cardId,
     setCardId,
     submit,
