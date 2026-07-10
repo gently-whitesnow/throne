@@ -8,12 +8,13 @@
     "skipToContent": "К основному содержимому",
     "connect": "Начать работу",
     "github": "GitHub",
+    "community": "Канал",
     "switchLocale": "EN",
     "switchToLight": "Включить светлую тему",
     "switchToDark": "Включить тёмную тему"
   },
   "hero": {
-    "title": "Приложение агентной инженерии вокруг Intent",
+    "title": "Throne — приложение агентной инженерии вокруг намерения.",
     "subtitle": "Агентная инженерия — дисциплина, где человек задаёт направление и верифицирует, а агенты выполняют. Единица работы — Intent: вокруг него Throne стягивает контекст, запуск агента в нужном режиме и возврат результата на верификацию и обучение на диалоге. Локально, один бинарь.",
     "ctaPrimary": "Начать работу",
     "ctaSecondary": "Открыть на GitHub",
@@ -126,9 +127,10 @@
   "contacts": {
     "kicker": "Контакты",
     "title": "Публичный канал Throne",
-    "body": "Релизы, обсуждение разработки и обратная связь — в публичном Telegram-канале. GitHub остаётся источником кода, issues и дистрибуции.",
+    "body": "Релизы, обсуждение разработки и обратная связь — в публичном Telegram-канале. Для прямого фидбэка можно написать автору лично.",
     "github": "github.com/gently-whitesnow/throne",
-    "telegram": "t.me/throne_whitesnow_tech"
+    "telegram": "t.me/throne_whitesnow_tech",
+    "personalTelegram": "t.me/gently_whitesnow"
   },
   "footer": {
     "tagline": "Приложение агентной инженерии вокруг Intent",

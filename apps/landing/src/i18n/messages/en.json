@@ -8,12 +8,13 @@
     "skipToContent": "Skip to content",
     "connect": "Get started",
     "github": "GitHub",
+    "community": "Channel",
     "switchLocale": "RU",
     "switchToLight": "Switch to light theme",
     "switchToDark": "Switch to dark theme"
   },
   "hero": {
-    "title": "An app for agentic engineering, built around the Intent",
+    "title": "Throne — an agentic engineering app built around intent.",
     "subtitle": "Agentic engineering is a discipline where the human sets direction and verifies while agents execute. The unit of work is the Intent: Throne pulls context, agent launch in the right mode, and result verification around it — and learns from every conversation. Local, a single binary.",
     "ctaPrimary": "Get started",
     "ctaSecondary": "Open on GitHub",
@@ -126,9 +127,10 @@
   "contacts": {
     "kicker": "Contact",
     "title": "Throne public channel",
-    "body": "Release updates, development discussion, and feedback live in the public Telegram channel. GitHub remains the source for code, issues, and distribution.",
+    "body": "Release updates, development discussion, and feedback live in the public Telegram channel. For direct feedback, you can also message the author personally.",
     "github": "github.com/gently-whitesnow/throne",
-    "telegram": "t.me/throne_whitesnow_tech"
+    "telegram": "t.me/throne_whitesnow_tech",
+    "personalTelegram": "t.me/gently_whitesnow"
   },
   "footer": {
     "tagline": "An app for agentic engineering, built around the Intent",

@@ -21,6 +21,14 @@ export async function Contacts() {
             GitHub · {t('github')}
           </a>
           <a
+            className="btn btn-secondary"
+            href="https://t.me/gently_whitesnow"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Telegram · {t('personalTelegram')}
+          </a>
+          <a
             className="btn btn-primary"
             href="https://t.me/throne_whitesnow_tech"
             target="_blank"

@@ -45,6 +45,14 @@ export async function SiteHeader() {
           >
             {t('github')}
           </a>
+          <a
+            className="btn btn-ghost"
+            href="https://t.me/throne_whitesnow_tech"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {t('community')}
+          </a>
           <LocaleSwitch currentLocale={locale} />
           <ThemeToggle
             labels={{ toLight: t('switchToLight'), toDark: t('switchToDark') }}

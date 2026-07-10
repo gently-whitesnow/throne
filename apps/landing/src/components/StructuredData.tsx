@@ -26,7 +26,7 @@ export async function StructuredData({ locale }: { locale: string }) {
       '@type': 'Person',
       name: 'gently-whitesnow',
       url: 'https://github.com/gently-whitesnow',
-      sameAs: ['https://github.com/gently-whitesnow'],
+      sameAs: ['https://github.com/gently-whitesnow', 'https://t.me/gently_whitesnow'],
     },
   ];
 
