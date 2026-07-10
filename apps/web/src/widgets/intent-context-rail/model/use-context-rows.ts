@@ -13,7 +13,9 @@ export interface ContextRow {
 export interface BoardRow {
   key: string;
   label: string;
-  count: number;
+  tracker: string;
+  boardId: string;
+  count: number | null;
 }
 
 type ContextsData = ReturnType<typeof useIntentContexts>["data"];
@@ -35,7 +37,9 @@ export function useContextRows(data: ContextsData) {
       ? counts.boards.map((b) => ({
           key: boardContext(b.tracker, b.board_id),
           label: b.board_title ?? b.board_id,
-          count: b.count
+          tracker: b.tracker,
+          boardId: b.board_id,
+          count: null
         }))
       : [];
     return {
