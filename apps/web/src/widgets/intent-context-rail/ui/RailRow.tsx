@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 interface RailRowProps {
   label: string;
   icon: React.ReactNode;
-  count: number;
+  count: number | null;
   active: boolean;
   onSelect: () => void;
   muted?: boolean;
@@ -58,16 +58,18 @@ export function RailRow({
         <span className="min-w-0 flex-1 truncate">{label}</span>
       </button>
       <div className="pointer-events-none absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center">
-        <span
-          aria-hidden={action ? "true" : undefined}
-          className={[
-            "tabular-nums text-[11px] transition-opacity",
-            action ? "group-hover:opacity-0 group-focus-within:opacity-0" : "",
-            active ? "text-primary/80" : "text-base-content/40"
-          ].join(" ")}
-        >
-          {String(count)}
-        </span>
+        {count === null ? null : (
+          <span
+            aria-hidden={action ? "true" : undefined}
+            className={[
+              "tabular-nums text-[11px] transition-opacity",
+              action ? "group-hover:opacity-0 group-focus-within:opacity-0" : "",
+              active ? "text-primary/80" : "text-base-content/40"
+            ].join(" ")}
+          >
+            {String(count)}
+          </span>
+        )}
         {action ? (
           <div className="pointer-events-auto absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             {action}

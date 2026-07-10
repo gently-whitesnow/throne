@@ -15,6 +15,7 @@ import {
 
 import { ContextList } from "./ContextList";
 import { InboxWidget } from "./InboxWidget";
+import { useBoardCardCounts } from "../model/use-board-card-counts";
 import { useContextRows } from "../model/use-context-rows";
 
 export function IntentContextRail() {
@@ -80,6 +81,11 @@ export function IntentContextRail() {
     inboxHelpCount,
     terminalRunningCount
   } = useContextRows(contextsQuery.data);
+  const boardCardCounts = useBoardCardCounts(boardRows);
+  const boardRowsWithCounts = boardRows.map((row) => ({
+    ...row,
+    count: boardCardCounts.get(row.key) ?? null
+  }));
 
   const currentContext = params.get("context");
 
@@ -161,7 +167,7 @@ export function IntentContextRail() {
         ) : null}
         {contextsQuery.isSuccess ? (
           <ContextList
-            boardRows={boardRows}
+            boardRows={boardRowsWithCounts}
             tagRows={tagRows}
             untaggedCount={untaggedCount}
             fridgeCount={fridgeCount}
