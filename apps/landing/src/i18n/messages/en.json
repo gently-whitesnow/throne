@@ -15,7 +15,7 @@
   },
   "hero": {
     "title": "Throne — an agentic engineering app built around intent.",
-    "subtitle": "Agentic engineering is a discipline where the human sets direction and verifies while agents execute. The unit of work is the Intent: Throne pulls context, agent launch in the right mode, and result verification around it — and learns from every conversation. Local, a single binary.",
+    "subtitle": "Throne helps people manage AI agents around a concrete intent: plan the work, gather context, launch the agent, and understand the result faster. Local, a single binary.",
     "ctaPrimary": "Get started",
     "ctaSecondary": "Open on GitHub",
     "ctaMission": "Read the mission",
