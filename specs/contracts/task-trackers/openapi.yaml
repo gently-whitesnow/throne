@@ -319,6 +319,14 @@ components:
           type: string
           nullable: true
           description: Opaque provider-supplied revision cursor (for Kaiten — card.version).
+        web_url:
+          type: string
+          nullable: true
+          description: >
+            Per-request derived URL to the card in the provider's UI. Composed from the current
+            connection base_url + card_id (short form; provider redirects to human-readable path).
+            Null when the tracker cannot form the URL (no active connection, or the card_id is not
+            usable). Non-authoritative — never persisted alongside the read-only projection.
     TaskTrackerBoardCardsResponse:
       type: object
       required:

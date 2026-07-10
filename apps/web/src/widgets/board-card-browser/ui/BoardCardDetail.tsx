@@ -41,7 +41,19 @@ export function BoardCardDetail({
 
       <div className="flex flex-col gap-1">
         <h4 className="m-0 text-balance text-base font-semibold leading-snug">
-          {card.title}
+          {card.web_url ? (
+            <a
+              href={card.web_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`board-card-link-${card.card_id}`}
+              className="text-base-content hover:underline focus-visible:underline"
+            >
+              {card.title}
+            </a>
+          ) : (
+            card.title
+          )}
         </h4>
         {card.column_title ? (
           <span className="text-xs text-base-content/50">
