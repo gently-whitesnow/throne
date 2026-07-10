@@ -97,7 +97,7 @@ export function CardSearchCombobox({
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border border-base-300 bg-base-100 p-1 shadow-lg"
+          className="absolute z-[60] mt-1 max-h-80 w-full overflow-auto rounded-md border border-base-300 bg-base-100 p-1 shadow-lg"
         >
           <SearchResultItems
             isLoading={search.isLoading || search.isFetching}

@@ -32,7 +32,11 @@ export function AttachCardModal({
   const hasTrackers = form.connectedTrackers.length > 0;
 
   return (
-    <Modal onClose={onClose} labelledBy={TITLE_ID} boxClassName="max-w-md">
+    <Modal
+      onClose={onClose}
+      labelledBy={TITLE_ID}
+      boxClassName="w-full max-w-xl overflow-visible"
+    >
       <h2
         id={TITLE_ID}
         className="m-0 text-base font-semibold text-base-content"
