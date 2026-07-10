@@ -63,7 +63,9 @@ export function RailRow({
             aria-hidden={action ? "true" : undefined}
             className={[
               "tabular-nums text-[11px] transition-opacity",
-              action ? "group-hover:opacity-0 group-focus-within:opacity-0" : "",
+              action
+                ? "group-hover:opacity-0 group-focus-within:opacity-0"
+                : "",
               active ? "text-primary/80" : "text-base-content/40"
             ].join(" ")}
           >
