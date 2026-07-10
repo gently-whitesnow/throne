@@ -11,6 +11,15 @@ import type {
 
 import { CardAttachmentsList } from "./CardAttachmentsList";
 
+const fetchTaskTrackerConnections = vi.fn<
+  () => Promise<{
+    connections: {
+      tracker: string;
+      display_name: string;
+      state: string;
+    }[];
+  }>
+>();
 const listIntentCardAttachments =
   vi.fn<(intentId: string) => Promise<CardAttachment[]>>();
 const detachIntentCard =
@@ -36,16 +45,7 @@ vi.mock("@/entities/task-tracker-card/api/card-attachments-api", () => ({
 // Attach-форма читает подключённые трекеры и доски через entities/task-tracker;
 // мокаем его api-модуль, чтобы форме было из чего выбрать координату.
 vi.mock("@/entities/task-tracker/api/task-tracker-api", () => ({
-  fetchTaskTrackerConnections: () =>
-    Promise.resolve({
-      connections: [
-        {
-          tracker: "kaiten",
-          display_name: "Kaiten",
-          state: "connected"
-        }
-      ]
-    }),
+  fetchTaskTrackerConnections: () => fetchTaskTrackerConnections(),
   fetchTaskTrackerBoardSelection: () =>
     Promise.resolve({
       tracker: "kaiten",
@@ -106,6 +106,12 @@ describe("CardAttachmentsList", () => {
     detachIntentCard.mockReset();
     refreshIntentCard.mockReset();
     attachIntentCard.mockReset();
+    fetchTaskTrackerConnections.mockReset();
+    fetchTaskTrackerConnections.mockResolvedValue({
+      connections: [
+        { tracker: "kaiten", display_name: "Kaiten", state: "connected" }
+      ]
+    });
   });
 
   afterEach(() => {
@@ -118,6 +124,35 @@ describe("CardAttachmentsList", () => {
     renderList();
     await waitFor(() => {
       expect(screen.getByText(/Карточки не приложены/)).toBeTruthy();
+    });
+  });
+
+  it("прячет секцию, если нет ни карточек, ни подключённых трекеров", async () => {
+    listIntentCardAttachments.mockResolvedValue([]);
+    fetchTaskTrackerConnections.mockResolvedValue({
+      connections: [
+        { tracker: "kaiten", display_name: "Kaiten", state: "not_configured" }
+      ]
+    });
+    renderList();
+    await waitFor(() => {
+      expect(fetchTaskTrackerConnections).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("card-attachments-section")).toBeNull();
+    });
+  });
+
+  it("оставляет секцию видимой, если карточки уже приложены — даже без активных трекеров", async () => {
+    listIntentCardAttachments.mockResolvedValue([makeCard()]);
+    fetchTaskTrackerConnections.mockResolvedValue({
+      connections: [
+        { tracker: "kaiten", display_name: "Kaiten", state: "auth" }
+      ]
+    });
+    renderList();
+    await waitFor(() => {
+      expect(screen.getByText("Починить логин")).toBeTruthy();
     });
   });
 
