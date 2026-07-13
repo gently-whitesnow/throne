@@ -16,6 +16,7 @@ import type {
   TerminalRunPayload,
   TerminalSessionState
 } from "./types";
+import { deriveTerminalSessionErrorMessage } from "./terminal-error-message";
 
 export interface TerminalSessionStartedAt {
   /** Per-mount nonce — bumped on every successful spawn so xterm reattaches. */
@@ -126,7 +127,10 @@ export function useTerminalSession(
         apply(response, true);
       } catch (err) {
         if (abort.signal.aborted) return;
-        setInternal((prev) => ({ ...prev, error: deriveErrorMessage(err) }));
+        setInternal((prev) => ({
+          ...prev,
+          error: deriveTerminalSessionErrorMessage(err)
+        }));
       } finally {
         if (!abort.signal.aborted) setProbeSettled(true);
       }
@@ -158,7 +162,7 @@ export function useTerminalSession(
       } catch (err) {
         setInternal((prev) => ({
           ...prev,
-          error: deriveErrorMessage(err)
+          error: deriveTerminalSessionErrorMessage(err)
         }));
       } finally {
         setIsStarting(false);
@@ -178,7 +182,10 @@ export function useTerminalSession(
       const response = await killIntentTerminal(intentId);
       apply(response);
     } catch (err) {
-      setInternal((prev) => ({ ...prev, error: deriveErrorMessage(err) }));
+      setInternal((prev) => ({
+        ...prev,
+        error: deriveTerminalSessionErrorMessage(err)
+      }));
     } finally {
       setIsStopping(false);
     }
@@ -259,19 +266,4 @@ export function useTerminalSession(
     attachSkills,
     markSessionEnded
   };
-}
-
-function deriveErrorMessage(err: unknown): string {
-  return errorMessage(err, {
-    base: "Не удалось запустить сессию",
-    byStatus: {
-      // 409 covers two pre-flight aborts: a live session already exists, or the
-      // intent body changed since preview (stale expected_version). Both resolve
-      // by reopening the modal — the agent did not start.
-      409: "Запуск отклонён: сессия уже запущена или тело интента изменилось с момента предпросмотра. Откройте модалку заново.",
-      400: "Недопустимая комбинация вендора, модели и усилия.",
-      422: "Возможность «Терминал агента» выключена или tmux недоступен.",
-      404: "Интент не найден."
-    }
-  });
 }

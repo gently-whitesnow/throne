@@ -2,7 +2,11 @@ export { filesFromClipboard } from "./clipboard-images";
 export {
   errorMessage,
   httpErrorCode,
+  httpErrorDetail,
+  httpErrorExtension,
+  httpErrorExtensionString,
   httpErrorStatus,
+  httpErrorTitle,
   type ErrorMessageOptions
 } from "./error-message";
 export {

@@ -10,6 +10,30 @@ export function httpErrorCode(err: unknown): string | undefined {
   return err instanceof HttpError ? err.code : undefined;
 }
 
+export function httpErrorDetail(err: unknown): string | undefined {
+  if (!(err instanceof HttpError)) return undefined;
+  const detail = err.extensions.detail;
+  return typeof detail === "string" && detail.length > 0 ? detail : undefined;
+}
+
+export function httpErrorTitle(err: unknown): string | undefined {
+  if (!(err instanceof HttpError)) return undefined;
+  const title = err.extensions.title;
+  return typeof title === "string" && title.length > 0 ? title : undefined;
+}
+
+export function httpErrorExtension(err: unknown, key: string): unknown {
+  return err instanceof HttpError ? err.extensions[key] : undefined;
+}
+
+export function httpErrorExtensionString(
+  err: unknown,
+  key: string
+): string | undefined {
+  const value = httpErrorExtension(err, key);
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
 export interface ErrorMessageOptions {
   /** Базовая фраза без завершающей точки, напр. «Не удалось привязать». */
   base: string;
