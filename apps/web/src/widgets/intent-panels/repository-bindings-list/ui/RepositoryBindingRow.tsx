@@ -134,8 +134,9 @@ export function RepositoryBindingRow({
           binding.clone_status === "broken" ? (
             <p
               role="alert"
-              className="m-0 break-words text-xs text-error"
+              className="m-0 line-clamp-3 text-xs text-error [overflow-wrap:anywhere]"
               data-testid={`binding-error-${binding.id}`}
+              title={binding.clone_error ?? undefined}
             >
               {binding.clone_error ?? "Клон не удался."}
             </p>
