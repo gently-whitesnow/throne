@@ -35,14 +35,14 @@ public class AgentSpawnCommandTests
     [Fact(DisplayName = "codex: -m, -c model_reasoning_effort, bypass без позиционной задачи")]
     public void Codex_base_args_without_positional_task()
     {
-        var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorCodex, "gpt-5.5", "medium");
+        var options = new TerminalLaunchOptions(TerminalAgentCatalog.VendorCodex, "terra", "high");
 
         var invocation = AgentSpawnCommand.Build(TerminalVendorDescriptors.Codex, options);
 
         invocation.Command.Should().Be("codex");
         invocation.Arguments.Should().Equal(
-            "-m", "gpt-5.5",
-            "-c", "model_reasoning_effort=medium",
+            "-m", "terra",
+            "-c", "model_reasoning_effort=high",
             "--dangerously-bypass-approvals-and-sandbox");
     }
 }

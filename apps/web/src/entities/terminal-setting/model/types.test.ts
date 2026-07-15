@@ -26,10 +26,10 @@ const catalog: TerminalVendorCatalog = {
       vendor: "codex",
       label: "Codex",
       supports_effort: true,
-      models: ["gpt-5.5", "gpt-5.4"],
-      default_model: "gpt-5.5",
+      models: ["terra", "sol"],
+      default_model: "terra",
       efforts: ["low", "medium", "high", "xhigh"],
-      default_effort: "medium",
+      default_effort: "high",
       model_source: "static",
       login_status: "logged_out",
       login_detail: null,
@@ -41,7 +41,7 @@ const catalog: TerminalVendorCatalog = {
 
 describe("findVendorMetadata", () => {
   it("возвращает metadata зарегистрированного вендора", () => {
-    expect(findVendorMetadata(catalog, "codex")?.default_model).toBe("gpt-5.5");
+    expect(findVendorMetadata(catalog, "codex")?.default_model).toBe("terra");
   });
 
   it("undefined для незагруженного каталога", () => {

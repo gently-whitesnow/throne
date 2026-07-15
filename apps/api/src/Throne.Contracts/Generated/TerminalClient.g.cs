@@ -386,7 +386,7 @@ namespace Throne.Terminal.Contracts.Generated
         public string Vendor { get; set; }
 
         /// <summary>
-        /// Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: gpt-5.5 | gpt-5.4 | gpt-5.3-codex; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400.
+        /// Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: terra | sol | luna | gpt-5.5; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400.
         /// <br/>
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("model")]
