@@ -15,6 +15,10 @@ function mergeable(): PullRequestMergeStatus {
   };
 }
 
+function openSettings() {
+  fireEvent.click(screen.getByRole("button", { name: "Настройки мержа" }));
+}
+
 describe("ReviewMergeControl", () => {
   it("мержит выбранной стратегией; удаление ветки включено по умолчанию", () => {
     const onMerge = vi.fn();
@@ -30,6 +34,8 @@ describe("ReviewMergeControl", () => {
         onMerge={onMerge}
       />
     );
+
+    openSettings();
 
     const deleteBranch =
       screen.getByLabelText<HTMLInputElement>("Удалить ветку");
@@ -58,6 +64,7 @@ describe("ReviewMergeControl", () => {
       />
     );
 
+    openSettings();
     fireEvent.click(screen.getByLabelText("Удалить ветку"));
     fireEvent.click(screen.getByRole("button", { name: /Смержить/ }));
 
@@ -79,6 +86,7 @@ describe("ReviewMergeControl", () => {
       />
     );
 
+    openSettings();
     const cleanupBox =
       screen.getByLabelText<HTMLInputElement>("Очистить состояние");
     expect(cleanupBox.checked).toBe(true);
@@ -132,5 +140,28 @@ describe("ReviewMergeControl", () => {
     expect(screen.getByRole("alert").textContent).toContain(
       "branch protection"
     );
+  });
+
+  it("настройки скрыты по умолчанию и открываются кнопкой меню", () => {
+    render(
+      <ReviewMergeControl
+        kind="PR"
+        status={mergeable()}
+        statusLoading={false}
+        merging={false}
+        mergeError={null}
+        cleanup={true}
+        onCleanupChange={vi.fn()}
+        onMerge={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByLabelText("Удалить ветку")).toBeNull();
+    expect(screen.queryByLabelText("Стратегия мержа")).toBeNull();
+
+    openSettings();
+
+    expect(screen.getByLabelText("Удалить ветку")).toBeTruthy();
+    expect(screen.getByLabelText("Стратегия мержа")).toBeTruthy();
   });
 });
