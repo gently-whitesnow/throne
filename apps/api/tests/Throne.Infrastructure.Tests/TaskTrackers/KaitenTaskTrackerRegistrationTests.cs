@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Throne.Application.TaskTrackers;
 using Throne.Infrastructure.TaskTrackers;
+using Throne.Infrastructure.TaskTrackers.GenericHttp;
 using Throne.Infrastructure.TaskTrackers.Kaiten;
 
 namespace Throne.Infrastructure.Tests.TaskTrackers;
@@ -27,11 +28,13 @@ public class KaitenTaskTrackerRegistrationTests
         using var provider = services.BuildServiceProvider();
 
         provider.GetServices<ITaskTrackerProvider>()
-            .Should().ContainSingle(p => p.TrackerKey == "kaiten");
+            .Select(p => p.TrackerKey)
+            .Should().ContainInOrder("kaiten", "custom-http");
 
         var client = provider.GetRequiredService<IKaitenClient>();
         client.Cards.Should().NotBeNull();
         client.CardChildren.Should().NotBeNull();
         client.Topology.Should().NotBeNull();
+        provider.GetRequiredService<GenericHttpClient>().Should().NotBeNull();
     }
 }

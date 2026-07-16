@@ -22,4 +22,5 @@ public sealed record TaskTrackerCard(
     DateTimeOffset? UpdatedAt,
     DateTimeOffset? ColumnChangedAt,
     bool Archived,
-    string? RevisionTag = null);
+    string? RevisionTag = null,
+    string? WebUrl = null);

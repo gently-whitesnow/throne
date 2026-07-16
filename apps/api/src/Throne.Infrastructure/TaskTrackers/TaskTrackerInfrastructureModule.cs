@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Throne.Application.TaskTrackers;
+using Throne.Infrastructure.TaskTrackers.GenericHttp;
 using Throne.Infrastructure.TaskTrackers.Kaiten;
 using Throne.Infrastructure.TaskTrackers.Kaiten.Http;
 
@@ -29,6 +30,8 @@ internal static class TaskTrackerInfrastructureModule
 
         services.AddHttpClient(KaitenHttpExecutor.HttpClientName, (sp, client) =>
             client.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<KaitenOptions>().RequestTimeoutSeconds));
+        services.AddHttpClient(GenericHttpClient.HttpClientName, client =>
+            client.Timeout = TimeSpan.FromSeconds(30));
 
         services.AddSingleton<KaitenRateLimiter>();
         services.AddSingleton<KaitenRetryPolicy>();
@@ -39,8 +42,10 @@ internal static class TaskTrackerInfrastructureModule
         services.AddSingleton<IKaitenTagsApi, KaitenTagsApi>();
         services.AddSingleton<IKaitenCardChildrenApi, KaitenCardChildrenApi>();
         services.AddSingleton<IKaitenClient, KaitenClient>();
+        services.AddSingleton<GenericHttpClient>();
 
         services.AddSingleton<ITaskTrackerProvider, KaitenTaskTrackerProvider>();
+        services.AddSingleton<ITaskTrackerProvider, GenericHttpTaskTrackerProvider>();
 
         var healthProbeOptions = services.AddOptions<TaskTrackerHealthProbeOptions>();
         if (configuration is not null)
