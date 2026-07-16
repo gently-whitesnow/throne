@@ -265,7 +265,7 @@ export interface components {
             mode: components["schemas"]["TerminalRunMode"];
             /** @description Omitted → server falls back to `default_terminal_vendor` from settings. */
             vendor?: components["schemas"]["TerminalAgentVendor"] | null;
-            /** @description Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: terra | sol | luna | gpt-5.5; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400. */
+            /** @description Model id from the vendor's whitelist (claude: opus | sonnet | haiku; codex: gpt-5.6-sol | gpt-5.6-terra | gpt-5.6-luna | gpt-5.5; opencode: any id advertised by the local `/v1/models` endpoint). Omitted → the vendor's native default. An id outside the whitelist for the chosen vendor → 400. */
             model?: string | null;
             /** @description Omitted → the chosen vendor's native default effort. */
             effort?: components["schemas"]["TerminalReasoningEffort"] | null;

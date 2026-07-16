@@ -38,10 +38,10 @@ public class EfCoreIntentTerminalLaunchStoreTests(SqliteFixture fixture)
         var (db, store) = await NewScopeAsync();
 
         await store.SaveAsync("i-2", Launch("interview", "claude", "opus", "high"), CancellationToken.None);
-        await store.SaveAsync("i-2", Launch("review", "codex", "terra", "low"), CancellationToken.None);
+        await store.SaveAsync("i-2", Launch("review", "codex", "gpt-5.6-terra", "low"), CancellationToken.None);
 
         var loaded = await store.GetAsync("i-2", CancellationToken.None);
-        AssertAxis(loaded!, "review", "codex", "terra", "low");
+        AssertAxis(loaded!, "review", "codex", "gpt-5.6-terra", "low");
         var count = await CountRowsAsync(db, "i-2");
         count.Should().Be(1);
     }

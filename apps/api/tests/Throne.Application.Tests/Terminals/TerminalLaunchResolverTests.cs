@@ -28,7 +28,7 @@ public class TerminalLaunchResolverTests
         var options = await resolver.ResolveAsync(vendor: null, model: null, effort: null, CancellationToken.None);
 
         options.Vendor.Should().Be(TerminalAgentCatalog.VendorCodex);
-        options.Model.Should().Be("terra");
+        options.Model.Should().Be("gpt-5.6-sol");
         options.Effort.Should().Be(TerminalAgentCatalog.EffortHigh);
     }
 
@@ -50,7 +50,7 @@ public class TerminalLaunchResolverTests
         var resolver = Build();
 
         var act = () => resolver.ResolveAsync(
-            TerminalAgentCatalog.VendorClaude, model: "terra", effort: null, CancellationToken.None);
+            TerminalAgentCatalog.VendorClaude, model: "gpt-5.6-terra", effort: null, CancellationToken.None);
 
         var ex = await act.Should().ThrowAsync<ApiException>();
         ex.Which.Code.Should().Be(TerminalErrorCodes.ArgsInvalid);
@@ -62,11 +62,11 @@ public class TerminalLaunchResolverTests
         var resolver = Build();
 
         var options = await resolver.ResolveAsync(
-            TerminalAgentCatalog.VendorCodex, model: "sol", effort: TerminalAgentCatalog.EffortXhigh,
+            TerminalAgentCatalog.VendorCodex, model: "gpt-5.6-terra", effort: TerminalAgentCatalog.EffortXhigh,
             CancellationToken.None);
 
         options.Should().Be(new TerminalLaunchOptions(
-            TerminalAgentCatalog.VendorCodex, "sol", TerminalAgentCatalog.EffortXhigh));
+            TerminalAgentCatalog.VendorCodex, "gpt-5.6-terra", TerminalAgentCatalog.EffortXhigh));
     }
 
     [Fact(DisplayName = "Opencode: model resolved from live /v1/models, effort null")]

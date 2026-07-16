@@ -64,7 +64,7 @@ public class TerminalVendorCatalogMapperTests
         var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorCodex);
 
         codex.Default_model.Should().Be(codex.Models.First());
-        codex.Models.Should().Equal("terra", "sol", "luna", "gpt-5.5");
+        codex.Models.Should().Equal("gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5");
         codex.Supports_effort.Should().BeTrue();
         codex.Default_effort.Should().Be(TerminalReasoningEffort.High);
         codex.Model_source.Should().Be(TerminalModelSource.Static);

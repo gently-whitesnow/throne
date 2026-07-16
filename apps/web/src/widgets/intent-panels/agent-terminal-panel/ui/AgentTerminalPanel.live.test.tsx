@@ -113,8 +113,8 @@ function vendorCatalog() {
         vendor: "codex",
         label: "Codex",
         supports_effort: true,
-        models: ["terra", "sol", "luna", "gpt-5.5"],
-        default_model: "terra",
+        models: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"],
+        default_model: "gpt-5.6-sol",
         efforts: ["low", "medium", "high", "xhigh"],
         default_effort: "high",
         model_source: "static",
@@ -217,7 +217,7 @@ describe("AgentTerminalPanel live viewers", () => {
       sessionResponse("running", {
         mode: "interview",
         vendor: "codex",
-        model: "sol",
+        model: "gpt-5.6-terra",
         effort: "low"
       })
     );
@@ -229,7 +229,7 @@ describe("AgentTerminalPanel live viewers", () => {
       expect(badges.textContent).toContain("Codex");
     });
     expect(badges.textContent).toContain("Интервью");
-    expect(badges.textContent).toContain("sol");
+    expect(badges.textContent).toContain("gpt-5.6-terra");
     expect(badges.textContent).toContain("Low");
 
     // В live-сессии ось — read-only: селекторов в тулбаре нет.

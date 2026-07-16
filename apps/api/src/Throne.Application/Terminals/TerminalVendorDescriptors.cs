@@ -24,7 +24,7 @@ public static class TerminalVendorDescriptors
     public static readonly TerminalVendorDescriptor Codex = new(
         Vendor: TerminalAgentCatalog.VendorCodex,
         Label: "Codex",
-        Models: ["terra", "sol", "luna", "gpt-5.5"],
+        Models: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"],
         SupportsEffort: true,
         Efforts: TerminalAgentCatalog.SharedEfforts,
         DefaultEffort: TerminalAgentCatalog.EffortHigh,

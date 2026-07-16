@@ -47,7 +47,7 @@ public class AttachIntentTerminalSkillsHandlerTests
     public async Task Attach_codex_vendor_materializes_native_skill_and_persists()
     {
         var codexLaunch = new TerminalLaunchRecord(
-            TerminalRunModes.Work, TerminalAgentCatalog.VendorCodex, "terra", "high",
+            TerminalRunModes.Work, TerminalAgentCatalog.VendorCodex, "gpt-5.6-terra", "high",
             EmptySelections);
         var fixture = new Fixture().Setup(intentExists: true, hasSession: true, launch: codexLaunch);
 

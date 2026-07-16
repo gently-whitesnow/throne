@@ -103,8 +103,8 @@ function vendorCatalog() {
         vendor: "codex",
         label: "Codex",
         supports_effort: true,
-        models: ["terra", "sol", "luna", "gpt-5.5"],
-        default_model: "terra",
+        models: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"],
+        default_model: "gpt-5.6-sol",
         efforts: ["low", "medium", "high", "xhigh"],
         default_effort: "high",
         model_source: "static",
@@ -219,7 +219,7 @@ describe("AgentTerminalPanel", () => {
       launch: {
         mode: "free",
         vendor: "codex",
-        model: "terra",
+        model: "gpt-5.6-sol",
         effort: "high"
       },
       reviewBindingId: null,
@@ -236,7 +236,7 @@ describe("AgentTerminalPanel", () => {
       sessionResponse("exited", {
         mode: "work",
         vendor: "codex",
-        model: "sol",
+        model: "gpt-5.6-terra",
         effort: "high"
       })
     );
@@ -258,7 +258,7 @@ describe("AgentTerminalPanel", () => {
     await waitFor(() => {
       expect(vendor.value).toBe("codex");
     });
-    expect(model.value).toBe("sol");
+    expect(model.value).toBe("gpt-5.6-terra");
     expect(vendor.disabled).toBe(false);
   });
 });
