@@ -16,14 +16,14 @@ public class TerminalVendorDescriptorTests
         descriptor.SupportsNativeHotAttach.Should().BeTrue();
     }
 
-    [Fact(DisplayName = "codex descriptor: эффорт поддержан, нативный дефолт high, модель — terra")]
+    [Fact(DisplayName = "codex descriptor: эффорт поддержан, нативный дефолт high, модель — gpt-5.6-sol")]
     public void Codex_descriptor_supports_effort_high()
     {
         var descriptor = TerminalVendorDescriptors.Codex;
 
         descriptor.SupportsEffort.Should().BeTrue();
         descriptor.DefaultEffort.Should().Be(TerminalAgentCatalog.EffortHigh);
-        descriptor.DefaultModel.Should().Be("terra");
+        descriptor.DefaultModel.Should().Be("gpt-5.6-sol");
         descriptor.SupportsNativeHotAttach.Should().BeTrue();
     }
 
