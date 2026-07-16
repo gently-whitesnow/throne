@@ -62,6 +62,6 @@ public sealed class TaskTrackerCardDtoMapper(
         Updated_at = card.UpdatedAt,
         Archived = card.Archived,
         Card_version = card.RevisionTag,
-        Web_url = webUrl,
+        Web_url = card.WebUrl ?? webUrl,
     };
 }
