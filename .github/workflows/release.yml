@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: "22"
 
-      # pnpm version comes from "packageManager" in apps/web/package.json (pnpm@10.14.0).
+      # pnpm version comes from "packageManager" in apps/web/package.json (pnpm@11.13.1).
       - name: Enable corepack
         run: corepack enable
 

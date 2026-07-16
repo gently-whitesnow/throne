@@ -11,8 +11,7 @@ import type { GitProvider, GitRepositoryRef } from "./types";
  * match the configured host) is validated downstream on the chip, not here.
  */
 export type SshUrlParse =
-  | { kind: "ok"; ref: GitRepositoryRef }
-  | { kind: "error"; message: string };
+  { kind: "ok"; ref: GitRepositoryRef } | { kind: "error"; message: string };
 
 // scp-like (`git@host:owner/repo.git`) and the rarer `ssh://git@host[:port]/...`.
 const SCP_RE = /^git@([^:/\s]+):(.+)$/;

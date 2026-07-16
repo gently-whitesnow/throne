@@ -33,8 +33,7 @@ export function RoleSelect({
   const setRoles = useSetPromptPartRoles();
   const current: PromptPartUiRole =
     (part.mode_roles.find((r) => r.mode === mode)?.role as
-      | PromptPartUiRole
-      | undefined) ?? "none";
+      PromptPartUiRole | undefined) ?? "none";
 
   const handleChange = (nextRole: PromptPartUiRole) => {
     onError?.(null);

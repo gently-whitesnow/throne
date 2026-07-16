@@ -56,8 +56,7 @@ vi.mock("@/shared/realtime", () => ({
 
 function emit(name: string, payload: unknown) {
   const list = realtimeHandlers[name] as
-    | ((payload: unknown) => void)[]
-    | undefined;
+    ((payload: unknown) => void)[] | undefined;
   if (list === undefined) return;
   for (const fn of list) fn(payload);
 }

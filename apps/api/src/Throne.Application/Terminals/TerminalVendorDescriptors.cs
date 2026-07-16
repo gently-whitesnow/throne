@@ -24,10 +24,10 @@ public static class TerminalVendorDescriptors
     public static readonly TerminalVendorDescriptor Codex = new(
         Vendor: TerminalAgentCatalog.VendorCodex,
         Label: "Codex",
-        Models: ["gpt-5.5", "gpt-5.4", "gpt-5.3-codex"],
+        Models: ["terra", "sol", "luna", "gpt-5.5"],
         SupportsEffort: true,
         Efforts: TerminalAgentCatalog.SharedEfforts,
-        DefaultEffort: TerminalAgentCatalog.EffortMedium,
+        DefaultEffort: TerminalAgentCatalog.EffortHigh,
         ModelSource: TerminalAgentCatalog.ModelSourceStatic,
         // codex launches with --dangerously-bypass-approvals-and-sandbox (alias --yolo): the
         // operator presses run and walks away, so mid-task approval prompts on routine work

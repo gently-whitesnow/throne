@@ -9,8 +9,7 @@ import { EditPromptPartBody } from "./EditPromptPartBody";
 import { SystemPartBody } from "./SystemPartBody";
 
 export type PromptPartDialogTarget =
-  | { mode: "create" }
-  | { mode: "detail"; part: PromptPartListItem };
+  { mode: "create" } | { mode: "detail"; part: PromptPartListItem };
 
 interface PromptPartDetailDialogProps {
   target: PromptPartDialogTarget;

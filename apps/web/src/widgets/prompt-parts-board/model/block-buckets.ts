@@ -16,8 +16,7 @@ export function roleForMode(
 ): PromptPartUiRole {
   return (
     (part.mode_roles.find((r) => r.mode === mode)?.role as
-      | PromptPartUiRole
-      | undefined) ?? "none"
+      PromptPartUiRole | undefined) ?? "none"
   );
 }
 

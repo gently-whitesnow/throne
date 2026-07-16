@@ -57,16 +57,16 @@ public class TerminalVendorCatalogMapperTests
         claude.Model_source.Should().Be(TerminalModelSource.Static);
     }
 
-    [Fact(DisplayName = "codex metadata: дефолт-модель первая из списка, эффорт medium")]
+    [Fact(DisplayName = "codex metadata: дефолт-модель первая из списка, эффорт high")]
     public async Task Maps_codex_metadata()
     {
         var dto = await Build().ToDtoAsync(CancellationToken.None);
         var codex = dto.Vendors.Single(v => v.Vendor == TerminalAgentCatalog.VendorCodex);
 
         codex.Default_model.Should().Be(codex.Models.First());
-        codex.Models.Should().Equal("gpt-5.5", "gpt-5.4", "gpt-5.3-codex");
+        codex.Models.Should().Equal("terra", "sol", "luna", "gpt-5.5");
         codex.Supports_effort.Should().BeTrue();
-        codex.Default_effort.Should().Be(TerminalReasoningEffort.Medium);
+        codex.Default_effort.Should().Be(TerminalReasoningEffort.High);
         codex.Model_source.Should().Be(TerminalModelSource.Static);
     }
 

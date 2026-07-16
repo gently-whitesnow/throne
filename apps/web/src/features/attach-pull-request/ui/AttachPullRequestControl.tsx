@@ -15,9 +15,7 @@ interface AttachPullRequestControlProps {
 }
 
 type Parsed =
-  | { kind: "empty" }
-  | { kind: "value"; value: number }
-  | { kind: "invalid" };
+  { kind: "empty" } | { kind: "value"; value: number } | { kind: "invalid" };
 
 function parsePrNumber(raw: string): Parsed {
   const trimmed = raw.trim();

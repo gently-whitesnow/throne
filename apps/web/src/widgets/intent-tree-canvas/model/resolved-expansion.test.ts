@@ -35,14 +35,13 @@ function entry(
 /** Fake links-summary endpoint backed by an in-memory graph. Mirrors the real
  *  one: returns an entry only for requested ids that have incident edges. */
 function fakeFetcher(graph: ReadonlyMap<string, IntentLinksSummaryEntry>) {
-  return vi.fn(
-    (ids: readonly string[]): Promise<IntentLinksSummaryEntry[]> =>
-      Promise.resolve(
-        ids.flatMap((id) => {
-          const e = graph.get(id);
-          return e ? [e] : [];
-        })
-      )
+  return vi.fn((ids: readonly string[]): Promise<IntentLinksSummaryEntry[]> =>
+    Promise.resolve(
+      ids.flatMap((id) => {
+        const e = graph.get(id);
+        return e ? [e] : [];
+      })
+    )
   );
 }
 

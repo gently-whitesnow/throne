@@ -36,8 +36,7 @@ export function SystemPartBody({
           {PROMPT_PART_MODES.map((mode) => {
             const role: PromptPartUiRole =
               (part.mode_roles.find((r) => r.mode === mode)?.role as
-                | PromptPartUiRole
-                | undefined) ?? "none";
+                PromptPartUiRole | undefined) ?? "none";
             return (
               <span key={mode} className="flex items-center gap-1.5 text-xs">
                 <span className="font-medium text-base-content/60">

@@ -7,9 +7,7 @@
  *  - `invalid` — non-numeric or non-positive; submit must stay disabled.
  */
 export type PrNumberParse =
-  | { kind: "empty" }
-  | { kind: "value"; value: number }
-  | { kind: "invalid" };
+  { kind: "empty" } | { kind: "value"; value: number } | { kind: "invalid" };
 
 export function parsePrNumber(raw: string): PrNumberParse {
   const trimmed = raw.trim();
