@@ -1,0 +1,9 @@
+allowBuilds:
+  esbuild: true
+
+overrides:
+  brace-expansion@5: ^5.0.6
+  ws@8: ^8.20.1
+  esbuild@<0.28.1: ^0.28.1
+  form-data@4: ^4.0.6
+  vite@7: ^7.3.5

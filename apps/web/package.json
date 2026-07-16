@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@11.13.1",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
@@ -57,17 +57,5 @@
     "vite": "^7.0.0",
     "vitest": "^4.1.8",
     "yaml": "^2.6.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ],
-    "overrides": {
-      "brace-expansion@5": "^5.0.6",
-      "ws@8": "^8.20.1",
-      "esbuild@<0.28.1": "^0.28.1",
-      "form-data@4": "^4.0.6",
-      "vite@7": "^7.3.5"
-    }
   }
 }
