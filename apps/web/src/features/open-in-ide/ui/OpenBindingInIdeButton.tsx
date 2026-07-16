@@ -14,6 +14,8 @@ interface OpenBindingInIdeButtonProps {
   disabled?: boolean;
   /** Render as a row inside an overflow menu instead of a standalone button. */
   asMenuItem?: boolean;
+  /** Compact square button (icon only) with the label exposed via tooltip. */
+  iconOnly?: boolean;
 }
 
 /**
@@ -26,7 +28,8 @@ export function OpenBindingInIdeButton({
   bindingId,
   fullName,
   disabled,
-  asMenuItem
+  asMenuItem,
+  iconOnly
 }: OpenBindingInIdeButtonProps) {
   const providers = useDetectedIdeProviders();
   const [busy, setBusy] = useState(false);
@@ -72,16 +75,20 @@ export function OpenBindingInIdeButton({
     );
   }
 
+  const label = `Открыть ${fullName} в IDE`;
+
   return (
     <div className="flex flex-col items-end gap-1">
       <Button
-        aria-label={`Открыть ${fullName} в IDE`}
+        aria-label={label}
+        title={iconOnly === true ? label : undefined}
         data-testid={`open-binding-in-ide-${bindingId}`}
         disabled={busy || disabled === true}
         icon={<Code2 aria-hidden size={14} strokeWidth={2} />}
         onClick={handleClick}
+        className={iconOnly === true ? "px-2" : undefined}
       >
-        {busy ? "Открываем…" : "Открыть в IDE"}
+        {iconOnly === true ? null : busy ? "Открываем…" : "Открыть в IDE"}
       </Button>
       {error !== null ? (
         <span role="alert" className="text-xs text-error">

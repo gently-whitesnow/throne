@@ -186,6 +186,7 @@ export function ReviewWorkspaceOverlay({
             bindingId={binding.id}
             fullName={repositoryFullName(binding)}
             disabled={binding.clone_status !== "ready"}
+            iconOnly
           />
         }
         mergeControl={

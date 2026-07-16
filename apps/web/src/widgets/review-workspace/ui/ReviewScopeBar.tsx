@@ -45,30 +45,38 @@ export function ReviewScopeBar({
   const kind = changeRequestKindLabel(binding.provider);
   const ref = changeRequestRefLabel(binding);
 
+  const hasRightGroup = openInIde !== undefined || mergeControl !== undefined;
+
   return (
-    <header className="flex items-center gap-3 border-b border-base-300 bg-base-100 px-4 py-2">
-      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <GitPullRequest size={15} strokeWidth={2.25} />
-      </span>
-      <div className="flex min-w-0 flex-col">
-        <span className="truncate font-mono text-sm font-semibold text-base-content">
-          {repositoryFullName(binding)}
+    <header className="flex items-center gap-3 border-b border-base-300 bg-base-100 px-4 py-2.5">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <GitPullRequest size={15} strokeWidth={2.25} />
         </span>
-        {ref !== null ? (
-          <span className="text-[11px] text-base-content/60">{ref}</span>
-        ) : null}
+        <div className="flex min-w-0 flex-col leading-tight">
+          <span className="truncate font-mono text-sm font-semibold text-base-content">
+            {repositoryFullName(binding)}
+          </span>
+          {ref !== null ? (
+            <span className="truncate text-[11px] text-base-content/60">
+              {ref}
+            </span>
+          ) : null}
+        </div>
       </div>
+
+      <span aria-hidden className="h-6 w-px shrink-0 bg-base-300" />
 
       <div
         role="group"
         aria-label="Объём diff"
-        className="ml-4 flex items-center gap-1 rounded-md bg-base-200 p-0.5"
+        className="flex items-center gap-1 rounded-md bg-base-200 p-0.5"
       >
         <button
           type="button"
           onClick={onSelectRequest}
           aria-pressed={scope === "request"}
-          className={`rounded px-2.5 py-1 text-[12px] font-medium ${
+          className={`rounded px-2.5 py-1 text-[12px] font-medium transition-[color,background-color] ${
             scope === "request"
               ? "bg-base-100 text-base-content shadow-sm"
               : "text-base-content/60 hover:text-base-content"
@@ -103,21 +111,25 @@ export function ReviewScopeBar({
         </select>
       </div>
 
-      {openInIde !== undefined || mergeControl !== undefined ? (
-        <div className="ml-auto flex items-center gap-2">
-          {openInIde}
-          {mergeControl}
-        </div>
-      ) : null}
-
-      <button
-        type="button"
-        aria-label="Закрыть ревью"
-        onClick={onClose}
-        className={`${openInIde !== undefined || mergeControl !== undefined ? "ml-2" : "ml-auto"} rounded-md p-1.5 text-base-content/60 hover:bg-base-200 hover:text-base-content`}
-      >
-        <X size={18} strokeWidth={2} />
-      </button>
+      <div className="ml-auto flex items-center gap-3">
+        {hasRightGroup ? (
+          <div className="flex items-center gap-2">
+            {openInIde}
+            {mergeControl}
+          </div>
+        ) : null}
+        {hasRightGroup ? (
+          <span aria-hidden className="h-6 w-px shrink-0 bg-base-300" />
+        ) : null}
+        <button
+          type="button"
+          aria-label="Закрыть ревью"
+          onClick={onClose}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-base-content/60 transition-[color,background-color] hover:bg-base-200 hover:text-base-content"
+        >
+          <X size={18} strokeWidth={2} />
+        </button>
+      </div>
     </header>
   );
 }
