@@ -55,7 +55,7 @@ function makeCard(overrides: Partial<TaskTrackerCard> = {}): TaskTrackerCard {
   return {
     card_id: "777",
     board_id: "42",
-    title: "Починить логин",
+    text: "Починить логин\n\n## Шаги\n- воспроизвести",
     column_title: "In progress",
     archived: false,
     ...overrides
@@ -86,9 +86,7 @@ describe("BoardCardBrowser", () => {
 
   it("рендерит список карточек и открывает детальную карточку", async () => {
     fetchBoardCards.mockResolvedValue([makeCard()]);
-    fetchBoardCard.mockResolvedValue(
-      makeCard({ description: "## Шаги\n- воспроизвести" })
-    );
+    fetchBoardCard.mockResolvedValue(makeCard());
 
     renderBrowser();
 
@@ -115,10 +113,10 @@ describe("BoardCardBrowser", () => {
     ).toBeTruthy();
   });
 
-  it("рендерит title карточки как внешнюю ссылку, когда web_url задан", async () => {
+  it("рендерит preview текста карточки как внешнюю ссылку, когда web_url задан", async () => {
     fetchBoardCards.mockResolvedValue([makeCard()]);
     fetchBoardCard.mockResolvedValue(
-      makeCard({ web_url: "https://acme.kaiten.ru/777", description: "desc" })
+      makeCard({ web_url: "https://acme.kaiten.ru/777" })
     );
 
     renderBrowser();
@@ -135,9 +133,9 @@ describe("BoardCardBrowser", () => {
     expect(link.textContent).toBe("Починить логин");
   });
 
-  it("рендерит title карточки без ссылки, когда web_url отсутствует", async () => {
+  it("рендерит preview текста карточки без ссылки, когда web_url отсутствует", async () => {
     fetchBoardCards.mockResolvedValue([makeCard()]);
-    fetchBoardCard.mockResolvedValue(makeCard({ description: "desc" }));
+    fetchBoardCard.mockResolvedValue(makeCard());
 
     renderBrowser();
 
@@ -153,7 +151,7 @@ describe("BoardCardBrowser", () => {
 
   it("создаёт интент, привязывает карточку и переходит к нему", async () => {
     fetchBoardCards.mockResolvedValue([makeCard()]);
-    fetchBoardCard.mockResolvedValue(makeCard({ description: "desc" }));
+    fetchBoardCard.mockResolvedValue(makeCard());
     httpPost.mockResolvedValue({ id: "new-intent" });
     attachIntentCard.mockResolvedValue({});
 
@@ -170,8 +168,7 @@ describe("BoardCardBrowser", () => {
 
     await waitFor(() => {
       expect(httpPost).toHaveBeenCalledWith(expect.any(String), {
-        title: "Починить логин",
-        text: "Починить логин"
+        text: "Починить логин\n\n## Шаги\n- воспроизвести"
       });
     });
     await waitFor(() => {

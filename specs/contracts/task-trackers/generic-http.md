@@ -51,8 +51,7 @@ Cards:
     {
       "card_id": "task-id",
       "board_id": "coding",
-      "title": "Task title",
-      "description": "Optional markdown",
+      "text": "Task title\n\nFull Markdown text",
       "column_id": null,
       "column_title": null,
       "updated_at": "2026-07-16T10:00:00Z",
@@ -64,6 +63,6 @@ Cards:
 }
 ```
 
-`GET /cards/{card_id}` returns the card object directly. `description`, column fields,
+`GET /cards/{card_id}` returns the card object directly. `text` is always required; column fields,
 `updated_at`, `card_version`, and `web_url` may be null or omitted. List and search endpoints should
 not return closed or archived cards; the adapter also drops rows with `archived = true`.

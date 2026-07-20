@@ -6,8 +6,7 @@ namespace Throne.Domain.TaskTrackers;
 /// captured with the snapshot; <see cref="FetchedAt"/> is when this snapshot was pulled.
 /// </summary>
 public sealed record CardSnapshot(
-    string Title,
-    string? Description,
+    string Text,
     string? ColumnTitle,
     bool Archived,
     string? CardVersion,

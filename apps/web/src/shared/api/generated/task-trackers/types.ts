@@ -92,8 +92,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Read a single card of a board read-only (title + description).
-         * @description Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source of the description shown in the card browser. Never touches intents. A vanished/forbidden card or one that does not belong to this board is 404; connection degradation is classified per ADR-0053 (409 auth, 402 blocked, 502 offline).
+         * Read a single card of a board read-only.
+         * @description Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source of the full text shown in the card browser. Never touches intents. A vanished/forbidden card or one that does not belong to this board is 404; connection degradation is classified per ADR-0053 (409 auth, 402 blocked, 502 offline).
          */
         get: operations["getBoardCard"];
         put?: never;
@@ -118,7 +118,7 @@ export interface components {
         TaskTrackerCatalogResponse: {
             providers: components["schemas"]["TaskTrackerProviderDto"][];
         };
-        /** @description Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A read-only, non-authoritative view — never an intent and never written back upstream. List rows may omit `description` (the provider fills it only on the single-card read). */
+        /** @description Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A read-only, non-authoritative view — never an intent and never written back upstream. */
         TaskTrackerCardDto: {
             /** @description Provider-native card/issue id. */
             card_id: string;
@@ -128,10 +128,8 @@ export interface components {
             column_id?: string | null;
             /** @description Human-readable title of the card's current column. */
             column_title?: string | null;
-            /** @description Card title. */
-            title: string;
-            /** @description Card description (Markdown as provided by the tracker); null on list rows. */
-            description?: string | null;
+            /** @description Full card Markdown as provided by the tracker. */
+            text: string;
             /**
              * Format: date-time
              * @description Last upstream update time, when the tracker exposes it.

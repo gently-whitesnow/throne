@@ -31,9 +31,8 @@ public class IntentTerminalPreviewCardAttachmentsTests
         preview.Composition.UserPrompt.Should().Be("исходная задача");
         preview.WorkspaceMap.Should().Contain("Приложенные карточки интента:");
         preview.WorkspaceMap.Should().Contain("[card linear/board-7/card-42] (в архиве)");
-        preview.WorkspaceMap.Should().Contain("Title: Fix preview");
         preview.WorkspaceMap.Should().Contain("ColumnTitle: Review");
-        preview.WorkspaceMap.Should().Contain("Description:\n## Context\nUse snapshot.");
+        preview.WorkspaceMap.Should().Contain("Text:\nFix preview\n\n## Context\nUse snapshot.");
         preview.WorkspaceMap.Should().NotContain("исходная задача");
     }
 
@@ -84,7 +83,7 @@ public class IntentTerminalPreviewCardAttachmentsTests
             intentId,
             new CardCoordinate("linear", "board-7", "card-42"),
             new CardSnapshot(
-                "Fix preview", "## Context\nUse snapshot.", "Review", archived, "v1", Now),
+                "Fix preview\n\n## Context\nUse snapshot.", "Review", archived, "v1", Now),
             Now);
 
     private static IIntentTerminalLaunchStore EmptyLaunches()

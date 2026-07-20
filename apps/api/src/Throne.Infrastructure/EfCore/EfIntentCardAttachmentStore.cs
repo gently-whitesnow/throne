@@ -121,8 +121,7 @@ internal sealed class EfIntentCardAttachmentStore(
         return ctx.Set<IntentCardAttachmentRow>()
             .Where(r => r.Id == id)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(r => r.Title, snapshot.Title)
-                .SetProperty(r => r.Description, snapshot.Description)
+                .SetProperty(r => r.Text, snapshot.Text)
                 .SetProperty(r => r.ColumnTitle, snapshot.ColumnTitle)
                 .SetProperty(r => r.Archived, snapshot.Archived)
                 .SetProperty(r => r.CardVersion, snapshot.CardVersion)

@@ -108,7 +108,7 @@ public sealed class BoardCardBrowserServiceTests
         new("https://acme.kaiten.ru", "tok", []);
 
     private static TaskTrackerCard Card(string cardId, string boardId = "10") =>
-        new(cardId, boardId, "100", "In Progress", $"card-{cardId}", "body", null, null, Archived: false, "v1");
+        new(cardId, boardId, "100", "In Progress", $"card-{cardId}\n\nbody", null, null, false, "v1");
 
     private sealed class StubProvider : ITaskTrackerConnectionProvider
     {

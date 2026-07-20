@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
 import {
+  cardTextPreview,
   useBoardCardSearchQuery,
   type TaskTrackerCard
 } from "@/entities/task-tracker-card";
@@ -189,7 +190,7 @@ function SearchResultItems({
               <span className="font-mono text-xs text-base-content/60">
                 #{card.card_id}
               </span>{" "}
-              · {card.title}
+              · {cardTextPreview(card.text)}
             </span>
             {card.column_title ? (
               <span className="text-xs text-base-content/50">

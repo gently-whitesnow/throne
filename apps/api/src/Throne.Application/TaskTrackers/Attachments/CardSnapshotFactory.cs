@@ -13,8 +13,7 @@ internal static class CardSnapshotFactory
     {
         ArgumentNullException.ThrowIfNull(card);
         return new CardSnapshot(
-            Title: card.Title,
-            Description: card.Description,
+            Text: card.Text,
             ColumnTitle: card.ColumnTitle,
             Archived: card.Archived,
             CardVersion: card.RevisionTag,

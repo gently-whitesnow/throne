@@ -17,14 +17,17 @@ internal static class KaitenCardProjection
             BoardId: card.BoardId.ToString(CultureInfo.InvariantCulture),
             ColumnId: card.ColumnId.ToString(CultureInfo.InvariantCulture),
             ColumnTitle: columnTitles.GetValueOrDefault(card.ColumnId),
-            Title: card.Title,
-            Description: card.Description,
+            Text: ToText(card),
             UpdatedAt: card.Updated,
             ColumnChangedAt: card.ColumnChangedAt,
             Archived: card.Condition != KaitenCardConditions.Live,
             RevisionTag: card.Version?.ToString(CultureInfo.InvariantCulture));
 
     public static long ParseId(string value) => long.Parse(value, CultureInfo.InvariantCulture);
+
+    private static string ToText(KaitenCard card) => string.IsNullOrEmpty(card.Description)
+        ? card.Title
+        : $"{card.Title}\n\n{card.Description}";
 }
 
 /// <summary>Kaiten's <c>condition</c> encoding: 1 = live, 2 = archived.</summary>

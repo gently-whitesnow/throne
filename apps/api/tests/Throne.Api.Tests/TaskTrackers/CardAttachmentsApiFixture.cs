@@ -137,14 +137,13 @@ internal sealed class StubCardTrackerProvider : ITaskTrackerConnectionProvider
     public string? BuildCardWebUrl(TaskTrackerConnectionDescriptor connection, string cardId) =>
         $"{connection.BaseUrl.TrimEnd('/')}/{cardId}";
 
-    public static TaskTrackerCard Card(string cardId, string title, bool archived = false) =>
+    public static TaskTrackerCard Card(string cardId, string text, bool archived = false) =>
         new(
             CardId: cardId,
             BoardId: "10",
             ColumnId: "100",
             ColumnTitle: "In Progress",
-            Title: title,
-            Description: "body",
+            Text: text + "\n\nbody",
             UpdatedAt: DateTimeOffset.UnixEpoch,
             ColumnChangedAt: DateTimeOffset.UnixEpoch,
             Archived: archived,

@@ -103,6 +103,10 @@ internal sealed class GenericHttpTaskTrackerProvider(GenericHttpClient client) :
         {
             throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
         }
+        catch (ArgumentException ex)
+        {
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
+        }
         catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
         {
             throw new TaskTrackerConnectionException(
@@ -132,6 +136,10 @@ internal sealed class GenericHttpTaskTrackerProvider(GenericHttpClient client) :
             throw new TaskTrackerConnectionException(GenericHttpFailureMap.Classify(ex.StatusCode), ex.Message);
         }
         catch (HttpRequestException ex)
+        {
+            throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
+        }
+        catch (ArgumentException ex)
         {
             throw new TaskTrackerConnectionException(TaskTrackerConnectionHealth.Offline, ex.Message);
         }

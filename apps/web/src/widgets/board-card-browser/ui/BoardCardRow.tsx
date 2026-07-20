@@ -1,4 +1,7 @@
-import type { TaskTrackerCard } from "@/entities/task-tracker-card";
+import {
+  cardTextPreview,
+  type TaskTrackerCard
+} from "@/entities/task-tracker-card";
 
 interface BoardCardRowProps {
   card: TaskTrackerCard;
@@ -6,7 +9,7 @@ interface BoardCardRowProps {
   onSelect: (cardId: string) => void;
 }
 
-/** Neutral, read-only list row: card title + its column (muted). */
+/** Neutral, read-only list row: compact text preview + its column (muted). */
 export function BoardCardRow({ card, selected, onSelect }: BoardCardRowProps) {
   return (
     <li className="list-none">
@@ -23,7 +26,7 @@ export function BoardCardRow({ card, selected, onSelect }: BoardCardRowProps) {
         }`}
       >
         <span className="truncate text-sm font-medium leading-tight">
-          {card.title}
+          {cardTextPreview(card.text)}
         </span>
         {card.column_title ? (
           <span

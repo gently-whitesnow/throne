@@ -50,18 +50,18 @@ public class EfCoreIntentCardAttachmentStoreTests(SqliteFixture fixture)
     {
         var scope = await IntentCardAttachmentTestScope.CreateAsync(fixture);
         var intentId = IntentId.New();
-        var first = NewAttachment(intentId, cardId: "99", title: "First");
-        var racing = NewAttachment(intentId, cardId: "99", title: "Second", at: Now.AddMinutes(1));
+        var first = NewAttachment(intentId, cardId: "99", text: "First");
+        var racing = NewAttachment(intentId, cardId: "99", text: "Second", at: Now.AddMinutes(1));
         await UpsertAsync(scope, first);
 
         var persisted = await UpsertAsync(scope, racing);
 
         persisted.Id.Should().Be(first.Id);
-        persisted.State.Snapshot.Title.Should().Be("Second");
+        persisted.State.Snapshot.Text.Should().Be("Second");
         var all = await scope.Store.ListByIntentAsync(intentId, CancellationToken.None);
         all.Should().ContainSingle();
         all[0].Id.Should().Be(first.Id);
-        all[0].State.Snapshot.Title.Should().Be("Second");
+        all[0].State.Snapshot.Text.Should().Be("Second");
     }
 
     [Fact(DisplayName = "GetByCoordinateAsync находит запись по (intent, tracker, board, card)")]

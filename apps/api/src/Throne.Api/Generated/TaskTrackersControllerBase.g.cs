@@ -74,10 +74,10 @@ namespace Throne.Api.Generated
         public abstract System.Threading.Tasks.Task<Microsoft.AspNetCore.Mvc.ActionResult<TaskTrackerBoardCardsResponse>> SearchBoardCards([Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string tracker, [Microsoft.AspNetCore.Mvc.ModelBinding.BindRequired] string board, [Microsoft.AspNetCore.Mvc.FromQuery] string query = null, [Microsoft.AspNetCore.Mvc.FromQuery] int? limit = 10);
 
         /// <summary>
-        /// Read a single card of a board read-only (title + description).
+        /// Read a single card of a board read-only.
         /// </summary>
         /// <remarks>
-        /// Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source of the description shown in the card browser. Never touches intents. A vanished/forbidden card or one that does not belong to this board is 404; connection degradation is classified per ADR-0053 (409 auth, 402 blocked, 502 offline).
+        /// Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source of the full text shown in the card browser. Never touches intents. A vanished/forbidden card or one that does not belong to this board is 404; connection degradation is classified per ADR-0053 (409 auth, 402 blocked, 502 offline).
         /// </remarks>
         /// <param name="board">Provider-native board/space id the card must belong to.</param>
         /// <param name="card">Provider-native card/issue id.</param>

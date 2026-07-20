@@ -181,10 +181,10 @@ paths:
     get:
       operationId: getBoardCard
       tags: [TaskTrackers]
-      summary: Read a single card of a board read-only (title + description).
+      summary: Read a single card of a board read-only.
       description: >
         Pulls one card snapshot from the provider (`GetCardAsync`) for read-only preview — the source
-        of the description shown in the card browser. Never touches intents. A vanished/forbidden card
+        of the full text shown in the card browser. Never touches intents. A vanished/forbidden card
         or one that does not belong to this board is 404; connection degradation is classified per
         ADR-0053 (409 auth, 402 blocked, 502 offline).
       parameters:
@@ -278,12 +278,11 @@ components:
       type: object
       description: >
         Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A
-        read-only, non-authoritative view — never an intent and never written back upstream. List rows
-        may omit `description` (the provider fills it only on the single-card read).
+        read-only, non-authoritative view — never an intent and never written back upstream.
       required:
         - card_id
         - board_id
-        - title
+        - text
         - archived
       properties:
         card_id:
@@ -300,13 +299,9 @@ components:
           type: string
           nullable: true
           description: Human-readable title of the card's current column.
-        title:
+        text:
           type: string
-          description: Card title.
-        description:
-          type: string
-          nullable: true
-          description: Card description (Markdown as provided by the tracker); null on list rows.
+          description: Full card Markdown as provided by the tracker.
         updated_at:
           type: string
           format: date-time

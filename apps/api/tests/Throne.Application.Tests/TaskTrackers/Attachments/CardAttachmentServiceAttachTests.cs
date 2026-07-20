@@ -17,12 +17,12 @@ public class CardAttachmentServiceAttachTests
         var fixture = new CardAttachmentServiceFixture();
         fixture.IntentExists();
         fixture.TrackerConnected();
-        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "Fresh"));
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(text: "Fresh"));
 
         var result = await fixture.Service.AttachAsync(AttachCommand(), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Available);
-        result.State.Snapshot.Title.Should().Be("Fresh");
+        result.State.Snapshot.Text.Should().Be("Fresh");
         result.IntentId.Value.Should().Be(IntentIdValue);
         fixture.Store.Items.Should().ContainSingle();
     }
@@ -33,14 +33,14 @@ public class CardAttachmentServiceAttachTests
         var fixture = new CardAttachmentServiceFixture();
         fixture.IntentExists();
         fixture.TrackerConnected();
-        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "First"));
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(text: "First"));
         var first = await fixture.Service.AttachAsync(AttachCommand(), CancellationToken.None);
 
-        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "Second"));
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(text: "Second"));
         var second = await fixture.Service.AttachAsync(AttachCommand(), CancellationToken.None);
 
         second.Id.Should().Be(first.Id);
-        second.State.Snapshot.Title.Should().Be("Second");
+        second.State.Snapshot.Text.Should().Be("Second");
         fixture.Store.Items.Should().ContainSingle();
     }
 
@@ -132,7 +132,7 @@ public class CardAttachmentServiceAttachTests
         fixture.IntentExists();
         fixture.TrackerConnected();
         fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(
-            Card(title: "Moved", boardId: "other-board"));
+            Card(text: "Moved", boardId: "other-board"));
 
         var act = () => fixture.Service.AttachAsync(AttachCommand(), CancellationToken.None);
 

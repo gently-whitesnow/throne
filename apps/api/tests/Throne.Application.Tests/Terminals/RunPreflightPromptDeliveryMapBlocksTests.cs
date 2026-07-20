@@ -64,9 +64,8 @@ public partial class RunPreflightPromptDeliveryTests
                 Path.Combine(workspace, "throne-session.user-prompt.txt"));
             delivered.Should().Contain("Приложенные карточки интента:");
             delivered.Should().Contain("[card linear/board-7/card-42] (в архиве)");
-            delivered.Should().Contain("Title: Fix preview");
             delivered.Should().Contain("ColumnTitle: Review");
-            delivered.Should().Contain("Description:\n## Context\nUse snapshot.");
+            delivered.Should().Contain("Text:\nFix preview\n\n## Context\nUse snapshot.");
             delivered.IndexOf("Приложенные карточки", StringComparison.Ordinal)
                 .Should().BeLessThan(delivered.IndexOf("do the thing", StringComparison.Ordinal));
             delivered[delivered.IndexOf("do the thing", StringComparison.Ordinal)..]
@@ -84,6 +83,6 @@ public partial class RunPreflightPromptDeliveryTests
             new IntentId(IntentId),
             new CardCoordinate("linear", "board-7", "card-42"),
             new CardSnapshot(
-                "Fix preview", "## Context\nUse snapshot.", "Review", archived, "v1", DateTimeOffset.UnixEpoch),
+                "Fix preview\n\n## Context\nUse snapshot.", "Review", archived, "v1", DateTimeOffset.UnixEpoch),
             DateTimeOffset.UnixEpoch);
 }
