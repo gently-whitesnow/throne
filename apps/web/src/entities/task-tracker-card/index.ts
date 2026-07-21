@@ -8,6 +8,7 @@ export type {
   TaskTrackerBoardCardsResponse
 } from "./model/types";
 export { cardAvailabilityMeta } from "./model/types";
+export { cardTextPreview } from "./model/card-text";
 export {
   isCardArchived,
   isCardEditable,

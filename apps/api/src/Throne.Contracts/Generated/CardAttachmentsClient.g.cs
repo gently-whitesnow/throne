@@ -110,17 +110,11 @@ namespace Throne.CardAttachments.Contracts.Generated
         public string Card_id { get; set; }
 
         /// <summary>
-        /// Snapshot of the card title. Non-authoritative — never written back upstream.
+        /// Full card Markdown snapshot. Non-authoritative — never written back upstream.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Title { get; set; }
-
-        /// <summary>
-        /// Snapshot of the card description (Markdown as provided by the tracker).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string Text { get; set; }
 
         /// <summary>
         /// Snapshot of the card's current column/lane title, when the tracker exposes it.

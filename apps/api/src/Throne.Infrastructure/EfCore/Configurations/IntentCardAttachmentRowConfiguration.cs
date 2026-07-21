@@ -17,8 +17,7 @@ internal sealed class IntentCardAttachmentRowConfiguration : IEntityTypeConfigur
         builder.Property(x => x.Tracker).HasColumnName("tracker").IsRequired();
         builder.Property(x => x.BoardId).HasColumnName("board_id").IsRequired();
         builder.Property(x => x.CardId).HasColumnName("card_id").IsRequired();
-        builder.Property(x => x.Title).HasColumnName("title").IsRequired();
-        builder.Property(x => x.Description).HasColumnName("description");
+        builder.Property(x => x.Text).HasColumnName("text").IsRequired();
         builder.Property(x => x.ColumnTitle).HasColumnName("column_title");
         builder.Property(x => x.Archived).HasColumnName("archived");
         builder.Property(x => x.CardVersion).HasColumnName("card_version");

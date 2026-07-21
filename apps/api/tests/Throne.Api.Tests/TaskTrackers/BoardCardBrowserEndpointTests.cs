@@ -37,7 +37,7 @@ public sealed class BoardCardBrowserEndpointTests(SqliteFixture sqlite) : IAsync
         var cards = body.GetProperty("cards");
         cards.GetArrayLength().Should().Be(2);
         cards[0].GetProperty("card_id").GetString().Should().Be("42");
-        cards[0].GetProperty("title").GetString().Should().Be("First");
+        cards[0].GetProperty("text").GetString().Should().Be("First\n\nbody");
         cards[0].GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/42");
         cards[1].GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/43");
     }
@@ -93,7 +93,7 @@ public sealed class BoardCardBrowserEndpointTests(SqliteFixture sqlite) : IAsync
         response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
     }
 
-    [Fact(DisplayName = "GET single card → 200 с title и описанием")]
+    [Fact(DisplayName = "GET single card → 200 с полным text")]
     public async Task Get_card_ok()
     {
         await _fixture.SeedConnectionAsync();
@@ -105,8 +105,7 @@ public sealed class BoardCardBrowserEndpointTests(SqliteFixture sqlite) : IAsync
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
         dto.GetProperty("card_id").GetString().Should().Be("42");
-        dto.GetProperty("title").GetString().Should().Be("Detailed");
-        dto.GetProperty("description").GetString().Should().Be("body");
+        dto.GetProperty("text").GetString().Should().Be("Detailed\n\nbody");
         dto.GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/42");
     }
 

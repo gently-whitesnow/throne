@@ -142,9 +142,8 @@ internal static class WorkspaceMapPrompt
                 map.Append(" (в архиве)");
             }
             map.Append('\n');
-            map.Append("Title: ").Append(snapshot.Title).Append('\n');
             map.Append("ColumnTitle: ").Append(snapshot.ColumnTitle ?? "").Append('\n');
-            map.Append("Description:\n").Append(snapshot.Description ?? "").Append('\n');
+            map.Append("Text:\n").Append(snapshot.Text).Append('\n');
         }
     }
 

@@ -6,9 +6,8 @@ import type {
 } from "../model/types";
 
 /**
- * Active cards of a board as the browser lists them. Rows omit `description`
- * (the provider fills it only on the single-card read). Archived cards are
- * excluded server-side.
+ * Active cards of a board as the browser lists them. Each row includes canonical
+ * tracker text; archived cards are excluded server-side.
  */
 export function fetchBoardCards(
   tracker: string,
@@ -47,7 +46,7 @@ export function searchBoardCards(
   ).then((response) => response.cards);
 }
 
-/** Single card with its `description` populated (read-only, non-authoritative). */
+/** Single card with its full `text` (read-only, non-authoritative). */
 export function fetchBoardCard(
   tracker: string,
   boardId: string,

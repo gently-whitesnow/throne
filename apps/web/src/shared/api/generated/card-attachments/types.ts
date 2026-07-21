@@ -92,10 +92,8 @@ export interface components {
             tracker: components["schemas"]["TaskTrackerProvider"];
             board_id: string;
             card_id: string;
-            /** @description Snapshot of the card title. Non-authoritative — never written back upstream. */
-            title: string;
-            /** @description Snapshot of the card description (Markdown as provided by the tracker). */
-            description?: string | null;
+            /** @description Full card Markdown snapshot. Non-authoritative — never written back upstream. */
+            text: string;
             /** @description Snapshot of the card's current column/lane title, when the tracker exposes it. */
             column_title?: string | null;
             /** @description Whether the card was archived upstream at the last pull. */

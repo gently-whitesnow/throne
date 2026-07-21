@@ -13,7 +13,7 @@ public class IntentCardAttachmentTests
         var attachment = Attached();
 
         attachment.State.Availability.Should().Be(CardAvailabilityNames.Available);
-        attachment.State.Snapshot.Title.Should().Be("Card title");
+        attachment.State.Snapshot.Text.Should().Be("Card text");
         attachment.CreatedAt.Should().Be(Now);
         attachment.State.UpdatedAt.Should().Be(Now);
     }
@@ -25,10 +25,10 @@ public class IntentCardAttachmentTests
         attachment.MarkUnavailable(CardAvailabilityNames.Gone, Now.AddMinutes(1));
 
         var later = Now.AddMinutes(2);
-        attachment.ApplySnapshot(Snapshot(title: "Renamed", fetchedAt: later), later);
+        attachment.ApplySnapshot(Snapshot(text: "Renamed", fetchedAt: later), later);
 
         attachment.State.Availability.Should().Be(CardAvailabilityNames.Available);
-        attachment.State.Snapshot.Title.Should().Be("Renamed");
+        attachment.State.Snapshot.Text.Should().Be("Renamed");
         attachment.State.Snapshot.FetchedAt.Should().Be(later);
         attachment.State.UpdatedAt.Should().Be(later);
     }
@@ -82,7 +82,7 @@ public class IntentCardAttachmentTests
             Id: id,
             IntentId: new IntentId("intent-xyz"),
             Coordinate: Coordinate(cardId: "99"),
-            Snapshot: Snapshot(title: "Persisted"),
+            Snapshot: Snapshot(text: "Persisted"),
             Availability: CardAvailabilityNames.Gone,
             CreatedAt: Now,
             UpdatedAt: Now.AddMinutes(3)));
@@ -91,7 +91,7 @@ public class IntentCardAttachmentTests
         restored.IntentId.Value.Should().Be("intent-xyz");
         restored.Coordinate.CardId.Should().Be("99");
         restored.State.Availability.Should().Be(CardAvailabilityNames.Gone);
-        restored.State.Snapshot.Title.Should().Be("Persisted");
+        restored.State.Snapshot.Text.Should().Be("Persisted");
         restored.State.UpdatedAt.Should().Be(Now.AddMinutes(3));
     }
 

@@ -58,7 +58,7 @@ public sealed class IntentCardAttachmentsControllerTests(SqliteFixture sqlite) :
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
-        dto.GetProperty("title").GetString().Should().Be("Fresh card");
+        dto.GetProperty("text").GetString().Should().Be("Fresh card\n\nbody");
         dto.GetProperty("availability").GetString().Should().Be("available");
         dto.GetProperty("card_id").GetString().Should().Be("42");
         dto.GetProperty("web_url").GetString().Should().Be("https://acme.kaiten.ru/42");
@@ -145,7 +145,7 @@ public sealed class IntentCardAttachmentsControllerTests(SqliteFixture sqlite) :
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var dto = await response.Content.ReadFromJsonAsync<JsonElement>();
         dto.GetProperty("availability").GetString().Should().Be("unavailable");
-        dto.GetProperty("title").GetString().Should().Be("Attached");
+        dto.GetProperty("text").GetString().Should().Be("Attached\n\nbody");
     }
 
     [Fact(DisplayName = "DELETE cards возвращает 204 идемпотентно (существующий и отсутствующий)")]

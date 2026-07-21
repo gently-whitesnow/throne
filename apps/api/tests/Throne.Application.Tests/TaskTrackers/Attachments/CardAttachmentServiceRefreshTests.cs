@@ -17,12 +17,12 @@ public class CardAttachmentServiceRefreshTests
         var fixture = new CardAttachmentServiceFixture();
         var attachment = await fixture.SeedAttachedAsync();
 
-        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "Refreshed"));
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(text: "Refreshed"));
         var result = await fixture.Service.RefreshAsync(
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Available);
-        result.State.Snapshot.Title.Should().Be("Refreshed");
+        result.State.Snapshot.Text.Should().Be("Refreshed");
     }
 
     [Fact(DisplayName = "Refresh без коннекта деградирует в unavailable, снапшот сохраняется")]
@@ -36,7 +36,7 @@ public class CardAttachmentServiceRefreshTests
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Unavailable);
-        result.State.Snapshot.Title.Should().Be("Seed");
+        result.State.Snapshot.Text.Should().Be("Seed");
     }
 
     [Fact(DisplayName = "Refresh при броске провайдера деградирует в unavailable")]
@@ -50,7 +50,7 @@ public class CardAttachmentServiceRefreshTests
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Unavailable);
-        result.State.Snapshot.Title.Should().Be("Seed");
+        result.State.Snapshot.Text.Should().Be("Seed");
     }
 
     [Fact(DisplayName = "Refresh на пропавшую карточку (null) ставит gone, снапшот сохраняется")]
@@ -64,7 +64,7 @@ public class CardAttachmentServiceRefreshTests
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Gone);
-        result.State.Snapshot.Title.Should().Be("Seed");
+        result.State.Snapshot.Text.Should().Be("Seed");
     }
 
     [Fact(DisplayName = "Refresh карточки, переехавшей на другую доску, ставит gone и сохраняет снапшот")]
@@ -73,13 +73,13 @@ public class CardAttachmentServiceRefreshTests
         var fixture = new CardAttachmentServiceFixture();
         var attachment = await fixture.SeedAttachedAsync();
         fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(
-            Card(title: "Moved", boardId: "other-board"));
+            Card(text: "Moved", boardId: "other-board"));
 
         var result = await fixture.Service.RefreshAsync(
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Gone);
-        result.State.Snapshot.Title.Should().Be("Seed");
+        result.State.Snapshot.Text.Should().Be("Seed");
     }
 
     [Fact(DisplayName = "Refresh success фиксирует health=Connected в connections")]
@@ -87,7 +87,7 @@ public class CardAttachmentServiceRefreshTests
     {
         var fixture = new CardAttachmentServiceFixture();
         var attachment = await fixture.SeedAttachedAsync();
-        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "Refreshed"));
+        fixture.Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(text: "Refreshed"));
 
         await fixture.Service.RefreshAsync(
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
@@ -125,7 +125,7 @@ public class CardAttachmentServiceRefreshTests
             new RefreshCardAttachmentCommand(IntentIdValue, attachment.Id.Value), CancellationToken.None);
 
         result.State.Availability.Should().Be(CardAvailabilityNames.Unavailable);
-        result.State.Snapshot.Title.Should().Be("Seed");
+        result.State.Snapshot.Text.Should().Be("Seed");
         await fixture.Connections.Received().SaveHealthAsync(
             Tracker, TaskTrackerConnectionHealth.Auth, "token rejected",
             Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());

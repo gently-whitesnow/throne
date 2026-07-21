@@ -9,7 +9,7 @@ export type CardAttachment =
 /**
  * Provider-neutral, read-only projection of an external card as the board card
  * browser sees it (ADR-0052). Never an intent, never written back upstream. List
- * rows omit `description` — the single-card GET fills it in.
+ * rows carry the canonical full `text` from the tracker.
  */
 export type TaskTrackerCard =
   TaskTrackersComponents["schemas"]["TaskTrackerCardDto"];

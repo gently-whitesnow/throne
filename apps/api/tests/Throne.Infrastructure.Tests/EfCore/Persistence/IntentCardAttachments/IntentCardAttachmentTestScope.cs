@@ -33,15 +33,14 @@ internal static class IntentCardAttachmentTestFactory
         string tracker = "kaiten",
         string boardId = "10",
         string cardId = "42",
-        string title = "Card title",
+        string text = "Card text",
         DateTimeOffset? at = null) =>
         IntentCardAttachment.Create(
             id: CardAttachmentId.New(),
             intentId: intentId,
             coordinate: new CardCoordinate(tracker, boardId, cardId),
             snapshot: new CardSnapshot(
-                Title: title,
-                Description: "body",
+                Text: text,
                 ColumnTitle: "In Progress",
                 Archived: false,
                 CardVersion: "v1",

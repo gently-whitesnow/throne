@@ -72,8 +72,7 @@ function makeCard(overrides: Partial<CardAttachment> = {}): CardAttachment {
     tracker: "kaiten",
     board_id: "42",
     card_id: "777",
-    title: "Починить логин",
-    description: "## Шаги\n- воспроизвести",
+    text: "Починить логин\n\n## Шаги\n- воспроизвести",
     column_title: "In progress",
     archived: false,
     card_version: "v1",
@@ -152,11 +151,11 @@ describe("CardAttachmentsList", () => {
     });
     renderList();
     await waitFor(() => {
-      expect(screen.getByText("Починить логин")).toBeTruthy();
+      expect(screen.getAllByText("Починить логин")).not.toHaveLength(0);
     });
   });
 
-  it("рендерит title как внешнюю ссылку, когда web_url задан", async () => {
+  it("рендерит preview текста как внешнюю ссылку, когда web_url задан", async () => {
     listIntentCardAttachments.mockResolvedValue([
       makeCard({ web_url: "https://acme.kaiten.ru/777" })
     ]);
@@ -169,22 +168,22 @@ describe("CardAttachmentsList", () => {
     expect(link.textContent).toBe("Починить логин");
   });
 
-  it("рендерит title без ссылки, когда web_url = null", async () => {
+  it("рендерит preview текста без ссылки, когда web_url = null", async () => {
     listIntentCardAttachments.mockResolvedValue([makeCard({ web_url: null })]);
     renderList();
     await waitFor(() => {
-      expect(screen.getByText("Починить логин")).toBeTruthy();
+      expect(screen.getAllByText("Починить логин")).not.toHaveLength(0);
     });
     expect(screen.queryByTestId("card-attachment-link-c1")).toBeNull();
   });
 
-  it("рендерит title, координату и availability-бейдж", async () => {
+  it("рендерит preview текста, координату и availability-бейдж", async () => {
     listIntentCardAttachments.mockResolvedValue([
       makeCard({ availability: "unavailable", archived: true })
     ]);
     renderList();
     await waitFor(() => {
-      expect(screen.getByText("Починить логин")).toBeTruthy();
+      expect(screen.getAllByText("Починить логин")).not.toHaveLength(0);
     });
     const badge = screen.getByTestId("card-availability-c1");
     expect(badge.getAttribute("data-availability")).toBe("unavailable");
@@ -201,7 +200,7 @@ describe("CardAttachmentsList", () => {
     renderList();
 
     await waitFor(() => {
-      expect(screen.getByText("Починить логин")).toBeTruthy();
+      expect(screen.getAllByText("Починить логин")).not.toHaveLength(0);
     });
 
     openRowMenu();
@@ -271,7 +270,7 @@ describe("CardAttachmentsList", () => {
       });
     });
     await waitFor(() => {
-      expect(screen.getByText("Починить логин")).toBeTruthy();
+      expect(screen.getAllByText("Починить логин")).not.toHaveLength(0);
     });
   });
 

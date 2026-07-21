@@ -16,8 +16,7 @@ internal sealed record GenericHttpBoardDto(
 internal sealed record GenericHttpCardDto(
     [property: JsonPropertyName("card_id")] string CardId,
     [property: JsonPropertyName("board_id")] string BoardId,
-    [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("text")] string Text,
     [property: JsonPropertyName("column_id")] string? ColumnId,
     [property: JsonPropertyName("column_title")] string? ColumnTitle,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt,

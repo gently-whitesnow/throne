@@ -74,7 +74,7 @@ namespace Throne.TaskTrackers.Contracts.Generated
     }
 
     /// <summary>
-    /// Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A read-only, non-authoritative view — never an intent and never written back upstream. List rows may omit `description` (the provider fills it only on the single-card read).
+    /// Provider-neutral projection of an external card as the card browser sees it (ADR-0052). A read-only, non-authoritative view — never an intent and never written back upstream.
     /// <br/>
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -108,17 +108,11 @@ namespace Throne.TaskTrackers.Contracts.Generated
         public string Column_title { get; set; }
 
         /// <summary>
-        /// Card title.
+        /// Full card Markdown as provided by the tracker.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string Title { get; set; }
-
-        /// <summary>
-        /// Card description (Markdown as provided by the tracker); null on list rows.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string Text { get; set; }
 
         /// <summary>
         /// Last upstream update time, when the tracker exposes it.

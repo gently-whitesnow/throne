@@ -7,10 +7,9 @@ internal static class IntentCardAttachmentTestBuilder
 {
     public static readonly DateTimeOffset Now = new(2026, 5, 23, 12, 0, 0, TimeSpan.Zero);
 
-    public static CardSnapshot Snapshot(string title = "Card title", DateTimeOffset? fetchedAt = null) =>
+    public static CardSnapshot Snapshot(string text = "Card text", DateTimeOffset? fetchedAt = null) =>
         new(
-            Title: title,
-            Description: "body",
+            Text: text,
             ColumnTitle: "In Progress",
             Archived: false,
             CardVersion: "v1",

@@ -76,14 +76,14 @@ internal sealed class CardAttachmentServiceFixture
     {
         IntentExists();
         TrackerConnected();
-        Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(title: "Seed"));
+        Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(Card(text: "Seed"));
         var attached = await Service.AttachAsync(AttachCommand(), CancellationToken.None);
         Provider.OnGetCard = _ => Task.FromResult<TaskTrackerCard?>(null);
         return attached;
     }
 
     internal static TaskTrackerCard Card(
-        string title = "Card title",
+        string text = "Card text",
         string? version = "v1",
         string boardId = BoardId,
         string cardId = CardId) =>
@@ -92,8 +92,7 @@ internal sealed class CardAttachmentServiceFixture
             BoardId: boardId,
             ColumnId: "100",
             ColumnTitle: "In Progress",
-            Title: title,
-            Description: "body",
+            Text: text,
             UpdatedAt: Now,
             ColumnChangedAt: Now,
             Archived: false,

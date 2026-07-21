@@ -160,8 +160,7 @@ public sealed class TaskTrackerBoardRailGroupingTests(SqliteFixture sqlite)
             intentId: new IntentId(intentId),
             coordinate: new CardCoordinate(tracker, "board-7", cardId),
             snapshot: new CardSnapshot(
-                Title: "Card " + cardId,
-                Description: "body",
+                Text: "Card " + cardId + "\n\nbody",
                 ColumnTitle: "Todo",
                 Archived: false,
                 CardVersion: "v1",

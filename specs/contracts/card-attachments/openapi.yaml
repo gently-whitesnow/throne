@@ -6,7 +6,7 @@ info:
   description: >
     A task-tracker card attached to an intent as read-only context (ADR-0052). Many cards may
     attach to one intent (1:N); the attachment holds a non-authoritative snapshot of the card
-    (title / description / column / archived / revision) that is never written back upstream and
+    (text / column / archived / revision) that is never written back upstream and
     never treated as the intent's own truth. This replaces the retired 1:1 mirror axis: no
     `Intent.text` mirroring, no write-back, no auto-import, no auto-Reject. The `tracker` key is an
     open wire string (ADR-0046); connection settings live on the settings axis.
@@ -197,7 +197,7 @@ components:
         - tracker
         - board_id
         - card_id
-        - title
+        - text
         - archived
         - availability
         - fetched_at
@@ -214,13 +214,9 @@ components:
           type: string
         card_id:
           type: string
-        title:
+        text:
           type: string
-          description: Snapshot of the card title. Non-authoritative — never written back upstream.
-        description:
-          type: string
-          nullable: true
-          description: Snapshot of the card description (Markdown as provided by the tracker).
+          description: Full card Markdown snapshot. Non-authoritative — never written back upstream.
         column_title:
           type: string
           nullable: true

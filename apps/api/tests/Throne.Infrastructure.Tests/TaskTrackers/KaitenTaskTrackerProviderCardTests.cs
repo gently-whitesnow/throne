@@ -23,6 +23,7 @@ public sealed class KaitenTaskTrackerProviderCardTests
         card!.CardId.Should().Be("42");
         card.BoardId.Should().Be("10");
         card.ColumnTitle.Should().Be("In Progress");
+        card.Text.Should().Be("Card\n\nbody");
     }
 
     [Fact(DisplayName = "GetCard → null when the card is genuinely gone (404)")]

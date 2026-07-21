@@ -1,6 +1,7 @@
 import { ArrowLeft, Plus } from "lucide-react";
 
 import {
+  cardTextPreview,
   useBoardCardQuery,
   type TaskTrackerCard
 } from "@/entities/task-tracker-card";
@@ -12,12 +13,12 @@ import { useCreateIntentWithCard } from "../model/use-create-intent-with-card";
 interface BoardCardDetailProps {
   tracker: string;
   boardId: string;
-  /** The list row we opened from — carries title/coordinates before the fetch resolves. */
+  /** The list row we opened from — carries text/coordinates before the fetch resolves. */
   listCard: TaskTrackerCard;
   onBack: () => void;
 }
 
-/** Read-only card detail (title + markdown description) with the create action. */
+/** Read-only card detail with full Markdown text and the create action. */
 export function BoardCardDetail({
   tracker,
   boardId,
@@ -49,10 +50,10 @@ export function BoardCardDetail({
               data-testid={`board-card-link-${card.card_id}`}
               className="text-base-content hover:underline focus-visible:underline"
             >
-              {card.title}
+              {cardTextPreview(card.text)}
             </a>
           ) : (
-            card.title
+            cardTextPreview(card.text)
           )}
         </h4>
         {card.column_title ? (
@@ -71,13 +72,11 @@ export function BoardCardDetail({
           <p role="alert" className="m-0 text-sm text-error">
             {boardCardsErrorMessage(cardQuery.error)}
           </p>
-        ) : card.description ? (
+        ) : (
           <MarkdownView
-            markdown={card.description}
+            markdown={card.text}
             className="rounded-md border border-base-200 bg-base-200/40 px-3 py-2 text-sm"
           />
-        ) : (
-          <p className="m-0 text-sm text-base-content/50">Без описания</p>
         )}
       </div>
 

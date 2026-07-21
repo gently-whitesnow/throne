@@ -75,14 +75,14 @@ public sealed class GenericHttpTaskTrackerProviderTests
             .Which.Code.Should().Be(ErrorCodes.TaskTrackerConnectionRejected);
     }
 
-    [Fact(DisplayName = "ListBoardCards maps cards and excludes archived rows defensively")]
-    public async Task ListBoardCards_maps_cards()
+    [Fact(DisplayName = "ListBoardCards accepts the Overtime text-only payload without loss")]
+    public async Task ListBoardCards_maps_text_only_cards()
     {
         var (provider, handler) = NewProvider();
         handler.Enqueue(HttpStatusCode.OK, """
         {"cards":[
-          {"card_id":"1","board_id":"coding","title":"Active","description":"body","updated_at":"2026-07-16T10:00:00Z","archived":false,"card_version":"v1","web_url":"https://tasks/ui/1"},
-          {"card_id":"2","board_id":"coding","title":"Closed","archived":true}
+          {"card_id":"1","board_id":"coding","text":"Заголовок\n\nДетали","updated_at":"2026-07-16T10:00:00Z","archived":false,"card_version":"v1","web_url":"https://tasks/ui/1"},
+          {"card_id":"2","board_id":"coding","text":"Closed","archived":true}
         ]}
         """);
 
@@ -91,7 +91,7 @@ public sealed class GenericHttpTaskTrackerProviderTests
         cards.Should().ContainSingle();
         cards[0].CardId.Should().Be("1");
         cards[0].BoardId.Should().Be("coding");
-        cards[0].Description.Should().Be("body");
+        cards[0].Text.Should().Be("Заголовок\n\nДетали");
         cards[0].RevisionTag.Should().Be("v1");
         cards[0].WebUrl.Should().Be("https://tasks/ui/1");
         handler.Requests[0].Uri.PathAndQuery.Should().Be("/api/task-tracker/boards/coding/cards");
@@ -108,6 +108,21 @@ public sealed class GenericHttpTaskTrackerProviderTests
 
         handler.Requests[0].Uri.PathAndQuery.Should()
             .Be("/api/task-tracker/boards/coding/cards/search?query=parser%20bug&limit=7");
+    }
+
+    [Fact(DisplayName = "GetCard preserves the complete Overtime text-only response")]
+    public async Task GetCard_maps_text_only_card()
+    {
+        var (provider, handler) = NewProvider();
+        handler.Enqueue(HttpStatusCode.OK, """
+        {"card_id":"1","board_id":"coding","text":"Заголовок\n\nДетали","archived":false}
+        """);
+
+        var card = await provider.GetCardAsync(Descriptor, "1", CancellationToken.None);
+
+        card.Should().NotBeNull();
+        card!.Text.Should().Be("Заголовок\n\nДетали");
+        handler.Requests[0].Uri.PathAndQuery.Should().Be("/api/task-tracker/cards/1");
     }
 
     [Fact(DisplayName = "GetCard returns null only on 404")]

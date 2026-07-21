@@ -3,6 +3,7 @@ import { Archive, RefreshCw, SquareKanban, Trash2 } from "lucide-react";
 import {
   cardAvailabilityMetaOf,
   cardCoordinateLabel,
+  cardTextPreview,
   isCardArchived,
   type CardAttachment
 } from "@/entities/task-tracker-card";
@@ -18,8 +19,8 @@ interface CardAttachmentRowProps {
 
 /**
  * Одна строка панели приложенных карточек — «прозрачное окно» в снапшот:
- * координата (tracker · board · card), title, бейдж архива, availability-бейдж и
- * read-only описание. Содержимое не редактируется (снапшот non-authoritative,
+ * координата (tracker · board · card), превью text, бейдж архива, availability-бейдж и
+ * read-only Markdown. Содержимое не редактируется (снапшот non-authoritative,
  * вверх не пишется, ADR-0052). Per-row действия — «Обновить» (refresh) и
  * «Отвязать» (detach) в overflow-меню.
  */
@@ -53,11 +54,11 @@ export function CardAttachmentRow({ intentId, card }: CardAttachmentRowProps) {
                 data-testid={`card-attachment-link-${card.id}`}
                 className="truncate text-sm font-semibold text-base-content hover:underline focus-visible:underline"
               >
-                {card.title || "Без названия"}
+                {cardTextPreview(card.text)}
               </a>
             ) : (
               <span className="truncate text-sm font-semibold text-base-content">
-                {card.title || "Без названия"}
+                {cardTextPreview(card.text)}
               </span>
             )}
           </div>
@@ -139,17 +140,15 @@ export function CardAttachmentRow({ intentId, card }: CardAttachmentRowProps) {
         </div>
       </div>
 
-      {card.description ? (
-        <details className="group">
-          <summary className="cursor-pointer list-none text-xs font-medium text-base-content/60 hover:text-base-content">
-            Описание
-          </summary>
-          <MarkdownView
-            markdown={card.description}
-            className="mt-2 max-h-72 overflow-y-auto rounded-md border border-base-200 bg-base-200/40 px-3 py-2 text-sm"
-          />
-        </details>
-      ) : null}
+      <details className="group">
+        <summary className="cursor-pointer list-none text-xs font-medium text-base-content/60 hover:text-base-content">
+          Текст карточки
+        </summary>
+        <MarkdownView
+          markdown={card.text}
+          className="mt-2 max-h-72 overflow-y-auto rounded-md border border-base-200 bg-base-200/40 px-3 py-2 text-sm"
+        />
+      </details>
 
       {error ? (
         <p role="alert" className="m-0 text-xs text-error">

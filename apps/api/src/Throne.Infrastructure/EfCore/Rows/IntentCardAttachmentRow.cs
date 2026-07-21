@@ -12,8 +12,7 @@ internal sealed class IntentCardAttachmentRow
     public string Tracker { get; set; } = string.Empty;
     public string BoardId { get; set; } = string.Empty;
     public string CardId { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
+    public string Text { get; set; } = string.Empty;
     public string? ColumnTitle { get; set; }
     public bool Archived { get; set; }
     public string? CardVersion { get; set; }
