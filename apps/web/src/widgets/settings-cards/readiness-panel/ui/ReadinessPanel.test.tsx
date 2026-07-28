@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithQuery } from "@/app/test-utils";
@@ -6,12 +6,13 @@ import { renderWithQuery } from "@/app/test-utils";
 import { ReadinessPanel } from "./ReadinessPanel";
 
 const fetchGitProvidersStatus = vi.fn<() => Promise<unknown>>();
+const setGitLabHost = vi.fn<(host: string) => Promise<{ host: string }>>();
 const fetchTerminalVendorCatalog = vi.fn<() => Promise<unknown>>();
 const fetchWorkspaceSettings = vi.fn<() => Promise<unknown>>();
 
 vi.mock("@/entities/git-provider-status/api/git-providers-status-api", () => ({
   fetchGitProvidersStatus: () => fetchGitProvidersStatus(),
-  setGitLabHost: vi.fn()
+  setGitLabHost: (host: string) => setGitLabHost(host)
 }));
 vi.mock("@/entities/terminal-setting/api/terminal-vendor-catalog-api", () => ({
   fetchTerminalVendorCatalog: () => fetchTerminalVendorCatalog()
@@ -60,9 +61,37 @@ function gitStatus(authenticated: boolean) {
   };
 }
 
+function bothGitProviders(
+  gitHubAuthenticated: boolean,
+  gitLabAuthenticated: boolean,
+  gitLabHost: string
+) {
+  return {
+    providers: [
+      {
+        provider: "github",
+        status: {
+          authenticated: gitHubAuthenticated,
+          state: gitHubAuthenticated ? "authenticated" : "unauthenticated"
+        }
+      },
+      {
+        provider: "gitlab",
+        status: {
+          authenticated: gitLabAuthenticated,
+          state: gitLabAuthenticated ? "authenticated" : "unauthenticated",
+          host: gitLabHost
+        }
+      }
+    ]
+  };
+}
+
 describe("ReadinessPanel", () => {
   beforeEach(() => {
     fetchGitProvidersStatus.mockReset();
+    setGitLabHost.mockReset();
+    setGitLabHost.mockImplementation((host) => Promise.resolve({ host }));
     fetchTerminalVendorCatalog.mockReset();
     fetchWorkspaceSettings.mockReset();
   });
@@ -116,5 +145,67 @@ describe("ReadinessPanel", () => {
     });
     expect(screen.getByRole("tab", { name: "GitHub" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "GitLab" })).toBeTruthy();
+    expect(screen.getByText("gh auth login")).toBeTruthy();
+  });
+
+  it("сохраняет GitLab host в онбординге и перепроверяет сохранённый host", async () => {
+    fetchGitProvidersStatus
+      .mockResolvedValueOnce(bothGitProviders(false, false, "gitlab.com"))
+      .mockResolvedValueOnce(bothGitProviders(false, false, "gitlab.ati.st"))
+      .mockResolvedValueOnce(bothGitProviders(false, true, "gitlab.ati.st"));
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", true));
+    fetchWorkspaceSettings.mockResolvedValue({ writable: true });
+
+    render(<ReadinessPanel />);
+
+    await screen.findByRole("tab", { name: "GitLab" });
+    fireEvent.click(screen.getByRole("tab", { name: "GitLab" }));
+
+    const input =
+      await screen.findByTestId<HTMLInputElement>("gitlab-host-input");
+    expect(input.value).toBe("gitlab.com");
+    expect(
+      screen.getByText("glab auth login --hostname gitlab.com")
+    ).toBeTruthy();
+
+    fireEvent.change(input, { target: { value: "gitlab.ati.st" } });
+    fireEvent.click(screen.getByTestId("gitlab-host-save"));
+
+    await waitFor(() => {
+      expect(setGitLabHost).toHaveBeenCalledWith("gitlab.ati.st");
+      expect(
+        screen.getByText("glab auth login --hostname gitlab.ati.st")
+      ).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Перепроверить" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("readiness-item-git").getAttribute("data-ok")
+      ).toBe("true");
+    });
+  });
+
+  it("не отправляет невалидный GitLab host из онбординга", async () => {
+    fetchGitProvidersStatus.mockResolvedValue(
+      bothGitProviders(false, false, "gitlab.com")
+    );
+    fetchTerminalVendorCatalog.mockResolvedValue(catalog("ready", true));
+    fetchWorkspaceSettings.mockResolvedValue({ writable: true });
+
+    render(<ReadinessPanel />);
+
+    await screen.findByRole("tab", { name: "GitLab" });
+    fireEvent.click(screen.getByRole("tab", { name: "GitLab" }));
+    fireEvent.change(screen.getByTestId("gitlab-host-input"), {
+      target: { value: "https://gitlab.ati.st" }
+    });
+    fireEvent.click(screen.getByTestId("gitlab-host-save"));
+
+    expect(screen.getByTestId("gitlab-host-error").textContent).toMatch(
+      /без схемы/
+    );
+    expect(setGitLabHost).not.toHaveBeenCalled();
   });
 });

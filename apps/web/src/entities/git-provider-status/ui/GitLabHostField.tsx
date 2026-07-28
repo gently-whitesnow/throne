@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { useSetGitLabHost } from "@/entities/git-provider-status";
 import { Button } from "@/shared/ui";
+
+import { useSetGitLabHost } from "../api/git-providers-status-queries";
 
 interface GitLabHostFieldProps {
   initial: string;

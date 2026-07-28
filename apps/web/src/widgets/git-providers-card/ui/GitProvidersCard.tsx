@@ -11,6 +11,7 @@ import {
   describeProviderSession,
   gitProviderEntries,
   gitProviderHealthMeta,
+  GitLabHostField,
   isProviderHealthy,
   providerHealthKey,
   useGitProvidersStatus,
@@ -18,8 +19,6 @@ import {
   type GitProviderStatusEntry
 } from "@/entities/git-provider-status";
 import { Button } from "@/shared/ui";
-
-import { GitLabHostField } from "./GitLabHostField";
 
 const GH_SETUP_DOCS_URL =
   "https://docs.github.com/en/github-cli/github-cli/quickstart";
