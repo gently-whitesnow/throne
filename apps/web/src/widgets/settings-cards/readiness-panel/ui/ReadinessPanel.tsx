@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { GitLabHostField } from "@/entities/git-provider-status";
 import {
   useThroneReadiness,
   type ReadinessItem,
@@ -175,6 +176,9 @@ function Remediation({ remedies }: { remedies: ReadinessRemedy[] }) {
             </button>
           ))}
         </div>
+      ) : null}
+      {current.gitLabHost !== undefined ? (
+        <GitLabHostField initial={current.gitLabHost} />
       ) : null}
       <CommandBlock command={current.command} />
       <a

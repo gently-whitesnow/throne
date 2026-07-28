@@ -25,3 +25,4 @@ export {
   useGitProvidersStatus,
   type GitProvidersStatusState
 } from "./model/use-git-providers-status";
+export { GitLabHostField } from "./ui/GitLabHostField";

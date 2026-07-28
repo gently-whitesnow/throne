@@ -2,6 +2,7 @@ import { useCallback } from "react";
 
 import {
   gitProviderEntries,
+  findGitProviderStatus,
   isProviderHealthy,
   useGitProvidersStatus
 } from "@/entities/git-provider-status";
@@ -19,6 +20,7 @@ export interface ReadinessRemedy {
   label: string;
   command: string;
   hintHref: string;
+  gitLabHost?: string;
 }
 
 export interface ReadinessItem {
@@ -54,19 +56,6 @@ const VENDORS = [
     doc: "https://developers.openai.com/codex/cli"
   }
 ] as const;
-
-const GIT_REMEDIES: ReadinessRemedy[] = [
-  {
-    label: "GitHub",
-    command: "gh auth login",
-    hintHref: "https://cli.github.com/"
-  },
-  {
-    label: "GitLab",
-    command: "glab auth login",
-    hintHref: "https://docs.gitlab.com/cli/"
-  }
-];
 
 const TMUX_DOC = "https://github.com/tmux/tmux/wiki/Installing";
 
@@ -179,13 +168,27 @@ function buildGitItem(
       detail: `${providerLabel(ready.provider)} авторизован`
     };
   }
+  const gitLabHost =
+    findGitProviderStatus(status, "gitlab")?.host ?? "gitlab.com";
   return {
     key: "git",
     label: "Git-провайдер авторизован",
     ok: false,
     detail:
       "Git-провайдер не авторизован, нужен для клонирования репозиториев и работы с PR/MR",
-    remedies: GIT_REMEDIES
+    remedies: [
+      {
+        label: "GitHub",
+        command: "gh auth login",
+        hintHref: "https://cli.github.com/"
+      },
+      {
+        label: "GitLab",
+        command: `glab auth login --hostname ${gitLabHost}`,
+        hintHref: "https://docs.gitlab.com/cli/",
+        gitLabHost
+      }
+    ]
   };
 }
 
