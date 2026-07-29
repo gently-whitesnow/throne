@@ -35,6 +35,7 @@ internal static class StatusCommand
         Console.WriteLine($"pid:     {state.Pid}");
         Console.WriteLine($"url:     {Display(state.Url)}");
         Console.WriteLine($"version: {version}");
+        Console.WriteLine($"uptime:  {UptimeFormat.Describe(state.StartedAt, DateTimeOffset.UtcNow)}");
         return 0;
     }
 

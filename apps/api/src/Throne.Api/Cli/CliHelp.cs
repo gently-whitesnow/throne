@@ -11,7 +11,7 @@ internal static class CliHelp
           throne -a, --attach    start in the foreground (logs to console, Ctrl-C stops)
           throne stop            stop the running instance
           throne restart         stop, then start detached
-          throne status          running state, port, pid, version, home
+          throne status          running state, port, pid, version, uptime, home
           throne logs [-f]        tail the daemon log (-f / --follow to stream)
           throne update [--restart]   self-update from the latest GitHub release
           throne version, -v     print the version
